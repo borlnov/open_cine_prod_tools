@@ -11,65 +11,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
-import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
-import 'package:open_cine_prod_tools/models/ocpt_location.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_export_document.dart';
-import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
-import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_elements_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_elements_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_locations_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_locations_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_roles_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_roles_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_location_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_centre.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_read_only_banner.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_search_toggle.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_view_effects.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_compact_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
@@ -200,6 +174,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) => BlocConsumer<OcptResourcesBloc, OcptResourcesState>(
     listener: _onStateChanged,
     builder: (context, state) {
@@ -208,6 +183,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       }
 
       final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+      final previewedVersion = state.previewedVersion;
 
       return OcptWorkspaceShell(
         title: state.title,
@@ -221,9 +197,18 @@ class _ResourcesViewState extends State<_ResourcesView> {
           OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
         ),
         modeLabel: Tr.of(context).workspaceModeLabelResources,
-        toolbarActions: _buildToolbarActions(context, state),
+        toolbarActions: [OcptResourcesSearchToggle(isSearchVisible: state.isSearchVisible)],
         onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
-        overflowEntries: _buildOverflowEntries(context),
+        // The mode's `⋮` overflow menu: resetting the panel layout, alone — the exports are the
+        // toolbar's own `Export` button and its panel (see [_requestExport]). A `⋮` holding one
+        // entry is thin, but honest: moving it somewhere else is a separate question.
+        overflowEntries: [
+          PopupMenuItem<void>(
+            onTap: () =>
+                context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
+            child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
+          ),
+        ],
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
             context.read<OcptResourcesBloc>().add(const OcptResourcesLeftPanelToggledEvent()),
@@ -233,10 +218,31 @@ class _ResourcesViewState extends State<_ResourcesView> {
         onProjectSettingsRequested: state.isPreviewingVersion
             ? null
             : () => _requestProjectSettings(context),
-        banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildListPanel(context, state, workspaceState.episodes),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state, workspaceState.episodes),
+        banner: previewedVersion == null
+            ? null
+            : OcptResourcesReadOnlyBanner(previewedVersion: previewedVersion),
+        leftPanel: state.isListPanelVisible
+            ? OcptResourcesListPanelView(state: state, episodes: workspaceState.episodes)
+            : null,
+        rightPanel: state.rightDockTab == null
+            ? null
+            : OcptResourcesRightDockView(
+                state: state,
+                onVersionCreationRequested: () => unawaited(_requestVersionCreation(context)),
+              ),
+        centre: OcptResourcesCentre(
+          state: state,
+          episodes: workspaceState.episodes,
+          onPersonDeleteRequested: () => unawaited(_handlePersonDeleteRequested(context, state)),
+          onRoleDeleteRequested: () => unawaited(_handleRoleDeleteRequested(context, state)),
+          onCandidateRemoveRequested: (candidateId) =>
+              unawaited(_handleCandidateRemoveRequested(context, candidateId)),
+          onRoleMergeRequested: (sourceRoleId, targetRoleId) =>
+              unawaited(_handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId)),
+          onLocationDeleteRequested: () =>
+              unawaited(_handleLocationDeleteRequested(context, state)),
+          onElementDeleteRequested: () => unawaited(_handleElementDeleteRequested(context, state)),
+        ),
         statusBar: OcptResourcesStatusBar(
           peopleCount: state.peopleCount,
           roleCount: state.roleCount,
@@ -252,35 +258,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
     },
   );
 
-  /// Builds the mode's own toolbar actions: the search toggle, shown selected while the field is
-  /// open. Never withheld while a project version is being previewed read-only — search only
-  /// reads, it never writes to the project.
-  List<Widget> _buildToolbarActions(BuildContext context, OcptResourcesState state) => [
-    IconButton(
-      icon: const Icon(Icons.search, size: 20),
-      tooltip: Tr.of(context).resourcesToggleSearchTooltip,
-      isSelected: state.isSearchVisible,
-      onPressed: () =>
-          context.read<OcptResourcesBloc>().add(const OcptResourcesSearchToggledEvent()),
-    ),
-  ];
-
-  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the XLSX
-  /// export moved to the toolbar's own `Export` button and its panel (see [_requestExport]), and
-  /// this is the only entry the resources mode has left to offer. A `⋮` holding one entry is thin,
-  /// but honest: moving it somewhere else is a separate question this doesn't answer.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
-    PopupMenuItem<void>(
-      onTap: () => context.read<OcptResourcesBloc>().add(const OcptResourcesDockLayoutResetEvent()),
-      child: Text(Tr.of(context).resourcesResetPanelLayoutAction),
-    ),
-  ];
-
   /// Builds the two entries the toolbar's `Export` button offers: the resources workbook,
   /// unavailable while the whole catalogue is empty — there would be nothing in any of its four
   /// sheets but their header row — and the contact list, unavailable while nobody in the address
   /// book holds a position and no role is cast either — there would be no line to print.
-  List<OcptWorkspaceExportEntry<OcptResourcesExportDocument>> _buildExportEntries(
+  List<OcptWorkspaceExportEntry<OcptResourcesExportDocument>> _exportEntriesOf(
     BuildContext context,
     OcptResourcesState state,
   ) {
@@ -321,7 +303,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       context,
       title: tr.resourcesExportPanelTitle,
       message: tr.resourcesExportPanelMessage,
-      entries: _buildExportEntries(context, state),
+      entries: _exportEntriesOf(context, state),
       isPreviewingVersion: state.isPreviewingVersion,
     );
     if (picked == null) {
@@ -406,326 +388,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.
-  ///
-  /// Every `+ Add …` action is withheld — a null callback — while a project version is being
-  /// previewed: the list is then a way of reading that version, not of changing it.
-  ///
-  /// [episodes] comes from `OcptWorkspaceBloc.state.episodes` — the shell's own selector reads the
-  /// same list, so the roles tab's episode lines can never disagree with it — rather than a second
-  /// load of its own: only the workspace bloc owns and refreshes a project's episodes.
-  Widget? _buildListPanel(
-    BuildContext context,
-    OcptResourcesState state,
-    List<OcptEpisode> episodes,
-  ) {
-    if (!state.isListPanelVisible) {
-      return null;
-    }
-
-    return OcptResourcesListPanel(
-      activeTab: state.activeTab,
-      people: state.people,
-      selectedPersonId: state.selectedPersonId,
-      roles: state.roles,
-      candidatesByRoleId: state.snapshot?.candidatesByRoleId ?? const {},
-      selectedRoleId: state.selectedRoleId,
-      episodes: episodes,
-      locations: state.locations,
-      selectedLocationId: state.selectedLocationId,
-      elements: state.elements,
-      selectedElementId: state.selectedElementId,
-      isSearchVisible: state.isSearchVisible,
-      searchQuery: state.searchQuery,
-      onTabSelected: (tab) =>
-          context.read<OcptResourcesBloc>().add(OcptResourcesTabSelectedEvent(tab: tab)),
-      onSearchQueryChanged: (query) =>
-          context.read<OcptResourcesBloc>().add(OcptResourcesSearchQueryChangedEvent(query: query)),
-      onPersonSelected: (personId) => context.read<OcptResourcesBloc>().add(
-        OcptResourcesPersonSelectedEvent(personId: personId),
-      ),
-      onRoleSelected: (roleId) =>
-          context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
-      onLocationSelected: (locationId) => context.read<OcptResourcesBloc>().add(
-        OcptResourcesLocationSelectedEvent(locationId: locationId),
-      ),
-      onElementSelected: (elementId) => context.read<OcptResourcesBloc>().add(
-        OcptResourcesElementSelectedEvent(elementId: elementId),
-      ),
-      onAddPersonRequested: state.isPreviewingVersion
-          ? null
-          : () => context.read<OcptResourcesPeopleBloc>().add(
-              const OcptResourcesPersonCreationRequestedEvent(),
-            ),
-      onAddRoleRequested: state.isPreviewingVersion
-          ? null
-          : (kind) => context.read<OcptResourcesRolesBloc>().add(
-              OcptResourcesRoleCreationRequestedEvent(kind: kind),
-            ),
-      onAddLocationRequested: state.isPreviewingVersion
-          ? null
-          : () => context.read<OcptResourcesLocationsBloc>().add(
-              const OcptResourcesLocationCreationRequestedEvent(),
-            ),
-      onAddElementRequested: state.isPreviewingVersion
-          ? null
-          : (category) => context.read<OcptResourcesElementsBloc>().add(
-              OcptResourcesElementCreationRequestedEvent(category: category),
-            ),
-    );
-  }
-
-  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4), then
-  /// whichever tab is active, filling the rest of the row.
-  ///
-  /// The banner sits above everything else and stays whichever tab is active: it reports the whole
-  /// cast, not something about the tab currently being looked at — mirroring how the shot list's
-  /// own full role alert banners sit above its sequence content.
-  Widget _buildCentre(BuildContext context, OcptResourcesState state, List<OcptEpisode> episodes) {
-    final banner = _buildRoleAlertCompactBanner(context, state);
-    final body = _buildTabCentre(context, state, episodes);
-    if (banner == null) {
-      return body;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(padding: const EdgeInsets.fromLTRB(24, 18, 24, 0), child: banner),
-        Expanded(child: body),
-      ],
-    );
-  }
-
-  /// Builds the compact role alert banner, or null while the whole cast is in order or a project
-  /// version is being previewed read-only.
-  ///
-  /// Tapping a line selects that role (`OcptResourcesRoleSelectedEvent`, which now always switches
-  /// to the roles tab too), landing on its sheet where the full `OcptRoleAlertBanner` already
-  /// lives.
-  Widget? _buildRoleAlertCompactBanner(BuildContext context, OcptResourcesState state) {
-    final orphanedAlerts = state.orphanedRoleAlerts;
-    final collisionAlerts = state.roleCollisionAlerts;
-    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
-      return null;
-    }
-
-    return OcptRoleAlertCompactBanner(
-      orphanedAlerts: orphanedAlerts,
-      collisionAlerts: collisionAlerts,
-      onRoleTapped: (roleId) =>
-          context.read<OcptResourcesBloc>().add(OcptResourcesRoleSelectedEvent(roleId: roleId)),
-    );
-  }
-
-  /// Builds whichever tab is active: the selected record's sheet, each tab with its own empty state
-  /// while nothing is selected there.
-  ///
-  /// [episodes] is the roles tab's own, see [_buildListPanel]'s doc comment for why it is handed
-  /// down rather than reloaded.
-  Widget _buildTabCentre(
-    BuildContext context,
-    OcptResourcesState state,
-    List<OcptEpisode> episodes,
-  ) {
-    if (state.activeTab == OcptResourcesTab.roles) {
-      return _buildRolesCentre(context, state, episodes);
-    }
-
-    if (state.activeTab == OcptResourcesTab.locations) {
-      return _buildLocationsCentre(context, state);
-    }
-
-    if (state.activeTab == OcptResourcesTab.elements) {
-      return _buildElementsCentre(context, state);
-    }
-
-    final tr = Tr.of(context);
-    final selectedPerson = state.selectedPerson;
-    if (selectedPerson == null) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.groups_outlined,
-        message: tr.resourcesNoPersonSelectedHint,
-      );
-    }
-
-    final peopleBloc = context.read<OcptResourcesPeopleBloc>();
-
-    return BlocBuilder<OcptResourcesPeopleBloc, OcptResourcesPeopleState>(
-      builder: (context, peopleState) => OcptPersonSheet(
-        key: ValueKey(selectedPerson.id),
-        person: selectedPerson,
-        isReadOnly: state.isPreviewingVersion,
-        fieldValueOf: (field) => _fieldValueOf(peopleState, selectedPerson, field),
-        onFieldChanged: (field, rawValue) => peopleBloc.add(
-          OcptResourcesPersonFieldChangedEvent(
-            personId: selectedPerson.id,
-            field: field,
-            rawValue: rawValue,
-          ),
-        ),
-        onColorChanged: (colorIndex) => peopleBloc.add(
-          OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
-        ),
-        onPhotoPickRequested: () => peopleBloc.add(
-          OcptResourcesPersonPhotoPickRequestedEvent(
-            personId: selectedPerson.id,
-            fileTypeLabel: tr.resourcesImageFileTypeLabel,
-          ),
-        ),
-        onPhotoCleared: () =>
-            peopleBloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
-        onImageRightsDocumentPickRequested: () => peopleBloc.add(
-          OcptResourcesImageRightsDocumentPickRequestedEvent(
-            personId: selectedPerson.id,
-            fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
-          ),
-        ),
-        onImageRightsDocumentCleared: () => peopleBloc.add(
-          OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id),
-        ),
-        onBirthDateChanged: (date) => peopleBloc.add(
-          OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
-        ),
-        onTransportAutonomyChanged: (isTransportAutonomous) => peopleBloc.add(
-          OcptResourcesPersonTransportAutonomyChangedEvent(
-            personId: selectedPerson.id,
-            isTransportAutonomous: isTransportAutonomous,
-          ),
-        ),
-        onImageRightsStatusChanged: (status) => peopleBloc.add(
-          OcptResourcesPersonImageRightsStatusChangedEvent(
-            personId: selectedPerson.id,
-            status: status,
-          ),
-        ),
-        mileageRates: state.mileageRates,
-        onMileageRateChanged: (mileageRateId) => peopleBloc.add(
-          OcptResourcesPersonMileageRateChangedEvent(
-            personId: selectedPerson.id,
-            mileageRateId: mileageRateId,
-          ),
-        ),
-        onImageRightsDateChanged: (date) => peopleBloc.add(
-          OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
-        ),
-        onPositionAdded: () => peopleBloc.add(
-          OcptResourcesPositionAddedEvent(
-            personId: selectedPerson.id,
-            positionId: "",
-            customLabel: "",
-          ),
-        ),
-        onPositionUpdated: (id, {required positionId, required customLabel}) => peopleBloc.add(
-          OcptResourcesPositionUpdatedEvent(
-            id: id,
-            positionId: positionId,
-            customLabel: customLabel,
-          ),
-        ),
-        onPositionRemoved: (id) => peopleBloc.add(OcptResourcesPositionRemovedEvent(id: id)),
-        onSkillAdded: (label) =>
-            peopleBloc.add(OcptResourcesSkillAddedEvent(personId: selectedPerson.id, label: label)),
-        onSkillRemoved: (id) => peopleBloc.add(OcptResourcesSkillRemovedEvent(id: id)),
-        onUnavailabilityAdded:
-            ({
-              required startDate,
-              required endDate,
-              required slot,
-              required startMinute,
-              required endMinute,
-            }) => peopleBloc.add(
-              OcptResourcesUnavailabilityAddedEvent(
-                personId: selectedPerson.id,
-                startDate: startDate,
-                endDate: endDate,
-                slot: slot,
-                startMinute: startMinute,
-                endMinute: endMinute,
-                reason: "",
-              ),
-            ),
-        onUnavailabilityUpdated:
-            (
-              id, {
-              required startDate,
-              required endDate,
-              required slot,
-              required startMinute,
-              required endMinute,
-              required reason,
-            }) => peopleBloc.add(
-              OcptResourcesUnavailabilityUpdatedEvent(
-                id: id,
-                startDate: startDate,
-                endDate: endDate,
-                slot: slot,
-                startMinute: startMinute,
-                endMinute: endMinute,
-                reason: reason,
-              ),
-            ),
-        onUnavailabilityRemoved: (id) =>
-            peopleBloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
-        onDeleteRequested: () => _handleDeleteRequested(
-          context,
-          bloc: peopleBloc,
-          title: tr.resourcesDeleteConfirmTitle,
-          message: tr.resourcesDeleteConfirmMessage(
-            selectedPerson.displayName.isEmpty
-                ? tr.resourcesUnnamedPerson
-                : selectedPerson.displayName,
-          ),
-          event: OcptResourcesPersonDeletionRequestedEvent(personId: selectedPerson.id),
-        ),
-      ),
-    );
-  }
-
-  /// [person]'s current value for [field]: a pending edit still sitting in the bloc's debounce
-  /// takes priority over the person's own stored value, so typing is never overwritten by an
-  /// unrelated reload. Mirrors `OcptShotListMode._fieldValueOf`.
-  String _fieldValueOf(OcptResourcesPeopleState state, OcptPerson person, OcptPersonField field) {
-    final pending = state.pendingFieldEdits[(person.id, field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    return switch (field) {
-      OcptPersonField.firstName => person.firstName,
-      OcptPersonField.lastName => person.lastName,
-      OcptPersonField.email => person.email,
-      OcptPersonField.phone => person.phone,
-      OcptPersonField.addressLine1 => person.addressLine1,
-      OcptPersonField.addressLine2 => person.addressLine2,
-      OcptPersonField.postalCode => person.postalCode,
-      OcptPersonField.city => person.city,
-      OcptPersonField.region => person.region,
-      OcptPersonField.country => person.country,
-      OcptPersonField.minorNotes => person.minorNotes,
-      OcptPersonField.maxDailyPresenceMinutes => ocptMaxDailyPresenceTextOf(
-        person.maxDailyPresenceMinutes,
-      ),
-      OcptPersonField.commuteKmMilli =>
-        person.commuteKmMilli == null ? "" : ocptBudgetQuantityLabel(person.commuteKmMilli!),
-      OcptPersonField.accommodationNotes => person.accommodationNotes,
-      OcptPersonField.travelNotes => person.travelNotes,
-      OcptPersonField.dietaryNotes => person.dietaryNotes,
-      OcptPersonField.allergies => person.allergies,
-      OcptPersonField.measurementHeight => person.measurementHeight,
-      OcptPersonField.measurementChest => person.measurementChest,
-      OcptPersonField.measurementWaist => person.measurementWaist,
-      OcptPersonField.measurementHips => person.measurementHips,
-      OcptPersonField.sizeTop => person.sizeTop,
-      OcptPersonField.sizeBottom => person.sizeBottom,
-      OcptPersonField.sizeShoes => person.sizeShoes,
-      OcptPersonField.hmcNotes => person.hmcNotes,
-      OcptPersonField.notes => person.notes,
-    };
-  }
-
-  /// Asks [OcptConfirmDialog] the question [title] states, then dispatches [event] if the user
-  /// answered `Delete`.
+  /// Asks [OcptConfirmDialog] the question [title] states, then dispatches [event] to [bloc] if the
+  /// user answered `Delete`.
   ///
   /// The four tabs share this one path, so a record is deleted the same way whichever it belongs
   /// to — the way `OcptShotListMode._handleDeleteRequested` already asks it. Only the wording
@@ -756,6 +420,102 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(event);
   }
 
+  /// Confirms and dispatches the deletion of the selected person of [state].
+  Future<void> _handlePersonDeleteRequested(BuildContext context, OcptResourcesState state) async {
+    final selectedPerson = state.selectedPerson;
+    if (selectedPerson == null) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+
+    await _handleDeleteRequested(
+      context,
+      bloc: context.read<OcptResourcesPeopleBloc>(),
+      title: tr.resourcesDeleteConfirmTitle,
+      message: tr.resourcesDeleteConfirmMessage(
+        selectedPerson.displayName.isEmpty ? tr.resourcesUnnamedPerson : selectedPerson.displayName,
+      ),
+      event: OcptResourcesPersonDeletionRequestedEvent(personId: selectedPerson.id),
+    );
+  }
+
+  /// Confirms and dispatches the deletion of the selected role of [state].
+  Future<void> _handleRoleDeleteRequested(BuildContext context, OcptResourcesState state) async {
+    final selectedRole = state.selectedRole;
+    if (selectedRole == null) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+
+    await _handleDeleteRequested(
+      context,
+      bloc: context.read<OcptResourcesRolesBloc>(),
+      title: tr.resourcesRoleDeleteConfirmTitle,
+      message:
+          ocptRoleIsActionDetected(
+            isFromScreenplay: selectedRole.isFromScreenplay,
+            kind: selectedRole.kind,
+          )
+          ? tr.resourcesRoleActionDetectedDeleteConfirmMessage
+          : tr.resourcesRoleDeleteConfirmMessage,
+      event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
+    );
+  }
+
+  /// Confirms and dispatches the removal of the candidacy [candidateId] from its role.
+  Future<void> _handleCandidateRemoveRequested(BuildContext context, String candidateId) async {
+    final tr = Tr.of(context);
+
+    await _handleDeleteRequested(
+      context,
+      bloc: context.read<OcptResourcesRolesBloc>(),
+      title: tr.resourcesRemoveCandidateConfirmTitle,
+      message: tr.resourcesRemoveCandidateConfirmMessage,
+      event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
+    );
+  }
+
+  /// Confirms and dispatches the deletion of the selected location of [state].
+  Future<void> _handleLocationDeleteRequested(
+    BuildContext context,
+    OcptResourcesState state,
+  ) async {
+    final selectedLocation = state.selectedLocation;
+    if (selectedLocation == null) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+
+    await _handleDeleteRequested(
+      context,
+      bloc: context.read<OcptResourcesLocationsBloc>(),
+      title: tr.resourcesLocationDeleteConfirmTitle,
+      message: tr.resourcesLocationDeleteConfirmMessage,
+      event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
+    );
+  }
+
+  /// Confirms and dispatches the deletion of the selected element of [state].
+  Future<void> _handleElementDeleteRequested(BuildContext context, OcptResourcesState state) async {
+    final selectedElement = state.selectedElement;
+    if (selectedElement == null) {
+      return;
+    }
+
+    final tr = Tr.of(context);
+
+    await _handleDeleteRequested(
+      context,
+      bloc: context.read<OcptResourcesElementsBloc>(),
+      title: tr.resourcesElementDeleteConfirmTitle,
+      message: tr.resourcesDeleteElementConfirm,
+      event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
+    );
+  }
+
   /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
   /// resort — the role merge confirmation names both roles, and a role gone from the cast between
   /// the click and the dialog opening is the only way this fallback is ever seen.
@@ -767,7 +527,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
   Future<void> _handleRoleMergeRequested(
     BuildContext context,
     OcptResourcesState state,
-    OcptResourcesRolesBloc rolesBloc,
     String sourceRoleId,
     String targetRoleId,
   ) async {
@@ -789,670 +548,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
       return;
     }
 
-    rolesBloc.add(
+    context.read<OcptResourcesRolesBloc>().add(
       OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
     );
   }
-
-  /// Builds the roles tab's centre: the selected role's sheet, or the empty state — the one
-  /// explaining where roles come from while the cast itself is empty, the one asking for a
-  /// selection otherwise, mirroring `resourcesNoPersonSelectedHint`'s tone.
-  Widget _buildRolesCentre(
-    BuildContext context,
-    OcptResourcesState state,
-    List<OcptEpisode> episodes,
-  ) {
-    final tr = Tr.of(context);
-    final selectedRole = state.selectedRole;
-
-    if (selectedRole == null) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.theater_comedy_outlined,
-        message: state.roles.isEmpty ? tr.resourcesRolesEmptyHint : tr.resourcesNoRoleSelectedHint,
-      );
-    }
-
-    final bloc = context.read<OcptResourcesBloc>();
-    final rolesBloc = context.read<OcptResourcesRolesBloc>();
-    final elementsBloc = context.read<OcptResourcesElementsBloc>();
-    final castMember = _personOf(state, selectedRole.personId);
-
-    return BlocBuilder<OcptResourcesRolesBloc, OcptResourcesRolesState>(
-      builder: (context, rolesState) => OcptRoleSheet(
-        key: ValueKey(selectedRole.id),
-        role: selectedRole,
-        castMember: castMember,
-        otherRoles: _otherRolesOf(state, selectedRole, castMember),
-        people: state.people,
-        candidates: state.candidatesOfRole(selectedRole.id),
-        candidateNotesValueOf: (candidateId) =>
-            _candidateNotesValueOf(state, rolesState, selectedRole, candidateId),
-        elements: state.elements,
-        episodes: episodes,
-        removedRoleAlert: state.selectedRoleAlert,
-        mergeTargets: state.selectedRoleAlert == null
-            ? const []
-            : state.mergeTargetsOf(state.selectedRoleAlert!),
-        collisionAlert: state.selectedRoleCollisionAlert,
-        onMergeRequested: (sourceRoleId, targetRoleId) =>
-            _handleRoleMergeRequested(context, state, rolesBloc, sourceRoleId, targetRoleId),
-        isReadOnly: state.isPreviewingVersion,
-        fieldValueOf: (field) => _roleFieldValueOf(rolesState, selectedRole, field),
-        onFieldChanged: (field, rawValue) => rolesBloc.add(
-          OcptResourcesRoleFieldChangedEvent(
-            roleId: selectedRole.id,
-            field: field,
-            rawValue: rawValue,
-          ),
-        ),
-        onCastChanged: (personId) => rolesBloc.add(
-          OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId),
-        ),
-        onKindChanged: (kind) =>
-            rolesBloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
-        onEpisodesChanged: (episodeIds) => rolesBloc.add(
-          OcptResourcesRoleEpisodesChangedEvent(roleId: selectedRole.id, episodeIds: episodeIds),
-        ),
-        onDeleteRequested: () => _handleDeleteRequested(
-          context,
-          bloc: rolesBloc,
-          title: tr.resourcesRoleDeleteConfirmTitle,
-          message:
-              ocptRoleIsActionDetected(
-                isFromScreenplay: selectedRole.isFromScreenplay,
-                kind: selectedRole.kind,
-              )
-              ? tr.resourcesRoleActionDetectedDeleteConfirmMessage
-              : tr.resourcesRoleDeleteConfirmMessage,
-          event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
-        ),
-        onOrphanedRoleKept: () =>
-            rolesBloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
-        onPersonSheetOpenRequested: (personId) =>
-            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-        onCandidateAdded: (personId) => rolesBloc.add(
-          OcptResourcesRoleCandidateAddedEvent(roleId: selectedRole.id, personId: personId),
-        ),
-        onCandidateStatusChanged: (candidateId, status) => rolesBloc.add(
-          OcptResourcesRoleCandidateStatusChangedEvent(candidateId: candidateId, status: status),
-        ),
-        onCandidateAuditionDateChanged: (candidateId, auditionedOn) => rolesBloc.add(
-          OcptResourcesRoleCandidateAuditionDateChangedEvent(
-            candidateId: candidateId,
-            auditionedOn: auditionedOn,
-          ),
-        ),
-        onCandidateNotesChanged: (candidateId, rawValue) => rolesBloc.add(
-          OcptResourcesRoleCandidateFieldChangedEvent(
-            candidateId: candidateId,
-            field: OcptRoleCandidateField.notes,
-            rawValue: rawValue,
-          ),
-        ),
-        onCandidateRemoveRequested: (candidateId) => _handleDeleteRequested(
-          context,
-          bloc: rolesBloc,
-          title: tr.resourcesRemoveCandidateConfirmTitle,
-          message: tr.resourcesRemoveCandidateConfirmMessage,
-          event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
-        ),
-        onElementLinked: (elementId) => elementsBloc.add(
-          OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
-        ),
-        onRoleElementUpdated: (id, notes) =>
-            elementsBloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
-        onRoleElementRemoved: (id) =>
-            elementsBloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
-      ),
-    );
-  }
-
-  /// Builds the locations tab's centre: the selected location's sheet, or the empty state — the one
-  /// inviting a first location while there is none, the one asking for a selection otherwise.
-  Widget _buildLocationsCentre(BuildContext context, OcptResourcesState state) {
-    final tr = Tr.of(context);
-    final selectedLocation = state.selectedLocation;
-
-    if (selectedLocation == null) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.place_outlined,
-        message: state.locations.isEmpty
-            ? tr.resourcesLocationsEmptyHint
-            : tr.resourcesNoLocationSelectedHint,
-      );
-    }
-
-    final bloc = context.read<OcptResourcesBloc>();
-    final locationsBloc = context.read<OcptResourcesLocationsBloc>();
-
-    return BlocBuilder<OcptResourcesLocationsBloc, OcptResourcesLocationsState>(
-      builder: (context, locationsState) => OcptLocationSheet(
-        key: ValueKey(selectedLocation.id),
-        location: selectedLocation,
-        contact: _personOf(state, selectedLocation.contactPersonId),
-        people: state.people,
-        scenes: state.scenes,
-        otherLocations: _otherLocationsOf(state, selectedLocation.id),
-        assignedSceneIds: _assignedSceneIdsOf(state),
-        suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
-        setIdsWithPlan: state.setIdsWithPlan,
-        isReadOnly: state.isPreviewingVersion,
-        fieldValueOf: (field) => _locationFieldValueOf(locationsState, selectedLocation, field),
-        onFieldChanged: (field, rawValue) => locationsBloc.add(
-          OcptResourcesLocationFieldChangedEvent(
-            locationId: selectedLocation.id,
-            field: field,
-            rawValue: rawValue,
-          ),
-        ),
-        onColorChanged: (colorIndex) => locationsBloc.add(
-          OcptResourcesLocationColorChangedEvent(
-            locationId: selectedLocation.id,
-            colorIndex: colorIndex,
-          ),
-        ),
-        onPermitStatusChanged: (status) => locationsBloc.add(
-          OcptResourcesLocationPermitStatusChangedEvent(
-            locationId: selectedLocation.id,
-            status: status,
-          ),
-        ),
-        onPermitDateChanged: (date) => locationsBloc.add(
-          OcptResourcesLocationPermitDateChangedEvent(locationId: selectedLocation.id, date: date),
-        ),
-        onContactChanged: (personId) => locationsBloc.add(
-          OcptResourcesLocationContactChangedEvent(
-            locationId: selectedLocation.id,
-            personId: personId,
-          ),
-        ),
-        onPersonSheetOpenRequested: (personId) =>
-            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-        setFieldValueOf: (setId, field) => _setFieldValueOf(state, locationsState, setId, field),
-        onSetFieldChanged: (setId, field, rawValue) => locationsBloc.add(
-          OcptResourcesSetFieldChangedEvent(setId: setId, field: field, rawValue: rawValue),
-        ),
-        onSetAdded: () =>
-            locationsBloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
-        onSetRemoved: (setId) => locationsBloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
-        onSetLocationChanged: (setId, locationId) => locationsBloc.add(
-          OcptResourcesSetLocationChangedEvent(setId: setId, locationId: locationId),
-        ),
-        onSceneAssigned: (sceneId, setId) =>
-            locationsBloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
-        onSceneRemoved: (sceneId, setId) => locationsBloc.add(
-          OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId),
-        ),
-        onOpenSetInShotListRequested: (setId) =>
-            bloc.add(OcptResourcesOpenSetInShotListRequestedEvent(setId: setId)),
-        onPhotoAddRequested: () => locationsBloc.add(
-          OcptResourcesLocationPhotoAddRequestedEvent(
-            locationId: selectedLocation.id,
-            fileTypeLabel: tr.resourcesImageFileTypeLabel,
-          ),
-        ),
-        onPhotoRemoved: (assetId) =>
-            locationsBloc.add(OcptResourcesAssetRemovedEvent(assetId: assetId)),
-        onPermitDocumentPickRequested: () => locationsBloc.add(
-          OcptResourcesPermitDocumentPickRequestedEvent(
-            locationId: selectedLocation.id,
-            fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
-          ),
-        ),
-        onPermitDocumentCleared: () => locationsBloc.add(
-          OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
-        ),
-        onPermitDocumentValidFromChanged: (date) => locationsBloc.add(
-          OcptResourcesAssetValidFromChangedEvent(
-            assetId: selectedLocation.permitDocument!.id,
-            date: date,
-          ),
-        ),
-        onPermitDocumentValidUntilChanged: (date) => locationsBloc.add(
-          OcptResourcesAssetValidUntilChangedEvent(
-            assetId: selectedLocation.permitDocument!.id,
-            date: date,
-          ),
-        ),
-        onAvailabilityUpdated:
-            (
-              id, {
-              required startDate,
-              required endDate,
-              required weekdays,
-              required slot,
-              required startMinute,
-              required endMinute,
-              required kind,
-              required note,
-            }) => locationsBloc.add(
-              OcptResourcesLocationAvailabilityUpdatedEvent(
-                id: id,
-                startDate: startDate,
-                endDate: endDate,
-                weekdays: weekdays,
-                slot: slot,
-                startMinute: startMinute,
-                endMinute: endMinute,
-                kind: kind,
-                note: note,
-              ),
-            ),
-        onAvailabilityAdded:
-            ({
-              required startDate,
-              required endDate,
-              required weekdays,
-              required slot,
-              required startMinute,
-              required endMinute,
-            }) => locationsBloc.add(
-              OcptResourcesLocationAvailabilityAddedEvent(
-                locationId: selectedLocation.id,
-                startDate: startDate,
-                endDate: endDate,
-                weekdays: weekdays,
-                slot: slot,
-                startMinute: startMinute,
-                endMinute: endMinute,
-                kind: OcptLocationAvailabilityKind.available,
-                note: "",
-              ),
-            ),
-        onAvailabilityRemoved: (id) =>
-            locationsBloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
-        onDeleteRequested: () => _handleDeleteRequested(
-          context,
-          bloc: locationsBloc,
-          title: tr.resourcesLocationDeleteConfirmTitle,
-          message: tr.resourcesLocationDeleteConfirmMessage,
-          event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
-        ),
-      ),
-    );
-  }
-
-  /// Builds the elements tab's centre: the selected element's sheet, or the empty state — the one
-  /// inviting a first element while the catalogue is empty, the one asking for a selection
-  /// otherwise.
-  Widget _buildElementsCentre(BuildContext context, OcptResourcesState state) {
-    final tr = Tr.of(context);
-    final selectedElement = state.selectedElement;
-
-    if (selectedElement == null) {
-      return OcptWorkspaceEmptyMode(
-        icon: Icons.inventory_2_outlined,
-        message: state.elements.isEmpty
-            ? tr.resourcesElementsEmptyHint
-            : tr.resourcesNoElementSelectedHint,
-      );
-    }
-
-    final bloc = context.read<OcptResourcesBloc>();
-    final elementsBloc = context.read<OcptResourcesElementsBloc>();
-
-    return BlocBuilder<OcptResourcesElementsBloc, OcptResourcesElementsState>(
-      builder: (context, elementsState) => OcptElementSheet(
-        key: ValueKey(selectedElement.id),
-        element: selectedElement,
-        owner: _personOf(state, selectedElement.ownerPersonId),
-        bringer: _personOf(state, selectedElement.broughtByPersonId),
-        people: state.people,
-        roles: state.roles,
-        scenes: state.scenes,
-        currencyCode: state.currencyCode,
-        isReadOnly: state.isPreviewingVersion,
-        fieldValueOf: (field) => _elementFieldValueOf(elementsState, selectedElement, field),
-        onPhotoPickRequested: () => elementsBloc.add(
-          OcptResourcesElementPhotoPickRequestedEvent(
-            elementId: selectedElement.id,
-            fileTypeLabel: tr.resourcesImageFileTypeLabel,
-          ),
-        ),
-        onPhotoCleared: () =>
-            elementsBloc.add(OcptResourcesElementPhotoClearedEvent(elementId: selectedElement.id)),
-        onFieldChanged: (field, rawValue) => elementsBloc.add(
-          OcptResourcesElementFieldChangedEvent(
-            elementId: selectedElement.id,
-            field: field,
-            rawValue: rawValue,
-          ),
-        ),
-        onCategoryChanged: (category) => elementsBloc.add(
-          OcptResourcesElementCategoryChangedEvent(
-            elementId: selectedElement.id,
-            category: category,
-          ),
-        ),
-        onSourceKindChanged: (sourceKind) => elementsBloc.add(
-          OcptResourcesElementSourceKindChangedEvent(
-            elementId: selectedElement.id,
-            sourceKind: sourceKind,
-          ),
-        ),
-        onOwnerChanged: (personId) => elementsBloc.add(
-          OcptResourcesElementOwnerChangedEvent(elementId: selectedElement.id, personId: personId),
-        ),
-        onBringerChanged: (personId) => elementsBloc.add(
-          OcptResourcesElementBringerChangedEvent(
-            elementId: selectedElement.id,
-            personId: personId,
-          ),
-        ),
-        onTrackingFlagChanged: (flag, {required value}) => elementsBloc.add(
-          OcptResourcesElementTrackingFlagChangedEvent(
-            elementId: selectedElement.id,
-            flag: flag,
-            value: value,
-          ),
-        ),
-        onSceneAssigned: (sceneId) => elementsBloc.add(
-          OcptResourcesSceneAssignedToElementEvent(sceneId: sceneId, elementId: selectedElement.id),
-        ),
-        onLinkUpdated: (id, {required quantity, required notes}) => elementsBloc.add(
-          OcptResourcesSceneElementUpdatedEvent(id: id, quantity: quantity, notes: notes),
-        ),
-        onLinkRemoved: (id) => elementsBloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
-        onDeleteRequested: () => _handleDeleteRequested(
-          context,
-          bloc: elementsBloc,
-          title: tr.resourcesElementDeleteConfirmTitle,
-          message: tr.resourcesDeleteElementConfirm,
-          event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
-        ),
-        onPersonSheetOpenRequested: (personId) =>
-            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-        onRoleSheetOpenRequested: (roleId) =>
-            bloc.add(OcptResourcesRoleSheetOpenRequestedEvent(roleId: roleId)),
-      ),
-    );
-  }
-
-  /// [element]'s current value for [field]: a pending edit still sitting in the bloc's debounce
-  /// takes priority over the element's own stored value, so typing is never overwritten by an
-  /// unrelated reload. Mirrors [_fieldValueOf].
-  ///
-  /// The cost is the field whose stored value is not a string: it is written back as the plain
-  /// amount `ocptCostCentsOf` reads, so a field showing `12.50` holds 1250 cents.
-  String _elementFieldValueOf(
-    OcptResourcesElementsState state,
-    OcptElement element,
-    OcptElementField field,
-  ) {
-    final pending = state.pendingElementFieldEdits[(element.id, field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    return switch (field) {
-      OcptElementField.name => element.name,
-      OcptElementField.subCategory => element.subCategory,
-      OcptElementField.quantity => element.quantity,
-      OcptElementField.ownerNotes => element.ownerNotes,
-      OcptElementField.storageNotes => element.storageNotes,
-      OcptElementField.cost => ocptCostTextOf(element.cost),
-      OcptElementField.purposeNotes => element.purposeNotes,
-      OcptElementField.notes => element.notes,
-    };
-  }
-
-  /// Every location of the project other than [locationId], `(id, name)`, in the order the list
-  /// panel shows them — the destinations the sets card's own move control offers.
-  List<(String, String)> _otherLocationsOf(OcptResourcesState state, String locationId) => [
-    for (final location in state.locations)
-      if (location.id != locationId) (location.id, location.name),
-  ];
-
-  /// The ids of every scene already shot in a set, of this location or of another.
-  ///
-  /// Read across the **whole** project rather than the selected location alone: a scene may be shot
-  /// in several sets, so this does not say what picking one would do — it says which scenes are
-  /// still waiting for a set of their own, which is what the picker sorts by and what a suggestion
-  /// is offered for.
-  Set<String> _assignedSceneIdsOf(OcptResourcesState state) => {
-    for (final location in state.locations)
-      for (final set in location.sets) ...set.sceneIds,
-  };
-
-  /// The set each still-unplaced scene is suggested for, keyed by scene id.
-  ///
-  /// Computed once per build rather than per scene and per set: the suggestion is a property of a
-  /// scene's heading against the whole project, not of the set that happens to be drawing it.
-  /// Scenes already placed are left out — a suggestion is an offer to fill a hole, never a remark
-  /// about an answer the user has already given.
-  Map<String, String> _suggestedSetIdsOf(OcptResourcesState state) {
-    final assignedSceneIds = _assignedSceneIdsOf(state);
-    final suggestions = <String, String>{};
-
-    for (final scene in state.scenes) {
-      if (assignedSceneIds.contains(scene.id)) {
-        continue;
-      }
-
-      final setId = ocptSceneSetSuggestionOf(heading: scene.heading, locations: state.locations);
-      if (setId != null) {
-        suggestions[scene.id] = setId;
-      }
-    }
-
-    return suggestions;
-  }
-
-  /// Set [setId]'s current value for [field]: a pending edit still sitting in the bloc's debounce
-  /// takes priority over the set's own stored value, exactly as it does for a location's fields.
-  String _setFieldValueOf(
-    OcptResourcesState state,
-    OcptResourcesLocationsState locationsState,
-    String setId,
-    OcptSetField field,
-  ) {
-    final pending = locationsState.pendingSetFieldEdits[(setId, field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    for (final location in state.locations) {
-      for (final set in location.sets) {
-        if (set.id == setId) {
-          return switch (field) {
-            OcptSetField.name => set.name,
-            OcptSetField.notes => set.notes,
-          };
-        }
-      }
-    }
-
-    return "";
-  }
-
-  /// [location]'s current value for [field]: a pending edit still sitting in the bloc's debounce
-  /// takes priority over the location's own stored value, so typing is never overwritten by an
-  /// unrelated reload. Mirrors [_fieldValueOf].
-  ///
-  /// The two coordinates are the fields whose stored value is not a string: they are read back the
-  /// way they were typed rather than reformatted, so a field showing `45.76` was written `45.76`.
-  String _locationFieldValueOf(
-    OcptResourcesLocationsState state,
-    OcptLocation location,
-    OcptLocationField field,
-  ) {
-    final pending = state.pendingLocationFieldEdits[(location.id, field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    return switch (field) {
-      OcptLocationField.name => location.name,
-      OcptLocationField.addressLine1 => location.addressLine1,
-      OcptLocationField.addressLine2 => location.addressLine2,
-      OcptLocationField.postalCode => location.postalCode,
-      OcptLocationField.city => location.city,
-      OcptLocationField.region => location.region,
-      OcptLocationField.country => location.country,
-      OcptLocationField.latitude => location.latitude?.toString() ?? "",
-      OcptLocationField.longitude => location.longitude?.toString() ?? "",
-      OcptLocationField.contactNotes => location.contactNotes,
-      OcptLocationField.permitLabel => location.permitLabel,
-      OcptLocationField.parkingNotes => location.parkingNotes,
-      OcptLocationField.powerNotes => location.powerNotes,
-      OcptLocationField.facilitiesNotes => location.facilitiesNotes,
-      OcptLocationField.constraintsNotes => location.constraintsNotes,
-      OcptLocationField.notes => location.notes,
-    };
-  }
-
-  /// The person [personId] names, or null when it is null or names nobody in the loaded address
-  /// book (a stale reference from a snapshot rebuilt underneath).
-  OcptPerson? _personOf(OcptResourcesState state, String? personId) {
-    if (personId == null) {
-      return null;
-    }
-
-    for (final person in state.people) {
-      if (person.id == personId) {
-        return person;
-      }
-    }
-
-    return null;
-  }
-
-  /// The other roles [castMember] holds beside [role], in display order, or empty while [role] is
-  /// uncast or its cast member holds only this one.
-  List<OcptRole> _otherRolesOf(OcptResourcesState state, OcptRole role, OcptPerson? castMember) {
-    if (castMember == null) {
-      return const [];
-    }
-
-    return [
-      for (final other in state.roles)
-        if (other.id != role.id && other.personId == castMember.id) other,
-    ];
-  }
-
-  /// [role]'s current value for [field]: a pending edit still sitting in the bloc's debounce takes
-  /// priority over the role's own stored value, so typing is never overwritten by an unrelated
-  /// reload. Mirrors [_fieldValueOf].
-  String _roleFieldValueOf(OcptResourcesRolesState state, OcptRole role, OcptRoleField field) {
-    final pending = state.pendingRoleFieldEdits[(role.id, field)];
-    if (pending != null) {
-      return pending;
-    }
-
-    return switch (field) {
-      OcptRoleField.name => role.name,
-      OcptRoleField.castingNotes => role.castingNotes,
-    };
-  }
-
-  /// Candidacy [candidateId]'s current note: a pending edit still sitting in the bloc's debounce
-  /// takes priority over the candidacy's own stored value, so typing is never overwritten by an
-  /// unrelated reload. Mirrors [_roleFieldValueOf], one level down — a candidacy rather than a
-  /// role.
-  String _candidateNotesValueOf(
-    OcptResourcesState state,
-    OcptResourcesRolesState rolesState,
-    OcptRole role,
-    String candidateId,
-  ) {
-    final pending =
-        rolesState.pendingCandidateFieldEdits[(candidateId, OcptRoleCandidateField.notes)];
-    if (pending != null) {
-      return pending;
-    }
-
-    for (final candidate in state.candidatesOfRole(role.id)) {
-      if (candidate.id == candidateId) {
-        return candidate.notes;
-      }
-    }
-
-    return "";
-  }
-
-  /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.
-  Widget? _buildRightDock(BuildContext context, OcptResourcesState state) {
-    if (state.rightDockTab == null) {
-      return null;
-    }
-
-    return OcptResourcesRightDock(
-      versionsChild: _buildVersionsPanel(context, state),
-      onClose: () =>
-          context.read<OcptResourcesBloc>().add(const OcptResourcesRightDockClosedEvent()),
-    );
-  }
-
-  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
-  /// working copy is on screen.
-  Widget? _buildReadOnlyBanner(BuildContext context, OcptResourcesState state) {
-    final previewedVersion = state.previewedVersion;
-    if (previewedVersion == null) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-
-    return OcptWorkspaceReadOnlyBanner(
-      version: previewedVersion,
-      onForkRequested: () => context.read<OcptResourcesBloc>().add(
-        OcptProjectVersionRestoreConfirmedEvent(
-          versionId: previewedVersion.id,
-          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
-        ),
-      ),
-      onExitPreview: () => context.read<OcptResourcesBloc>().add(
-        const OcptProjectVersionPreviewExitRequestedEvent(),
-      ),
-    );
-  }
-
-  /// Builds the right dock's `Versions` tab: the working copy's own card and the project's named
-  /// versions, the same panel every other mode's dock hosts, wired to the events
-  /// `MixinOcptProjectVersionsBloc` handles.
-  Widget _buildVersionsPanel(BuildContext context, OcptResourcesState state) =>
-      OcptProjectVersionsPanel(
-        versions: state.projectVersions,
-        previewedVersionId: state.previewedVersionId,
-        workingCopy: state.workingCopy,
-        versionPendingDeletionId: state.versionPendingDeletionId,
-        versionPendingRestoreId: state.versionPendingRestoreId,
-        versionPendingRenameId: state.versionPendingRenameId,
-        onCreateRequested: () => _requestVersionCreation(context),
-        onPreviewRequested: (versionId) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
-        ),
-        onPreviewExitRequested: () => context.read<OcptResourcesBloc>().add(
-          const OcptProjectVersionPreviewExitRequestedEvent(),
-        ),
-        onRestoreRequested: (versionId) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
-        ),
-        onRestoreCancelled: () =>
-            context.read<OcptResourcesBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
-        onRestoreConfirmed: (version) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionRestoreConfirmedEvent(
-            versionId: version.id,
-            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
-          ),
-        ),
-        onDeleteRequested: (versionId) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
-        ),
-        onDeleteCancelled: () =>
-            context.read<OcptResourcesBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
-        onDeleteConfirmed: (versionId) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
-        ),
-        onRenameRequested: (versionId) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
-        ),
-        onRenameCancelled: () =>
-            context.read<OcptResourcesBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
-        onRenameConfirmed: (versionId, name, note) => context.read<OcptResourcesBloc>().add(
-          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
-        ),
-      );
 
   /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {

@@ -215,6 +215,22 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
+  /// The person [personId] names, or null when it is null or names nobody in the loaded address
+  /// book (a stale reference from a snapshot rebuilt underneath).
+  OcptPerson? personOf(String? personId) {
+    if (personId == null) {
+      return null;
+    }
+
+    for (final person in people) {
+      if (person.id == personId) {
+        return person;
+      }
+    }
+
+    return null;
+  }
+
   /// Every role of [snapshot], in display order (empty while nothing is loaded).
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
