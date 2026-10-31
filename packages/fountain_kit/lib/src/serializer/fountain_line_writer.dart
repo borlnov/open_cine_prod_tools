@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// Writes a single display line of Fountain text back out as a raw source
 /// line, deciding on the fly whether the line needs a forcing marker to

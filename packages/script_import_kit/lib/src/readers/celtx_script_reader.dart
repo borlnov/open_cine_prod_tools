@@ -13,6 +13,7 @@ import 'package:script_import_kit/src/emitter/script_fountain_emitter.dart';
 import 'package:script_import_kit/src/emitter/script_line.dart';
 import 'package:script_import_kit/src/emitter/script_title_page.dart';
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/models/script_import_failure.dart';
 import 'package:script_import_kit/src/script_styled_runs.dart';
 import 'package:script_import_kit/src/script_text_decoder.dart';
 import 'package:xml/xml.dart';

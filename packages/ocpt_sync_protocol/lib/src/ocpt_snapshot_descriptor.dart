@@ -4,6 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sequence_number.dart';
+import 'package:ocpt_sync_protocol/src/ocpt_sync_malformed_data_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_protocol_format_error.dart';
 import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 

@@ -4,7 +4,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// The base typographic treatment a printed screenplay element gets,
 /// independent of any inline emphasis (`**bold**`, `*italic*`...) its own

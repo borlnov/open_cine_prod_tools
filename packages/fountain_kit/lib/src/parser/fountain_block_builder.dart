@@ -6,6 +6,7 @@ import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
 /// Translates local line indices (into the body line array passed to
 /// [FountainBlockBuilder.build]) into [FountainSourceRange]s that point back

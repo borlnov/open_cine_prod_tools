@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:ocpt_sync_protocol/src/ocpt_sync_protocol_format_error.dart';
+import 'package:ocpt_sync_protocol/src/ocpt_sync_malformed_data_error.dart';
 
 /// Small, shared JSON-decoding helpers every wire type's `fromJson` reads a required field
 /// through, so a missing or mistyped key always fails the same way: an

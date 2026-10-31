@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_scene_statistics.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';

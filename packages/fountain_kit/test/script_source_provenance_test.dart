@@ -2,12 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:fountain_kit/src/layout/fountain_element_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_layout_alignment.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
+import 'package:fountain_kit/src/layout/fountain_script_layout.dart';
+import 'package:fountain_kit/src/layout/fountain_script_line.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 

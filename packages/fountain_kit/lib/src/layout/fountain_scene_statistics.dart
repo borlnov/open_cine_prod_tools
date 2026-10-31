@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 import 'package:fountain_kit/src/layout/fountain_printable_text.dart';
 import 'package:fountain_kit/src/layout/fountain_script_composer.dart';
+import 'package:fountain_kit/src/layout/fountain_script_line.dart';
 import 'package:fountain_kit/src/layout/fountain_speaking_characters.dart';
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';

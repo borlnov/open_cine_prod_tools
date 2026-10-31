@@ -16,4 +16,6 @@ export 'src/ocpt_sequence_number.dart';
 export 'src/ocpt_snapshot_descriptor.dart';
 export 'src/ocpt_stored_changeset.dart';
 export 'src/ocpt_sync_error.dart';
+export 'src/ocpt_sync_error_code.dart';
+export 'src/ocpt_sync_malformed_data_error.dart';
 export 'src/ocpt_sync_protocol_format_error.dart';

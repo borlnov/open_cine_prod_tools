@@ -6,6 +6,7 @@ import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
 import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 import 'package:fountain_kit/src/parser/fountain_block_builder.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 

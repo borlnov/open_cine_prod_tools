@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:spell_kit/src/hunspell_affix_file.dart';
+import 'package:spell_kit/src/hunspell_affix_rule.dart';
 
 /// An index over a [HunspellAffixFile]'s rules, narrowing the set a lookup
 /// has to try.

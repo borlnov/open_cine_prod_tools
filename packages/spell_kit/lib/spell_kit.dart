@@ -17,4 +17,5 @@ export 'src/hunspell_dictionary.dart' show SpellDictionary;
 export 'src/spell_checker.dart' show SpellChecker;
 export 'src/spell_range.dart' show SpellRange;
 export 'src/spell_suggester.dart' show SpellSuggester;
-export 'src/spell_tokenizer.dart' show SpellToken, SpellTokenizerOptions, spellTokensIn;
+export 'src/spell_token.dart';
+export 'src/spell_tokenizer.dart' show SpellTokenizerOptions, spellTokensIn;

@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:script_import_kit/src/models/script_import_exception.dart';
+import 'package:script_import_kit/src/models/script_import_failure.dart';
 import 'package:script_import_kit/src/models/script_import_format.dart';
 import 'package:script_import_kit/src/models/script_import_result.dart';
 import 'package:script_import_kit/src/readers/celtx_script_reader.dart';

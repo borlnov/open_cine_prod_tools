@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
+import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:test/test.dart';
 
 /// Classifies [lines] with a fresh [FountainLineClassifier].

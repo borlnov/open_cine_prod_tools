@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 
 /// Splices a title page's `key: value` entries into (or out of) a Fountain
 /// source string, without touching anything else in the source.

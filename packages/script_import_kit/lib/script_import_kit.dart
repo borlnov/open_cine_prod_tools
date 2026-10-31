@@ -8,6 +8,7 @@
 library;
 
 export 'src/models/script_import_exception.dart';
+export 'src/models/script_import_failure.dart';
 export 'src/models/script_import_format.dart';
 export 'src/models/script_import_result.dart';
 export 'src/readers/celtx_script_reader.dart';

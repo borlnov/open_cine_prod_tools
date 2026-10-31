@@ -5,7 +5,10 @@
 import 'dart:collection';
 
 import 'package:spell_kit/src/hunspell_affix_file.dart';
+import 'package:spell_kit/src/hunspell_affix_rule.dart';
 import 'package:spell_kit/src/hunspell_affix_rule_index.dart';
+import 'package:spell_kit/src/hunspell_compound_rule_element.dart';
+import 'package:spell_kit/src/hunspell_compound_rule_quantifier.dart';
 import 'package:spell_kit/src/hunspell_dictionary.dart';
 import 'package:spell_kit/src/spell_range.dart';
 import 'package:spell_kit/src/spell_tokenizer.dart';

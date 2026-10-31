@@ -5,6 +5,7 @@
 import 'package:fountain_kit/src/models/fountain_block.dart';
 import 'package:fountain_kit/src/models/fountain_document.dart';
 import 'package:fountain_kit/src/models/fountain_title_page.dart';
+import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 
 /// Writes a [FountainDocument] back out as canonical Fountain source text.
 ///

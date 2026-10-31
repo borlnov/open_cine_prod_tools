@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/src/models/fountain_inline_span.dart';
+import 'package:fountain_kit/src/models/fountain_inline_style.dart';
 import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 import 'package:test/test.dart';

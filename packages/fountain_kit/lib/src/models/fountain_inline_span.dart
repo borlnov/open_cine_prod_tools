@@ -3,29 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:equatable/equatable.dart';
+import 'package:fountain_kit/src/models/fountain_inline_style.dart';
 import 'package:fountain_kit/src/models/fountain_source_range.dart';
-
-/// The inline emphasis style carried by a [FountainInlineSpan].
-enum FountainInlineStyle {
-  /// Unstyled text, not wrapped in any emphasis marker.
-  plain,
-
-  /// Text wrapped in single asterisks, `*like this*`.
-  italic,
-
-  /// Text wrapped in double asterisks, `**like this**`.
-  bold,
-
-  /// Text wrapped in triple asterisks, `***like this***`.
-  boldItalic,
-
-  /// Text wrapped in underscores, `_like this_`.
-  underline,
-
-  /// Text wrapped in double square brackets, `[[like this]]`, an inline
-  /// authoring note that is not part of the printed screenplay.
-  note,
-}
 
 /// A single run of inline-styled text produced by parsing Fountain emphasis
 /// markers.
