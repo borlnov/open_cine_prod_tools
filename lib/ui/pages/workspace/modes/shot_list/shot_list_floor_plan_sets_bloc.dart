@@ -162,12 +162,13 @@ class OcptShotListFloorPlanSetsBloc
     on<OcptShotListFloorPlanSetsWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Empties the palette's props and reads them again when the mode loads or selects another
-  /// sequence, the only moves of the mode's state this bloc depends on.
+  /// Reads the palette's props again when the mode loads or selects another sequence, the only
+  /// moves of the mode's state this bloc depends on.
   ///
-  /// Waits for nothing before it emits: the props of the sequence the mode just left must not be
-  /// offered for the one it moved to for even a frame, and the read itself runs as an event of its
-  /// own ([OcptShotListFloorPlanPropsLoadRequestedEvent]).
+  /// Waits for nothing: the read runs as an event of its own
+  /// ([OcptShotListFloorPlanPropsLoadRequestedEvent]). The palette keeps the props it shows until
+  /// the new ones land, then swaps them at once, as the screen always has: emptying it meanwhile
+  /// would make the chips flicker.
   @override
   Future<void> onModeStateChanged(
     OcptViewModeStateChangedEvent<OcptShotListState> event,
@@ -194,7 +195,6 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    emitter(state.copyWith(propsOfSelectedSequence: const []));
     add(
       OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: event.modeState.selectedSequenceId),
     );
@@ -225,6 +225,8 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
+      // The props kept meanwhile belong to another sequence: none is better than a wrong one.
+      emitter(state.copyWith(propsOfSelectedSequence: const []));
     }
   }
 

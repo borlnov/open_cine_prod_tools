@@ -865,7 +865,7 @@ void main() {
     }
 
     test(
-      "the mode's selection moves empty the palette's props and read the new sequence's",
+      "the mode's selection moves read the new sequence's props, the palette never going empty",
       () async {
         await writeScreenplay(twoSceneText);
         final mode = buildBloc();
@@ -881,18 +881,23 @@ void main() {
         await waitUntil(() => sets.state.propsOfSelectedSequence.length == 1);
         expect(sets.state.propsOfSelectedSequence.single.elementId, candlesId);
 
-        // Another sequence: emptied the moment the selection moves, while the read is on its way.
+        // Another sequence: the props shown stay while the read is on its way, then are replaced.
+        final shown = <int>[];
+        final shownSubscription = sets.stream.listen(
+          (state) => shown.add(state.propsOfSelectedSequence.length),
+        );
         service.heldScenes.add(secondSequence.sceneId);
         await mode.addAndWait(OcptShotListSequenceSelectedEvent(sequenceId: secondSequence.id));
         await waitUntil(() => service.holdCount == 1);
-        expect(sets.state.propsOfSelectedSequence, isEmpty);
+        expect(sets.state.propsOfSelectedSequence.single.elementId, candlesId);
         service.release();
-        await waitUntil(() => sets.state.propsOfSelectedSequence.length == 1);
-        expect(sets.state.propsOfSelectedSequence.single.elementId, lanternId);
+        await waitUntil(() => sets.state.propsOfSelectedSequence.single.elementId == lanternId);
 
         // Back: the first sequence's.
         await mode.addAndWait(OcptShotListSequenceSelectedEvent(sequenceId: firstSequence.id));
         await waitUntil(() => sets.state.propsOfSelectedSequence.single.elementId == candlesId);
+        expect(shown, isNot(contains(0)));
+        await shownSubscription.cancel();
 
         // The sequence already shown, a shot and a set selected leave them as they are.
         final emissions = <int>[];
@@ -911,6 +916,40 @@ void main() {
       },
     );
 
+    test("entering and leaving a version preview keeps the palette's props on screen", () async {
+      await writeScreenplay(twoSceneText);
+      final mode = buildBloc();
+      await waitForState(mode, (state) => !state.isLoading);
+      final firstSequence = mode.state.sequences.first as OcptSceneShotSequence;
+      final candlesId = await addProp(firstSequence.sceneId, "Candles");
+      final sets = buildSets(mode);
+      await waitUntil(() => sets.state.propsOfSelectedSequence.length == 1);
+
+      final shown = <int>[];
+      final subscription = sets.stream.listen(
+        (state) => shown.add(state.propsOfSelectedSequence.length),
+      );
+
+      mode.add(const OcptProjectVersionCreationRequestedEvent(name: "With a prop", note: ""));
+      final withVersion = await waitForState(mode, (state) => state.projectVersions.isNotEmpty);
+      mode.add(
+        OcptProjectVersionPreviewRequestedEvent(versionId: withVersion.projectVersions.single.id),
+      );
+      await waitForState(mode, (state) => state.previewedVersionId != null);
+      await pumpEventQueue();
+      await waitUntil(() => sets.state.propsOfSelectedSequence.length == 1);
+
+      mode.add(const OcptProjectVersionPreviewExitRequestedEvent());
+      await waitForState(mode, (state) => state.previewedVersionId == null);
+      await pumpEventQueue();
+
+      expect(sets.state.propsOfSelectedSequence.single.elementId, candlesId);
+      expect(shown, isNot(contains(0)));
+
+      await subscription.cancel();
+      await closeAll(sets, mode);
+    });
+
     test("props read for a sequence the mode has left do not reach the palette", () async {
       await writeScreenplay(twoSceneText);
       final mode = buildBloc();
@@ -928,8 +967,11 @@ void main() {
       mode.add(const OcptShotListLoadRequestedEvent());
       await waitUntil(() => service.holdCount == 1);
       await mode.addAndWait(OcptShotListSequenceSelectedEvent(sequenceId: secondSequence.id));
-      await waitUntil(() => sets.state.propsOfSelectedSequence.isNotEmpty);
-      expect(sets.state.propsOfSelectedSequence.single.elementId, lanternId);
+      await waitUntil(
+        () =>
+            sets.state.propsOfSelectedSequence.isNotEmpty &&
+            sets.state.propsOfSelectedSequence.single.elementId == lanternId,
+      );
 
       service.release();
       await Future<void>.delayed(const Duration(milliseconds: 100));
