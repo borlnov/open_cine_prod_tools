@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -333,6 +334,43 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? const [] : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
+
+  /// The event [eventId] of the selected day, or null while it names none of
+  /// [selectedDayEvents] — what the day view's and the day inspector's own event label/notes fields
+  /// read their stored value off, there being no per-event map to keep in step with a fresh
+  /// snapshot.
+  OcptShootingDayEvent? selectedDayEventOf(String eventId) {
+    for (final event in selectedDayEvents) {
+      if (event.id == eventId) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  /// The guest attendance [guestId] among the guests of the selected day's [selectedDaySlots], or
+  /// null while it names no live guest of the selected day — what a slot card's own guest
+  /// reason/notes fields read their stored value off.
+  OcptShootingSlotGuest? selectedDayGuestOf(String guestId) {
+    for (final slot in selectedDaySlots) {
+      for (final guest in slot.guests) {
+        if (guest.id == guestId) {
+          return guest;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// The hour a freshly created event of day [dayId] is first given — that day's own earliest
+  /// resolved slot start ([dayArrivalMinute]) when it has one, or 09:00 otherwise. Only ever a
+  /// **starting point**: the row's own minute field immediately lets the user correct it, so this
+  /// is never a claim about when anything actually happens on the day.
+  int newEventMinuteOf(String dayId) => dayArrivalMinute(dayId) ?? _defaultDayEventFallbackMinute;
+
+  /// The hour a freshly created day event falls back to when its day has no live slot yet to read
+  /// an arrival off — see [newEventMinuteOf].
+  static const int _defaultDayEventFallbackMinute = 9 * 60;
 
   /// Every real scene of every episode's own [shotListSnapshots], as an [OcptSceneShotSequence],
   /// episode 1's before episode 2's — what a hold block's own sequence picker offers.
