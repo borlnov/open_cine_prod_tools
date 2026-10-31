@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_screenplay_characters_of.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -77,7 +78,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// after, mirroring `OcptEditorBloc`'s own autosave convention.
 ///
 /// The screenplay's Fountain text is loaded once here, and the speaking characters are derived from
-/// it by [_screenplayCharactersOf] rather than by parsing the text a second time.
+/// it by `ocptScreenplayCharactersOf` rather than by parsing the text a second time.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does: the project's versions are a property of the *project*, so that tab and
@@ -394,7 +395,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final floorPlanSnapshot = await _loadFloorPlans(project);
       final locations = await _loadLocations(project);
       final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
-      final screenplayCharacters = _screenplayCharactersOf(screenplayText);
+      final screenplayCharacters = ocptScreenplayCharactersOf(screenplayText);
       final roles = await _loadRoles(project);
       final suggestions = await _loadSuggestions(project);
 
@@ -510,7 +511,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       _roleIndexService.loadRoles(database: project.database);
 
   /// Reads the selected episode's current Fountain source text, kept in
-  /// `OcptShotListState.screenplayText` for [_screenplayCharactersOf] and the scenario coverage.
+  /// `OcptShotListState.screenplayText` for `ocptScreenplayCharactersOf` and the scenario coverage.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
       .screenplayService
       .loadScreenplayText(database: project.database, screenplayId: screenplayIdOf(project));
@@ -529,21 +530,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         margins:
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
-
-  /// Parses [screenplayText] and delegates to `fountain_kit`'s `screenplayCharactersOf`, whose
-  /// normalisation matches `shot_characters.characterName`'s own (both go through
-  /// `normalizeCharacterName`) so a shot's character and a screenplay's own compare equal
-  /// byte-for-byte.
-  ///
-  /// The whole cast, not only the speaking roles: a character introduced in capitals in an action
-  /// line and never given a single line of dialogue (a silhouette, an extra, someone who only
-  /// crosses the frame) still has to be attachable to a shot, and would otherwise be reported as
-  /// removed from the screenplay by `OcptShotListState.removedCharacterAlerts` the moment somebody
-  /// attached them.
-  List<String> _screenplayCharactersOf(String screenplayText) {
-    final document = const FountainParser().parse(screenplayText);
-    return screenplayCharactersOf(document.blocks);
-  }
 
   /// Reads every free-text field's suggestion list, scoped to the selected episode.
   Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) =>
