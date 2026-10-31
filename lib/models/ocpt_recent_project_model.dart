@@ -49,11 +49,12 @@ class OcptRecentProjectModel extends Equatable {
     String? name,
     DateTime? lastOpenedAt,
     int? episodeCount,
+    bool forceEpisodeCountValue = false,
   }) => OcptRecentProjectModel(
     path: path ?? this.path,
     name: name ?? this.name,
     lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
-    episodeCount: episodeCount ?? this.episodeCount,
+    episodeCount: episodeCount ?? (forceEpisodeCountValue ? null : this.episodeCount),
   );
 
   /// Transform the element to a JSON object

@@ -203,6 +203,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     bool? isOverriddenOriginalGhost,
     bool? isHiddenOverrideGhost,
     OcptFloorPlanOverrideLevel? overrideLevel,
+    bool forceOverrideLevelValue = false,
   }) => OcptFloorPlanSymbolShape(
     symbolId: symbolId ?? this.symbolId,
     shotId: shotId,
@@ -225,7 +226,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     isOverride: isOverride ?? this.isOverride,
     isOverriddenOriginalGhost: isOverriddenOriginalGhost ?? this.isOverriddenOriginalGhost,
     isHiddenOverrideGhost: isHiddenOverrideGhost ?? this.isHiddenOverrideGhost,
-    overrideLevel: overrideLevel ?? this.overrideLevel,
+    overrideLevel: overrideLevel ?? (forceOverrideLevelValue ? null : this.overrideLevel),
   );
 
   /// Object string representation, useful for debugging and logging.
