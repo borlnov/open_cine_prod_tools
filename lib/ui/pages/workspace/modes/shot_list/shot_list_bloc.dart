@@ -104,7 +104,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// [_onCoverageAnchorCancelled] is the odd one out: it never touches a range at all, only the
 /// pending anchor a first click opened, so the coverage dialog can be backed out of without
 /// recording anything. All three of the former go through [OcptShotListState.screenplayText] — the
-/// screenplay's Fountain text as last loaded, which [OcptShotListState.buildSelectedCoverageLayout]
+/// screenplay's Fountain text as last loaded, which `OcptShotListState.buildSelectedCoverageLayout`
 /// slices a scene's own text
 /// out of — loaded once here rather than by [_screenplayCharactersOf] on its own, which used to
 /// parse the screenplay text a second time to derive the same list of speaking characters.
