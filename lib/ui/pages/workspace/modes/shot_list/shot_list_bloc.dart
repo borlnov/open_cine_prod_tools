@@ -631,21 +631,23 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         screenplayId: screenplayIdOf(project),
         sceneId: sequence.sceneId,
       );
-      final snapshot = await _loadSnapshot(project);
+      await runSerially(() async {
+        final snapshot = await _loadSnapshot(project);
 
-      await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
+        await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
 
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          selectedSequenceId: sequence.sceneId,
-          selectedShotId: shotId,
-          rightDockTab: OcptShotListRightDockTab.inspector,
-          lastRightDockTab: OcptShotListRightDockTab.inspector,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptShotListSelectionCause.shotCreated,
-        ),
-      );
+        emitter(
+          state.copyWith(
+            snapshot: snapshot,
+            selectedSequenceId: sequence.sceneId,
+            selectedShotId: shotId,
+            rightDockTab: OcptShotListRightDockTab.inspector,
+            lastRightDockTab: OcptShotListRightDockTab.inspector,
+            selectionEpoch: state.selectionEpoch + 1,
+            selectionCause: OcptShotListSelectionCause.shotCreated,
+          ),
+        );
+      });
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a shot in the scene ${sequence.sceneId} of "
@@ -801,8 +803,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    final pageSetup = await _loadPageSetup(project);
-    emitter(state.copyWith(pageSetup: pageSetup));
+    await runSerially(() async {
+      final pageSetup = await _loadPageSetup(project);
+      emitter(state.copyWith(pageSetup: pageSetup));
+    });
   }
 
   /// Writes every pending write of the mode's views immediately, through the flushers they
@@ -848,30 +852,32 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
-      final snapshot = await _loadSnapshot(project);
-      final reselectedShotId = wasSelected
-          ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
-          : state.selectedShotId;
+      await runSerially(() async {
+        final snapshot = await _loadSnapshot(project);
+        final reselectedShotId = wasSelected
+            ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
+            : state.selectedShotId;
 
-      final suggestions = await _loadSuggestions(project);
-      final storyboardSnapshot = await _loadStoryboard(project);
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          suggestions: suggestions,
-          storyboardSnapshot: storyboardSnapshot,
-          // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
-          // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
-          // so the floor plans view must re-read too, exactly as the board does above.
-          floorPlanSnapshot: floorPlanSnapshot,
-          selectedShotId: reselectedShotId,
-          forceSelectedShotIdValue: reselectedShotId == null,
-          reloadEpoch: state.reloadEpoch + 1,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
-        ),
-      );
+        final suggestions = await _loadSuggestions(project);
+        final storyboardSnapshot = await _loadStoryboard(project);
+        final floorPlanSnapshot = await _loadFloorPlans(project);
+        emitter(
+          state.copyWith(
+            snapshot: snapshot,
+            suggestions: suggestions,
+            storyboardSnapshot: storyboardSnapshot,
+            // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
+            // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
+            // so the floor plans view must re-read too, exactly as the board does above.
+            floorPlanSnapshot: floorPlanSnapshot,
+            selectedShotId: reselectedShotId,
+            forceSelectedShotIdValue: reselectedShotId == null,
+            reloadEpoch: state.reloadEpoch + 1,
+            selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+            selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
+          ),
+        );
+      });
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete shot ${event.shotId} of project "

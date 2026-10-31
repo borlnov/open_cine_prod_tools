@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
@@ -126,6 +127,43 @@ class _FailingShotListService extends OcptShotListService {
     required String screenplayId,
     required String sceneId,
   }) async => throw StateError("shot creation intentionally failed for the test");
+}
+
+/// A floor plan service whose next read can be held back until the test releases it: the read
+/// takes its data at once, then waits, so a read queued behind it has to wait as well.
+class _HoldingFloorPlanService extends OcptFloorPlanService {
+  /// Whether the next read is held back.
+  bool holdsNextRead = false;
+
+  /// How many reads were held back so far.
+  int holdCount = 0;
+
+  final Completer<void> _release = Completer<void>();
+
+  /// Class constructor
+  _HoldingFloorPlanService(OcptFloorPlanService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  /// Lets the held read answer.
+  void release() => _release.complete();
+
+  @override
+  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final snapshot = await super.loadFloorPlans(database: database, screenplayId: screenplayId);
+    if (holdsNextRead) {
+      holdsNextRead = false;
+      holdCount++;
+      await _release.future;
+    }
+    return snapshot;
+  }
 }
 
 void main() {
@@ -563,6 +601,73 @@ void main() {
         await bloc.close();
       },
     );
+  });
+
+  group("the mode's own reads wait for the ones already running", () {
+    test("a created shot reaches the state after the read that was already on its way", () async {
+      await writeScreenplay(twoSceneText);
+      final service = _HoldingFloorPlanService(projectsManager.floorPlanService);
+      final bloc = buildBloc(floorPlanService: service);
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      service.holdsNextRead = true;
+      final reload = bloc.reload({OcptShotListReloadScope.floorPlans});
+      await waitUntil(() => service.holdCount == 1);
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(bloc.state.totalShotCount, 0);
+
+      service.release();
+      await reload;
+      await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+      await bloc.close();
+    });
+
+    test("a deleted shot leaves the state after the read that was already on its way", () async {
+      await writeScreenplay(twoSceneText);
+      final service = _HoldingFloorPlanService(projectsManager.floorPlanService);
+      final bloc = buildBloc(floorPlanService: service);
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptShotListShotCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
+
+      service.holdsNextRead = true;
+      final reload = bloc.reload({OcptShotListReloadScope.floorPlans});
+      await waitUntil(() => service.holdCount == 1);
+      bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: created.selectedShotId!));
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(bloc.state.totalShotCount, 1);
+
+      service.release();
+      await reload;
+      await waitForState(bloc, (state) => state.totalShotCount == 0);
+
+      await bloc.close();
+    });
+
+    test("a changed page setup reaches the state after the read already on its way", () async {
+      await writeScreenplay(twoSceneText);
+      final service = _HoldingFloorPlanService(projectsManager.floorPlanService);
+      final bloc = buildBloc(floorPlanService: service);
+      await waitForState(bloc, (state) => !state.isLoading);
+      final format = bloc.state.pageSetup.format;
+      final other = format == OcptPageFormat.a4 ? OcptPageFormat.usLetter : OcptPageFormat.a4;
+
+      service.holdsNextRead = true;
+      final reload = bloc.reload({OcptShotListReloadScope.floorPlans});
+      await waitUntil(() => service.holdCount == 1);
+      await projectsManager.saveCurrentProjectPageFormat(other);
+      bloc.add(const OcptShotListProjectSettingsChangedEvent());
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(bloc.state.pageSetup.format, format);
+
+      service.release();
+      await reload;
+      await waitForState(bloc, (state) => state.pageSetup.format == other);
+
+      await bloc.close();
+    });
   });
 
   test('loads the screenplay scenes as sequences and selects the first one', () async {
