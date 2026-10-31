@@ -941,22 +941,29 @@ void main() {
       await closeAll(board, mode);
     });
 
-    test("the board's selection is cleared in the turn that follows the mode's own", () async {
+    test("no frame can be drawn between the mode's selection change and the board's", () async {
       final mounted = await mountWithAPanel();
       final mode = mounted.mode;
       final board = mounted.board;
+      expect(board.state.selectedPanelId, mounted.panelId);
 
-      // The first state of the mode that moves its selection, and what the board holds when it
-      // arrives: the reaction must not wait for anything but the event loop.
-      final modeMoves = mode.stream.firstWhere(
-        (state) => state.selectionCause == OcptShotListSelectionCause.shot,
-      );
+      // A frame is drawn in a task of the event loop of its own, so a task scheduled the moment the
+      // mode's state is delivered stands for the next frame: what the board holds in it is what that
+      // frame would draw. A reaction that waited for a timer, or for anything but microtasks, would
+      // not have happened yet.
+      final boardInTheNextTask = Completer<String?>();
+      final subscription = mode.stream.listen((state) {
+        if (state.selectionCause == OcptShotListSelectionCause.shot &&
+            !boardInTheNextTask.isCompleted) {
+          Timer.run(() => boardInTheNextTask.complete(board.state.selectedPanelId));
+        }
+      });
+
       mode.add(OcptShotListShotSelectedEvent(shotId: mounted.shotId));
-      await modeMoves;
-      await pumpEventQueue();
 
-      expect(board.state.selectedPanelId, isNull);
+      expect(await boardInTheNextTask.future.timeout(const Duration(seconds: 5)), isNull);
 
+      await subscription.cancel();
       await closeAll(board, mode);
     });
 
