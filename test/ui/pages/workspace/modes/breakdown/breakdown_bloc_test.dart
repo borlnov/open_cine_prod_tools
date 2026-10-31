@@ -20,8 +20,10 @@ import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
@@ -322,6 +324,189 @@ void main() {
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
+
+  group("the epochs the views react to", () {
+    test("entering the mode moves both epochs and says why", () async {
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, greaterThan(0));
+      expect(state.selectionEpoch, greaterThan(0));
+      expect(state.selectionCause, OcptBreakdownSelectionCause.load);
+
+      await bloc.close();
+    });
+
+    test("reading the snapshot again answers true and moves the reload epoch alone", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+
+      // Written behind the mode's back, as a view's own write would be.
+      await projectsManager.elementsService.createElement(
+        database: projectsManager.currentProject!.database,
+        name: "Desk lamp",
+        category: OcptElementCategory.prop,
+        sourceKind: OcptElementSourceKind.owned,
+      );
+
+      final hasRead = await bloc.reload({OcptBreakdownReloadScope.snapshot});
+
+      expect(hasRead, isTrue);
+      expect(bloc.state.elements, hasLength(1));
+      expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("reading again with no project open answers false and moves nothing", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      await projectsManager.closeCurrentProject();
+
+      final hasRead = await bloc.reload({OcptBreakdownReloadScope.snapshot});
+
+      expect(hasRead, isFalse);
+      expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+
+      await bloc.close();
+    });
+
+    test("a read that fails answers false and moves nothing", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final database = projectsManager.currentProject!.database;
+
+      await database.customStatement("ALTER TABLE elements RENAME TO elements_gone");
+      try {
+        final hasRead = await bloc.reload({OcptBreakdownReloadScope.snapshot});
+
+        expect(hasRead, isFalse);
+        expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+      } finally {
+        await database.customStatement("ALTER TABLE elements_gone RENAME TO elements");
+      }
+
+      await bloc.close();
+    });
+
+    test(
+      "a scene selection moves the selection epoch with its cause, a stale one does not",
+      () async {
+        await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+        final bloc = buildBloc();
+        final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+        final sceneId = loaded.scenes.single.id;
+
+        bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId));
+        final selected = await waitForState(
+          bloc,
+          (state) => state.selectionEpoch > loaded.selectionEpoch,
+        );
+        expect(selected.selectionCause, OcptBreakdownSelectionCause.scene);
+
+        // Selecting the scene again is still a move: the views are told even though nothing changed.
+        bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId));
+        await waitForState(bloc, (state) => state.selectionEpoch > selected.selectionEpoch);
+
+        final reselected = bloc.state;
+        bloc.add(const OcptBreakdownSceneSelectedEvent(sceneId: "not-a-scene"));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(bloc.state.selectionEpoch, reselected.selectionEpoch);
+
+        await bloc.close();
+      },
+    );
+
+    test("each way of moving the selection names itself", () async {
+      await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+      final sceneId = loaded.scenes.single.id;
+
+      Future<OcptBreakdownSelectionCause> causeOf(OcptBreakdownEvent event) async {
+        final before = bloc.state.selectionEpoch;
+        bloc.add(event);
+        final moved = await waitForState(bloc, (state) => state.selectionEpoch > before);
+        return moved.selectionCause;
+      }
+
+      expect(
+        await causeOf(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId)),
+        OcptBreakdownSelectionCause.sceneHeading,
+      );
+      expect(
+        await causeOf(
+          OcptBreakdownTargetSelectedEvent(
+            targetKind: OcptBreakdownTargetKind.element,
+            targetId: "el-1",
+            sceneId: sceneId,
+          ),
+        ),
+        OcptBreakdownSelectionCause.target,
+      );
+      expect(
+        await causeOf(const OcptBreakdownTargetSelectionClearedEvent()),
+        OcptBreakdownSelectionCause.targetCleared,
+      );
+      expect(
+        await causeOf(
+          OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
+        ),
+        OcptBreakdownSelectionCause.anchorScene,
+      );
+
+      await bloc.close();
+    });
+
+    test("leaving the script moves the selection epoch, a search on the recap does not", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "lamp"));
+      final switched = await waitForState(
+        bloc,
+        (state) => state.selectionEpoch > loaded.selectionEpoch,
+      );
+      expect(switched.centreView, OcptBreakdownCentreView.recap);
+      expect(switched.selectionCause, OcptBreakdownSelectionCause.centreView);
+
+      bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "lamps"));
+      await waitForState(bloc, (state) => state.searchQuery == "lamps");
+      expect(bloc.state.selectionEpoch, switched.selectionEpoch);
+
+      bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.recap));
+      await waitForState(bloc, (state) => state.selectionEpoch > switched.selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("a change that replaces no data leaves the reload epoch alone", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBreakdownLeftPanelToggledEvent());
+      await waitForState(bloc, (state) => !state.isListPanelVisible);
+
+      expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("the project settings page moves the reload epoch, never the selection", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.reloadEpoch > loaded.reloadEpoch);
+
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+
+      await bloc.close();
+    });
+  });
 
   test(
     "loads the project's title and an empty snapshot when the screenplay has no scene",

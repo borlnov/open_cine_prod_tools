@@ -26,9 +26,11 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_suggestions.dar
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -84,7 +86,8 @@ class OcptBreakdownIoNotice extends Equatable {
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with
         MixinOcptProjectVersionsState<OcptBreakdownState>,
-        MixinOcptProjectPackageState<OcptBreakdownState> {
+        MixinOcptProjectPackageState<OcptBreakdownState>,
+        MixinOcptModeState<OcptBreakdownState> {
   /// Whether the breakdown read is still being loaded from the project database.
   final bool isLoading;
 
@@ -217,6 +220,17 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// Persisted through `OcptPropertiesManager.breakdownRightDockFraction`, loaded once on entry and
   /// updated (debounced to the end of a drag, never per-frame) on every resize.
   final double rightDockFraction;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
+
+  /// What moved the selection the last time [selectionEpoch] advanced.
+  final OcptBreakdownSelectionCause selectionCause;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -435,6 +449,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.ioNotice,
     required this.leftDockFraction,
     required this.rightDockFraction,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -471,6 +488,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       ioNotice = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptBreakdownSelectionCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -499,6 +519,11 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [selectedTargetRef]) has actually changed — see that field for why it is stored rather than
   /// derived on read. The first two are compared by identity, so a reloaded snapshot recomputes
   /// even when the project's tags happen to have come back exactly the same.
+  ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
+  /// project database ([snapshot], [screenplayText], [pageSetup]), so no handler can read the data
+  /// again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that moves it
+  /// without replacing anything.
   @override
   OcptBreakdownState copyWith({
     bool? isLoading,
@@ -530,6 +555,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool forceIoNoticeValue = false,
     double? leftDockFraction,
     double? rightDockFraction,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptBreakdownSelectionCause? selectionCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -588,6 +616,13 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
       leftDockFraction: leftDockFraction ?? this.leftDockFraction,
       rightDockFraction: rightDockFraction ?? this.rightDockFraction,
+      reloadEpoch:
+          reloadEpoch ??
+          (snapshot != null || screenplayText != null || pageSetup != null
+              ? this.reloadEpoch + 1
+              : this.reloadEpoch),
+      selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+      selectionCause: selectionCause ?? this.selectionCause,
       projectVersions: projectVersions ?? this.projectVersions,
       previewedVersionId:
           previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -685,5 +720,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     ioNotice,
     leftDockFraction,
     rightDockFraction,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
   ];
 }

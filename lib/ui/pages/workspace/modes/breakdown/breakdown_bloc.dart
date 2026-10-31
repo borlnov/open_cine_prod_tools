@@ -31,12 +31,15 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_tag_span.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -93,7 +96,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     with
         MixinOcptProjectVersionsBloc<OcptBreakdownState>,
-        MixinOcptProjectPackageBloc<OcptBreakdownState> {
+        MixinOcptProjectPackageBloc<OcptBreakdownState>,
+        MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "breakdown_bloc";
 
@@ -266,6 +270,58 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     return true;
   }
 
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// Always true, for the reason [flushPendingProjectWrites] gives: a typed edit that cannot be
+  /// written is logged and dropped, and the action goes ahead on the value the database holds.
+  @protected
+  @override
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptBreakdownState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    await runPendingWritesFlushers();
+    return true;
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// A read that fails is logged and answers false, which stops the view that asked: it must not
+  /// select a row the state may not hold.
+  @protected
+  @override
+  Future<bool> reloadScopesIn(
+    Set<OcptBreakdownReloadScope> scopes,
+    Emitter<OcptBreakdownState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return false;
+    }
+
+    try {
+      OcptBreakdownSnapshot? snapshot;
+
+      // A switch statement over an enum must name every value: a scope added to the enum does not
+      // compile until it is read here.
+      for (final scope in scopes) {
+        switch (scope) {
+          case OcptBreakdownReloadScope.snapshot:
+            snapshot = await _loadSnapshot(project);
+        }
+      }
+
+      emitter(state.copyWith(snapshot: snapshot));
+      return true;
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to read again the $scopes of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      return false;
+    }
+  }
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
@@ -314,38 +370,46 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           forcePendingTagAnchorValue: true,
           forcePendingTagRangeValue: true,
           hasTagWriteError: false,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBreakdownSelectionCause.load,
         ),
       );
       return;
     }
 
-    final previewedVersion = project.previewedVersion;
-    final screenplayText = await _loadScreenplayText(project);
-    final pageSetup = await _loadPageSetup(project);
-    final snapshot = await _loadSnapshot(project);
+    // Queued with the views' reloads: a read made here but emitted after a newer one would put
+    // older data over it.
+    await runSerially(() async {
+      final previewedVersion = project.previewedVersion;
+      final screenplayText = await _loadScreenplayText(project);
+      final pageSetup = await _loadPageSetup(project);
+      final snapshot = await _loadSnapshot(project);
 
-    emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        previewedVersionId: previewedVersion?.id,
-        forcePreviewedVersionIdValue: previewedVersion == null,
-        screenplayText: screenplayText,
-        pageSetup: pageSetup,
-        snapshot: snapshot,
-        forceSelectedSceneIdValue: true,
-        forceSelectedTargetRefValue: true,
-        leftDockFraction: leftDockFraction,
-        rightDockFraction: rightDockFraction,
-        lastRightDockTab: lastRightDockTab,
-        pendingElementFieldEdits: const {},
-        pendingSceneNotesEdits: const {},
-        pendingSetNameEdits: const {},
-        forcePendingTagAnchorValue: true,
-        forcePendingTagRangeValue: true,
-        hasTagWriteError: false,
-      ),
-    );
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          previewedVersionId: previewedVersion?.id,
+          forcePreviewedVersionIdValue: previewedVersion == null,
+          screenplayText: screenplayText,
+          pageSetup: pageSetup,
+          snapshot: snapshot,
+          forceSelectedSceneIdValue: true,
+          forceSelectedTargetRefValue: true,
+          leftDockFraction: leftDockFraction,
+          rightDockFraction: rightDockFraction,
+          lastRightDockTab: lastRightDockTab,
+          pendingElementFieldEdits: const {},
+          pendingSceneNotesEdits: const {},
+          pendingSetNameEdits: const {},
+          forcePendingTagAnchorValue: true,
+          forcePendingTagRangeValue: true,
+          hasTagWriteError: false,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBreakdownSelectionCause.load,
+        ),
+      );
+    });
   }
 
   /// Reads the selected episode's current Fountain source text, kept in
@@ -432,8 +496,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    final pageSetup = await _loadPageSetup(project);
-    emitter(state.copyWith(pageSetup: pageSetup));
+    await runSerially(() async {
+      final pageSetup = await _loadPageSetup(project);
+      emitter(state.copyWith(pageSetup: pageSetup));
+    });
   }
 
   /// Exports one breakdown sheet per scene, as a PDF.
@@ -594,7 +660,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    emitter(state.copyWith(selectedSceneId: event.sceneId));
+    emitter(
+      state.copyWith(
+        selectedSceneId: event.sceneId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.scene,
+      ),
+    );
   }
 
   /// Selects scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
@@ -626,6 +698,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         forceSelectedTargetRefValue: true,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.sceneHeading,
       ),
     );
   }
@@ -788,6 +862,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         centreView: event.view,
         forcePendingTagAnchorValue: true,
         forcePendingTagRangeValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.centreView,
       ),
     );
   }
@@ -812,6 +888,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         centreView: switchesToRecap ? OcptBreakdownCentreView.recap : state.centreView,
         forcePendingTagAnchorValue: switchesToRecap,
         forcePendingTagRangeValue: switchesToRecap,
+        selectionEpoch: switchesToRecap ? state.selectionEpoch + 1 : null,
+        selectionCause: switchesToRecap ? OcptBreakdownSelectionCause.centreView : null,
       ),
     );
   }
@@ -842,6 +920,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         forceSelectedSceneIdValue: !sceneExists,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.target,
       ),
     );
   }
@@ -853,7 +933,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(forceSelectedTargetRefValue: true));
+    emitter(
+      state.copyWith(
+        forceSelectedTargetRefValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.targetCleared,
+      ),
+    );
   }
 
   /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
@@ -908,6 +994,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
           ),
           selectedSceneId: sceneExists ? event.sceneId : null,
           forceSelectedSceneIdValue: !sceneExists,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBreakdownSelectionCause.anchorScene,
         ),
       );
       return;
@@ -1020,16 +1108,19 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    final snapshot = await _loadSnapshot(project);
     emitter(
       state.copyWith(
         forcePendingTagAnchorValue: true,
         forcePendingTagRangeValue: true,
-        snapshot: await _loadSnapshot(project),
+        snapshot: snapshot,
         selectedTargetRef: (event.targetKind, event.targetId),
         selectedSceneId: range.sceneId,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
         hasTagWriteError: false,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.target,
       ),
     );
   }
@@ -1074,16 +1165,19 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    final snapshot = await _loadSnapshot(project);
     emitter(
       state.copyWith(
         forcePendingTagAnchorValue: true,
         forcePendingTagRangeValue: true,
-        snapshot: await _loadSnapshot(project),
+        snapshot: snapshot,
         selectedTargetRef: (OcptBreakdownTargetKind.element, result.elementId),
         selectedSceneId: range.sceneId,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
         hasTagWriteError: false,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.target,
       ),
     );
   }
@@ -1124,16 +1218,19 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
 
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+    final snapshot = await _loadSnapshot(project);
     emitter(
       state.copyWith(
         forcePendingTagAnchorValue: true,
         forcePendingTagRangeValue: true,
-        snapshot: await _loadSnapshot(project),
+        snapshot: snapshot,
         selectedTargetRef: (OcptBreakdownTargetKind.set, result.setId),
         selectedSceneId: range.sceneId,
         rightDockTab: OcptBreakdownRightDockTab.inspector,
         lastRightDockTab: OcptBreakdownRightDockTab.inspector,
         hasTagWriteError: false,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.target,
       ),
     );
   }
