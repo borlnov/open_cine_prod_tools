@@ -284,7 +284,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
     Removing a set or a candidacy forgets only its own pending edit; the rest of the bloc's
     debounce goes on.
   - **A flush that fails drops every edit of every sheet, and shows the one write error.** A view
-    bloc catches its own failed write (or the failed read after it), tells the mode
+    bloc catches its own failed write, tells the mode
     (`OcptResourcesPendingEditsLostEvent`, awaited) and empties its maps; the mode raises
     `hasWriteError` and moves `lostEditsEpoch`, which every other view bloc reacts to by dropping
     what it holds, before the flush goes on to them. The flushers are asked in the order the mode
@@ -293,7 +293,9 @@ their sets, the elements catalogue, and the two documents the mode prints.
     The action behind the flush (a selection, an export, a version preview) goes ahead, so the
     mode's flush hooks always answer true. A write that fails outside a flush is reported with
     `OcptResourcesWriteFailedEvent`: the error is the mode's, never a view's, so a failure is shown
-    once whichever view it came from.
+    once whichever view it came from. A failed read after a write that landed is not a lost edit:
+    the mode raises the write error, the view forgets what it wrote and the flush goes on to the
+    other views, which still write theirs.
   - **`OcptResourcesExportBloc`** runs the workbook and the contact list and owns the transient
     notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
     the snapshot the mode holds.

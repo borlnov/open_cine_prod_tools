@@ -269,6 +269,42 @@ void main() {
     },
   );
 
+  test(
+    "a failed read after a write that landed keeps the other sheets' edits and writes them all",
+    () async {
+      final database = projectsManager.currentProject!.database;
+      // The writes of the four sheets never touch the episodes, whereas every read of the
+      // catalogue does: the writes land and the read after each of them fails.
+      await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
+      try {
+        final mayProceed = await modeBloc.flushAllPendingWrites();
+
+        expect(mayProceed, isTrue);
+        expect(modeBloc.state.hasWriteError, isTrue);
+        expect(isNothingPending(), isTrue);
+      } finally {
+        await database.customStatement("ALTER TABLE screenplays_gone RENAME TO screenplays");
+      }
+
+      expect(
+        (await projectsManager.peopleService.loadPeople(database: database)).single.firstName,
+        "Alicia",
+      );
+      expect(
+        (await projectsManager.roleIndexService.loadRoles(database: database)).single.castingNotes,
+        "Zoe",
+      );
+      expect(
+        (await projectsManager.locationsService.loadLocations(database: database)).single.city,
+        "Lyon",
+      );
+      expect(
+        (await projectsManager.elementsService.loadElements(database: database)).single.notes,
+        "Fragile",
+      );
+    },
+  );
+
   test("the write error is raised once, however many sheets were holding an edit", () async {
     final database = projectsManager.currentProject!.database;
     final errors = <bool>[];
