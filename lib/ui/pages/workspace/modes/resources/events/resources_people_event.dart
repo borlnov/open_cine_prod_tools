@@ -471,3 +471,10 @@ class OcptResourcesImageRightsDocumentClearedEvent extends OcptResourcesPeopleEv
   @override
   List<Object?> get props => [...super.props, personId];
 }
+
+/// Fired by the field-edit debounce timer `OcptResourcesPersonFieldChangedEvent` (re)starts, once
+/// it elapses with no further edit. Not meant to be dispatched by a widget directly.
+class OcptResourcesPeopleFieldEditFlushRequestedEvent extends OcptResourcesPeopleEvent {
+  /// Class constructor
+  const OcptResourcesPeopleFieldEditFlushRequestedEvent();
+}

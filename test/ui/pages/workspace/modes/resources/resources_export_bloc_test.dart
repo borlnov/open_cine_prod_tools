@@ -22,10 +22,12 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -259,21 +261,41 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  /// Creates a person through [modeBloc] and types [firstName] into their sheet without letting the
-  /// debounce write it.
-  Future<String> createPersonWithPendingName(OcptResourcesBloc modeBloc, String firstName) async {
-    modeBloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final created = await waitForState(modeBloc, (state) => state.peopleCount == 1);
-    final personId = created.selectedPersonId!;
+  /// Builds the people bloc of [modeBloc], which never writes what is typed on its own.
+  OcptResourcesPeopleBloc buildPeople(OcptResourcesBloc modeBloc) => OcptResourcesPeopleBloc(
+    modeBloc: modeBloc,
+    projectsManager: projectsManager,
+    fieldEditDebounce: const Duration(days: 1),
+  );
 
-    modeBloc.add(
+  /// Adds a person to the address book behind the mode's back, as a view's own write would, and
+  /// has the mode read the catalogue again so it holds them.
+  Future<String> seedPerson(OcptResourcesBloc modeBloc) async {
+    final personId = await projectsManager.peopleService.createPerson(
+      database: projectsManager.currentProject!.database,
+    );
+    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
+
+    return personId!;
+  }
+
+  /// Adds a person and types [firstName] into their sheet through [peopleBloc] without letting the
+  /// debounce write it.
+  Future<String> createPersonWithPendingName(
+    OcptResourcesBloc modeBloc,
+    OcptResourcesPeopleBloc peopleBloc,
+    String firstName,
+  ) async {
+    final personId = await seedPerson(modeBloc);
+
+    peopleBloc.add(
       OcptResourcesPersonFieldChangedEvent(
         personId: personId,
         field: OcptPersonField.firstName,
         rawValue: firstName,
       ),
     );
-    await waitForState(modeBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+    await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
     return personId;
   }
@@ -285,8 +307,7 @@ void main() {
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
       await waitForState(modeBloc, (state) => !state.isLoading);
 
-      modeBloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      await waitForState(modeBloc, (state) => state.peopleCount == 1);
+      await seedPerson(modeBloc);
 
       exportBloc.add(
         const OcptResourcesXlsxExportRequestedEvent(
@@ -315,8 +336,9 @@ void main() {
       final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - resources.xlsx");
       final modeBloc = buildBloc();
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
+      final peopleBloc = buildPeople(modeBloc);
       await waitForState(modeBloc, (state) => !state.isLoading);
-      final personId = await createPersonWithPendingName(modeBloc, "Léa");
+      final personId = await createPersonWithPendingName(modeBloc, peopleBloc, "Léa");
 
       exportBloc.add(
         const OcptResourcesXlsxExportRequestedEvent(
@@ -326,12 +348,13 @@ void main() {
       );
       await waitForState(exportBloc, (state) => state.ioNotice != null);
 
-      expect(modeBloc.state.pendingFieldEdits, isEmpty);
+      expect(peopleBloc.state.pendingFieldEdits, isEmpty);
       final exportedPerson = exportManager.lastExportedSnapshot!.people.firstWhere(
         (person) => person.id == personId,
       );
       expect(exportedPerson.firstName, "Léa");
 
+      await peopleBloc.close();
       await exportBloc.close();
       await modeBloc.close();
     });
@@ -385,17 +408,14 @@ void main() {
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
       await waitForState(modeBloc, (state) => !state.isLoading);
 
-      modeBloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final created = await waitForState(modeBloc, (state) => state.peopleCount == 1);
-
-      modeBloc.add(
-        OcptResourcesPositionAddedEvent(
-          personId: created.selectedPersonId!,
-          positionId: "director",
-          customLabel: "",
-        ),
+      final personId = await seedPerson(modeBloc);
+      await projectsManager.peopleService.addPosition(
+        database: projectsManager.currentProject!.database,
+        personId: personId,
+        positionId: "director",
+        customLabel: "",
       );
-      await waitForState(modeBloc, (state) => state.positionCount == 1);
+      await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
       exportBloc.add(
         const OcptResourcesContactListExportRequestedEvent(
@@ -432,8 +452,9 @@ void main() {
       final exportManager = _FakeExportManager(exportResult: "/tmp/My Movie - contacts.pdf");
       final modeBloc = buildBloc();
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
+      final peopleBloc = buildPeople(modeBloc);
       await waitForState(modeBloc, (state) => !state.isLoading);
-      final personId = await createPersonWithPendingName(modeBloc, "Léa");
+      final personId = await createPersonWithPendingName(modeBloc, peopleBloc, "Léa");
 
       exportBloc.add(
         const OcptResourcesContactListExportRequestedEvent(
@@ -444,12 +465,13 @@ void main() {
       );
       await waitForState(exportBloc, (state) => state.ioNotice != null);
 
-      expect(modeBloc.state.pendingFieldEdits, isEmpty);
+      expect(peopleBloc.state.pendingFieldEdits, isEmpty);
       final exportedPerson = exportManager.lastExportedContactListSnapshot!.people.firstWhere(
         (person) => person.id == personId,
       );
       expect(exportedPerson.firstName, "Léa");
 
+      await peopleBloc.close();
       await exportBloc.close();
       await modeBloc.close();
     });
@@ -502,8 +524,7 @@ void main() {
       final modeBloc = buildBloc();
       final exportBloc = buildExportBloc(modeBloc, exportManager: exportManager);
       await waitForState(modeBloc, (state) => !state.isLoading);
-      modeBloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      await waitForState(modeBloc, (state) => state.peopleCount == 1);
+      await seedPerson(modeBloc);
 
       String nameOf(OcptResourcesExportEvent event) => switch (event) {
         OcptResourcesXlsxExportRequestedEvent() => "workbook",

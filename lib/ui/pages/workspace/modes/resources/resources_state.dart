@@ -21,7 +21,6 @@ import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
@@ -150,28 +149,18 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// episodes must land the shot list mode on the right one.
   final ({String episodeId, String sceneId, String setId})? pendingShotListReveal;
 
-  /// Every field edit currently sitting in the field-edit autosave debounce, keyed by the person id
-  /// and the field, holding the raw text last typed for it.
-  ///
-  /// What a field shows takes this map's entry over the person's own stored value whenever one is
-  /// present, so typing is never overwritten by a reload triggered by an unrelated write. An entry
-  /// is removed the moment its write lands, whether through the debounce elapsing or an explicit
-  /// flush.
-  final Map<(String, OcptPersonField), String> pendingFieldEdits;
-
   /// Every role field edit currently sitting in the field-edit autosave debounce, keyed by the
   /// role id and the field, holding the raw text last typed for it.
   ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment): a role's typed name or casting notes and a person's typed fields are flushed
-  /// together, never one without the other.
+  /// Rides the same debounce timer as the other typed fields the mode still holds (see
+  /// `OcptResourcesBloc`'s own doc comment).
   final Map<(String, OcptRoleField), String> pendingRoleFieldEdits;
 
   /// Every location field edit currently sitting in the field-edit autosave debounce, keyed by the
   /// location id and the field, holding the raw text last typed for it.
   ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment).
+  /// Rides the same debounce timer as the other typed fields the mode still holds (see
+  /// `OcptResourcesBloc`'s own doc comment).
   final Map<(String, OcptLocationField), String> pendingLocationFieldEdits;
 
   /// Every set field edit currently sitting in the field-edit autosave debounce, keyed by the
@@ -179,14 +168,14 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   ///
   /// Keyed by the set rather than by the location holding it: a location sheet shows every one of
   /// its sets at once, each with its own code, name and notes, so two sets being typed into are two
-  /// pending edits (see `OcptSetField`). Rides the same debounce timer as [pendingFieldEdits].
+  /// pending edits (see `OcptSetField`). Rides the same debounce timer as the other typed fields the mode still holds.
   final Map<(String, OcptSetField), String> pendingSetFieldEdits;
 
   /// Every element field edit currently sitting in the field-edit autosave debounce, keyed by the
   /// element id and the field, holding the raw text last typed for it.
   ///
-  /// Rides the same debounce timer as [pendingFieldEdits] (see `OcptResourcesBloc`'s own doc
-  /// comment).
+  /// Rides the same debounce timer as the other typed fields the mode still holds (see
+  /// `OcptResourcesBloc`'s own doc comment).
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// Every candidacy field edit currently sitting in the field-edit autosave debounce, keyed by the
@@ -195,7 +184,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// Keyed by the candidacy rather than by the role it names, for the same reason
   /// [pendingSetFieldEdits] is keyed by the set: a role's candidates card shows every one of its
   /// candidates at once, each with its own note, so two candidates being typed into are two pending
-  /// edits (see `OcptRoleCandidateField`). Rides the same debounce timer as [pendingFieldEdits].
+  /// edits (see `OcptRoleCandidateField`). Rides the same debounce timer as the other typed fields the mode still holds.
   final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
 
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
@@ -208,6 +197,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
 
   /// What moved the selection the last time [selectionEpoch] advanced.
   final OcptResourcesSelectionCause selectionCause;
+
+  /// How many times writing the typed edits failed (`OcptResourcesPendingEditsLostEvent`): a view
+  /// bloc that sees it rise drops the edits it holds, since the mode has shown the write error and
+  /// the fields fall back to what the database holds.
+  final int lostEditsEpoch;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -418,7 +412,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.rightDockFraction,
     required this.hasWriteError,
     required this.pendingShotListReveal,
-    required this.pendingFieldEdits,
     required this.pendingRoleFieldEdits,
     required this.pendingLocationFieldEdits,
     required this.pendingSetFieldEdits,
@@ -427,6 +420,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
+    required this.lostEditsEpoch,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -460,7 +454,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
       pendingShotListReveal = null,
-      pendingFieldEdits = const {},
       pendingRoleFieldEdits = const {},
       pendingLocationFieldEdits = const {},
       pendingSetFieldEdits = const {},
@@ -469,6 +462,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptResourcesSelectionCause.none,
+      lostEditsEpoch = 0,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -519,7 +513,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? hasWriteError,
     ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
     bool forcePendingShotListRevealValue = false,
-    Map<(String, OcptPersonField), String>? pendingFieldEdits,
     Map<(String, OcptRoleField), String>? pendingRoleFieldEdits,
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
     Map<(String, OcptSetField), String>? pendingSetFieldEdits,
@@ -528,6 +521,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     int? reloadEpoch,
     int? selectionEpoch,
     OcptResourcesSelectionCause? selectionCause,
+    int? lostEditsEpoch,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -571,7 +565,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingShotListReveal:
         pendingShotListReveal ??
         (forcePendingShotListRevealValue ? null : this.pendingShotListReveal),
-    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     pendingRoleFieldEdits: pendingRoleFieldEdits ?? this.pendingRoleFieldEdits,
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
@@ -588,6 +581,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
             : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
+    lostEditsEpoch: lostEditsEpoch ?? this.lostEditsEpoch,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -680,7 +674,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     rightDockFraction,
     hasWriteError,
     pendingShotListReveal,
-    pendingFieldEdits,
     pendingRoleFieldEdits,
     pendingLocationFieldEdits,
     pendingSetFieldEdits,
@@ -689,5 +682,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     reloadEpoch,
     selectionEpoch,
     selectionCause,
+    lostEditsEpoch,
   ];
 }

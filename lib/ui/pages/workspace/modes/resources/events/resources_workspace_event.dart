@@ -276,3 +276,65 @@ class OcptResourcesWriteErrorDismissedEvent extends OcptResourcesWorkspaceEvent 
   /// Class constructor
   const OcptResourcesWriteErrorDismissedEvent();
 }
+
+/// Reports that a view bloc's write to the project database failed: the transient write error is
+/// shown.
+///
+/// Dispatched by a view bloc, never by a widget. The mode owns the one write error flag every view
+/// shares, so a failure is shown once whichever view it came from.
+class OcptResourcesWriteFailedEvent extends OcptResourcesWorkspaceEvent {
+  /// Class constructor
+  const OcptResourcesWriteFailedEvent();
+}
+
+/// Reports that writing the edits typed into the sheets failed: the transient write error is shown
+/// and **every** view drops what it still holds in its debounce, the field falling back to the
+/// value the database holds.
+///
+/// Dispatched by a view bloc whose flush failed, never by a widget. The edits of the other views are
+/// dropped with its own, as they were when all the sheets shared one pending map: a flush that
+/// failed leaves no way to tell which of the other edits would have been written on top of it.
+/// Awaited by its dispatcher, so the other views have reacted before the flush goes on to them.
+class OcptResourcesPendingEditsLostEvent extends OcptResourcesWorkspaceEvent {
+  /// Class constructor
+  const OcptResourcesPendingEditsLostEvent();
+}
+
+/// Selects the record [recordId] a view bloc has just created, in the list of [tab], without
+/// switching tab nor writing what is pending: the view already did, and has read the mode's data
+/// again so the record is in it.
+///
+/// Dispatched by a view bloc, never by a widget, and awaited by it.
+class OcptResourcesRecordCreatedEvent extends OcptResourcesWorkspaceEvent {
+  /// The tab whose list the record belongs to.
+  final OcptResourcesTab tab;
+
+  /// The id of the record that was created.
+  final String recordId;
+
+  /// Class constructor
+  const OcptResourcesRecordCreatedEvent({required this.tab, required this.recordId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tab, recordId];
+}
+
+/// Clears the selection of [tab]'s list if it is [recordId], the record a view bloc has just
+/// deleted; another selection is left alone.
+///
+/// Dispatched by a view bloc, never by a widget, and awaited by it.
+class OcptResourcesRecordDroppedEvent extends OcptResourcesWorkspaceEvent {
+  /// The tab whose list the record belonged to.
+  final OcptResourcesTab tab;
+
+  /// The id of the record that was deleted.
+  final String recordId;
+
+  /// Class constructor
+  const OcptResourcesRecordDroppedEvent({required this.tab, required this.recordId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, tab, recordId];
+}

@@ -22,7 +22,6 @@ import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
@@ -151,6 +150,17 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
+  /// Adds a person to the address book behind the mode's back, as a view's own write would, and has
+  /// the mode read the catalogue again so it holds them. Selects nobody.
+  Future<String> seedPerson(OcptResourcesBloc bloc) async {
+    final personId = await projectsManager.peopleService.createPerson(
+      database: projectsManager.currentProject!.database,
+    );
+    await bloc.reload({OcptResourcesReloadScope.snapshot});
+
+    return personId!;
+  }
+
   group("the epochs the views react to", () {
     test("entering the mode moves both epochs and says why", () async {
       final bloc = buildBloc();
@@ -199,15 +209,13 @@ void main() {
     test("a selection moves the selection epoch with its own cause, a stale one does not", () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
-      final personId = created.selectedPersonId!;
-      expect(created.selectionCause, OcptResourcesSelectionCause.created);
+      final personId = await seedPerson(bloc);
+      final seeded = bloc.state;
 
       bloc.add(OcptResourcesPersonSelectedEvent(personId: personId));
       final selected = await waitForState(
         bloc,
-        (state) => state.selectionEpoch > created.selectionEpoch,
+        (state) => state.selectionEpoch > seeded.selectionEpoch,
       );
       expect(selected.selectionCause, OcptResourcesSelectionCause.person);
 
@@ -244,18 +252,45 @@ void main() {
       await bloc.close();
     });
 
-    test("deleting the selected record moves the selection epoch with the dropped cause", () async {
+    test("selecting a record a view created moves the epoch and keeps the tab", () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = await seedPerson(bloc);
+      final seeded = bloc.state;
 
-      bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: created.selectedPersonId!));
-      final deleted = await waitForState(bloc, (state) => state.peopleCount == 0);
+      await bloc.addAndWait(
+        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
+      );
 
-      expect(deleted.selectedPersonId, isNull);
-      expect(deleted.selectionEpoch, greaterThan(created.selectionEpoch));
-      expect(deleted.selectionCause, OcptResourcesSelectionCause.dropped);
+      expect(bloc.state.selectedPersonId, personId);
+      expect(bloc.state.activeTab, OcptResourcesTab.people);
+      expect(bloc.state.selectionEpoch, greaterThan(seeded.selectionEpoch));
+      expect(bloc.state.selectionCause, OcptResourcesSelectionCause.created);
+
+      await bloc.close();
+    });
+
+    test("dropping the selected record clears it, dropping another one does not", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final personId = await seedPerson(bloc);
+      await bloc.addAndWait(
+        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
+      );
+      final selected = bloc.state;
+
+      await bloc.addAndWait(
+        const OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: "other"),
+      );
+      expect(bloc.state.selectedPersonId, personId);
+      expect(bloc.state.selectionEpoch, selected.selectionEpoch);
+
+      await bloc.addAndWait(
+        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: personId),
+      );
+      expect(bloc.state.selectedPersonId, isNull);
+      expect(bloc.state.selectionEpoch, greaterThan(selected.selectionEpoch));
+      expect(bloc.state.selectionCause, OcptResourcesSelectionCause.dropped);
 
       await bloc.close();
     });
@@ -263,17 +298,39 @@ void main() {
     test("a write that replaces the snapshot moves the reload epoch by itself", () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+      await seedPerson(bloc);
+      final seeded = bloc.state;
 
       bloc.add(const OcptResourcesSearchToggledEvent());
       final searching = await waitForState(bloc, (state) => state.isSearchVisible);
 
-      expect(searching.reloadEpoch, created.reloadEpoch);
-      expect(created.reloadEpoch, greaterThan(0));
+      expect(searching.reloadEpoch, seeded.reloadEpoch);
+      expect(seeded.reloadEpoch, greaterThan(0));
 
       await bloc.close();
     });
+
+    test(
+      "a write error reported by a view is shown, and lost edits are told to every view",
+      () async {
+        final bloc = buildBloc();
+        final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+        bloc.add(const OcptResourcesWriteFailedEvent());
+        final failed = await waitForState(bloc, (state) => state.hasWriteError);
+        expect(failed.lostEditsEpoch, loaded.lostEditsEpoch);
+
+        bloc.add(const OcptResourcesWriteErrorDismissedEvent());
+        await waitForState(bloc, (state) => !state.hasWriteError);
+
+        await bloc.addAndWait(const OcptResourcesPendingEditsLostEvent());
+        expect(bloc.state.hasWriteError, isTrue);
+        expect(bloc.state.lostEditsEpoch, greaterThan(loaded.lostEditsEpoch));
+        expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
+
+        await bloc.close();
+      },
+    );
   });
 
   test("loads an empty catalogue with every count at zero", () async {
@@ -338,123 +395,12 @@ void main() {
     await bloc.close();
   });
 
-  test("creating a person appends it to the address book and selects it", () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final state = await waitForState(bloc, (state) => state.peopleCount == 1);
-
-    expect(state.selectedPersonId, isNotNull);
-    expect(state.selectedPerson, isNotNull);
-    expect(state.people.single.id, state.selectedPersonId);
-
-    await bloc.close();
-  });
-
-  test(
-    "a typed field edit is visible as a pending value and writes once after the debounce",
-    () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
-      final personId = created.selectedPersonId!;
-
-      bloc.add(
-        OcptResourcesPersonFieldChangedEvent(
-          personId: personId,
-          field: OcptPersonField.firstName,
-          rawValue: "L",
-        ),
-      );
-      var state = await waitForState(
-        bloc,
-        (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "L",
-      );
-      // Not written yet: still the field's default empty value.
-      expect(state.selectedPerson!.firstName, isEmpty);
-
-      // A second keystroke before the debounce elapses restarts it rather than firing twice: only
-      // the last value typed is ever written.
-      bloc.add(
-        OcptResourcesPersonFieldChangedEvent(
-          personId: personId,
-          field: OcptPersonField.firstName,
-          rawValue: "Léa",
-        ),
-      );
-      state = await waitForState(
-        bloc,
-        (state) => state.pendingFieldEdits[(personId, OcptPersonField.firstName)] == "Léa",
-      );
-      expect(state.selectedPerson!.firstName, isEmpty);
-
-      state = await waitForState(bloc, (state) => state.selectedPerson!.firstName == "Léa");
-      expect(state.pendingFieldEdits, isEmpty);
-
-      await bloc.close();
-    },
-  );
-
-  test("deleting the selected person erases it and clears the selection", () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = state.selectedPersonId!;
-
-    bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: personId));
-    state = await waitForState(bloc, (state) => state.peopleCount == 0);
-
-    expect(state.selectedPersonId, isNull);
-    expect(state.people, isEmpty);
-
-    await bloc.close();
-  });
-
-  test("deleting a person that isn't selected leaves the selection alone", () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    var state = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final firstPersonId = state.selectedPersonId!;
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    state = await waitForState(bloc, (state) => state.peopleCount == 2);
-    final secondPersonId = state.selectedPersonId!;
-    expect(secondPersonId, isNot(firstPersonId));
-
-    bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: firstPersonId));
-    state = await waitForState(bloc, (state) => state.peopleCount == 1);
-
-    expect(state.selectedPersonId, secondPersonId);
-
-    await bloc.close();
-  });
-
-  test("each created person gets a colour index derived from their rank", () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final first = await waitForState(bloc, (state) => state.peopleCount == 1);
-    expect(first.selectedPerson!.colorIndex, 0);
-
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final second = await waitForState(bloc, (state) => state.peopleCount == 2);
-    expect(second.selectedPerson!.colorIndex, 1);
-
-    await bloc.close();
-  });
-
   test("selecting a tab other than people clears the selected person", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+    final personId = await seedPerson(bloc);
+    bloc.add(OcptResourcesPersonSelectedEvent(personId: personId));
     await waitForState(bloc, (state) => state.selectedPersonId != null);
 
     bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
@@ -579,16 +525,14 @@ void main() {
     await waitForState(bloc, (state) => !state.isLoading);
 
     // A person created before the version is captured, so it belongs to it.
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    await waitForState(bloc, (state) => state.peopleCount == 1);
+    await seedPerson(bloc);
 
     bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Cast locked", note: ""));
     final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
     final versionId = withVersion.projectVersions.single.id;
 
     // A second person, created after the version, must not be part of what it holds.
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    await waitForState(bloc, (state) => state.peopleCount == 2);
+    await seedPerson(bloc);
 
     bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
     final previewing = await waitForState(bloc, (state) => state.previewedVersionId != null);
@@ -657,9 +601,7 @@ void main() {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
 
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = withPerson.selectedPersonId!;
+    final personId = await seedPerson(bloc);
 
     bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
     final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
@@ -812,9 +754,9 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      var state = await waitForState(bloc, (state) => state.peopleCount == 1);
-      final personId = state.selectedPersonId!;
+      final personId = await seedPerson(bloc);
+
+      var state = bloc.state;
 
       bloc.add(const OcptResourcesRoleCreationRequestedEvent(kind: OcptRoleKind.extra));
       state = await waitForState(bloc, (state) => state.roleCount == 1);
@@ -942,9 +884,7 @@ void main() {
       final withRole = await waitForState(bloc, (state) => state.roleCount == 1);
       final roleId = withRole.selectedRoleId!;
 
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
-      final personId = withPerson.selectedPersonId!;
+      final personId = await seedPerson(bloc);
 
       bloc.add(OcptResourcesRoleCandidateAddedEvent(roleId: roleId, personId: personId));
       final withCandidate = await waitForState(
@@ -1078,9 +1018,7 @@ void main() {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
 
-      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-      final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
-      final personId = withPerson.selectedPersonId!;
+      final personId = await seedPerson(bloc);
 
       bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.roles));
       await waitForState(bloc, (state) => state.activeTab == OcptResourcesTab.roles);
@@ -1467,9 +1405,7 @@ void main() {
   test("the provenance, the owner, the bringer and the flags all land in the database", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptResourcesPersonCreationRequestedEvent());
-    final withPerson = await waitForState(bloc, (state) => state.peopleCount == 1);
-    final personId = withPerson.people.single.id;
+    final personId = await seedPerson(bloc);
 
     bloc.add(const OcptResourcesElementCreationRequestedEvent(category: OcptElementCategory.prop));
     final created = await waitForState(bloc, (state) => state.elementCount == 1);

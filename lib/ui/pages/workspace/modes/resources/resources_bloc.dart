@@ -31,7 +31,6 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_resources_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
@@ -53,7 +52,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// This is the bloc class for the resources production mode (the address book, the cast, locations
 /// and the physical elements catalogue).
@@ -255,25 +253,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptResourcesTabSelectedEvent>(_onTabSelected);
     on<OcptResourcesPersonSelectedEvent>(_onPersonSelected);
-    on<OcptResourcesPersonCreationRequestedEvent>(_onPersonCreationRequested);
-    on<OcptResourcesPersonDeletionRequestedEvent>(_onPersonDeletionRequested);
-    on<OcptResourcesPersonFieldChangedEvent>(_onPersonFieldChanged);
+    on<OcptResourcesWriteFailedEvent>(_onWriteFailed);
+    onAwaited<OcptResourcesPendingEditsLostEvent>(_onPendingEditsLost);
+    onAwaited<OcptResourcesRecordCreatedEvent>(_onRecordCreated);
+    onAwaited<OcptResourcesRecordDroppedEvent>(_onRecordDropped);
     on<OcptResourcesFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
-    on<OcptResourcesPersonColorChangedEvent>(_onPersonColorChanged);
-    on<OcptResourcesPersonBirthDateChangedEvent>(_onPersonBirthDateChanged);
-    on<OcptResourcesPersonTransportAutonomyChangedEvent>(_onPersonTransportAutonomyChanged);
-    on<OcptResourcesPersonImageRightsStatusChangedEvent>(_onPersonImageRightsStatusChanged);
-    on<OcptResourcesPersonMileageRateChangedEvent>(_onPersonMileageRateChanged);
-    on<OcptResourcesPersonImageRightsDateChangedEvent>(_onPersonImageRightsDateChanged);
-    on<OcptResourcesPositionAddedEvent>(_onPositionAdded);
-    on<OcptResourcesPositionUpdatedEvent>(_onPositionUpdated);
-    on<OcptResourcesPositionRemovedEvent>(_onPositionRemoved);
-    on<OcptResourcesSkillAddedEvent>(_onSkillAdded);
-    on<OcptResourcesSkillUpdatedEvent>(_onSkillUpdated);
-    on<OcptResourcesSkillRemovedEvent>(_onSkillRemoved);
-    on<OcptResourcesUnavailabilityAddedEvent>(_onUnavailabilityAdded);
-    on<OcptResourcesUnavailabilityUpdatedEvent>(_onUnavailabilityUpdated);
-    on<OcptResourcesUnavailabilityRemovedEvent>(_onUnavailabilityRemoved);
     on<OcptResourcesRoleSelectedEvent>(_onRoleSelected);
     on<OcptResourcesRoleCreationRequestedEvent>(_onRoleCreationRequested);
     on<OcptResourcesRoleFieldChangedEvent>(_onRoleFieldChanged);
@@ -306,10 +290,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesOpenSetInShotListRequestedEvent>(_onOpenSetInShotListRequested);
     on<OcptResourcesShotListRevealDismissedEvent>(_onShotListRevealDismissed);
     on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
-    on<OcptResourcesPersonPhotoPickRequestedEvent>(_onPersonPhotoPickRequested);
-    on<OcptResourcesPersonPhotoClearedEvent>(_onPersonPhotoCleared);
-    on<OcptResourcesImageRightsDocumentPickRequestedEvent>(_onImageRightsDocumentPickRequested);
-    on<OcptResourcesImageRightsDocumentClearedEvent>(_onImageRightsDocumentCleared);
     on<OcptResourcesElementPhotoPickRequestedEvent>(_onElementPhotoPickRequested);
     on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
     on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
@@ -368,7 +348,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptResourcesState> emitter) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
     return true;
   }
 
@@ -380,7 +360,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @protected
   @override
   Future<bool> flushAllPendingWritesIn(Emitter<OcptResourcesState> emitter) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
     return true;
   }
 
@@ -620,7 +600,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesBackRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
     await _projectsManager.closeCurrentProject();
     _routerManager.pop();
   }
@@ -666,7 +646,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesTabSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final isSameTab = state.activeTab == event.tab;
 
@@ -693,7 +673,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesPersonSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final exists = state.people.any((person) => person.id == event.personId);
     if (!exists) {
@@ -707,123 +687,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         selectionCause: OcptResourcesSelectionCause.person,
       ),
     );
-  }
-
-  /// Creates a new, blank person at the end of the address book, reloads the catalogue and selects
-  /// the new person.
-  ///
-  /// The freshly created person is immediately given an avatar colour derived from their rank in
-  /// the address book — `state.peopleCount` read *before* the insert, so the first person is 0,
-  /// the second 1, and so on — rather than being left at `people.colorIndex`'s own table default
-  /// of 0, which would otherwise make every new person share the same avatar tint.
-  /// `OcptPerson.colorIndex` is read back through `ocptCoverageColorAt` wherever a person's avatar
-  /// is painted (`OcptPeopleList`, `OcptPersonSheet`), the same way a shot's colour is derived from
-  /// its rank within its sequence.
-  Future<void> _onPersonCreationRequested(
-    OcptResourcesPersonCreationRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      final rank = state.peopleCount;
-      final personId = await _peopleService.createPerson(database: project.database);
-      if (personId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
-      }
-
-      await _peopleService.updatePerson(
-        database: project.database,
-        personId: personId,
-        colorIndex: Value(rank),
-      );
-
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          selectedPersonId: personId,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptResourcesSelectionCause.created,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a person in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Erases person `event.personId`, clearing the selection when it was the selected person, and
-  /// dropping any pending field edit that still targeted it (the person it would have written to
-  /// no longer holds any personal data).
-  Future<void> _onPersonDeletionRequested(
-    OcptResourcesPersonDeletionRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final pendingWithoutPerson = Map<(String, OcptPersonField), String>.of(state.pendingFieldEdits)
-      ..removeWhere((key, _) => key.$1 == event.personId);
-    _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: pendingWithoutPerson,
-      pendingRoleEdits: state.pendingRoleFieldEdits,
-      pendingLocationEdits: state.pendingLocationFieldEdits,
-      pendingSetEdits: state.pendingSetFieldEdits,
-      pendingElementEdits: state.pendingElementFieldEdits,
-      pendingCandidateEdits: state.pendingCandidateFieldEdits,
-    );
-
-    final wasSelected = state.selectedPersonId == event.personId;
-
-    try {
-      await _peopleService.deletePerson(database: project.database, personId: event.personId);
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          pendingFieldEdits: pendingWithoutPerson,
-          forceSelectedPersonIdValue: wasSelected,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to erase person ${event.personId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the raw text just typed into `event.field` of person `event.personId` as a pending
-  /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
-  Future<void> _onPersonFieldChanged(
-    OcptResourcesPersonFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptPersonField), String>.of(state.pendingFieldEdits)
-      ..[(event.personId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
-
-    _restartFieldEditTimer();
   }
 
   /// Records the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
@@ -860,15 +723,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// timer is shared by all six maps: cancelling it on the strength of one map having emptied
   /// would strand whatever the other five still hold until the next keystroke.
   void _cancelFieldEditTimerIfIdle({
-    required Map<(String, OcptPersonField), String> pendingPersonEdits,
     required Map<(String, OcptRoleField), String> pendingRoleEdits,
     required Map<(String, OcptLocationField), String> pendingLocationEdits,
     required Map<(String, OcptSetField), String> pendingSetEdits,
     required Map<(String, OcptElementField), String> pendingElementEdits,
     required Map<(String, OcptRoleCandidateField), String> pendingCandidateEdits,
   }) {
-    if (pendingPersonEdits.isEmpty &&
-        pendingRoleEdits.isEmpty &&
+    if (pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
         pendingSetEdits.isEmpty &&
         pendingElementEdits.isEmpty &&
@@ -883,6 +744,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesFieldEditFlushRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) => _flushPendingFieldEdits(emitter);
+
+  /// Writes every pending write of the mode's views immediately, through the flushers they
+  /// registered, then the edits the mode still holds itself.
+  ///
+  /// Up front of every handler that changes what is selected, that leaves the workspace, or that is
+  /// about to read the database (an export, a preview): a pending edit is never silently dropped by
+  /// one of them. A view that fails to write drops every edit of the mode (see
+  /// `OcptResourcesPendingEditsLostEvent`) before the flush goes on, so the ones after it find
+  /// nothing to write.
+  Future<void> _flushAllPendingWrites(Emitter<OcptResourcesState> emitter) async {
+    await runPendingWritesFlushers();
+    await _flushPendingFieldEdits(emitter);
+  }
 
   /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it
   /// already fired or there was none), writes every person field edit through each sheet's own
@@ -901,14 +775,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingPersonEdits = state.pendingFieldEdits;
     final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
     final pendingCandidateEdits = state.pendingCandidateFieldEdits;
-    if (pendingPersonEdits.isEmpty &&
-        pendingRoleEdits.isEmpty &&
+    if (pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
         pendingSetEdits.isEmpty &&
         pendingElementEdits.isEmpty &&
@@ -920,7 +792,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     if (project == null) {
       emitter(
         state.copyWith(
-          pendingFieldEdits: const {},
           pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
@@ -932,7 +803,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
-      await _writeAllPendingFields(database: project.database, pending: pendingPersonEdits);
       await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
       await _writeAllPendingLocationFields(
         database: project.database,
@@ -949,7 +819,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         emitter(
           state.copyWith(
             snapshot: snapshot,
-            pendingFieldEdits: const {},
             pendingRoleFieldEdits: const {},
             pendingLocationFieldEdits: const {},
             pendingSetFieldEdits: const {},
@@ -974,7 +843,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       emitter(
         state.copyWith(
           hasWriteError: true,
-          pendingFieldEdits: const {},
+          lostEditsEpoch: state.lostEditsEpoch + 1,
+          reloadEpoch: state.reloadEpoch + 1,
           pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
@@ -999,17 +869,17 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// inside a registered `on<Event>` handler, and by the time this runs the widget tree that would
   /// show a fresh state is already gone anyway. A failure here is only logged.
   Future<void> flushPendingFieldEdits() async {
+    await runPendingWritesFlushersWithoutState();
+
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingPersonEdits = state.pendingFieldEdits;
     final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
     final pendingCandidateEdits = state.pendingCandidateFieldEdits;
-    if (pendingPersonEdits.isEmpty &&
-        pendingRoleEdits.isEmpty &&
+    if (pendingRoleEdits.isEmpty &&
         pendingLocationEdits.isEmpty &&
         pendingSetEdits.isEmpty &&
         pendingElementEdits.isEmpty &&
@@ -1023,7 +893,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
-      await _writeAllPendingFields(database: project.database, pending: pendingPersonEdits);
       await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
       await _writeAllPendingLocationFields(
         database: project.database,
@@ -1042,190 +911,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         null,
         stackTrace,
       );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeField].
-  Future<void> _writeAllPendingFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptPersonField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (personId, field) = entry.key;
-      await _writeField(
-        database: database,
-        personId: personId,
-        field: field,
-        rawValue: entry.value,
-      );
-    }
-  }
-
-  /// Writes a single field edit through `OcptPeopleService.updatePerson`, translating [field] into
-  /// the matching named argument (see `OcptPersonField`'s own doc comment for the mapping).
-  Future<void> _writeField({
-    required OcptProjectDatabase database,
-    required String personId,
-    required OcptPersonField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptPersonField.firstName:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          firstName: Value(rawValue),
-        );
-      case OcptPersonField.lastName:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          lastName: Value(rawValue),
-        );
-      case OcptPersonField.email:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          email: Value(rawValue),
-        );
-      case OcptPersonField.phone:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          phone: Value(rawValue),
-        );
-      case OcptPersonField.addressLine1:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          addressLine1: Value(rawValue),
-        );
-      case OcptPersonField.addressLine2:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          addressLine2: Value(rawValue),
-        );
-      case OcptPersonField.postalCode:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          postalCode: Value(rawValue),
-        );
-      case OcptPersonField.city:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          city: Value(rawValue),
-        );
-      case OcptPersonField.region:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          region: Value(rawValue),
-        );
-      case OcptPersonField.country:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          country: Value(rawValue),
-        );
-      case OcptPersonField.minorNotes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          minorNotes: Value(rawValue),
-        );
-      case OcptPersonField.maxDailyPresenceMinutes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          maxDailyPresenceMinutes: Value(ocptMaxDailyPresenceMinutesOf(rawValue)),
-        );
-      case OcptPersonField.commuteKmMilli:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          commuteKmMilli: Value(ocptBudgetQuantityMilliOf(rawValue)),
-        );
-      case OcptPersonField.accommodationNotes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          accommodationNotes: Value(rawValue),
-        );
-      case OcptPersonField.travelNotes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          travelNotes: Value(rawValue),
-        );
-      case OcptPersonField.dietaryNotes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          dietaryNotes: Value(rawValue),
-        );
-      case OcptPersonField.allergies:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          allergies: Value(rawValue),
-        );
-      case OcptPersonField.measurementHeight:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          measurementHeight: Value(rawValue),
-        );
-      case OcptPersonField.measurementChest:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          measurementChest: Value(rawValue),
-        );
-      case OcptPersonField.measurementWaist:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          measurementWaist: Value(rawValue),
-        );
-      case OcptPersonField.measurementHips:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          measurementHips: Value(rawValue),
-        );
-      case OcptPersonField.sizeTop:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          sizeTop: Value(rawValue),
-        );
-      case OcptPersonField.sizeBottom:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          sizeBottom: Value(rawValue),
-        );
-      case OcptPersonField.sizeShoes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          sizeShoes: Value(rawValue),
-        );
-      case OcptPersonField.hmcNotes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          hmcNotes: Value(rawValue),
-        );
-      case OcptPersonField.notes:
-        await _peopleService.updatePerson(
-          database: database,
-          personId: personId,
-          notes: Value(rawValue),
-        );
     }
   }
 
@@ -1547,221 +1232,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
   }
 
-  /// Sets person `event.personId`'s avatar colour index, written immediately.
-  Future<void> _onPersonColorChanged(
-    OcptResourcesPersonColorChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the colour of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      colorIndex: Value(event.colorIndex),
-    ),
-  );
-
-  /// Sets person `event.personId`'s date of birth, written immediately.
-  Future<void> _onPersonBirthDateChanged(
-    OcptResourcesPersonBirthDateChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the date of birth of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      birthDate: Value(event.date),
-    ),
-  );
-
-  /// Sets whether person `event.personId` can travel to set on their own, written immediately.
-  Future<void> _onPersonTransportAutonomyChanged(
-    OcptResourcesPersonTransportAutonomyChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the transport autonomy of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      isTransportAutonomous: Value(event.isTransportAutonomous),
-    ),
-  );
-
-  /// Sets person `event.personId`'s image rights status, written immediately.
-  Future<void> _onPersonImageRightsStatusChanged(
-    OcptResourcesPersonImageRightsStatusChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the image rights status of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      imageRightsStatus: Value(event.status),
-    ),
-  );
-
-  /// Sets the date person `event.personId`'s image rights status last changed, written
-  /// immediately.
-  Future<void> _onPersonImageRightsDateChanged(
-    OcptResourcesPersonImageRightsDateChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the image rights date of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      imageRightsDate: Value(event.date),
-    ),
-  );
-
-  /// Sets person `event.personId`'s mileage rate, written immediately.
-  Future<void> _onPersonMileageRateChanged(
-    OcptResourcesPersonMileageRateChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the mileage rate of person ${event.personId}",
-    action: (project) => _peopleService.updatePerson(
-      database: project.database,
-      personId: event.personId,
-      mileageRateId: Value(event.mileageRateId),
-    ),
-  );
-
-  /// Adds a crew position assignment to person `event.personId`, written immediately.
-  Future<void> _onPositionAdded(
-    OcptResourcesPositionAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add a position to person ${event.personId}",
-    action: (project) async {
-      await _peopleService.addPosition(
-        database: project.database,
-        personId: event.personId,
-        positionId: event.positionId,
-        customLabel: event.customLabel,
-      );
-    },
-  );
-
-  /// Updates position assignment `event.id`, written immediately.
-  Future<void> _onPositionUpdated(
-    OcptResourcesPositionUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update position ${event.id}",
-    action: (project) => _peopleService.updatePosition(
-      database: project.database,
-      id: event.id,
-      positionId: Value(event.positionId),
-      customLabel: Value(event.customLabel),
-    ),
-  );
-
-  /// Removes position assignment `event.id`, written immediately.
-  Future<void> _onPositionRemoved(
-    OcptResourcesPositionRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove position ${event.id}",
-    action: (project) => _peopleService.removePosition(database: project.database, id: event.id),
-  );
-
-  /// Adds a skill to person `event.personId`, written immediately.
-  Future<void> _onSkillAdded(
-    OcptResourcesSkillAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add a skill to person ${event.personId}",
-    action: (project) async {
-      await _peopleService.addSkill(
-        database: project.database,
-        personId: event.personId,
-        label: event.label,
-      );
-    },
-  );
-
-  /// Updates skill `event.id`'s label, written immediately.
-  Future<void> _onSkillUpdated(
-    OcptResourcesSkillUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update skill ${event.id}",
-    action: (project) =>
-        _peopleService.updateSkill(database: project.database, id: event.id, label: event.label),
-  );
-
-  /// Removes skill `event.id`, written immediately.
-  Future<void> _onSkillRemoved(
-    OcptResourcesSkillRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove skill ${event.id}",
-    action: (project) => _peopleService.removeSkill(database: project.database, id: event.id),
-  );
-
-  /// Adds an unavailability to person `event.personId`, written immediately.
-  Future<void> _onUnavailabilityAdded(
-    OcptResourcesUnavailabilityAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add an unavailability to person ${event.personId}",
-    action: (project) async {
-      await _peopleService.addUnavailability(
-        database: project.database,
-        personId: event.personId,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        slot: event.slot,
-        startMinute: event.startMinute,
-        endMinute: event.endMinute,
-        reason: event.reason,
-      );
-    },
-  );
-
-  /// Updates unavailability `event.id`, written immediately.
-  Future<void> _onUnavailabilityUpdated(
-    OcptResourcesUnavailabilityUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update unavailability ${event.id}",
-    action: (project) => _peopleService.updateUnavailability(
-      database: project.database,
-      id: event.id,
-      startDate: Value(event.startDate),
-      endDate: Value(event.endDate),
-      slot: Value(event.slot),
-      startMinute: Value(event.startMinute),
-      endMinute: Value(event.endMinute),
-      reason: Value(event.reason),
-    ),
-  );
-
-  /// Removes unavailability `event.id`, written immediately.
-  Future<void> _onUnavailabilityRemoved(
-    OcptResourcesUnavailabilityRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove unavailability ${event.id}",
-    action: (project) =>
-        _peopleService.removeUnavailability(database: project.database, id: event.id),
-  );
-
   /// Selects role `event.roleId`, expanding its row in place; selecting the already-selected role
   /// clears the selection instead, collapsing it back.
   ///
@@ -1776,7 +1246,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRoleSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final exists = state.roles.any((role) => role.id == event.roleId);
     if (!exists) {
@@ -1807,7 +1277,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRoleCreationRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -1907,7 +1377,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutRole = Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
       ..removeWhere((key, _) => key.$1 == event.roleId);
     _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: pendingWithoutRole,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
@@ -2051,7 +1520,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.pendingCandidateFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.candidateId);
     _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
@@ -2090,7 +1558,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesPersonSheetOpenRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     emitter(
       state.copyWith(
@@ -2114,7 +1582,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesLocationSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final exists = state.locations.any((location) => location.id == event.locationId);
     if (!exists) {
@@ -2140,7 +1608,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesLocationCreationRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -2209,7 +1677,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutSets = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
       ..removeWhere((key, _) => setIds.contains(key.$1));
     _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: pendingWithoutLocation,
       pendingSetEdits: pendingWithoutSets,
@@ -2352,7 +1819,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutSet = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
       ..removeWhere((key, _) => key.$1 == event.setId);
     _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: pendingWithoutSet,
@@ -2492,86 +1958,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       },
     );
   }
-
-  /// Asks for person `event.personId`'s photo through the native picker and references the file
-  /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
-  Future<void> _onPersonPhotoPickRequested(
-    OcptResourcesPersonPhotoPickRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final path = await _pickFilePath(
-      allowedExtensions: ocptImageFileExtensions,
-      fileTypeLabel: event.fileTypeLabel,
-    );
-    if (path == null) {
-      return;
-    }
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "reference the photo of person ${event.personId}",
-      action: (project) async {
-        await _peopleService.setPersonPhoto(
-          database: project.database,
-          personId: event.personId,
-          path: path,
-        );
-      },
-    );
-  }
-
-  /// Drops person `event.personId`'s reference to their photo, written immediately.
-  Future<void> _onPersonPhotoCleared(
-    OcptResourcesPersonPhotoClearedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "drop the photo of person ${event.personId}",
-    action: (project) =>
-        _peopleService.clearPersonPhoto(database: project.database, personId: event.personId),
-  );
-
-  /// Asks for person `event.personId`'s signed image rights release through the native picker and
-  /// references the file picked, written immediately. A cancelled dialog leaves the document
-  /// already referenced alone, and neither outcome touches `imageRightsStatus`.
-  Future<void> _onImageRightsDocumentPickRequested(
-    OcptResourcesImageRightsDocumentPickRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final path = await _pickFilePath(
-      allowedExtensions: ocptDocumentFileExtensions,
-      fileTypeLabel: event.fileTypeLabel,
-    );
-    if (path == null) {
-      return;
-    }
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "reference the image rights document of person ${event.personId}",
-      action: (project) async {
-        await _peopleService.setImageRightsDocument(
-          database: project.database,
-          personId: event.personId,
-          path: path,
-        );
-      },
-    );
-  }
-
-  /// Drops person `event.personId`'s reference to their signed image rights release, written
-  /// immediately.
-  Future<void> _onImageRightsDocumentCleared(
-    OcptResourcesImageRightsDocumentClearedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "drop the image rights document of person ${event.personId}",
-    action: (project) => _peopleService.clearImageRightsDocument(
-      database: project.database,
-      personId: event.personId,
-    ),
-  );
 
   /// Asks for element `event.elementId`'s photo through the native picker and references the file
   /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
@@ -2813,7 +2199,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesElementSelectedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final exists = state.elements.any((element) => element.id == event.elementId);
     if (!exists) {
@@ -2839,7 +2225,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesElementCreationRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -2894,7 +2280,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.pendingElementFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.elementId);
     _cancelFieldEditTimerIfIdle(
-      pendingPersonEdits: state.pendingFieldEdits,
       pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
@@ -3119,7 +2504,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRoleSheetOpenRequestedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    await _flushAllPendingWrites(emitter);
 
     emitter(
       state.copyWith(
@@ -3256,6 +2641,83 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.copyWith(
         leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
         rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
+      ),
+    );
+  }
+
+  /// Raises the transient write error a view bloc reported.
+  Future<void> _onWriteFailed(
+    OcptResourcesWriteFailedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(state.copyWith(hasWriteError: true));
+  }
+
+  /// Raises the transient write error and tells every view bloc to drop the edits it holds, since
+  /// writing them failed.
+  ///
+  /// The reload epoch moves with the lost edits epoch because it is what makes a view bloc look at
+  /// the mode's state: nothing is read again, and the views prune nothing else on it.
+  Future<void> _onPendingEditsLost(
+    OcptResourcesPendingEditsLostEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(
+      state.copyWith(
+        hasWriteError: true,
+        lostEditsEpoch: state.lostEditsEpoch + 1,
+        reloadEpoch: state.reloadEpoch + 1,
+      ),
+    );
+  }
+
+  /// Selects the record a view bloc has just created, in the list of `event.tab`.
+  ///
+  /// Neither switches tab nor writes what is pending: the view did so before creating, and has read
+  /// the catalogue again, so the record is in the snapshot the selection names.
+  Future<void> _onRecordCreated(
+    OcptResourcesRecordCreatedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    emitter(
+      switch (event.tab) {
+        OcptResourcesTab.people => state.copyWith(selectedPersonId: event.recordId),
+        OcptResourcesTab.roles => state.copyWith(selectedRoleId: event.recordId),
+        OcptResourcesTab.locations => state.copyWith(selectedLocationId: event.recordId),
+        OcptResourcesTab.elements => state.copyWith(selectedElementId: event.recordId),
+      }.copyWith(
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.created,
+      ),
+    );
+  }
+
+  /// Clears the selection of `event.tab`'s list when it is the record a view bloc has just
+  /// deleted. A selection that moved elsewhere meanwhile is left alone.
+  Future<void> _onRecordDropped(
+    OcptResourcesRecordDroppedEvent event,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final wasSelected =
+        switch (event.tab) {
+          OcptResourcesTab.people => state.selectedPersonId,
+          OcptResourcesTab.roles => state.selectedRoleId,
+          OcptResourcesTab.locations => state.selectedLocationId,
+          OcptResourcesTab.elements => state.selectedElementId,
+        } ==
+        event.recordId;
+    if (!wasSelected) {
+      return;
+    }
+
+    emitter(
+      state.copyWith(
+        forceSelectedPersonIdValue: event.tab == OcptResourcesTab.people,
+        forceSelectedRoleIdValue: event.tab == OcptResourcesTab.roles,
+        forceSelectedLocationIdValue: event.tab == OcptResourcesTab.locations,
+        forceSelectedElementIdValue: event.tab == OcptResourcesTab.elements,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.dropped,
       ),
     );
   }

@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +40,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
@@ -107,6 +110,10 @@ class OcptResourcesMode extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptResourcesExportBloc(modeBloc: context.read<OcptResourcesBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptResourcesPeopleBloc(modeBloc: context.read<OcptResourcesBloc>()),
       ),
     ],
     child: OcptResourcesViewEffects(child: _ResourcesView(hasRevealRequest: revealRequest != null)),
@@ -428,7 +435,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onAddPersonRequested: state.isPreviewingVersion
           ? null
-          : () => context.read<OcptResourcesBloc>().add(
+          : () => context.read<OcptResourcesPeopleBloc>().add(
               const OcptResourcesPersonCreationRequestedEvent(),
             ),
       onAddRoleRequested: state.isPreviewingVersion
@@ -523,126 +530,135 @@ class _ResourcesViewState extends State<_ResourcesView> {
       );
     }
 
-    final bloc = context.read<OcptResourcesBloc>();
+    final peopleBloc = context.read<OcptResourcesPeopleBloc>();
 
-    return OcptPersonSheet(
-      key: ValueKey(selectedPerson.id),
-      person: selectedPerson,
-      isReadOnly: state.isPreviewingVersion,
-      fieldValueOf: (field) => _fieldValueOf(state, selectedPerson, field),
-      onFieldChanged: (field, rawValue) => bloc.add(
-        OcptResourcesPersonFieldChangedEvent(
-          personId: selectedPerson.id,
-          field: field,
-          rawValue: rawValue,
-        ),
-      ),
-      onColorChanged: (colorIndex) => bloc.add(
-        OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
-      ),
-      onPhotoPickRequested: () => bloc.add(
-        OcptResourcesPersonPhotoPickRequestedEvent(
-          personId: selectedPerson.id,
-          fileTypeLabel: tr.resourcesImageFileTypeLabel,
-        ),
-      ),
-      onPhotoCleared: () =>
-          bloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
-      onImageRightsDocumentPickRequested: () => bloc.add(
-        OcptResourcesImageRightsDocumentPickRequestedEvent(
-          personId: selectedPerson.id,
-          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
-        ),
-      ),
-      onImageRightsDocumentCleared: () =>
-          bloc.add(OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id)),
-      onBirthDateChanged: (date) => bloc.add(
-        OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
-      ),
-      onTransportAutonomyChanged: (isTransportAutonomous) => bloc.add(
-        OcptResourcesPersonTransportAutonomyChangedEvent(
-          personId: selectedPerson.id,
-          isTransportAutonomous: isTransportAutonomous,
-        ),
-      ),
-      onImageRightsStatusChanged: (status) => bloc.add(
-        OcptResourcesPersonImageRightsStatusChangedEvent(
-          personId: selectedPerson.id,
-          status: status,
-        ),
-      ),
-      mileageRates: state.mileageRates,
-      onMileageRateChanged: (mileageRateId) => bloc.add(
-        OcptResourcesPersonMileageRateChangedEvent(
-          personId: selectedPerson.id,
-          mileageRateId: mileageRateId,
-        ),
-      ),
-      onImageRightsDateChanged: (date) => bloc.add(
-        OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
-      ),
-      onPositionAdded: () => bloc.add(
-        OcptResourcesPositionAddedEvent(
-          personId: selectedPerson.id,
-          positionId: "",
-          customLabel: "",
-        ),
-      ),
-      onPositionUpdated: (id, {required positionId, required customLabel}) => bloc.add(
-        OcptResourcesPositionUpdatedEvent(id: id, positionId: positionId, customLabel: customLabel),
-      ),
-      onPositionRemoved: (id) => bloc.add(OcptResourcesPositionRemovedEvent(id: id)),
-      onSkillAdded: (label) =>
-          bloc.add(OcptResourcesSkillAddedEvent(personId: selectedPerson.id, label: label)),
-      onSkillRemoved: (id) => bloc.add(OcptResourcesSkillRemovedEvent(id: id)),
-      onUnavailabilityAdded:
-          ({
-            required startDate,
-            required endDate,
-            required slot,
-            required startMinute,
-            required endMinute,
-          }) => bloc.add(
-            OcptResourcesUnavailabilityAddedEvent(
-              personId: selectedPerson.id,
-              startDate: startDate,
-              endDate: endDate,
-              slot: slot,
-              startMinute: startMinute,
-              endMinute: endMinute,
-              reason: "",
-            ),
+    return BlocBuilder<OcptResourcesPeopleBloc, OcptResourcesPeopleState>(
+      builder: (context, peopleState) => OcptPersonSheet(
+        key: ValueKey(selectedPerson.id),
+        person: selectedPerson,
+        isReadOnly: state.isPreviewingVersion,
+        fieldValueOf: (field) => _fieldValueOf(peopleState, selectedPerson, field),
+        onFieldChanged: (field, rawValue) => peopleBloc.add(
+          OcptResourcesPersonFieldChangedEvent(
+            personId: selectedPerson.id,
+            field: field,
+            rawValue: rawValue,
           ),
-      onUnavailabilityUpdated:
-          (
-            id, {
-            required startDate,
-            required endDate,
-            required slot,
-            required startMinute,
-            required endMinute,
-            required reason,
-          }) => bloc.add(
-            OcptResourcesUnavailabilityUpdatedEvent(
-              id: id,
-              startDate: startDate,
-              endDate: endDate,
-              slot: slot,
-              startMinute: startMinute,
-              endMinute: endMinute,
-              reason: reason,
-            ),
-          ),
-      onUnavailabilityRemoved: (id) => bloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
-      onDeleteRequested: () => _handleDeleteRequested(
-        context,
-        title: tr.resourcesDeleteConfirmTitle,
-        message: tr.resourcesDeleteConfirmMessage(
-          selectedPerson.displayName.isEmpty
-              ? tr.resourcesUnnamedPerson
-              : selectedPerson.displayName,
         ),
-        event: OcptResourcesPersonDeletionRequestedEvent(personId: selectedPerson.id),
+        onColorChanged: (colorIndex) => peopleBloc.add(
+          OcptResourcesPersonColorChangedEvent(personId: selectedPerson.id, colorIndex: colorIndex),
+        ),
+        onPhotoPickRequested: () => peopleBloc.add(
+          OcptResourcesPersonPhotoPickRequestedEvent(
+            personId: selectedPerson.id,
+            fileTypeLabel: tr.resourcesImageFileTypeLabel,
+          ),
+        ),
+        onPhotoCleared: () =>
+            peopleBloc.add(OcptResourcesPersonPhotoClearedEvent(personId: selectedPerson.id)),
+        onImageRightsDocumentPickRequested: () => peopleBloc.add(
+          OcptResourcesImageRightsDocumentPickRequestedEvent(
+            personId: selectedPerson.id,
+            fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+          ),
+        ),
+        onImageRightsDocumentCleared: () => peopleBloc.add(
+          OcptResourcesImageRightsDocumentClearedEvent(personId: selectedPerson.id),
+        ),
+        onBirthDateChanged: (date) => peopleBloc.add(
+          OcptResourcesPersonBirthDateChangedEvent(personId: selectedPerson.id, date: date),
+        ),
+        onTransportAutonomyChanged: (isTransportAutonomous) => peopleBloc.add(
+          OcptResourcesPersonTransportAutonomyChangedEvent(
+            personId: selectedPerson.id,
+            isTransportAutonomous: isTransportAutonomous,
+          ),
+        ),
+        onImageRightsStatusChanged: (status) => peopleBloc.add(
+          OcptResourcesPersonImageRightsStatusChangedEvent(
+            personId: selectedPerson.id,
+            status: status,
+          ),
+        ),
+        mileageRates: state.mileageRates,
+        onMileageRateChanged: (mileageRateId) => peopleBloc.add(
+          OcptResourcesPersonMileageRateChangedEvent(
+            personId: selectedPerson.id,
+            mileageRateId: mileageRateId,
+          ),
+        ),
+        onImageRightsDateChanged: (date) => peopleBloc.add(
+          OcptResourcesPersonImageRightsDateChangedEvent(personId: selectedPerson.id, date: date),
+        ),
+        onPositionAdded: () => peopleBloc.add(
+          OcptResourcesPositionAddedEvent(
+            personId: selectedPerson.id,
+            positionId: "",
+            customLabel: "",
+          ),
+        ),
+        onPositionUpdated: (id, {required positionId, required customLabel}) => peopleBloc.add(
+          OcptResourcesPositionUpdatedEvent(
+            id: id,
+            positionId: positionId,
+            customLabel: customLabel,
+          ),
+        ),
+        onPositionRemoved: (id) => peopleBloc.add(OcptResourcesPositionRemovedEvent(id: id)),
+        onSkillAdded: (label) =>
+            peopleBloc.add(OcptResourcesSkillAddedEvent(personId: selectedPerson.id, label: label)),
+        onSkillRemoved: (id) => peopleBloc.add(OcptResourcesSkillRemovedEvent(id: id)),
+        onUnavailabilityAdded:
+            ({
+              required startDate,
+              required endDate,
+              required slot,
+              required startMinute,
+              required endMinute,
+            }) => peopleBloc.add(
+              OcptResourcesUnavailabilityAddedEvent(
+                personId: selectedPerson.id,
+                startDate: startDate,
+                endDate: endDate,
+                slot: slot,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                reason: "",
+              ),
+            ),
+        onUnavailabilityUpdated:
+            (
+              id, {
+              required startDate,
+              required endDate,
+              required slot,
+              required startMinute,
+              required endMinute,
+              required reason,
+            }) => peopleBloc.add(
+              OcptResourcesUnavailabilityUpdatedEvent(
+                id: id,
+                startDate: startDate,
+                endDate: endDate,
+                slot: slot,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                reason: reason,
+              ),
+            ),
+        onUnavailabilityRemoved: (id) =>
+            peopleBloc.add(OcptResourcesUnavailabilityRemovedEvent(id: id)),
+        onDeleteRequested: () => _handleDeleteRequested(
+          context,
+          bloc: peopleBloc,
+          title: tr.resourcesDeleteConfirmTitle,
+          message: tr.resourcesDeleteConfirmMessage(
+            selectedPerson.displayName.isEmpty
+                ? tr.resourcesUnnamedPerson
+                : selectedPerson.displayName,
+          ),
+          event: OcptResourcesPersonDeletionRequestedEvent(personId: selectedPerson.id),
+        ),
       ),
     );
   }
@@ -650,7 +666,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// [person]'s current value for [field]: a pending edit still sitting in the bloc's debounce
   /// takes priority over the person's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors `OcptShotListMode._fieldValueOf`.
-  String _fieldValueOf(OcptResourcesState state, OcptPerson person, OcptPersonField field) {
+  String _fieldValueOf(OcptResourcesPeopleState state, OcptPerson person, OcptPersonField field) {
     final pending = state.pendingFieldEdits[(person.id, field)];
     if (pending != null) {
       return pending;
@@ -697,11 +713,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// differs, and it is the caller's.
   Future<void> _handleDeleteRequested(
     BuildContext context, {
+    required Bloc<BlocEventForMixin, Object?> bloc,
     required String title,
     required String message,
     required OcptResourcesEvent event,
   }) async {
-    final bloc = context.read<OcptResourcesBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -816,6 +832,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onDeleteRequested: () => _handleDeleteRequested(
         context,
+        bloc: bloc,
         title: tr.resourcesRoleDeleteConfirmTitle,
         message:
             ocptRoleIsActionDetected(
@@ -851,6 +868,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       ),
       onCandidateRemoveRequested: (candidateId) => _handleDeleteRequested(
         context,
+        bloc: bloc,
         title: tr.resourcesRemoveCandidateConfirmTitle,
         message: tr.resourcesRemoveCandidateConfirmMessage,
         event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
@@ -1013,6 +1031,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
           bloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
       onDeleteRequested: () => _handleDeleteRequested(
         context,
+        bloc: bloc,
         title: tr.resourcesLocationDeleteConfirmTitle,
         message: tr.resourcesLocationDeleteConfirmMessage,
         event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
@@ -1094,6 +1113,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       onLinkRemoved: (id) => bloc.add(OcptResourcesSceneElementRemovedEvent(id: id)),
       onDeleteRequested: () => _handleDeleteRequested(
         context,
+        bloc: bloc,
         title: tr.resourcesElementDeleteConfirmTitle,
         message: tr.resourcesDeleteElementConfirm,
         event: OcptResourcesElementDeletionRequestedEvent(elementId: selectedElement.id),
