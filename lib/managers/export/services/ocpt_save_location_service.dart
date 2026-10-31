@@ -43,8 +43,7 @@ class OcptSaveLocationService extends AbsOcptService {
       return p.extension(path).isEmpty ? "$path.${extensions.first}" : path;
     } catch (error, stackTrace) {
       logger.e(
-        "A problem occurred when tried to pick a save location for: $suggestedFileName, error: "
-        "${error.runtimeType}",
+        "A problem occurred when tried to pick a save location, error: ${error.runtimeType}",
         null,
         stackTrace,
       );

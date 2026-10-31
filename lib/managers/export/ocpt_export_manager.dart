@@ -1507,7 +1507,7 @@ class OcptExportManager extends AbsWithLifeCycle {
       return shared ? const OcptExportShared() : null;
     } catch (error, stackTrace) {
       _logger.e(
-        "A problem occurred when tried to share the file: $fileName, error: ${error.runtimeType}",
+        "A problem occurred when tried to share a file, error: ${error.runtimeType}",
         null,
         stackTrace,
       );
@@ -1542,17 +1542,14 @@ class OcptExportManager extends AbsWithLifeCycle {
 
     final bytes = await XFileUtilities.getBinaryFileContent(xFile: selectedFile);
     if (bytes == null) {
-      _logger.e("A problem occurred when tried to read the picked file: ${selectedFile.name}");
+      _logger.e("A problem occurred when tried to read the picked file");
       return const ResultWithStatus(status: OcptScreenplayImportStatus.ioError);
     }
 
     final read = scriptImportService.readScreenplay(bytes: bytes, fileName: selectedFile.name);
     final fountainText = read.value;
     if (!read.status.isSuccess || fountainText == null) {
-      _logger.w(
-        "The picked file ${selectedFile.name} could not be read as a screenplay: "
-        "${read.status}",
-      );
+      _logger.w("The picked file could not be read as a screenplay: ${read.status}");
       return ResultWithStatus(status: read.status);
     }
 
