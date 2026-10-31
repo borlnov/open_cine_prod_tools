@@ -1266,10 +1266,12 @@ void main() {
         panelId: mounted.panelId,
         comment: "Meanwhile",
       );
-      await mode.reload({OcptShotListReloadScope.storyboard});
-      expect(mode.state.reloadEpoch, epoch + 1);
+      final reload = mode.reload({OcptShotListReloadScope.storyboard});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(mode.state.reloadEpoch, epoch, reason: 'the read waits for the creation before it');
 
       service.release();
+      await reload.timeout(const Duration(seconds: 5));
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(mode.state.reloadEpoch, greaterThan(epoch));
