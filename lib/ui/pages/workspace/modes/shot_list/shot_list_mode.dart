@@ -36,6 +36,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -127,6 +129,11 @@ class OcptShotListMode extends StatelessWidget {
         lazy: false,
         create: (context) => OcptShotListInspectorBloc(modeBloc: context.read<OcptShotListBloc>()),
       ),
+      BlocProvider(
+        lazy: false,
+        create: (context) =>
+            OcptShotListFloorPlanSetsBloc(modeBloc: context.read<OcptShotListBloc>()),
+      ),
     ],
     child: _ShotListView(hasRevealRequest: revealRequest != null),
   );
@@ -205,6 +212,9 @@ class _ShotListViewState extends State<_ShotListView> {
       ),
       BlocListener<OcptShotListInspectorBloc, OcptShotListInspectorState>(
         listener: _onInspectorStateChanged,
+      ),
+      BlocListener<OcptShotListFloorPlanSetsBloc, OcptShotListFloorPlanSetsState>(
+        listener: _onFloorPlanSetsStateChanged,
       ),
     ],
     child: _buildMode(context),
@@ -802,6 +812,8 @@ class _ShotListViewState extends State<_ShotListView> {
   /// which carries no order of its own.
   Widget _buildSetTabs(BuildContext context, OcptShotListState state, OcptShotSequence sequence) {
     final bloc = context.read<OcptShotListBloc>();
+    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
+    final setsState = context.watch<OcptShotListFloorPlanSetsBloc>().state;
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final canCreateSet = sequence is OcptSceneShotSequence && !isReadOnly;
@@ -810,7 +822,7 @@ class _ShotListViewState extends State<_ShotListView> {
     return OcptFloorPlanSetTabs(
       sets: state.setsOfSelectedSequence,
       selectedSetId: state.selectedSetId,
-      nameValueOf: (setId) => _setNameValueOf(state, setId),
+      nameValueOf: (setId) => _setNameValueOf(state, setsState, setId),
       placedShotCountOf: (setId) => _placedShotCountOf(state, setId),
       suggestedSetId: suggestedSetId,
       suggestedSetName: _suggestedSetNameOf(state, suggestedSetId),
@@ -818,18 +830,19 @@ class _ShotListViewState extends State<_ShotListView> {
       locationsForCreation: canCreateSet ? _locationsForCreationOf(state) : const [],
       onSetSelected: (setId) => bloc.add(OcptShotListSetSelectedEvent(setId: setId)),
       onSetLinkRequested: canCreateSet
-          ? (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId))
+          ? (setId) => setsBloc.add(OcptShotListSetLinkRequestedEvent(setId: setId))
           : null,
       onSetCreationRequested: canCreateSet
-          ? (locationId) => bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId))
+          ? (locationId) =>
+                setsBloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId))
           : null,
       onSetDuplicateRequested: isReadOnly
           ? null
-          : (setId) => bloc.add(
+          : (setId) => setsBloc.add(
               OcptShotListSetDuplicationRequestedEvent(
                 setId: setId,
                 newSetName: tr.shotListFloorPlanDuplicateSetDefaultName(
-                  _setNameValueOf(state, setId),
+                  _setNameValueOf(state, setsState, setId),
                 ),
               ),
             ),
@@ -839,7 +852,7 @@ class _ShotListViewState extends State<_ShotListView> {
       onSetNameChanged: isReadOnly
           ? null
           : (setId, rawValue) =>
-                bloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: rawValue)),
+                setsBloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: rawValue)),
       onSetReordered: null,
       onSetDeleteRequested: isReadOnly
           ? null
@@ -872,7 +885,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     OcptSceneShotSequence sequence,
   ) {
-    final bloc = context.read<OcptShotListBloc>();
+    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptFloorPlanSetGallery(
@@ -881,10 +894,11 @@ class _ShotListViewState extends State<_ShotListView> {
       suggestedSetId: _suggestedSetIdOf(state, sequence),
       onSetLinkRequested: isReadOnly
           ? null
-          : (setId) => bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId)),
+          : (setId) => setsBloc.add(OcptShotListSetLinkRequestedEvent(setId: setId)),
       onSetCreationRequested: isReadOnly
           ? null
-          : (locationId) => bloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
+          : (locationId) =>
+                setsBloc.add(OcptShotListSetCreationRequestedEvent(locationId: locationId)),
     );
   }
 
@@ -981,15 +995,19 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    context.read<OcptShotListBloc>().add(
+    context.read<OcptShotListFloorPlanSetsBloc>().add(
       OcptShotListFloorPlanBlockingCopyRequestedEvent(setId: setId, sourceShotId: sourceShotId),
     );
   }
 
   /// [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
   /// stored value.
-  String _setNameValueOf(OcptShotListState state, String setId) {
-    final pending = state.pendingFieldEdits[OcptShotListSetNameEditKey(setId: setId)];
+  String _setNameValueOf(
+    OcptShotListState state,
+    OcptShotListFloorPlanSetsState setsState,
+    String setId,
+  ) {
+    final pending = setsState.pendingFieldEdits[OcptShotListSetNameEditKey(setId: setId)];
     if (pending != null) {
       return pending;
     }
@@ -1011,7 +1029,7 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotListState state,
     String setId,
   ) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -1028,7 +1046,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    bloc.add(OcptShotListSetDeletionRequestedEvent(setId: setId));
+    setsBloc.add(OcptShotListSetDeletionRequestedEvent(setId: setId));
   }
 
   /// The unlink dialog's own message: `The set's plan is kept.` alone, or followed by what leaves
@@ -1093,6 +1111,8 @@ class _ShotListViewState extends State<_ShotListView> {
     OcptShotSequence sequence,
   ) {
     final bloc = context.read<OcptShotListBloc>();
+    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
+    final setsState = context.watch<OcptShotListFloorPlanSetsBloc>().state;
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
     final selectedSet = state.selectedSet;
@@ -1114,24 +1134,24 @@ class _ShotListViewState extends State<_ShotListView> {
       nextShotId: state.nextShotOfSelectedShot?.id,
       hasCameraOnSetOf: _hasCameraOnSetOf(sequence, selectedSet),
       sequenceCameras: _sequenceCamerasOf(selectedSet, state.selectedSequenceId, shotRankByShotId),
-      initialZoom: state.floorPlanZoom,
-      hiddenLayers: state.floorPlanHiddenLayers,
-      hiddenCameraSymbolIds: state.floorPlanHiddenCameraSymbolIds,
-      isUnderlayHidden: state.isFloorPlanUnderlayHidden,
-      isOnionSkinPreviousShown: state.isFloorPlanOnionSkinPreviousShown,
-      isOnionSkinNextShown: state.isFloorPlanOnionSkinNextShown,
-      onionSkinOpacity: state.floorPlanOnionSkinOpacity,
-      isMetricsShown: state.isFloorPlanMetricsShown,
+      initialZoom: setsState.floorPlanZoom,
+      hiddenLayers: setsState.floorPlanHiddenLayers,
+      hiddenCameraSymbolIds: setsState.floorPlanHiddenCameraSymbolIds,
+      isUnderlayHidden: setsState.isFloorPlanUnderlayHidden,
+      isOnionSkinPreviousShown: setsState.isFloorPlanOnionSkinPreviousShown,
+      isOnionSkinNextShown: setsState.isFloorPlanOnionSkinNextShown,
+      onionSkinOpacity: setsState.floorPlanOnionSkinOpacity,
+      isMetricsShown: setsState.isFloorPlanMetricsShown,
       selectedSymbolId: state.selectedFloorPlanSymbolId,
       selectedArrowId: state.selectedFloorPlanArrowId,
       pendingArrowAnchorSymbolId: state.pendingFloorPlanArrowAnchorSymbolId,
       activeTool: state.floorPlanActiveTool,
-      activeLayer: state.floorPlanActiveLayer,
-      activeSetElementShape: state.floorPlanActiveSetElementShape,
-      activeSetElementScope: state.floorPlanActiveSetElementScope,
-      activeLabel: state.floorPlanActiveLabel,
+      activeLayer: setsState.floorPlanActiveLayer,
+      activeSetElementShape: setsState.floorPlanActiveSetElementShape,
+      activeSetElementScope: setsState.floorPlanActiveSetElementScope,
+      activeLabel: setsState.floorPlanActiveLabel,
       propsChips: [
-        for (final prop in state.propsOfSelectedSequence)
+        for (final prop in setsState.propsOfSelectedSequence)
           OcptFloorPlanPropChip(
             elementId: prop.elementId,
             name: prop.name,
@@ -1142,27 +1162,27 @@ class _ShotListViewState extends State<_ShotListView> {
       symbolLabelValueOf: (symbolId) => _symbolLabelValueOf(state, symbolId),
       onToolSelected: (tool) => bloc.add(OcptShotListFloorPlanToolSelectedEvent(tool: tool)),
       onLayerVisibilityToggled: (layer) =>
-          bloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
+          setsBloc.add(OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: layer)),
       onActiveLayerChanged: (layer) =>
-          bloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
+          setsBloc.add(OcptShotListFloorPlanActiveLayerChangedEvent(layer: layer)),
       onSetElementShapeSelected: (shape) =>
-          bloc.add(OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape)),
+          setsBloc.add(OcptShotListFloorPlanActiveSetElementShapeChangedEvent(shape: shape)),
       onSetElementScopeSelected: (scope) =>
-          bloc.add(OcptShotListFloorPlanActiveSetElementScopeChangedEvent(scope: scope)),
+          setsBloc.add(OcptShotListFloorPlanActiveSetElementScopeChangedEvent(scope: scope)),
       onPropChipSelected: (label) =>
-          bloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: label)),
+          setsBloc.add(OcptShotListFloorPlanActiveLabelChangedEvent(label: label)),
       onCameraVisibilityToggled: (symbolId) =>
-          bloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
+          setsBloc.add(OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: symbolId)),
       onOnionSkinToggled: (isPrevious) =>
-          bloc.add(OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: isPrevious)),
+          setsBloc.add(OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: isPrevious)),
       onOnionSkinOpacityChanged: (opacity) =>
-          bloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
-      onMetricsToggled: () => bloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
+          setsBloc.add(OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: opacity)),
+      onMetricsToggled: () => setsBloc.add(const OcptShotListFloorPlanMetricsToggledEvent()),
       onUnderlayVisibilityToggled: () =>
-          bloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
+          setsBloc.add(const OcptShotListFloorPlanUnderlayVisibilityToggledEvent()),
       onUnderlayImportRequested: isReadOnly || selectedSetId == null
           ? null
-          : () => bloc.add(
+          : () => setsBloc.add(
               OcptShotListFloorPlanUnderlayImportRequestedEvent(
                 setId: selectedSetId,
                 fileTypeLabel: tr.shotListFloorPlanUnderlayFileTypeLabel,
@@ -1253,7 +1273,7 @@ class _ShotListViewState extends State<_ShotListView> {
             ),
       onUnderlayTransformChanged: isReadOnly || selectedSetId == null
           ? null
-          : (xM, yM, widthM, heightM) => bloc.add(
+          : (xM, yM, widthM, heightM) => setsBloc.add(
               OcptShotListFloorPlanUnderlayTransformChangedEvent(
                 setId: selectedSetId,
                 xM: xM,
@@ -1262,10 +1282,10 @@ class _ShotListViewState extends State<_ShotListView> {
                 heightM: heightM,
               ),
             ),
-      onZoomSettled: (zoom) => bloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
+      onZoomSettled: (zoom) => setsBloc.add(OcptShotListFloorPlanZoomChangedEvent(zoom: zoom)),
       onShotChipSelected: (shotId) => bloc.add(OcptShotListShotSelectedEvent(shotId: shotId)),
       onShotWalkRequested: (delta) =>
-          bloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
+          setsBloc.add(OcptShotListFloorPlanShotWalkRequestedEvent(delta: delta)),
       pendingScopeLiveOverride: _pendingScopeLiveOverrideOf(state),
       scopeBubbleEveryLabel: _scopeBubbleEveryLabelOf(state, tr),
       scopeBubbleOnlyLabel: _scopeBubbleOnlyLabelOf(state, tr, sequence),
@@ -1892,7 +1912,7 @@ class _ShotListViewState extends State<_ShotListView> {
   /// Shows the delete confirmation dialog, then dispatches the underlay's clearing if the user
   /// confirmed it — the tray's own `Clear underlay` action, which only asks.
   Future<void> _handleUnderlayClearRequested(BuildContext context, String setId) async {
-    final bloc = context.read<OcptShotListBloc>();
+    final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -1908,7 +1928,7 @@ class _ShotListViewState extends State<_ShotListView> {
       return;
     }
 
-    bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
+    setsBloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
   }
 
   /// Shows the delete confirmation dialog, then dispatches the panel's deletion if the user
@@ -2251,6 +2271,21 @@ class _ShotListViewState extends State<_ShotListView> {
       ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
     context.read<OcptShotListInspectorBloc>().add(
       const OcptShotListInspectorWriteErrorDismissedEvent(),
+    );
+  }
+
+  /// Shows the transient write error the floor plan sets bloc raised as a SnackBar, then dismisses
+  /// it.
+  void _onFloorPlanSetsStateChanged(BuildContext context, OcptShotListFloorPlanSetsState state) {
+    if (!state.hasWriteError) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(Tr.of(context).shotListWriteError)));
+    context.read<OcptShotListFloorPlanSetsBloc>().add(
+      const OcptShotListFloorPlanSetsWriteErrorDismissedEvent(),
     );
   }
 

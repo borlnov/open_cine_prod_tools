@@ -4,7 +4,6 @@
 
 import 'dart:async';
 
-import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -13,13 +12,11 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
@@ -33,7 +30,6 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -42,7 +38,6 @@ import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
@@ -78,10 +73,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// What the inspector does with a shot — its typed fields and their autosave, its difficulty, its
 /// characters, its scenario coverage ranges and the cast-wide role changes — belongs to
 /// `OcptShotListInspectorBloc`, which writes through the services and then asks this bloc to read
-/// the data again ([reload]). The board belongs to `OcptShotListStoryboardBloc` the same way. What
-/// is typed into a set's tab or a floor plan symbol's label is still held here, in
-/// [OcptShotListState.pendingFieldEdits], and written [defaultFieldEditDebounce] after the last
-/// keystroke, mirroring `OcptEditorBloc`'s own autosave convention. That debounce is flushed
+/// the data again ([reload]). The board belongs to `OcptShotListStoryboardBloc` the same way, and
+/// the floor plans' sets, underlays and tray to `OcptShotListFloorPlanSetsBloc`. What is typed into
+/// a floor plan symbol's label is still held here, in [OcptShotListState.pendingFieldEdits], and
+/// written [defaultFieldEditDebounce] after the last keystroke, mirroring `OcptEditorBloc`'s own
+/// autosave convention. That debounce is flushed
 /// immediately, together with the view blocs', whenever the selected shot or sequence changes,
 /// when the workspace is left, and (through [flushPendingFieldEdits], called by the mode's own
 /// `deactivate()`) whenever the mode leaves the widget tree for any other reason, so a pending edit
@@ -124,20 +120,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The default delay between the last field edit and its autosave write.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
-  /// The centre X, in metres, a set's underlay is framed at the moment it is first imported —
-  /// see [_onFloorPlanUnderlayImportRequested].
-  static const _defaultUnderlayXM = 0.0;
-
-  /// The centre Y, in metres, a set's underlay is framed at the moment it is first imported.
-  static const _defaultUnderlayYM = 0.0;
-
-  /// The width, in metres, a set's underlay is framed at the moment it is first imported — a
-  /// plausible room width the user drags and resizes against the reference silhouette (ADR 0031).
-  static const _defaultUnderlayWidthM = 6.0;
-
-  /// The height, in metres, a set's underlay is framed at the moment it is first imported.
-  static const _defaultUnderlayHeightM = 4.0;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -167,23 +149,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   final OcptStoryboardService _storyboardService;
 
   /// The service used to read and write the floor plans: `loadFloorPlans`, a symbol's placement/
-  /// move/resize/rotation/deletion, the underlay's own CRUD and a set's own plan-copying half of
-  /// duplication.
+  /// move/resize/rotation/deletion.
   final OcptFloorPlanService _floorPlanService;
 
-  /// The service used to create, rename, link and unlink a Resources set — the floor plans view's
-  /// own set tabs are `scene_sets` links now, so every tab
-  /// operation but placing/editing what is drawn on a set goes through this service instead of
-  /// [_floorPlanService].
+  /// The service used to read the project's Resources locations and their sets.
   final OcptLocationsService _locationsService;
-
-  /// The service used to read the focused sequence's own breakdown props, for the floor plans
-  /// palette's own `Sequence` group chips.
-  final OcptElementsService _elementsService;
-
-  /// The manager used to pick a panel's frame or a set's underlay through the native "open"
-  /// dialog, mirroring `OcptResourcesBloc`'s own `_pickFilePath`.
-  final FileSelectorManager? _fileSelectorManager;
 
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
@@ -225,8 +195,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
     OcptLocationsService? locationsService,
-    OcptElementsService? elementsService,
-    FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     String? selectedEpisodeId,
     OcptShotListRevealRequest? revealRequest,
@@ -254,10 +222,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
-       _elementsService =
-           elementsService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptShotListState.init()) {
     add(const OcptShotListLoadRequestedEvent());
@@ -287,24 +251,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListShotDeletionRequestedEvent>(_onShotDeletionRequested);
     on<OcptShotListCentreViewSelectedEvent>(_onCentreViewSelected);
     onAwaited<OcptShotListSetSelectedEvent>(_onSetSelected);
-    on<OcptShotListSetCreationRequestedEvent>(_onSetCreationRequested);
-    on<OcptShotListSetLinkRequestedEvent>(_onSetLinkRequested);
-    on<OcptShotListSetNameChangedEvent>(_onSetNameChanged);
-    on<OcptShotListSetDeletionRequestedEvent>(_onSetDeletionRequested);
-    on<OcptShotListSetDuplicationRequestedEvent>(_onSetDuplicationRequested);
-    on<OcptShotListFloorPlanBlockingCopyRequestedEvent>(_onFloorPlanBlockingCopyRequested);
-    on<OcptShotListFloorPlanZoomChangedEvent>(_onFloorPlanZoomChanged);
+    onAwaited<OcptShotListSetAddedEvent>(_onSetAdded);
+    onAwaited<OcptShotListSetRemovedEvent>(_onSetRemoved);
     on<OcptShotListFloorPlanToolSelectedEvent>(_onFloorPlanToolSelected);
-    on<OcptShotListFloorPlanActiveLayerChangedEvent>(_onFloorPlanActiveLayerChanged);
-    on<OcptShotListFloorPlanActiveSetElementShapeChangedEvent>(
-      _onFloorPlanActiveSetElementShapeChanged,
-    );
-    on<OcptShotListFloorPlanActiveSetElementScopeChangedEvent>(
-      _onFloorPlanActiveSetElementScopeChanged,
-    );
-    on<OcptShotListFloorPlanActiveLabelChangedEvent>(_onFloorPlanActiveLabelChanged);
-    on<OcptShotListFloorPlanLayerVisibilityToggledEvent>(_onFloorPlanLayerVisibilityToggled);
-    on<OcptShotListFloorPlanUnderlayVisibilityToggledEvent>(_onFloorPlanUnderlayVisibilityToggled);
     on<OcptShotListFloorPlanSymbolPlacedEvent>(_onFloorPlanSymbolPlaced);
     on<OcptShotListFloorPlanSymbolSelectedEvent>(_onFloorPlanSymbolSelected);
     on<OcptShotListFloorPlanSymbolMovedEvent>(_onFloorPlanSymbolMoved);
@@ -321,14 +270,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     on<OcptShotListFloorPlanSymbolRestoreRequestedEvent>(_onFloorPlanSymbolRestoreRequested);
     on<OcptShotListFloorPlanScopeDecisionRequestedEvent>(_onFloorPlanScopeDecisionRequested);
     on<OcptShotListFloorPlanScopeDecisionResolvedEvent>(_onFloorPlanScopeDecisionResolved);
-    on<OcptShotListFloorPlanUnderlayImportRequestedEvent>(_onFloorPlanUnderlayImportRequested);
-    on<OcptShotListFloorPlanUnderlayTransformChangedEvent>(_onFloorPlanUnderlayTransformChanged);
-    on<OcptShotListFloorPlanUnderlayClearRequestedEvent>(_onFloorPlanUnderlayClearRequested);
-    on<OcptShotListFloorPlanShotWalkRequestedEvent>(_onFloorPlanShotWalkRequested);
-    on<OcptShotListFloorPlanCameraVisibilityToggledEvent>(_onFloorPlanCameraVisibilityToggled);
-    on<OcptShotListFloorPlanOnionSkinToggledEvent>(_onFloorPlanOnionSkinToggled);
-    on<OcptShotListFloorPlanOnionSkinOpacityChangedEvent>(_onFloorPlanOnionSkinOpacityChanged);
-    on<OcptShotListFloorPlanMetricsToggledEvent>(_onFloorPlanMetricsToggled);
     on<OcptShotListFloorPlanArrowSymbolTappedEvent>(_onFloorPlanArrowSymbolTapped);
     on<OcptShotListFloorPlanArrowAnchorCancelledEvent>(_onFloorPlanArrowAnchorCancelled);
     on<OcptShotListFloorPlanArrowDeletionRequestedEvent>(_onFloorPlanArrowDeletionRequested);
@@ -530,11 +471,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final effectiveCentreView = revealedSequenceId != null
           ? OcptShotListCentreView.floorPlans
           : centreView;
-      final propsOfSelectedSequence = await _loadPropsOfSequence(
-        project: project,
-        sequences: snapshot.sequences,
-        sequenceId: selectedSequenceId,
-      );
 
       emitter(
         state.copyWith(
@@ -566,32 +502,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           centreView: effectiveCentreView,
           screenplayCharacters: screenplayCharacters,
           suggestions: suggestions,
-          propsOfSelectedSequence: propsOfSelectedSequence,
           reloadEpoch: state.reloadEpoch + 1,
           selectionEpoch: state.selectionEpoch + 1,
           selectionCause: OcptShotListSelectionCause.load,
         ),
       );
     });
-  }
-
-  /// [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
-  /// while [sequenceId] is null or names the orphan group, which has no scene of its own to read —
-  /// the floor plans palette's own `Sequence` group chips.
-  Future<List<OcptScenePropSummary>> _loadPropsOfSequence({
-    required OcptOpenProjectModel project,
-    required List<OcptShotSequence> sequences,
-    required String? sequenceId,
-  }) async {
-    if (sequenceId == null) {
-      return const [];
-    }
-    for (final sequence in sequences) {
-      if (sequence.id == sequenceId && sequence is OcptSceneShotSequence) {
-        return _elementsService.propsOfScene(database: project.database, sceneId: sequence.sceneId);
-      }
-    }
-    return const [];
   }
 
   /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
@@ -749,14 +665,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final selectedShotId = isSameSequence
         ? state.selectedShotId
         : ocptFirstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
-    final project = _projectsManager.currentProject;
-    final propsOfSelectedSequence = isSameSequence || project == null
-        ? state.propsOfSelectedSequence
-        : await _loadPropsOfSequence(
-            project: project,
-            sequences: state.sequences,
-            sequenceId: event.sequenceId,
-          );
 
     emitter(
       state.copyWith(
@@ -769,7 +677,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forceSelectedFloorPlanArrowIdValue: !isSameSequence,
         forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
         forcePendingFloorPlanScopeDecisionValue: !isSameSequence,
-        propsOfSelectedSequence: propsOfSelectedSequence,
         selectionEpoch: state.selectionEpoch + 1,
         selectionCause: isSameSequence
             ? OcptShotListSelectionCause.sequenceReselected
@@ -1010,8 +917,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
-  /// field-edit debounce that eventually writes it — the body [_onSetNameChanged] and
-  /// [_onFloorPlanSymbolLabelChanged] share, since both ride the very same debounce.
+  /// field-edit debounce that eventually writes it — the body [_onFloorPlanSymbolLabelChanged] runs.
   void _recordPendingEdit({
     required Emitter<OcptShotListState> emitter,
     required OcptShotListPendingEditKey key,
@@ -1060,8 +966,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }
 
   /// Writes every pending field edit the mode itself holds immediately: cancels the debounce
-  /// timer (a no-op if it already fired or there was none), writes each one (a set's name, a
-  /// symbol's label), then reads the shared data again so every view reflects what the database
+  /// timer (a no-op if it already fired or there was none), writes each one (a symbol's label),
+  /// then reads the shared data again so every view reflects what the database
   /// now says. A no-op while nothing is pending. Answers whether there was anything pending.
   ///
   /// Used from inside an event handler, with that handler's own [emitter]: called by
@@ -1181,8 +1087,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Writes every entry of [pending], switching on its key's own kind: a set's name through
-  /// `OcptLocationsService.updateSet`, or a symbol's label through
+  /// Writes every entry of [pending], switching on its key's own kind: a symbol's label through
   /// `OcptFloorPlanService.updateSymbol`.
   Future<void> _writeAllPendingFields({
     required OcptOpenProjectModel project,
@@ -1190,17 +1095,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
-        case OcptShotListSetNameEditKey(:final setId):
-          await _locationsService.updateSet(
-            database: project.database,
-            setId: setId,
-            name: Value(entry.value),
-          );
         case OcptShotListShotFieldEditKey() ||
             OcptShotListPanelCommentEditKey() ||
-            OcptShotListAnnotationTextEditKey():
-          // A shot field, a panel comment and a mark's text are the inspector bloc's and the
-          // storyboard bloc's own, and never recorded here.
+            OcptShotListAnnotationTextEditKey() ||
+            OcptShotListSetNameEditKey():
+          // A shot field, a panel comment, a mark's text and a set's name are the inspector,
+          // storyboard and floor plan sets blocs' own, and never recorded here.
           break;
         case OcptShotListSymbolLabelEditKey(:final symbolId):
           await _floorPlanService.updateSymbol(
@@ -1305,26 +1205,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWith(centreView: event.view));
   }
 
-  /// Shows the native "open" dialog filtered to [ocptFloorPlanUnderlayImageFileExtensions] and
-  /// returns the path picked, or null when the user cancelled it, when it failed, or when the
-  /// platform gave a file with no path at all. The underlay's own sibling of
-  /// `OcptShotListStoryboardBloc`'s panel frame picker.
-  Future<String?> _pickFloorPlanUnderlayPath({required String fileTypeLabel}) async {
-    final fileSelectorManager = _fileSelectorManager ?? globalGetIt().get<FileSelectorManager>();
-
-    final selection = await fileSelectorManager.openSelector(
-      allowedExtensions: ocptFloorPlanUnderlayImageFileExtensions,
-      label: fileTypeLabel,
-    );
-
-    final file = selection.value;
-    if (!selection.status.isSuccess || file == null) {
-      return null;
-    }
-
-    return file.path.isEmpty ? null : file.path;
-  }
-
   /// Selects set `event.setId` on the floor plans view, clearing the symbol selection: a symbol
   /// only ever belongs to the set currently shown.
   Future<void> _onSetSelected(
@@ -1343,281 +1223,48 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Creates a new Resources set named after the selected sequence's own heading place, in
-  /// `event.locationId` (or a fresh location of its own, when null), links it to that sequence
-  /// (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path), reloads the floor
-  /// plans and the Resources catalogue, and selects it. Deliberately a no-op when the selected
-  /// sequence is the orphan group (or when nothing is selected at all): see
-  /// [OcptShotListSetCreationRequestedEvent].
-  Future<void> _onSetCreationRequested(
-    OcptShotListSetCreationRequestedEvent event,
+  /// Selects set `event.setId`, one the floor plan sets bloc just added to the selected sequence
+  /// (created, linked or duplicated) and has had this bloc read the floor plans for, clearing the
+  /// symbol selection like any other set selection.
+  Future<void> _onSetAdded(
+    OcptShotListSetAddedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    final project = _projectsManager.currentProject;
-    final sequence = state.selectedSequence;
-    if (project == null || sequence is! OcptSceneShotSequence) {
-      return;
-    }
-
-    try {
-      final setId = await _locationsService.createSetLinkedToScene(
-        database: project.database,
-        sceneId: sequence.sceneId,
-        name: ocptSceneHeadingPlaceOf(sequence.heading),
-        locationId: event.locationId,
-      );
-      if (setId == null) {
-        return;
-      }
-
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      final locations = await _loadLocations(project);
-      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
-      emitter(
-        state.copyWith(
-          floorPlanSnapshot: floorPlanSnapshot,
-          locations: locations,
-          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
-          selectedSetId: setId,
-          forceSelectedFloorPlanSymbolIdValue: true,
-          forceSelectedFloorPlanArrowIdValue: true,
-          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptShotListSelectionCause.setAdded,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a floor plan set on scene ${sequence.sceneId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Links Resources set `event.setId` to the selected sequence
-  /// (`OcptLocationsService.assignSceneToSet`), reloads the floor plans and selects it — the
-  /// empty-state gallery's own card click and the `＋ Set` menu's own suggestion/`Link an existing
-  /// set ▸` entries. Deliberately a no-op when the selected
-  /// sequence is the orphan group (or when nothing is selected at all), exactly like
-  /// [_onSetCreationRequested].
-  Future<void> _onSetLinkRequested(
-    OcptShotListSetLinkRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final sequence = state.selectedSequence;
-    if (project == null || sequence is! OcptSceneShotSequence) {
-      return;
-    }
-
-    try {
-      final linkId = await _locationsService.assignSceneToSet(
-        database: project.database,
-        sceneId: sequence.sceneId,
-        setId: event.setId,
-      );
-      if (linkId == null) {
-        return;
-      }
-
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(
-        state.copyWith(
-          floorPlanSnapshot: floorPlanSnapshot,
-          selectedSetId: event.setId,
-          forceSelectedFloorPlanSymbolIdValue: true,
-          forceSelectedFloorPlanArrowIdValue: true,
-          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptShotListSelectionCause.setAdded,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to link set ${event.setId} to scene ${sequence.sceneId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
-  /// (re)starts the field-edit debounce shared with [_onFloorPlanSymbolLabelChanged].
-  Future<void> _onSetNameChanged(
-    OcptShotListSetNameChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    _recordPendingEdit(
-      emitter: emitter,
-      key: OcptShotListSetNameEditKey(setId: event.setId),
-      rawValue: event.rawValue,
+    emitter(
+      state.copyWith(
+        selectedSetId: event.setId,
+        forceSelectedFloorPlanSymbolIdValue: true,
+        forceSelectedFloorPlanArrowIdValue: true,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.setAdded,
+      ),
     );
   }
 
-  /// Unlinks set `event.setId` from the selected sequence
-  /// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
-  /// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself — its
-  /// underlay, its symbols, its arrows — is untouched: relinking the same set brings every
-  /// placement back. Selects the sequence's own next first set when it was the selected one
-  /// (clearing the symbol selection alongside it).
-  Future<void> _onSetDeletionRequested(
-    OcptShotListSetDeletionRequestedEvent event,
+  /// Falls back to the selected sequence's own first set (null while it has none left), after the
+  /// floor plan sets bloc unlinked the selected set from it and had this bloc read the floor plans
+  /// again, clearing the symbol selection alongside it.
+  Future<void> _onSetRemoved(
+    OcptShotListSetRemovedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    final project = _projectsManager.currentProject;
-    final sceneId = state.selectedSequenceId;
-    if (project == null || sceneId == null) {
-      return;
-    }
+    final nextSetId = ocptFirstSetIdOf(
+      floorPlanSnapshot: state.floorPlanSnapshot,
+      sequenceId: state.selectedSequenceId,
+    );
 
-    final wasSelected = state.selectedSetId == event.setId;
-    bool isOfSet(OcptShotListPendingEditKey key) =>
-        key is OcptShotListSetNameEditKey && key.setId == event.setId;
-
-    try {
-      await _locationsService.removeSceneFromSet(
-        database: project.database,
-        sceneId: sceneId,
-        setId: event.setId,
-      );
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      final nextSetId = wasSelected
-          ? ocptFirstSetIdOf(
-              floorPlanSnapshot: floorPlanSnapshot,
-              sequenceId: state.selectedSequenceId,
-            )
-          : state.selectedSetId;
-
-      emitter(
-        state.copyWith(
-          floorPlanSnapshot: floorPlanSnapshot,
-          // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
-          pendingFieldEdits: Map.of(state.pendingFieldEdits)..removeWhere((key, _) => isOfSet(key)),
-          selectedSetId: nextSetId,
-          forceSelectedSetIdValue: nextSetId == null,
-          forceSelectedFloorPlanSymbolIdValue: wasSelected,
-          forceSelectedFloorPlanArrowIdValue: wasSelected,
-          forcePendingFloorPlanArrowAnchorSymbolIdValue: wasSelected,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptShotListSelectionCause.setRemoved : null,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to unlink set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Duplicates set `event.setId` into a new Resources set in the same location, named
-  /// `event.newSetName`, copying its set-scope symbols only and linking it to the selected
-  /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, now **one** atomic call
-  /// (`OcptLocationsService.duplicateSetForScene`): the mode used
-  /// to put its three steps together itself, which is exactly the risk of an orphan set that
-  /// service method's own transaction rules out. Reloads the floor plans and selects the freshly
-  /// minted copy.
-  Future<void> _onSetDuplicationRequested(
-    OcptShotListSetDuplicationRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final sceneId = state.selectedSequenceId;
-    if (project == null || sceneId == null) {
-      return;
-    }
-
-    try {
-      final newSetId = await _locationsService.duplicateSetForScene(
-        database: project.database,
-        sourceSetId: event.setId,
-        name: event.newSetName,
-        sceneId: sceneId,
-      );
-      if (newSetId == null) {
-        return;
-      }
-
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      final locations = await _loadLocations(project);
-      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
-      emitter(
-        state.copyWith(
-          floorPlanSnapshot: floorPlanSnapshot,
-          locations: locations,
-          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
-          selectedSetId: newSetId,
-          forceSelectedFloorPlanSymbolIdValue: true,
-          forceSelectedFloorPlanArrowIdValue: true,
-          forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptShotListSelectionCause.setAdded,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to duplicate set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
-  /// focused shot (`OcptFloorPlanService.copyShotBlocking`), reloading the floor plans — the set
-  /// tabs' own `＋ Set` menu `Copy blocking from another shot` entry, dispatched once the mode's
-  /// own source-shot picker returns a pick. A no-op while no shot is focused (defensive only: the
-  /// mode never offers the menu entry without one).
-  Future<void> _onFloorPlanBlockingCopyRequested(
-    OcptShotListFloorPlanBlockingCopyRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    final destinationShotId = state.selectedShotId;
-    if (project == null || destinationShotId == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.copyShotBlocking(
-        database: project.database,
-        sourceSetId: event.setId,
-        sourceShotId: event.sourceShotId,
-        destinationSetId: event.setId,
-        destinationShotId: destinationShotId,
-      );
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
-        "shot $destinationShotId of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the floor plans canvas's own zoom as last settled by
-  /// `OcptFloorPlanViewportController`. A view preference; see
-  /// `OcptShotListState.floorPlanZoom`'s own doc comment.
-  Future<void> _onFloorPlanZoomChanged(
-    OcptShotListFloorPlanZoomChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanZoom: event.zoom));
+    emitter(
+      state.copyWith(
+        selectedSetId: nextSetId,
+        forceSelectedSetIdValue: nextSetId == null,
+        forceSelectedFloorPlanSymbolIdValue: true,
+        forceSelectedFloorPlanArrowIdValue: true,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.setRemoved,
+      ),
+    );
   }
 
   /// Picks the floor plans canvas's own active tool. A view preference.
@@ -1634,60 +1281,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         forcePendingFloorPlanArrowAnchorSymbolIdValue: event.tool != OcptFloorPlanTool.arrow,
       ),
     );
-  }
-
-  /// Picks the sequence layer a placed set element lands on. A view preference.
-  Future<void> _onFloorPlanActiveLayerChanged(
-    OcptShotListFloorPlanActiveLayerChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanActiveLayer: event.layer));
-  }
-
-  /// Picks the décor primitive a `setElement` placement carries. A view preference.
-  Future<void> _onFloorPlanActiveSetElementShapeChanged(
-    OcptShotListFloorPlanActiveSetElementShapeChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanActiveSetElementShape: event.shape));
-  }
-
-  /// Picks the scope a `setElement` placement lands at. A view preference.
-  Future<void> _onFloorPlanActiveSetElementScopeChanged(
-    OcptShotListFloorPlanActiveSetElementScopeChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanActiveSetElementScope: event.scope));
-  }
-
-  /// Picks the label a `prop` placement carries. A view preference.
-  Future<void> _onFloorPlanActiveLabelChanged(
-    OcptShotListFloorPlanActiveLabelChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanActiveLabel: event.label));
-  }
-
-  /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas. A view
-  /// preference; never withheld under a read-only preview, since it only reads.
-  Future<void> _onFloorPlanLayerVisibilityToggled(
-    OcptShotListFloorPlanLayerVisibilityToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final hidden = Set<OcptFloorPlanLayer>.of(state.floorPlanHiddenLayers);
-    if (!hidden.remove(event.layer)) {
-      hidden.add(event.layer);
-    }
-    emitter(state.copyWith(floorPlanHiddenLayers: hidden));
-  }
-
-  /// Toggles the selected set's underlay visibility on the floor plans canvas. A view preference;
-  /// never withheld under a read-only preview.
-  Future<void> _onFloorPlanUnderlayVisibilityToggled(
-    OcptShotListFloorPlanUnderlayVisibilityToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(isFloorPlanUnderlayHidden: !state.isFloorPlanUnderlayHidden));
   }
 
   /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, carrying
@@ -2228,193 +1821,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
       emitter(state.copyWith(hasWriteError: true, forcePendingFloorPlanScopeDecisionValue: true));
     }
-  }
-
-  /// Picks a file through the native "open" dialog, filtered to JPEG and PNG
-  /// (`ocptFloorPlanUnderlayImageFileExtensions`), and sets set `event.setId`'s underlay to it,
-  /// framed at a default rectangle centred on the canvas (`_defaultUnderlayXM`/…): the user drags
-  /// and resizes it afterwards to match the reference silhouette (ADR 0031). A cancelled dialog
-  /// changes nothing at all.
-  Future<void> _onFloorPlanUnderlayImportRequested(
-    OcptShotListFloorPlanUnderlayImportRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final path = await _pickFloorPlanUnderlayPath(fileTypeLabel: event.fileTypeLabel);
-    if (path == null) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.setSetUnderlay(
-        database: project.database,
-        setId: event.setId,
-        path: path,
-        xM: _defaultUnderlayXM,
-        yM: _defaultUnderlayYM,
-        widthM: _defaultUnderlayWidthM,
-        heightM: _defaultUnderlayHeightM,
-      );
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import the underlay of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Re-frames set `event.setId`'s underlay to `event.xM`/`event.yM`/`event.widthM`/
-  /// `event.heightM`, dispatched once a drag moving or resizing it ends.
-  /// `OcptFloorPlanService.updateUnderlayFrame` — never `setSetUnderlay`, which would tombstone
-  /// and re-mint the underlay's own `assets` row on every drag-end — is the one write this touches;
-  /// its own current rotation is left alone, since no underlay rotate handle exists.
-  /// A no-op while the set carries no underlay at all (nothing to move).
-  Future<void> _onFloorPlanUnderlayTransformChanged(
-    OcptShotListFloorPlanUnderlayTransformChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final floorPlanSet = state.floorPlanSnapshot?.setsById[event.setId];
-    if (floorPlanSet?.underlayAssetId == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.updateUnderlayFrame(
-        database: project.database,
-        setId: event.setId,
-        xM: Value(event.xM),
-        yM: Value(event.yM),
-        widthM: Value(event.widthM),
-        heightM: Value(event.heightM),
-      );
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to move/resize the underlay of set ${event.setId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Clears set `event.setId`'s underlay for good, dispatched once the tray's own `Clear
-  /// underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
-  Future<void> _onFloorPlanUnderlayClearRequested(
-    OcptShotListFloorPlanUnderlayClearRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _floorPlanService.clearSetUnderlay(database: project.database, setId: event.setId);
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      emitter(state.copyWith(floorPlanSnapshot: floorPlanSnapshot));
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to clear the underlay of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Walks the selected sequence's own shots by `event.delta`, dispatched by the floor plans focus
-  /// strip's own `←`/`→` keyboard shortcut: see [OcptShotListFloorPlanShotWalkRequestedEvent]'s own
-  /// doc comment for the full rule. Reuses [_onShotSelected]'s own body — walking to a neighbour is
-  /// exactly selecting it.
-  Future<void> _onFloorPlanShotWalkRequested(
-    OcptShotListFloorPlanShotWalkRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final sequence = state.selectedSequence;
-    if (sequence is! OcptSceneShotSequence || sequence.shots.isEmpty) {
-      return;
-    }
-
-    final selectedShotId = state.selectedShotId;
-    if (selectedShotId == null) {
-      if (event.delta > 0) {
-        await _onShotSelected(
-          OcptShotListShotSelectedEvent(shotId: sequence.shots.first.id),
-          emitter,
-        );
-      }
-      return;
-    }
-
-    final neighbour = event.delta < 0
-        ? state.previousShotOfSelectedShot
-        : state.nextShotOfSelectedShot;
-    if (neighbour == null) {
-      return;
-    }
-
-    await _onShotSelected(OcptShotListShotSelectedEvent(shotId: neighbour.id), emitter);
-  }
-
-  /// Toggles the visibility of camera symbol `event.symbolId` on the floor plans canvas. A view
-  /// preference; never withheld under a read-only preview, since it only reads.
-  Future<void> _onFloorPlanCameraVisibilityToggled(
-    OcptShotListFloorPlanCameraVisibilityToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    final hidden = Set<String>.of(state.floorPlanHiddenCameraSymbolIds);
-    if (!hidden.remove(event.symbolId)) {
-      hidden.add(event.symbolId);
-    }
-    emitter(state.copyWith(floorPlanHiddenCameraSymbolIds: hidden));
-  }
-
-  /// Toggles the onion skin's own previous or next ghost. A view preference.
-  Future<void> _onFloorPlanOnionSkinToggled(
-    OcptShotListFloorPlanOnionSkinToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(
-      event.isPrevious
-          ? state.copyWith(
-              isFloorPlanOnionSkinPreviousShown: !state.isFloorPlanOnionSkinPreviousShown,
-            )
-          : state.copyWith(isFloorPlanOnionSkinNextShown: !state.isFloorPlanOnionSkinNextShown),
-    );
-  }
-
-  /// Sets the onion skin's own ghost opacity, clamped to a visible range. A view preference.
-  Future<void> _onFloorPlanOnionSkinOpacityChanged(
-    OcptShotListFloorPlanOnionSkinOpacityChangedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(floorPlanOnionSkinOpacity: event.opacity.clamp(0.05, 1.0)));
-  }
-
-  /// Toggles the metrics overlay. A view preference.
-  Future<void> _onFloorPlanMetricsToggled(
-    OcptShotListFloorPlanMetricsToggledEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
-    emitter(state.copyWith(isFloorPlanMetricsShown: !state.isFloorPlanMetricsShown));
   }
 
   /// Resolves a tap on symbol `event.symbolId` while the arrow tool is active, exactly as

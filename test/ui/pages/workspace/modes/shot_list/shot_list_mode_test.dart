@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_bloc.dart';
@@ -252,10 +253,10 @@ void main() {
 
     // No export has been asked for, so nothing has read the export bloc: it only exists because
     // the mode asked for it to be built, and a bloc that does not exist cannot be asked to write
-    // what it holds. The storyboard and inspector blocs count too, the mode's own listeners
-    // reading them.
+    // what it holds. The storyboard, inspector and floor plan sets blocs count too, the mode's own
+    // listeners reading them.
     final modeBloc = tester.element(find.byType(OcptShotListStatusBar)).read<OcptShotListBloc>();
-    expect(modeBloc.pendingWritesFlusherCount, 3);
+    expect(modeBloc.pendingWritesFlusherCount, 4);
   });
 
   testWidgets(
@@ -1033,7 +1034,10 @@ void main() {
 
         expect(bloc.state.setsOfSelectedSequence, isEmpty);
         // The plan itself is kept: relinking brings every placement back.
-        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        tester
+            .element(find.byType(OcptShotListStatusBar))
+            .read<OcptShotListFloorPlanSetsBloc>()
+            .add(OcptShotListSetLinkRequestedEvent(setId: setId));
         await tester.pumpAndSettle();
         expect(bloc.state.selectedSet!.symbols, hasLength(2));
       },
@@ -1109,7 +1113,10 @@ void main() {
         // Link the same set to the second sequence too.
         bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
         await tester.pumpAndSettle();
-        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        tester
+            .element(find.byType(OcptShotListStatusBar))
+            .read<OcptShotListFloorPlanSetsBloc>()
+            .add(OcptShotListSetLinkRequestedEvent(setId: setId));
         await tester.pumpAndSettle();
         bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
         await tester.pumpAndSettle();

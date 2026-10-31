@@ -173,3 +173,42 @@ class OcptShotListCentreViewSelectedEvent extends OcptShotListWorkspaceEvent {
   @override
   List<Object?> get props => [...super.props, view];
 }
+
+/// Selects set `event.setId` on the floor plans view, dispatched by a click on its own tab.
+/// A symbol only ever belongs to the set currently shown, so the floor plan canvas drops its
+/// selection when it sees the selection move.
+class OcptShotListSetSelectedEvent extends OcptShotListWorkspaceEvent {
+  /// The id of the set to select.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetSelectedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Selects set [setId], one the floor plans just linked to the selected sequence (created, linked
+/// or duplicated), dispatched by `OcptShotListFloorPlanSetsBloc` once the mode holds the set.
+///
+/// Moves the selection like [OcptShotListSetSelectedEvent] does, saying why: the set was added.
+class OcptShotListSetAddedEvent extends OcptShotListWorkspaceEvent {
+  /// The id of the set just added to the selected sequence.
+  final String setId;
+
+  /// Class constructor
+  const OcptShotListSetAddedEvent({required this.setId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, setId];
+}
+
+/// Falls back to the first set of the selected sequence, after the selected set was unlinked from
+/// it, dispatched by `OcptShotListFloorPlanSetsBloc` once the mode holds the sequence's sets
+/// without it. Selects none when the sequence has no set left.
+class OcptShotListSetRemovedEvent extends OcptShotListWorkspaceEvent {
+  /// Class constructor
+  const OcptShotListSetRemovedEvent();
+}

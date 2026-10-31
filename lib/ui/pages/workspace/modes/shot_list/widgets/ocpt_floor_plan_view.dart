@@ -30,7 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// **A `StatefulWidget` (the documented exception)**, the very reason `_ShotListViewState`
 /// (`shot_list_mode.dart`) is one: this view owns an `OcptFloorPlanViewportController`, whose zoom
 /// and pan are mutated per frame during a gesture with no bloc emission — see that controller's own
-/// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListState.floorPlanZoom`,
+/// doc comment. It is created once, seeded from [initialZoom] (`OcptShotListFloorPlanSetsState.floorPlanZoom`,
 /// the last value the bloc saw settled), and disposed when this view unmounts (switching away from
 /// the floor plans centre view, or leaving the mode): a set tab switch keeps it, since only the
 /// centre view switch remounts this widget.

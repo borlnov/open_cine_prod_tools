@@ -13,10 +13,10 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 /// shared scope (the palette's `Set` group) or on the focused sequence's own scope alone (the
 /// `Sequence` group), told apart by the placement's own scope rather than by this tool value
 /// (`OcptFloorPlanPaletteDragPayload.sceneScope`/
-/// `OcptShotListState.floorPlanActiveSetElementScope`); [prop] click empty canvas to place a new
+/// `OcptShotListFloorPlanSetsState.floorPlanActiveSetElementScope`); [prop] click empty canvas to place a new
 /// breakdown prop, always on the focused sequence's own scope, carrying whichever label the
 /// placing chip armed (`OcptFloorPlanPaletteDragPayload.label`/
-/// `OcptShotListState.floorPlanActiveLabel`). The underlay import is a one-shot tool bar action,
+/// `OcptShotListFloorPlanSetsState.floorPlanActiveLabel`). The underlay import is a one-shot tool bar action,
 /// not a tool of its own, so it has no case here.
 ///
 /// [camera], [character] and [light] are **shot-scoped**: each places its own shot layer

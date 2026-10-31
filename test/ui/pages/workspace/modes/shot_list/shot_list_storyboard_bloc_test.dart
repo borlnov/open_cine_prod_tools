@@ -24,6 +24,8 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
+import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
@@ -37,6 +39,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_panel_size.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_storyboard_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -318,6 +321,35 @@ void main() {
     bloc.add(const OcptShotListShotCreationRequestedEvent());
     final created = await waitForState(bloc, (state) => state.totalShotCount == 1);
     return created.selectedShotId!;
+  }
+
+  /// Creates a set on the selected sequence of [mode] through a floor plan sets bloc, which it
+  /// closes again, waiting for the mode to select the set. Answers the set's id.
+  Future<String> createSet(OcptShotListBloc mode) async {
+    final sets = OcptShotListFloorPlanSetsBloc(modeBloc: mode, projectsManager: projectsManager);
+    final epoch = mode.state.selectionEpoch;
+    sets.add(const OcptShotListSetCreationRequestedEvent());
+    await waitUntil(() => mode.state.selectionEpoch > epoch);
+    await sets.close();
+    return mode.state.selectedSetId!;
+  }
+
+  /// Places a symbol on [setId] and has [mode] read the floor plans again, answering the symbol's
+  /// id: a floor plan symbol's label is the one typed edit the mode itself still holds.
+  Future<String> placeSymbol(OcptShotListBloc mode, String setId) async {
+    final project = projectsManager.currentProject!;
+    final symbolId = await projectsManager.floorPlanService.placeSymbol(
+      database: project.database,
+      setId: setId,
+      sceneId: null,
+      shotId: null,
+      layer: OcptFloorPlanLayer.set,
+      xM: 0,
+      yM: 0,
+      setElementShape: OcptFloorPlanSetElementShape.wall,
+    );
+    await mode.reload({OcptShotListReloadScope.floorPlans});
+    return symbolId!;
   }
 
   /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting it,
@@ -917,8 +949,7 @@ void main() {
       expect(board.state.activeAnnotationTool, isNotNull);
 
       // A set selected: nothing is cleared either.
-      mode.add(const OcptShotListSetCreationRequestedEvent());
-      await waitUntil(() => mode.state.selectedSetId != null);
+      await createSet(mode);
       mode.add(OcptShotListSetSelectedEvent(setId: mode.state.selectedSetId!));
       await waitUntil(() => mode.state.selectionCause == OcptShotListSelectionCause.set);
       await pumpEventQueue();
@@ -1174,12 +1205,10 @@ void main() {
       final mode = mounted.mode;
       final board = mounted.board;
 
-      // The mode holds a typed edit of its own (a set's name), so its flush reads everything again.
-      mode.add(const OcptShotListSetCreationRequestedEvent());
-      await waitUntil(() => mode.state.selectedSetId != null);
-      mode.add(
-        OcptShotListSetNameChangedEvent(setId: mode.state.selectedSetId!, rawValue: "Living room"),
-      );
+      // The mode holds a typed edit of its own (a symbol's label), so its flush reads everything
+      // again.
+      final symbolId = await placeSymbol(mode, await createSet(mode));
+      mode.add(OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: "SAM"));
       await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
 
       // The mode's flush reads the storyboard while the comment is still empty, and is held there.
@@ -1268,11 +1297,9 @@ void main() {
       );
       final mode = mounted.mode;
 
-      mode.add(const OcptShotListSetCreationRequestedEvent());
-      await waitUntil(() => mode.state.selectedSetId != null);
-      final setId = mode.state.selectedSetId!;
-      OcptShotListSetNameChangedEvent typed(String text) =>
-          OcptShotListSetNameChangedEvent(setId: setId, rawValue: text);
+      final symbolId = await placeSymbol(mode, await createSet(mode));
+      OcptShotListFloorPlanSymbolLabelChangedEvent typed(String text) =>
+          OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: text);
 
       mode.add(typed("5"));
       await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
@@ -1289,7 +1316,7 @@ void main() {
       expect(mode.state.pendingFieldEdits.values, ["50"], reason: 'the keystroke is not lost');
       await mode.flushAllPendingWrites();
       expect(mode.state.pendingFieldEdits, isEmpty);
-      expect(mode.state.selectedSet!.name, "50");
+      expect(mode.state.selectedSet!.symbols.single.label, "50");
 
       await closeAll(mounted.board, mode);
     });

@@ -5,7 +5,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,6 +42,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -132,33 +132,6 @@ class _FailingShotListService extends OcptShotListService {
   }) async => throw StateError("shot creation intentionally failed for the test");
 }
 
-/// A file selector manager answering the picker with a file of its own, so a test never opens a
-/// native dialog: [pickedPath] is what the user is pretending to pick, and null is a
-/// cancellation. Mirrors `OcptResourcesBloc`'s own test double,
-/// `resources_bloc_test.dart`'s `_StubFileSelectorManager`.
-class _StubFileSelectorManager extends FileSelectorManager {
-  /// The path the next pick answers with, or null to answer as a cancelled dialog does.
-  final String? pickedPath;
-
-  /// Class constructor
-  const _StubFileSelectorManager({required this.pickedPath});
-
-  /// Answers with [pickedPath] instead of opening the platform's own dialog.
-  @override
-  Future<ResultWithBoolStatus<XFile>> openSelector({
-    required List<String> allowedExtensions,
-    required String label,
-    bool strictOnExtensions = true,
-  }) async {
-    final pickedPath = this.pickedPath;
-    if (pickedPath == null) {
-      return const ResultWithBoolStatus(status: BoolResultStatus.error);
-    }
-
-    return ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
-  }
-}
-
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
   const dialogueText =
@@ -173,6 +146,9 @@ void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;
   late Directory tempDir;
+
+  /// The floor plan sets bloc [setsOf] built for each mode bloc of a test, closed in [tearDown].
+  final setsBlocs = Map<OcptShotListBloc, OcptShotListFloorPlanSetsBloc>.identity();
 
   setUpAll(() async {
     // Creating the global manager makes appLogger() (used by the bloc's write error path)
@@ -207,6 +183,10 @@ void main() {
   });
 
   tearDown(() async {
+    for (final sets in setsBlocs.values) {
+      await sets.close();
+    }
+    setsBlocs.clear();
     await projectsManager.disposeLifeCycle();
     await tempDir.delete(recursive: true);
   });
@@ -234,7 +214,6 @@ void main() {
     OcptShotListService? shotListService,
     OcptStoryboardService? storyboardService,
     OcptFloorPlanService? floorPlanService,
-    FileSelectorManager? fileSelectorManager,
     OcptProjectsManager? overrideProjectsManager,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
     String? selectedEpisodeId,
@@ -246,7 +225,6 @@ void main() {
     shotListService: shotListService,
     storyboardService: storyboardService,
     floorPlanService: floorPlanService,
-    fileSelectorManager: fileSelectorManager,
     fieldEditDebounce: fieldEditDebounce,
     selectedEpisodeId: selectedEpisodeId,
   );
@@ -286,6 +264,26 @@ void main() {
     }
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
+  }
+
+  /// The floor plan sets bloc of [modeBloc], built on first use: the tests that need a set to work
+  /// on ask it to create one, since the sets are its own to write.
+  OcptShotListFloorPlanSetsBloc setsOf(OcptShotListBloc modeBloc) => setsBlocs.putIfAbsent(
+    modeBloc,
+    () => OcptShotListFloorPlanSetsBloc(
+      modeBloc: modeBloc,
+      projectsManager: projectsManager,
+      fieldEditDebounce: const Duration(milliseconds: 30),
+    ),
+  );
+
+  /// Creates a set on the first scene of [twoSceneText] through the sets bloc and returns its id,
+  /// waiting for the selection the creation always makes once the mode holds the set.
+  Future<String> createCase(OcptShotListBloc bloc) async {
+    final epoch = bloc.state.selectionEpoch;
+    setsOf(bloc).add(const OcptShotListSetCreationRequestedEvent());
+    final created = await waitForState(bloc, (state) => state.selectionEpoch > epoch);
+    return created.selectedSetId!;
   }
 
   group("the shared epochs the view blocs react to", () {
@@ -376,8 +374,8 @@ void main() {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptShotListSetCreationRequestedEvent());
-      var state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+      await createCase(bloc);
+      var state = bloc.state;
       final epoch = state.selectionEpoch;
 
       bloc.add(OcptShotListSetSelectedEvent(setId: state.selectedSetId!));
@@ -432,57 +430,6 @@ void main() {
       expect(state.selectionEpoch, selectionEpoch);
 
       await inspector.close();
-      await bloc.close();
-    });
-
-    test("every way a set becomes the selected one moves the selection epoch", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      var state = await waitForState(bloc, (state) => !state.isLoading);
-
-      // Created.
-      var epoch = state.selectionEpoch;
-      var reloadEpoch = state.reloadEpoch;
-      bloc.add(const OcptShotListSetCreationRequestedEvent());
-      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 1);
-      final firstSetId = state.selectedSetId!;
-      expect(state.selectionEpoch, epoch + 1, reason: 'created');
-      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'created');
-      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'created');
-
-      // Linked, from the second sequence.
-      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: state.sequences[1].id));
-      state = await waitForState(
-        bloc,
-        (state) => state.selectedSequenceId == state.sequences[1].id,
-      );
-      epoch = state.selectionEpoch;
-      reloadEpoch = state.reloadEpoch;
-      bloc.add(OcptShotListSetLinkRequestedEvent(setId: firstSetId));
-      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
-      expect(state.selectionEpoch, epoch + 1, reason: 'linked');
-      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'linked');
-      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'linked');
-
-      // Duplicated.
-      epoch = state.selectionEpoch;
-      reloadEpoch = state.reloadEpoch;
-      bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: firstSetId, newSetName: "Copy"));
-      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 2);
-      final copyId = state.selectedSetId!;
-      expect(state.selectionEpoch, epoch + 1, reason: 'duplicated');
-      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'duplicated');
-      expect(state.selectionCause, OcptShotListSelectionCause.setAdded, reason: 'duplicated');
-
-      // Unlinked while selected: the sequence's next set is selected.
-      epoch = state.selectionEpoch;
-      reloadEpoch = state.reloadEpoch;
-      bloc.add(OcptShotListSetDeletionRequestedEvent(setId: copyId));
-      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.length == 1);
-      expect(state.selectionEpoch, epoch + 1, reason: 'unlinked');
-      expect(state.reloadEpoch, reloadEpoch + 1, reason: 'unlinked');
-      expect(state.selectionCause, OcptShotListSelectionCause.setRemoved, reason: 'unlinked');
-
       await bloc.close();
     });
 
@@ -547,10 +494,8 @@ void main() {
     test("reload reads the cast and the set-scope symbols when it is asked to", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
-      var state = await waitForState(bloc, (state) => !state.isLoading);
-      bloc.add(const OcptShotListSetCreationRequestedEvent());
-      state = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
-      final setId = state.selectedSetId!;
+      await waitForState(bloc, (state) => !state.isLoading);
+      final setId = await createCase(bloc);
       final project = projectsManager.currentProject!;
 
       await projectsManager.roleIndexService.addRole(
@@ -1112,98 +1057,17 @@ void main() {
   });
 
   group("floor plans", () {
-    /// Creates a set on the first scene of [twoSceneText] and returns its id, waiting for the
-    /// selection the creation event always makes.
-    Future<String> createCase(OcptShotListBloc bloc) async {
-      bloc.add(const OcptShotListSetCreationRequestedEvent());
-      final created = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
-      return created.selectedSetId!;
-    }
-
-    test("a fresh set is named from the scene heading's place and selected", () async {
+    test("the active tool is session view state", () async {
       await writeScreenplay(twoSceneText);
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
+      expect(bloc.state.floorPlanActiveTool, OcptFloorPlanTool.select);
 
-      final setId = await createCase(bloc);
-      final state = bloc.state;
-
-      expect(state.setsOfSelectedSequence, hasLength(1));
-      expect(state.selectedSetId, setId);
-      expect(state.selectedSet!.name, "HOUSE");
-
-      await bloc.close();
-    });
-
-    test("renaming a set debounces then writes", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-
-      bloc.add(OcptShotListSetNameChangedEvent(setId: setId, rawValue: "Living room"));
-      final pending = await waitForState(
+      bloc.add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
+      await waitForState(
         bloc,
-        (state) => state.pendingFieldEdits.containsKey(OcptShotListSetNameEditKey(setId: setId)),
+        (state) => state.floorPlanActiveTool == OcptFloorPlanTool.setElement,
       );
-      expect(pending.selectedSet!.name, "HOUSE");
-
-      final flushed = await waitForState(bloc, (state) => state.selectedSet!.name == "Living room");
-      expect(flushed.pendingFieldEdits, isEmpty);
-
-      await bloc.close();
-    });
-
-    test(
-      "unlinking the selected set removes its tab and selects the sequence's next first set",
-      () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        final firstSetId = await createCase(bloc);
-        bloc.add(const OcptShotListSetCreationRequestedEvent());
-        final afterSecond = await waitForState(
-          bloc,
-          (state) => state.setsOfSelectedSequence.length == 2,
-        );
-        final secondSetId = afterSecond.selectedSetId!;
-        expect(secondSetId, isNot(firstSetId));
-
-        bloc.add(OcptShotListSetDeletionRequestedEvent(setId: secondSetId));
-        final afterDelete = await waitForState(
-          bloc,
-          (state) => state.setsOfSelectedSequence.length == 1,
-        );
-        expect(afterDelete.selectedSetId, firstSetId);
-
-        bloc.add(OcptShotListSetDeletionRequestedEvent(setId: firstSetId));
-        final afterLastDelete = await waitForState(
-          bloc,
-          (state) => state.setsOfSelectedSequence.isEmpty,
-        );
-        expect(afterLastDelete.selectedSetId, isNull);
-
-        await bloc.close();
-      },
-    );
-
-    test("linking an existing set to another sequence adds it to that sequence's own tabs and "
-        "selects it", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-      final secondSequenceId = bloc.state.sequences[1].id;
-
-      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
-      await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
-      expect(bloc.state.setsOfSelectedSequence, isEmpty);
-
-      bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
-      final linked = await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
-
-      expect(linked.setsOfSelectedSequence.single.id, setId);
-      expect(linked.selectedSetId, setId);
 
       await bloc.close();
     });
@@ -1214,8 +1078,10 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
       final setId = await createCase(bloc);
 
-      bloc.add(const OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.set));
-      await waitForState(bloc, (state) => state.floorPlanActiveLayer == OcptFloorPlanLayer.set);
+      setsOf(
+        bloc,
+      ).add(const OcptShotListFloorPlanActiveLayerChangedEvent(layer: OcptFloorPlanLayer.set));
+      await waitUntil(() => setsOf(bloc).state.floorPlanActiveLayer == OcptFloorPlanLayer.set);
 
       bloc.add(
         OcptShotListFloorPlanSymbolPlacedEvent(
@@ -1265,14 +1131,14 @@ void main() {
       );
 
       // Arming the door entry (click-to-arm) becomes the state's own default shape.
-      bloc.add(
+      setsOf(bloc).add(
         const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
           shape: OcptFloorPlanSetElementShape.door,
         ),
       );
-      await waitForState(
-        bloc,
-        (state) => state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.door,
+      await waitUntil(
+        () =>
+            setsOf(bloc).state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.door,
       );
 
       bloc.add(
@@ -1379,144 +1245,6 @@ void main() {
       bloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
       final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
       expect(deleted.selectedFloorPlanSymbolId, isNull);
-
-      await bloc.close();
-    });
-
-    test("importing an underlay frames it at the default rectangle", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc(
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
-      );
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-
-      bloc.add(
-        OcptShotListFloorPlanUnderlayImportRequestedEvent(setId: setId, fileTypeLabel: "Images"),
-      );
-      final state = await waitForState(bloc, (state) => state.selectedSet!.underlayAssetId != null);
-
-      expect(state.selectedSet!.underlayPath, "/plans/kitchen.png");
-      expect(state.selectedSet!.underlayWidthM, isNotNull);
-      expect(state.selectedSet!.underlayHeightM, isNotNull);
-
-      await bloc.close();
-    });
-
-    test("moving/resizing the underlay re-frames it through updateUnderlayFrame, minting or "
-        "tombstoning no asset", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc(
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
-      );
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-
-      bloc.add(
-        OcptShotListFloorPlanUnderlayImportRequestedEvent(setId: setId, fileTypeLabel: "Images"),
-      );
-      final imported = await waitForState(
-        bloc,
-        (state) => state.selectedSet!.underlayAssetId != null,
-      );
-      final assetId = imported.selectedSet!.underlayAssetId;
-      final database = projectsManager.currentProject!.database;
-      final assetsBeforeMove = await database.select(database.ocptAssetsTable).get();
-
-      bloc.add(
-        OcptShotListFloorPlanUnderlayTransformChangedEvent(
-          setId: setId,
-          xM: 2,
-          yM: 1,
-          widthM: 5,
-          heightM: 3,
-        ),
-      );
-      final transformed = await waitForState(
-        bloc,
-        (state) => state.selectedSet!.underlayWidthM == 5,
-      );
-      expect(transformed.selectedSet!.underlayXM, 2);
-      expect(transformed.selectedSet!.underlayYM, 1);
-      expect(transformed.selectedSet!.underlayHeightM, 3);
-      expect(transformed.selectedSet!.underlayPath, "/plans/kitchen.png");
-      // The very defect this fixes: dragging the underlay must never mint a fresh `assets` row
-      // and tombstone the old one — it keeps writing the very same one.
-      expect(transformed.selectedSet!.underlayAssetId, assetId);
-      final assetsAfterMove = await database.select(database.ocptAssetsTable).get();
-      expect(assetsAfterMove, hasLength(assetsBeforeMove.length));
-      expect(assetsAfterMove.single.id, assetsBeforeMove.single.id);
-      expect(assetsAfterMove.single.isDeleted, isFalse);
-
-      await bloc.close();
-    });
-
-    test("clearing the underlay removes it", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc(
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/plans/kitchen.png"),
-      );
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-
-      bloc.add(
-        OcptShotListFloorPlanUnderlayImportRequestedEvent(setId: setId, fileTypeLabel: "Images"),
-      );
-      await waitForState(bloc, (state) => state.selectedSet!.underlayAssetId != null);
-
-      bloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
-      final cleared = await waitForState(
-        bloc,
-        (state) => state.selectedSet!.underlayAssetId == null,
-      );
-      expect(cleared.selectedSet!.underlayPath, isNull);
-
-      await bloc.close();
-    });
-
-    test("zoom, tool, active layer and layer visibility are session view state", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      expect(bloc.state.floorPlanZoom, 1);
-      expect(bloc.state.floorPlanActiveTool, OcptFloorPlanTool.select);
-
-      bloc.add(const OcptShotListFloorPlanZoomChangedEvent(zoom: 2));
-      await waitForState(bloc, (state) => state.floorPlanZoom == 2);
-
-      bloc.add(const OcptShotListFloorPlanToolSelectedEvent(tool: OcptFloorPlanTool.setElement));
-      await waitForState(
-        bloc,
-        (state) => state.floorPlanActiveTool == OcptFloorPlanTool.setElement,
-      );
-
-      bloc.add(
-        const OcptShotListFloorPlanActiveSetElementShapeChangedEvent(
-          shape: OcptFloorPlanSetElementShape.freeform,
-        ),
-      );
-      await waitForState(
-        bloc,
-        (state) => state.floorPlanActiveSetElementShape == OcptFloorPlanSetElementShape.freeform,
-      );
-
-      bloc.add(
-        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.set),
-      );
-      final hidden = await waitForState(
-        bloc,
-        (state) => state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.set),
-      );
-
-      bloc.add(
-        const OcptShotListFloorPlanLayerVisibilityToggledEvent(layer: OcptFloorPlanLayer.set),
-      );
-      final shown = await waitForState(
-        bloc,
-        (state) => !state.floorPlanHiddenLayers.contains(OcptFloorPlanLayer.set),
-      );
-      expect(hidden.floorPlanHiddenLayers, contains(OcptFloorPlanLayer.set));
-      expect(shown.floorPlanHiddenLayers, isNot(contains(OcptFloorPlanLayer.set)));
 
       await bloc.close();
     });
@@ -1847,80 +1575,6 @@ void main() {
       });
 
       test(
-        "per-camera visibility, onion skin and the metrics toggle are session view state",
-        () async {
-          await writeScreenplay(twoSceneText);
-          final bloc = buildBloc();
-          await waitForState(bloc, (state) => !state.isLoading);
-          expect(bloc.state.isFloorPlanOnionSkinPreviousShown, isTrue);
-          expect(bloc.state.isFloorPlanOnionSkinNextShown, isTrue);
-          expect(bloc.state.isFloorPlanMetricsShown, isFalse);
-
-          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
-          final hidden = await waitForState(
-            bloc,
-            (state) => state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
-          );
-          bloc.add(const OcptShotListFloorPlanCameraVisibilityToggledEvent(symbolId: "cam-1"));
-          final shown = await waitForState(
-            bloc,
-            (state) => !state.floorPlanHiddenCameraSymbolIds.contains("cam-1"),
-          );
-          expect(hidden.floorPlanHiddenCameraSymbolIds, contains("cam-1"));
-          expect(shown.floorPlanHiddenCameraSymbolIds, isNot(contains("cam-1")));
-
-          bloc.add(const OcptShotListFloorPlanOnionSkinToggledEvent(isPrevious: true));
-          final prevOff = await waitForState(
-            bloc,
-            (state) => !state.isFloorPlanOnionSkinPreviousShown,
-          );
-          expect(prevOff.isFloorPlanOnionSkinNextShown, isTrue);
-
-          bloc.add(const OcptShotListFloorPlanOnionSkinOpacityChangedEvent(opacity: 0.7));
-          final opacityChanged = await waitForState(
-            bloc,
-            (state) => state.floorPlanOnionSkinOpacity == 0.7,
-          );
-          expect(opacityChanged.floorPlanOnionSkinOpacity, 0.7);
-
-          bloc.add(const OcptShotListFloorPlanMetricsToggledEvent());
-          final metricsOn = await waitForState(bloc, (state) => state.isFloorPlanMetricsShown);
-          expect(metricsOn.isFloorPlanMetricsShown, isTrue);
-
-          await bloc.close();
-        },
-      );
-
-      test("← / → walk the sequence's own shots, stopping at either end", () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-
-        final firstShotId = await createShot(bloc);
-        final secondShotId = await createShot(bloc);
-        expect(secondShotId, isNot(firstShotId));
-        expect(bloc.state.selectedShotId, secondShotId);
-
-        // Already the last shot: walking further does nothing.
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(bloc.state.selectedShotId, secondShotId);
-
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
-        await waitForState(bloc, (state) => state.selectedShotId == firstShotId);
-
-        // Already the first shot: walking backward does nothing.
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: -1));
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(bloc.state.selectedShotId, firstShotId);
-
-        bloc.add(const OcptShotListFloorPlanShotWalkRequestedEvent(delta: 1));
-        await waitForState(bloc, (state) => state.selectedShotId == secondShotId);
-
-        await bloc.close();
-      });
-
-      test(
         "deleting a shot tombstones its own floor plan symbols and reloads the snapshot",
         () async {
           await writeScreenplay(twoSceneText);
@@ -2209,131 +1863,6 @@ void main() {
       });
     });
 
-    group("chrome and duplication", () {
-      /// Creates a fresh shot on the sole selected sequence and returns its id, waiting for the
-      /// selection to actually change — mirrors "the shot half" group's own helper.
-      Future<String> createFreshShot(OcptShotListBloc bloc) async {
-        final previousShotId = bloc.state.selectedShotId;
-        bloc.add(const OcptShotListShotCreationRequestedEvent());
-        final created = await waitForState(
-          bloc,
-          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
-        );
-        return created.selectedShotId!;
-      }
-
-      test("duplicating the selected set copies its own set-scope placements as independent rows, "
-          "into a new Resources set linked to the same sequence, and selects the copy", () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        final setId = await createCase(bloc);
-
-        bloc.add(
-          OcptShotListFloorPlanSymbolPlacedEvent(
-            setId: setId,
-            layer: OcptFloorPlanLayer.set,
-            shotId: null,
-            sceneId: null,
-            xM: 1,
-            yM: 2,
-          ),
-        );
-        final withDecor = await waitForState(
-          bloc,
-          (state) => state.selectedSet!.symbols.isNotEmpty,
-        );
-        final sourceSymbolId = withDecor.selectedSet!.symbols.single.id;
-
-        bloc.add(OcptShotListSetDuplicationRequestedEvent(setId: setId, newSetName: "House copy"));
-        final afterDuplicate = await waitForState(
-          bloc,
-          (state) => state.setsOfSelectedSequence.length == 2,
-        );
-        final newSetId = afterDuplicate.selectedSetId!;
-        expect(newSetId, isNot(setId));
-        expect(afterDuplicate.selectedSet!.name, "House copy");
-        expect(afterDuplicate.selectedSet!.symbols, hasLength(1));
-        final copiedSymbolId = afterDuplicate.selectedSet!.symbols.single.id;
-        expect(copiedSymbolId, isNot(sourceSymbolId));
-
-        // Independent: moving the copy leaves the source set's own symbol untouched.
-        bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbolId, xM: 9, yM: 9));
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.single.xM == 9);
-        final sourceSet = bloc.state.setsOfSelectedSequence.firstWhere((s) => s.id == setId);
-        expect(sourceSet.symbols.single.xM, 1);
-
-        await bloc.close();
-      });
-
-      test(
-        "copying another shot's own blocking writes independent copies onto the focused shot",
-        () async {
-          await writeScreenplay(twoSceneText);
-          final bloc = buildBloc();
-          await waitForState(bloc, (state) => !state.isLoading);
-          final setId = await createCase(bloc);
-          final sourceShotId = await createFreshShot(bloc);
-
-          bloc.add(
-            OcptShotListFloorPlanSymbolPlacedEvent(
-              setId: setId,
-              layer: OcptFloorPlanLayer.cameras,
-              shotId: sourceShotId,
-              sceneId: null,
-              xM: 1,
-              yM: 1,
-            ),
-          );
-          await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-
-          final destinationShotId = await createFreshShot(bloc);
-          // The set's own symbols carry every shot's placements — only the destination shot's
-          // own slice is still empty at this point.
-          expect(
-            bloc.state.selectedSet!.symbols.where((symbol) => symbol.shotId == destinationShotId),
-            isEmpty,
-          );
-
-          bloc.add(
-            OcptShotListFloorPlanBlockingCopyRequestedEvent(
-              setId: setId,
-              sourceShotId: sourceShotId,
-            ),
-          );
-          final copied = await waitForState(
-            bloc,
-            (state) =>
-                state.selectedSet!.symbols.any((symbol) => symbol.shotId == destinationShotId),
-          );
-
-          final destinationSymbols = copied.selectedSet!.symbols
-              .where((symbol) => symbol.shotId == destinationShotId)
-              .toList();
-          expect(destinationSymbols, hasLength(1));
-          final copiedSymbol = destinationSymbols.single;
-          expect(copiedSymbol.layer, OcptFloorPlanLayer.cameras);
-
-          // Independent: moving the copy leaves the source shot's own symbol untouched.
-          bloc.add(OcptShotListFloorPlanSymbolMovedEvent(symbolId: copiedSymbol.id, xM: 5, yM: 5));
-          await waitForState(
-            bloc,
-            (state) =>
-                state.selectedSet!.symbols
-                    .firstWhere((symbol) => symbol.id == copiedSymbol.id)
-                    .xM ==
-                5,
-          );
-          final sourceSymbol = bloc.state.selectedSet!.symbols.firstWhere(
-            (symbol) => symbol.shotId == sourceShotId,
-          );
-          expect(sourceSymbol.xM, 1);
-
-          await bloc.close();
-        },
-      );
-    });
-
     group("the scope bubble", () {
       /// Links [setId] to the sequence's own second scene too, selects that second sequence, and
       /// returns its own id — building the "set linked to two sequences" fixture every test here
@@ -2342,8 +1871,12 @@ void main() {
         final secondSequenceId = bloc.state.sequences[1].id;
         bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
         await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
-        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
-        await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+        final epoch = bloc.state.selectionEpoch;
+        setsOf(bloc).add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.isNotEmpty && state.selectionEpoch > epoch,
+        );
         return secondSequenceId;
       }
 
@@ -2640,8 +2173,12 @@ void main() {
         final secondSequenceId = bloc.state.sequences[1].id;
         bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
         await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
-        bloc.add(OcptShotListSetLinkRequestedEvent(setId: setId));
-        await waitForState(bloc, (state) => state.setsOfSelectedSequence.isNotEmpty);
+        final epoch = bloc.state.selectionEpoch;
+        setsOf(bloc).add(OcptShotListSetLinkRequestedEvent(setId: setId));
+        await waitForState(
+          bloc,
+          (state) => state.setsOfSelectedSequence.isNotEmpty && state.selectionEpoch > epoch,
+        );
         return secondSequenceId;
       }
 

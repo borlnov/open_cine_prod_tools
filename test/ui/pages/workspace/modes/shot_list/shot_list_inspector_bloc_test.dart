@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_floor_plan_sets_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_inspector_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
@@ -251,6 +252,16 @@ void main() {
       }
       await Future<void>.delayed(const Duration(milliseconds: 2));
     }
+  }
+
+  /// Creates a set on the selected sequence of [mode] through a floor plan sets bloc, which it
+  /// closes again, waiting for the mode to select the set.
+  Future<void> createSet(OcptShotListBloc mode) async {
+    final sets = OcptShotListFloorPlanSetsBloc(modeBloc: mode, projectsManager: projectsManager);
+    final epoch = mode.state.selectionEpoch;
+    sets.add(const OcptShotListSetCreationRequestedEvent());
+    await waitUntil(() => mode.state.selectionEpoch > epoch);
+    await sets.close();
   }
 
   /// Closes the inspector and the mode, in the order the widget tree does.
@@ -1148,8 +1159,7 @@ void main() {
 
       // A set selected: the anchor stays, a set is not what the anchor belongs to.
       await openAnchor();
-      mode.add(const OcptShotListSetCreationRequestedEvent());
-      await waitUntil(() => mode.state.selectedSetId != null);
+      await createSet(mode);
       mode.add(OcptShotListSetSelectedEvent(setId: mode.state.selectedSetId!));
       await waitUntil(() => mode.state.selectionCause == OcptShotListSelectionCause.set);
       await pumpEventQueue();

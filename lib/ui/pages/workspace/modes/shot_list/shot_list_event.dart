@@ -8,6 +8,7 @@ library;
 
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_base_event.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_export_event.dart';
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_floor_plan_sets_event.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_floor_plan_symbol_event.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_floor_plan_view_event.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/events/shot_list_inspector_event.dart';

@@ -32,7 +32,7 @@ Resources set carries across its three scopes, and the mode's two newest documen
 - The mode's BLoC files are split along the seams the code already had. The events are one sealed
   hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
   `…_export_event.dart`, `…_inspector_event.dart`, `…_storyboard_event.dart`,
-  `…_floor_plan_view_event.dart`,
+  `…_floor_plan_sets_event.dart`, `…_floor_plan_view_event.dart`,
   `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
   `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
   common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
@@ -69,7 +69,18 @@ Resources set carries across its three scopes, and the mode's two newest documen
   or not, a shot selected, created or deleted, a fresh load — not a set) and drops a typed field
   whose shot is gone from the shot list. `OcptShotInspectorView` is the widget wiring
   `OcptShotInspectorPanel` and the coverage dialog to both blocs; the delete confirmations stay
-  the mode's. What is typed into a set's tab or a symbol's label is still held by the mode bloc.
+  the mode's. The fourth is `OcptShotListFloorPlanSetsBloc`: it creates, links, renames, unlinks
+  and duplicates the selected sequence's sets, copies a shot's blocking, imports, frames and
+  clears an underlay, walks the focus with `←`/`→`, and holds the set names being typed (its own 2 s
+  debounce), the session's view preferences (zoom, hidden layers, hidden cameras and underlay,
+  onion skin, metrics), the palette's armed placement and the props the palette offers for the
+  selected sequence. Which set is selected stays the mode's (`selectedSetId`): a write that makes
+  one the selected set — created, linked or duplicated into the sequence, or the selected one
+  unlinked — has the mode read the floor plans (and the catalogue) again and then asks it to move
+  its selection, with `OcptShotListSetAddedEvent` or `OcptShotListSetRemovedEvent`, waiting for it.
+  The props are emptied and read again when the mode loads or selects another sequence, and
+  nothing else the bloc holds depends on the selection or on a reload. What is typed into a
+  symbol's label is still held by the mode bloc.
 
 ## The three centre views and their shared chrome
 
