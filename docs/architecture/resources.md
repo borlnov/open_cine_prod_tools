@@ -216,9 +216,10 @@ their sets, the elements catalogue, and the two documents the mode prints.
   category change, and `updateElement` owns that rule rather than a bloc, so the breakdown's own
   category chips get it without knowing it exists — a prefix that stopped saying which department
   an item comes from could not be corrected by hand.
-  Everything writes the moment it changes, except the sheets' typed free-text fields: those ride
-  one 2 s debounce shared by the five `pending…FieldEdits` maps, flushed together on a selection
-  change, a tab change, a version preview and the mode leaving the tree. A field may **flag** what
+  Everything writes the moment it changes, except the sheets' typed free-text fields: those ride a
+  2 s debounce, one per view bloc (the six `pending…FieldEdits` maps live in the four view blocs,
+  see *The blocs*), flushed together on a selection change, a tab change, a version preview and the
+  mode leaving the tree. A field may **flag** what
   it holds without refusing it (`ocptEmailFormatError`, `ocptCostCentsOf`, the coordinates): the
   sheets autosave as they are typed, so a field that refused an incomplete value would refuse
   nearly every keystroke.
@@ -245,3 +246,58 @@ their sets, the elements catalogue, and the two documents the mode prints.
   nobody has made. It is stamped by `ocptScheduleGeneratedAtStamp` like the schedule's own
   paperwork, a contact list being reissued as a crew settles, and its options dialog asks the page
   format alone.
+
+## The blocs
+
+- **The mode is one mode bloc and five view blocs** (ADR 0034; `foundations.md` states the idiom).
+  `OcptResourcesMode` builds `OcptResourcesBloc` first, then `OcptResourcesExportBloc` and the
+  people, roles, locations and elements blocs with `lazy: false`, in that order, so each has
+  registered its flusher before a widget reads it. The files sit in
+  `lib/ui/pages/workspace/modes/resources/`; the events are one sealed hierarchy per domain in
+  `events/` (`workspace` for the mode; `people`, `roles`, `locations`, `elements`; `export`), all
+  extending the abstract `OcptResourcesEvent`, and `resources_event.dart` only exports them.
+  - **The mode bloc** holds the catalogue (one `OcptResourcesSnapshot`, the four services' reads
+    joined in memory), the active tab, the selected person, role, location and element, the search,
+    the docks, the one transient write error, the version and package mixins, and the cross-mode
+    reveal of a set's floor plan (`pendingShotListReveal`, taken once by the mode, which switches to
+    the shot list). `OcptResourcesReloadScope` has one value, `snapshot`: the catalogue is read as a
+    whole, and the currency, the page setup, the mileage rates and the sets holding a floor plan are
+    read by a whole load alone.
+  - **The selection is the mode's.** Choosing a record, changing tab, opening a person's sheet
+    from a role (`↗`) or a role's from an element (`Roles concerned`) are mode events that flush
+    first, so moving between tabs through a chip is one state and the sheet it lands on is not
+    deselected in the same frame. A view that creates a record reads the catalogue again and then
+    asks the mode to select it (`OcptResourcesRecordCreatedEvent`, awaited), without switching tab;
+    one that deletes a record asks it to forget the selection if it is that record
+    (`OcptResourcesRecordDroppedEvent`). `OcptResourcesSelectionCause` says why the selection last
+    moved. No view bloc reacts to a selection: nothing a view holds is scoped to the selected
+    record, so a typed edit survives the user moving to another one and is written by its debounce
+    or by the flush the move starts.
+  - **Each view bloc owns the writes of its sheet and the typed fields of it**:
+    `OcptResourcesPeopleBloc` (`pendingFieldEdits`), `OcptResourcesRolesBloc` (the role's name and
+    casting notes, and each candidacy's note, one debounce for the two maps),
+    `OcptResourcesLocationsBloc` (a location's fields and each set's name and notes) and
+    `OcptResourcesElementsBloc` (an element's fields, and the role links the role sheet adds, being
+    written from `OcptElementsService`). A write is the service, then
+    `await modeBloc.reload({snapshot})`.
+    Deleting a role leaves a note typed on one of its candidacies pending, as before the split.
+    Removing a set or a candidacy forgets only its own pending edit; the rest of the bloc's
+    debounce goes on.
+  - **A flush that fails drops every edit of every sheet, and shows the one write error.** A view
+    bloc catches its own failed write (or the failed read after it), tells the mode
+    (`OcptResourcesPendingEditsLostEvent`, awaited) and empties its maps; the mode raises
+    `hasWriteError` and moves `lostEditsEpoch`, which every other view bloc reacts to by dropping
+    what it holds, before the flush goes on to them. The flushers are asked in the order the mode
+    builds the blocs (people, roles, locations, elements): the ones before the failure have been
+    written, the ones after it find nothing to write, and the fields fall back to the stored value.
+    The action behind the flush (a selection, an export, a version preview) goes ahead, so the
+    mode's flush hooks always answer true. A write that fails outside a flush is reported with
+    `OcptResourcesWriteFailedEvent`: the error is the mode's, never a view's, so a failure is shown
+    once whichever view it came from.
+  - **`OcptResourcesExportBloc`** runs the workbook and the contact list and owns the transient
+    notice. Each one first has the mode write what is pending (`flushAllPendingWrites`), then reads
+    the snapshot the mode holds.
+  - **The widgets.** The shell, the dialogs and the sheets stay in `resources_mode.dart`, which
+    reads the mode and, in the sheet of a tab, that tab's view bloc (a `BlocBuilder` around the
+    sheet, so a keystroke redraws the sheet and not the shell). The one `MultiBlocListener`-style
+    effect of the view blocs is the export notice (`OcptResourcesViewEffects`).
