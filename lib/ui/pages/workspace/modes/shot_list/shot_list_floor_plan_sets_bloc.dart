@@ -365,6 +365,10 @@ class OcptShotListFloorPlanSetsBloc
         key is OcptShotListSetNameEditKey && key.setId == event.setId;
 
     try {
+      // The set's symbols leave the floor plans the mode holds without being deleted: a label
+      // typed into one of them is written now, since the views would take it for a deleted
+      // symbol's once the mode reads the plans again.
+      await modeBloc.flushAllPendingWrites();
       await _locationsService.removeSceneFromSet(
         database: project.database,
         sceneId: sceneId,

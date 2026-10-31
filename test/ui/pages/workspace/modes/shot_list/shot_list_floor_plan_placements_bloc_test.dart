@@ -927,6 +927,29 @@ void main() {
       },
     );
 
+    test("a label typed for a symbol whose set is unlinked meanwhile is still written", () async {
+      final mounted = await mountWithASymbol();
+      final mode = mounted.mode;
+      final sets = setsOf(mode);
+      final placements = placementsOf(mode, fieldEditDebounce: const Duration(days: 1));
+
+      placements.add(
+        OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: mounted.symbolId, rawValue: "SAM"),
+      );
+      await waitUntil(() => placements.state.pendingFieldEdits.isNotEmpty);
+
+      // The set leaves the episode's floor plans, but its symbols are not deleted.
+      sets.add(OcptShotListSetDeletionRequestedEvent(setId: mounted.setId));
+      await waitUntil(() => mode.state.setsOfSelectedSequence.isEmpty);
+      await pumpEventQueue();
+
+      sets.add(OcptShotListSetLinkRequestedEvent(setId: mounted.setId));
+      await waitUntil(() => mode.state.selectedSet != null);
+      expect(storedLabelOf(mode, mounted.symbolId), "SAM");
+
+      await mode.close();
+    });
+
     test("an older floor plans read does not put an older plan over a newer one", () async {
       final service = _HoldingFloorPlanService(projectsManager.floorPlanService);
       final mounted = await mountWithASymbol(floorPlanService: service);
