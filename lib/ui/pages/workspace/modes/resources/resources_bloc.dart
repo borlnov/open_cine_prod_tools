@@ -18,7 +18,6 @@ import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.d
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
@@ -145,15 +144,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
-  /// The service used to drop a file reference, whatever owns it.
-  ///
-  /// Referencing a file is the owning service's — a person's photo is `OcptPeopleService`'s, since
-  /// which asset is *the* headshot is a fact about the person — but dropping one by its id is not:
-  /// this bloc's `⨯` control answers for a scouting photo exactly as it does for anything else, and
-  /// having it pick a service by the kind of the row would be inventing a distinction the row does
-  /// not make.
-  final OcptAssetsService _assetsService;
-
   /// The manager used to show the native "open" dialog when a photo or a document is referenced,
   /// or null to resolve it through [globalGetIt] the first time one actually is.
   ///
@@ -209,7 +199,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptRoleCandidatesService? roleCandidatesService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
-    OcptAssetsService? assetsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = defaultFieldEditDebounce,
     OcptResourcesRevealRequest? revealRequest,
@@ -235,9 +224,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _assetsService =
-           assetsService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).assetsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
        super(OcptResourcesState.init()) {
@@ -261,32 +247,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesRoleSelectedEvent>(_onRoleSelected);
     on<OcptResourcesPersonSheetOpenRequestedEvent>(_onPersonSheetOpenRequested);
     on<OcptResourcesLocationSelectedEvent>(_onLocationSelected);
-    on<OcptResourcesLocationCreationRequestedEvent>(_onLocationCreationRequested);
-    on<OcptResourcesLocationDeletionRequestedEvent>(_onLocationDeletionRequested);
-    on<OcptResourcesLocationFieldChangedEvent>(_onLocationFieldChanged);
-    on<OcptResourcesLocationColorChangedEvent>(_onLocationColorChanged);
-    on<OcptResourcesLocationPermitStatusChangedEvent>(_onLocationPermitStatusChanged);
-    on<OcptResourcesLocationPermitDateChangedEvent>(_onLocationPermitDateChanged);
-    on<OcptResourcesLocationContactChangedEvent>(_onLocationContactChanged);
-    on<OcptResourcesSetAddedEvent>(_onSetAdded);
-    on<OcptResourcesSetFieldChangedEvent>(_onSetFieldChanged);
-    on<OcptResourcesSetRemovedEvent>(_onSetRemoved);
-    on<OcptResourcesSetLocationChangedEvent>(_onSetLocationChanged);
-    on<OcptResourcesSceneAssignedToSetEvent>(_onSceneAssignedToSet);
-    on<OcptResourcesSceneRemovedFromSetEvent>(_onSceneRemovedFromSet);
     on<OcptResourcesOpenSetInShotListRequestedEvent>(_onOpenSetInShotListRequested);
     on<OcptResourcesShotListRevealDismissedEvent>(_onShotListRevealDismissed);
-    on<OcptResourcesLocationPhotoAddRequestedEvent>(_onLocationPhotoAddRequested);
     on<OcptResourcesElementPhotoPickRequestedEvent>(_onElementPhotoPickRequested);
     on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
-    on<OcptResourcesPermitDocumentPickRequestedEvent>(_onPermitDocumentPickRequested);
-    on<OcptResourcesPermitDocumentClearedEvent>(_onPermitDocumentCleared);
-    on<OcptResourcesAssetValidFromChangedEvent>(_onAssetValidFromChanged);
-    on<OcptResourcesAssetValidUntilChangedEvent>(_onAssetValidUntilChanged);
-    on<OcptResourcesAssetRemovedEvent>(_onAssetRemoved);
-    on<OcptResourcesLocationAvailabilityAddedEvent>(_onLocationAvailabilityAdded);
-    on<OcptResourcesLocationAvailabilityUpdatedEvent>(_onLocationAvailabilityUpdated);
-    on<OcptResourcesLocationAvailabilityRemovedEvent>(_onLocationAvailabilityRemoved);
     on<OcptResourcesElementSelectedEvent>(_onElementSelected);
     on<OcptResourcesElementCreationRequestedEvent>(_onElementCreationRequested);
     on<OcptResourcesElementDeletionRequestedEvent>(_onElementDeletionRequested);
@@ -695,11 +659,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// timer is shared by all six maps: cancelling it on the strength of one map having emptied
   /// would strand whatever the other five still hold until the next keystroke.
   void _cancelFieldEditTimerIfIdle({
-    required Map<(String, OcptLocationField), String> pendingLocationEdits,
-    required Map<(String, OcptSetField), String> pendingSetEdits,
     required Map<(String, OcptElementField), String> pendingElementEdits,
   }) {
-    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
+    if (pendingElementEdits.isEmpty) {
       _fieldEditTimer?.cancel();
       _fieldEditTimer = null;
     }
@@ -741,42 +703,22 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingLocationEdits = state.pendingLocationFieldEdits;
-    final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
-    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
+    if (pendingElementEdits.isEmpty) {
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(
-        state.copyWith(
-          pendingLocationFieldEdits: const {},
-          pendingSetFieldEdits: const {},
-          pendingElementFieldEdits: const {},
-        ),
-      );
+      emitter(state.copyWith(pendingElementFieldEdits: const {}));
       return;
     }
 
     try {
-      await _writeAllPendingLocationFields(
-        database: project.database,
-        pending: pendingLocationEdits,
-      );
-      await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
       await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
       await runSerially(() async {
         final snapshot = await _loadSnapshot(project);
-        emitter(
-          state.copyWith(
-            snapshot: snapshot,
-            pendingLocationFieldEdits: const {},
-            pendingSetFieldEdits: const {},
-            pendingElementFieldEdits: const {},
-          ),
-        );
+        emitter(state.copyWith(snapshot: snapshot, pendingElementFieldEdits: const {}));
       });
 
       // The other of the two moments the working-copy card needs a fresh read for (see
@@ -796,8 +738,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           hasWriteError: true,
           lostEditsEpoch: state.lostEditsEpoch + 1,
           reloadEpoch: state.reloadEpoch + 1,
-          pendingLocationFieldEdits: const {},
-          pendingSetFieldEdits: const {},
           pendingElementFieldEdits: const {},
         ),
       );
@@ -823,10 +763,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingLocationEdits = state.pendingLocationFieldEdits;
-    final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
-    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
+    if (pendingElementEdits.isEmpty) {
       return;
     }
 
@@ -836,11 +774,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
-      await _writeAllPendingLocationFields(
-        database: project.database,
-        pending: pendingLocationEdits,
-      );
-      await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
       await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
     } catch (error, stackTrace) {
       _logger.e(
@@ -849,162 +782,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         null,
         stackTrace,
       );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeLocationField].
-  Future<void> _writeAllPendingLocationFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptLocationField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (locationId, field) = entry.key;
-      await _writeLocationField(
-        database: database,
-        locationId: locationId,
-        field: field,
-        rawValue: entry.value,
-      );
-    }
-  }
-
-  /// Writes a single location field edit through `OcptLocationsService.updateLocation`, translating
-  /// [field] into the matching named argument (see `OcptLocationField`'s own doc comment for the
-  /// mapping).
-  ///
-  /// The two coordinate fields are the only ones not written as typed: what cannot be read as a
-  /// number is written as null rather than refused, so a half-typed `48.` costs nothing and a
-  /// cleared field clears the coordinate. Saying so is the sheet's job, not this one's.
-  Future<void> _writeLocationField({
-    required OcptProjectDatabase database,
-    required String locationId,
-    required OcptLocationField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptLocationField.name:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          name: Value(rawValue),
-        );
-      case OcptLocationField.addressLine1:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          addressLine1: Value(rawValue),
-        );
-      case OcptLocationField.addressLine2:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          addressLine2: Value(rawValue),
-        );
-      case OcptLocationField.postalCode:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          postalCode: Value(rawValue),
-        );
-      case OcptLocationField.city:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          city: Value(rawValue),
-        );
-      case OcptLocationField.region:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          region: Value(rawValue),
-        );
-      case OcptLocationField.country:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          country: Value(rawValue),
-        );
-      case OcptLocationField.latitude:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          latitude: Value(double.tryParse(rawValue.trim())),
-        );
-      case OcptLocationField.longitude:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          longitude: Value(double.tryParse(rawValue.trim())),
-        );
-      case OcptLocationField.contactNotes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          contactNotes: Value(rawValue),
-        );
-      case OcptLocationField.permitLabel:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          permitLabel: Value(rawValue),
-        );
-      case OcptLocationField.parkingNotes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          parkingNotes: Value(rawValue),
-        );
-      case OcptLocationField.powerNotes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          powerNotes: Value(rawValue),
-        );
-      case OcptLocationField.facilitiesNotes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          facilitiesNotes: Value(rawValue),
-        );
-      case OcptLocationField.constraintsNotes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          constraintsNotes: Value(rawValue),
-        );
-      case OcptLocationField.notes:
-        await _locationsService.updateLocation(
-          database: database,
-          locationId: locationId,
-          notes: Value(rawValue),
-        );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeSetField].
-  Future<void> _writeAllPendingSetFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptSetField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (setId, field) = entry.key;
-      await _writeSetField(database: database, setId: setId, field: field, rawValue: entry.value);
-    }
-  }
-
-  /// Writes a single set field edit through `OcptLocationsService.updateSet`, translating [field]
-  /// into the matching named argument (see `OcptSetField`'s own doc comment for the mapping).
-  Future<void> _writeSetField({
-    required OcptProjectDatabase database,
-    required String setId,
-    required OcptSetField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptSetField.name:
-        await _locationsService.updateSet(database: database, setId: setId, name: Value(rawValue));
-      case OcptSetField.notes:
-        await _locationsService.updateSet(database: database, setId: setId, notes: Value(rawValue));
     }
   }
 
@@ -1180,285 +957,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Creates a new, blank location at the end of the list, reloads the catalogue and selects it.
-  ///
-  /// It is given a colour derived from its rank — `state.locationCount` read *before* the insert —
-  /// for the reason `_onPersonCreationRequested` gives: the column's own default of 0 would make
-  /// every location share one colour bar, and the bar is how a location is told apart in a list of
-  /// names that all start with "La maison…".
-  Future<void> _onLocationCreationRequested(
-    OcptResourcesLocationCreationRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushAllPendingWrites(emitter);
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      final rank = state.locationCount;
-      final locationId = await _locationsService.createLocation(
-        database: project.database,
-        name: "",
-      );
-      if (locationId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
-      }
-
-      await _locationsService.updateLocation(
-        database: project.database,
-        locationId: locationId,
-        colorIndex: Value(rank),
-      );
-
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          selectedLocationId: locationId,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptResourcesSelectionCause.created,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a location in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Deletes location `event.locationId`, clearing the selection when it was the selected one, and
-  /// dropping any pending field edit that still targeted it or one of its sets — the rows those
-  /// edits would have written to are gone.
-  Future<void> _onLocationDeletionRequested(
-    OcptResourcesLocationDeletionRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final setIds = {
-      for (final location in state.locations)
-        if (location.id == event.locationId)
-          for (final set in location.sets) set.id,
-    };
-
-    final pendingWithoutLocation = Map<(String, OcptLocationField), String>.of(
-      state.pendingLocationFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.locationId);
-    final pendingWithoutSets = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
-      ..removeWhere((key, _) => setIds.contains(key.$1));
-    _cancelFieldEditTimerIfIdle(
-      pendingLocationEdits: pendingWithoutLocation,
-      pendingSetEdits: pendingWithoutSets,
-      pendingElementEdits: state.pendingElementFieldEdits,
-    );
-
-    final wasSelected = state.selectedLocationId == event.locationId;
-
-    try {
-      await _locationsService.deleteLocation(
-        database: project.database,
-        locationId: event.locationId,
-      );
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          pendingLocationFieldEdits: pendingWithoutLocation,
-          pendingSetFieldEdits: pendingWithoutSets,
-          forceSelectedLocationIdValue: wasSelected,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete location ${event.locationId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Records the raw text just typed into `event.field` of location `event.locationId` as a pending
-  /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
-  Future<void> _onLocationFieldChanged(
-    OcptResourcesLocationFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptLocationField), String>.of(state.pendingLocationFieldEdits)
-      ..[(event.locationId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingLocationFieldEdits: pending));
-
-    _restartFieldEditTimer();
-  }
-
-  /// Records the raw text just typed into `event.field` of set `event.setId` as a pending edit,
-  /// visible immediately, and (re)starts the same field-edit debounce every other typed field of
-  /// the mode rides.
-  Future<void> _onSetFieldChanged(
-    OcptResourcesSetFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
-      ..[(event.setId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingSetFieldEdits: pending));
-
-    _restartFieldEditTimer();
-  }
-
-  /// Sets location `event.locationId`'s colour index, written immediately.
-  Future<void> _onLocationColorChanged(
-    OcptResourcesLocationColorChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the colour of location ${event.locationId}",
-    action: (project) => _locationsService.updateLocation(
-      database: project.database,
-      locationId: event.locationId,
-      colorIndex: Value(event.colorIndex),
-    ),
-  );
-
-  /// Sets location `event.locationId`'s filming permit status, written immediately.
-  Future<void> _onLocationPermitStatusChanged(
-    OcptResourcesLocationPermitStatusChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the permit status of location ${event.locationId}",
-    action: (project) => _locationsService.updateLocation(
-      database: project.database,
-      locationId: event.locationId,
-      permitStatus: Value(event.status),
-    ),
-  );
-
-  /// Sets the date location `event.locationId`'s permit status last changed, written immediately.
-  Future<void> _onLocationPermitDateChanged(
-    OcptResourcesLocationPermitDateChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the permit date of location ${event.locationId}",
-    action: (project) => _locationsService.updateLocation(
-      database: project.database,
-      locationId: event.locationId,
-      permitDate: Value(event.date),
-    ),
-  );
-
-  /// Sets who to contact about location `event.locationId`, written immediately.
-  Future<void> _onLocationContactChanged(
-    OcptResourcesLocationContactChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the contact of location ${event.locationId}",
-    action: (project) => _locationsService.updateLocation(
-      database: project.database,
-      locationId: event.locationId,
-      contactPersonId: Value(event.personId),
-    ),
-  );
-
-  /// Adds a new, blank set at the end of location `event.locationId`'s sets, written immediately.
-  Future<void> _onSetAdded(OcptResourcesSetAddedEvent event, Emitter<OcptResourcesState> emitter) =>
-      _writeCatalogueChange(
-        emitter: emitter,
-        logContext: "add a set to location ${event.locationId}",
-        action: (project) async {
-          await _locationsService.createSet(
-            database: project.database,
-            locationId: event.locationId,
-            name: "",
-          );
-        },
-      );
-
-  /// Removes set `event.setId`, written immediately, dropping any pending edit that still targeted
-  /// it.
-  Future<void> _onSetRemoved(
-    OcptResourcesSetRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pendingWithoutSet = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
-      ..removeWhere((key, _) => key.$1 == event.setId);
-    _cancelFieldEditTimerIfIdle(
-      pendingLocationEdits: state.pendingLocationFieldEdits,
-      pendingSetEdits: pendingWithoutSet,
-      pendingElementEdits: state.pendingElementFieldEdits,
-    );
-
-    emitter(state.copyWith(pendingSetFieldEdits: pendingWithoutSet));
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "remove set ${event.setId}",
-      action: (project) =>
-          _locationsService.deleteSet(database: project.database, setId: event.setId),
-    );
-  }
-
-  /// Moves set `event.setId` to location `event.locationId`, written immediately. The set leaves
-  /// the sheet currently shown, which is what the reloaded snapshot then says.
-  Future<void> _onSetLocationChanged(
-    OcptResourcesSetLocationChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "move set ${event.setId} to location ${event.locationId}",
-    action: (project) => _locationsService.moveSetToLocation(
-      database: project.database,
-      setId: event.setId,
-      locationId: event.locationId,
-    ),
-  );
-
-  /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately.
-  Future<void> _onSceneAssignedToSet(
-    OcptResourcesSceneAssignedToSetEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "assign scene ${event.sceneId} to set ${event.setId}",
-    action: (project) async {
-      await _locationsService.assignSceneToSet(
-        database: project.database,
-        sceneId: event.sceneId,
-        setId: event.setId,
-      );
-    },
-  );
-
-  /// Says scene `event.sceneId` is no longer shot in set `event.setId`, written immediately.
-  Future<void> _onSceneRemovedFromSet(
-    OcptResourcesSceneRemovedFromSetEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove scene ${event.sceneId} from set ${event.setId}",
-    action: (project) => _locationsService.removeSceneFromSet(
-      database: project.database,
-      sceneId: event.sceneId,
-      setId: event.setId,
-    ),
-  );
-
   /// Resolves set `event.setId`'s own first linked sequence, in screenplay order
   /// (`OcptLocationsService.firstLinkedSceneOf`), and sets it as the pending cross-mode reveal the
   /// mode's own listener reads next — the sets card's own `Open in shot list` action. A no-op
@@ -1510,33 +1008,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWith(forcePendingShotListRevealValue: true));
   }
 
-  /// Asks for a scouting photo through the native picker and references the file picked, written
-  /// immediately. A cancelled dialog changes nothing at all.
-  Future<void> _onLocationPhotoAddRequested(
-    OcptResourcesLocationPhotoAddRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final path = await _pickFilePath(
-      allowedExtensions: ocptImageFileExtensions,
-      fileTypeLabel: event.fileTypeLabel,
-    );
-    if (path == null) {
-      return;
-    }
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "reference a scouting photo of location ${event.locationId}",
-      action: (project) async {
-        await _locationsService.addLocationPhoto(
-          database: project.database,
-          locationId: event.locationId,
-          path: path,
-        );
-      },
-    );
-  }
-
   /// Asks for element `event.elementId`'s photo through the native picker and references the file
   /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
   Future<void> _onElementPhotoPickRequested(
@@ -1573,140 +1044,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     logContext: "drop the photo of element ${event.elementId}",
     action: (project) =>
         _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
-  );
-
-  /// Asks for the filming permit document through the native picker and references the file picked,
-  /// written immediately. A cancelled dialog leaves the document already referenced alone.
-  Future<void> _onPermitDocumentPickRequested(
-    OcptResourcesPermitDocumentPickRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final path = await _pickFilePath(
-      allowedExtensions: ocptDocumentFileExtensions,
-      fileTypeLabel: event.fileTypeLabel,
-    );
-    if (path == null) {
-      return;
-    }
-
-    await _writeCatalogueChange(
-      emitter: emitter,
-      logContext: "reference the permit document of location ${event.locationId}",
-      action: (project) async {
-        await _locationsService.setPermitDocument(
-          database: project.database,
-          locationId: event.locationId,
-          path: path,
-        );
-      },
-    );
-  }
-
-  /// Drops location `event.locationId`'s reference to its permit document, written immediately.
-  Future<void> _onPermitDocumentCleared(
-    OcptResourcesPermitDocumentClearedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "drop the permit document of location ${event.locationId}",
-    action: (project) => _locationsService.clearPermitDocument(
-      database: project.database,
-      locationId: event.locationId,
-    ),
-  );
-
-  /// Sets asset `event.assetId`'s "valid from" date, written immediately.
-  Future<void> _onAssetValidFromChanged(
-    OcptResourcesAssetValidFromChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the valid-from date of asset ${event.assetId}",
-    action: (project) => _assetsService.updateAssetValidity(
-      database: project.database,
-      assetId: event.assetId,
-      validFrom: Value(event.date),
-    ),
-  );
-
-  /// Sets asset `event.assetId`'s "valid until" date, written immediately.
-  Future<void> _onAssetValidUntilChanged(
-    OcptResourcesAssetValidUntilChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the valid-until date of asset ${event.assetId}",
-    action: (project) => _assetsService.updateAssetValidity(
-      database: project.database,
-      assetId: event.assetId,
-      validUntil: Value(event.date),
-    ),
-  );
-
-  /// Drops the asset reference `event.assetId`, written immediately.
-  Future<void> _onAssetRemoved(
-    OcptResourcesAssetRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "drop the asset reference ${event.assetId}",
-    action: (project) =>
-        _assetsService.removeAsset(database: project.database, assetId: event.assetId),
-  );
-
-  /// Adds an availability window to location `event.locationId`, written immediately.
-  Future<void> _onLocationAvailabilityAdded(
-    OcptResourcesLocationAvailabilityAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add an availability window to location ${event.locationId}",
-    action: (project) async {
-      await _locationsService.addAvailability(
-        database: project.database,
-        locationId: event.locationId,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        weekdays: event.weekdays,
-        slot: event.slot,
-        startMinute: event.startMinute,
-        endMinute: event.endMinute,
-        kind: event.kind,
-        note: event.note,
-      );
-    },
-  );
-
-  /// Updates availability window `event.id`, written immediately.
-  Future<void> _onLocationAvailabilityUpdated(
-    OcptResourcesLocationAvailabilityUpdatedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "update the availability window ${event.id}",
-    action: (project) => _locationsService.updateAvailability(
-      database: project.database,
-      id: event.id,
-      startDate: Value(event.startDate),
-      endDate: Value(event.endDate),
-      weekdays: Value(event.weekdays),
-      slot: Value(event.slot),
-      startMinute: Value(event.startMinute),
-      endMinute: Value(event.endMinute),
-      kind: Value(event.kind),
-      note: Value(event.note),
-    ),
-  );
-
-  /// Removes availability window `event.id`, written immediately.
-  Future<void> _onLocationAvailabilityRemoved(
-    OcptResourcesLocationAvailabilityRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "remove the availability window ${event.id}",
-    action: (project) =>
-        _locationsService.removeAvailability(database: project.database, id: event.id),
   );
 
   /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
@@ -1857,11 +1194,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutElement = Map<(String, OcptElementField), String>.of(
       state.pendingElementFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.elementId);
-    _cancelFieldEditTimerIfIdle(
-      pendingLocationEdits: state.pendingLocationFieldEdits,
-      pendingSetEdits: state.pendingSetFieldEdits,
-      pendingElementEdits: pendingWithoutElement,
-    );
+    _cancelFieldEditTimerIfIdle(pendingElementEdits: pendingWithoutElement);
 
     final wasSelected = state.selectedElementId == event.elementId;
 

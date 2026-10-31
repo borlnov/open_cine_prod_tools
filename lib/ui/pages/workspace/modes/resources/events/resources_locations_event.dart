@@ -492,3 +492,11 @@ class OcptResourcesLocationAvailabilityRemovedEvent extends OcptResourcesLocatio
   @override
   List<Object?> get props => [...super.props, id];
 }
+
+/// Fired by the field-edit debounce timer `OcptResourcesLocationFieldChangedEvent` and
+/// `OcptResourcesSetFieldChangedEvent` (re)start, once it elapses with no further edit. Not meant
+/// to be dispatched by a widget directly.
+class OcptResourcesLocationsFieldEditFlushRequestedEvent extends OcptResourcesLocationsEvent {
+  /// Class constructor
+  const OcptResourcesLocationsFieldEditFlushRequestedEvent();
+}

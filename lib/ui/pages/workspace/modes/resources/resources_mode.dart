@@ -40,6 +40,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_locations_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_locations_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_roles_bloc.dart';
@@ -120,6 +122,11 @@ class OcptResourcesMode extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptResourcesRolesBloc(modeBloc: context.read<OcptResourcesBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) =>
+            OcptResourcesLocationsBloc(modeBloc: context.read<OcptResourcesBloc>()),
       ),
     ],
     child: OcptResourcesViewEffects(child: _ResourcesView(hasRevealRequest: revealRequest != null)),
@@ -451,7 +458,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
             ),
       onAddLocationRequested: state.isPreviewingVersion
           ? null
-          : () => context.read<OcptResourcesBloc>().add(
+          : () => context.read<OcptResourcesLocationsBloc>().add(
               const OcptResourcesLocationCreationRequestedEvent(),
             ),
       onAddElementRequested: state.isPreviewingVersion
@@ -908,143 +915,151 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
 
     final bloc = context.read<OcptResourcesBloc>();
+    final locationsBloc = context.read<OcptResourcesLocationsBloc>();
 
-    return OcptLocationSheet(
-      key: ValueKey(selectedLocation.id),
-      location: selectedLocation,
-      contact: _personOf(state, selectedLocation.contactPersonId),
-      people: state.people,
-      scenes: state.scenes,
-      otherLocations: _otherLocationsOf(state, selectedLocation.id),
-      assignedSceneIds: _assignedSceneIdsOf(state),
-      suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
-      setIdsWithPlan: state.setIdsWithPlan,
-      isReadOnly: state.isPreviewingVersion,
-      fieldValueOf: (field) => _locationFieldValueOf(state, selectedLocation, field),
-      onFieldChanged: (field, rawValue) => bloc.add(
-        OcptResourcesLocationFieldChangedEvent(
-          locationId: selectedLocation.id,
-          field: field,
-          rawValue: rawValue,
-        ),
-      ),
-      onColorChanged: (colorIndex) => bloc.add(
-        OcptResourcesLocationColorChangedEvent(
-          locationId: selectedLocation.id,
-          colorIndex: colorIndex,
-        ),
-      ),
-      onPermitStatusChanged: (status) => bloc.add(
-        OcptResourcesLocationPermitStatusChangedEvent(
-          locationId: selectedLocation.id,
-          status: status,
-        ),
-      ),
-      onPermitDateChanged: (date) => bloc.add(
-        OcptResourcesLocationPermitDateChangedEvent(locationId: selectedLocation.id, date: date),
-      ),
-      onContactChanged: (personId) => bloc.add(
-        OcptResourcesLocationContactChangedEvent(
-          locationId: selectedLocation.id,
-          personId: personId,
-        ),
-      ),
-      onPersonSheetOpenRequested: (personId) =>
-          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-      setFieldValueOf: (setId, field) => _setFieldValueOf(state, setId, field),
-      onSetFieldChanged: (setId, field, rawValue) => bloc.add(
-        OcptResourcesSetFieldChangedEvent(setId: setId, field: field, rawValue: rawValue),
-      ),
-      onSetAdded: () => bloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
-      onSetRemoved: (setId) => bloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
-      onSetLocationChanged: (setId, locationId) =>
-          bloc.add(OcptResourcesSetLocationChangedEvent(setId: setId, locationId: locationId)),
-      onSceneAssigned: (sceneId, setId) =>
-          bloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
-      onSceneRemoved: (sceneId, setId) =>
-          bloc.add(OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId)),
-      onOpenSetInShotListRequested: (setId) =>
-          bloc.add(OcptResourcesOpenSetInShotListRequestedEvent(setId: setId)),
-      onPhotoAddRequested: () => bloc.add(
-        OcptResourcesLocationPhotoAddRequestedEvent(
-          locationId: selectedLocation.id,
-          fileTypeLabel: tr.resourcesImageFileTypeLabel,
-        ),
-      ),
-      onPhotoRemoved: (assetId) => bloc.add(OcptResourcesAssetRemovedEvent(assetId: assetId)),
-      onPermitDocumentPickRequested: () => bloc.add(
-        OcptResourcesPermitDocumentPickRequestedEvent(
-          locationId: selectedLocation.id,
-          fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
-        ),
-      ),
-      onPermitDocumentCleared: () =>
-          bloc.add(OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id)),
-      onPermitDocumentValidFromChanged: (date) => bloc.add(
-        OcptResourcesAssetValidFromChangedEvent(
-          assetId: selectedLocation.permitDocument!.id,
-          date: date,
-        ),
-      ),
-      onPermitDocumentValidUntilChanged: (date) => bloc.add(
-        OcptResourcesAssetValidUntilChangedEvent(
-          assetId: selectedLocation.permitDocument!.id,
-          date: date,
-        ),
-      ),
-      onAvailabilityUpdated:
-          (
-            id, {
-            required startDate,
-            required endDate,
-            required weekdays,
-            required slot,
-            required startMinute,
-            required endMinute,
-            required kind,
-            required note,
-          }) => bloc.add(
-            OcptResourcesLocationAvailabilityUpdatedEvent(
-              id: id,
-              startDate: startDate,
-              endDate: endDate,
-              weekdays: weekdays,
-              slot: slot,
-              startMinute: startMinute,
-              endMinute: endMinute,
-              kind: kind,
-              note: note,
-            ),
+    return BlocBuilder<OcptResourcesLocationsBloc, OcptResourcesLocationsState>(
+      builder: (context, locationsState) => OcptLocationSheet(
+        key: ValueKey(selectedLocation.id),
+        location: selectedLocation,
+        contact: _personOf(state, selectedLocation.contactPersonId),
+        people: state.people,
+        scenes: state.scenes,
+        otherLocations: _otherLocationsOf(state, selectedLocation.id),
+        assignedSceneIds: _assignedSceneIdsOf(state),
+        suggestedSetIdBySceneId: _suggestedSetIdsOf(state),
+        setIdsWithPlan: state.setIdsWithPlan,
+        isReadOnly: state.isPreviewingVersion,
+        fieldValueOf: (field) => _locationFieldValueOf(locationsState, selectedLocation, field),
+        onFieldChanged: (field, rawValue) => locationsBloc.add(
+          OcptResourcesLocationFieldChangedEvent(
+            locationId: selectedLocation.id,
+            field: field,
+            rawValue: rawValue,
           ),
-      onAvailabilityAdded:
-          ({
-            required startDate,
-            required endDate,
-            required weekdays,
-            required slot,
-            required startMinute,
-            required endMinute,
-          }) => bloc.add(
-            OcptResourcesLocationAvailabilityAddedEvent(
-              locationId: selectedLocation.id,
-              startDate: startDate,
-              endDate: endDate,
-              weekdays: weekdays,
-              slot: slot,
-              startMinute: startMinute,
-              endMinute: endMinute,
-              kind: OcptLocationAvailabilityKind.available,
-              note: "",
-            ),
+        ),
+        onColorChanged: (colorIndex) => locationsBloc.add(
+          OcptResourcesLocationColorChangedEvent(
+            locationId: selectedLocation.id,
+            colorIndex: colorIndex,
           ),
-      onAvailabilityRemoved: (id) =>
-          bloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
-      onDeleteRequested: () => _handleDeleteRequested(
-        context,
-        bloc: bloc,
-        title: tr.resourcesLocationDeleteConfirmTitle,
-        message: tr.resourcesLocationDeleteConfirmMessage,
-        event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
+        ),
+        onPermitStatusChanged: (status) => locationsBloc.add(
+          OcptResourcesLocationPermitStatusChangedEvent(
+            locationId: selectedLocation.id,
+            status: status,
+          ),
+        ),
+        onPermitDateChanged: (date) => locationsBloc.add(
+          OcptResourcesLocationPermitDateChangedEvent(locationId: selectedLocation.id, date: date),
+        ),
+        onContactChanged: (personId) => locationsBloc.add(
+          OcptResourcesLocationContactChangedEvent(
+            locationId: selectedLocation.id,
+            personId: personId,
+          ),
+        ),
+        onPersonSheetOpenRequested: (personId) =>
+            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+        setFieldValueOf: (setId, field) => _setFieldValueOf(state, locationsState, setId, field),
+        onSetFieldChanged: (setId, field, rawValue) => locationsBloc.add(
+          OcptResourcesSetFieldChangedEvent(setId: setId, field: field, rawValue: rawValue),
+        ),
+        onSetAdded: () =>
+            locationsBloc.add(OcptResourcesSetAddedEvent(locationId: selectedLocation.id)),
+        onSetRemoved: (setId) => locationsBloc.add(OcptResourcesSetRemovedEvent(setId: setId)),
+        onSetLocationChanged: (setId, locationId) => locationsBloc.add(
+          OcptResourcesSetLocationChangedEvent(setId: setId, locationId: locationId),
+        ),
+        onSceneAssigned: (sceneId, setId) =>
+            locationsBloc.add(OcptResourcesSceneAssignedToSetEvent(sceneId: sceneId, setId: setId)),
+        onSceneRemoved: (sceneId, setId) => locationsBloc.add(
+          OcptResourcesSceneRemovedFromSetEvent(sceneId: sceneId, setId: setId),
+        ),
+        onOpenSetInShotListRequested: (setId) =>
+            bloc.add(OcptResourcesOpenSetInShotListRequestedEvent(setId: setId)),
+        onPhotoAddRequested: () => locationsBloc.add(
+          OcptResourcesLocationPhotoAddRequestedEvent(
+            locationId: selectedLocation.id,
+            fileTypeLabel: tr.resourcesImageFileTypeLabel,
+          ),
+        ),
+        onPhotoRemoved: (assetId) =>
+            locationsBloc.add(OcptResourcesAssetRemovedEvent(assetId: assetId)),
+        onPermitDocumentPickRequested: () => locationsBloc.add(
+          OcptResourcesPermitDocumentPickRequestedEvent(
+            locationId: selectedLocation.id,
+            fileTypeLabel: tr.resourcesDocumentFileTypeLabel,
+          ),
+        ),
+        onPermitDocumentCleared: () => locationsBloc.add(
+          OcptResourcesPermitDocumentClearedEvent(locationId: selectedLocation.id),
+        ),
+        onPermitDocumentValidFromChanged: (date) => locationsBloc.add(
+          OcptResourcesAssetValidFromChangedEvent(
+            assetId: selectedLocation.permitDocument!.id,
+            date: date,
+          ),
+        ),
+        onPermitDocumentValidUntilChanged: (date) => locationsBloc.add(
+          OcptResourcesAssetValidUntilChangedEvent(
+            assetId: selectedLocation.permitDocument!.id,
+            date: date,
+          ),
+        ),
+        onAvailabilityUpdated:
+            (
+              id, {
+              required startDate,
+              required endDate,
+              required weekdays,
+              required slot,
+              required startMinute,
+              required endMinute,
+              required kind,
+              required note,
+            }) => locationsBloc.add(
+              OcptResourcesLocationAvailabilityUpdatedEvent(
+                id: id,
+                startDate: startDate,
+                endDate: endDate,
+                weekdays: weekdays,
+                slot: slot,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                kind: kind,
+                note: note,
+              ),
+            ),
+        onAvailabilityAdded:
+            ({
+              required startDate,
+              required endDate,
+              required weekdays,
+              required slot,
+              required startMinute,
+              required endMinute,
+            }) => locationsBloc.add(
+              OcptResourcesLocationAvailabilityAddedEvent(
+                locationId: selectedLocation.id,
+                startDate: startDate,
+                endDate: endDate,
+                weekdays: weekdays,
+                slot: slot,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                kind: OcptLocationAvailabilityKind.available,
+                note: "",
+              ),
+            ),
+        onAvailabilityRemoved: (id) =>
+            locationsBloc.add(OcptResourcesLocationAvailabilityRemovedEvent(id: id)),
+        onDeleteRequested: () => _handleDeleteRequested(
+          context,
+          bloc: locationsBloc,
+          title: tr.resourcesLocationDeleteConfirmTitle,
+          message: tr.resourcesLocationDeleteConfirmMessage,
+          event: OcptResourcesLocationDeletionRequestedEvent(locationId: selectedLocation.id),
+        ),
       ),
     );
   }
@@ -1207,8 +1222,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
 
   /// Set [setId]'s current value for [field]: a pending edit still sitting in the bloc's debounce
   /// takes priority over the set's own stored value, exactly as it does for a location's fields.
-  String _setFieldValueOf(OcptResourcesState state, String setId, OcptSetField field) {
-    final pending = state.pendingSetFieldEdits[(setId, field)];
+  String _setFieldValueOf(
+    OcptResourcesState state,
+    OcptResourcesLocationsState locationsState,
+    String setId,
+    OcptSetField field,
+  ) {
+    final pending = locationsState.pendingSetFieldEdits[(setId, field)];
     if (pending != null) {
       return pending;
     }
@@ -1234,7 +1254,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// The two coordinates are the fields whose stored value is not a string: they are read back the
   /// way they were typed rather than reformatted, so a field showing `45.76` was written `45.76`.
   String _locationFieldValueOf(
-    OcptResourcesState state,
+    OcptResourcesLocationsState state,
     OcptLocation location,
     OcptLocationField field,
   ) {
