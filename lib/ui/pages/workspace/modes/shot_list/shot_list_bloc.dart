@@ -1114,22 +1114,27 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     try {
       await _writeAllPendingFields(project: project, pending: pending);
-      final snapshot = await _loadSnapshot(project);
-      final suggestions = await _loadSuggestions(project);
-      final storyboardSnapshot = await _loadStoryboard(project);
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      final locations = await _loadLocations(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          suggestions: suggestions,
-          storyboardSnapshot: storyboardSnapshot,
-          floorPlanSnapshot: floorPlanSnapshot,
-          locations: locations,
-          pendingFieldEdits: const {},
-          reloadEpoch: state.reloadEpoch + 1,
-        ),
-      );
+
+      // Queued with the views' reloads: a read made here but emitted after a newer one would put
+      // older data over it.
+      await runSerially(() async {
+        final snapshot = await _loadSnapshot(project);
+        final suggestions = await _loadSuggestions(project);
+        final storyboardSnapshot = await _loadStoryboard(project);
+        final floorPlanSnapshot = await _loadFloorPlans(project);
+        final locations = await _loadLocations(project);
+        emitter(
+          state.copyWith(
+            snapshot: snapshot,
+            suggestions: suggestions,
+            storyboardSnapshot: storyboardSnapshot,
+            floorPlanSnapshot: floorPlanSnapshot,
+            locations: locations,
+            pendingFieldEdits: const {},
+            reloadEpoch: state.reloadEpoch + 1,
+          ),
+        );
+      });
 
       // The other of the two moments the working-copy card needs a fresh read for (see
       // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.

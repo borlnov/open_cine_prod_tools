@@ -21,8 +21,10 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -115,6 +117,44 @@ class _FailingStoryboardService extends OcptStoryboardService {
   }) async => throw StateError("comment write intentionally failed for the test");
 }
 
+/// A storyboard service whose reads can be held back: while [heldReads] is positive, a read takes
+/// its data from the database at once, then waits for [release] before answering, so what it
+/// answers is older than the database by the time it arrives.
+class _HoldingStoryboardService extends OcptStoryboardService {
+  /// How many of the next reads are held back.
+  int heldReads = 0;
+
+  /// How many reads were held back so far.
+  int holdCount = 0;
+
+  final Completer<void> _release = Completer<void>();
+
+  /// Class constructor
+  _HoldingStoryboardService(OcptStoryboardService source)
+    : super(
+        logger: const SilentLogger(),
+        assetsService: source.assetsService,
+        deviceId: source.deviceId,
+      );
+
+  /// Lets every held read answer.
+  void release() => _release.complete();
+
+  @override
+  Future<OcptStoryboardSnapshot> loadStoryboard({
+    required OcptProjectDatabase database,
+    required String screenplayId,
+  }) async {
+    final snapshot = await super.loadStoryboard(database: database, screenplayId: screenplayId);
+    if (heldReads > 0) {
+      heldReads--;
+      holdCount++;
+      await _release.future;
+    }
+    return snapshot;
+  }
+}
+
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
@@ -174,14 +214,17 @@ void main() {
 
   /// Builds the mode bloc wired to the test project. [fieldEditDebounce] defaults to a short
   /// duration so tests exercising the field-edit debounce don't have to wait out the real 2 s one.
-  OcptShotListBloc buildBloc({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) =>
-      OcptShotListBloc(
-        projectsManager: projectsManager,
-        propertiesManager: propertiesManager,
-        routerManager: _RecordingRouterManager(),
-        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
-        fieldEditDebounce: fieldEditDebounce,
-      );
+  OcptShotListBloc buildBloc({
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    OcptStoryboardService? storyboardService,
+  }) => OcptShotListBloc(
+    projectsManager: projectsManager,
+    storyboardService: storyboardService,
+    propertiesManager: propertiesManager,
+    routerManager: _RecordingRouterManager(),
+    exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+    fieldEditDebounce: fieldEditDebounce,
+  );
 
   /// Builds the storyboard bloc of [modeBloc], picking frames through [fileSelectorManager] — a
   /// cancelled dialog unless the test says otherwise, so no test ever reaches a native one.
@@ -234,11 +277,18 @@ void main() {
   /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting it,
   /// per the import handler), answering the blocs and the ids.
   Future<({OcptShotListBloc mode, OcptShotListStoryboardBloc board, String shotId, String panelId})>
-  mountWithAPanel({Duration fieldEditDebounce = const Duration(milliseconds: 30)}) async {
+  mountWithAPanel({
+    Duration fieldEditDebounce = const Duration(milliseconds: 30),
+    OcptStoryboardService? storyboardService,
+  }) async {
     await writeScreenplay(twoSceneText);
-    final mode = buildBloc(fieldEditDebounce: fieldEditDebounce);
+    final mode = buildBloc(
+      fieldEditDebounce: fieldEditDebounce,
+      storyboardService: storyboardService,
+    );
     final board = buildBoard(
       mode,
+      storyboardService: storyboardService,
       fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
       fieldEditDebounce: fieldEditDebounce,
     );
@@ -1038,6 +1088,44 @@ void main() {
 
       board.add(const OcptShotListStoryboardWriteErrorDismissedEvent());
       await waitUntil(() => !board.state.hasWriteError);
+
+      await closeAll(board, mode);
+    });
+
+    test("the mode's own flush does not put an older storyboard over a newer one", () async {
+      final service = _HoldingStoryboardService(projectsManager.storyboardService);
+      final mounted = await mountWithAPanel(
+        fieldEditDebounce: const Duration(days: 1),
+        storyboardService: service,
+      );
+      final mode = mounted.mode;
+      final board = mounted.board;
+
+      // The mode holds a typed edit of its own, so its flush reads everything again.
+      mode.add(
+        OcptShotListShotFieldChangedEvent(
+          shotId: mounted.shotId,
+          field: OcptShotListEditableField.shotSize,
+          rawValue: "Wide",
+        ),
+      );
+      await waitUntil(() => mode.state.pendingFieldEdits.isNotEmpty);
+
+      // The mode's flush reads the storyboard while the comment is still empty, and is held there.
+      service.heldReads = 1;
+      final modeFlush = mode.flushAllPendingWrites();
+      await waitUntil(() => service.holdCount == 1);
+
+      // Meanwhile the board writes a comment and has the mode read it.
+      board.add(OcptShotListPanelCommentChangedEvent(panelId: mounted.panelId, rawValue: "Newer"));
+      await waitUntil(() => board.state.pendingFieldEdits.isNotEmpty);
+      final boardFlush = board.flushPendingWrites();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      service.release();
+      await Future.wait([modeFlush, boardFlush]).timeout(const Duration(seconds: 5));
+
+      expect(mode.state.panelsOfShot(mounted.shotId).single.comment, "Newer");
 
       await closeAll(board, mode);
     });

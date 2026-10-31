@@ -27,15 +27,19 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 /// - [reloadScopesIn] — read again the parts of the shared data a view named, and move the state's
 ///   `reloadEpoch`.
 ///
-/// Reloads run through [reloadSerially], one at a time: two views writing at about the same time
-/// each ask for a reload, and a slower read finishing after a faster, newer one would put older
-/// data in the state. The mode's own flush uses the same queue for the same reason.
+/// Every read of the shared data that ends in an emit runs through [runSerially], one at a time —
+/// [reloadSerially] for a view's reload, and the mode's own flush for its read-and-emit half: two
+/// writers finishing at about the same time each read the data, and a slower read finishing after
+/// a faster, newer one would put older data in the state. The flush as a whole is **not** queued,
+/// only its read-and-emit half: a view's flush waits on a reload, so queueing the whole flush
+/// behind that reload would wait on itself. Whoever writes a mode bloc's own reads must therefore
+/// queue them: a read that is not in the queue can finish last and overwrite a newer one.
 mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
   /// The flushers the view blocs registered, in registration order.
   final List<OcptPendingWritesFlusher> _flushers = [];
 
-  /// The tail of every reload queued through [reloadSerially] so far.
-  Future<void> _pendingReloads = Future.value();
+  /// The tail of every read queued through [runSerially] so far.
+  Future<void> _serialReads = Future.value();
 
   /// Whether [close] was called, from which point nothing new can be dispatched to this bloc.
   bool _isClosing = false;
@@ -114,17 +118,23 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>> on BlocForMixin<S> {
   @protected
   Future<void> reloadScopesIn(Set<Enum> scopes, Emitter<S> emitter);
 
-  /// Runs [reloadScopesIn] only once every reload already queued through this has settled, and
-  /// queues it in turn.
+  /// Runs [action], a read of the shared data that ends in an emit, only once every action already
+  /// queued through this has settled, and queues it in turn.
   ///
-  /// A failed reload must not leave the queue stuck: [_pendingReloads] never carries the error
-  /// forward, only the future handed back to the caller does.
+  /// [action] must read and emit, and wait for nothing that is itself queued here: it would wait
+  /// on itself. A failed action must not leave the queue stuck: [_serialReads] never carries the
+  /// error forward, only the future handed back to the caller does.
   @protected
-  Future<void> reloadSerially(Set<Enum> scopes, Emitter<S> emitter) {
-    final result = _pendingReloads.then((_) => reloadScopesIn(scopes, emitter));
-    _pendingReloads = result.then((_) {}, onError: (_) {});
+  Future<T> runSerially<T>(Future<T> Function() action) {
+    final result = _serialReads.then((_) => action());
+    _serialReads = result.then((_) {}, onError: (_) {});
     return result;
   }
+
+  /// Runs [reloadScopesIn] through [runSerially].
+  @protected
+  Future<void> reloadSerially(Set<Enum> scopes, Emitter<S> emitter) =>
+      runSerially(() => reloadScopesIn(scopes, emitter));
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
