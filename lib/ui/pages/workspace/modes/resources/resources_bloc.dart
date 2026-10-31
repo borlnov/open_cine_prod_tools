@@ -40,11 +40,14 @@ import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -106,7 +109,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsBloc<OcptResourcesState>,
-        MixinOcptProjectPackageBloc<OcptResourcesState> {
+        MixinOcptProjectPackageBloc<OcptResourcesState>,
+        MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "resources_bloc";
 
@@ -371,6 +375,59 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     return true;
   }
 
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// Always true, for the reason [flushPendingProjectWrites] gives: a write that fails is shown by
+  /// the mode itself (its transient write error), the edits that could not be written are dropped,
+  /// and the action goes ahead on the value the database still holds.
+  @protected
+  @override
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptResourcesState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    return true;
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// A failed read raises the transient write error, like a failed write: the view that asked has
+  /// already written its row, and what is on screen no longer says what the database holds.
+  @protected
+  @override
+  Future<bool> reloadScopesIn(
+    Set<OcptResourcesReloadScope> scopes,
+    Emitter<OcptResourcesState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return false;
+    }
+
+    try {
+      OcptResourcesSnapshot? snapshot;
+
+      // A switch statement over an enum must name every value: a scope added to the enum does not
+      // compile until it is read here.
+      for (final scope in scopes) {
+        switch (scope) {
+          case OcptResourcesReloadScope.snapshot:
+            snapshot = await _loadSnapshot(project);
+        }
+      }
+
+      emitter(state.copyWith(snapshot: snapshot));
+      return true;
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to read again the $scopes of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      emitter(state.copyWith(hasWriteError: true));
+      return false;
+    }
+  }
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
@@ -409,51 +466,59 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           forcePreviewedVersionIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptResourcesSelectionCause.load,
         ),
       );
       return;
     }
 
-    final previewedVersion = project.previewedVersion;
-    final snapshot = await _loadSnapshot(project);
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-    final pageSetup = await _loadPageSetup(project);
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
-      database: project.database,
-    );
-    final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
-      database: project.database,
-      setIds: [
-        for (final location in snapshot.locations)
-          for (final set in location.sets) set.id,
-      ],
-    );
+    // Queued with the views' reloads: a read made here but emitted after a newer one would put
+    // older data over it.
+    await runSerially(() async {
+      final previewedVersion = project.previewedVersion;
+      final snapshot = await _loadSnapshot(project);
+      final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+      final pageSetup = await _loadPageSetup(project);
+      final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+        database: project.database,
+      );
+      final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
+        database: project.database,
+        setIds: [
+          for (final location in snapshot.locations)
+            for (final set in location.sets) set.id,
+        ],
+      );
 
-    final revealRequest = _pendingRevealRequest;
-    _pendingRevealRequest = null;
+      final revealRequest = _pendingRevealRequest;
+      _pendingRevealRequest = null;
 
-    emitter(
-      _revealed(
-        state.copyWith(
-          isLoading: false,
-          title: project.name,
-          currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
-          previewedVersionId: previewedVersion?.id,
-          forcePreviewedVersionIdValue: previewedVersion == null,
-          snapshot: snapshot,
-          pageSetup: pageSetup,
-          mileageRates: mileageRates,
-          setIdsWithPlan: setIdsWithPlan,
-          forceSelectedPersonIdValue: true,
-          forceSelectedRoleIdValue: true,
-          forceSelectedLocationIdValue: true,
-          forceSelectedElementIdValue: true,
-          leftDockFraction: leftDockFraction,
-          rightDockFraction: rightDockFraction,
+      emitter(
+        _revealed(
+          state.copyWith(
+            isLoading: false,
+            title: project.name,
+            currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+            previewedVersionId: previewedVersion?.id,
+            forcePreviewedVersionIdValue: previewedVersion == null,
+            snapshot: snapshot,
+            pageSetup: pageSetup,
+            mileageRates: mileageRates,
+            setIdsWithPlan: setIdsWithPlan,
+            forceSelectedPersonIdValue: true,
+            forceSelectedRoleIdValue: true,
+            forceSelectedLocationIdValue: true,
+            forceSelectedElementIdValue: true,
+            leftDockFraction: leftDockFraction,
+            rightDockFraction: rightDockFraction,
+            selectionEpoch: state.selectionEpoch + 1,
+            selectionCause: OcptResourcesSelectionCause.load,
+          ),
+          revealRequest,
         ),
-        revealRequest,
-      ),
-    );
+      );
+    });
   }
 
   /// [loaded] with [revealRequest]'s own tab active and its record selected, or [loaded] untouched
@@ -581,12 +646,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    final snapshot = await _loadSnapshot(project);
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
+    await runSerially(() async {
+      final snapshot = await _loadSnapshot(project);
+      final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
-    emitter(
-      state.copyWith(snapshot: snapshot, currencyCode: currencyCode ?? ocptDefaultCurrencyCode),
-    );
+      emitter(
+        state.copyWith(snapshot: snapshot, currencyCode: currencyCode ?? ocptDefaultCurrencyCode),
+      );
+    });
   }
 
   /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.
@@ -614,6 +681,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         forceSelectedLocationIdValue: !isSameTab,
         forceSelectedElementIdValue: !isSameTab,
         searchQuery: isSameTab ? null : "",
+        selectionEpoch: isSameTab ? null : state.selectionEpoch + 1,
+        selectionCause: isSameTab ? null : OcptResourcesSelectionCause.tab,
       ),
     );
   }
@@ -634,7 +703,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(state.copyWith(selectedPersonId: event.personId));
+    emitter(
+      state.copyWith(
+        selectedPersonId: event.personId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.person,
+      ),
+    );
   }
 
   /// Creates a new, blank person at the end of the address book, reloads the catalogue and selects
@@ -674,7 +749,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       );
 
       final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, selectedPersonId: personId));
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          selectedPersonId: personId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptResourcesSelectionCause.created,
+        ),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a person in project "
@@ -719,6 +801,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           snapshot: snapshot,
           pendingFieldEdits: pendingWithoutPerson,
           forceSelectedPersonIdValue: wasSelected,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -863,18 +947,20 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         database: project.database,
         pending: pendingCandidateEdits,
       );
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          pendingFieldEdits: const {},
-          pendingRoleFieldEdits: const {},
-          pendingLocationFieldEdits: const {},
-          pendingSetFieldEdits: const {},
-          pendingElementFieldEdits: const {},
-          pendingCandidateFieldEdits: const {},
-        ),
-      );
+      await runSerially(() async {
+        final snapshot = await _loadSnapshot(project);
+        emitter(
+          state.copyWith(
+            snapshot: snapshot,
+            pendingFieldEdits: const {},
+            pendingRoleFieldEdits: const {},
+            pendingLocationFieldEdits: const {},
+            pendingSetFieldEdits: const {},
+            pendingElementFieldEdits: const {},
+            pendingCandidateFieldEdits: const {},
+          ),
+        );
+      });
 
       // The other of the two moments the working-copy card needs a fresh read for (see
       // `_onRightDockTabSelected`): a field edit landing while the tab showing it is already open.
@@ -1712,6 +1798,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         selectedRoleId: event.roleId,
         activeTab: OcptResourcesTab.roles,
         searchQuery: isAlreadyOnRolesTab ? null : "",
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.role,
       ),
     );
   }
@@ -1743,7 +1831,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, selectedRoleId: roleId));
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          selectedRoleId: roleId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptResourcesSelectionCause.created,
+        ),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a role in project "
@@ -1833,6 +1928,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           snapshot: snapshot,
           pendingRoleFieldEdits: pendingWithoutRole,
           forceSelectedRoleIdValue: wasSelected,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -2005,6 +2102,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         forceSelectedRoleIdValue: true,
         forceSelectedLocationIdValue: true,
         forceSelectedElementIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.personSheetOpened,
       ),
     );
   }
@@ -2025,7 +2124,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(state.copyWith(selectedLocationId: event.locationId));
+    emitter(
+      state.copyWith(
+        selectedLocationId: event.locationId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.location,
+      ),
+    );
   }
 
   /// Creates a new, blank location at the end of the list, reloads the catalogue and selects it.
@@ -2064,7 +2169,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       );
 
       final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, selectedLocationId: locationId));
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          selectedLocationId: locationId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptResourcesSelectionCause.created,
+        ),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a location in project "
@@ -2122,6 +2234,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           pendingLocationFieldEdits: pendingWithoutLocation,
           pendingSetFieldEdits: pendingWithoutSets,
           forceSelectedLocationIdValue: wasSelected,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -2709,7 +2823,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(state.copyWith(selectedElementId: event.elementId));
+    emitter(
+      state.copyWith(
+        selectedElementId: event.elementId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.element,
+      ),
+    );
   }
 
   /// Creates a new, blank element of `event.category` at the end of the catalogue, reloads it and
@@ -2743,7 +2863,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       final snapshot = await _loadSnapshot(project);
-      emitter(state.copyWith(snapshot: snapshot, selectedElementId: elementId));
+      emitter(
+        state.copyWith(
+          snapshot: snapshot,
+          selectedElementId: elementId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptResourcesSelectionCause.created,
+        ),
+      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create an element in project "
@@ -2788,6 +2915,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           snapshot: snapshot,
           pendingElementFieldEdits: pendingWithoutElement,
           forceSelectedElementIdValue: wasSelected,
+          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
+          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
         ),
       );
     } catch (error, stackTrace) {
@@ -3002,6 +3131,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         forceSelectedPersonIdValue: true,
         forceSelectedLocationIdValue: true,
         forceSelectedElementIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptResourcesSelectionCause.roleSheetOpened,
       ),
     );
   }

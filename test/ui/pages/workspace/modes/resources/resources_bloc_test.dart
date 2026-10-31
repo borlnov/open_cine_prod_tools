@@ -31,6 +31,8 @@ import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
@@ -313,6 +315,131 @@ void main() {
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
+
+  group("the epochs the views react to", () {
+    test("entering the mode moves both epochs and says why", () async {
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, greaterThan(0));
+      expect(state.selectionEpoch, greaterThan(0));
+      expect(state.selectionCause, OcptResourcesSelectionCause.load);
+
+      await bloc.close();
+    });
+
+    test("reading the snapshot again answers true and moves the reload epoch alone", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      // Written behind the mode's back, as a view's own write would be.
+      final project = projectsManager.currentProject!;
+      await project.database
+          .into(project.database.ocptPeopleTable)
+          .insert(OcptPeopleTableCompanion.insert(id: "person-1"));
+
+      final hasRead = await bloc.reload({OcptResourcesReloadScope.snapshot});
+
+      expect(hasRead, isTrue);
+      expect(bloc.state.peopleCount, 1);
+      expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("reading again with no project open answers false and moves nothing", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      await projectsManager.closeCurrentProject();
+
+      final hasRead = await bloc.reload({OcptResourcesReloadScope.snapshot});
+
+      expect(hasRead, isFalse);
+      expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+
+      await bloc.close();
+    });
+
+    test("a selection moves the selection epoch with its own cause, a stale one does not", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+      final personId = created.selectedPersonId!;
+      expect(created.selectionCause, OcptResourcesSelectionCause.created);
+
+      bloc.add(OcptResourcesPersonSelectedEvent(personId: personId));
+      final selected = await waitForState(
+        bloc,
+        (state) => state.selectionEpoch > created.selectionEpoch,
+      );
+      expect(selected.selectionCause, OcptResourcesSelectionCause.person);
+
+      // Selecting the person again is still a move: the views are told even though nothing changed.
+      bloc.add(OcptResourcesPersonSelectedEvent(personId: personId));
+      final reselected = await waitForState(
+        bloc,
+        (state) => state.selectionEpoch > selected.selectionEpoch,
+      );
+      expect(reselected.selectedPersonId, personId);
+
+      bloc.add(const OcptResourcesPersonSelectedEvent(personId: "ghost"));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.selectionEpoch, reselected.selectionEpoch);
+
+      await bloc.close();
+    });
+
+    test("a tab change moves the selection epoch, re-selecting the active tab does not", () async {
+      final bloc = buildBloc();
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.people));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+
+      bloc.add(const OcptResourcesTabSelectedEvent(tab: OcptResourcesTab.locations));
+      final changed = await waitForState(
+        bloc,
+        (state) => state.selectionEpoch > loaded.selectionEpoch,
+      );
+      expect(changed.selectionCause, OcptResourcesSelectionCause.tab);
+
+      await bloc.close();
+    });
+
+    test("deleting the selected record moves the selection epoch with the dropped cause", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+
+      bloc.add(OcptResourcesPersonDeletionRequestedEvent(personId: created.selectedPersonId!));
+      final deleted = await waitForState(bloc, (state) => state.peopleCount == 0);
+
+      expect(deleted.selectedPersonId, isNull);
+      expect(deleted.selectionEpoch, greaterThan(created.selectionEpoch));
+      expect(deleted.selectionCause, OcptResourcesSelectionCause.dropped);
+
+      await bloc.close();
+    });
+
+    test("a write that replaces the snapshot moves the reload epoch by itself", () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      bloc.add(const OcptResourcesPersonCreationRequestedEvent());
+      final created = await waitForState(bloc, (state) => state.peopleCount == 1);
+
+      bloc.add(const OcptResourcesSearchToggledEvent());
+      final searching = await waitForState(bloc, (state) => state.isSearchVisible);
+
+      expect(searching.reloadEpoch, created.reloadEpoch);
+      expect(created.reloadEpoch, greaterThan(0));
+
+      await bloc.close();
+    });
+  });
 
   test("loads an empty catalogue with every count at zero", () async {
     final bloc = buildBloc();

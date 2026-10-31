@@ -25,10 +25,12 @@ import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_set_editable_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -84,7 +86,8 @@ class OcptResourcesIoNotice extends Equatable {
 class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsState<OcptResourcesState>,
-        MixinOcptProjectPackageState<OcptResourcesState> {
+        MixinOcptProjectPackageState<OcptResourcesState>,
+        MixinOcptModeState<OcptResourcesState> {
   /// Whether the resources catalogue is still being loaded from the project database.
   final bool isLoading;
 
@@ -237,6 +240,17 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// candidates at once, each with its own note, so two candidates being typed into are two pending
   /// edits (see `OcptRoleCandidateField`). Rides the same debounce timer as [pendingFieldEdits].
   final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
+
+  /// What moved the selection the last time [selectionEpoch] advanced.
+  final OcptResourcesSelectionCause selectionCause;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -454,6 +468,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.pendingSetFieldEdits,
     required this.pendingElementFieldEdits,
     required this.pendingCandidateFieldEdits,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -494,6 +511,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       pendingSetFieldEdits = const {},
       pendingElementFieldEdits = const {},
       pendingCandidateFieldEdits = const {},
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptResourcesSelectionCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -505,6 +525,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       projectPackageNotice = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
+  ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
+  /// project database ([snapshot], [currencyCode], [pageSetup], [mileageRates], [setIdsWithPlan]),
+  /// so no handler can read the data again and forget to tell the views. An explicit [reloadEpoch]
+  /// wins, for an emit that moves it without replacing anything.
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
   /// so it needs no force flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
@@ -548,6 +573,9 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     Map<(String, OcptSetField), String>? pendingSetFieldEdits,
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
     Map<(String, OcptRoleCandidateField), String>? pendingCandidateFieldEdits,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptResourcesSelectionCause? selectionCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -598,6 +626,17 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
     pendingCandidateFieldEdits: pendingCandidateFieldEdits ?? this.pendingCandidateFieldEdits,
+    reloadEpoch:
+        reloadEpoch ??
+        (snapshot != null ||
+                currencyCode != null ||
+                pageSetup != null ||
+                mileageRates != null ||
+                setIdsWithPlan != null
+            ? this.reloadEpoch + 1
+            : this.reloadEpoch),
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    selectionCause: selectionCause ?? this.selectionCause,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -697,5 +736,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingSetFieldEdits,
     pendingElementFieldEdits,
     pendingCandidateFieldEdits,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
   ];
 }
