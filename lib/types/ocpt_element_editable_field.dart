@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the element sheet's typed, free-text fields, whose edits go through the resources bloc's
-/// 2 s autosave debounce (`OcptResourcesState.pendingElementFieldEdits`) rather than being written
-/// immediately — mirroring `OcptPersonField`, `OcptRoleField`, `OcptLocationField` and
+/// One of the element sheet's typed, free-text fields, whose edits go through the elements bloc's
+/// 2 s autosave debounce (`OcptResourcesElementsState.pendingElementFieldEdits`) rather than being
+/// written immediately — mirroring `OcptPersonField`, `OcptRoleField`, `OcptLocationField` and
 /// `OcptSetField`.
 ///
 /// Every case maps onto one `OcptElementsService.updateElement` argument of the same name. The

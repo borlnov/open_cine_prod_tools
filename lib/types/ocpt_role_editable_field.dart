@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the role sheet's typed, free-text fields, whose edits go through the resources bloc's
-/// 2 s autosave debounce (`OcptResourcesState.pendingRoleFieldEdits`) rather than being written
-/// immediately — mirroring `OcptPersonField`'s own split between typed and discrete fields.
+/// One of the role sheet's typed, free-text fields, whose edits go through the roles bloc's
+/// 2 s autosave debounce (`OcptResourcesRolesState.pendingRoleFieldEdits`) rather than being
+/// written immediately — mirroring `OcptPersonField`'s own split between typed and discrete fields.
 ///
 /// Every case maps onto one `OcptRoleIndexService.updateRole` argument of the same name. The
 /// discrete fields of `roles` — `personId` (the cast member) and `kind` — are deliberately absent

@@ -171,8 +171,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// A typed field of the selected target's own sheet still sitting in the field-edit debounce,
   /// keyed by the element's id and which `OcptElementField` it is — `subCategory`, `quantity` or
   /// `notes`, the only three the target inspector ever edits — mirroring
-  /// `OcptResourcesState.pendingElementFieldEdits`. [elementFieldValueOf] is what a field reads
-  /// instead of the element's own stored value while an edit is pending here.
+  /// `OcptResourcesElementsState.pendingElementFieldEdits`. [elementFieldValueOf] is what a field
+  /// reads instead of the element's own stored value while an edit is pending here.
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// A scene's own breakdown notes still sitting in the field-edit debounce, keyed by the scene's

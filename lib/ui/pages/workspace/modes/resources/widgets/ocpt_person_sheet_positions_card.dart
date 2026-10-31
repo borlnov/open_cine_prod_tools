@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_crew_position_picker_dialog
 
 /// How long a position row waits after the last keystroke in its label field before dispatching
 /// the update — this card's own local debounce, distinct from
-/// `OcptResourcesState.pendingFieldEdits` (which only covers a person's own columns, not this
+/// `OcptResourcesPeopleState.pendingFieldEdits` (which only covers a person's own columns, not this
 /// sub-list).
 const Duration _localFieldDebounce = Duration(milliseconds: 500);
 

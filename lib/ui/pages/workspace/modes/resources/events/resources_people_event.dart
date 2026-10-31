@@ -39,8 +39,8 @@ class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesPeopleEvent
 /// sheet on every keystroke.
 ///
 /// The typed value becomes visible immediately as a pending edit in
-/// `OcptResourcesState.pendingFieldEdits`, and (re)starts the field-edit autosave debounce that
-/// eventually writes it, unless something flushes it sooner (selecting another person or tab,
+/// `OcptResourcesPeopleState.pendingFieldEdits`, and (re)starts the field-edit autosave debounce
+/// that eventually writes it, unless something flushes it sooner (selecting another person or tab,
 /// leaving the workspace, or the mode itself leaving the widget tree).
 class OcptResourcesPersonFieldChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose field was edited.

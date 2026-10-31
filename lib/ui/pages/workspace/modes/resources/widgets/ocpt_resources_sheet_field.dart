@@ -19,8 +19,8 @@ const int _multilineMinLines = 3;
 /// ever blocks a write, since a sheet autosaves as it is typed.
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in
-/// `OcptResourcesState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own stored
-/// value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The
+/// `OcptResourcesPeopleState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own
+/// stored value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The
 /// internal controller is only ever reset to it when [ownerId] changes (the sheet now shows a
 /// different record) or when [value] genuinely differs from what the controller already holds (an
 /// edit landed, or a reload changed the underlying data): a rebuild for an unrelated reason

@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// One of the location sheet's typed, free-text fields, whose edits go through the resources bloc's
-/// 2 s autosave debounce (`OcptResourcesState.pendingLocationFieldEdits`) rather than being written
-/// immediately — mirroring `OcptPersonField` and `OcptRoleField`.
+/// One of the location sheet's typed, free-text fields, whose edits go through the locations bloc's
+/// 2 s autosave debounce (`OcptResourcesLocationsState.pendingLocationFieldEdits`) rather than
+/// being written immediately — mirroring `OcptPersonField` and `OcptRoleField`.
 ///
 /// Every case maps onto one `OcptLocationsService.updateLocation` argument of the same name. The
 /// discrete fields of `locations` are deliberately absent: the colour swatch, the permit status,

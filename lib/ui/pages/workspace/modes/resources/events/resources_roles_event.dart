@@ -34,8 +34,8 @@ class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesRolesEvent {
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`: the
 /// typed value becomes visible immediately as a pending edit in
-/// `OcptResourcesState.pendingRoleFieldEdits`, and (re)starts the debounce that eventually writes
-/// it.
+/// `OcptResourcesRolesState.pendingRoleFieldEdits`, and (re)starts the debounce that eventually
+/// writes it.
 class OcptResourcesRoleFieldChangedEvent extends OcptResourcesRolesEvent {
   /// The id of the role whose field was edited.
   final String roleId;
@@ -237,8 +237,8 @@ class OcptResourcesRoleCandidateAuditionDateChangedEvent extends OcptResourcesRo
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesRoleFieldChangedEvent`: the typed
 /// value becomes visible immediately as a pending edit in
-/// `OcptResourcesState.pendingCandidateFieldEdits`, and (re)starts the debounce that eventually
-/// writes it.
+/// `OcptResourcesRolesState.pendingCandidateFieldEdits`, and (re)starts the debounce that
+/// eventually writes it.
 class OcptResourcesRoleCandidateFieldChangedEvent extends OcptResourcesRolesEvent {
   /// The id of the candidacy whose field was edited.
   final String candidateId;

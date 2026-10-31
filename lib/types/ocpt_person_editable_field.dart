@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /// One of the person sheet's typed, free-text fields, whose edits go through the resources bloc's
-/// 2 s autosave debounce (`OcptResourcesState.pendingFieldEdits`) rather than being written
+/// 2 s autosave debounce (`OcptResourcesPeopleState.pendingFieldEdits`) rather than being written
 /// immediately like a colour swatch or a difficulty dot would be — mirroring
 /// `OcptShotListEditableField`'s own split between typed and discrete fields.
 ///
