@@ -278,3 +278,11 @@ class OcptResourcesRoleCandidateRemovedEvent extends OcptResourcesRolesEvent {
   @override
   List<Object?> get props => [...super.props, candidateId];
 }
+
+/// Fired by the field-edit debounce timer `OcptResourcesRoleFieldChangedEvent` and
+/// `OcptResourcesRoleCandidateFieldChangedEvent` (re)start, once it elapses with no further edit.
+/// Not meant to be dispatched by a widget directly.
+class OcptResourcesRolesFieldEditFlushRequestedEvent extends OcptResourcesRolesEvent {
+  /// Class constructor
+  const OcptResourcesRolesFieldEditFlushRequestedEvent();
+}

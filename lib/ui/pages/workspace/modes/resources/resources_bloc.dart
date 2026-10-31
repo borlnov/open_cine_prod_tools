@@ -185,13 +185,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// `OcptWorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
   ///
   /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
-  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// before it clears `isLoading`, and a mode is never built before that, so [screenplayIdOf]'s
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   ///
   /// Only [_loadSnapshot]'s own scene numbering and a hand-added role's own episode link
-  /// ([_onRoleCreationRequested]) read it: every other read here — the people, the locations, the
-  /// elements — is already the production's, not one screenplay's.
+  /// (`OcptResourcesRolesBloc`, through [screenplayIdOf]) read it: every other read here — the
+  /// people, the locations, the elements — is already the production's, not one screenplay's.
   final String? _selectedEpisodeId;
 
   /// Class constructor
@@ -259,19 +259,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     onAwaited<OcptResourcesRecordDroppedEvent>(_onRecordDropped);
     on<OcptResourcesFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
     on<OcptResourcesRoleSelectedEvent>(_onRoleSelected);
-    on<OcptResourcesRoleCreationRequestedEvent>(_onRoleCreationRequested);
-    on<OcptResourcesRoleFieldChangedEvent>(_onRoleFieldChanged);
-    on<OcptResourcesRoleCastChangedEvent>(_onRoleCastChanged);
-    on<OcptResourcesRoleKindChangedEvent>(_onRoleKindChanged);
-    on<OcptResourcesRoleEpisodesChangedEvent>(_onRoleEpisodesChanged);
-    on<OcptResourcesRoleDeletionRequestedEvent>(_onRoleDeletionRequested);
-    on<OcptResourcesOrphanedRoleKeptEvent>(_onOrphanedRoleKept);
-    on<OcptResourcesRoleMergeRequestedEvent>(_onRoleMergeRequested);
-    on<OcptResourcesRoleCandidateAddedEvent>(_onRoleCandidateAdded);
-    on<OcptResourcesRoleCandidateStatusChangedEvent>(_onRoleCandidateStatusChanged);
-    on<OcptResourcesRoleCandidateAuditionDateChangedEvent>(_onRoleCandidateAuditionDateChanged);
-    on<OcptResourcesRoleCandidateFieldChangedEvent>(_onRoleCandidateFieldChanged);
-    on<OcptResourcesRoleCandidateRemovedEvent>(_onRoleCandidateRemoved);
     on<OcptResourcesPersonSheetOpenRequestedEvent>(_onPersonSheetOpenRequested);
     on<OcptResourcesLocationSelectedEvent>(_onLocationSelected);
     on<OcptResourcesLocationCreationRequestedEvent>(_onLocationCreationRequested);
@@ -340,7 +327,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
-  String _screenplayIdOf(OcptOpenProjectModel project) =>
+  String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
@@ -567,7 +554,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// selected episode's number with `ocptEpisodePrefixNumberOf`, null on a single-episode project.
   Future<OcptResourcesSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
     final database = project.database;
-    final screenplayId = _screenplayIdOf(project);
+    final screenplayId = screenplayIdOf(project);
 
     final people = await _peopleService.loadPeople(database: database);
     final roles = await _roleIndexService.loadRoles(database: database);
@@ -689,21 +676,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Records the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
-  /// visible immediately, and (re)starts the same field-edit debounce
-  /// `_onPersonFieldChanged` does: a person's and a role's pending edits are always flushed
-  /// together, by the very same timer.
-  Future<void> _onRoleFieldChanged(
-    OcptResourcesRoleFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
-      ..[(event.roleId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingRoleFieldEdits: pending));
-
-    _restartFieldEditTimer();
-  }
-
   /// (Re)starts the one field-edit debounce timer every typed field of the mode rides — a person's,
   /// a role's, a location's and a set's alike — so they are always written together, never one
   /// without the other.
@@ -723,17 +695,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// timer is shared by all six maps: cancelling it on the strength of one map having emptied
   /// would strand whatever the other five still hold until the next keystroke.
   void _cancelFieldEditTimerIfIdle({
-    required Map<(String, OcptRoleField), String> pendingRoleEdits,
     required Map<(String, OcptLocationField), String> pendingLocationEdits,
     required Map<(String, OcptSetField), String> pendingSetEdits,
     required Map<(String, OcptElementField), String> pendingElementEdits,
-    required Map<(String, OcptRoleCandidateField), String> pendingCandidateEdits,
   }) {
-    if (pendingRoleEdits.isEmpty &&
-        pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty &&
-        pendingElementEdits.isEmpty &&
-        pendingCandidateEdits.isEmpty) {
+    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
       _fieldEditTimer?.cancel();
       _fieldEditTimer = null;
     }
@@ -775,16 +741,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
-    final pendingCandidateEdits = state.pendingCandidateFieldEdits;
-    if (pendingRoleEdits.isEmpty &&
-        pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty &&
-        pendingElementEdits.isEmpty &&
-        pendingCandidateEdits.isEmpty) {
+    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
       return;
     }
 
@@ -792,38 +752,29 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     if (project == null) {
       emitter(
         state.copyWith(
-          pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
           pendingElementFieldEdits: const {},
-          pendingCandidateFieldEdits: const {},
         ),
       );
       return;
     }
 
     try {
-      await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
       await _writeAllPendingLocationFields(
         database: project.database,
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
       await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
-      await _writeAllPendingCandidateFields(
-        database: project.database,
-        pending: pendingCandidateEdits,
-      );
       await runSerially(() async {
         final snapshot = await _loadSnapshot(project);
         emitter(
           state.copyWith(
             snapshot: snapshot,
-            pendingRoleFieldEdits: const {},
             pendingLocationFieldEdits: const {},
             pendingSetFieldEdits: const {},
             pendingElementFieldEdits: const {},
-            pendingCandidateFieldEdits: const {},
           ),
         );
       });
@@ -845,11 +796,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
           hasWriteError: true,
           lostEditsEpoch: state.lostEditsEpoch + 1,
           reloadEpoch: state.reloadEpoch + 1,
-          pendingRoleFieldEdits: const {},
           pendingLocationFieldEdits: const {},
           pendingSetFieldEdits: const {},
           pendingElementFieldEdits: const {},
-          pendingCandidateFieldEdits: const {},
         ),
       );
     }
@@ -874,16 +823,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _fieldEditTimer?.cancel();
     _fieldEditTimer = null;
 
-    final pendingRoleEdits = state.pendingRoleFieldEdits;
     final pendingLocationEdits = state.pendingLocationFieldEdits;
     final pendingSetEdits = state.pendingSetFieldEdits;
     final pendingElementEdits = state.pendingElementFieldEdits;
-    final pendingCandidateEdits = state.pendingCandidateFieldEdits;
-    if (pendingRoleEdits.isEmpty &&
-        pendingLocationEdits.isEmpty &&
-        pendingSetEdits.isEmpty &&
-        pendingElementEdits.isEmpty &&
-        pendingCandidateEdits.isEmpty) {
+    if (pendingLocationEdits.isEmpty && pendingSetEdits.isEmpty && pendingElementEdits.isEmpty) {
       return;
     }
 
@@ -893,17 +836,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
 
     try {
-      await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
       await _writeAllPendingLocationFields(
         database: project.database,
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
       await _writeAllPendingElementFields(database: project.database, pending: pendingElementEdits);
-      await _writeAllPendingCandidateFields(
-        database: project.database,
-        pending: pendingCandidateEdits,
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
@@ -911,86 +849,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         null,
         stackTrace,
       );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeRoleField].
-  Future<void> _writeAllPendingRoleFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptRoleField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (roleId, field) = entry.key;
-      await _writeRoleField(
-        database: database,
-        roleId: roleId,
-        field: field,
-        rawValue: entry.value,
-      );
-    }
-  }
-
-  /// Writes a single role field edit through `OcptRoleIndexService.updateRole`, translating
-  /// [field] into the matching named argument (see `OcptRoleField`'s own doc comment for the
-  /// mapping).
-  ///
-  /// Writes [rawValue] as-is even for an `isFromScreenplay` role's [OcptRoleField.name]: the
-  /// widgets are what withhold that field from being typed into in the first place, since
-  /// `OcptRoleIndexService.reconcile` would overwrite it right back on the next save.
-  Future<void> _writeRoleField({
-    required OcptProjectDatabase database,
-    required String roleId,
-    required OcptRoleField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptRoleField.name:
-        await _roleIndexService.updateRole(
-          database: database,
-          roleId: roleId,
-          name: Value(rawValue),
-        );
-      case OcptRoleField.castingNotes:
-        await _roleIndexService.updateRole(
-          database: database,
-          roleId: roleId,
-          castingNotes: Value(rawValue),
-        );
-    }
-  }
-
-  /// Writes every entry of [pending] through [_writeCandidateField].
-  Future<void> _writeAllPendingCandidateFields({
-    required OcptProjectDatabase database,
-    required Map<(String, OcptRoleCandidateField), String> pending,
-  }) async {
-    for (final entry in pending.entries) {
-      final (candidateId, field) = entry.key;
-      await _writeCandidateField(
-        database: database,
-        candidateId: candidateId,
-        field: field,
-        rawValue: entry.value,
-      );
-    }
-  }
-
-  /// Writes a single candidacy field edit through `OcptRoleCandidatesService.updateCandidate`,
-  /// translating [field] into the matching named argument (see `OcptRoleCandidateField`'s own doc
-  /// comment for the mapping — [OcptRoleCandidateField.notes] is its only entry).
-  Future<void> _writeCandidateField({
-    required OcptProjectDatabase database,
-    required String candidateId,
-    required OcptRoleCandidateField field,
-    required String rawValue,
-  }) async {
-    switch (field) {
-      case OcptRoleCandidateField.notes:
-        await _roleCandidatesService.updateCandidate(
-          database: database,
-          candidateId: candidateId,
-          notes: Value(rawValue),
-        );
     }
   }
 
@@ -1271,282 +1129,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Adds a hand-added role of `event.kind` at the end of the cast, reloads the catalogue and
-  /// selects the new role so it can be named straight away.
-  Future<void> _onRoleCreationRequested(
-    OcptResourcesRoleCreationRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushAllPendingWrites(emitter);
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      final roleId = await _roleIndexService.addRole(
-        database: project.database,
-        screenplayId: _screenplayIdOf(project),
-        name: "",
-        kind: event.kind,
-      );
-      if (roleId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
-      }
-
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          selectedRoleId: roleId,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptResourcesSelectionCause.created,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to create a role in project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// Casts `event.personId` to role `event.roleId` (or uncasts it, when null), written
-  /// immediately.
-  Future<void> _onRoleCastChanged(
-    OcptResourcesRoleCastChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "cast a person to role ${event.roleId}",
-    action: (project) => _roleIndexService.updateRole(
-      database: project.database,
-      roleId: event.roleId,
-      personId: Value(event.personId),
-    ),
-  );
-
-  /// Sets role `event.roleId`'s kind, written immediately.
-  Future<void> _onRoleKindChanged(
-    OcptResourcesRoleKindChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the kind of role ${event.roleId}",
-    action: (project) => _roleIndexService.updateRole(
-      database: project.database,
-      roleId: event.roleId,
-      kind: Value(event.kind),
-    ),
-  );
-
-  /// Sets role `event.roleId`'s episodes to `event.episodeIds`, written immediately — the sheet's
-  /// own gesture write, `OcptRoleIndexService.setRoleEpisodes` (gating this to a hand-added role is
-  /// the sheet's job, not this handler's, exactly as `_onRoleFieldChanged` leaves a
-  /// `isFromScreenplay` role's name to `OcptRoleIndexService.reconcile` to overwrite back).
-  Future<void> _onRoleEpisodesChanged(
-    OcptResourcesRoleEpisodesChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the episodes of role ${event.roleId}",
-    action: (project) => _roleIndexService.setRoleEpisodes(
-      database: project.database,
-      roleId: event.roleId,
-      screenplayIds: event.episodeIds,
-    ),
-  );
-
-  /// Deletes role `event.roleId`, clearing the selection when it was the selected role, and
-  /// dropping any pending field edit that still targeted it.
-  Future<void> _onRoleDeletionRequested(
-    OcptResourcesRoleDeletionRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final pendingWithoutRole = Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
-      ..removeWhere((key, _) => key.$1 == event.roleId);
-    _cancelFieldEditTimerIfIdle(
-      pendingRoleEdits: pendingWithoutRole,
-      pendingLocationEdits: state.pendingLocationFieldEdits,
-      pendingSetEdits: state.pendingSetFieldEdits,
-      pendingElementEdits: state.pendingElementFieldEdits,
-      pendingCandidateEdits: state.pendingCandidateFieldEdits,
-    );
-
-    final wasSelected = state.selectedRoleId == event.roleId;
-
-    try {
-      await _roleIndexService.deleteRole(database: project.database, roleId: event.roleId);
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(
-          snapshot: snapshot,
-          pendingRoleFieldEdits: pendingWithoutRole,
-          forceSelectedRoleIdValue: wasSelected,
-          selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-          selectionCause: wasSelected ? OcptResourcesSelectionCause.dropped : null,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete role ${event.roleId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
-  /// The removed-role banner's "keep it" action for role `event.roleId`, written immediately.
-  Future<void> _onOrphanedRoleKept(
-    OcptResourcesOrphanedRoleKeptEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "keep orphaned role ${event.roleId} as silent",
-    action: (project) => _roleIndexService.keepOrphanedRoleAsSilent(
-      database: project.database,
-      roleId: event.roleId,
-    ),
-  );
-
-  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
-  /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
-  /// `OcptConfirmDialog` has already confirmed it.
-  Future<void> _onRoleMergeRequested(
-    OcptResourcesRoleMergeRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "merge role ${event.sourceRoleId} into ${event.targetRoleId}",
-    action: (project) => _roleIndexService.mergeRole(
-      database: project.database,
-      sourceRoleId: event.sourceRoleId,
-      targetRoleId: event.targetRoleId,
-    ),
-  );
-
-  /// Records that person `event.personId` is a candidate for role `event.roleId`, written
-  /// immediately — the candidates card's own person picker.
-  Future<void> _onRoleCandidateAdded(
-    OcptResourcesRoleCandidateAddedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "add a candidate to role ${event.roleId}",
-    action: (project) async {
-      await _roleCandidatesService.addCandidate(
-        database: project.database,
-        roleId: event.roleId,
-        personId: event.personId,
-      );
-    },
-  );
-
-  /// Sets candidacy `event.candidateId`'s status to `event.status`, written immediately.
-  ///
-  /// **The single event behind every status gesture the candidates card offers**, `Retain` and
-  /// `Drop` included: retaining is `setStatus(retained)`, dropping is `setStatus(seen)`. The rule
-  /// keeping `roles.personId` in step with the retained candidacy lives in
-  /// `OcptRoleCandidatesService.setStatus` alone — a second event here could only ever disagree
-  /// with it.
-  Future<void> _onRoleCandidateStatusChanged(
-    OcptResourcesRoleCandidateStatusChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the status of candidacy ${event.candidateId}",
-    action: (project) => _roleCandidatesService.setStatus(
-      database: project.database,
-      candidateId: event.candidateId,
-      status: event.status,
-    ),
-  );
-
-  /// Sets candidacy `event.candidateId`'s audition date to `event.auditionedOn`, written
-  /// immediately: picking a date is a single discrete action, not typing.
-  Future<void> _onRoleCandidateAuditionDateChanged(
-    OcptResourcesRoleCandidateAuditionDateChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) => _writeCatalogueChange(
-    emitter: emitter,
-    logContext: "change the audition date of candidacy ${event.candidateId}",
-    action: (project) => _roleCandidatesService.updateCandidate(
-      database: project.database,
-      candidateId: event.candidateId,
-      auditionedOn: Value(event.auditionedOn),
-    ),
-  );
-
-  /// Records the raw text just typed into `event.field` of candidacy `event.candidateId` as a
-  /// pending edit, visible immediately, and (re)starts the same field-edit debounce
-  /// `_onRoleFieldChanged` does.
-  Future<void> _onRoleCandidateFieldChanged(
-    OcptResourcesRoleCandidateFieldChangedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final pending = Map<(String, OcptRoleCandidateField), String>.of(
-      state.pendingCandidateFieldEdits,
-    )..[(event.candidateId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingCandidateFieldEdits: pending));
-
-    _restartFieldEditTimer();
-  }
-
-  /// Removes candidacy `event.candidateId`, dropping any pending field edit that still targeted
-  /// it. The confirmation dialog is the mode's, this only runs once it has already confirmed.
-  Future<void> _onRoleCandidateRemoved(
-    OcptResourcesRoleCandidateRemovedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final pendingWithoutCandidate = Map<(String, OcptRoleCandidateField), String>.of(
-      state.pendingCandidateFieldEdits,
-    )..removeWhere((key, _) => key.$1 == event.candidateId);
-    _cancelFieldEditTimerIfIdle(
-      pendingRoleEdits: state.pendingRoleFieldEdits,
-      pendingLocationEdits: state.pendingLocationFieldEdits,
-      pendingSetEdits: state.pendingSetFieldEdits,
-      pendingElementEdits: state.pendingElementFieldEdits,
-      pendingCandidateEdits: pendingWithoutCandidate,
-    );
-
-    try {
-      await _roleCandidatesService.removeCandidate(
-        database: project.database,
-        candidateId: event.candidateId,
-      );
-      final snapshot = await _loadSnapshot(project);
-      emitter(
-        state.copyWith(snapshot: snapshot, pendingCandidateFieldEdits: pendingWithoutCandidate),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to remove candidacy ${event.candidateId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(state.copyWith(hasWriteError: true));
-    }
-  }
-
   /// Opens person `event.personId`'s sheet from the role sheet's `↗` affordance: flushes any
   /// pending field edit, then switches the left dock to [OcptResourcesTab.people] and selects
   /// `event.personId`, in one state.
@@ -1677,11 +1259,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutSets = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
       ..removeWhere((key, _) => setIds.contains(key.$1));
     _cancelFieldEditTimerIfIdle(
-      pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: pendingWithoutLocation,
       pendingSetEdits: pendingWithoutSets,
       pendingElementEdits: state.pendingElementFieldEdits,
-      pendingCandidateEdits: state.pendingCandidateFieldEdits,
     );
 
     final wasSelected = state.selectedLocationId == event.locationId;
@@ -1819,11 +1399,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final pendingWithoutSet = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
       ..removeWhere((key, _) => key.$1 == event.setId);
     _cancelFieldEditTimerIfIdle(
-      pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: pendingWithoutSet,
       pendingElementEdits: state.pendingElementFieldEdits,
-      pendingCandidateEdits: state.pendingCandidateFieldEdits,
     );
 
     emitter(state.copyWith(pendingSetFieldEdits: pendingWithoutSet));
@@ -2280,11 +1858,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       state.pendingElementFieldEdits,
     )..removeWhere((key, _) => key.$1 == event.elementId);
     _cancelFieldEditTimerIfIdle(
-      pendingRoleEdits: state.pendingRoleFieldEdits,
       pendingLocationEdits: state.pendingLocationFieldEdits,
       pendingSetEdits: state.pendingSetFieldEdits,
       pendingElementEdits: pendingWithoutElement,
-      pendingCandidateEdits: state.pendingCandidateFieldEdits,
     );
 
     final wasSelected = state.selectedElementId == event.elementId;

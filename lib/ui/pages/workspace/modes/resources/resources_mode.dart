@@ -42,6 +42,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_people_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_roles_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_roles_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
@@ -114,6 +116,10 @@ class OcptResourcesMode extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptResourcesPeopleBloc(modeBloc: context.read<OcptResourcesBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptResourcesRolesBloc(modeBloc: context.read<OcptResourcesBloc>()),
       ),
     ],
     child: OcptResourcesViewEffects(child: _ResourcesView(hasRevealRequest: revealRequest != null)),
@@ -440,7 +446,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
             ),
       onAddRoleRequested: state.isPreviewingVersion
           ? null
-          : (kind) => context.read<OcptResourcesBloc>().add(
+          : (kind) => context.read<OcptResourcesRolesBloc>().add(
               OcptResourcesRoleCreationRequestedEvent(kind: kind),
             ),
       onAddLocationRequested: state.isPreviewingVersion
@@ -748,10 +754,10 @@ class _ResourcesViewState extends State<_ResourcesView> {
   Future<void> _handleRoleMergeRequested(
     BuildContext context,
     OcptResourcesState state,
+    OcptResourcesRolesBloc rolesBloc,
     String sourceRoleId,
     String targetRoleId,
   ) async {
-    final bloc = context.read<OcptResourcesBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -770,7 +776,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
       return;
     }
 
-    bloc.add(
+    rolesBloc.add(
       OcptResourcesRoleMergeRequestedEvent(sourceRoleId: sourceRoleId, targetRoleId: targetRoleId),
     );
   }
@@ -794,91 +800,95 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
 
     final bloc = context.read<OcptResourcesBloc>();
+    final rolesBloc = context.read<OcptResourcesRolesBloc>();
     final castMember = _personOf(state, selectedRole.personId);
 
-    return OcptRoleSheet(
-      key: ValueKey(selectedRole.id),
-      role: selectedRole,
-      castMember: castMember,
-      otherRoles: _otherRolesOf(state, selectedRole, castMember),
-      people: state.people,
-      candidates: state.candidatesOfRole(selectedRole.id),
-      candidateNotesValueOf: (candidateId) =>
-          _candidateNotesValueOf(state, selectedRole, candidateId),
-      elements: state.elements,
-      episodes: episodes,
-      removedRoleAlert: state.selectedRoleAlert,
-      mergeTargets: state.selectedRoleAlert == null
-          ? const []
-          : state.mergeTargetsOf(state.selectedRoleAlert!),
-      collisionAlert: state.selectedRoleCollisionAlert,
-      onMergeRequested: (sourceRoleId, targetRoleId) =>
-          _handleRoleMergeRequested(context, state, sourceRoleId, targetRoleId),
-      isReadOnly: state.isPreviewingVersion,
-      fieldValueOf: (field) => _roleFieldValueOf(state, selectedRole, field),
-      onFieldChanged: (field, rawValue) => bloc.add(
-        OcptResourcesRoleFieldChangedEvent(
-          roleId: selectedRole.id,
-          field: field,
-          rawValue: rawValue,
+    return BlocBuilder<OcptResourcesRolesBloc, OcptResourcesRolesState>(
+      builder: (context, rolesState) => OcptRoleSheet(
+        key: ValueKey(selectedRole.id),
+        role: selectedRole,
+        castMember: castMember,
+        otherRoles: _otherRolesOf(state, selectedRole, castMember),
+        people: state.people,
+        candidates: state.candidatesOfRole(selectedRole.id),
+        candidateNotesValueOf: (candidateId) =>
+            _candidateNotesValueOf(state, rolesState, selectedRole, candidateId),
+        elements: state.elements,
+        episodes: episodes,
+        removedRoleAlert: state.selectedRoleAlert,
+        mergeTargets: state.selectedRoleAlert == null
+            ? const []
+            : state.mergeTargetsOf(state.selectedRoleAlert!),
+        collisionAlert: state.selectedRoleCollisionAlert,
+        onMergeRequested: (sourceRoleId, targetRoleId) =>
+            _handleRoleMergeRequested(context, state, rolesBloc, sourceRoleId, targetRoleId),
+        isReadOnly: state.isPreviewingVersion,
+        fieldValueOf: (field) => _roleFieldValueOf(rolesState, selectedRole, field),
+        onFieldChanged: (field, rawValue) => rolesBloc.add(
+          OcptResourcesRoleFieldChangedEvent(
+            roleId: selectedRole.id,
+            field: field,
+            rawValue: rawValue,
+          ),
         ),
-      ),
-      onCastChanged: (personId) =>
-          bloc.add(OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId)),
-      onKindChanged: (kind) =>
-          bloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
-      onEpisodesChanged: (episodeIds) => bloc.add(
-        OcptResourcesRoleEpisodesChangedEvent(roleId: selectedRole.id, episodeIds: episodeIds),
-      ),
-      onDeleteRequested: () => _handleDeleteRequested(
-        context,
-        bloc: bloc,
-        title: tr.resourcesRoleDeleteConfirmTitle,
-        message:
-            ocptRoleIsActionDetected(
-              isFromScreenplay: selectedRole.isFromScreenplay,
-              kind: selectedRole.kind,
-            )
-            ? tr.resourcesRoleActionDetectedDeleteConfirmMessage
-            : tr.resourcesRoleDeleteConfirmMessage,
-        event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
-      ),
-      onOrphanedRoleKept: () =>
-          bloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
-      onPersonSheetOpenRequested: (personId) =>
-          bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
-      onCandidateAdded: (personId) => bloc.add(
-        OcptResourcesRoleCandidateAddedEvent(roleId: selectedRole.id, personId: personId),
-      ),
-      onCandidateStatusChanged: (candidateId, status) => bloc.add(
-        OcptResourcesRoleCandidateStatusChangedEvent(candidateId: candidateId, status: status),
-      ),
-      onCandidateAuditionDateChanged: (candidateId, auditionedOn) => bloc.add(
-        OcptResourcesRoleCandidateAuditionDateChangedEvent(
-          candidateId: candidateId,
-          auditionedOn: auditionedOn,
+        onCastChanged: (personId) => rolesBloc.add(
+          OcptResourcesRoleCastChangedEvent(roleId: selectedRole.id, personId: personId),
         ),
-      ),
-      onCandidateNotesChanged: (candidateId, rawValue) => bloc.add(
-        OcptResourcesRoleCandidateFieldChangedEvent(
-          candidateId: candidateId,
-          field: OcptRoleCandidateField.notes,
-          rawValue: rawValue,
+        onKindChanged: (kind) =>
+            rolesBloc.add(OcptResourcesRoleKindChangedEvent(roleId: selectedRole.id, kind: kind)),
+        onEpisodesChanged: (episodeIds) => rolesBloc.add(
+          OcptResourcesRoleEpisodesChangedEvent(roleId: selectedRole.id, episodeIds: episodeIds),
         ),
+        onDeleteRequested: () => _handleDeleteRequested(
+          context,
+          bloc: rolesBloc,
+          title: tr.resourcesRoleDeleteConfirmTitle,
+          message:
+              ocptRoleIsActionDetected(
+                isFromScreenplay: selectedRole.isFromScreenplay,
+                kind: selectedRole.kind,
+              )
+              ? tr.resourcesRoleActionDetectedDeleteConfirmMessage
+              : tr.resourcesRoleDeleteConfirmMessage,
+          event: OcptResourcesRoleDeletionRequestedEvent(roleId: selectedRole.id),
+        ),
+        onOrphanedRoleKept: () =>
+            rolesBloc.add(OcptResourcesOrphanedRoleKeptEvent(roleId: selectedRole.id)),
+        onPersonSheetOpenRequested: (personId) =>
+            bloc.add(OcptResourcesPersonSheetOpenRequestedEvent(personId: personId)),
+        onCandidateAdded: (personId) => rolesBloc.add(
+          OcptResourcesRoleCandidateAddedEvent(roleId: selectedRole.id, personId: personId),
+        ),
+        onCandidateStatusChanged: (candidateId, status) => rolesBloc.add(
+          OcptResourcesRoleCandidateStatusChangedEvent(candidateId: candidateId, status: status),
+        ),
+        onCandidateAuditionDateChanged: (candidateId, auditionedOn) => rolesBloc.add(
+          OcptResourcesRoleCandidateAuditionDateChangedEvent(
+            candidateId: candidateId,
+            auditionedOn: auditionedOn,
+          ),
+        ),
+        onCandidateNotesChanged: (candidateId, rawValue) => rolesBloc.add(
+          OcptResourcesRoleCandidateFieldChangedEvent(
+            candidateId: candidateId,
+            field: OcptRoleCandidateField.notes,
+            rawValue: rawValue,
+          ),
+        ),
+        onCandidateRemoveRequested: (candidateId) => _handleDeleteRequested(
+          context,
+          bloc: rolesBloc,
+          title: tr.resourcesRemoveCandidateConfirmTitle,
+          message: tr.resourcesRemoveCandidateConfirmMessage,
+          event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
+        ),
+        onElementLinked: (elementId) => bloc.add(
+          OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
+        ),
+        onRoleElementUpdated: (id, notes) =>
+            bloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
+        onRoleElementRemoved: (id) => bloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
       ),
-      onCandidateRemoveRequested: (candidateId) => _handleDeleteRequested(
-        context,
-        bloc: bloc,
-        title: tr.resourcesRemoveCandidateConfirmTitle,
-        message: tr.resourcesRemoveCandidateConfirmMessage,
-        event: OcptResourcesRoleCandidateRemovedEvent(candidateId: candidateId),
-      ),
-      onElementLinked: (elementId) => bloc.add(
-        OcptResourcesElementLinkedToRoleEvent(roleId: selectedRole.id, elementId: elementId),
-      ),
-      onRoleElementUpdated: (id, notes) =>
-          bloc.add(OcptResourcesRoleElementUpdatedEvent(id: id, notes: notes)),
-      onRoleElementRemoved: (id) => bloc.add(OcptResourcesRoleElementRemovedEvent(id: id)),
     );
   }
 
@@ -1285,7 +1295,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// [role]'s current value for [field]: a pending edit still sitting in the bloc's debounce takes
   /// priority over the role's own stored value, so typing is never overwritten by an unrelated
   /// reload. Mirrors [_fieldValueOf].
-  String _roleFieldValueOf(OcptResourcesState state, OcptRole role, OcptRoleField field) {
+  String _roleFieldValueOf(OcptResourcesRolesState state, OcptRole role, OcptRoleField field) {
     final pending = state.pendingRoleFieldEdits[(role.id, field)];
     if (pending != null) {
       return pending;
@@ -1301,8 +1311,14 @@ class _ResourcesViewState extends State<_ResourcesView> {
   /// takes priority over the candidacy's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors [_roleFieldValueOf], one level down — a candidacy rather than a
   /// role.
-  String _candidateNotesValueOf(OcptResourcesState state, OcptRole role, String candidateId) {
-    final pending = state.pendingCandidateFieldEdits[(candidateId, OcptRoleCandidateField.notes)];
+  String _candidateNotesValueOf(
+    OcptResourcesState state,
+    OcptResourcesRolesState rolesState,
+    OcptRole role,
+    String candidateId,
+  ) {
+    final pending =
+        rolesState.pendingCandidateFieldEdits[(candidateId, OcptRoleCandidateField.notes)];
     if (pending != null) {
       return pending;
     }
