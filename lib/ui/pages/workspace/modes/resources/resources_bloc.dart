@@ -366,8 +366,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// swap the database can't send it into the previewed version instead.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptResourcesState> emitter) =>
-      _flushPendingFieldEdits(emitter);
+  Future<bool> flushPendingProjectWrites(Emitter<OcptResourcesState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    return true;
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected

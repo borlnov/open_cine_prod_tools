@@ -144,7 +144,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// pending autosave a mode would otherwise still be holding outside the database.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async {}
+  Future<bool> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async => true;
 
   /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

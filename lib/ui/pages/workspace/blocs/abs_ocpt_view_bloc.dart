@@ -38,6 +38,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 /// [flushPendingWrites] and [flushPendingWritesWithoutState]. The base registers it with the mode
 /// when built, unregisters it first thing when it closes, and flushes without state while closing,
 /// so a pending edit reaches the database whichever of the view and the mode closes first.
+/// A flush whose write fails throws, keeps the edit pending, and makes the mode's
+/// [OcptPendingWritesRun] say so: whether the action behind the flush then stops is the mode's call.
 ///
 /// **Rules for whoever writes the next view bloc.**
 ///
@@ -257,7 +259,8 @@ abstract class AbsOcptViewBloc<
   Future<bool> onFlushRequested(Emitter<S> emitter) async => false;
 
   /// Asks the view's own bloc to write what it holds, and answers whether it had anything. Answers
-  /// false at once on a view that is closing.
+  /// false at once on a view that is closing, and throws what the write threw: see
+  /// [OcptPendingWritesFlusher.flushPendingWrites].
   @override
   Future<bool> flushPendingWrites() async {
     if (_isClosing) {
@@ -271,10 +274,15 @@ abstract class AbsOcptViewBloc<
   @override
   Future<void> flushPendingWritesWithoutState() async {}
 
-  /// Writes what the view holds, then tells the dispatcher what it found.
+  /// Writes what the view holds, then tells the dispatcher what it found, or that it failed: the
+  /// error goes to the dispatcher, which must not take a failed write for an empty one, and to
+  /// this bloc's own error report.
   Future<void> _onFlushRequested(OcptViewFlushRequestedEvent event, Emitter<S> emitter) async {
     try {
       event.complete(await onFlushRequested(emitter));
+    } catch (error, stackTrace) {
+      event.completeError(error, stackTrace);
+      addError(error, stackTrace);
     } finally {
       event.complete(false);
     }

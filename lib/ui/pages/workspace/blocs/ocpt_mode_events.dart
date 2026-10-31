@@ -15,8 +15,9 @@ sealed class OcptModeEvent extends BlocEventForMixin {
 }
 
 /// Requests writing every pending edit of the mode and of all its view blocs, and reading the
-/// shared data again if any of it was written.
-class OcptModeFlushRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEvent<void> {
+/// shared data again if any of it was written. Answers whether the action it was asked for may go
+/// on.
+class OcptModeFlushRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEvent<bool> {
   /// Class constructor
   OcptModeFlushRequestedEvent();
 }

@@ -256,14 +256,24 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// about to swap the database can't send it into the previewed version instead.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptShotListState> emitter) =>
-      _flushAllPendingWrites(emitter);
+  ///
+  /// Always answers true: every view of this mode shows a failed write itself (its own
+  /// `hasWriteError`) and carries on, so a preview, a restore or an export goes ahead and finds the
+  /// value the database still holds.
+  Future<bool> flushPendingProjectWrites(Emitter<OcptShotListState> emitter) async {
+    await _flushAllPendingWrites(emitter);
+    return true;
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// Always true, for the reason [flushPendingProjectWrites] gives.
   @protected
   @override
-  Future<void> flushAllPendingWritesIn(Emitter<OcptShotListState> emitter) =>
-      _flushAllPendingWrites(emitter);
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptShotListState> emitter) async {
+    await _flushAllPendingWrites(emitter);
+    return true;
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
   ///
@@ -817,7 +827,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// never silently dropped by one of them. A view that wrote something leaves the working copy
   /// changed, so the `Versions` tab's working-copy card is refreshed if it is the one showing.
   Future<void> _flushAllPendingWrites(Emitter<OcptShotListState> emitter) async {
-    final haveViewsWritten = await runPendingWritesFlushers();
+    final haveViewsWritten = (await runPendingWritesFlushers()).hasWritten;
 
     if (haveViewsWritten && state.rightDockTab == OcptShotListRightDockTab.versions) {
       addUnlessClosing(const OcptProjectWorkingCopyRefreshRequestedEvent());

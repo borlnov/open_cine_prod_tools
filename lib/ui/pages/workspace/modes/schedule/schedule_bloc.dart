@@ -218,10 +218,17 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// about to swap the database can't send it into the previewed version instead, then clears the
   /// selected shot: a shot selected out of the working copy's own shot list means nothing once a
   /// preview swaps that data out.
+  ///
+  /// Answers false when a typed edit could not be written: the preview, the restore, the saved
+  /// version or the package then does not happen, and the edit stays pending, rather than being
+  /// swept away by the data the action replaces.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
-    await _flushAllPendingWrites(emitter);
+  Future<bool> flushPendingProjectWrites(Emitter<OcptScheduleState> emitter) async {
+    if (!await _flushAllPendingWrites(emitter)) {
+      return false;
+    }
+
     emitter(
       state.copyWith(
         forceSelectedShotIdValue: true,
@@ -229,12 +236,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
         selectionCause: OcptScheduleSelectionCause.shotCleared,
       ),
     );
+    return true;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// False when a typed edit could not be written, for the reason [flushPendingProjectWrites]
+  /// gives: an export would print the value the database still holds and report success.
   @protected
   @override
-  Future<void> flushAllPendingWritesIn(Emitter<OcptScheduleState> emitter) =>
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptScheduleState> emitter) =>
       _flushAllPendingWrites(emitter);
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
@@ -528,7 +539,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleRightDockTabSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    await _flushAllPendingWrites(emitter);
+    if (!await _flushAllPendingWrites(emitter)) {
+      return;
+    }
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
@@ -835,11 +848,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// `Versions` tab's working-copy card if it is the one showing.
   ///
   /// Up front of every handler that is about to read the database (an export, a preview) or that
-  /// changes the right dock's tab: a pending edit is never silently dropped by one of them. Moving
+  /// changes the right dock's tab: a pending edit is never silently dropped by one of them. Answers
+  /// whether every view wrote what it held, and a handler that gets false stops: the edit is still
+  /// pending, and going on would show, print or replace the data without it. Moving
   /// the selected day, block or shot, switching the centre view and going back do **not** flush: an
   /// edit typed before them is written by its own debounce, whichever day is showing by then.
-  Future<void> _flushAllPendingWrites(Emitter<OcptScheduleState> emitter) async {
-    await runPendingWritesFlushers();
+  Future<bool> _flushAllPendingWrites(Emitter<OcptScheduleState> emitter) async {
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
   }
 
   /// Writes every pending edit of the views directly to the database, without touching [state].

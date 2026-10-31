@@ -261,8 +261,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// instead.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptBreakdownState> emitter) =>
-      _flushPendingFieldEdits(emitter);
+  Future<bool> flushPendingProjectWrites(Emitter<OcptBreakdownState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    return true;
+  }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected

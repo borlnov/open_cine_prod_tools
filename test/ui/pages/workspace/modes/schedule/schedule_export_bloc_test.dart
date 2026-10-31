@@ -7,6 +7,8 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_test_utility/act_test_utility.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -14,6 +16,8 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_export_result.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
@@ -60,6 +64,25 @@ class _RecordingRouterManager extends OcptRouterManager {
     }
   }
 }
+
+/// A schedule service whose slot writes always fail, as a full disk would.
+class _FailingScheduleService extends OcptScheduleService {
+  /// Class constructor
+  _FailingScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
+
+  @override
+  Future<void> updateSlot({
+    required OcptProjectDatabase database,
+    required String slotId,
+    Value<String> label = const Value.absent(),
+    Value<String?> locationId = const Value.absent(),
+    Value<String?> setId = const Value.absent(),
+    Value<String> notes = const Value.absent(),
+  }) async => throw StateError("slot write intentionally failed for the test");
+}
+
+/// The fixed device id [_FailingScheduleService] stamps its writes with.
+Future<String> _testDeviceId() async => "test-device";
 
 /// A minimal, arbitrary set of localized strings for the call sheets export — what is held is never
 /// read by [_FakeScheduleExportManager], only that it reaches it unchanged.
@@ -1309,6 +1332,83 @@ void main() {
     });
   });
 
+  /// One request per export the bloc offers, each over [dayId], in the order of the sealed hierarchy.
+  List<OcptScheduleExportEvent> everyExportRequest(String dayId) {
+    final pageSetup = (format: OcptPageFormat.a4, margins: const FountainPageMargins.standard());
+    return <OcptScheduleExportEvent>[
+      OcptScheduleCallSheetsExportRequestedEvent(
+        options: OcptCallSheetExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayIds: [dayId],
+        ),
+        labels: _callSheetLabels,
+        confirmButtonText: "Choose",
+      ),
+      OcptScheduleNamedCallSheetsExportRequestedEvent(
+        options: OcptCallSheetExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayIds: [dayId],
+          selectedConvocationKeys: const {"whoever"},
+        ),
+        labels: _callSheetLabels,
+        confirmButtonText: "Choose",
+      ),
+      OcptScheduleShootingPlanExportRequestedEvent(
+        options: OcptShootingPlanExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayIds: [dayId],
+          includeTitlePage: true,
+          includeLocationsGrid: true,
+          includeSequencesGrid: true,
+          includePeopleGrid: true,
+          includeTenMinuteGrid: true,
+          includeElementsGrid: true,
+        ),
+        labels: _shootingPlanLabels,
+        fileTypeLabel: "PDF document",
+      ),
+      OcptScheduleShootingPlanXlsxExportRequestedEvent(
+        options: OcptShootingPlanXlsxExportOptions(dayIds: [dayId]),
+        labels: _shootingPlanXlsxLabels,
+        fileTypeLabel: "Excel workbook",
+      ),
+      OcptScheduleDayOutOfDaysExportRequestedEvent(
+        options: OcptDayOutOfDaysExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayIds: [dayId],
+          includeTitlePage: true,
+        ),
+        labels: _dayOutOfDaysLabels,
+        fileTypeLabel: "PDF document",
+      ),
+      OcptScheduleOneLineScheduleExportRequestedEvent(
+        options: OcptOneLineScheduleExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayIds: [dayId],
+          includeTitlePage: true,
+        ),
+        labels: _oneLineScheduleLabels,
+        fileTypeLabel: "PDF document",
+      ),
+      OcptScheduleSidesExportRequestedEvent(
+        options: OcptSidesExportOptions(
+          format: pageSetup.format,
+          margins: pageSetup.margins,
+          dayId: dayId,
+          includeSceneNumbers: true,
+          presentation: OcptSidesPresentation.scriptPages,
+        ),
+        labels: _sidesLabels,
+        fileTypeLabel: "PDF document",
+      ),
+    ];
+  }
+
   group("the bloc as a whole", () {
     /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
     /// this fail to compile until the list below names it too.
@@ -1348,79 +1448,7 @@ void main() {
         ),
       );
 
-      final pageSetup = (format: OcptPageFormat.a4, margins: const FountainPageMargins.standard());
-      final exports = <OcptScheduleExportEvent>[
-        OcptScheduleCallSheetsExportRequestedEvent(
-          options: OcptCallSheetExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayIds: [fixture.dayId],
-          ),
-          labels: _callSheetLabels,
-          confirmButtonText: "Choose",
-        ),
-        OcptScheduleNamedCallSheetsExportRequestedEvent(
-          options: OcptCallSheetExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayIds: [fixture.dayId],
-            selectedConvocationKeys: const {"whoever"},
-          ),
-          labels: _callSheetLabels,
-          confirmButtonText: "Choose",
-        ),
-        OcptScheduleShootingPlanExportRequestedEvent(
-          options: OcptShootingPlanExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayIds: [fixture.dayId],
-            includeTitlePage: true,
-            includeLocationsGrid: true,
-            includeSequencesGrid: true,
-            includePeopleGrid: true,
-            includeTenMinuteGrid: true,
-            includeElementsGrid: true,
-          ),
-          labels: _shootingPlanLabels,
-          fileTypeLabel: "PDF document",
-        ),
-        OcptScheduleShootingPlanXlsxExportRequestedEvent(
-          options: OcptShootingPlanXlsxExportOptions(dayIds: [fixture.dayId]),
-          labels: _shootingPlanXlsxLabels,
-          fileTypeLabel: "Excel workbook",
-        ),
-        OcptScheduleDayOutOfDaysExportRequestedEvent(
-          options: OcptDayOutOfDaysExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayIds: [fixture.dayId],
-            includeTitlePage: true,
-          ),
-          labels: _dayOutOfDaysLabels,
-          fileTypeLabel: "PDF document",
-        ),
-        OcptScheduleOneLineScheduleExportRequestedEvent(
-          options: OcptOneLineScheduleExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayIds: [fixture.dayId],
-            includeTitlePage: true,
-          ),
-          labels: _oneLineScheduleLabels,
-          fileTypeLabel: "PDF document",
-        ),
-        OcptScheduleSidesExportRequestedEvent(
-          options: OcptSidesExportOptions(
-            format: pageSetup.format,
-            margins: pageSetup.margins,
-            dayId: fixture.dayId,
-            includeSceneNumbers: true,
-            presentation: OcptSidesPresentation.scriptPages,
-          ),
-          labels: _sidesLabels,
-          fileTypeLabel: "PDF document",
-        ),
-      ];
+      final exports = everyExportRequest(fixture.dayId);
       const dismissal = OcptScheduleIoNoticeDismissedEvent();
       expect(
         [...exports, dismissal].map(nameOf).toSet(),
@@ -1484,6 +1512,61 @@ void main() {
         exportManager.lastGeneralPlan?.schedule.slotsByDayId[fixture.dayId]?.single.label,
         "Cave",
       );
+
+      await exportBloc.close();
+      await dayBloc.close();
+      await bloc.close();
+    });
+
+    test("an export is not made while a typed edit could not be written", () async {
+      final fixture = await writePlacedShot();
+      final exportManager = _FakeScheduleExportManager(
+        generalCallSheetsResult: const OcptCallSheetExportResult(
+          folderPath: "/tmp/sheets",
+          writtenFileNames: ["a.pdf"],
+          failedFileNames: [],
+        ),
+        namedCallSheetsResult: const OcptCallSheetExportResult(
+          folderPath: "/tmp/sheets",
+          writtenFileNames: ["a.pdf"],
+          failedFileNames: [],
+        ),
+        shootingPlanResult: "/tmp/plan.pdf",
+        shootingPlanXlsxResult: "/tmp/plan.xlsx",
+        dayOutOfDaysResult: "/tmp/dood.pdf",
+        oneLineScheduleResult: "/tmp/one-line.pdf",
+        sidesResult: "/tmp/sides.pdf",
+      );
+      final bloc = buildBloc();
+      final dayBloc = OcptScheduleDayBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+        scheduleService: _FailingScheduleService(),
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      await waitForState(bloc, (state) => !state.isLoading);
+      final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
+      dayBloc.add(
+        OcptScheduleFieldChangedEvent(
+          targetId: fixture.slotId,
+          field: OcptScheduleField.slotLabel,
+          rawValue: "Cave",
+        ),
+      );
+      await dayBloc.stream.first;
+
+      everyExportRequest(fixture.dayId).forEach(exportBloc.add);
+      await pumpEventQueue(times: 200);
+
+      expect(exportBloc.state.ioNotice, isNull);
+      expect(exportManager.lastGeneralDayIds, isNull);
+      expect(exportManager.lastNamedDayIds, isNull);
+      expect(exportManager.lastShootingPlanDayIds, isNull);
+      expect(exportManager.lastShootingPlanXlsxDayIds, isNull);
+      expect(exportManager.lastDayOutOfDaysDayIds, isNull);
+      expect(exportManager.lastOneLineScheduleDayIds, isNull);
+      expect(exportManager.lastSidesDayId, isNull);
+      expect(dayBloc.state.pendingFieldEdits, isNotEmpty);
 
       await exportBloc.close();
       await dayBloc.close();

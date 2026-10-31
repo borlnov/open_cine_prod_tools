@@ -2,6 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/// What asking every flusher of a mode to write came to: whether any of them had something to write,
+/// and whether any of them failed.
+typedef OcptPendingWritesRun = ({bool hasWritten, bool hasFailed});
+
 /// Something that holds edits typed into a field and written only once the typing stops, and can
 /// be told to write them now.
 ///
@@ -13,6 +17,11 @@ abstract interface class OcptPendingWritesFlusher {
   /// Writes whatever this holds, forgets it, and answers whether there was anything to write.
   ///
   /// Runs inside the flusher's own bloc, so it may emit the now-empty state.
+  ///
+  /// Throws when the write failed, and then keeps what it holds: an answer of "nothing to write"
+  /// would let the action waiting on the flush (a preview, a restore, an export) go on as if the
+  /// database were up to date, and drop the edit with it. A flusher that reports its own failures
+  /// to the user and wants the action to go on catches them itself instead.
   Future<bool> flushPendingWrites();
 
   /// Writes whatever this holds **without touching any state**, for the moments no handler can

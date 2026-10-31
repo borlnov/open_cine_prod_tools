@@ -336,9 +336,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// preview swaps that data out.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
+  Future<bool> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
     emitter(state.copyWith(forceSelectionValue: true, forceSelectedShareIdValue: true));
+    return true;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}

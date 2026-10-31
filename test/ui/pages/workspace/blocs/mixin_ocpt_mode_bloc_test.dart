@@ -50,6 +50,9 @@ class _Flusher implements OcptPendingWritesFlusher {
   /// Whether this has something to write.
   bool hasPending;
 
+  /// Whether asking it to write throws, as a flusher whose write failed does.
+  bool fails = false;
+
   /// How many times it was asked to write with state.
   int flushCount = 0;
 
@@ -62,6 +65,9 @@ class _Flusher implements OcptPendingWritesFlusher {
   @override
   Future<bool> flushPendingWrites() async {
     flushCount++;
+    if (fails) {
+      throw StateError("write failed");
+    }
     return hasPending;
   }
 
@@ -100,11 +106,13 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
       runPendingWritesFlushersWithoutState();
 
   @override
-  Future<void> flushAllPendingWritesIn(Emitter<_State> emitter) async {
-    lastFlushHadWritten = await runPendingWritesFlushers();
-    if (lastFlushHadWritten!) {
+  Future<bool> flushAllPendingWritesIn(Emitter<_State> emitter) async {
+    final run = await runPendingWritesFlushers();
+    lastFlushHadWritten = run.hasWritten;
+    if (run.hasWritten) {
       await reloadSerially({_Scope.first}, emitter);
     }
+    return !run.hasFailed;
   }
 
   @override
@@ -155,6 +163,33 @@ void main() {
     expect(mode.state.reads.single, {_Scope.first});
 
     await mode.close();
+  });
+
+  test(
+    'a flusher that fails makes the flush answer false, and the others are still asked',
+    () async {
+      final mode = _ModeBloc();
+      final failing = _Flusher()..fails = true;
+      final other = _Flusher();
+      mode.registerPendingWritesFlusher(failing);
+      mode.registerPendingWritesFlusher(other);
+
+      expect(await mode.flushAllPendingWrites(), isFalse);
+      expect([failing.flushCount, other.flushCount], [1, 1]);
+      expect(mode.lastFlushHadWritten, isTrue, reason: 'the other one wrote');
+
+      failing.fails = false;
+      expect(await mode.flushAllPendingWrites(), isTrue);
+
+      await mode.close();
+    },
+  );
+
+  test('a flush asked of a mode that is closing answers false', () async {
+    final mode = _ModeBloc();
+    unawaited(mode.close());
+
+    expect(await mode.flushAllPendingWrites(), isFalse);
   });
 
   test('every flusher is asked, one after the other, and the without-state variant too', () async {

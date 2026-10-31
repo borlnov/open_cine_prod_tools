@@ -159,16 +159,25 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   int get pendingWritesFlusherCount => _flushers.length;
 
   /// Asks every registered flusher to write what it holds, one after the other, and answers
-  /// whether any of them had something to write.
+  /// whether any of them had something to write and whether any of them failed.
+  ///
+  /// Every flusher is asked even after one failed: they hold unrelated edits, and a failure of one
+  /// must not keep the others from being written. A flusher that failed has already reported it
+  /// itself, so the failure is only counted here.
   @protected
-  Future<bool> runPendingWritesFlushers() async {
+  Future<OcptPendingWritesRun> runPendingWritesFlushers() async {
     var hasWritten = false;
+    var hasFailed = false;
     for (final flusher in List.of(_flushers)) {
-      if (await flusher.flushPendingWrites()) {
-        hasWritten = true;
+      try {
+        if (await flusher.flushPendingWrites()) {
+          hasWritten = true;
+        }
+      } catch (_) {
+        hasFailed = true;
       }
     }
-    return hasWritten;
+    return (hasWritten: hasWritten, hasFailed: hasFailed);
   }
 
   /// Asks every registered flusher to write what it holds without touching any state, for the
@@ -182,12 +191,17 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
 
   /// Writes every pending edit of the mode and of its views, and reads the shared data again if any
   /// of it was written. Completes once that is done, or at once on a bloc that is closing.
-  Future<void> flushAllPendingWrites() async {
+  ///
+  /// Answers whether the caller may go on with the action it flushed for (a preview, a restore, an
+  /// export): false when a write failed and the mode's rule is that the action must not run without
+  /// it (see [flushAllPendingWritesIn]), and on a bloc that is closing, where no action is left to
+  /// run. The edit that failed is still pending when this answers false.
+  Future<bool> flushAllPendingWrites() async {
     if (_isClosing) {
-      return;
+      return false;
     }
 
-    await OcptModeFlushRequestedEvent().addToAndWait(this);
+    return await OcptModeFlushRequestedEvent().addToAndWait(this) ?? false;
   }
 
   /// Reads again the parts of the shared data that [scopes] names, and completes once the mode's
@@ -208,9 +222,14 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Writes what the mode holds and, through [runPendingWritesFlushers], what its views hold, then
   /// reads the shared data again if any of it was written. Called by [flushAllPendingWrites]'s
   /// handler, with that handler's own [emitter].
+  ///
+  /// Answers whether the action the flush was asked for may go on. A mode decides it from
+  /// [OcptPendingWritesRun.hasFailed]: one that shows a failed write itself and carries on answers
+  /// true whatever happened; one that must not act on a database missing a typed edit answers false
+  /// when a flusher failed, and its callers stop.
   /// {@endtemplate}
   @protected
-  Future<void> flushAllPendingWritesIn(Emitter<S> emitter);
+  Future<bool> flushAllPendingWritesIn(Emitter<S> emitter);
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
   /// Reads again the parts of the shared data that [scopes] names, emits them with the state's
@@ -250,9 +269,9 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Writes every pending edit, then tells the dispatcher.
   Future<void> _onFlushRequested(OcptModeFlushRequestedEvent event, Emitter<S> emitter) async {
     try {
-      await flushAllPendingWritesIn(emitter);
+      event.complete(await flushAllPendingWritesIn(emitter));
     } finally {
-      event.complete();
+      event.complete(false);
     }
   }
 

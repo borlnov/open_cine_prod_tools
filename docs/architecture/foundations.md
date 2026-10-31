@@ -136,6 +136,21 @@ the persistence, the project versions, the sync-ready data model and the read-on
     database up to date — a selection, a creation, the way back, an export, a version preview — and
     reads the data again if any of them wrote. **Each view has its own debounce**: two edits typed
     in two views a second apart are written two seconds after each one.
+  - **A flush can fail, and each mode decides what that stops.** `flushPendingWrites` answers
+    whether the view had anything and *throws* when its write failed, keeping the edit pending: an
+    answer of "nothing to write" would let a preview, a restore or an export go on over a database
+    missing the edit, and the reload that follows would drop it. `runPendingWritesFlushers`
+    asks every flusher even after one failed and answers `(hasWritten, hasFailed)`;
+    `flushAllPendingWritesIn` turns that into the answer of `flushAllPendingWrites`, and
+    `flushPendingProjectWrites` into whether the version or package action may go on. The two
+    modes differ because their old code did. The schedule had no `catch`, so a failed write aborted
+    the handler: its hooks answer false on `hasFailed`, and the preview, the restore, a saved
+    version, the package export, the dock tab change and each of the seven exports stop with the
+    edit still pending. The shot list's views catch their own failure (`hasWriteError`, the edit
+    dropped) and carry on: its hooks always answer true, and the action goes ahead on the value
+    the database still holds. A new mode copies whichever of the two its old handlers did, and a
+    view that wants the action to go on catches its failure itself. The other modes' hooks answer
+    true, unchanged.
   - **What flushes is each mode's own.** The shot list flushes on every selection move; the
     schedule flushes on none (a day or block selection, a centre view switch, going back) and only
     ahead of a dock tab change, a version preview, a package export and an export. The flush sites

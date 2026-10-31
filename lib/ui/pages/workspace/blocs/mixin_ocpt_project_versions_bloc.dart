@@ -67,8 +67,13 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   ///
   /// Called with the current handler's [emitter], so the mode can report the write through its own
   /// state exactly as it would for a user-triggered save.
+  ///
+  /// Answers whether the action it was called for may go on. A mode that shows a failed write
+  /// itself and carries on answers true; one whose action must not run over a database missing a
+  /// typed edit (the edit would be dropped with the state the action replaces) answers false, and
+  /// the handler stops there with nothing changed.
   @protected
-  Future<void> flushPendingProjectWrites(Emitter<S> emitter);
+  Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   /// Reads everything the mode shows from `OcptOpenProjectModel.database` again, after entering or
@@ -169,7 +174,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       return;
     }
 
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     try {
       await projectsManager.createProjectVersion(name: event.name, note: event.note);
@@ -277,7 +284,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRestoreConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final status = await projectsManager.restoreProjectVersion(
       versionId: event.versionId,
@@ -375,7 +384,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionPreviewRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final result = await projectsManager.previewVersion(event.versionId);
     if (!result.status.isSuccess) {

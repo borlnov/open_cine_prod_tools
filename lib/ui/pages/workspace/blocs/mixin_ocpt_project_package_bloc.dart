@@ -82,9 +82,9 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// field edit — before the project file is copied into a package.
   ///
   /// The same hook `MixinOcptProjectVersionsBloc` declares, with the same signature, so a mode
-  /// answers it once for both.
+  /// answers it once for both. Answers whether the export may go on: false writes no package.
   @protected
-  Future<void> flushPendingProjectWrites(Emitter<S> emitter);
+  Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
 
   /// Whether a package is being written right now, which is what keeps a second `Export` from
   /// starting one over it.
@@ -157,7 +157,9 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       return;
     }
 
-    await flushPendingProjectWrites(emitter);
+    if (!await flushPendingProjectWrites(emitter)) {
+      return;
+    }
 
     final preflight = projectsManager.scanProjectPackageAssets(projectFilePath: target.filePath);
     if (preflight == null) {

@@ -95,7 +95,10 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
   }
 
   @override
-  Future<void> flushAllPendingWritesIn(Emitter<_ModeState> emitter) => runPendingWritesFlushers();
+  Future<bool> flushAllPendingWritesIn(Emitter<_ModeState> emitter) async {
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
+  }
 
   @override
   Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_ModeState> emitter) async {
@@ -203,6 +206,9 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Where the flushed text goes, in the order it was written.
   final List<String> sink;
 
+  /// Whether writing the typed text fails, as a full disk would.
+  bool failsToWrite = false;
+
   /// Class constructor
   _ViewBloc({required super.modeBloc, required this.sink}) : super(const _ViewState());
 
@@ -252,6 +258,10 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   Future<bool> onFlushRequested(Emitter<_ViewState> emitter) async {
     if (state.pending.isEmpty) {
       return false;
+    }
+
+    if (failsToWrite) {
+      throw StateError("write failed");
     }
 
     sink.add(state.pending);
@@ -375,6 +385,30 @@ void main() {
     await view.close();
     await mode.close();
   });
+
+  test(
+    'a view whose write fails throws it to the flush, which keeps what the view holds',
+    () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink)..failsToWrite = true;
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+
+      await expectLater(view.flushPendingWrites(), throwsStateError);
+      expect(await mode.flushAllPendingWrites(), isFalse);
+      expect(view.state.pending, 'hello');
+      expect(sink, isEmpty);
+
+      view.failsToWrite = false;
+      expect(await mode.flushAllPendingWrites(), isTrue);
+      expect(sink, ['hello']);
+      expect(view.state.pending, isEmpty);
+
+      await view.close();
+      await mode.close();
+    },
+  );
 
   test(
     'a view that closes is no longer asked to flush, and writes what it holds on its way out',

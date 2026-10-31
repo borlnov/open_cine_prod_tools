@@ -312,12 +312,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// the screenplay's point of view, clicking a version card is as deliberate as pressing Ctrl+S.
   @protected
   @override
-  Future<void> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) async {
+  Future<bool> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) async {
     if (!state.isDirty) {
-      return;
+      return true;
     }
 
     await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+    return true;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}

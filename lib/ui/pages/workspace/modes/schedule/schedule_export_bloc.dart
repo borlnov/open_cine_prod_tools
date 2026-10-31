@@ -84,7 +84,9 @@ class OcptScheduleExportBloc
     OcptScheduleCallSheetsExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null) {
@@ -141,7 +143,9 @@ class OcptScheduleExportBloc
     OcptScheduleNamedCallSheetsExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null || event.options.dayIds.isEmpty) {
@@ -202,7 +206,9 @@ class OcptScheduleExportBloc
     OcptScheduleShootingPlanExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null) {
@@ -263,7 +269,9 @@ class OcptScheduleExportBloc
     OcptScheduleShootingPlanXlsxExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null) {
@@ -325,7 +333,9 @@ class OcptScheduleExportBloc
     OcptScheduleDayOutOfDaysExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null) {
@@ -380,7 +390,9 @@ class OcptScheduleExportBloc
     OcptScheduleOneLineScheduleExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     if (plan == null) {
@@ -448,7 +460,9 @@ class OcptScheduleExportBloc
     OcptScheduleSidesExportRequestedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    await modeBloc.flushAllPendingWrites();
+    if (!await modeBloc.flushAllPendingWrites()) {
+      return;
+    }
 
     final plan = modeBloc.state.planSnapshot;
     final project = _projectsManager.currentProject;
