@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
@@ -34,44 +33,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_st
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-
-/// The kind of transient notice [OcptBreakdownIoNotice] carries, one per breakdown export outcome.
-enum OcptBreakdownIoNoticeKind {
-  /// The breakdown sheets were successfully exported to a PDF file.
-  sheetsExportSucceeded,
-
-  /// Exporting the breakdown sheets to a PDF file failed.
-  sheetsExportFailed,
-
-  /// The breakdown workbook was successfully exported to an XLSX file.
-  xlsxExportSucceeded,
-
-  /// Exporting the breakdown workbook to an XLSX file failed.
-  xlsxExportFailed,
-}
-
-/// A transient notice, produced by `OcptBreakdownBloc`, reporting the outcome of an export, shown
-/// as a SnackBar then dismissed. Modelled on `OcptResourcesIoNotice`.
-class OcptBreakdownIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptBreakdownIoNoticeKind kind;
-
-  /// The path the export was written to, only set when [kind] is a succeeded kind and [wasShared]
-  /// is false — a mobile export hands the file to the OS share sheet instead of writing it to a
-  /// path the user picked, so there is none to show.
-  final String? path;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptBreakdownIoNotice({required this.kind, this.path, this.wasShared = false});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, wasShared];
-}
 
 /// The state of `OcptBreakdownBloc`.
 ///
@@ -204,10 +165,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// overlap, or a preview database that slipped through. A transient notice tells the user rather
   /// than the writer silently doing nothing. Reset the moment it has been shown once.
   final bool hasTagWriteError;
-
-  /// The outcome of the last breakdown sheets export, shown once as a SnackBar and dismissed, or
-  /// null while there is nothing to report.
-  final OcptBreakdownIoNotice? ioNotice;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
   ///
@@ -446,7 +403,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.pendingTagAnchor,
     required this.pendingTagRange,
     required this.hasTagWriteError,
-    required this.ioNotice,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.reloadEpoch,
@@ -485,7 +441,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       pendingTagAnchor = null,
       pendingTagRange = null,
       hasTagWriteError = false,
-      ioNotice = null,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       reloadEpoch = 0,
@@ -551,8 +506,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownPendingTagRange? pendingTagRange,
     bool forcePendingTagRangeValue = false,
     bool? hasTagWriteError,
-    OcptBreakdownIoNotice? ioNotice,
-    bool forceIoNoticeValue = false,
     double? leftDockFraction,
     double? rightDockFraction,
     int? reloadEpoch,
@@ -613,7 +566,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
           pendingTagAnchor ?? (forcePendingTagAnchorValue ? null : this.pendingTagAnchor),
       pendingTagRange: pendingTagRange ?? (forcePendingTagRangeValue ? null : this.pendingTagRange),
       hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
-      ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
       leftDockFraction: leftDockFraction ?? this.leftDockFraction,
       rightDockFraction: rightDockFraction ?? this.rightDockFraction,
       reloadEpoch:
@@ -717,7 +669,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     pendingTagAnchor,
     pendingTagRange,
     hasTagWriteError,
-    ioNotice,
     leftDockFraction,
     rightDockFraction,
     reloadEpoch,

@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
@@ -40,6 +41,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_view_effects.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_compact_banner.dart';
@@ -100,11 +102,21 @@ class OcptBreakdownMode extends StatelessWidget {
   const OcptBreakdownMode({super.key});
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (context) => OcptBreakdownBloc(
-      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
-    ),
-    child: const _BreakdownView(),
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (context) => OcptBreakdownBloc(
+          selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+        ),
+      ),
+      // Built with the mode rather than on first read: a view bloc registers itself with the mode
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptBreakdownExportBloc(modeBloc: context.read<OcptBreakdownBloc>()),
+      ),
+    ],
+    child: const OcptBreakdownViewEffects(child: _BreakdownView()),
   );
 }
 
@@ -288,7 +300,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     OcptBreakdownState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptBreakdownBloc>();
+    final bloc = context.read<OcptBreakdownExportBloc>();
     final options = await OcptBreakdownSheetsExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -313,7 +325,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// localized string the exported document and the native save dialog carry, exactly as
   /// [_requestSheetsExport] does, but with no options dialog first: the workbook takes none.
   void _requestXlsxExport(BuildContext context, Rect? shareAnchor) {
-    final bloc = context.read<OcptBreakdownBloc>();
+    final bloc = context.read<OcptBreakdownExportBloc>();
     final tr = Tr.of(context);
     bloc.add(
       OcptBreakdownXlsxExportRequestedEvent(
@@ -892,14 +904,6 @@ class _BreakdownViewState extends State<_BreakdownView> {
       rightFraction: state.rightDockFraction,
     );
 
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptBreakdownBloc>().add(const OcptBreakdownIoNoticeDismissedEvent());
-    }
-
     if (state.hasTagWriteError) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -974,24 +978,5 @@ class _BreakdownViewState extends State<_BreakdownView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
-  }
-
-  /// Maps [notice] to its localized, user-facing message, mirroring
-  /// `OcptResourcesMode._ioNoticeMessage`, [OcptBreakdownIoNotice.wasShared] included.
-  String _ioNoticeMessage(BuildContext context, OcptBreakdownIoNotice notice) {
-    final tr = Tr.of(context);
-
-    return switch (notice.kind) {
-      OcptBreakdownIoNoticeKind.sheetsExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.breakdownExportSheetsSuccessMessage(notice.path ?? ""),
-      OcptBreakdownIoNoticeKind.sheetsExportFailed => tr.breakdownExportSheetsError,
-      OcptBreakdownIoNoticeKind.xlsxExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.breakdownExportXlsxSuccessMessage(notice.path ?? ""),
-      OcptBreakdownIoNoticeKind.xlsxExportFailed => tr.breakdownExportXlsxError,
-    };
   }
 }

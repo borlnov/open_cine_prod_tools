@@ -37,7 +37,6 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
@@ -79,6 +78,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// answering it, both going through [_breakdownService] (`createTag`/`createElementAndTag`) and
 /// both ending the same way: the popover closes, the anchor clears, the snapshot reloads and the
 /// linked or newly created target is selected on the `Inspector` tab.
+///
+/// The two exports belong to `OcptBreakdownExportBloc`, which asks this bloc to write every pending
+/// edit ([flushAllPendingWrites]) and then reads the snapshot this bloc holds.
 ///
 /// It also mixes in [MixinOcptProjectVersionsBloc], which owns everything the right dock's
 /// `Versions` tab does. The two hooks the mixin needs are answered by [flushPendingProjectWrites]
@@ -202,9 +204,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownLoadRequestedEvent>(_onLoadRequested);
     on<OcptBreakdownBackRequestedEvent>(_onBackRequested);
     on<OcptBreakdownProjectSettingsChangedEvent>(_onProjectSettingsChanged);
-    on<OcptBreakdownSheetsExportRequestedEvent>(_onSheetsExportRequested);
-    on<OcptBreakdownXlsxExportRequestedEvent>(_onXlsxExportRequested);
-    on<OcptBreakdownIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptBreakdownSceneSelectedEvent>(_onSceneSelected);
     on<OcptBreakdownSceneHeadingSelectedEvent>(_onSceneHeadingSelected);
     on<OcptBreakdownLeftPanelToggledEvent>(_onLeftPanelToggled);
@@ -500,145 +499,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       final pageSetup = await _loadPageSetup(project);
       emitter(state.copyWith(pageSetup: pageSetup));
     });
-  }
-
-  /// Exports one breakdown sheet per scene, as a PDF.
-  ///
-  /// Built exactly as the other two modes' own export handlers are: flush whatever is still pending
-  /// — that flush re-reads the snapshot, so a sheet holds the name or the note the user typed
-  /// seconds ago — then hand what the state now carries to
-  /// [OcptExportManager.exportBreakdownSheets]. A cancelled save dialog is a silent no-op; a
-  /// failure raises the transient export-failed notice.
-  ///
-  /// [OcptBreakdownState.screenplayText] is parsed here rather than kept parsed in the state: the
-  /// document is only needed by this export, and only for each scene's own length.
-  Future<void> _onSheetsExportRequested(
-    OcptBreakdownSheetsExportRequestedEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final snapshot = state.snapshot;
-    if (snapshot == null) {
-      return;
-    }
-
-    try {
-      final options = event.options;
-      final outcome = await _exportManager.exportBreakdownSheets(
-        document: const FountainParser().parse(state.screenplayText),
-        snapshot: snapshot,
-        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
-        labels: event.labels,
-        projectName: state.title,
-        onlyDoneScenes: options.onlyDoneScenes,
-        includeNotes: options.includeNotes,
-        includeToFindList: options.includeToFindList,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptBreakdownIoNotice(
-            kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the breakdown sheets of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.sheetsExportFailed),
-        ),
-      );
-    }
-  }
-
-  /// Exports the whole breakdown as a two-sheet XLSX workbook.
-  ///
-  /// Built exactly as [_onSheetsExportRequested] is: flush whatever is still pending, then hand
-  /// what the state now carries to [OcptExportManager.exportBreakdownXlsx]. There is no options
-  /// dialog to read first — this export takes none.
-  Future<void> _onXlsxExportRequested(
-    OcptBreakdownXlsxExportRequestedEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final snapshot = state.snapshot;
-    if (snapshot == null) {
-      return;
-    }
-
-    try {
-      final outcome = await _exportManager.exportBreakdownXlsx(
-        document: const FountainParser().parse(state.screenplayText),
-        snapshot: snapshot,
-        pageSetup: state.pageSetup,
-        labels: event.labels,
-        projectName: state.title,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWith(
-            ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptBreakdownIoNotice(
-            kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the breakdown workbook of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
-        ),
-      );
-    }
-  }
-
-  /// Clears the transient export notice currently shown, if any.
-  Future<void> _onIoNoticeDismissed(
-    OcptBreakdownIoNoticeDismissedEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// Selects scene `event.sceneId`, touching neither the selected target nor the right dock — the
