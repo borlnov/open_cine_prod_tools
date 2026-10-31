@@ -201,33 +201,9 @@ class OcptScheduleInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final block = this.block;
-    if (block != null) {
-      return _OcptScheduleBlockInspector(
-        block: block,
-        blockShot: blockShot,
-        blockSlotLabel: blockSlotLabel,
-        blockEntry: blockEntry,
-        onShotStatusChanged: onShotStatusChanged,
-        onBlockDurationChanged: onBlockDurationChanged,
-        blockCrewNoteValue: blockCrewNoteValue,
-        onBlockCrewNoteChanged: onBlockCrewNoteChanged,
-        blockNotesValue: blockNotesValue,
-        onBlockNotesChanged: onBlockNotesChanged,
-      );
-    }
-
     final shot = this.shot;
-    if (shot != null) {
-      return _OcptScheduleShotInspector(
-        shot: shot,
-        shotSequenceLabel: shotSequenceLabel,
-        shotPlacedDayNumbers: shotPlacedDayNumbers,
-        onShotStatusChanged: onShotStatusChanged,
-      );
-    }
-
     final day = this.day;
-    if (day == null) {
+    if (block == null && shot == null && day == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -242,27 +218,56 @@ class OcptScheduleInspector extends StatelessWidget {
       );
     }
 
-    return _OcptScheduleDayInspector(
-      day: day,
-      slots: slots,
-      locationById: locationById,
-      setById: setById,
-      timeline: timeline,
-      dayArrivalMinute: dayArrivalMinute,
-      sunTimes: sunTimes,
-      crewNoteValue: crewNoteValue,
-      weatherNoteValue: weatherNoteValue,
-      events: events,
-      eventLabelValueOf: eventLabelValueOf,
-      eventNotesValueOf: eventNotesValueOf,
-      onEventAdded: onEventAdded,
-      onEventMinuteChanged: onEventMinuteChanged,
-      onEventLabelChanged: onEventLabelChanged,
-      onEventNotesChanged: onEventNotesChanged,
-      onEventDeletionRequested: onEventDeletionRequested,
-      onDayStatusChanged: onDayStatusChanged,
-      onCrewNoteChanged: onCrewNoteChanged,
-      onWeatherNoteChanged: onWeatherNoteChanged,
+    // One list at one place in the tree whichever kind is selected: a list of its own per kind
+    // would be a new element each time, and the scroll position would go back to the top on every
+    // switch of selection.
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (block != null)
+          _OcptScheduleBlockInspector(
+            block: block,
+            blockShot: blockShot,
+            blockSlotLabel: blockSlotLabel,
+            blockEntry: blockEntry,
+            onShotStatusChanged: onShotStatusChanged,
+            onBlockDurationChanged: onBlockDurationChanged,
+            blockCrewNoteValue: blockCrewNoteValue,
+            onBlockCrewNoteChanged: onBlockCrewNoteChanged,
+            blockNotesValue: blockNotesValue,
+            onBlockNotesChanged: onBlockNotesChanged,
+          )
+        else if (shot != null)
+          _OcptScheduleShotInspector(
+            shot: shot,
+            shotSequenceLabel: shotSequenceLabel,
+            shotPlacedDayNumbers: shotPlacedDayNumbers,
+            onShotStatusChanged: onShotStatusChanged,
+          )
+        else
+          _OcptScheduleDayInspector(
+            day: day!,
+            slots: slots,
+            locationById: locationById,
+            setById: setById,
+            timeline: timeline,
+            dayArrivalMinute: dayArrivalMinute,
+            sunTimes: sunTimes,
+            crewNoteValue: crewNoteValue,
+            weatherNoteValue: weatherNoteValue,
+            events: events,
+            eventLabelValueOf: eventLabelValueOf,
+            eventNotesValueOf: eventNotesValueOf,
+            onEventAdded: onEventAdded,
+            onEventMinuteChanged: onEventMinuteChanged,
+            onEventLabelChanged: onEventLabelChanged,
+            onEventNotesChanged: onEventNotesChanged,
+            onEventDeletionRequested: onEventDeletionRequested,
+            onDayStatusChanged: onDayStatusChanged,
+            onCrewNoteChanged: onCrewNoteChanged,
+            onWeatherNoteChanged: onWeatherNoteChanged,
+          ),
+      ],
     );
   }
 }
@@ -378,8 +383,9 @@ class _OcptScheduleDayInspector extends StatelessWidget {
         ),
     };
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           tr.scheduleInspectorDayTitle(ocptScheduleDayTagLabel(tr, day.dayNumber)),
@@ -551,8 +557,9 @@ class _OcptScheduleBlockInspector extends StatelessWidget {
     final blockShot = this.blockShot;
     final entry = blockEntry;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(ocptShootingBlockKindLabel(tr, block.kind), style: theme.textTheme.titleSmall),
         const SizedBox(height: 12),
@@ -657,8 +664,9 @@ class _OcptScheduleShotInspector extends StatelessWidget {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           ocptShootingBlockKindLabel(tr, OcptShootingBlockKind.shot),

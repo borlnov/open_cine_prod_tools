@@ -22,7 +22,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a sized box
 /// standing in for the `OcptWorkspaceDock` right panel the inspector fills in the app.
-Widget _wrapInApp(Widget child) => MaterialApp(
+Widget _wrapInApp(Widget child, {double height = 700}) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -30,7 +30,9 @@ Widget _wrapInApp(Widget child) => MaterialApp(
     GlobalCupertinoLocalizations.delegate,
   ],
   supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: SizedBox(width: 320, height: 700, child: child)),
+  home: Scaffold(
+    body: SizedBox(width: 320, height: height, child: child),
+  ),
 );
 
 /// Builds a shooting day with the few fields these tests read, everything else neutral.
@@ -128,9 +130,12 @@ Future<void> _pumpInspector(
   ValueChanged<int>? onBlockDurationChanged,
   String blockCrewNoteValue = "",
   ValueChanged<String>? onBlockCrewNoteChanged,
+  double height = 700,
 }) async {
   await tester.pumpWidget(
     _wrapInApp(
+      height: height,
+
       OcptScheduleInspector(
         day: day,
         slots: const [],
@@ -195,6 +200,29 @@ Future<void> _pumpDayInspector(
 );
 
 void main() {
+  testWidgets("the scroll position survives a switch from a day to a block to a shot", (
+    tester,
+  ) async {
+    await _pumpInspector(tester, day: _buildDay(), height: 150);
+    // The inspector's own list: the outermost scrollable, the note fields inside it have theirs.
+    final scrollable = find
+        .descendant(of: find.byType(OcptScheduleInspector), matching: find.byType(Scrollable))
+        .first;
+    await tester.drag(scrollable, const Offset(0, -40));
+    await tester.pumpAndSettle();
+    double offset() => tester.state<ScrollableState>(scrollable).position.pixels;
+    expect(offset(), 40);
+
+    await _pumpInspector(tester, day: _buildDay(), block: _buildHoldBlock(), height: 150);
+    expect(offset(), 40, reason: "a block is selected now, in the same list");
+
+    await _pumpInspector(tester, day: _buildDay(), shot: _buildShot(), height: 150);
+    expect(offset(), 40, reason: "a shot is selected now, in the same list");
+
+    await _pumpInspector(tester, day: _buildDay(), height: 150);
+    expect(offset(), 40, reason: "back to the day");
+  });
+
   testWidgets("shows the selected day's own date, status and arrival-to-end read-outs", (
     tester,
   ) async {
