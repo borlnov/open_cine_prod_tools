@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_gestures.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_handle_dot.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// One of a camera symbol's own two field-of-view edge handles, at one far corner of its wedge
 /// (drawn by `OcptFloorPlanCanvasPainter._paintCameraGlyph`, at the wedge's own resolved height):

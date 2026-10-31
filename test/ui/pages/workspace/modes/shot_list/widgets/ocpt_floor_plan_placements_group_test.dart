@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_group.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_other_set.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve.
 Future<void> _pump(WidgetTester tester, Widget child) async {

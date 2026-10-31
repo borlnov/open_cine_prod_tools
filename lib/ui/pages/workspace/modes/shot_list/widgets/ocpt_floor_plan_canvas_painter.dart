@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:collection/collection.dart';
-import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
@@ -15,6 +14,8 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_metric_line.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// The margin, in logical pixels, the scale bar and the reference silhouette are drawn from the
 /// canvas's own bottom-right corner.
@@ -102,84 +103,6 @@ const double _overrideGhostOpacity = 0.35;
 
 /// The radius, in logical pixels, an override's own pin badge circle is drawn at.
 const double _overridePinBadgeRadius = 5;
-
-/// One line the metrics overlay draws, from the selected symbol to another visible one — a pure
-/// data record `OcptFloorPlanCanvas` builds (it alone can resolve a localized label) and this
-/// painter only ever draws from metres to pixels, exactly as it does every symbol shape.
-class OcptFloorPlanMetricLine extends Equatable {
-  /// The line's own starting point X, in metres (the selected symbol's own centre).
-  final double fromXM;
-
-  /// The line's own starting point Y, in metres.
-  final double fromYM;
-
-  /// The line's own end point X, in metres (the other symbol's own centre).
-  final double toXM;
-
-  /// The line's own end point Y, in metres.
-  final double toYM;
-
-  /// The line's own already-localized distance label (`3.2 m`).
-  final String label;
-
-  /// Class constructor
-  const OcptFloorPlanMetricLine({
-    required this.fromXM,
-    required this.fromYM,
-    required this.toXM,
-    required this.toYM,
-    required this.label,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [fromXM, fromYM, toXM, toYM, label];
-}
-
-/// A live, in-progress edit of one symbol's geometry — the drag preview `OcptFloorPlanCanvas` feeds
-/// into [OcptFloorPlanCanvasPainter] so the shape being dragged redraws every frame without a
-/// database write, or a bloc emission, per frame.
-class OcptFloorPlanSymbolLiveOverride {
-  /// The id of the symbol being edited.
-  final String symbolId;
-
-  /// The symbol's live centre X, in metres.
-  final double xM;
-
-  /// The symbol's live centre Y, in metres.
-  final double yM;
-
-  /// The symbol's live footprint width, in metres.
-  final double widthM;
-
-  /// The symbol's live footprint height, in metres.
-  final double heightM;
-
-  /// The symbol's live rotation, in degrees.
-  final double rotationDeg;
-
-  /// The symbol's live field-of-view wedge angle, in degrees, while its own edge handle is being
-  /// dragged — null for every other kind of drag (move, resize, rotate, tip), in which case the
-  /// painter keeps reading the symbol's own already-resolved `cameraFovWedgeDeg`.
-  final double? fovDeg;
-
-  /// The symbol's live field-of-view wedge reach, in metres, while its own tip handle is being
-  /// dragged — null for every other kind of drag, in which case the painter keeps reading the
-  /// symbol's own already-resolved `cameraFovWedgeReachM`.
-  final double? fovReachM;
-
-  /// Class constructor
-  const OcptFloorPlanSymbolLiveOverride({
-    required this.symbolId,
-    required this.xM,
-    required this.yM,
-    required this.widthM,
-    required this.heightM,
-    required this.rotationDeg,
-    this.fovDeg,
-    this.fovReachM,
-  });
-}
 
 /// Paints a `OcptFloorPlanSheet`'s own symbols, the always-on scale bar and reference silhouette
 /// (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`), for the floor plans canvas.

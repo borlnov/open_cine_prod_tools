@@ -6,19 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-
-/// One candidate shot [OcptFloorPlanCopyBlockingDialog] offers as the source of a
-/// `OcptFloorPlanService.copyShotBlocking` call.
-class OcptFloorPlanCopyBlockingCandidate {
-  /// The candidate shot's own id.
-  final String shotId;
-
-  /// The candidate shot's own display code (`12/3`).
-  final String shotCode;
-
-  /// Class constructor
-  const OcptFloorPlanCopyBlockingCandidate({required this.shotId, required this.shotCode});
-}
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_copy_blocking_candidate.dart';
 
 /// The dialog opened by the set tabs' own `＋ Set` menu's `Copy blocking from another shot` entry:
 /// a plain list of [candidates], each a one-click pick.

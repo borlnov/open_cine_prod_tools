@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_field.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_inspector_read_only_field.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
 /// The shot list's right dock metadata tab: a short, read-only summary of the selected shot —

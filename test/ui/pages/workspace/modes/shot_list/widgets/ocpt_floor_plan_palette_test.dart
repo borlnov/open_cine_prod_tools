@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_palette.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_prop_chip.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test
 /// surface past the 800 px compact breakpoint (`docs/architecture/foundations.md`), matching every

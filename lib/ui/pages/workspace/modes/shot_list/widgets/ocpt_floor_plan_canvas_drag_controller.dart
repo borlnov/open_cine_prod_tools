@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_underlay_drag_kind.da
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_constants.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_gestures.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// The live state of the drags in progress on a floor plan canvas: the dragged symbol's geometry,
 /// the underlay's frame and the dragged arrow's control point, updated every frame of a drag with

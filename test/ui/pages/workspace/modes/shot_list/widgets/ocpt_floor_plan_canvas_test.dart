@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dar
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
 
 /// Wraps [child] with the localization delegates so `Tr.of` lookups resolve, and sets the test

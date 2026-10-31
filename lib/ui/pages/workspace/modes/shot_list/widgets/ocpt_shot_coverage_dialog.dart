@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_coverage_anchor.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
 
 /// The alpha applied to [ColorScheme.primary] for text covered by the shot being edited: strong
@@ -32,10 +33,6 @@ const double _ocptOtherCoverageAlpha = 0.10;
 /// carries the whitespace that follows it, so two consecutive covered words leave no gap between
 /// their two bands.
 const double _ocptWordVerticalPadding = 2;
-
-/// A pending coverage range anchor, exactly as `OcptShotListInspectorState.pendingCoverageAnchor`
-/// holds it: the first word clicked of a range currently being drawn.
-typedef OcptShotCoverageAnchor = ({int wordStartOffset, int wordEndOffset});
 
 /// The dialog a shot's scenario coverage is selected in: the sequence typeset on a simulated paper
 /// sheet, in Courier Prime at its true screenplay indents, every word clickable.

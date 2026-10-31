@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// The scope bubble: anchored just below [liveOverride]'s own footprint, offering
 /// `Every sequence (n)` / `Only sequence n` / `Cancel` for a set-scope symbol whose own set is

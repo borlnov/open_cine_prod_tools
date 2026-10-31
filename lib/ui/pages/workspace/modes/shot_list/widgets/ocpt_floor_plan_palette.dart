@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
@@ -12,56 +11,8 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_palette_drag_payload.
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
-
-/// One breakdown prop of the focused sequence, for the palette's own `Sequence` group chips — a
-/// read-only projection of the *dépouillement*'s own
-/// `scene_elements` link joined with the `elements` catalogue, loaded by the bloc (no `Tr` in
-/// services): [quantity] is already resolved to the link's own override or the element's own
-/// catalogue quantity, whichever is set, and is empty while neither carries one.
-class OcptFloorPlanPropChip extends Equatable {
-  /// The element's own catalogue id — what a placed prop symbol's label is filled from, never
-  /// stored as a link of its own (`OcptFloorPlanSymbolsTable`'s own doc comment: a label is free
-  /// text).
-  final String elementId;
-
-  /// The element's own display name — the chip's own label, and what a placed symbol's own label
-  /// is set to.
-  final String name;
-
-  /// The effective quantity (the scene's own override, or the element's own catalogue quantity), a
-  /// decimal stored as text, or empty while neither is set — the chip shows `<name> ×<quantity>`
-  /// only while this isn't empty.
-  final String quantity;
-
-  /// Class constructor
-  const OcptFloorPlanPropChip({
-    required this.elementId,
-    required this.name,
-    required this.quantity,
-  });
-
-  /// Object properties
-  @override
-  List<Object?> get props => [elementId, name, quantity];
-}
-
-/// One live camera symbol of the set, for the palette's own `View` group cameras row — see
-/// `OcptFloorPlanLayerTray.sequenceCameras`'s own doc comment, which this replaces.
-class OcptFloorPlanTraySequenceCamera extends Equatable {
-  /// The camera symbol's own id.
-  final String symbolId;
-
-  /// The camera's derived label (`3`, `3A`, `3B`), or `?` while its shot's rank isn't known —
-  /// mirrors `OcptFloorPlanSymbolShape.cameraLabel`.
-  final String label;
-
-  /// Class constructor
-  const OcptFloorPlanTraySequenceCamera({required this.symbolId, required this.label});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [symbolId, label];
-}
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_prop_chip.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_tray_sequence_camera.dart';
 
 /// The floor plans canvas's own two-tier **palette**, down the left of the canvas, replacing
 /// `OcptFloorPlanLayerTray`: its group headers say **where a placed element lands** — a

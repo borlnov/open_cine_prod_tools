@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_gestures.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// One symbol's own invisible move + select overlay, rotated to match its own drawn shape.
 ///

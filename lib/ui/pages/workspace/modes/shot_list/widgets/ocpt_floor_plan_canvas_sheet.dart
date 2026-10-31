@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_metric_line.dart';
 
 /// The sheet a floor plan canvas draws for [floorPlanSet], under [focusShotId]'s own focus,
 /// filtered to [hiddenLayers] and [hiddenCameraSymbolIds] — applied to every camera shape alike,

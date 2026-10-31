@@ -8,23 +8,11 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_placements_other_set.dart';
 
 /// The step, in degrees, one click of the cameras section's own `−`/`+` field-of-view stepper
 /// changes a camera's angle by.
 const double _fovStepDeg = 5;
-
-/// One other set of the sequence, for [OcptFloorPlanPlacementsGroup]'s own trailing list — whether
-/// the selected shot has a camera placed there too (`Hallway · no camera for this shot`).
-class OcptFloorPlanPlacementsOtherSet {
-  /// The other set's own name.
-  final String setName;
-
-  /// How many of the shot's own cameras are placed on that set.
-  final int cameraCount;
-
-  /// Class constructor
-  const OcptFloorPlanPlacementsOtherSet({required this.setName, required this.cameraCount});
-}
 
 /// The shot inspector's floor-plans-only group (`OcptShotInspectorPanel.leadingGroup`): `On this
 /// plan · Kitchen`, grouped into three headed sections —

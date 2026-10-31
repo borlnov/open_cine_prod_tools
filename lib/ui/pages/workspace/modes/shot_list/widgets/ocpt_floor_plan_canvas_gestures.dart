@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart'
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_symbol_drag_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_constants.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
 
 /// How many segments a curved arrow's own quadratic bezier is subdivided into for
 /// [ocptFloorPlanDistanceToArrowM]'s own hit test — coarse enough to stay cheap on every tap, fine
