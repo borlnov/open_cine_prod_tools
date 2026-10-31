@@ -47,14 +47,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   developer. Every `catch` logs unless it is a deliberate control-flow exit (a parse that answers
   `null`, a field edit the user mistyped), which says so in a comment. A log call never changes
   what its `catch` returns and never throws. **What never gets logged**: a secret, a token, an
-  enrolment secret or the contents of an invite; screenplay text; a person's data (name, email,
-  phone, address, notes); a project's, a version's or a character's name; a network address; a
-  path or a file name, which holds the user's name or a project's title, so a project is named by
-  its screenplay's id (or by a generic word where none is known) and a file by nothing. An
-  exception's `toString` can quote any of these (a file error the path, a JSON error the text
-  around the fault, a network error the host), so a `catch` logs the error's `runtimeType` and
-  passes the stack trace, never `$error`. Nothing is logged per keystroke, frame, row, drag step or
-  sync ping, and nothing in `build()`. `OcptDiagnosticsManager` keeps the in-app buffer, which its
+  enrolment secret or the contents of an invite; screenplay text or any other content a user
+  wrote; a person's data (name, email, phone, address, notes); a project's, a version's or a
+  character's title or name; a network address; a full path, and an export's or a package's file
+  name, which holds the user's name or a project's title (a named call sheet's holds a person's
+  full name), so a project is named by its screenplay's id (or by a generic word where none is
+  known) and a file by nothing. An exception's `toString` can quote any of these (a file error the
+  path, a JSON error the text around the fault, a network error the host), so a `catch` logs the
+  error's `runtimeType` and passes the stack trace, never `$error`; and a shared helper that logs
+  the text it parsed is not handed the logger when that text can hold any of the above. Nothing is
+  logged per keystroke, frame, row, drag step or sync ping, and nothing in `build()`.
+  `OcptDiagnosticsManager` keeps the in-app buffer, which its
   own user reads, intact and forwards each entry to its logger: an entry whose text carries one of
   the above passes a `logMessage` without it, and an entry repeating on a timer is `isRoutine`,
   forwarded at debug.
