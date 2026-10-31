@@ -29,6 +29,22 @@ Resources set carries across its three scopes, and the mode's two newest documen
   coverage PDF are described in `exports.md`; nothing about either changes here. What follows is
   what the table never showed: the two other centre views this file exists to record.
 
+- The mode's BLoC files are split along the seams the code already had. The events are one sealed
+  hierarchy per domain (`events/shot_list_workspace_event.dart`, `…_shot_event.dart`,
+  `…_export_event.dart`, `…_storyboard_event.dart`, `…_floor_plan_view_event.dart`,
+  `…_floor_plan_symbol_event.dart`), all extending the abstract `OcptShotListEvent` of
+  `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
+  common base cannot be sealed); `shot_list_event.dart` only exports them. The state keeps its
+  fields, constructor and `copyWith` in `shot_list_state.dart`; `OcptShotListIoNotice` and the reads
+  derived on demand (`OcptShotListStateDerivedExtension`: the selections, the counters, the role
+  alerts, the coverage views) live in their own files, which `shot_list_state.dart` re-exports. What
+  the bloc decides without touching the state — which sequence, set or shot a reveal or a selection
+  lands on, the symbol lookup, a character symbol's default label — is
+  `lib/models/rules/ocpt_shot_list_selection.dart`; the writes that need only domain values are
+  service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
+  `OcptFloorPlanService.hideSymbolForScope`/`applyScopeDecision`). Everything else stays in
+  `OcptShotListBloc`: a handler reads the state, calls a service, re-reads a snapshot and emits.
+
 ## The three centre views and their shared chrome
 
 - A segmented switch in the centre header (`OcptShotListCentreHeader`, built on the generic
