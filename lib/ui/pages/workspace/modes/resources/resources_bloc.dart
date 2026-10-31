@@ -36,7 +36,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_tracking_flag.dart';
-import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -104,8 +103,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// It mixes in [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable
 /// package from the `Export` panel's own standing card. That mixin reuses
 /// [flushPendingProjectWrites] — what a colleague receives is the project *file*, so a debounced
-/// edit has to reach it first — and asks [exportManager] where to write, exactly as this mode's
-/// own exports do.
+/// edit has to reach it first — and asks [exportManager] where to write, exactly as the mode's
+/// own exports (`OcptResourcesExportBloc`) do.
 class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsBloc<OcptResourcesState>,
@@ -129,7 +128,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
 
-  /// The manager used to export the resources catalogue to a four-sheet XLSX workbook.
+  /// The manager the project package export asks where to write (the catalogue's own exports are
+  /// `OcptResourcesExportBloc`'s).
   final OcptExportManager _exportManager;
 
   /// The service used to read and write the address book.
@@ -345,9 +345,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesDockFractionsChangedEvent>(_onDockFractionsChanged);
     on<OcptResourcesDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
-    on<OcptResourcesXlsxExportRequestedEvent>(_onXlsxExportRequested);
-    on<OcptResourcesContactListExportRequestedEvent>(_onContactListExportRequested);
-    on<OcptResourcesIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -3269,139 +3266,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     emitter(state.copyWith(hasWriteError: false));
-  }
-
-  /// Exports the whole resources catalogue to a four-sheet XLSX workbook.
-  ///
-  /// Flushes every pending field edit first — that flush re-reads the snapshot, so the workbook
-  /// holds the value the user typed seconds ago rather than the one the database held before it —
-  /// then hands what the state now carries to [OcptExportManager.exportResourcesXlsx], mirroring
-  /// `OcptShotListBloc._onXlsxExportRequested`. A cancelled save dialog is a silent no-op; a
-  /// failure raises the transient export-failed notice.
-  Future<void> _onXlsxExportRequested(
-    OcptResourcesXlsxExportRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final snapshot = state.snapshot;
-    final project = _projectsManager.currentProject;
-    if (snapshot == null || project == null) {
-      return;
-    }
-
-    try {
-      final outcome = await _exportManager.exportResourcesXlsx(
-        snapshot: snapshot,
-        labels: event.labels,
-        projectName: state.title,
-        fileTypeLabel: event.fileTypeLabel,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWith(
-            ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptResourcesIoNotice(
-            kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the resources catalogue of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
-        ),
-      );
-    }
-  }
-
-  /// Exports the crew and the cast to a standalone contact list PDF.
-  ///
-  /// Flushes every pending field edit first, exactly as [_onXlsxExportRequested] does, then hands
-  /// what the state now carries and [event]'s own options to
-  /// [OcptExportManager.exportContactList]. A cancelled save dialog is a silent no-op; a failure
-  /// raises the transient export-failed notice.
-  Future<void> _onContactListExportRequested(
-    OcptResourcesContactListExportRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    await _flushPendingFieldEdits(emitter);
-
-    final snapshot = state.snapshot;
-    final project = _projectsManager.currentProject;
-    if (snapshot == null || project == null) {
-      return;
-    }
-
-    try {
-      final options = event.options;
-      final outcome = await _exportManager.exportContactList(
-        snapshot: snapshot,
-        pageSetup: OcptPageSetup(format: options.format, margins: options.margins),
-        labels: event.labels,
-        projectName: state.title,
-        fileTypeLabel: event.fileTypeLabel,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptResourcesIoNotice(
-            kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the contact list of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptResourcesIoNotice(
-            kind: OcptResourcesIoNoticeKind.contactListExportFailed,
-          ),
-        ),
-      );
-    }
-  }
-
-  /// Clears the transient export notice currently shown, if any.
-  Future<void> _onIoNoticeDismissed(
-    OcptResourcesIoNoticeDismissedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

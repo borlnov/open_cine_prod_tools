@@ -4,7 +4,6 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:collection/collection.dart';
-import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -34,44 +33,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_st
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-
-/// The kind of transient notice [OcptResourcesIoNotice] carries, one per resources export outcome.
-enum OcptResourcesIoNoticeKind {
-  /// The resources catalogue was successfully exported to a four-sheet XLSX workbook.
-  xlsxExportSucceeded,
-
-  /// Exporting the resources catalogue to a four-sheet XLSX workbook failed.
-  xlsxExportFailed,
-
-  /// The contact list was successfully exported to a PDF.
-  contactListExportSucceeded,
-
-  /// Exporting the contact list to a PDF failed.
-  contactListExportFailed,
-}
-
-/// A transient notice, produced by `OcptResourcesBloc`, reporting the outcome of an export, shown
-/// as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.
-class OcptResourcesIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptResourcesIoNoticeKind kind;
-
-  /// The path the export was written to, only set when [kind] is the succeeded kind and
-  /// [wasShared] is false — a mobile export hands the file to the OS share sheet instead of
-  /// writing it to a path the user picked, so there is none to show.
-  final String? path;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptResourcesIoNotice({required this.kind, this.path, this.wasShared = false});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, wasShared];
-}
 
 /// The state of `OcptResourcesBloc`.
 ///
@@ -179,10 +140,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// Whether the last write to the project database failed; shown as a transient SnackBar then
   /// dismissed.
   final bool hasWriteError;
-
-  /// The outcome of the last resources export, or null while there is nothing to report; shown as
-  /// a transient SnackBar then dismissed.
-  final OcptResourcesIoNotice? ioNotice;
 
   /// The cross-mode switch the sets card's own `Open in shot list` action just resolved
   /// (`OcptLocationsService.firstLinkedSceneOf`), or null while none is pending — a one-shot
@@ -460,7 +417,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.hasWriteError,
-    required this.ioNotice,
     required this.pendingShotListReveal,
     required this.pendingFieldEdits,
     required this.pendingRoleFieldEdits,
@@ -503,7 +459,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
-      ioNotice = null,
       pendingShotListReveal = null,
       pendingFieldEdits = const {},
       pendingRoleFieldEdits = const {},
@@ -533,9 +488,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
   /// so it needs no force flag. [selectedPersonId], [selectedRoleId], [selectedLocationId],
-  /// [selectedElementId], [rightDockTab] and [ioNotice] all legitimately go back to null while the
-  /// mode is alive (nothing selected any more, the dock closed, the export notice dismissed), so
-  /// each has its own force flag instead.
+  /// [selectedElementId] and [rightDockTab] all legitimately go back to null while the mode is
+  /// alive (nothing selected any more, the dock closed), so each has its own force flag instead.
   @override
   OcptResourcesState copyWith({
     bool? isLoading,
@@ -563,8 +517,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     double? leftDockFraction,
     double? rightDockFraction,
     bool? hasWriteError,
-    OcptResourcesIoNotice? ioNotice,
-    bool forceIoNoticeValue = false,
     ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
     bool forcePendingShotListRevealValue = false,
     Map<(String, OcptPersonField), String>? pendingFieldEdits,
@@ -616,7 +568,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     leftDockFraction: leftDockFraction ?? this.leftDockFraction,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
     hasWriteError: hasWriteError ?? this.hasWriteError,
-    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     pendingShotListReveal:
         pendingShotListReveal ??
         (forcePendingShotListRevealValue ? null : this.pendingShotListReveal),
@@ -728,7 +679,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     leftDockFraction,
     rightDockFraction,
     hasWriteError,
-    ioNotice,
     pendingShotListReveal,
     pendingFieldEdits,
     pendingRoleFieldEdits,

@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_contact_list_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_element_sheet.dart';
@@ -46,6 +47,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_right_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_view_effects.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_role_sheet.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
@@ -92,12 +94,22 @@ class OcptResourcesMode extends StatelessWidget {
   const OcptResourcesMode({super.key, this.revealRequest});
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (context) => OcptResourcesBloc(
-      revealRequest: revealRequest,
-      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
-    ),
-    child: _ResourcesView(hasRevealRequest: revealRequest != null),
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (context) => OcptResourcesBloc(
+          revealRequest: revealRequest,
+          selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+        ),
+      ),
+      // Built with the mode rather than on first read: a view bloc registers itself with the mode
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptResourcesExportBloc(modeBloc: context.read<OcptResourcesBloc>()),
+      ),
+    ],
+    child: OcptResourcesViewEffects(child: _ResourcesView(hasRevealRequest: revealRequest != null)),
   );
 }
 
@@ -311,7 +323,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
   void _requestXlsxExport(BuildContext context, OcptResourcesState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
 
-    context.read<OcptResourcesBloc>().add(
+    context.read<OcptResourcesExportBloc>().add(
       OcptResourcesXlsxExportRequestedEvent(
         labels: ocptResourcesXlsxLabelsOf(context, state.scenes, currencyCode: state.currencyCode),
         fileTypeLabel: tr.resourcesExportXlsxFileTypeLabel,
@@ -328,7 +340,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     OcptResourcesState state,
     Rect? shareAnchor,
   ) async {
-    final bloc = context.read<OcptResourcesBloc>();
+    final bloc = context.read<OcptResourcesExportBloc>();
     final options = await OcptContactListExportDialog.show(context, current: state.pageSetup);
     if (options == null) {
       return;
@@ -1397,14 +1409,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
       context.read<OcptResourcesBloc>().add(const OcptResourcesWriteErrorDismissedEvent());
     }
 
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptResourcesBloc>().add(const OcptResourcesIoNoticeDismissedEvent());
-    }
-
     final pendingShotListReveal = state.pendingShotListReveal;
     if (pendingShotListReveal != null) {
       context.read<OcptResourcesBloc>().add(const OcptResourcesShotListRevealDismissedEvent());
@@ -1487,24 +1491,5 @@ class _ResourcesViewState extends State<_ResourcesView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
-  }
-
-  /// Maps [notice] to its localized, user-facing message, mirroring
-  /// `OcptShotListMode._ioNoticeMessage`, [OcptResourcesIoNotice.wasShared] included.
-  String _ioNoticeMessage(BuildContext context, OcptResourcesIoNotice notice) {
-    final tr = Tr.of(context);
-
-    return switch (notice.kind) {
-      OcptResourcesIoNoticeKind.xlsxExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.resourcesExportXlsxSuccessMessage(notice.path ?? ""),
-      OcptResourcesIoNoticeKind.xlsxExportFailed => tr.resourcesExportXlsxError,
-      OcptResourcesIoNoticeKind.contactListExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.resourcesExportContactListSuccessMessage(notice.path ?? ""),
-      OcptResourcesIoNoticeKind.contactListExportFailed => tr.resourcesExportContactListError,
-    };
   }
 }
