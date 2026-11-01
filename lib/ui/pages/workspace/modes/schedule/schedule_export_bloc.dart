@@ -103,24 +103,22 @@ class OcptScheduleExportBloc
         confirmButtonText: event.confirmButtonText,
         shareAnchor: event.shareAnchor,
       );
-      if (result == null) {
-        // The user cancelled the folder dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: result.isComplete
-                ? OcptScheduleIoNoticeKind.folderExportSucceeded
-                : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
-            folderPath: result.folderPath,
-            writtenCount: result.writtenFileNames.length,
-            failedCount: result.failedFileNames.length,
-            wasShared: result.wasShared,
+      // The user cancelled the folder dialog (a null result): nothing is reported.
+      if (result != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: result.isComplete
+                  ? OcptScheduleIoNoticeKind.folderExportSucceeded
+                  : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
+              folderPath: result.folderPath,
+              writtenCount: result.writtenFileNames.length,
+              failedCount: result.failedFileNames.length,
+              wasShared: result.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the call sheets of project "
@@ -163,24 +161,22 @@ class OcptScheduleExportBloc
         confirmButtonText: event.confirmButtonText,
         shareAnchor: event.shareAnchor,
       );
-      if (result == null) {
-        // The user cancelled the folder dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: result.isComplete
-                ? OcptScheduleIoNoticeKind.folderExportSucceeded
-                : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
-            folderPath: result.folderPath,
-            writtenCount: result.writtenFileNames.length,
-            failedCount: result.failedFileNames.length,
-            wasShared: result.wasShared,
+      // The user cancelled the folder dialog (a null result): nothing is reported.
+      if (result != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: result.isComplete
+                  ? OcptScheduleIoNoticeKind.folderExportSucceeded
+                  : OcptScheduleIoNoticeKind.folderExportPartiallySucceeded,
+              folderPath: result.folderPath,
+              writtenCount: result.writtenFileNames.length,
+              failedCount: result.failedFileNames.length,
+              wasShared: result.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the named call sheets of project "
@@ -232,20 +228,18 @@ class OcptScheduleExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the shooting plan of project "
@@ -287,30 +281,27 @@ class OcptScheduleExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        if (outcome is OcptExportFailed) {
+          // The manager already logged why the workbook could not be built.
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
+            ),
+          );
+        } else {
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: OcptScheduleIoNotice(
+                kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+                path: outcome.savedPath,
+                wasShared: outcome.wasShared,
+              ),
+            ),
+          );
+        }
       }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the shooting plan workbook of project "
@@ -354,20 +345,18 @@ class OcptScheduleExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the day out of days of project "
@@ -411,20 +400,18 @@ class OcptScheduleExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the one-line schedule of project "
@@ -486,20 +473,18 @@ class OcptScheduleExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptScheduleIoNotice(
-            kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptScheduleIoNotice(
+              kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the sides of project "
