@@ -36,6 +36,26 @@ class OcptScheduleDayState extends BlocStateForMixin<OcptScheduleDayState> {
   OcptScheduleDayState copyWith({Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits}) =>
       OcptScheduleDayState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
 
+  /// Copies this state with [pendingFieldEdits] as what is still pending once the rows that are
+  /// gone lost their edits.
+  OcptScheduleDayState copyWithPrunedFieldEdits({
+    required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as the edits waiting in the debounce, a keystroke
+  /// later.
+  OcptScheduleDayState copyWithTypedFieldEdits({
+    required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with no field edit left pending.
+  OcptScheduleDayState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  OcptScheduleDayState copyWithFlushedFieldEdits({
+    required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits];

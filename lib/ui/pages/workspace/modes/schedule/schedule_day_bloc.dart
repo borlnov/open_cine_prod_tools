@@ -147,7 +147,7 @@ class OcptScheduleDayBloc
     if (isLoaded) {
       cancelDebounce();
       if (state.pendingFieldEdits.isNotEmpty) {
-        emitter(state.copyWith(pendingFieldEdits: const {}));
+        emitter(state.copyWithFieldEditsCleared());
       }
       return;
     }
@@ -167,7 +167,7 @@ class OcptScheduleDayBloc
     if (pending.isEmpty) {
       cancelDebounce();
     }
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
   }
 
   /// The ids of every row of [snapshot] a free-text field can be typed into: the days, the slots
@@ -664,7 +664,7 @@ class OcptScheduleDayBloc
   ) async {
     final pending = Map<OcptSchedulePendingFieldKey, String>.of(state.pendingFieldEdits)
       ..[(event.targetId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptScheduleFieldEditFlushRequestedEvent());
   }
@@ -699,7 +699,7 @@ class OcptScheduleDayBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -713,7 +713,7 @@ class OcptScheduleDayBloc
     }
 
     emitter(
-      state.copyWith(
+      state.copyWithFlushedFieldEdits(
         pendingFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingFieldEdits,
           written: pending,
