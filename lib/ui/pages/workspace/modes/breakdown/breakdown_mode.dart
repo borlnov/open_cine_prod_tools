@@ -9,23 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
-import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_scene_bars.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_scene_set_suggestion.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_export_document.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
-import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
-import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
@@ -34,23 +22,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_right_dock.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_scene_inspector.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_scene_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_script_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_centre.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_left_dock_view.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_read_only_banner.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_right_dock_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_target_inspector.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_view_effects.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_role_alert_compact_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
@@ -93,8 +76,8 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 ///
 /// While a project version is being previewed, the mode shows that version's own read instead of
 /// the working copy's, and carries the shell's read-only banner naming it, exactly as the resources
-/// and shot list modes do; the range interaction is withheld outright (`_buildScriptView`'s own doc
-/// comment), and both inspectors withhold every control that writes (see
+/// and shot list modes do; the range interaction is withheld outright (`OcptBreakdownCentre`'s
+/// script view), and both inspectors withhold every control that writes (see
 /// [OcptBreakdownTargetInspector]'s and `OcptBreakdownSceneInspector`'s own doc comments) while
 /// leaving both fully readable. The header and the recap table need no such gating at all: the view
 /// switch, the search field and a recap row's click only ever read, so nothing here withholds
@@ -184,6 +167,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
       }
 
       final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+      final previewedVersion = state.previewedVersion;
+      final rightDockTab = state.rightDockTab;
 
       return OcptWorkspaceShell(
         title: state.title,
@@ -198,7 +183,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
         ),
         modeLabel: Tr.of(context).workspaceModeLabelBreakdown,
         onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
-        overflowEntries: _buildOverflowEntries(context),
+        overflowEntries: _overflowEntriesOf(context),
         isLeftDockOpen: state.isListPanelVisible,
         onToggleLeftDock: () =>
             context.read<OcptBreakdownBloc>().add(const OcptBreakdownLeftPanelToggledEvent()),
@@ -208,10 +193,19 @@ class _BreakdownViewState extends State<_BreakdownView> {
         onProjectSettingsRequested: state.isPreviewingVersion
             ? null
             : () => _requestProjectSettings(context),
-        banner: _buildReadOnlyBanner(context, state),
-        leftPanel: _buildScenePanel(context, state),
-        rightPanel: _buildRightDock(context, state),
-        centre: _buildCentre(context, state),
+        banner: previewedVersion == null
+            ? null
+            : OcptBreakdownReadOnlyBanner(previewedVersion: previewedVersion),
+        leftPanel: state.isListPanelVisible ? OcptBreakdownLeftDockView(state: state) : null,
+        rightPanel: rightDockTab == null
+            ? null
+            : OcptBreakdownRightDockView(
+                state: state,
+                activeTab: rightDockTab,
+                onTagRemovalRequested: () => unawaited(_handleTagRemovalRequested(context)),
+                onVersionCreationRequested: () => unawaited(_requestVersionCreation(context)),
+              ),
+        centre: OcptBreakdownCentre(state: state),
         statusBar: OcptBreakdownStatusBar(
           taggedTargetCount: state.taggedTargetCount,
           usedCategoryCount: state.usedCategoryCount,
@@ -231,7 +225,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// [_requestExport]), and this is the only entry the breakdown mode has left to offer. A `⋮`
   /// holding one entry is thin, but honest: moving it somewhere else is a separate question this
   /// doesn't answer.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context) => [
+  List<PopupMenuEntry<void>> _overflowEntriesOf(BuildContext context) => [
     PopupMenuItem<void>(
       onTap: () => context.read<OcptBreakdownBloc>().add(const OcptBreakdownDockLayoutResetEvent()),
       child: Text(Tr.of(context).breakdownResetPanelLayoutAction),
@@ -241,7 +235,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// Builds the two entries the toolbar's `Export` button offers: the breakdown sheets and the
   /// breakdown workbook, both unavailable while the screenplay holds no scene at all — there would
   /// be nothing to print a sheet for, or a row to write into a workbook.
-  List<OcptWorkspaceExportEntry<OcptBreakdownExportDocument>> _buildExportEntries(
+  List<OcptWorkspaceExportEntry<OcptBreakdownExportDocument>> _exportEntriesOf(
     BuildContext context,
     OcptBreakdownState state,
   ) {
@@ -280,7 +274,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       context,
       title: tr.breakdownExportPanelTitle,
       message: tr.breakdownExportPanelMessage,
-      entries: _buildExportEntries(context, state),
+      entries: _exportEntriesOf(context, state),
       isPreviewingVersion: state.isPreviewingVersion,
     );
     if (picked == null) {
@@ -406,506 +400,6 @@ class _BreakdownViewState extends State<_BreakdownView> {
     bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
-
-  /// Builds the left dock, the shell's `leftPanel`, or null while it's hidden.
-  Widget? _buildScenePanel(BuildContext context, OcptBreakdownState state) {
-    if (!state.isListPanelVisible) {
-      return null;
-    }
-
-    return OcptBreakdownScenePanel(
-      scenes: state.scenes,
-      targetById: ocptBreakdownTargetsById(state.targets),
-      selectedSceneId: state.selectedSceneId,
-      onSceneSelected: (sceneId) =>
-          context.read<OcptBreakdownBloc>().add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId)),
-      onWarningTapped: (sceneId) => context.read<OcptBreakdownBloc>().add(
-        OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId),
-      ),
-      legendEntries: ocptBreakdownLegendEntriesOf(state.targets),
-      hiddenLegendKeys: state.hiddenLegendKeys,
-      onLegendEntryToggled: (key) =>
-          context.read<OcptBreakdownBloc>().add(OcptBreakdownLegendEntryToggledEvent(key: key)),
-      onShowAllLegendKeysRequested: () =>
-          context.read<OcptBreakdownBloc>().add(const OcptBreakdownLegendShowAllRequestedEvent()),
-    );
-  }
-
-  /// Builds the shell's `centre`: the compact role alert banner (ADR 0030 decision 4), then the
-  /// header band, then whichever of the script view or the recap table
-  /// [OcptBreakdownState.centreView] currently names, filling the rest of the row.
-  ///
-  /// The banner sits above everything else and stays whichever scene or target is selected: it
-  /// reports the whole cast, not something about the sheet currently being looked at.
-  Widget _buildCentre(BuildContext context, OcptBreakdownState state) {
-    final bloc = context.read<OcptBreakdownBloc>();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_buildRoleAlertCompactBanner(context, state) case final banner?)
-          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: banner),
-        OcptBreakdownHeader(
-          centreView: state.centreView,
-          onCentreViewSelected: (view) =>
-              bloc.add(OcptBreakdownCentreViewSelectedEvent(view: view)),
-          searchQuery: state.searchQuery,
-          onSearchQueryChanged: (query) =>
-              bloc.add(OcptBreakdownSearchQueryChangedEvent(query: query)),
-          taggedTargetCount: state.taggedTargetCount,
-          doneSceneCount: state.doneSceneCount,
-          sceneCount: state.scenes.length,
-        ),
-        Expanded(
-          child: state.centreView == OcptBreakdownCentreView.script
-              ? _buildScriptView(context, state)
-              : _buildRecapTable(context, state),
-        ),
-      ],
-    );
-  }
-
-  /// Builds the compact role alert banner, or null while the whole cast is in order or a project
-  /// version is being previewed read-only.
-  ///
-  /// Having no role sheet of its own, tapping a line opens the role in the resources mode instead,
-  /// through the very same workspace reveal request `Open in Resources` already uses
-  /// ([_revealRequestOf]'s own sibling, for a role rather than the selected target).
-  Widget? _buildRoleAlertCompactBanner(BuildContext context, OcptBreakdownState state) {
-    final orphanedAlerts = state.orphanedRoleAlerts;
-    final collisionAlerts = state.roleCollisionAlerts;
-    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
-      return null;
-    }
-
-    return OcptRoleAlertCompactBanner(
-      orphanedAlerts: orphanedAlerts,
-      collisionAlerts: collisionAlerts,
-      onRoleTapped: (roleId) => context.read<OcptWorkspaceBloc>().add(
-        OcptWorkspaceModeSelectedEvent(
-          mode: OcptWorkspaceMode.resources,
-          revealRequest: OcptResourcesRevealRequest(tab: OcptResourcesTab.roles, recordId: roleId),
-        ),
-      ),
-    );
-  }
-
-  /// Builds the recap view: the target × scene cross-table, filtered by the header's own search
-  /// field. A row's click reports the same event a tagged word's click in the script view already
-  /// does, passing the target's own first scene id, so the left dock and the sheet stay in step.
-  Widget _buildRecapTable(BuildContext context, OcptBreakdownState state) {
-    final bloc = context.read<OcptBreakdownBloc>();
-
-    return OcptBreakdownRecapTable(
-      scenes: state.scenes,
-      targets: state.targets,
-      elements: state.elements,
-      people: state.people,
-      searchQuery: state.searchQuery,
-      selectedTargetRef: state.selectedTargetRef,
-      onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
-        OcptBreakdownTargetSelectedEvent(
-          targetKind: targetKind,
-          targetId: targetId,
-          sceneId: sceneId,
-        ),
-      ),
-    );
-  }
-
-  /// Builds the script view: the whole screenplay typeset as a paper sheet, its words clickable.
-  ///
-  /// [OcptBreakdownScriptView.onWordClicked] alone is what withholds the whole range interaction
-  /// while a version is being previewed: nulling it out is enough, since no anchor can open and
-  /// therefore no popover ever has a range to show.
-  Widget _buildScriptView(BuildContext context, OcptBreakdownState state) {
-    final bloc = context.read<OcptBreakdownBloc>();
-    final taggingBloc = context.read<OcptBreakdownTaggingBloc>();
-    final taggingState = context.watch<OcptBreakdownTaggingBloc>().state;
-    final isReadOnly = state.isPreviewingVersion;
-
-    return OcptBreakdownScriptView(
-      screenplayText: state.screenplayText,
-      scenes: state.scenes,
-      targetById: ocptBreakdownTargetsById(state.targets),
-      pageSetup: state.pageSetup,
-      selectedSceneId: state.selectedSceneId,
-      onSceneSelected: (sceneId) =>
-          bloc.add(OcptBreakdownSceneHeadingSelectedEvent(sceneId: sceneId)),
-      hiddenLegendKeys: state.hiddenLegendKeys,
-      selectedTargetRef: state.selectedTargetRef,
-      locations: [for (final location in state.locations) (location.id, location.name)],
-      onPopoverSetCreationRequested: (locationId, name) => taggingBloc.add(
-        OcptBreakdownPopoverSetCreationRequestedEvent(locationId: locationId, name: name),
-      ),
-      onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
-        OcptBreakdownTargetSelectedEvent(
-          targetKind: targetKind,
-          targetId: targetId,
-          sceneId: sceneId,
-        ),
-      ),
-      onWordClicked: isReadOnly
-          ? null
-          : (sceneId, wordStartOffset, wordEndOffset) => taggingBloc.add(
-              OcptBreakdownWordClickedEvent(
-                sceneId: sceneId,
-                wordStartOffset: wordStartOffset,
-                wordEndOffset: wordEndOffset,
-              ),
-            ),
-      pendingTagAnchor: taggingState.pendingTagAnchor,
-      pendingTagRange: taggingState.pendingTagRange,
-      candidates: state.searchCandidates,
-      onSelectionCancelled: () => taggingBloc.add(const OcptBreakdownTagRangeCancelledEvent()),
-      onPopoverCancelled: () => taggingBloc.add(const OcptBreakdownTagRangeCancelledEvent()),
-      onPopoverTargetLinked: (targetKind, targetId) => taggingBloc.add(
-        OcptBreakdownPopoverTargetLinkedEvent(targetKind: targetKind, targetId: targetId),
-      ),
-      onPopoverElementCreationRequested: (category, name) => taggingBloc.add(
-        OcptBreakdownPopoverElementCreationRequestedEvent(category: category, name: name),
-      ),
-      onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
-        const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.resources),
-      ),
-    );
-  }
-
-  /// Builds the right dock, the shell's `rightPanel`, or null while the dock is closed.
-  Widget? _buildRightDock(BuildContext context, OcptBreakdownState state) {
-    final rightDockTab = state.rightDockTab;
-    if (rightDockTab == null) {
-      return null;
-    }
-
-    return OcptBreakdownRightDock(
-      activeTab: rightDockTab,
-      inspectorChild: _buildInspector(context, state),
-      versionsChild: _buildVersionsPanel(context, state),
-      onTabSelected: (tab) =>
-          context.read<OcptBreakdownBloc>().add(OcptBreakdownRightDockTabSelectedEvent(tab: tab)),
-      onClose: () =>
-          context.read<OcptBreakdownBloc>().add(const OcptBreakdownRightDockClosedEvent()),
-    );
-  }
-
-  /// The default name the `+ Set` popover's own name field opens with, for the scene sheet of a
-  /// scene headed [heading]: the place that heading names (`ocptSceneHeadingPlaceOf` — its
-  /// interior/exterior prefix and its time of day dropped), falling back to the whole heading when
-  /// there is nothing left of it. The user may edit it before creating; only the starting text is
-  /// resolved here.
-  String _newSetNameOf(String heading) {
-    final place = ocptSceneHeadingPlaceOf(heading);
-    return place.isEmpty ? heading : place;
-  }
-
-  /// Builds the `Inspector` tab's own content: the selected target's sheet, or — while nothing is
-  /// selected — the selected scene's own breakdown sheet.
-  Widget _buildInspector(BuildContext context, OcptBreakdownState state) {
-    final inspectorState = context.watch<OcptBreakdownInspectorBloc>().state;
-    final target = state.selectedTarget;
-    if (target == null) {
-      final scene = state.selectedScene;
-      final bloc = context.read<OcptBreakdownBloc>();
-      final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
-      final isReadOnly = state.isPreviewingVersion;
-
-      return OcptBreakdownSceneInspector(
-        scene: scene,
-        targetById: ocptBreakdownTargetsById(state.targets),
-        sets: state.sets,
-        locationNameById: state.locationNameById,
-        suggestedSetId: scene == null
-            ? null
-            : ocptSceneSetSuggestionOf(heading: scene.heading, locations: state.locations),
-        onSetLinked: isReadOnly || scene == null
-            ? null
-            : (setId) => inspectorBloc.add(
-                OcptBreakdownSceneSetLinkedEvent(sceneId: scene.id, setId: setId),
-              ),
-        onSetUnlinked: isReadOnly || scene == null
-            ? null
-            : (setId) => inspectorBloc.add(
-                OcptBreakdownSceneSetUnlinkedEvent(sceneId: scene.id, setId: setId),
-              ),
-        locations: [for (final location in state.locations) (location.id, location.name)],
-        newSetName: scene == null ? "" : _newSetNameOf(scene.heading),
-        onSetCreationRequested: isReadOnly || scene == null
-            ? null
-            : (name, locationId) => inspectorBloc.add(
-                OcptBreakdownSceneSetCreationRequestedEvent(
-                  sceneId: scene.id,
-                  locationId: locationId,
-                  name: name,
-                ),
-              ),
-        notesValue: scene == null ? "" : inspectorState.sceneNotesValueOf(scene.id, scene.notes),
-        onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
-          OcptBreakdownTargetSelectedEvent(
-            targetKind: targetKind,
-            targetId: targetId,
-            sceneId: sceneId,
-          ),
-        ),
-        onStatusChanged: scene == null
-            ? null
-            : (status) => inspectorBloc.add(
-                OcptBreakdownSceneStatusChangedEvent(sceneId: scene.id, status: status),
-              ),
-        onNotesChanged: scene == null
-            ? null
-            : (rawValue) => inspectorBloc.add(
-                OcptBreakdownSceneNotesChangedEvent(sceneId: scene.id, rawValue: rawValue),
-              ),
-        onTagNeedsCheckCleared: (tagId) =>
-            inspectorBloc.add(OcptBreakdownTagNeedsCheckClearedEvent(tagId: tagId)),
-        onFlaggedTagRemoved: (tagId) =>
-            inspectorBloc.add(OcptBreakdownFlaggedTagRemovedEvent(tagId: tagId)),
-        isReadOnly: isReadOnly,
-      );
-    }
-
-    final bloc = context.read<OcptBreakdownBloc>();
-    final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
-    final taggingBloc = context.read<OcptBreakdownTaggingBloc>();
-    final element = state.selectedElement;
-    final isReadOnly = state.isPreviewingVersion;
-
-    return OcptBreakdownTargetInspector(
-      target: target,
-      element: element,
-      owner: element == null ? null : _personById(state.people, element.ownerPersonId),
-      bringer: element == null ? null : _personById(state.people, element.broughtByPersonId),
-      people: state.people,
-      scenes: state.scenes,
-      fieldValueOf: (field) => element == null
-          ? ""
-          : inspectorState.elementFieldValueOf(
-              element.id,
-              field,
-              _storedElementFieldValue(element, field),
-            ),
-      onBackToSceneRequested: () => bloc.add(const OcptBreakdownTargetSelectionClearedEvent()),
-      nameValue: switch (target.kind) {
-        OcptBreakdownTargetKind.element =>
-          element == null
-              ? target.name
-              : inspectorState.elementFieldValueOf(element.id, OcptElementField.name, element.name),
-        OcptBreakdownTargetKind.set => inspectorState.setNameValueOf(target.id, target.name),
-        OcptBreakdownTargetKind.role => target.name,
-      },
-      onNameChanged: isReadOnly
-          ? null
-          : switch (target.kind) {
-              // A role's name is the screenplay's: `OcptRoleIndexService` reconciles it from the
-              // cue, so a rename here would be undone by the next save.
-              OcptBreakdownTargetKind.role => null,
-              OcptBreakdownTargetKind.element =>
-                element == null
-                    ? null
-                    : (rawValue) => inspectorBloc.add(
-                        OcptBreakdownElementFieldChangedEvent(
-                          elementId: element.id,
-                          field: OcptElementField.name,
-                          rawValue: rawValue,
-                        ),
-                      ),
-              OcptBreakdownTargetKind.set => (rawValue) => inspectorBloc.add(
-                OcptBreakdownSetNameChangedEvent(setId: target.id, rawValue: rawValue),
-              ),
-            },
-      onStatusChanged: isReadOnly || element == null
-          ? null
-          : (status) => inspectorBloc.add(
-              OcptBreakdownElementStatusChangedEvent(elementId: element.id, status: status),
-            ),
-      onCategoryChanged: isReadOnly || element == null
-          ? null
-          : (category) => inspectorBloc.add(
-              OcptBreakdownElementCategoryChangedEvent(elementId: element.id, category: category),
-            ),
-      onFieldChanged: isReadOnly || element == null
-          ? null
-          : (field, rawValue) => inspectorBloc.add(
-              OcptBreakdownElementFieldChangedEvent(
-                elementId: element.id,
-                field: field,
-                rawValue: rawValue,
-              ),
-            ),
-      onOwnerChanged: isReadOnly || element == null
-          ? null
-          : (personId) => inspectorBloc.add(
-              OcptBreakdownElementOwnerChangedEvent(elementId: element.id, personId: personId),
-            ),
-      onBringerChanged: isReadOnly || element == null
-          ? null
-          : (personId) => inspectorBloc.add(
-              OcptBreakdownElementBringerChangedEvent(elementId: element.id, personId: personId),
-            ),
-      onOccurrenceSelected: (sceneId) =>
-          bloc.add(OcptBreakdownOccurrenceSelectedEvent(sceneId: sceneId)),
-      suggestions: state.selectedTargetSuggestions,
-      onSuggestionAccepted: isReadOnly
-          ? null
-          : (suggestion) => taggingBloc.add(
-              OcptBreakdownSuggestionAcceptedEvent(
-                targetKind: suggestion.targetKind,
-                targetId: suggestion.targetId,
-                sceneId: suggestion.sceneId,
-                startOffset: suggestion.startOffset,
-                endOffset: suggestion.endOffset,
-                taggedText: suggestion.text,
-              ),
-            ),
-      onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
-        OcptWorkspaceModeSelectedEvent(
-          mode: OcptWorkspaceMode.resources,
-          revealRequest: _revealRequestOf(state, target),
-        ),
-      ),
-      onTagRemovalRequested: isReadOnly ? null : () => _handleTagRemovalRequested(context),
-      isReadOnly: isReadOnly,
-    );
-  }
-
-  /// Where the resources mode should land when `Open in Resources` is clicked on [target]'s own
-  /// sheet: the tab that holds it, with its record already selected.
-  ///
-  /// A **set** has no sheet of its own — it lives in the sets card of the location that holds it —
-  /// so it is that location which is revealed, resolved here out of [OcptBreakdownState.sets]. A
-  /// set whose location has gone missing from the snapshot reveals the locations tab and nothing
-  /// on it, which is as close as the mode can honestly get.
-  OcptWorkspaceRevealRequest _revealRequestOf(
-    OcptBreakdownState state,
-    OcptBreakdownTarget target,
-  ) => switch (target.kind) {
-    OcptBreakdownTargetKind.element => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.elements,
-      recordId: target.id,
-    ),
-    OcptBreakdownTargetKind.role => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.roles,
-      recordId: target.id,
-    ),
-    OcptBreakdownTargetKind.set => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.locations,
-      recordId: _locationIdOfSet(state, target.id),
-    ),
-  };
-
-  /// The id of the location holding the set [setId] names, or null while no set of
-  /// [OcptBreakdownState.sets] has that id.
-  String? _locationIdOfSet(OcptBreakdownState state, String setId) {
-    for (final set in state.sets) {
-      if (set.id == setId) {
-        return set.locationId;
-      }
-    }
-
-    return null;
-  }
-
-  /// The person named by [personId] among [people], or null while [personId] is null or names
-  /// nobody in [people].
-  OcptPerson? _personById(List<OcptPerson> people, String? personId) {
-    if (personId == null) {
-      return null;
-    }
-
-    for (final person in people) {
-      if (person.id == personId) {
-        return person;
-      }
-    }
-
-    return null;
-  }
-
-  /// [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and `notes`
-  /// are ever asked for, the target inspector's other fields being single picks rather than typed
-  /// text.
-  String _storedElementFieldValue(OcptElement element, OcptElementField field) => switch (field) {
-    OcptElementField.name => element.name,
-    OcptElementField.subCategory => element.subCategory,
-    OcptElementField.quantity => element.quantity,
-    OcptElementField.notes => element.notes,
-    OcptElementField.ownerNotes ||
-    OcptElementField.storageNotes ||
-    OcptElementField.cost ||
-    OcptElementField.purposeNotes => "",
-  };
-
-  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
-  /// working copy is on screen.
-  Widget? _buildReadOnlyBanner(BuildContext context, OcptBreakdownState state) {
-    final previewedVersion = state.previewedVersion;
-    if (previewedVersion == null) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-
-    return OcptWorkspaceReadOnlyBanner(
-      version: previewedVersion,
-      onForkRequested: () => context.read<OcptBreakdownBloc>().add(
-        OcptProjectVersionRestoreConfirmedEvent(
-          versionId: previewedVersion.id,
-          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
-        ),
-      ),
-      onExitPreview: () => context.read<OcptBreakdownBloc>().add(
-        const OcptProjectVersionPreviewExitRequestedEvent(),
-      ),
-    );
-  }
-
-  /// Builds the right dock's `Versions` tab: the working copy's own card and the project's named
-  /// versions, the same panel every other mode's dock hosts, wired to the events
-  /// `MixinOcptProjectVersionsBloc` handles.
-  Widget _buildVersionsPanel(BuildContext context, OcptBreakdownState state) =>
-      OcptProjectVersionsPanel(
-        versions: state.projectVersions,
-        previewedVersionId: state.previewedVersionId,
-        workingCopy: state.workingCopy,
-        versionPendingDeletionId: state.versionPendingDeletionId,
-        versionPendingRestoreId: state.versionPendingRestoreId,
-        versionPendingRenameId: state.versionPendingRenameId,
-        onCreateRequested: () => _requestVersionCreation(context),
-        onPreviewRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
-        ),
-        onPreviewExitRequested: () => context.read<OcptBreakdownBloc>().add(
-          const OcptProjectVersionPreviewExitRequestedEvent(),
-        ),
-        onRestoreRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
-        ),
-        onRestoreCancelled: () =>
-            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
-        onRestoreConfirmed: (version) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionRestoreConfirmedEvent(
-            versionId: version.id,
-            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
-          ),
-        ),
-        onDeleteRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
-        ),
-        onDeleteCancelled: () =>
-            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
-        onDeleteConfirmed: (versionId) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
-        ),
-        onRenameRequested: (versionId) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
-        ),
-        onRenameCancelled: () =>
-            context.read<OcptBreakdownBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
-        onRenameConfirmed: (versionId, name, note) => context.read<OcptBreakdownBloc>().add(
-          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
-        ),
-      );
 
   /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
