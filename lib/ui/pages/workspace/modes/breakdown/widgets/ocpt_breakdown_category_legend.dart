@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
@@ -68,8 +68,8 @@ class OcptBreakdownCategoryLegend extends StatelessWidget {
               if (hiddenKeys.isNotEmpty)
                 InkWell(
                   onTap: onShowAllRequested,
-                  mouseCursor: ocptClickableCursor,
-                  borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
+                  borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Text(
@@ -123,7 +123,7 @@ class _OcptBreakdownLegendRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Opacity(
         opacity: isHidden ? _ocptBreakdownLegendHiddenOpacity : 1,
         child: Padding(

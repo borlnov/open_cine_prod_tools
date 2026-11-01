@@ -6,7 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 
@@ -139,7 +139,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
                               icon: Icon(
                                 _isSecretVisible ? Icons.visibility_off : Icons.visibility,
                               ),
-                              mouseCursor: ocptClickableCursor,
+                              mouseCursor: ocpt_theme.ocptClickableCursor,
                               onPressed: () => setState(() => _isSecretVisible = !_isSecretVisible),
                             ),
                           ),

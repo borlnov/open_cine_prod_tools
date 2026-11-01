@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// The `Dossier` column's own fixed width, in logical pixels — matches
 /// `OcptBudgetCostTracking`'s own status-shaped columns.
@@ -30,7 +30,7 @@ const double ocptBudgetFinancingMinTableWidth =
     3 * ocptBudgetFinancingAmountColumnWidth +
     ocptBudgetFinancingMenuColumnWidth +
     ocptBudgetFinancingRessourceColumnMinWidth +
-    2 * ocptTableRowHorizontalPadding;
+    2 * ocpt_theme.ocptTableRowHorizontalPadding;
 
 /// A family, a resource or a revenue row's own fixed height, in logical pixels.
 const double ocptBudgetFinancingRowHeight = 44;

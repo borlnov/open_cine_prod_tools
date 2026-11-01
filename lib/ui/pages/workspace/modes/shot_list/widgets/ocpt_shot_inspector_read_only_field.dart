@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// One read-only field row of the shot inspector and metadata panels: an uppercase,
 /// `onSurfaceVariant` label over a rounded `surfaceContainer` value box.
@@ -40,7 +40,7 @@ class OcptShotInspectorReadOnlyField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
             ),
             child: Text(value, style: theme.textTheme.bodySmall),
           ),

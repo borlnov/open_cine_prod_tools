@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
@@ -137,8 +137,8 @@ class _OcptPresenceCluster extends StatelessWidget {
     return MenuAnchor(
       menuChildren: [_OcptPresencePopover(roster: roster)],
       builder: (context, controller, child) => InkWell(
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         onTap: () => controller.isOpen ? controller.close() : controller.open(),
         child: SizedBox(
           height: _clusterAvatarSize,
@@ -408,8 +408,8 @@ class _OcptPresenceSelfBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        color: theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         label,

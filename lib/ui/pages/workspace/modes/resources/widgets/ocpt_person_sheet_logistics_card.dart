@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
@@ -178,7 +178,7 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -247,7 +247,7 @@ class _OcptMileageRatePicker extends StatelessWidget {
       value: liveRate?.id,
       isExpanded: true,
       onChanged: onChanged,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface),
       items: [
         DropdownMenuItem(child: Text(tr.resourcesMileageRateNoRateOption)),
@@ -281,9 +281,9 @@ class _Option extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : null,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         label,
@@ -300,8 +300,8 @@ class _Option extends StatelessWidget {
 
     return InkWell(
       onTap: () => onChanged(optionValue),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: pill,
     );
   }

@@ -8,7 +8,7 @@ import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -39,11 +39,11 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and [ocptTheme]'s
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and [ocpt_theme.ocptTheme]'s
 /// light theme so widgets reading its `OcptSpecificColors` extension resolve one, just like the
 /// real app always does.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

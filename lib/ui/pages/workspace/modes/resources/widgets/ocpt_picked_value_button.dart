@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// One value a picker sits behind: the value itself, clickable while [onPressed] is given, plain
 /// text otherwise.
@@ -31,8 +31,8 @@ class OcptPickedValueButton extends StatelessWidget {
 
     return InkWell(
       onTap: onPressed,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: text),
     );
   }

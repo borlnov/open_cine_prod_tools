@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// One line of the `Repaying the contributions` card: a muted label, a value — the last one
 /// ([isEmphasized]) bolder and in the accent colour, the point of the card being to make it stand
@@ -31,7 +31,10 @@ class OcptBudgetSharingPotLine extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: ocptTableRowHorizontalPadding),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           Expanded(

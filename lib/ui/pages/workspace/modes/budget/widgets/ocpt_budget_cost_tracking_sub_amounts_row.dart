@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -68,11 +68,11 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
       height: ocptBudgetCostTrackingSubRowHeight,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: onTap == null
             ? row
-            : InkWell(onTap: onTap, mouseCursor: ocptClickableCursor, child: row),
+            : InkWell(onTap: onTap, mouseCursor: ocpt_theme.ocptClickableCursor, child: row),
       ),
     );
   }

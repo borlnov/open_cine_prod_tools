@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
 /// The status [OcptJoiningScanFrame]'s own border colour reflects, driven by the Rejoindre page
@@ -50,9 +50,12 @@ class OcptJoiningScanFrame extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         border: Border.all(color: _colorFor(theme), width: 3),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(ocptRadiusMedium - 3), child: child),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium - 3),
+        child: child,
+      ),
     );
   }
 

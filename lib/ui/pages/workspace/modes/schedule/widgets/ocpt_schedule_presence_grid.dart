@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -168,7 +168,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: theme.colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(ocptRadiusMedium),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             ),
             clipBehavior: Clip.antiAlias,
             child: SingleChildScrollView(
@@ -415,7 +415,7 @@ class _OcptPresenceGridColumnHeader extends StatelessWidget {
         ),
         child: InkWell(
           onTap: () => onDayOpenRequested(column.day.id),
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_list_status_bar.dart';
@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// theme (the status bar reads the shot list's warning colour out of [OcptSpecificColors]), inside
 /// a box [width] wide.
 Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -68,7 +68,7 @@ void main() {
     tester,
   ) async {
     await pumpStatusBar(tester);
-    final warningColor = ocptTheme.lightThemeData!
+    final warningColor = ocpt_theme.ocptTheme.lightThemeData!
         .extension<OcptSpecificColors>()!
         .shotStatusRetake;
 

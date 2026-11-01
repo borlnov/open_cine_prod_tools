@@ -5,7 +5,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
@@ -481,10 +481,10 @@ class _RecapRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7),
@@ -610,8 +610,8 @@ class _RecapStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptElementStatusLabel(Tr.of(context), status),

@@ -6,7 +6,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_platform_manager/act_platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_bloc.dart';
@@ -208,8 +208,8 @@ class _OcptJoiningChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         label,
@@ -339,8 +339,8 @@ class _OcptJoiningNote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_legend.dart';
@@ -177,10 +177,10 @@ class _SceneEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -204,8 +204,8 @@ class _SceneEntry extends StatelessWidget {
                     message: tr.breakdownTagNeedsCheckTooltip,
                     child: InkWell(
                       onTap: onWarningTap,
-                      mouseCursor: ocptClickableCursor,
-                      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                      mouseCursor: ocpt_theme.ocptClickableCursor,
+                      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                       child: Icon(
                         Icons.warning_amber_rounded,
                         size: 12,
@@ -301,7 +301,7 @@ class _CategoryBar extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Color(bucket.color),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
     ),
   );

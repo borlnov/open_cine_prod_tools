@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The "what feeds this budget" card: three rows, each a title, a one-line reading and a click that
@@ -128,10 +128,13 @@ class _OcptFeedCardRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: ocptTableRowHorizontalPadding),
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
+        ),
         child: Row(
           children: [
             SizedBox(

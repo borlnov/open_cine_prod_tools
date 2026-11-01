@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -251,7 +251,7 @@ class _TrackingBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         ocptElementTrackingLabel(tr, element),

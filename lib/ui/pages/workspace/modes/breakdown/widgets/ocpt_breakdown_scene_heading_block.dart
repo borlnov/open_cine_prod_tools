@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
@@ -81,10 +81,10 @@ class OcptBreakdownSceneHeadingBlock extends StatelessWidget {
       padding: EdgeInsets.only(bottom: isFollowedByBlankLine ? previewLayout.blockSpacing : 0),
       child: InkWell(
         onTap: onTap,
-        mouseCursor: ocptClickableCursor,
+        mouseCursor: ocpt_theme.ocptClickableCursor,
         child: Container(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : null,
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(

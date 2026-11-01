@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_repayment_line.dart';
@@ -62,7 +62,10 @@ class OcptBudgetSharingRepaymentLenderRow extends StatelessWidget {
     final isOutstanding = line.outstandingCents > 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: ocptTableRowHorizontalPadding),
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+        horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
+      ),
       child: Row(
         children: [
           Expanded(

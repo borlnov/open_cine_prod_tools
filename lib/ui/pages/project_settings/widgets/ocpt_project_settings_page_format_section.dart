@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
@@ -52,7 +52,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
                       onPageFormatChanged(value);
                     }
                   },
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     for (final format in OcptPageFormat.values)
                       DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),

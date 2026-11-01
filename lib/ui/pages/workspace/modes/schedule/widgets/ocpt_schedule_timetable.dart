@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -249,7 +249,7 @@ class OcptScheduleTimetable extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-                borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -415,13 +415,13 @@ class _OcptScheduleBlocksArea extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 40),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(ocptRadiusMedium),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             border: Border.all(
               color: isHovering ? theme.colorScheme.primary : Colors.transparent,
               width: 2,
             ),
             color: isHovering
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : null,
           ),
           child: content,

@@ -5,7 +5,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The width every crew or cast card of a slot's own people sections claims when there is room for
@@ -126,7 +126,7 @@ class _SectionTitle extends StatelessWidget {
     );
 
     return InkWell(
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       onTap: onToggled,
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 
@@ -186,15 +186,15 @@ class _Chip extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
-      mouseCursor: ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : null,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           border: Border.all(
             color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
           ),

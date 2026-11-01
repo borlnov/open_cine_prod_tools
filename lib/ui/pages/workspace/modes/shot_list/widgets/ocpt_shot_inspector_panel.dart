@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
@@ -170,7 +170,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
             Text(
               tr.shotListInspectorHeaderTitle(shot.code),
               style: theme.textTheme.titleSmall?.copyWith(
-                fontFamily: ocptMonospaceFontFamily,
+                fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -434,8 +434,8 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

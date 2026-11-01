@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_allowances.dart';
@@ -45,7 +45,7 @@ class OcptBudgetRegieAllowanceNoPersonRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: onTap == null ? null : ocptClickableCursor,
+      mouseCursor: onTap == null ? null : ocpt_theme.ocptClickableCursor,
       child: SizedBox(
         height: ocptBudgetRegieAllowanceRowHeight,
         child: Row(

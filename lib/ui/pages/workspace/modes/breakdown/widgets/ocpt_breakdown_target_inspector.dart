@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_target.dart';
@@ -206,7 +206,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
       children: [
         InkWell(
           onTap: onBackToSceneRequested,
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: Text(
             tr.breakdownInspectorBackToSceneAction,
             style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary),
@@ -572,7 +572,7 @@ class _Occurrences extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -580,7 +580,7 @@ class _Occurrences extends StatelessWidget {
           for (var i = 0; i < occurrences.length; i++)
             InkWell(
               onTap: () => onOccurrenceSelected(occurrences[i].sceneId),
-              mouseCursor: ocptClickableCursor,
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -606,7 +606,7 @@ class _Occurrences extends StatelessWidget {
                     Text(
                       "…${occurrences[i].extract}…",
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontFamily: ocptMonospaceFontFamily,
+                        fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -654,7 +654,7 @@ class _SuggestedOccurrences extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -726,7 +726,7 @@ class _SuggestedOccurrenceRow extends StatelessWidget {
 
     return InkWell(
       onTap: () => onOccurrenceSelected(suggestion.sceneId),
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -753,7 +753,7 @@ class _SuggestedOccurrenceRow extends StatelessWidget {
                   Text(
                     "…${suggestion.text}…",
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: ocptMonospaceFontFamily,
+                      fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -802,15 +802,15 @@ class _OcptBreakdownCategoryChip extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           border: Border.all(
             color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
           ),

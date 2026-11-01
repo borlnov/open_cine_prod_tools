@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
@@ -449,18 +449,18 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(kind),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
           border: Border.all(
             color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
           ),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           ocptBudgetResourceGroupKindLabel(tr, kind),
@@ -515,14 +515,16 @@ class _OcptResourceStatusPicker extends StatelessWidget {
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(status),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isActive ? accent.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
+          color: isActive
+              ? accent.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
+              : Colors.transparent,
           border: Border.all(color: isActive ? accent : theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           ocptBudgetResourceStatusLabel(tr, groupKind, status),

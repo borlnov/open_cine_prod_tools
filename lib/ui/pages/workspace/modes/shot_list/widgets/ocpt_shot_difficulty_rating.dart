@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 
@@ -142,7 +142,7 @@ class _Dot extends StatelessWidget {
 
     return InkWell(
       customBorder: const CircleBorder(),
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       onTap: () => onChanged(dot),
       child: circle,
     );

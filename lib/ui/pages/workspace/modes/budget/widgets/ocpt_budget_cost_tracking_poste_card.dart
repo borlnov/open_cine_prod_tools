@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
@@ -82,11 +82,11 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -62,8 +62,8 @@ class OcptBudgetCashShareableReminder extends StatelessWidget {
             InkWell(
               key: const Key("ocptBudgetCashShareableReminderLink"),
               onTap: onOpenSharing,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              mouseCursor: ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(

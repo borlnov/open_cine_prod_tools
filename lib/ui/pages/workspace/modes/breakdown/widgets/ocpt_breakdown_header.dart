@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_view_switch.dart';
@@ -272,7 +272,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
       height: _ocptBreakdownProgressBarHeight,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
@@ -280,7 +280,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
         ),
       ),

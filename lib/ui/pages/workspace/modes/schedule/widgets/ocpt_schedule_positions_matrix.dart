@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -217,7 +217,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(color: theme.colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(ocptRadiusMedium),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             ),
             clipBehavior: Clip.antiAlias,
             child: SingleChildScrollView(
@@ -521,7 +521,7 @@ class _OcptPositionsMatrixDayBandCell extends StatelessWidget {
         ),
         child: InkWell(
           onTap: () => onDayOpenRequested(band.day.id),
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: Center(
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -590,7 +590,7 @@ class _OcptPositionsMatrixColumnHeader extends StatelessWidget {
         ),
         child: InkWell(
           onTap: () => onDayOpenRequested(column.dayId),
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
             child: Column(

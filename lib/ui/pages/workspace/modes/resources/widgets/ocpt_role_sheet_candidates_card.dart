@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -220,9 +220,9 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
       decoration: BoxDecoration(
         color: isRetained
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,8 +305,8 @@ class _OcptCandidateStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptRoleCandidateStatusLabel(tr, status),
@@ -451,8 +451,8 @@ class _NoteToggle extends StatelessWidget {
 
     return InkWell(
       onTap: onToggled,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

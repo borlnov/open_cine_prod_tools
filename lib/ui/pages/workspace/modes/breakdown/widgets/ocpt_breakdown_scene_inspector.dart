@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_scene.dart';
 import 'package:open_cine_prod_tools/models/ocpt_breakdown_tag.dart';
@@ -433,8 +433,8 @@ class _ToFindAlert extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -500,8 +500,8 @@ class _ToCheckAlert extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -631,7 +631,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Text(
         tr.breakdownSceneInspectorEmptyHint,
@@ -713,13 +713,13 @@ class _Group extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 5),
               child: InkWell(
                 onTap: () => onTargetSelected(target.kind, target.id, sceneId),
-                mouseCursor: ocptClickableCursor,
-                borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                mouseCursor: ocpt_theme.ocptClickableCursor,
+                borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                   decoration: BoxDecoration(
                     border: Border.all(color: theme.colorScheme.outlineVariant),
-                    borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                   ),
                   child: Row(
                     children: [
@@ -769,7 +769,7 @@ class _StatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -808,8 +808,8 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         ocptElementStatusLabel(Tr.of(context), status),

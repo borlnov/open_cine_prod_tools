@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_logging_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
@@ -44,7 +44,7 @@ class _FakeFileLoggingManager extends OcptFileLoggingManager {
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

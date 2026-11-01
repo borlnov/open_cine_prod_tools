@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
@@ -142,7 +142,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
   ///
   /// That last part takes **two** overrides, and neither alone is enough.
   /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
-  /// over the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme`
+  /// over the [ocpt_theme.ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme`
   /// already shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that
   /// actually shows: a [TextButton] takes its density from the ambient theme, which on a desktop
   /// platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so this button
@@ -170,8 +170,8 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
           icon: const Icon(Icons.file_upload_outlined, size: 16),
           label: Text(tr.workspaceExportAction),
           style: TextButton.styleFrom(
-            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
-            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
+            minimumSize: const Size(0, ocpt_theme.ocptToolbarChromeButtonSize),
+            maximumSize: const Size(double.infinity, ocpt_theme.ocptToolbarChromeButtonSize),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.standard,
@@ -233,7 +233,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
 
     final button = PopupMenuButton<String>(
       tooltip: tr.workspaceEpisodeSelectorTooltip,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       onSelected: (value) => value == _manageEpisodesOption
           ? onProjectSettingsRequested?.call()
           : onEpisodeSelected(value),
@@ -268,7 +268,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: SizedBox(
-                height: ocptToolbarChromeButtonSize,
+                height: ocpt_theme.ocptToolbarChromeButtonSize,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -334,8 +334,8 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.onSurfaceVariant,
             textStyle: theme.textTheme.bodySmall,
-            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
-            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
+            minimumSize: const Size(0, ocpt_theme.ocptToolbarChromeButtonSize),
+            maximumSize: const Size(double.infinity, ocpt_theme.ocptToolbarChromeButtonSize),
             padding: const EdgeInsets.symmetric(horizontal: 10),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.standard,
@@ -426,7 +426,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
 
     if (shell.isSaving) {
       return const SizedBox.square(
-        dimension: ocptToolbarChromeButtonSize,
+        dimension: ocpt_theme.ocptToolbarChromeButtonSize,
         child: Center(
           child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
         ),
@@ -486,7 +486,7 @@ class _OcptWorkspaceEpisodeIconTrigger extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: SizedBox(
-        height: ocptToolbarChromeButtonSize,
+        height: ocpt_theme.ocptToolbarChromeButtonSize,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

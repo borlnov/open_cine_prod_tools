@@ -11,7 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -57,14 +57,14 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
 /// [_navigatorKey] so [_RecordingRouterManager.pop] can close a dialog opened through
-/// `showDialog`, [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension
+/// `showDialog`, [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension
 /// (the script view's own backdrop) resolve one, a bare [Scaffold]: unlike `OcptEditorPage`, a
 /// production mode expects the real `OcptWorkspacePage` to provide one, and an `OcptWorkspaceBloc`
 /// ancestor — `OcptWorkspacePage` always provides one too, and this mode now reads it for the
 /// toolbar episode selector's episodes/selection.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: _navigatorKey,
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

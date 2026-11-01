@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_kind.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_severity.dart';
@@ -76,7 +76,7 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 2 : 5, vertical: 1),
       decoration: BoxDecoration(
         color: color.withValues(alpha: _ocptScheduleDayAlertBadgeAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -102,8 +102,8 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
           ? badge
           : InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              mouseCursor: ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
+              mouseCursor: ocpt_theme.ocptClickableCursor,
               child: badge,
             ),
     );

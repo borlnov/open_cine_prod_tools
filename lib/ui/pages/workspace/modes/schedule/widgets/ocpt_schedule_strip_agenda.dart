@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -190,9 +190,9 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
           color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
         ),
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -200,7 +200,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
         children: [
           InkWell(
             onTap: onSelected,
-            mouseCursor: ocptClickableCursor,
+            mouseCursor: ocpt_theme.ocptClickableCursor,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
               child: Row(
@@ -342,13 +342,13 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
 
     return InkWell(
       onTap: onSelected,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

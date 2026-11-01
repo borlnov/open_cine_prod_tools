@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
-/// [ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
+/// [ocpt_theme.ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
 /// around it so the accent fill reads as a compact badge rather than a button.
 const double _backActionSize = 26;
 
@@ -124,14 +124,14 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
 
-  /// The style every chrome button of the toolbar wears: [ocptToolbarChromeButtonSize] square,
+  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize] square,
   /// with no padding of its own around the glyph.
   ///
   /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
   /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
   /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
   static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
-    minimumSize: const Size.square(ocptToolbarChromeButtonSize),
+    minimumSize: const Size.square(ocpt_theme.ocptToolbarChromeButtonSize),
     padding: EdgeInsets.zero,
   );
 
@@ -160,7 +160,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SizedBox(
-      height: ocptToolbarHeight,
+      height: ocpt_theme.ocptToolbarHeight,
       child: ColoredBox(
         color: theme.colorScheme.surfaceContainerLow,
         child: Column(
@@ -220,7 +220,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
               ),
             ),
             // The divider theme already gives this its `outlineVariant` color, 1 px thickness and
-            // no surrounding space, so the band as a whole still measures [ocptToolbarHeight].
+            // no surrounding space, so the band as a whole still measures [ocpt_theme.ocptToolbarHeight].
             const Divider(),
           ],
         ),
@@ -247,11 +247,11 @@ class _OcptWorkspaceBackAction extends StatelessWidget {
       message: Tr.of(context).editorBackToProjectsTooltip,
       child: Material(
         color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onBack,
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: SizedBox.square(
             dimension: _backActionSize,
             child: Center(
@@ -282,8 +282,8 @@ class _OcptWorkspaceReadOnlyPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: ocptSelectedStateAlpha),
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           tr.workspaceReadOnlyPill,

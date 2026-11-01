@@ -5,7 +5,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_dashed_rounded_rect_painter.dart';
@@ -133,7 +133,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
     return Tooltip(
       message: photo.path,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -217,8 +217,8 @@ class _OcptAddPhotoTile extends StatelessWidget {
       painter: OcptDashedRoundedRectPainter(color: theme.colorScheme.outline),
       child: InkWell(
         onTap: onPressed,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),

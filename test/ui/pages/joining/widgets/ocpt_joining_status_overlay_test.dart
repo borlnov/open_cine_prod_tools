@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/joining_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_status_overlay.dart';
@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_statu
 /// pumped directly here, no `OcptJoiningBloc` or `OcptJoiningView` involved at all, since it takes
 /// everything it needs as plain constructor parameters.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

@@ -10,7 +10,7 @@ import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
@@ -38,7 +38,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sqlite3/sqlite3.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and with
-/// [ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the project
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the project
 /// card's poster tint) resolve one, just like the real app always does.
 ///
 /// [navigatorKey] is only given by the tests that need a dialog to *close* again: the app closes
@@ -47,7 +47,7 @@ import 'package:sqlite3/sqlite3.dart';
 Widget _wrapWithLocalization(Widget child, {GlobalKey<NavigatorState>? navigatorKey}) =>
     MaterialApp(
       navigatorKey: navigatorKey,
-      theme: ocptTheme.lightThemeData,
+      theme: ocpt_theme.ocptTheme.lightThemeData,
       localizationsDelegates: const [
         Tr.delegate,
         GlobalMaterialLocalizations.delegate,

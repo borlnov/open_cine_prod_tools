@@ -5,7 +5,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -216,7 +216,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                       width: math.max(constraints.maxWidth, ocptBudgetCashJournalMinTableWidth),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: ocptTableRowHorizontalPadding,
+                          horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,

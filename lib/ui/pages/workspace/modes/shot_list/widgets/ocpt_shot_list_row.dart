@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
@@ -59,11 +59,11 @@ class OcptShotListRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
           border: Border(
             left: BorderSide(
@@ -122,7 +122,7 @@ class OcptShotListRow extends StatelessWidget {
 
     return switch (column) {
       OcptShotListTableColumn.shot => baseStyle?.copyWith(
-        fontFamily: ocptMonospaceFontFamily,
+        fontFamily: ocpt_theme.ocptMonospaceFontFamily,
         fontWeight: FontWeight.w600,
       ),
       OcptShotListTableColumn.difficulty => baseStyle?.copyWith(

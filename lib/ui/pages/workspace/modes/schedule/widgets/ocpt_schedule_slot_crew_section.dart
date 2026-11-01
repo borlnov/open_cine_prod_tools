@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
@@ -280,8 +280,8 @@ class _CrewMemberRow extends StatelessWidget {
                     ? Text(positionLabel, style: theme.textTheme.bodySmall)
                     : InkWell(
                         onTap: () => _openPicker(context),
-                        mouseCursor: ocptClickableCursor,
-                        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                        mouseCursor: ocpt_theme.ocptClickableCursor,
+                        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

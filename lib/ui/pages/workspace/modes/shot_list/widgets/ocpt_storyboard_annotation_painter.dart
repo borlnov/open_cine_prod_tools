@@ -6,7 +6,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_annotation_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
@@ -306,7 +306,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     );
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(chipRect, const Radius.circular(ocptRadiusSmall)),
+      RRect.fromRectAndRadius(chipRect, const Radius.circular(ocpt_theme.ocptRadiusSmall)),
       Paint()..color = labelBackgroundColor,
     );
     textPainter.paint(

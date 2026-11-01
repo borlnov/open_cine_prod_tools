@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
@@ -90,7 +90,7 @@ class OcptProjectCard extends StatelessWidget {
       child: InkWell(
         key: ValueKey(entry.project.path),
         onTap: exists ? onTap : null,
-        mouseCursor: ocptClickableCursor,
+        mouseCursor: ocpt_theme.ocptClickableCursor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -239,8 +239,8 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Text(
         Tr.of(context).homeProjectEpisodeCount(count),
@@ -274,8 +274,8 @@ class _OcptProjectCardCompatibilityBadge extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Icon(Icons.warning_amber_rounded, size: 14, color: color),
     ),

@@ -4,7 +4,7 @@
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
@@ -359,8 +359,8 @@ class _OcptScheduleShotPickerShotRow extends StatelessWidget {
 
     return InkWell(
       onTap: () => globalGetIt().get<OcptRouterManager>().pop<String>(shot.id),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(

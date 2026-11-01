@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The settings page's "Language" section card: a single language dropdown (System / one entry
@@ -40,7 +40,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
                 DropdownButton<Locale?>(
                   value: wantedLocale,
                   onChanged: onLocaleChanged,
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     DropdownMenuItem(child: Text(tr.settingsLanguageSystemOption)),
                     for (final locale in Tr.delegate.supportedLocales)

@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_set.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
@@ -135,8 +135,8 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
         ),
         child: InkWell(
           onTap: _controller.show,
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           child: Chip(
             avatar: const Icon(Icons.add, size: 14),
             label: Text(tr.breakdownSceneInspectorAddSetAction),
@@ -297,7 +297,7 @@ class _Panel extends StatelessWidget {
     return Material(
       elevation: 8,
       color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -529,7 +529,7 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    mouseCursor: ocptClickableCursor,
+    mouseCursor: ocpt_theme.ocptClickableCursor,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: Text(

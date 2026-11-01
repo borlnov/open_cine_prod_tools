@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_match_suggestion.dart';
@@ -55,8 +55,8 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
       ),
       child: Column(
@@ -193,8 +193,8 @@ class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
     return InkWell(
       key: Key("ocptBudgetNewLettrageCandidate$index"),
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
@@ -246,8 +246,8 @@ class _OcptBudgetNewLettrageNoneRow extends StatelessWidget {
     return InkWell(
       key: const Key("ocptBudgetNewLettrageNone"),
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
@@ -54,7 +54,7 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
                   // reported rather than dropped: picking "None" is a real gesture (turning the
                   // checker off for this screenplay), not an incomplete selection to guard against.
                   onChanged: onScreenplayLanguageChanged,
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     DropdownMenuItem(child: Text(tr.projectSettingsScreenplayLanguageNoneOption)),
                     for (final language in OcptScreenplayLanguage.values)

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
@@ -103,7 +103,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       clipBehavior: Clip.antiAlias,
       // Wrapped in a scroll view, unlike a plain `Column` of the six week rows: each row's own
@@ -227,7 +227,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
 
     return InkWell(
       onTap: onOpenRequested,
-      mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocptClickableCursor,
+      mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocpt_theme.ocptClickableCursor,
       child: Container(
         constraints: const BoxConstraints(minHeight: 82),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
@@ -242,7 +242,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
           ),
           color: day == null
               ? Colors.transparent
-              : theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha / 2),
+              : theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha / 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

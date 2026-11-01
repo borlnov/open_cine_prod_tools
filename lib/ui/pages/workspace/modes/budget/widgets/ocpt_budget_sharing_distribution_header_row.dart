@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing_metrics.dart';
 
@@ -21,9 +21,9 @@ class OcptBudgetSharingDistributionHeaderRow extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        ocptTableRowHorizontalPadding,
+        ocpt_theme.ocptTableRowHorizontalPadding,
         0,
-        ocptTableRowHorizontalPadding,
+        ocpt_theme.ocptTableRowHorizontalPadding,
         4,
       ),
       child: Row(

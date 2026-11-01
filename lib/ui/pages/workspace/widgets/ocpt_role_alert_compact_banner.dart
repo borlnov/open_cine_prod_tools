@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
@@ -89,8 +89,8 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: lines),
     );
@@ -122,8 +122,8 @@ class _OcptRoleAlertCompactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: () => onRoleTapped(roleId),
-    mouseCursor: ocptClickableCursor,
-    borderRadius: BorderRadius.circular(ocptRadiusMedium),
+    mouseCursor: ocpt_theme.ocptClickableCursor,
+    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(

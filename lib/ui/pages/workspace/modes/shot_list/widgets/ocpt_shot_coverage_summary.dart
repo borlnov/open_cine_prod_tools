@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
@@ -187,7 +187,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
             Text(
               tr.shotListCoverageAlsoCoveredBy(otherCodes.join(" · ")),
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: ocptMonospaceFontFamily,
+                fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
@@ -233,8 +233,8 @@ class _OcptShotCoverageModifiedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Text(
         tr.shotListCoverageModifiedBadge,

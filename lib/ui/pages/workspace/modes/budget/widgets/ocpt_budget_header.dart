@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
@@ -225,15 +225,15 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(value),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: _ocptBudgetSegmentPadding, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -255,7 +255,7 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.error,
-                      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+                      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
                     ),
                     child: Text(
                       "$badgeCount",
@@ -310,7 +310,7 @@ class _OcptBudgetPosteFilterTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -329,8 +329,8 @@ class _OcptBudgetPosteFilterTag extends StatelessWidget {
             message: tr.budgetHeaderPosteFilterClearTooltip,
             child: InkWell(
               onTap: onCleared,
-              mouseCursor: ocptClickableCursor,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              mouseCursor: ocpt_theme.ocptClickableCursor,
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 child: Icon(Icons.close, size: 14),
@@ -357,7 +357,7 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
     padding: const EdgeInsets.all(2),
     decoration: BoxDecoration(
       border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
     ),
     // A `Wrap` rather than a `Row`, so a switch's own segments flow onto a second line inside its
     // own border when the centre is too narrow to hold them side by side. These segments are

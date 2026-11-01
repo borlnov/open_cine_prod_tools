@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_coverage_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_editable_field.dart';
@@ -133,8 +133,8 @@ class _OcptLocationColorBar extends StatelessWidget {
         message: tr.resourcesChangeColorTooltip,
         child: InkWell(
           onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           // The bar alone is 4 px wide: the padding is what makes it a target one can actually hit.
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -169,8 +169,8 @@ class _OcptPermitStatusBadge extends StatelessWidget {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: ocptSelectedStateAlpha),
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// Paints a dashed rounded-rectangle outline: the mock-up's own "drop a file here" styling, worn by
 /// the person sheet's photo slot and by the location sheet's own "add a photo" tile.
@@ -25,7 +25,7 @@ class OcptDashedRoundedRectPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
       Offset.zero & size,
-      const Radius.circular(ocptRadiusLarge),
+      const Radius.circular(ocpt_theme.ocptRadiusLarge),
     );
     final path = Path()..addRRect(rrect);
     final paint = Paint()

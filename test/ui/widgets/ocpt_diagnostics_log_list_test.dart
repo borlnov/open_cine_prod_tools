@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_diagnostics_log_list.dart';
 /// (an `Expanded` inside its own body), so a test needs a bounded ancestor rather than the
 /// unbounded height a bare `MaterialApp`/`Scaffold` body would otherwise give it.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

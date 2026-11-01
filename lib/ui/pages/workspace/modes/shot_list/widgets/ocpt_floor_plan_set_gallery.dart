@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
@@ -151,14 +151,14 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: onTap == null ? SystemMouseCursors.basic : ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      mouseCursor: onTap == null ? SystemMouseCursors.basic : ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       child: Container(
         width: _cardWidth,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           border: isSuggested ? Border.all(color: theme.colorScheme.primary, width: 1.5) : null,
         ),
         child: Column(
@@ -166,7 +166,7 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
               child: SizedBox(
                 width: _thumbnailWidth,
                 height: _thumbnailHeight,

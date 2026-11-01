@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
@@ -172,10 +172,10 @@ class _SequenceEntry extends StatelessWidget {
       children: [
         InkWell(
           onTap: onSelected,
-          mouseCursor: ocptClickableCursor,
+          mouseCursor: ocpt_theme.ocptClickableCursor,
           child: ColoredBox(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : Colors.transparent,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -318,10 +318,10 @@ class _ShotEntry extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: ColoredBox(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(34, 6, 16, 6),
@@ -330,7 +330,7 @@ class _ShotEntry extends StatelessWidget {
               Text(
                 shot.code,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  fontFamily: ocptMonospaceFontFamily,
+                  fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                   color: isSelected
                       ? theme.colorScheme.onSurface
                       : theme.colorScheme.onSurfaceVariant,

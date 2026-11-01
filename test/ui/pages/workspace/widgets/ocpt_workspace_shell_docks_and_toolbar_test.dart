@@ -5,7 +5,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -296,7 +296,7 @@ void main() {
           isLeftDockOpen: true,
           onToggleLeftDock: () {},
         ),
-        theme: ocptTheme.lightThemeData,
+        theme: ocpt_theme.ocptTheme.lightThemeData,
       ),
     );
     await tester.pumpAndSettle();
@@ -308,7 +308,7 @@ void main() {
     final exportHeight = tester.getSize(find.byTooltip(tr.workspaceExportTooltip)).height;
     final toggleHeight = tester.getSize(find.byTooltip(tr.workspaceToggleLeftDockTooltip)).height;
 
-    expect(exportHeight, ocptToolbarChromeButtonSize);
+    expect(exportHeight, ocpt_theme.ocptToolbarChromeButtonSize);
     expect(exportHeight, toggleHeight);
   });
 

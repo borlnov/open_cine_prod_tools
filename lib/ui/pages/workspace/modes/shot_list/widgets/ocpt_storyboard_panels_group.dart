@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_annotation.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
@@ -320,15 +320,15 @@ class _AnnotationRow extends StatelessWidget {
 
     return InkWell(
       onTap: onSelected,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           border: isSelected ? Border.all(color: theme.colorScheme.primary) : null,
         ),
         child: Row(
@@ -456,13 +456,13 @@ class _PanelRow extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
             child: SizedBox(
               width: _thumbnailSize,
               height: _thumbnailSize,

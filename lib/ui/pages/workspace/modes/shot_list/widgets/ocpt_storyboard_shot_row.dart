@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
@@ -118,7 +118,7 @@ class OcptStoryboardShotRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+            ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
             : Colors.transparent,
         border: Border(
           left: BorderSide(
@@ -132,8 +132,8 @@ class OcptStoryboardShotRow extends StatelessWidget {
         children: [
           InkWell(
             onTap: onTap,
-            mouseCursor: ocptClickableCursor,
-            borderRadius: BorderRadius.circular(ocptRadiusMedium),
+            mouseCursor: ocpt_theme.ocptClickableCursor,
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             child: OcptStoryboardShotLeaderCard(shot: shot, attachedRoles: attachedRoles),
           ),
           const SizedBox(width: 12),

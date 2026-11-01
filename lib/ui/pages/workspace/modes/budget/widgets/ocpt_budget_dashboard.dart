@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
@@ -588,7 +588,7 @@ class _OcptDashboardAlert extends StatelessWidget {
 }
 
 /// One row of [_OcptDashboardAlertsCard]: a coloured badge, the message and an amount right-aligned
-/// — the whole row is the click target, [ocptClickableCursor] hinting it exactly as a table row
+/// — the whole row is the click target, [ocpt_theme.ocptClickableCursor] hinting it exactly as a table row
 /// already does everywhere else in this mode. The message wraps rather than clipping; see the
 /// comment on the row's own `Row` for why this one cell breaks the mode's own habit.
 class _OcptDashboardAlertRow extends StatelessWidget {
@@ -622,10 +622,13 @@ class _OcptDashboardAlertRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: ocptTableRowHorizontalPadding),
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: ocpt_theme.ocptTableRowHorizontalPadding,
+        ),
         child: Row(
           // **The message wraps rather than truncating**, and the badge and the amount align to its
           // first line. Every other row in this mode clips a cell to one line because the reader
@@ -669,7 +672,7 @@ class _OcptDashboardAlertBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
     ),
     child: Text(
       text,

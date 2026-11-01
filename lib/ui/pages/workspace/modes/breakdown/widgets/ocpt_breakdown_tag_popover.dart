@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_breakdown_palette.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
@@ -155,7 +155,7 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
         child: Material(
           elevation: 8,
           color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           clipBehavior: Clip.antiAlias,
           child: SizedBox(
             width: _ocptBreakdownTagPopoverWidth,
@@ -289,8 +289,8 @@ class _Header extends StatelessWidget {
           ),
           InkWell(
             onTap: onClose,
-            mouseCursor: ocptClickableCursor,
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            mouseCursor: ocpt_theme.ocptClickableCursor,
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
             child: Padding(
               padding: const EdgeInsets.all(2),
               child: Icon(Icons.close, size: 16, color: theme.colorScheme.onSurfaceVariant),
@@ -397,7 +397,7 @@ class _MatchRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
+      mouseCursor: ocpt_theme.ocptClickableCursor,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
@@ -551,12 +551,12 @@ class _OcptBreakdownPopoverCategoryChip extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: Row(

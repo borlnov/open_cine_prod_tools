@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_step.dart';
@@ -130,7 +130,7 @@ class _OcptBudgetNewTrail extends StatelessWidget {
           InkWell(
             key: const Key("ocptBudgetNewChangeGestureLink"),
             onTap: onChangeGestureRequested,
-            mouseCursor: ocptClickableCursor,
+            mouseCursor: ocpt_theme.ocptClickableCursor,
             child: Text(
               tr.budgetEntryWizardChangeNatureAction,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),

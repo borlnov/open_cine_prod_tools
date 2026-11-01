@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_summary_line.dart';
@@ -107,8 +107,8 @@ class OcptProjectVersionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -413,8 +413,8 @@ class _OcptProjectVersionBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: ocptSelectedStateAlpha),
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
     ),
     child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color)),
   );

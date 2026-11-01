@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_live_override.dart';
@@ -91,7 +91,7 @@ class OcptFloorPlanScopeBubble extends StatelessWidget {
           child: Material(
             elevation: 4,
             color: theme.colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Column(

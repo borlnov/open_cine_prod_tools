@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -31,10 +31,10 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// Wraps [child] in the app's own light theme — the dialog paints its backdrop from the
-/// `OcptSpecificColors` extension, which only a theme built from [ocptTheme] carries — plus the
+/// `OcptSpecificColors` extension, which only a theme built from [ocpt_theme.ocptTheme] carries — plus the
 /// localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

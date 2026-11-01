@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 
@@ -45,7 +45,7 @@ class OcptSettingsCalendarSection extends StatelessWidget {
                 DropdownButton<OcptFirstWeekday>(
                   value: firstWeekday,
                   onChanged: (value) => value == null ? null : onFirstWeekdayChanged(value),
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   items: [
                     DropdownMenuItem(
                       value: OcptFirstWeekday.monday,

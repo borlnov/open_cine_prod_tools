@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -186,7 +186,7 @@ class _NumberBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Text(
           tr.resourcesRoleNumberBadge(header.role.number),
@@ -234,8 +234,8 @@ class _CastMemberLine extends StatelessWidget {
         message: tr.resourcesOpenPersonSheetTooltip,
         child: InkWell(
           onTap: () => header.onPersonSheetOpenRequested(castMember.id),
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             child: Row(
@@ -281,7 +281,7 @@ class _KindPicker extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

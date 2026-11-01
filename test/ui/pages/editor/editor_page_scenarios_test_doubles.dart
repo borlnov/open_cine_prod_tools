@@ -14,7 +14,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
@@ -455,7 +455,7 @@ class EditorScenarioHarness {
   /// the workspace bloc a production mode expects its page to find.
   Widget wrap(Widget child, {bool providesWorkspace = false}) => MaterialApp(
     navigatorKey: _navigatorKey,
-    theme: ocptTheme.lightThemeData,
+    theme: ocpt_theme.ocptTheme.lightThemeData,
     localizationsDelegates: const [
       Tr.delegate,
       GlobalMaterialLocalizations.delegate,

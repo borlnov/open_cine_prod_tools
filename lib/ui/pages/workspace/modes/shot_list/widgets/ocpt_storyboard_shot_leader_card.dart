@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
@@ -46,7 +46,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
@@ -58,7 +58,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
               Text(
                 shot.code,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontFamily: ocptMonospaceFontFamily,
+                  fontFamily: ocpt_theme.ocptMonospaceFontFamily,
                   fontWeight: FontWeight.w700,
                 ),
               ),

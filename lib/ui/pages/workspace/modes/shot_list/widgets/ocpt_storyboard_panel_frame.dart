@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
@@ -113,8 +113,8 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
 
     return InkWell(
       onTap: annotationsLive ? null : onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -124,7 +124,7 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
             height: height,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(ocptRadiusMedium),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
               border: Border.all(
                 color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
                 width: isSelected ? 2 : 1,
@@ -235,7 +235,7 @@ class _RankBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
       color: Colors.black.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
     ),
     child: Text(
       "$rank/$total",

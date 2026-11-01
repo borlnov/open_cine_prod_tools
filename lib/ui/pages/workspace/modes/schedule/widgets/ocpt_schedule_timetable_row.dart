@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
@@ -287,20 +287,20 @@ class OcptScheduleTimetableRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
         onTap: onSelected,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : theme.colorScheme.surfaceContainer,
             border: Border.all(
               color: isOverrun
                   ? theme.colorScheme.error
                   : (isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant),
             ),
-            borderRadius: BorderRadius.circular(ocptRadiusMedium),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           ),
           child: Row(
             children: [
@@ -347,7 +347,7 @@ class _OcptScheduleDragFeedback extends StatelessWidget {
 
     return Material(
       elevation: 3,
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
       color: theme.colorScheme.surfaceContainerHighest,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 220),
@@ -731,7 +731,7 @@ class _OcptScheduleAuditionCandidateChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

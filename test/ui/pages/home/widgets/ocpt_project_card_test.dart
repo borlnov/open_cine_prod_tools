@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
@@ -26,7 +26,7 @@ Widget _buildCard(
   VoidCallback? onExport,
   VoidCallback? onShare,
 }) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -74,11 +74,11 @@ void main() {
 
   testWidgets('the card shows the hand cursor over its clickable surface', (tester) async {
     // The card is a custom InkWell rather than a button, so it only shows a click affordance on
-    // Linux and Windows if it asks for [ocptClickableCursor] itself.
+    // Linux and Windows if it asks for [ocpt_theme.ocptClickableCursor] itself.
     await tester.pumpWidget(_buildCard('/home/user/projects/glass-paths.ocpt'));
 
     final inkWell = tester.widget<InkWell>(find.byType(InkWell).first);
-    expect(inkWell.mouseCursor, ocptClickableCursor);
+    expect(inkWell.mouseCursor, ocpt_theme.ocptClickableCursor);
   });
 
   testWidgets('different project paths spread across the tint palette', (tester) async {

@@ -13,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -44,10 +44,10 @@ const double _ocptMobileUiScale = 1.2;
 /// The whole tree is wrapped in [ScreenUtilInit], which initialises `flutter_screenutil` before
 /// calling its `builder` — so `.sp`/`.w`/`.r` are valid by the time the [BlocBuilder] below reads
 /// them. On a **phone** (mobile, and a shortest side below [ocptPhoneWidthBreakpoint]) the theme is
-/// rebuilt with those scalers ([buildOcptThemeModel]); on a tablet and on desktop it is not — a
+/// rebuilt with those scalers ([ocpt_theme.buildOcptThemeModel]); on a tablet and on desktop it is not — a
 /// tablet has desktop-class room, especially in landscape, so magnifying every size by the phone
 /// design-size ratio would blow the type and the controls up out of proportion. There the app keeps
-/// the bloc state's own theme model (the global [ocptTheme]) unchanged and `.sp`/`.w`/`.r` are
+/// the bloc state's own theme model (the global [ocpt_theme.ocptTheme]) unchanged and `.sp`/`.w`/`.r` are
 /// never called. Phones and tablets are told apart by the rotation-invariant shortest side, the
 /// same 600dp line the orientation policy and Android's `sw600dp` qualifier draw.
 class OcptMainAppUi extends StatelessWidget {
@@ -89,7 +89,7 @@ class _MainAppView extends StatelessWidget {
             : screenUtil.screenHeight;
         final isPhone = platform.isMobile && shortestSide < ocptPhoneWidthBreakpoint;
         final themeModel = isPhone
-            ? buildOcptThemeModel(
+            ? ocpt_theme.buildOcptThemeModel(
                 sp: (v) => (v * _ocptMobileUiScale).sp,
                 w: (v) => (v * _ocptMobileUiScale).w,
                 r: (v) => v.r,

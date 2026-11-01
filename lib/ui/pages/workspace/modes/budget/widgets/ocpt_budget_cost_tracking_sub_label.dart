@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_sub_identity_row.dart';
 
@@ -75,7 +75,7 @@ class OcptBudgetCostTrackingSubLabel extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
               decoration: BoxDecoration(
                 color: (badgeColor ?? theme.colorScheme.onSurfaceVariant).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
               ),
               child: Text(
                 badgeText,

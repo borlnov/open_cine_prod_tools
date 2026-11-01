@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// The number of lines a [OcptShotInspectorField.multiline] field is tall before it grows with
 /// what is typed into it.
@@ -322,7 +322,7 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
       child: Material(
         elevation: 3,
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 280, maxHeight: 220),
           child: ListView(
@@ -332,7 +332,7 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
               for (final option in options)
                 InkWell(
                   onTap: () => onSelected(option),
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Text(option, style: theme.textTheme.bodySmall),

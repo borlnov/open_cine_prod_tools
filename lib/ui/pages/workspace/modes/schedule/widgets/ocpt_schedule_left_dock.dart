@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -326,17 +326,17 @@ class _OcptScheduleDayCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
       child: InkWell(
         onTap: onSelected,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(ocptRadiusMedium),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
           child: Row(
@@ -549,17 +549,17 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: InkWell(
         onTap: onTap,
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         child: Container(
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : theme.colorScheme.surfaceContainerHigh,
             border: Border.all(
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(

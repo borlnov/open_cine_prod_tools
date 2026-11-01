@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_frame.dart';
 
@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/ui/pages/joining/widgets/ocpt_joining_scan_
 /// cannot be instantiated under `flutter test` at all, which is the whole reason the coloured
 /// border was pulled out into its own, camera-free widget.
 Widget _wrap(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   home: Scaffold(body: child),
 );
 

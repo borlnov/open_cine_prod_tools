@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 
@@ -48,7 +48,7 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
     final labelledBandWidth = OcptWorkspaceMode.values.length * _entryWidth;
 
     return Container(
-      height: ocptModeSwitcherHeight,
+      height: ocpt_theme.ocptModeSwitcherHeight,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLowest,
         border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
@@ -134,16 +134,16 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
         message: tooltip,
         child: InkWell(
           onTap: onTap,
-          mouseCursor: ocptClickableCursor,
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          mouseCursor: ocpt_theme.ocptClickableCursor,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
               color: isActive
-                  ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                  ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(ocptRadiusMedium),
+              borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -5,7 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_crew_positions.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
@@ -263,8 +263,8 @@ class _OcptCrewPositionPickerRow extends StatelessWidget {
     onTap: () => globalGetIt().get<OcptRouterManager>().pop<OcptCrewPositionPickResult>(
       OcptCrewPositionPickResult.position(ref),
     ),
-    mouseCursor: ocptClickableCursor,
-    borderRadius: BorderRadius.circular(ocptRadiusSmall),
+    mouseCursor: ocpt_theme.ocptClickableCursor,
+    borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Text(label, style: Theme.of(context).textTheme.bodySmall),
@@ -285,8 +285,8 @@ class _OcptCrewPositionPickerCustomRow extends StatelessWidget {
       onTap: () => globalGetIt().get<OcptRouterManager>().pop<OcptCrewPositionPickResult>(
         const OcptCrewPositionPickResult.custom(),
       ),
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Text(

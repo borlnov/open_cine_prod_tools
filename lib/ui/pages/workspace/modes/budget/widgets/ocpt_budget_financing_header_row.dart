@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_metrics.dart';
 
@@ -29,7 +29,7 @@ class OcptBudgetFinancingHeaderRow extends StatelessWidget {
       child: SizedBox(
         height: ocptBudgetFinancingHeaderRowHeight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: ocptTableRowHorizontalPadding),
+          padding: const EdgeInsets.symmetric(horizontal: ocpt_theme.ocptTableRowHorizontalPadding),
           child: Row(
             children: [
               Expanded(

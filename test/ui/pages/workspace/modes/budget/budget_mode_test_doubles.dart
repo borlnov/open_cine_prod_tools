@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 
@@ -24,11 +24,11 @@ class RecordingRouterManager extends OcptRouterManager {
   }
 }
 
-/// Wraps [child] with the localization delegates, [navigatorKey], [ocptTheme]'s light theme and a
+/// Wraps [child] with the localization delegates, [navigatorKey], [ocpt_theme.ocptTheme]'s light theme and a
 /// bare [Scaffold] — mirrors `schedule_mode_test.dart`'s own `wrapWithLocalization`.
 Widget wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: navigatorKey,
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

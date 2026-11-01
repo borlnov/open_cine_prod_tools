@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// One selectable row of step 2 — a plain list row, tinted `primary` while selected, an optional
 /// muted hint underneath.
@@ -46,16 +46,16 @@ class OcptBudgetNewChoiceRow extends StatelessWidget {
 
     return InkWell(
       onTap: isEnabled ? onTap : null,
-      mouseCursor: isEnabled ? ocptClickableCursor : SystemMouseCursors.forbidden,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      mouseCursor: isEnabled ? ocpt_theme.ocptClickableCursor : SystemMouseCursors.forbidden,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : null,
-          borderRadius: BorderRadius.circular(ocptRadiusSmall),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         ),
         child: Row(
           children: [

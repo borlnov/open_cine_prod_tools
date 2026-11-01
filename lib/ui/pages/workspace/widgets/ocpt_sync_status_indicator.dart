@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
@@ -185,14 +185,14 @@ class _OcptSyncStatusBadge extends StatelessWidget {
         ),
       ],
       builder: (context, controller, child) => InkWell(
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusLarge),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
         onTap: () => controller.isOpen ? controller.close() : controller.open(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: ocptSelectedStateAlpha),
-            borderRadius: BorderRadius.circular(ocptRadiusLarge),
+            color: color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

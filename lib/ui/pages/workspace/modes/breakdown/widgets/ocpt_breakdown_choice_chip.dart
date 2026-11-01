@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// One pill of a choice-chip row: filled with [color] while [isSelected], otherwise a plain
 /// outline.
@@ -39,13 +39,15 @@ class OcptBreakdownChoiceChip extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      mouseCursor: ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocptRadiusLarge),
+      mouseCursor: ocpt_theme.ocptClickableCursor,
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: ocptSelectedStateAlpha) : Colors.transparent,
-          borderRadius: BorderRadius.circular(ocptRadiusLarge),
+          color: isSelected
+              ? color.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusLarge),
           border: Border.all(color: isSelected ? color : theme.colorScheme.outlineVariant),
         ),
         child: Text(

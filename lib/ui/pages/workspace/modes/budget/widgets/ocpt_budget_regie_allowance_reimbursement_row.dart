@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
@@ -84,7 +84,7 @@ class OcptBudgetRegieAllowanceReimbursementRow extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+                      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
                     ),
                     child: Text(
                       tr.budgetRegieColumnReimbursed,

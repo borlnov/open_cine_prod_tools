@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
@@ -221,12 +221,15 @@ class _ToolButton extends StatelessWidget {
         icon: Icon(icon, size: 18),
         style: IconButton.styleFrom(
           backgroundColor: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
               : Colors.transparent,
           foregroundColor: isActive
               ? theme.colorScheme.primary
               : theme.colorScheme.onSurfaceVariant,
-          minimumSize: const Size(ocptToolbarChromeButtonSize, ocptToolbarChromeButtonSize),
+          minimumSize: const Size(
+            ocpt_theme.ocptToolbarChromeButtonSize,
+            ocpt_theme.ocptToolbarChromeButtonSize,
+          ),
         ),
       ),
     );

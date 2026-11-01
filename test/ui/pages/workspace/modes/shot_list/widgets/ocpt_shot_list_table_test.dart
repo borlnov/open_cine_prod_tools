@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
@@ -217,7 +217,7 @@ void main() {
     );
 
     final codeCell = tester.widget<Text>(find.text("1/1"));
-    expect(codeCell.style?.fontFamily, ocptMonospaceFontFamily);
+    expect(codeCell.style?.fontFamily, ocpt_theme.ocptMonospaceFontFamily);
   });
 
   testWidgets("a difficulty at or above the warning threshold is warning-coloured", (tester) async {

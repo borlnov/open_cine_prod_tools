@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
@@ -184,7 +184,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocptRadiusMedium),
+          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -339,13 +339,13 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onOpenRequested,
-        mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocptClickableCursor,
+        mouseCursor: onOpenRequested == null ? MouseCursor.defer : ocpt_theme.ocptClickableCursor,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           decoration: BoxDecoration(
             color: day == null
                 ? Colors.transparent
-                : theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
+                : theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha),
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// A small status badge — the resource/revenue `Dossier` fact, held apart from the money.
 class OcptBudgetFicheBadge extends StatelessWidget {
@@ -21,7 +21,7 @@ class OcptBudgetFicheBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.14),
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
+      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
     ),
     child: Text(
       text,

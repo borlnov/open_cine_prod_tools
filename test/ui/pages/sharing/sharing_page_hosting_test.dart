@@ -15,7 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -179,7 +179,7 @@ class _StubPlatformManager extends PlatformManager {
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,
 /// exactly `sharing_page_test.dart`'s own `_wrapWithLocalization`.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  theme: ocptTheme.lightThemeData,
+  theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [
     Tr.delegate,
     GlobalMaterialLocalizations.delegate,

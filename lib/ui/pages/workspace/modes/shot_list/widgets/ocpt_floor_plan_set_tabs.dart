@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
+import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 
@@ -170,18 +170,18 @@ class _SetTab extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
       child: InkWell(
         onTap: () => tabs.onSetSelected(floorPlanSet.id),
-        mouseCursor: ocptClickableCursor,
-        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        mouseCursor: ocpt_theme.ocptClickableCursor,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
                 : Colors.transparent,
             border: Border.all(
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -211,7 +211,7 @@ class _SetTab extends StatelessWidget {
                 const SizedBox(width: 4),
                 InkWell(
                   onTap: () => onSetDeleteRequested(floorPlanSet.id),
-                  mouseCursor: ocptClickableCursor,
+                  mouseCursor: ocpt_theme.ocptClickableCursor,
                   child: Icon(Icons.close, size: 14, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -271,9 +271,9 @@ class _PlacedShotCountBadge extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha * 2)
+                ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha * 2)
                 : theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(ocptRadiusSmall),
+            borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
           ),
           child: Text(
             "$count",
