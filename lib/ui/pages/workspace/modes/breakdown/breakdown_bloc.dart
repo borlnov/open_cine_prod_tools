@@ -266,6 +266,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return false;
     }
 
+    var isReloaded = false;
     try {
       OcptBreakdownSnapshot? snapshot;
 
@@ -279,7 +280,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       }
 
       emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
-      return true;
+      isReloaded = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -287,8 +288,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         null,
         stackTrace,
       );
-      return false;
     }
+
+    return isReloaded;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}

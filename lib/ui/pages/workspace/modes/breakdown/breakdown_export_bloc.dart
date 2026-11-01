@@ -98,20 +98,18 @@ class OcptBreakdownExportBloc
         episodeTag: event.episodeTag,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBreakdownIoNotice(
-            kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptBreakdownIoNotice(
+              kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the breakdown sheets of project "
@@ -155,30 +153,29 @@ class OcptBreakdownExportBloc
         episodeTag: event.episodeTag,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        if (outcome is OcptExportFailed) {
+          // The manager already logged why the workbook could not be built.
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: const OcptBreakdownIoNotice(
+                kind: OcptBreakdownIoNoticeKind.xlsxExportFailed,
+              ),
+            ),
+          );
+        } else {
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: OcptBreakdownIoNotice(
+                kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
+                path: outcome.savedPath,
+                wasShared: outcome.wasShared,
+              ),
+            ),
+          );
+        }
       }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBreakdownIoNotice(
-            kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the breakdown workbook of project "
