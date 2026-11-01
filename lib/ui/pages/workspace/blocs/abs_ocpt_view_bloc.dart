@@ -45,9 +45,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 ///
 /// **Rules for whoever writes the next view bloc.**
 ///
-/// - Never write `state.copyWith(x: await …)`. Dart evaluates the `state` receiver before the
+/// - Never write `state.copyWithX(y: await …)`. Dart evaluates the `state` receiver before the
 ///   `await`, so a reload that lands meanwhile is overwritten with the old state, epochs
-///   included. Await into a local, then `state.copyWith(x: local)`.
+///   included. Await into a local, then `state.copyWithX(y: local)`.
 /// - Write through the service, then `await modeBloc.reload(…)` for exactly the scopes the write
 ///   changed, then emit the view's own selection. Never copy the mode's data into the view. Stop
 ///   when `reload` answers false, before moving any selection or forgetting any pending edit.

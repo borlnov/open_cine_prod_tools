@@ -119,6 +119,79 @@ mixin MixinOcptProjectVersionsState<S extends MixinOcptProjectVersionsState<S>>
     bool forceProjectVersionNoticeValue = false,
   });
 
+  /// Copies the state with the inline delete confirmation shown on the card of [versionId].
+  ///
+  /// The restore and rename modes are cleared: a card is in at most one of the three.
+  S copyWithDeletionPending({required String versionId}) => copyProjectVersionsState(
+    versionPendingDeletionId: versionId,
+    forceVersionPendingRestoreIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+  );
+
+  /// Copies the state with the inline delete confirmation hidden.
+  S copyWithDeletionDismissed() =>
+      copyProjectVersionsState(forceVersionPendingDeletionIdValue: true);
+
+  /// Copies the state with the inline restore confirmation shown on the card of [versionId].
+  ///
+  /// The delete and rename modes are cleared: a card is in at most one of the three.
+  S copyWithRestorePending({required String versionId}) => copyProjectVersionsState(
+    versionPendingRestoreId: versionId,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+  );
+
+  /// Copies the state with the inline restore confirmation hidden.
+  S copyWithRestoreDismissed() => copyProjectVersionsState(forceVersionPendingRestoreIdValue: true);
+
+  /// Copies the state with the inline rename form shown on the card of [versionId].
+  ///
+  /// The delete and restore modes are cleared: a card is in at most one of the three.
+  S copyWithRenamePending({required String versionId}) => copyProjectVersionsState(
+    versionPendingRenameId: versionId,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRestoreIdValue: true,
+  );
+
+  /// Copies the state with the inline rename form hidden.
+  S copyWithRenameDismissed() => copyProjectVersionsState(forceVersionPendingRenameIdValue: true);
+
+  /// Copies the state with the working-copy snapshot dropped.
+  S copyWithWorkingCopyCleared() => copyProjectVersionsState(forceWorkingCopyValue: true);
+
+  /// Copies the state with [workingCopy] as the working-copy snapshot, dropping it when null.
+  S copyWithCapturedWorkingCopy({required OcptProjectWorkingCopyState? workingCopy}) =>
+      copyProjectVersionsState(
+        workingCopy: workingCopy,
+        forceWorkingCopyValue: workingCopy == null,
+      );
+
+  /// Copies the state with the version notice dismissed.
+  S copyWithVersionNoticeDismissed() =>
+      copyProjectVersionsState(forceProjectVersionNoticeValue: true);
+
+  /// Copies the state with the versions the project now holds.
+  ///
+  /// Every inline confirmation is cleared, and [notice] replaces the previous notice (none when
+  /// null).
+  S copyWithReloadedVersions({
+    required List<OcptProjectVersion> versions,
+    required String? previewedVersionId,
+    required OcptProjectWorkingCopyState? workingCopy,
+    required OcptProjectVersionNoticeKind? notice,
+  }) => copyProjectVersionsState(
+    projectVersions: versions,
+    previewedVersionId: previewedVersionId,
+    forcePreviewedVersionIdValue: previewedVersionId == null,
+    workingCopy: workingCopy,
+    forceWorkingCopyValue: workingCopy == null,
+    forceVersionPendingDeletionIdValue: true,
+    forceVersionPendingRestoreIdValue: true,
+    forceVersionPendingRenameIdValue: true,
+    projectVersionNotice: notice,
+    forceProjectVersionNoticeValue: notice == null,
+  );
+
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [

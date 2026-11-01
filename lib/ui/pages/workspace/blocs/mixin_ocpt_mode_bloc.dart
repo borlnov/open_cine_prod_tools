@@ -42,7 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_write
 ///   last and overwrite a newer one.
 /// - Queue only the read-and-emit half of a flush, never the flush as a whole: a view's flush waits
 ///   on a reload, so queueing the whole flush behind it would wait on itself.
-/// - Never write `state.copyWith(x: await …)`: the `state` receiver is evaluated before the
+/// - Never write `state.copyWithX(y: await …)`: the `state` receiver is evaluated before the
 ///   `await`, and a reload landing meanwhile is rolled back. Await into a local first.
 /// - Move `reloadEpoch` with every emit that replaces data a view can read, and `selectionEpoch`
 ///   with every emit that changes the selection, saying why through the mode's cause. A reload

@@ -199,13 +199,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionDeletionRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingDeletionId: event.versionId,
-        forceVersionPendingRestoreIdValue: true,
-        forceVersionPendingRenameIdValue: true,
-      ),
-    );
+    emitter(state.copyWithDeletionPending(versionId: event.versionId));
   }
 
   /// Hides the inline delete confirmation currently shown.
@@ -213,7 +207,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionDeletionCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(forceVersionPendingDeletionIdValue: true));
+    emitter(state.copyWithDeletionDismissed());
   }
 
   /// Deletes a version for good, then reloads the list.
@@ -246,13 +240,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRestoreRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingRestoreId: event.versionId,
-        forceVersionPendingDeletionIdValue: true,
-        forceVersionPendingRenameIdValue: true,
-      ),
-    );
+    emitter(state.copyWithRestorePending(versionId: event.versionId));
   }
 
   /// Hides the inline restore confirmation currently shown.
@@ -260,7 +248,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRestoreCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(forceVersionPendingRestoreIdValue: true));
+    emitter(state.copyWithRestoreDismissed());
   }
 
   /// Puts the whole project back into the state a version holds, then reloads everything the mode
@@ -308,13 +296,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRenameRequestedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(
-      state.copyProjectVersionsState(
-        versionPendingRenameId: event.versionId,
-        forceVersionPendingDeletionIdValue: true,
-        forceVersionPendingRestoreIdValue: true,
-      ),
-    );
+    emitter(state.copyWithRenamePending(versionId: event.versionId));
   }
 
   /// Hides the inline rename form currently shown.
@@ -322,7 +304,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRenameCancelledEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(forceVersionPendingRenameIdValue: true));
+    emitter(state.copyWithRenameDismissed());
   }
 
   /// Renames a version's name and note, then reloads the list so its card reads the new ones.
@@ -394,9 +376,9 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       return;
     }
 
-    emitter(state.copyProjectVersionsState(forceWorkingCopyValue: true));
+    emitter(state.copyWithWorkingCopyCleared());
     await reloadFromProjectDatabase(emitter);
-    emitter(state.copyProjectVersionsState(forceVersionPendingDeletionIdValue: true));
+    emitter(state.copyWithDeletionDismissed());
   });
 
   /// Leaves the read-only preview and reloads everything the mode shows from the working copy.
@@ -417,15 +399,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await projectsManager.exitPreview();
 
     final workingCopy = await _captureWorkingCopyState();
-    emitter(
-      state.copyProjectVersionsState(
-        workingCopy: workingCopy,
-        forceWorkingCopyValue: workingCopy == null,
-      ),
-    );
+    emitter(state.copyWithCapturedWorkingCopy(workingCopy: workingCopy));
 
     await reloadFromProjectDatabase(emitter);
-    emitter(state.copyProjectVersionsState(forceVersionPendingDeletionIdValue: true));
+    emitter(state.copyWithDeletionDismissed());
   });
 
   /// Clears the transient version notice currently shown, if any.
@@ -433,7 +410,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionNoticeDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectVersionsState(forceProjectVersionNoticeValue: true));
+    emitter(state.copyWithVersionNoticeDismissed());
   }
 
   /// Emits the version list, the previewed version's id and a fresh working-copy capture as the
@@ -459,17 +436,11 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       final workingCopy = await _captureWorkingCopyState();
 
       emitter(
-        state.copyProjectVersionsState(
-          projectVersions: versions,
+        state.copyWithReloadedVersions(
+          versions: versions,
           previewedVersionId: previewedVersionId,
-          forcePreviewedVersionIdValue: previewedVersionId == null,
           workingCopy: workingCopy,
-          forceWorkingCopyValue: workingCopy == null,
-          forceVersionPendingDeletionIdValue: true,
-          forceVersionPendingRestoreIdValue: true,
-          forceVersionPendingRenameIdValue: true,
-          projectVersionNotice: notice,
-          forceProjectVersionNoticeValue: notice == null,
+          notice: notice,
         ),
       );
     } catch (error, stackTrace) {
@@ -529,12 +500,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
 
     try {
       final workingCopy = await _captureWorkingCopyState();
-      emitter(
-        state.copyProjectVersionsState(
-          workingCopy: workingCopy,
-          forceWorkingCopyValue: workingCopy == null,
-        ),
-      );
+      emitter(state.copyWithCapturedWorkingCopy(workingCopy: workingCopy));
     } catch (error, stackTrace) {
       _logger.w(
         "A problem occurred when tried to refresh the working copy, most likely because the "

@@ -176,7 +176,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
 
     if (!preflight.isComplete) {
       _pendingProjectPackageExportTarget = target;
-      emitter(state.copyProjectPackageState(projectPackagePendingExport: preflight));
+      emitter(state.copyWithPackagePreflightAsked(preflight: preflight));
       return;
     }
 
@@ -193,7 +193,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     OcptProjectPackageMissingFilesAskDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(forceProjectPackagePendingExportValue: true));
+    emitter(state.copyWithPackagePreflightDismissed());
   }
 
   /// Writes the package the user asked for despite the missing files.
@@ -224,7 +224,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     OcptProjectPackageNoticeDismissedEvent event,
     Emitter<S> emitter,
   ) async {
-    emitter(state.copyProjectPackageState(forceProjectPackageNoticeValue: true));
+    emitter(state.copyWithPackageNoticeDismissed());
   }
 
   /// Writes the package and reports what travelled — on desktop through the native save dialog
@@ -375,11 +375,6 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// [_onExportConfirmed] having consumed it first.
   void _emitNotice(Emitter<S> emitter, OcptProjectPackageNotice notice) {
     _pendingProjectPackageExportTarget = null;
-    emitter(
-      state.copyProjectPackageState(
-        projectPackageNotice: notice,
-        forceProjectPackagePendingExportValue: true,
-      ),
-    );
+    emitter(state.copyWithPackageNoticed(notice: notice));
   }
 }

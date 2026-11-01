@@ -47,6 +47,24 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
     bool forceProjectPackageNoticeValue = false,
   });
 
+  /// Copies the state with the pre-flight [preflight] to ask the user about.
+  S copyWithPackagePreflightAsked({required OcptProjectPackagePreflight preflight}) =>
+      copyProjectPackageState(projectPackagePendingExport: preflight);
+
+  /// Copies the state with the pending pre-flight question dropped.
+  S copyWithPackagePreflightDismissed() =>
+      copyProjectPackageState(forceProjectPackagePendingExportValue: true);
+
+  /// Copies the state with the package notice dismissed.
+  S copyWithPackageNoticeDismissed() =>
+      copyProjectPackageState(forceProjectPackageNoticeValue: true);
+
+  /// Copies the state with [notice] as the outcome of the export, the pending question dropped.
+  S copyWithPackageNoticed({required OcptProjectPackageNotice notice}) => copyProjectPackageState(
+    projectPackageNotice: notice,
+    forceProjectPackagePendingExportValue: true,
+  );
+
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, projectPackagePendingExport, projectPackageNotice];
