@@ -134,7 +134,7 @@ class OcptShotListFloorPlanPlacementsBloc
     if (pending.isEmpty) {
       cancelDebounce();
     }
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
   }
 
   /// Deletes symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
@@ -164,7 +164,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -200,7 +200,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -261,7 +261,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -325,7 +325,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -355,7 +355,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -386,7 +386,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -398,7 +398,7 @@ class OcptShotListFloorPlanPlacementsBloc
   ) async {
     final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
       ..[OcptShotListSymbolLabelEditKey(symbolId: event.symbolId)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
 
     restartDebounce(
       _fieldEditDebounce,
@@ -432,7 +432,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -462,7 +462,7 @@ class OcptShotListFloorPlanPlacementsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -471,7 +471,7 @@ class OcptShotListFloorPlanPlacementsBloc
     OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanPlacementsState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 
   /// Writes every pending symbol label once the debounce elapses with no further typing.
@@ -507,7 +507,7 @@ class OcptShotListFloorPlanPlacementsBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -515,7 +515,7 @@ class OcptShotListFloorPlanPlacementsBloc
       await _writeAllPendingEdits(project: project, pending: pending);
       await modeBloc.reload({OcptShotListReloadScope.floorPlans});
       emitter(
-        state.copyWith(
+        state.copyWithFlushedFieldEdits(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,
@@ -530,8 +530,7 @@ class OcptShotListFloorPlanPlacementsBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
-          hasWriteError: true,
+        state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,

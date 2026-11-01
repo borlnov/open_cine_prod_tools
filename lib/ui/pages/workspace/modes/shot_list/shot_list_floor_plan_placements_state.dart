@@ -47,6 +47,40 @@ class OcptShotListFloorPlanPlacementsState
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
+  /// Copies this state with [pendingFieldEdits] as what is still pending after the floor plan
+  /// lost symbols.
+  OcptShotListFloorPlanPlacementsState copyWithPrunedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as the labels waiting in the debounce, a keystroke
+  /// later.
+  OcptShotListFloorPlanPlacementsState copyWithTypedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with no field edit left pending.
+  OcptShotListFloorPlanPlacementsState copyWithFieldEditsCleared() =>
+      copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  OcptShotListFloorPlanPlacementsState copyWithFlushedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// flush left pending.
+  OcptShotListFloorPlanPlacementsState copyToFlushFailed({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the write error raised.
+  OcptShotListFloorPlanPlacementsState copyToWriteFailed() => copyWith(hasWriteError: true);
+
+  /// Copies this state with the write error dismissed.
+  OcptShotListFloorPlanPlacementsState copyWithWriteErrorDismissed() =>
+      copyWith(hasWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits, hasWriteError];
