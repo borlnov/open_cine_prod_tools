@@ -99,6 +99,52 @@ class OcptEditorSearchState extends BlocStateForMixin<OcptEditorSearchState> {
     focusRequestId: focusRequestId ?? this.focusRequestId,
   );
 
+  /// Copies this state with the bar opened, the replace row folded to [isReplaceRowOpen] and
+  /// [focusRequestId] raised so the find field takes the focus.
+  OcptEditorSearchState copyWithOpened({
+    required bool isReplaceRowOpen,
+    required int focusRequestId,
+  }) => copyWith(isOpen: true, isReplaceRowOpen: isReplaceRowOpen, focusRequestId: focusRequestId);
+
+  /// Copies this state with the bar closed and its highlight cleared.
+  OcptEditorSearchState copyWithClosed() =>
+      copyWith(isOpen: false, matchCount: 0, forceCurrentMatchIndexValue: true);
+
+  /// Copies this state with the replace row folded or unfolded to [isReplaceRowOpen].
+  OcptEditorSearchState copyWithReplaceRowToggled({required bool isReplaceRowOpen}) =>
+      copyWith(isReplaceRowOpen: isReplaceRowOpen);
+
+  /// Copies this state with the find field's new [query] and the current match back at the first.
+  OcptEditorSearchState copyWithQuery({required String query}) =>
+      copyWith(query: query, currentMatchIndex: 0);
+
+  /// Copies this state with the replace field's new [replacement].
+  OcptEditorSearchState copyWithReplacement({required String replacement}) =>
+      copyWith(replacement: replacement);
+
+  /// Copies this state with the "match case" option set to [isCaseSensitive].
+  OcptEditorSearchState copyWithCaseSensitivity({required bool isCaseSensitive}) =>
+      copyWith(isCaseSensitive: isCaseSensitive);
+
+  /// Copies this state with the "whole word" option set to [isWholeWord].
+  OcptEditorSearchState copyWithWholeWord({required bool isWholeWord}) =>
+      copyWith(isWholeWord: isWholeWord);
+
+  /// Copies this state with no match left: the count at zero and no current match.
+  OcptEditorSearchState copyWithoutMatches() =>
+      copyWith(matchCount: 0, forceCurrentMatchIndexValue: true);
+
+  /// Copies this state with the [matchCount] the surface reported and the current match moved to
+  /// [currentMatchIndex].
+  OcptEditorSearchState copyWithMatches({
+    required int matchCount,
+    required int currentMatchIndex,
+  }) => copyWith(matchCount: matchCount, currentMatchIndex: currentMatchIndex);
+
+  /// Copies this state with the current match moved to [currentMatchIndex].
+  OcptEditorSearchState copyWithCurrentMatch({required int currentMatchIndex}) =>
+      copyWith(currentMatchIndex: currentMatchIndex);
+
   /// Object properties
   @override
   List<Object?> get props => [

@@ -48,8 +48,7 @@ class OcptEditorSearchBloc
     Emitter<OcptEditorSearchState> emitter,
   ) async {
     emitter(
-      state.copyWith(
-        isOpen: true,
+      state.copyWithOpened(
         isReplaceRowOpen: state.isReplaceRowOpen || event.withReplaceRow,
         focusRequestId: state.focusRequestId + 1,
       ),
@@ -62,7 +61,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchClosedEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(isOpen: false, matchCount: 0, forceCurrentMatchIndexValue: true));
+    emitter(state.copyWithClosed());
   }
 
   /// Folds or unfolds the replace row.
@@ -70,7 +69,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchReplaceRowToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(isReplaceRowOpen: !state.isReplaceRowOpen));
+    emitter(state.copyWithReplaceRowToggled(isReplaceRowOpen: !state.isReplaceRowOpen));
   }
 
   /// Stores the find field's new text and resets the current match index to 0, ready to be
@@ -79,7 +78,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchQueryChangedEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(query: event.query, currentMatchIndex: 0));
+    emitter(state.copyWithQuery(query: event.query));
   }
 
   /// Stores the replace field's new text.
@@ -87,7 +86,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchReplacementChangedEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(replacement: event.replacement));
+    emitter(state.copyWithReplacement(replacement: event.replacement));
   }
 
   /// Toggles the "match case" option.
@@ -95,7 +94,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchCaseSensitivityToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(isCaseSensitive: !state.isCaseSensitive));
+    emitter(state.copyWithCaseSensitivity(isCaseSensitive: !state.isCaseSensitive));
   }
 
   /// Toggles the "whole word" option.
@@ -103,7 +102,7 @@ class OcptEditorSearchBloc
     OcptEditorSearchWholeWordToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(isWholeWord: !state.isWholeWord));
+    emitter(state.copyWithWholeWord(isWholeWord: !state.isWholeWord));
   }
 
   /// Records the mounted surface's current match count, clamping the current match index into the
@@ -114,12 +113,12 @@ class OcptEditorSearchBloc
   ) async {
     final matchCount = event.matchCount;
     if (matchCount == 0) {
-      emitter(state.copyWith(matchCount: 0, forceCurrentMatchIndexValue: true));
+      emitter(state.copyWithoutMatches());
       return;
     }
 
     final clampedIndex = (state.currentMatchIndex ?? 0).clamp(0, matchCount - 1);
-    emitter(state.copyWith(matchCount: matchCount, currentMatchIndex: clampedIndex));
+    emitter(state.copyWithMatches(matchCount: matchCount, currentMatchIndex: clampedIndex));
   }
 
   /// Moves to the next match, wrapping from the last one back to the first. A no-op while there is
@@ -134,7 +133,7 @@ class OcptEditorSearchBloc
     }
 
     final nextIndex = ((state.currentMatchIndex ?? -1) + 1) % matchCount;
-    emitter(state.copyWith(currentMatchIndex: nextIndex));
+    emitter(state.copyWithCurrentMatch(currentMatchIndex: nextIndex));
   }
 
   /// Moves to the previous match, wrapping from the first one back to the last. A no-op while
@@ -149,7 +148,7 @@ class OcptEditorSearchBloc
     }
 
     final previousIndex = ((state.currentMatchIndex ?? 0) - 1 + matchCount) % matchCount;
-    emitter(state.copyWith(currentMatchIndex: previousIndex));
+    emitter(state.copyWithCurrentMatch(currentMatchIndex: previousIndex));
   }
 
   /// Sets the current match directly to [OcptEditorSearchCurrentMatchSelectedEvent.index], computed
@@ -159,6 +158,6 @@ class OcptEditorSearchBloc
     OcptEditorSearchCurrentMatchSelectedEvent event,
     Emitter<OcptEditorSearchState> emitter,
   ) async {
-    emitter(state.copyWith(currentMatchIndex: event.index));
+    emitter(state.copyWithCurrentMatch(currentMatchIndex: event.index));
   }
 }
