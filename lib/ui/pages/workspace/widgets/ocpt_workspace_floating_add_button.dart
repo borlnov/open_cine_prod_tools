@@ -70,6 +70,7 @@ class OcptWorkspaceFloatingAddButton extends StatelessWidget {
          "iconOnly requires a non-null icon: it is the button's only visible content.",
        );
 
+  /// Build the workspace floating add button as a [Stack].
   @override
   Widget build(BuildContext context) {
     final onPressed = this.onPressed;

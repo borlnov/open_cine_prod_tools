@@ -61,6 +61,7 @@ const double _selfRingWidth = 2;
 /// No write action lives here: a peer's presence is a report, exactly like `OcptSyncStatus`, so
 /// nothing is ever withheld under a read-only preview.
 class OcptPresenceIndicator extends StatelessWidget {
+  /// The sync manager handed in by the caller, or null to use the registered one.
   final OcptSyncManager? _syncManager;
 
   /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
@@ -87,6 +88,7 @@ class OcptPresenceIndicator extends StatelessWidget {
   const OcptPresenceIndicator({super.key, OcptSyncManager? syncManager})
     : _syncManager = syncManager;
 
+  /// Build the presence indicator as a [StreamBuilder].
   @override
   Widget build(BuildContext context) {
     final manager = _sync;
@@ -122,6 +124,7 @@ class _OcptPresenceCluster extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceCluster({required this.roster});
 
+  /// Build the presence cluster as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -177,6 +180,7 @@ class _OcptPresenceAvatarTooltip extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceAvatarTooltip({required this.frame, required this.isSelf});
 
+  /// Build the presence avatar tooltip as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -210,6 +214,7 @@ class _OcptPresenceOverflowDisc extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceOverflowDisc({required this.count, required this.theme});
 
+  /// Build the presence overflow disc as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     width: _clusterAvatarSize,
@@ -255,6 +260,7 @@ class _OcptPresenceAvatar extends StatelessWidget {
     this.outlineColor,
   });
 
+  /// Build the presence avatar as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -293,6 +299,7 @@ class _OcptPresencePopover extends StatelessWidget {
   /// Class constructor
   const _OcptPresencePopover({required this.roster});
 
+  /// Build the presence popover as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -343,6 +350,7 @@ class _OcptPresencePopoverRow extends StatelessWidget {
   /// Class constructor
   const _OcptPresencePopoverRow({required this.frame, required this.isSelf});
 
+  /// Build the presence popover row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -401,6 +409,7 @@ class _OcptPresenceSelfBadge extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceSelfBadge({required this.label});
 
+  /// Build the presence self badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

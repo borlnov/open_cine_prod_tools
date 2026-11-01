@@ -32,6 +32,7 @@ class OcptHorizontalScrollView extends StatefulWidget {
   /// Class constructor
   const OcptHorizontalScrollView({super.key, required this.child, this.padding});
 
+  /// Create the [_OcptHorizontalScrollViewState] holding the state of the horizontal scroll view.
   @override
   State<OcptHorizontalScrollView> createState() => _OcptHorizontalScrollViewState();
 }
@@ -42,6 +43,7 @@ class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
   /// must be handed the very controller its scroll view reads.
   final ScrollController _controller = ScrollController();
 
+  /// Build the horizontal scroll view as a [Scrollbar].
   @override
   Widget build(BuildContext context) => Scrollbar(
     controller: _controller,
@@ -55,6 +57,7 @@ class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
     ),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

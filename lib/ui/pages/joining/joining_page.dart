@@ -40,6 +40,7 @@ class OcptJoiningPage extends StatelessWidget {
   /// Class constructor
   const OcptJoiningPage({super.key});
 
+  /// Build the joining page as a [BlocProvider].
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptJoiningBloc(), child: const OcptJoiningView());
@@ -54,6 +55,7 @@ class OcptJoiningView extends StatefulWidget {
   /// Class constructor
   const OcptJoiningView({super.key});
 
+  /// Create the [_OcptJoiningViewState] holding the state of the joining view.
   @override
   State<OcptJoiningView> createState() => _OcptJoiningViewState();
 }
@@ -77,6 +79,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
   /// for) came from the scanner tab rather than the manual form — see [_scanStatus].
   bool _lastSubmissionFromScanner = false;
 
+  /// Build the joining view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptJoiningBloc, OcptJoiningState>(
     listenWhen: (previous, current) => current.joinFailed && !previous.joinFailed,
@@ -201,6 +204,7 @@ class _OcptJoiningChip extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningChip({required this.label, required this.color});
 
+  /// Build the joining chip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -233,6 +237,7 @@ class _OcptJoiningSegmentedControl extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningSegmentedControl({required this.selectedTab, required this.onSelected});
 
+  /// Build the joining segmented control as a [SegmentedButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -276,6 +281,7 @@ class _OcptJoiningSelectedTab extends StatelessWidget {
     required this.onScanned,
   });
 
+  /// Build the joining selected tab.
   @override
   Widget build(BuildContext context) {
     if (selectedTab == _OcptJoiningTab.manual) {
@@ -295,6 +301,7 @@ class _OcptJoiningScannerUnavailableCard extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningScannerUnavailableCard();
 
+  /// Build the joining scanner unavailable card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -331,6 +338,7 @@ class _OcptJoiningNote extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningNote();
 
+  /// Build the joining note as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

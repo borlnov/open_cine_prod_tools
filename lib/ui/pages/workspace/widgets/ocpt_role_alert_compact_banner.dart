@@ -51,6 +51,7 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the role alert compact banner as a [Container].
   @override
   Widget build(BuildContext context) {
     if (isReadOnly || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
@@ -119,6 +120,7 @@ class _OcptRoleAlertCompactLine extends StatelessWidget {
     required this.onRoleTapped,
   });
 
+  /// Build the role alert compact line as an [InkWell].
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: () => onRoleTapped(roleId),

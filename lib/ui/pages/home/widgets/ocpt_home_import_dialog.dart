@@ -33,6 +33,7 @@ class OcptHomeImportDialog extends StatelessWidget {
   /// Class constructor
   const OcptHomeImportDialog({super.key});
 
+  /// Build the home import dialog as an [OcptCardChoiceDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

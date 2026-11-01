@@ -36,7 +36,7 @@ class OcptProjectPackageExportRequestedEvent extends BlocEventForMixin {
   /// Class constructor
   const OcptProjectPackageExportRequestedEvent({required this.fileTypeLabel, this.target});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel, target];
 }
@@ -65,7 +65,7 @@ class OcptProjectPackageExportConfirmedEvent extends BlocEventForMixin {
   /// Class constructor
   const OcptProjectPackageExportConfirmedEvent({required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel];
 }

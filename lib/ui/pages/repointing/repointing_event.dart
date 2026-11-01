@@ -26,7 +26,7 @@ class OcptRepointingRequestedEvent extends OcptRepointingEvent {
   /// Class constructor
   const OcptRepointingRequestedEvent({required this.relayBaseUri, required this.enrolmentSecret});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, relayBaseUri, enrolmentSecret];
 }

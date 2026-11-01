@@ -20,7 +20,7 @@ class OcptProjectSettingsCurrencyChangedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsCurrencyChangedEvent({required this.currencyCode});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, currencyCode];
 }
@@ -33,7 +33,7 @@ class OcptProjectSettingsPageFormatChangedEvent extends OcptProjectSettingsEvent
   /// Class constructor
   const OcptProjectSettingsPageFormatChangedEvent({required this.pageFormat});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, pageFormat];
 }
@@ -47,7 +47,7 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   /// Class constructor
   const OcptProjectSettingsMinimumRestMinutesChangedEvent({required this.minutes});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, minutes];
 }
@@ -63,7 +63,7 @@ class OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent extends OcptProje
   /// Class constructor
   const OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent({required this.basisPoints});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, basisPoints];
 }
@@ -77,7 +77,7 @@ class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsE
   /// Class constructor
   const OcptProjectSettingsMealPriceCentsChangedEvent({required this.cents});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, cents];
 }
@@ -91,7 +91,7 @@ class OcptProjectSettingsBuffetPriceCentsChangedEvent extends OcptProjectSetting
   /// Class constructor
   const OcptProjectSettingsBuffetPriceCentsChangedEvent({required this.cents});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, cents];
 }
@@ -106,7 +106,7 @@ class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSetti
   /// Class constructor
   const OcptProjectSettingsScreenplayLanguageChangedEvent({required this.screenplayLanguage});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayLanguage];
 }
@@ -128,7 +128,7 @@ class OcptProjectSettingsDictionaryEditedEvent extends OcptProjectSettingsEvent 
     required this.removedWords,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, addedWords, removedWords];
 }
@@ -154,7 +154,7 @@ class OcptProjectSettingsEpisodeTitleChangedEvent extends OcptProjectSettingsEve
     required this.title,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayId, title];
 }
@@ -175,7 +175,7 @@ class OcptProjectSettingsEpisodeNumberChangedEvent extends OcptProjectSettingsEv
     required this.number,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayId, number];
 }
@@ -196,7 +196,7 @@ class OcptProjectSettingsEpisodeMovedEvent extends OcptProjectSettingsEvent {
     required this.newPosition,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayId, newPosition];
 }
@@ -210,7 +210,7 @@ class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettin
   /// Class constructor
   const OcptProjectSettingsEpisodeDeletionConfirmedEvent({required this.screenplayId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayId];
 }
@@ -237,7 +237,7 @@ class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSetting
     required this.label,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, rateId, label];
 }
@@ -257,7 +257,7 @@ class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettin
     required this.ratePerKmMilliCents,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, rateId, ratePerKmMilliCents];
 }
@@ -278,7 +278,7 @@ class OcptProjectSettingsMoveRequestedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsMoveRequestedEvent({required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
@@ -309,7 +309,7 @@ class OcptProjectSettingsMileageRateDeletionConfirmedEvent extends OcptProjectSe
   /// Class constructor
   const OcptProjectSettingsMileageRateDeletionConfirmedEvent({required this.rateId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, rateId];
 }

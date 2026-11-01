@@ -46,6 +46,7 @@ class OcptReferencedImage extends StatefulWidget {
     this.fit = BoxFit.cover,
   });
 
+  /// Create the [_OcptReferencedImageState] holding the state of the referenced image.
   @override
   State<OcptReferencedImage> createState() => _OcptReferencedImageState();
 }
@@ -56,6 +57,7 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
   /// referenced at all, which is the same thing to draw and one `stat` fewer to run.
   late bool _exists = _fileExists(widget.path);
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant OcptReferencedImage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -64,6 +66,7 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
     }
   }
 
+  /// Build the referenced image as an [Image].
   @override
   Widget build(BuildContext context) {
     final path = widget.path;

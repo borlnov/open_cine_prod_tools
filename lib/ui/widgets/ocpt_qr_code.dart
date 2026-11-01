@@ -32,6 +32,7 @@ class OcptQrCode extends StatelessWidget {
   /// Class constructor
   const OcptQrCode({required this.data, this.size = _defaultSize, super.key});
 
+  /// Build the QR code as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(8),

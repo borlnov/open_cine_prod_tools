@@ -43,6 +43,7 @@ class OcptHomePage extends StatelessWidget {
   /// Creates the home page.
   const OcptHomePage({super.key});
 
+  /// Build the home page as a [BlocProvider].
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptHomeBloc(), child: const _HomeView());
@@ -54,6 +55,7 @@ class _HomeView extends StatelessWidget {
   /// Class constructor
   const _HomeView();
 
+  /// Build the home view as a [Scaffold].
   @override
   Widget build(BuildContext context) {
     final isCompact = ocptIsCompactWidth(MediaQuery.sizeOf(context).width);

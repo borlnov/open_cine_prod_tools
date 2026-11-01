@@ -30,6 +30,7 @@ class OcptWorkspacePage extends StatelessWidget {
   /// Creates the workspace page.
   const OcptWorkspacePage({super.key});
 
+  /// Build the workspace page as a [BlocProvider].
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptWorkspaceBloc(), child: const _WorkspaceView());
@@ -41,6 +42,7 @@ class _WorkspaceView extends StatelessWidget {
   /// Class constructor
   const _WorkspaceView();
 
+  /// Build the workspace view as a [Scaffold].
   @override
   Widget build(BuildContext context) => Scaffold(
     body: BlocBuilder<OcptWorkspaceBloc, OcptWorkspaceState>(
@@ -91,6 +93,7 @@ class _WorkspaceActiveMode extends StatelessWidget {
   /// Class constructor
   const _WorkspaceActiveMode({required this.state});
 
+  /// Build the workspace active mode.
   @override
   Widget build(BuildContext context) {
     final key = ValueKey(state.selectedEpisodeId);

@@ -27,7 +27,7 @@ class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
     required this.destinationConfirmButtonText,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, inviteLinkText, destinationConfirmButtonText];
 }
@@ -51,7 +51,7 @@ class OcptJoiningInviteScannedEvent extends OcptJoiningEvent {
     required this.destinationConfirmButtonText,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, scannedText, destinationConfirmButtonText];
 }

@@ -35,6 +35,8 @@ class OcptProjectDictionaryDialog extends StatefulWidget {
   /// Class constructor
   const OcptProjectDictionaryDialog({required this.words, super.key});
 
+  /// Create the [_OcptProjectDictionaryDialogState] holding the state of the project dictionary
+  /// dialog.
   @override
   State<OcptProjectDictionaryDialog> createState() => _OcptProjectDictionaryDialogState();
 
@@ -78,6 +80,8 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   /// a single field is enough to guarantee only one row ever asks at a time.
   String? _confirmingRemovalOf;
 
+  /// Register [_onFilterChanged] as a listener of [_filterController] and [_onAddTextChanged] as a
+  /// listener of [_addController].
   @override
   void initState() {
     super.initState();
@@ -85,6 +89,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     _addController.addListener(_onAddTextChanged);
   }
 
+  /// Build the project dictionary dialog as a [PopScope].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -217,6 +222,8 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
       return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
     });
 
+  /// Detach [_onFilterChanged] from [_filterController], dispose [_filterController], detach
+  /// [_onAddTextChanged] from [_addController], then dispose [_addController].
   @override
   void dispose() {
     _filterController
@@ -261,6 +268,7 @@ class _OcptDictionaryWordList extends StatelessWidget {
     required this.onRemovalConfirmed,
   });
 
+  /// Build the dictionary word list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -306,6 +314,7 @@ class _OcptDictionaryWordRow extends StatelessWidget {
   /// Class constructor
   const _OcptDictionaryWordRow({required this.word, required this.onRemovalRequested});
 
+  /// Build the dictionary word row as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2),
@@ -339,6 +348,7 @@ class _OcptDictionaryRemovalConfirmationRow extends StatelessWidget {
     required this.onConfirmed,
   });
 
+  /// Build the dictionary removal confirmation row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -393,6 +403,7 @@ class _OcptDictionaryAddField extends StatelessWidget {
     required this.onSubmitted,
   });
 
+  /// Build the dictionary add field as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

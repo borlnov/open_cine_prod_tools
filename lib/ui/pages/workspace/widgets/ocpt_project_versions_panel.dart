@@ -107,6 +107,7 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     required this.onRenameConfirmed,
   });
 
+  /// Build the project versions panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -174,6 +175,7 @@ class _OcptProjectVersionPanelEntry extends StatelessWidget {
   /// Class constructor
   const _OcptProjectVersionPanelEntry({super.key, required this.panel, required this.version});
 
+  /// Build the project version panel entry as an [OcptProjectVersionCard].
   @override
   Widget build(BuildContext context) {
     final isPreviewed = version.id == panel.previewedVersionId;

@@ -63,6 +63,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     required this.onRightDockToggled,
   });
 
+  /// Build the workspace shell toolbar as an [OcptWorkspaceToolbar].
   @override
   Widget build(BuildContext context) => OcptWorkspaceToolbar(
     title: shell.title,
@@ -479,6 +480,7 @@ class _OcptWorkspaceEpisodeIconTrigger extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceEpisodeIconTrigger();
 
+  /// Build the workspace episode icon trigger as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

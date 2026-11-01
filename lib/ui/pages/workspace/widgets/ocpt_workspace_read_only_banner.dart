@@ -64,6 +64,7 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
     required this.onExitPreview,
   });
 
+  /// Build the workspace read only banner as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

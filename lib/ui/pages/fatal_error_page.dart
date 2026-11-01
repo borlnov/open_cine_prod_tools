@@ -18,6 +18,7 @@ class OcptFatalErrorPage extends StatelessWidget {
   /// Creates a fatal error page reporting the given [error].
   const OcptFatalErrorPage({super.key, required this.error});
 
+  /// Build the fatal error page as a [MaterialApp].
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,

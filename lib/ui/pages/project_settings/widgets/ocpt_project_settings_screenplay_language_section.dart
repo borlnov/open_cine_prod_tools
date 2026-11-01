@@ -29,6 +29,7 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings screenplay language section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

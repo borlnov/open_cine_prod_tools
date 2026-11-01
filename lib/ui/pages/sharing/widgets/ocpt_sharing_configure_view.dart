@@ -32,6 +32,7 @@ class OcptSharingConfigureView extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptSharingConfigureViewState] holding the state of the sharing configure view.
   @override
   State<OcptSharingConfigureView> createState() => _OcptSharingConfigureViewState();
 }
@@ -51,6 +52,7 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
   /// yet.
   String? _relayAddressError;
 
+  /// Build the sharing configure view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -165,6 +167,7 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
     widget.onPairRequested(uri, _enrolmentSecretController.text);
   }
 
+  /// Dispose [_relayAddressController] and [_enrolmentSecretController].
   @override
   void dispose() {
     _relayAddressController.dispose();

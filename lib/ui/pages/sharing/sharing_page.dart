@@ -47,6 +47,7 @@ class OcptSharingPage extends StatelessWidget {
   /// Class constructor
   const OcptSharingPage({super.key});
 
+  /// Build the sharing page as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -63,7 +64,10 @@ class OcptSharingPage extends StatelessWidget {
 /// Public, like `OcptProjectSettingsView`, for the same reason: a widget test pumps it directly
 /// with a `BlocProvider.value` wrapping an [OcptSharingBloc] built over injected managers.
 class OcptSharingView extends StatelessWidget {
+  /// The platform manager handed in by the caller, or null to use the registered one.
   final PlatformManager? _platformManager;
+
+  /// Whether the caller forces the read-only state, or null to read it from the current project.
   final bool? _isReadOnly;
 
   /// Class constructor
@@ -75,6 +79,7 @@ class OcptSharingView extends StatelessWidget {
     : _platformManager = platformManager,
       _isReadOnly = isReadOnly;
 
+  /// Build the sharing view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptSharingBloc, OcptSharingState>(
     listenWhen: (previous, current) => current.pairingFailed && !previous.pairingFailed,
@@ -211,14 +216,17 @@ class _OcptSharingSegmentedBody extends StatefulWidget {
   /// Class constructor
   const _OcptSharingSegmentedBody({required this.remoteBody});
 
+  /// Create the [_OcptSharingSegmentedBodyState] holding the state of the sharing segmented body.
   @override
   State<_OcptSharingSegmentedBody> createState() => _OcptSharingSegmentedBodyState();
 }
 
 /// The state of [_OcptSharingSegmentedBody].
 class _OcptSharingSegmentedBodyState extends State<_OcptSharingSegmentedBody> {
+  /// The segment of the page showing, remote by default.
   _OcptSharingSegment _segment = _OcptSharingSegment.remote;
 
+  /// Build the sharing segmented body as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

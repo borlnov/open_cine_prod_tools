@@ -30,6 +30,7 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectPackageSkippedFilesDialog({super.key, required this.skippedAssets});
 
+  /// Build the project package skipped files dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -52,6 +52,7 @@ class OcptProjectSettingsMileageRatesSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings mileage rates section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -132,6 +133,8 @@ class _OcptProjectSettingsMileageRateRow extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptProjectSettingsMileageRateRowState] holding the state of the project settings
+  /// mileage rate row.
   @override
   State<_OcptProjectSettingsMileageRateRow> createState() =>
       _OcptProjectSettingsMileageRateRowState();
@@ -167,6 +170,8 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
   /// [_OcptProjectSettingsMileageRateRow.rate]'s own rate written through [ocptMileageRateTextOf].
   String get _formattedRate => ocptMileageRateTextOf(widget.rate.ratePerKmMilliCents);
 
+  /// Register [_onLabelFocusChanged] as a listener of [_labelFocusNode] and [_onRateFocusChanged]
+  /// as a listener of [_rateFocusNode].
   @override
   void initState() {
     super.initState();
@@ -174,6 +179,7 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     _rateFocusNode.addListener(_onRateFocusChanged);
   }
 
+  /// Show the new label or rate in its field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsMileageRateRow oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -192,6 +198,7 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     }
   }
 
+  /// Build the project settings mileage rate row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -275,6 +282,9 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     }
   }
 
+  /// Detach [_onLabelFocusChanged] from [_labelFocusNode], dispose [_labelFocusNode], detach
+  /// [_onRateFocusChanged] from [_rateFocusNode], then dispose [_rateFocusNode], [_labelController]
+  /// and [_rateController].
   @override
   void dispose() {
     _labelFocusNode

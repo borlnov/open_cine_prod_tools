@@ -30,6 +30,7 @@ class OcptRepointingPage extends StatelessWidget {
   /// Class constructor
   const OcptRepointingPage({super.key});
 
+  /// Build the repointing page as a [BlocProvider].
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptRepointingBloc(), child: const OcptRepointingView());
@@ -44,6 +45,7 @@ class OcptRepointingView extends StatelessWidget {
   /// Class constructor
   const OcptRepointingView({super.key});
 
+  /// Build the repointing view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptRepointingBloc, OcptRepointingState>(
     listenWhen: (previous, current) => current.repointFailed && !previous.repointFailed,

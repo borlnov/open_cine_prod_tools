@@ -33,6 +33,7 @@ class OcptHomeEmptyState extends StatelessWidget {
     super.key,
   });
 
+  /// Build the home empty as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

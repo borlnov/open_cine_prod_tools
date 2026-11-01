@@ -69,6 +69,7 @@ class OcptProjectCard extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project card as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -232,6 +233,7 @@ class _OcptProjectCardEpisodeBadge extends StatelessWidget {
   /// Class constructor
   const _OcptProjectCardEpisodeBadge({required this.count, required this.color});
 
+  /// Build the project card episode badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -268,6 +270,7 @@ class _OcptProjectCardCompatibilityBadge extends StatelessWidget {
   /// Class constructor
   const _OcptProjectCardCompatibilityBadge({required this.color});
 
+  /// Build the project card compatibility badge as a [Tooltip].
   @override
   Widget build(BuildContext context) => Tooltip(
     message: Tr.of(context).homeIncompatibleProjectTooltip,

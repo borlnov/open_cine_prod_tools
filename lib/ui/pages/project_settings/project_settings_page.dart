@@ -62,6 +62,7 @@ class OcptProjectSettingsPage extends StatelessWidget {
   /// Creates the project settings page.
   const OcptProjectSettingsPage({this.reveal, super.key});
 
+  /// Build the project settings page as a [BlocProvider].
   @override
   Widget build(BuildContext context) => BlocProvider(
     create: (context) => OcptProjectSettingsBloc(),
@@ -82,6 +83,7 @@ class OcptProjectSettingsView extends StatefulWidget {
   /// Class constructor
   const OcptProjectSettingsView({this.reveal, super.key});
 
+  /// Create the [_OcptProjectSettingsViewState] holding the state of the project settings view.
   @override
   State<OcptProjectSettingsView> createState() => _OcptProjectSettingsViewState();
 }
@@ -101,6 +103,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
   /// not in the tree while [OcptProjectSettingsState.isLoading].
   bool _hasScheduledReveal = false;
 
+  /// Build the project settings view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) =>
       BlocConsumer<OcptProjectSettingsBloc, OcptProjectSettingsState>(

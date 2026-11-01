@@ -28,6 +28,7 @@ class OcptSettingsPage extends StatelessWidget {
   /// Creates the settings page.
   const OcptSettingsPage({super.key});
 
+  /// Build the settings page as a [BlocProvider].
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptSettingsBloc(), child: const OcptSettingsView());
@@ -44,6 +45,7 @@ class OcptSettingsView extends StatelessWidget {
   /// Class constructor
   const OcptSettingsView({super.key});
 
+  /// Build the settings view as a [Scaffold].
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(

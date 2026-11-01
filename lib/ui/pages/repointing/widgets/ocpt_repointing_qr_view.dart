@@ -35,6 +35,7 @@ class OcptRepointingQrView extends StatelessWidget {
   /// Class constructor
   const OcptRepointingQrView({required this.enrolment, super.key});
 
+  /// Build the repointing QR view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -138,6 +139,7 @@ class _OcptRepointingConnectionRow extends StatelessWidget {
     required this.onCopyPressed,
   });
 
+  /// Build the repointing connection row as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

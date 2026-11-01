@@ -23,6 +23,7 @@ class OcptLogoGlyph extends StatelessWidget {
   /// Class constructor
   const OcptLogoGlyph({required this.width, required this.color, super.key});
 
+  /// Build the logo glyph.
   @override
   Widget build(BuildContext context) =>
       _glyphLogoAsset.getWidget(width: width, height: width / _glyphAspectRatio, color: color);

@@ -27,6 +27,7 @@ class OcptSettingsAboutSection extends StatelessWidget {
   /// Class constructor
   const OcptSettingsAboutSection({required this.appVersion, super.key});
 
+  /// Build the settings about section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -115,6 +116,7 @@ class _OcptAboutRow extends StatelessWidget {
   /// Class constructor
   const _OcptAboutRow({required this.icon, required this.label, required this.onTap});
 
+  /// Build the about row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

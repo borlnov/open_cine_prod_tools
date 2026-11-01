@@ -38,7 +38,7 @@ class OcptProjectVersionCreationRequestedEvent extends OcptProjectVersionsEvent 
   /// Class constructor
   const OcptProjectVersionCreationRequestedEvent({required this.name, required this.note});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, name, note];
 }
@@ -52,7 +52,7 @@ class OcptProjectVersionDeletionRequestedEvent extends OcptProjectVersionsEvent 
   /// Class constructor
   const OcptProjectVersionDeletionRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
@@ -71,7 +71,7 @@ class OcptProjectVersionDeletionConfirmedEvent extends OcptProjectVersionsEvent 
   /// Class constructor
   const OcptProjectVersionDeletionConfirmedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
@@ -85,7 +85,7 @@ class OcptProjectVersionRestoreRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRestoreRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
@@ -115,7 +115,7 @@ class OcptProjectVersionRestoreConfirmedEvent extends OcptProjectVersionsEvent {
     required this.safetyVersionName,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId, safetyVersionName];
 }
@@ -129,7 +129,7 @@ class OcptProjectVersionRenameRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRenameRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }
@@ -159,7 +159,7 @@ class OcptProjectVersionRenameConfirmedEvent extends OcptProjectVersionsEvent {
     required this.note,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId, name, note];
 }
@@ -180,7 +180,7 @@ class OcptProjectVersionPreviewRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionPreviewRequestedEvent({required this.versionId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, versionId];
 }

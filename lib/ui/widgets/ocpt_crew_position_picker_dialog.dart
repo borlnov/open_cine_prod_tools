@@ -61,6 +61,8 @@ class OcptCrewPositionPickerDialog extends StatefulWidget {
     this.allowCustomLabel = false,
   });
 
+  /// Create the [_OcptCrewPositionPickerDialogState] holding the state of the crew position picker
+  /// dialog.
   @override
   State<OcptCrewPositionPickerDialog> createState() => _OcptCrewPositionPickerDialogState();
 
@@ -86,12 +88,14 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
   /// The search field's own controller.
   final TextEditingController _searchController = TextEditingController();
 
+  /// Register [_onQueryChanged] as a listener of [_searchController].
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onQueryChanged);
   }
 
+  /// Build the crew position picker dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -185,6 +189,7 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
     );
   }
 
+  /// Rebuild the dialog so the list follows the query typed in the search field.
   void _onQueryChanged() => setState(() {});
 
   /// [ref]'s own label: the catalogue's when it names one, [ref].customLabel otherwise — a
@@ -193,6 +198,7 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
   String _labelOf(Tr tr, OcptCrewPositionRef ref) =>
       ref.positionId.isEmpty ? ref.customLabel : ocptCrewPositionLabel(tr, ref.positionId);
 
+  /// Detach [_onQueryChanged] from [_searchController], then dispose [_searchController].
   @override
   void dispose() {
     _searchController
@@ -221,6 +227,7 @@ class _OcptCrewPositionPickerSection extends StatelessWidget {
     this.uppercase = true,
   });
 
+  /// Build the crew position picker section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -258,6 +265,7 @@ class _OcptCrewPositionPickerRow extends StatelessWidget {
   /// Class constructor
   const _OcptCrewPositionPickerRow({required this.label, required this.ref});
 
+  /// Build the crew position picker row as an [InkWell].
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: () => globalGetIt().get<OcptRouterManager>().pop<OcptCrewPositionPickResult>(
@@ -278,6 +286,7 @@ class _OcptCrewPositionPickerCustomRow extends StatelessWidget {
   /// Class constructor
   const _OcptCrewPositionPickerCustomRow();
 
+  /// Build the crew position picker custom row as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 4),
@@ -309,6 +318,7 @@ class _OcptCrewPositionPickerHint extends StatelessWidget {
   /// Class constructor
   const _OcptCrewPositionPickerHint({required this.message});
 
+  /// Build the crew position picker hint as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 16),

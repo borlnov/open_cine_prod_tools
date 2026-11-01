@@ -27,6 +27,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings page format section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

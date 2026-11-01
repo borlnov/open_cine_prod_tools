@@ -18,6 +18,7 @@ class OcptSharingChip extends StatelessWidget {
   /// Class constructor
   const OcptSharingChip({required this.label, required this.color, super.key});
 
+  /// Build the sharing chip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

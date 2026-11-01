@@ -42,8 +42,13 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// read-only preview (`isReadOnly`) all four are withheld — a null callback, never merely a
 /// disabled one, exactly as every other affordance that writes does.
 class OcptSyncStatusIndicator extends StatelessWidget {
+  /// The sync manager handed in by the caller, or null to use the registered one.
   final OcptSyncManager? _syncManager;
+
+  /// The router manager handed in by the caller, or null to use the registered one.
   final OcptRouterManager? _routerManager;
+
+  /// Whether the caller forces the read-only state, or null to read it from the current project.
   final bool? _isReadOnly;
 
   /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
@@ -68,6 +73,7 @@ class OcptSyncStatusIndicator extends StatelessWidget {
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
+  /// The router manager: [_routerManager], or the one `globalGetIt()` holds.
   OcptRouterManager get _router => _routerManager ?? globalGetIt().get<OcptRouterManager>();
 
   /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
@@ -105,6 +111,7 @@ class OcptSyncStatusIndicator extends StatelessWidget {
        _routerManager = routerManager,
        _isReadOnly = isReadOnly;
 
+  /// Build the sync status indicator as a [StreamBuilder].
   @override
   Widget build(BuildContext context) {
     final manager = _sync;
@@ -169,6 +176,7 @@ class _OcptSyncStatusBadge extends StatelessWidget {
     required this.onSwitchRelayRequested,
   });
 
+  /// Build the sync status badge as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -226,6 +234,7 @@ class _OcptSyncStatusGlyph extends StatelessWidget {
   /// Class constructor
   const _OcptSyncStatusGlyph({required this.status, required this.color});
 
+  /// Build the sync status glyph as a [Container].
   @override
   Widget build(BuildContext context) {
     if (status is OcptSyncStatusSyncing) {
@@ -266,6 +275,7 @@ class _OcptSyncStatusPanel extends StatelessWidget {
     required this.onSwitchRelayRequested,
   });
 
+  /// Build the sync status panel as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

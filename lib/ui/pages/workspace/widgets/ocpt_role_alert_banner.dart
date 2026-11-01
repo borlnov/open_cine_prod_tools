@@ -87,6 +87,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
        onDeleteRequested = null,
        onKeepRequested = null;
 
+  /// Build the role alert banner as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -176,6 +177,7 @@ class _OcptRoleAlertOrphanedActions extends StatelessWidget {
     required this.onMergeRequested,
   });
 
+  /// Build the role alert orphaned actions as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -243,6 +245,7 @@ class _OcptRoleAlertCollisionAction extends StatelessWidget {
     required this.onMergeRequested,
   });
 
+  /// Build the role alert collision action as a [TextButton].
   @override
   Widget build(BuildContext context) => TextButton(
     onPressed: () => onMergeRequested?.call(alert.handAddedRoleId, alert.screenplayRoleId),

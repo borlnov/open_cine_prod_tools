@@ -34,6 +34,7 @@ class OcptProjectSettingsMinimumRestSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings minimum rest section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -96,6 +97,8 @@ class _OcptProjectSettingsMinimumRestField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptProjectSettingsMinimumRestFieldState] holding the state of the project
+  /// settings minimum rest field.
   @override
   State<_OcptProjectSettingsMinimumRestField> createState() =>
       _OcptProjectSettingsMinimumRestFieldState();
@@ -121,12 +124,14 @@ class _OcptProjectSettingsMinimumRestFieldState
   /// [ocptMinimumRestHoursTextOf], or the empty string while it is null.
   String get _formatted => ocptMinimumRestHoursTextOf(widget.minimumRestMinutes);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new rest time in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsMinimumRestField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -139,6 +144,7 @@ class _OcptProjectSettingsMinimumRestFieldState
     }
   }
 
+  /// Build the project settings minimum rest field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -197,6 +203,7 @@ class _OcptProjectSettingsMinimumRestFieldState
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode

@@ -22,7 +22,7 @@ class OcptHostingHostStateChangedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingHostStateChangedEvent(this.hostState);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, hostState];
 }
@@ -37,7 +37,7 @@ class OcptHostingPresenceChangedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingPresenceChangedEvent(this.presenceRoster);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, presenceRoster];
 }
@@ -51,7 +51,7 @@ class OcptHostingStartStopRequestedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingStartStopRequestedEvent({required this.start});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, start];
 }
@@ -64,7 +64,7 @@ class OcptHostingAutoRestartChangedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingAutoRestartChangedEvent({required this.value});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, value];
 }
@@ -78,7 +78,7 @@ class OcptHostingReconcileRequestedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingReconcileRequestedEvent(this.inviteText);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, inviteText];
 }
@@ -103,7 +103,7 @@ class OcptHostingAdvertisedAddressChangedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingAdvertisedAddressChangedEvent(this.address);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, address];
 }
@@ -118,7 +118,7 @@ class OcptHostingPortChangeRequestedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingPortChangeRequestedEvent(this.port);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, port];
 }
@@ -131,7 +131,7 @@ class OcptHostingQrKindChangedEvent extends OcptHostingEvent {
   /// Class constructor
   const OcptHostingQrKindChangedEvent(this.kind);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, kind];
 }

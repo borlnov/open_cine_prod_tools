@@ -31,7 +31,7 @@ class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeCreateProjectRequestedEvent({required this.name, required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, name, fileTypeLabel];
 }
@@ -66,7 +66,7 @@ class OcptHomeOpenProjectRequestedEvent extends OcptHomeEvent {
     this.allowMigration = false,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, filePath, fileTypeLabel, allowMigration];
 }
@@ -84,7 +84,7 @@ class OcptHomeShareProjectRequestedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeShareProjectRequestedEvent({required this.filePath});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, filePath];
 }
@@ -118,7 +118,7 @@ class OcptHomeRemoveRecentProjectRequestedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeRemoveRecentProjectRequestedEvent({required this.path});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, path];
 }
@@ -157,7 +157,7 @@ class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
     required this.projectFileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, screenplayFileTypeLabel, projectFileTypeLabel];
 }
@@ -192,7 +192,7 @@ class OcptHomeImportProjectPackageRequestedEvent extends OcptHomeEvent {
     required this.destinationConfirmButtonText,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, packageFileTypeLabel, destinationConfirmButtonText];
 }

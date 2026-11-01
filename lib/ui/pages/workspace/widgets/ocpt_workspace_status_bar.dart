@@ -48,6 +48,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     required this.trailing,
   });
 
+  /// Build the workspace status bar as a [ColoredBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

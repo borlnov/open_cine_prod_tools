@@ -50,6 +50,7 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
     super.key,
   });
 
+  /// Build the joining status overlay as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -99,6 +100,7 @@ class _OcptJoiningBusyContent extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningBusyContent({required this.stepLabel, required this.onCancelRequested});
 
+  /// Build the joining busy content as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -125,6 +127,7 @@ class _OcptJoiningSuccessContent extends StatelessWidget {
   /// Class constructor
   const _OcptJoiningSuccessContent({required this.onOpenRequested});
 
+  /// Build the joining success content as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

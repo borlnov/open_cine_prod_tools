@@ -36,7 +36,7 @@ class OcptViewModeStateChangedEvent<MS extends MixinOcptModeState<MS>> extends O
     required this.hasSelectionMoved,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, modeState, hasReloaded, hasSelectionMoved];
 }

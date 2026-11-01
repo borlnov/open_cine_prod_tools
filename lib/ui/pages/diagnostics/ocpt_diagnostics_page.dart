@@ -21,6 +21,7 @@ class OcptDiagnosticsPage extends StatelessWidget {
   /// Class constructor
   const OcptDiagnosticsPage({super.key});
 
+  /// Build the diagnostics page as a [Scaffold].
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -48,6 +49,7 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsLogFileRow();
 
+  /// Build the diagnostics log file row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

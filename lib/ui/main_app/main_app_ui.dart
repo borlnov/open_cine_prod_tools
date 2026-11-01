@@ -54,6 +54,7 @@ class OcptMainAppUi extends StatelessWidget {
   /// Creates the main app widget.
   const OcptMainAppUi({super.key});
 
+  /// Build the main app UI as a [ScreenUtilInit].
   @override
   Widget build(BuildContext context) => ScreenUtilInit(
     designSize: const Size(375, 812),
@@ -70,6 +71,7 @@ class _MainAppView extends StatelessWidget {
   /// Class constructor
   const _MainAppView();
 
+  /// Build the main app view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final router = globalGetIt().get<OcptRouterManager>().router;
@@ -151,18 +153,21 @@ class _EdgeToEdgeShell extends StatefulWidget {
   /// Class constructor
   const _EdgeToEdgeShell({required this.child});
 
+  /// Create the [_EdgeToEdgeShellState] holding the state of the edge to edge shell.
   @override
   State<_EdgeToEdgeShell> createState() => _EdgeToEdgeShellState();
 }
 
 /// State of [_EdgeToEdgeShell]: applies the orientation policy once its [MediaQuery] is available.
 class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
+  /// Lock the orientation for the device class, now that [MediaQuery] is available.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _lockOrientationForDeviceClass();
   }
 
+  /// Build the edge to edge shell as an [AnnotatedRegion].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

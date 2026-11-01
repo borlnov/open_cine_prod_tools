@@ -45,6 +45,7 @@ class OcptHomeHeader extends StatelessWidget {
     super.key,
   });
 
+  /// Build the home header as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

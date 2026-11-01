@@ -35,7 +35,7 @@ class OcptModeReloadRequestedEvent<Scope extends Enum> extends OcptModeEvent
   /// Class constructor
   OcptModeReloadRequestedEvent({required this.scopes});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, scopes];
 }

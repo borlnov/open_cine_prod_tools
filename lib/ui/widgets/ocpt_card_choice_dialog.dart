@@ -86,6 +86,7 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     super.key,
   });
 
+  /// Build the card choice dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -181,6 +182,7 @@ class _OcptCardChoiceSectionView<T> extends StatelessWidget {
     super.key,
   });
 
+  /// Build the card choice section view as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -223,6 +225,7 @@ class _OcptCardChoiceCard<T> extends StatelessWidget {
   /// Class constructor
   const _OcptCardChoiceCard({required this.entry, super.key});
 
+  /// Build the card choice card as an [Opacity].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -38,6 +38,8 @@ class OcptRepointingConfigureView extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptRepointingConfigureViewState] holding the state of the repointing configure
+  /// view.
   @override
   State<OcptRepointingConfigureView> createState() => _OcptRepointingConfigureViewState();
 }
@@ -66,6 +68,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   /// reports its very first detection back (see [_OcptRepointingScannerCard]'s own doc comment).
   int _scannerGeneration = 0;
 
+  /// Build the repointing configure view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -203,6 +206,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     widget.onRepointRequested(enrolment.relayBaseUri, enrolment.enrolmentSecret);
   }
 
+  /// Dispose [_relayAddressController] and [_enrolmentSecretController].
   @override
   void dispose() {
     _relayAddressController.dispose();
@@ -226,6 +230,7 @@ class _OcptRepointingScannerCard extends StatefulWidget {
   /// Class constructor
   const _OcptRepointingScannerCard({required this.onScanned, super.key});
 
+  /// Create the [_OcptRepointingScannerCardState] holding the state of the repointing scanner card.
   @override
   State<_OcptRepointingScannerCard> createState() => _OcptRepointingScannerCardState();
 }
@@ -238,6 +243,7 @@ class _OcptRepointingScannerCardState extends State<_OcptRepointingScannerCard> 
   /// parent's own generation counter, re-arms it).
   bool _hasScanned = false;
 
+  /// Build the repointing scanner card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

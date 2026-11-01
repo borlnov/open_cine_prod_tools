@@ -50,6 +50,7 @@ class OcptWorkspaceDock extends StatelessWidget {
   /// Class constructor
   const OcptWorkspaceDock({super.key, required this.width, required this.child});
 
+  /// Build the workspace dock as a [SizedBox].
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width,
@@ -153,6 +154,7 @@ class OcptWorkspaceDockDivider extends StatefulWidget {
   /// Class constructor
   const OcptWorkspaceDockDivider({super.key, required this.onDragUpdate, required this.onDragEnd});
 
+  /// Create the [_OcptWorkspaceDockDividerState] holding the state of the workspace dock divider.
   @override
   State<OcptWorkspaceDockDivider> createState() => _OcptWorkspaceDockDividerState();
 }
@@ -166,6 +168,7 @@ class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
   /// Whether the divider is currently being dragged.
   bool _isDragging = false;
 
+  /// Build the workspace dock divider as a [MouseRegion].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -223,6 +226,7 @@ class _OcptWorkspaceDockGrip extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceDockGrip({required this.isTinted});
 
+  /// Build the workspace dock grip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

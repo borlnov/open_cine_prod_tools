@@ -46,6 +46,7 @@ class OcptSharingInviteView extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptSharingInviteViewState] holding the state of the sharing invite view.
   @override
   State<OcptSharingInviteView> createState() => _OcptSharingInviteViewState();
 }
@@ -64,6 +65,7 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
   /// what the hidden characters could be.
   String get _maskedToken => "•" * 24;
 
+  /// Build the sharing invite view as a [Center].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -230,6 +232,7 @@ class _OcptSharingConnectionRow extends StatelessWidget {
     this.trailing,
   });
 
+  /// Build the sharing connection row as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

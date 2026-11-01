@@ -22,6 +22,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the settings language section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

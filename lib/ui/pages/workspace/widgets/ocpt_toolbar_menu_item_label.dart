@@ -29,6 +29,7 @@ class OcptToolbarMenuItemLabel extends StatelessWidget {
   /// Class constructor
   const OcptToolbarMenuItemLabel({super.key, required this.label, required this.shortcut});
 
+  /// Build the toolbar menu item label as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

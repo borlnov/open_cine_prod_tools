@@ -70,6 +70,7 @@ class OcptHostingPanel extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptHostingPanelState] holding the state of the hosting panel.
   @override
   State<OcptHostingPanel> createState() => _OcptHostingPanelState();
 }
@@ -78,12 +79,18 @@ class OcptHostingPanel extends StatefulWidget {
 /// field controller — neither is project data, exactly the reasoning
 /// `OcptSharingConfigureView`/`OcptSharingInviteView`'s own throwaway form state already follows.
 class _OcptHostingPanelState extends State<OcptHostingPanel> {
+  /// Whether the form that reconciles an invite is open.
   bool _isReconcileFormOpen = false;
+
+  /// The controller of the invite field of the reconcile form.
   final _inviteController = TextEditingController();
+
+  /// The controller of the port field, filled with the port the host is bound to.
   late final TextEditingController _portController = TextEditingController(
     text: widget.state.boundPort?.toString() ?? '',
   );
 
+  /// Show the newly bound port in the port field.
   @override
   void didUpdateWidget(covariant OcptHostingPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -92,6 +99,7 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
     }
   }
 
+  /// Build the hosting panel as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -182,6 +190,7 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
     );
   }
 
+  /// Dispose [_inviteController] and [_portController].
   @override
   void dispose() {
     _inviteController.dispose();
@@ -226,6 +235,7 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
     required this.onPortChangeRequested,
   });
 
+  /// Build the hosting address port card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -287,6 +297,7 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
     );
   }
 
+  /// Report the typed port when it parses as a number.
   void _applyPort() {
     final parsed = int.tryParse(portController.text.trim());
     if (parsed != null) {
@@ -311,6 +322,7 @@ class _OcptHostingQrCard extends StatelessWidget {
   /// Class constructor
   const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
 
+  /// Build the hosting QR card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -382,6 +394,7 @@ class _OcptHostingPeersCard extends StatelessWidget {
   /// Class constructor
   const _OcptHostingPeersCard({required this.roster});
 
+  /// Build the hosting peers card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -425,6 +438,7 @@ class _OcptHostingPeerChip extends StatelessWidget {
   /// Class constructor
   const _OcptHostingPeerChip({required this.frame});
 
+  /// Build the hosting peer chip as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -489,6 +503,7 @@ class _OcptHostingReconcileCard extends StatelessWidget {
     required this.onReconcileRequested,
   });
 
+  /// Build the hosting reconcile card as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -561,6 +576,7 @@ class _OcptHostingReconcileResultLine extends StatelessWidget {
   /// Class constructor
   const _OcptHostingReconcileResultLine({required this.outcome});
 
+  /// Build the hosting reconcile result line.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -123,7 +123,7 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
   /// Copies this state with the reveal request cleared.
   OcptWorkspaceState copyWithRevealRequestConsumed() => copyWith(forceRevealRequestValue: true);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

@@ -27,6 +27,7 @@ class OcptJoiningScannerView extends StatefulWidget {
   /// Class constructor
   const OcptJoiningScannerView({required this.onScanned, required this.status, super.key});
 
+  /// Create the [_OcptJoiningScannerViewState] holding the state of the joining scanner view.
   @override
   State<OcptJoiningScannerView> createState() => _OcptJoiningScannerViewState();
 }
@@ -40,6 +41,7 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
   /// by hand, framing a *different* code is enough to report it.
   String? _lastReportedValue;
 
+  /// Build the joining scanner view as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

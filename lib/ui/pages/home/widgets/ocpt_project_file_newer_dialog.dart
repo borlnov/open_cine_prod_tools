@@ -34,6 +34,7 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectFileNewerDialog({super.key, required this.compatibility});
 
+  /// Build the project file newer dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

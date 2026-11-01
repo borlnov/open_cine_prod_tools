@@ -57,6 +57,7 @@ class OcptProjectSettingsBudgetSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings budget section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -149,6 +150,8 @@ class _OcptProjectSettingsVatRateField extends StatefulWidget {
   /// Class constructor
   const _OcptProjectSettingsVatRateField({required this.basisPoints, required this.onChanged});
 
+  /// Create the [_OcptProjectSettingsVatRateFieldState] holding the state of the project settings
+  /// VAT rate field.
   @override
   State<_OcptProjectSettingsVatRateField> createState() => _OcptProjectSettingsVatRateFieldState();
 }
@@ -172,12 +175,14 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   /// [ocptVatRatePercentTextOf], or the empty string while it is null.
   String get _formatted => ocptVatRatePercentTextOf(widget.basisPoints);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new rate in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsVatRateField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -190,6 +195,7 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
     }
   }
 
+  /// Build the project settings VAT rate field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -237,6 +243,7 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode
@@ -273,6 +280,8 @@ class _OcptProjectSettingsBudgetMoneyField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptProjectSettingsBudgetMoneyFieldState] holding the state of the project
+  /// settings budget money field.
   @override
   State<_OcptProjectSettingsBudgetMoneyField> createState() =>
       _OcptProjectSettingsBudgetMoneyFieldState();
@@ -298,12 +307,14 @@ class _OcptProjectSettingsBudgetMoneyFieldState
   /// string while it is null.
   String get _formatted => ocptCostTextOf(widget.cents);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new amount in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsBudgetMoneyField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -316,6 +327,7 @@ class _OcptProjectSettingsBudgetMoneyFieldState
     }
   }
 
+  /// Build the project settings budget money field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -368,6 +380,7 @@ class _OcptProjectSettingsBudgetMoneyFieldState
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode

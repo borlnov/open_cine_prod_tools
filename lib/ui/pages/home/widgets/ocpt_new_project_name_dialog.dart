@@ -18,6 +18,7 @@ class OcptNewProjectNameDialog extends StatefulWidget {
   /// Class constructor
   const OcptNewProjectNameDialog({super.key});
 
+  /// Create the [_OcptNewProjectNameDialogState] holding the state of the new project name dialog.
   @override
   State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
 
@@ -34,6 +35,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
   /// The controller of the name text field.
   final _nameController = TextEditingController();
 
+  /// Build the new project name dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -94,6 +96,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
     }
   }
 
+  /// Dispose [_nameController].
   @override
   void dispose() {
     _nameController.dispose();

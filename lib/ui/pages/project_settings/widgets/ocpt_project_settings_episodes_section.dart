@@ -50,6 +50,7 @@ class OcptProjectSettingsEpisodesSection extends StatelessWidget {
     super.key,
   });
 
+  /// Build the project settings episodes section as a [Card].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -128,6 +129,8 @@ class _OcptProjectSettingsEpisodeRow extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptProjectSettingsEpisodeRowState] holding the state of the project settings
+  /// episode row.
   @override
   State<_OcptProjectSettingsEpisodeRow> createState() => _OcptProjectSettingsEpisodeRowState();
 }
@@ -159,6 +162,8 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
   /// The title this row last reported, compared against the same way [_lastReportedNumber] is.
   late String _lastReportedTitle = widget.episode.title;
 
+  /// Register [_onNumberFocusChanged] as a listener of [_numberFocusNode] and
+  /// [_onTitleFocusChanged] as a listener of [_titleFocusNode].
   @override
   void initState() {
     super.initState();
@@ -166,6 +171,7 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     _titleFocusNode.addListener(_onTitleFocusChanged);
   }
 
+  /// Show the new number or title in its field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant _OcptProjectSettingsEpisodeRow oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -184,6 +190,7 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     }
   }
 
+  /// Build the project settings episode row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -281,6 +288,9 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     }
   }
 
+  /// Detach [_onNumberFocusChanged] from [_numberFocusNode], dispose [_numberFocusNode], detach
+  /// [_onTitleFocusChanged] from [_titleFocusNode], then dispose [_titleFocusNode],
+  /// [_numberController] and [_titleController].
   @override
   void dispose() {
     _numberFocusNode

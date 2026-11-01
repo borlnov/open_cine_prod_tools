@@ -41,7 +41,7 @@ class OcptHomeRecentProjectEntry extends Equatable {
   /// Class constructor
   const OcptHomeRecentProjectEntry({required this.project, required this.exists, this.verdict});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [project, exists, verdict];
 }
@@ -280,7 +280,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
   OcptHomeState copyWithProjectPackageImportReportDismissed() =>
       copyWith(forceProjectPackageImportReportValue: true);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

@@ -20,6 +20,7 @@ class OcptWorkspaceEmptyMode extends StatelessWidget {
   /// Class constructor
   const OcptWorkspaceEmptyMode({super.key, required this.icon, required this.message});
 
+  /// Build the workspace empty mode as a [Center].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

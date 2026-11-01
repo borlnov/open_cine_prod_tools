@@ -34,6 +34,7 @@ class OcptViewSwitch<T> extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the view switch as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -77,6 +78,7 @@ class _OcptViewSwitchSegmentButton<T> extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the view switch segment button as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

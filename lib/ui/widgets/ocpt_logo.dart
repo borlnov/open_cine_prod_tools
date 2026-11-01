@@ -36,6 +36,7 @@ class OcptLogo extends StatelessWidget {
   /// Class constructor
   const OcptLogo({required this.size, super.key});
 
+  /// Build the logo.
   @override
   Widget build(BuildContext context) =>
       ocptLogoAssetFor(Theme.of(context).brightness).getWidget(width: size, height: size);

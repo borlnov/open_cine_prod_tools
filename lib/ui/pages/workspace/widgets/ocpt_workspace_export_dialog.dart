@@ -58,6 +58,7 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
     super.key,
   });
 
+  /// Build the workspace export dialog as an [OcptCardChoiceDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -98,6 +98,7 @@ class OcptProjectVersionCard extends StatelessWidget {
     required this.onRenameCancelled,
   });
 
+  /// Build the project version card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -208,6 +209,7 @@ class _OcptProjectVersionHeader extends StatelessWidget {
     required this.badgeLabel,
   });
 
+  /// Build the project version header as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -270,6 +272,7 @@ class _OcptProjectVersionFooter extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the project version footer as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -323,6 +326,7 @@ class _OcptProjectVersionRestoreConfirmation extends StatelessWidget {
     required this.onConfirmed,
   });
 
+  /// Build the project version restore confirmation as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -364,6 +368,7 @@ class _OcptProjectVersionDeleteConfirmation extends StatelessWidget {
     required this.onConfirmed,
   });
 
+  /// Build the project version delete confirmation as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -409,6 +414,7 @@ class _OcptProjectVersionBadge extends StatelessWidget {
   /// Class constructor
   const _OcptProjectVersionBadge({required this.label, required this.color});
 
+  /// Build the project version badge as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -449,6 +455,8 @@ class _OcptProjectVersionRenameForm extends StatefulWidget {
     required this.onCancel,
   });
 
+  /// Create the [_OcptProjectVersionRenameFormState] holding the state of the project version
+  /// rename form.
   @override
   State<_OcptProjectVersionRenameForm> createState() => _OcptProjectVersionRenameFormState();
 }
@@ -462,6 +470,7 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
   /// The controller of the note field.
   late final TextEditingController _noteController;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -469,6 +478,7 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
     _noteController = TextEditingController(text: widget.initialNote);
   }
 
+  /// Build the project version rename form as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -515,6 +525,7 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
   /// Reports the trimmed name and note to [_OcptProjectVersionRenameForm.onSave].
   void _save() => widget.onSave(_nameController.text.trim(), _noteController.text.trim());
 
+  /// Dispose [_nameController] and [_noteController].
   @override
   void dispose() {
     _nameController.dispose();

@@ -155,6 +155,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
     this.overflowEntries = const [],
   });
 
+  /// Build the workspace toolbar as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -239,6 +240,7 @@ class _OcptWorkspaceBackAction extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceBackAction({required this.onBack});
 
+  /// Build the workspace back action as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -271,6 +273,7 @@ class _OcptWorkspaceReadOnlyPill extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceReadOnlyPill();
 
+  /// Build the workspace read only pill as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -299,6 +302,7 @@ class _OcptWorkspaceDirtyMarker extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceDirtyMarker();
 
+  /// Build the workspace dirty marker as a [Tooltip].
   @override
   Widget build(BuildContext context) => Tooltip(
     message: Tr.of(context).editorUnsavedChangesTooltip,

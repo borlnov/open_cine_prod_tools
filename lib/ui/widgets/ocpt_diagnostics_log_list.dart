@@ -33,6 +33,7 @@ class OcptDiagnosticsLogList extends StatelessWidget {
   /// Class constructor
   const OcptDiagnosticsLogList({this.categories, super.key});
 
+  /// Build the diagnostics log list as a [StreamBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -95,6 +96,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsBody({required this.entries, required this.manager});
 
+  /// Build the diagnostics body as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -147,6 +149,7 @@ class _OcptDiagnosticsEmptyBody extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsEmptyBody({required this.text});
 
+  /// Build the diagnostics empty body as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -175,6 +178,7 @@ class _OcptDiagnosticsLine extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsLine({required this.entry, required this.theme});
 
+  /// Build the diagnostics line as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),

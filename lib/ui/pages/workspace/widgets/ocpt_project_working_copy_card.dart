@@ -44,6 +44,7 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
     required this.onCreateRequested,
   });
 
+  /// Build the project working copy card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

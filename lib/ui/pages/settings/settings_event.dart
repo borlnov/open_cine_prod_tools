@@ -23,7 +23,7 @@ class OcptSettingsFirstWeekdayChangedEvent extends OcptSettingsEvent {
   /// Class constructor
   const OcptSettingsFirstWeekdayChangedEvent({required this.firstWeekday});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, firstWeekday];
 }

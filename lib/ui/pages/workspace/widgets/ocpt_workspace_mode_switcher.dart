@@ -42,6 +42,7 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
     required this.onModeSelected,
   });
 
+  /// Build the workspace mode switcher as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -120,6 +121,7 @@ class _OcptWorkspaceModeEntry extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the workspace mode entry as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -179,6 +181,7 @@ class _OcptWorkspaceModeIcon extends StatelessWidget {
   /// Class constructor
   const _OcptWorkspaceModeIcon({required this.mode, required this.color});
 
+  /// Build the workspace mode icon as a [Stack].
   @override
   Widget build(BuildContext context) {
     final icon = Icon(_iconFor(mode), size: 22, color: color);

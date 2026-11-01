@@ -255,6 +255,7 @@ class OcptWorkspaceShell extends StatefulWidget {
          "dockLayoutController must be given when leftPanel or rightPanel is",
        );
 
+  /// Create the [_OcptWorkspaceShellState] holding the state of the workspace shell.
   @override
   State<OcptWorkspaceShell> createState() => _OcptWorkspaceShellState();
 }
@@ -275,6 +276,7 @@ enum _OcptCompactDrawerSide {
   right,
 }
 
+/// State of [OcptWorkspaceShell]: tracks which compact drawer, if any, is open.
 class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// Which side drawer, if any, is open below [ocptCompactWidthBreakpoint].
   ///
@@ -289,6 +291,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
   /// write by hand.
   _OcptCompactDrawerSide _compactDrawer = _OcptCompactDrawerSide.none;
 
+  /// Open or close the compact drawer of a side when its dock opens or closes programmatically.
   @override
   void didUpdateWidget(OcptWorkspaceShell oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -319,6 +322,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     }
   }
 
+  /// Build the workspace shell as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
@@ -438,6 +442,7 @@ class _OcptWorkspaceDocksRow extends StatelessWidget {
     required this.onCompactDrawerClosed,
   });
 
+  /// Build the workspace docks row as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final controller = shell.dockLayoutController;
@@ -556,6 +561,7 @@ class _OcptWorkspaceCompactDrawers extends StatelessWidget {
     required this.onCompactDrawerClosed,
   });
 
+  /// Build the workspace compact drawers as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) {
     // Non-null in this branch: [_OcptWorkspaceDocksRow] returns the bare centre when the controller is
@@ -639,6 +645,7 @@ class _OcptWorkspaceCompactDrawer extends StatelessWidget {
     required this.onDockFractionsChanged,
   });
 
+  /// Build the workspace compact drawer as a [Positioned].
   @override
   Widget build(BuildContext context) {
     if (ocptIsPhoneWidth(rowWidth)) {

@@ -41,7 +41,7 @@ class OcptWorkspaceModeSelectedEvent extends OcptWorkspaceEvent {
   /// Class constructor
   const OcptWorkspaceModeSelectedEvent({required this.mode, this.revealRequest, this.episodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, mode, revealRequest, episodeId];
 }
@@ -69,7 +69,7 @@ class OcptWorkspaceEpisodeSelectedEvent extends OcptWorkspaceEvent {
   /// Class constructor
   const OcptWorkspaceEpisodeSelectedEvent({required this.episodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, episodeId];
 }

@@ -59,6 +59,7 @@ class OcptConfirmDialog extends StatelessWidget {
     this.alternativeLabel,
   });
 
+  /// Build the confirm dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

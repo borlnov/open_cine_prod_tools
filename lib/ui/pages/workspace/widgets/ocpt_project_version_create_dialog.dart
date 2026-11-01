@@ -22,6 +22,8 @@ class OcptProjectVersionCreateDialog extends StatefulWidget {
   /// Class constructor
   const OcptProjectVersionCreateDialog({super.key});
 
+  /// Create the [_OcptProjectVersionCreateDialogState] holding the state of the project version
+  /// create dialog.
   @override
   State<OcptProjectVersionCreateDialog> createState() => _OcptProjectVersionCreateDialogState();
 
@@ -44,6 +46,7 @@ class _OcptProjectVersionCreateDialogState extends State<OcptProjectVersionCreat
   /// The controller of the version note field.
   final _noteController = TextEditingController();
 
+  /// Build the project version create dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -99,6 +102,7 @@ class _OcptProjectVersionCreateDialogState extends State<OcptProjectVersionCreat
     ));
   }
 
+  /// Dispose [_nameController] and [_noteController].
   @override
   void dispose() {
     _nameController.dispose();

@@ -41,6 +41,7 @@ class OcptJoiningScanFrame extends StatelessWidget {
   /// Class constructor
   const OcptJoiningScanFrame({required this.status, required this.child, super.key});
 
+  /// Build the joining scan frame as an [AnimatedContainer].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
