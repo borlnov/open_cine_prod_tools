@@ -80,6 +80,37 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     joinSucceeded: joinSucceeded ?? this.joinSucceeded,
   );
 
+  /// Copies this state with the scanned code flagged as not being a valid invite.
+  OcptJoiningState copyWithInviteRejected() => copyWith(joinFailed: true);
+
+  /// Copies this state with a join started, at its first step.
+  OcptJoiningState copyWithJoinStarted() => copyWith(
+    isJoining: true,
+    joinFailed: false,
+    joinSucceeded: false,
+    joinStep: OcptJoinStep.connecting,
+  );
+
+  /// Copies this state back to idle: no join under way and no step shown.
+  OcptJoiningState copyToIdle() => copyWith(isJoining: false, forceJoinStepValue: true);
+
+  /// Copies this state with the join at its downloading step.
+  OcptJoiningState copyWithDownloading() => copyWith(joinStep: OcptJoinStep.downloading);
+
+  /// Copies this state with the join at its opening step.
+  OcptJoiningState copyWithOpening() => copyWith(joinStep: OcptJoinStep.opening);
+
+  /// Copies this state with the join ended on a failure.
+  OcptJoiningState copyWithJoinFailed() =>
+      copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true);
+
+  /// Copies this state with the join ended on a success.
+  OcptJoiningState copyWithJoinSucceeded() =>
+      copyWith(isJoining: false, joinSucceeded: true, forceJoinStepValue: true);
+
+  /// Copies this state with the failure dismissed.
+  OcptJoiningState copyWithFailureDismissed() => copyWith(joinFailed: false);
+
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, isJoining, joinFailed, joinStep, joinSucceeded];

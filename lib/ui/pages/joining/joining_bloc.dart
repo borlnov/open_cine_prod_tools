@@ -143,7 +143,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         // The description names the host of whatever was scanned, which is not logged.
         logMessage: 'scanned code is not a valid join invite',
       );
-      emitter(state.copyWith(joinFailed: true));
+      emitter(state.copyWithInviteRejected());
       return;
     }
 
@@ -195,14 +195,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) async {
     _cancelled = false;
-    emitter(
-      state.copyWith(
-        isJoining: true,
-        joinFailed: false,
-        joinSucceeded: false,
-        joinStep: OcptJoinStep.connecting,
-      ),
-    );
+    emitter(state.copyWithJoinStarted());
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.join,
       message: 'connecting: project=${invite.projectId} relay=${invite.relayBaseUri}',
@@ -217,7 +210,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       }
       if (parentDirectoryPath == null) {
         // The user cancelled the desktop folder picker.
-        emitter(state.copyWith(isJoining: false, forceJoinStepValue: true));
+        emitter(state.copyToIdle());
         return;
       }
 
@@ -225,7 +218,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
       final ResultWithStatus<OcptSyncFlowStatus, String> joined;
       try {
-        emitter(state.copyWith(joinStep: OcptJoinStep.downloading));
+        emitter(state.copyWithDownloading());
         OcptDiagnosticsManager.log(
           category: OcptDiagnosticsCategory.join,
           message: 'downloading: project=${invite.projectId}',
@@ -255,11 +248,11 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
           message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
           logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
         );
-        emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
+        emitter(state.copyWithJoinFailed());
         return;
       }
 
-      emitter(state.copyWith(joinStep: OcptJoinStep.opening));
+      emitter(state.copyWithOpening());
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,
         message: 'opening: project=${invite.projectId}',
@@ -274,7 +267,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
           level: OcptDiagnosticsLevel.error,
           message: 'failed to open joined project: project=${invite.projectId}',
         );
-        emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
+        emitter(state.copyWithJoinFailed());
         return;
       }
 
@@ -286,7 +279,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         category: OcptDiagnosticsCategory.join,
         message: 'succeeded: project=${invite.projectId}',
       );
-      emitter(state.copyWith(isJoining: false, joinSucceeded: true, forceJoinStepValue: true));
+      emitter(state.copyWithJoinSucceeded());
     } catch (error, stackTrace) {
       if (_cancelled) {
         return;
@@ -299,7 +292,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         message: 'failed: project=${invite.projectId} $error',
         logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
       );
-      emitter(state.copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true));
+      emitter(state.copyWithJoinFailed());
     }
   }
 
@@ -331,7 +324,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptJoiningErrorDismissedEvent event,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    emitter(state.copyWith(joinFailed: false));
+    emitter(state.copyWithFailureDismissed());
   }
 
   /// Pushes the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
@@ -354,6 +347,6 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   ) async {
     OcptDiagnosticsManager.log(category: OcptDiagnosticsCategory.join, message: 'cancelled');
     _cancelled = true;
-    emitter(state.copyWith(isJoining: false, forceJoinStepValue: true));
+    emitter(state.copyToIdle());
   }
 }
