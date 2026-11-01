@@ -194,7 +194,7 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - BLoC: the ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
   **production mode owns a mode bloc and one bloc per view** (ADR 0034; the shot list, the
-  schedule, the resources and the breakdown are split, the other modes follow). A *view* is a
+  schedule, the resources, the breakdown and the budget are split). A *view* is a
   surface with its own selection or its own writes: a central view, a dock tab, a group of the
   inspector, the export panel, a function that cuts across views; a rendering of the same data with
   neither has no bloc. The mode bloc holds the mode's data, its shared selection, its chrome and

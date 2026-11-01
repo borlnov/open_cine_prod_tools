@@ -190,7 +190,7 @@ are all here, and this file is the whole record of them.
   against. It carries **no `N°`, no `⋮` menu and no selection**: it is not a poste and nothing about
   it may look like one, since it is a reading over the journal's own poste-less debits, not a record
   anybody can rename, reorder or delete.
-  **It does carry a twisty, and opens** — `_OcptCostTrackingOffQuoteIdentityRow`, keyed by the
+  **It does carry a twisty, and opens** — `OcptBudgetCostTrackingOffQuoteIdentityRow`, keyed by the
   reserved `_ocptCostTrackingOffQuoteNodeId` rather than by a poste or a line id, since the row sums
   a reading over the journal and names no record of its own to key one by. A reader landing on the
   total could not otherwise reach what made it up, and that is the whole of the distinction this row
@@ -515,10 +515,29 @@ are all here, and this file is the whole record of them.
   - **`OcptBudgetExportBloc`** runs the four exports and owns the transient notice. Each one first
     has the mode write what is pending (`flushAllPendingWrites`, and stops if a write failed),
     then reads the snapshot the mode holds.
-  - **The widgets.** `budget_mode.dart` still builds the shell and routes each event to the bloc
-    that owns it; the fiche reads the pending edits from the expenses bloc through a
-    `BlocBuilder`, so a keystroke redraws the fiche and not the whole mode, and the export notice
-    is shown by `OcptBudgetViewEffects`.
+  - **The widgets.** `budget_mode.dart` builds the shell, the dock layout, the notices and the
+    confirmations, and nothing of a view's content: the centre (`OcptBudgetCentre`, the header band
+    above whichever route the state names), the six routes (`OcptBudgetDashboardView`,
+    `OcptBudgetCostTrackingView`, `OcptBudgetFinancingView`, `OcptBudgetCashJournalView`,
+    `OcptBudgetRegieView`, `OcptBudgetSharingView`), the right dock (`OcptBudgetRightDockView`, with
+    `OcptBudgetFicheView` for the `Inspector` tab and a private versions tab) and the read-only banner
+    are widgets of their own under `widgets/`. A view widget reads the mode state it is handed and
+    the view bloc that writes, and **only asks** for the confirmations the mode opens
+    (`OcptConfirmDialog`: deleting a poste, a line, a commitment, an entry, a resource, a taking, a
+    defrayal or a share, undoing a receipt or a promotion, provisioning): the mode passes them as
+    callbacks, and the view withholds a callback under a version preview. The dialogs that are not
+    confirmations (editing a row, the capture wizard and its contextual shortcuts, the exports) are
+    opened by the function files the views share: `budget_view_actions.dart`,
+    `budget_wizard_flows.dart` and `budget_export_requests.dart`. The fiche reads the pending edits
+    from the expenses bloc through a `BlocBuilder` inside `OcptBudgetFicheView`, so a keystroke
+    redraws the fiche and not the whole mode, and the export notice is shown by
+    `OcptBudgetViewEffects`. The fiche's one scroll view sits in `OcptBudgetFiche`, above the
+    variant widget (`OcptBudgetFichePoste`, `…Line`, `…Commitment`, `…Entry`, `…Receipt`,
+    `…Resource`, `…Revenue`), so moving from one selection to another keeps the scroll position.
+    Each large table is cut into a file per row or cell widget plus a metrics file for its widths and
+    heights; the sealed row families a table switches over (`OcptBudgetCostTrackingTreeRow`,
+    `OcptBudgetFinancingTreeRow`, `OcptBudgetRegieAllowanceTreeRow`) are the one exception to a
+    public type per file, since a sealed class and its subtypes must share a library.
 
 ## The dashboard
 
@@ -601,7 +620,7 @@ are all here, and this file is the whole record of them.
   card draws the poste's name, a proportion bar splitting its quote across paid / committed /
   remaining (reusing the fiche's own poste-variant colour vocabulary for the same figures) and its
   own `Engagé`/`Payé`/`Reste`/`Écart` figures, read through a small pure holder
-  (`_OcptCostTrackingPosteFigures.of`) making the very same `ocptBudgetTotalOf`/
+  (`OcptBudgetCostTrackingPosteFigures.of`) making the very same `ocptBudgetTotalOf`/
   `ocptBudgetRemainingCents`/`ocptBudgetVarianceCents` calls the desktop row does, so a card can
   never disagree with the table over the same poste. Tapping a card fires the same
   `onPosteSelected` callback tapping a row does. Above the breakpoint the two-pane table is
@@ -694,7 +713,7 @@ are all here, and this file is the whole record of them.
     capture wizard on its own money step pre-filled from it — the amount still outstanding, in the
     commitment's own tax basis (see "A commitment settles when the ledger says it is paid" above) —
     and null once settled. **A commitment naming no quote line (`ocptBudgetCommitmentIsOffLine`) draws
-    the same reconciliation banner an off-line debit entry does** (`_OcptBudgetOffLineBanner`, shared
+    the same reconciliation banner an off-line debit entry does** (`OcptBudgetOffLineBanner`, shared
     between them), above the primary action, stating the fact and the poste's own overrun the same
     way — but with a **single** action, `Add to the quote` (`onCommitmentPromoteToQuoteRequested`):
     it mints a quote line from the commitment and **re-points the commitment at it**
@@ -858,8 +877,9 @@ are all here, and this file is the whole record of them.
   lines` button is withheld until **every** checked element resolves a poste, its own or the
   default: a line with no poste is a row the quote has nowhere to file.
   `OcptBudgetNewLinesFromBreakdownOutcome` carries the poste per line rather than one for the batch,
-  and `budget_mode.dart` dispatches one `OcptBudgetLineCreatedFromElementEvent` per line naming it —
-  the event always took its own `posteId`, so nothing downstream had to change.
+  and `ocptBudgetApplyNewOutcome` (`budget_wizard_flows.dart`) dispatches one
+  `OcptBudgetLineCreatedFromElementEvent` per line naming it — the event always took its own
+  `posteId`, so nothing downstream had to change.
 - **Step 3 speaks one label idiom throughout** — the label above, the field dense, the way the
   sheets already do — the fix for a row that used to mix an external label over a dense
   `InputDecorator`, a floating internal label and a bare external one, which is the whole reason
@@ -1142,11 +1162,12 @@ are all here, and this file is the whole record of them.
   need the shared scroll controller that design deliberately does without.
 - **The statement closes on its own row rather than opening under a band.** The journal used to
   carry a top band stating the whole ledger's debit, credit and balance, pinned above whatever the
-  reader had scrolled to; only the balance survives the move, in `_OcptCashStatementFooterRow`, at
-  the foot of the last drawn entry — the honest place to state a running figure, since a balance
-  read off a band pinned above a scrolled table invites comparing it against rows no longer on
-  screen. It closes on the last drawn entry's own date, never today's: a statement closes on its
-  last movement, not on the day somebody happened to open the page.
+  reader had scrolled to; only the balance survives the move, in
+  `OcptBudgetCashStatementFooterRow`, at the foot of the last drawn entry — the honest place to
+  state a running figure, since a balance read off a band pinned above a scrolled table invites
+  comparing it against rows no longer on screen. It closes on the last drawn entry's own date,
+  never today's: a statement closes on its last movement, not on the day somebody happened to open
+  the page.
 - **Under the statement, `À venir` reads the account's future rather than its past** — one row per
   unsettled commitment, in `ocptBudgetProjectionOf`'s own due-date-first order
   (`lib/models/rules/ocpt_budget_projection.dart`), then a footer naming the total falling due and the
