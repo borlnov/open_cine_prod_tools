@@ -77,6 +77,7 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     this.offerCashOrInKindChoice = false,
   });
 
+  /// Create the [_OcptBudgetResourceDialogState] holding the state of the budget resource dialog.
   @override
   State<OcptBudgetResourceDialog> createState() => _OcptBudgetResourceDialogState();
 
@@ -117,6 +118,7 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
   /// read at all — see [OcptBudgetResourceFormBody.onDraftChanged]'s own doc comment.
   OcptBudgetResourceFormFields? _draft;
 
+  /// Build the budget resource dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

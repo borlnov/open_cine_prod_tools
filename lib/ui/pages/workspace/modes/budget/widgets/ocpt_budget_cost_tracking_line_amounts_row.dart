@@ -63,6 +63,7 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget cost tracking line amounts row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

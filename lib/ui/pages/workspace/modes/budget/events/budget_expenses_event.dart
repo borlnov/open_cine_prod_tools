@@ -34,7 +34,7 @@ class OcptBudgetPosteReorderedEvent extends OcptBudgetExpensesEvent {
   /// Class constructor
   const OcptBudgetPosteReorderedEvent({required this.posteId, required this.newPosition});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId, newPosition];
 }
@@ -48,7 +48,7 @@ class OcptBudgetPosteDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   /// Class constructor
   const OcptBudgetPosteDeletionConfirmedEvent({required this.posteId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId];
 }
@@ -72,7 +72,7 @@ class OcptBudgetLineCreatedEvent extends OcptBudgetExpensesEvent {
   /// Class constructor
   const OcptBudgetLineCreatedEvent({required this.posteId, this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId, fields];
 }
@@ -106,7 +106,7 @@ class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetExpensesEvent {
     this.quantityMilli,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId, elementId, quantityMilli];
 }
@@ -120,7 +120,7 @@ class OcptBudgetLineDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   /// Class constructor
   const OcptBudgetLineDeletionConfirmedEvent({required this.lineId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, lineId];
 }
@@ -141,7 +141,7 @@ class OcptBudgetLineTaxInclusiveChangedEvent extends OcptBudgetExpensesEvent {
     required this.isTaxInclusive,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, lineId, isTaxInclusive];
 }
@@ -158,7 +158,7 @@ class OcptBudgetLineVatRateInheritedRequestedEvent extends OcptBudgetExpensesEve
   /// Class constructor
   const OcptBudgetLineVatRateInheritedRequestedEvent({required this.lineId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, lineId];
 }
@@ -175,7 +175,7 @@ class OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent extends OcptBudgetE
   /// Class constructor
   const OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent({required this.posteId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId];
 }
@@ -200,7 +200,7 @@ class OcptBudgetFieldChangedEvent extends OcptBudgetExpensesEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, targetId, field, rawValue];
 }
@@ -232,7 +232,7 @@ class OcptBudgetLinePaidDirectlyEvent extends OcptBudgetExpensesEvent {
   /// Class constructor
   const OcptBudgetLinePaidDirectlyEvent({required this.lineId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, lineId, fields];
 }

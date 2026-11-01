@@ -34,6 +34,7 @@ class OcptBudgetCashUpcomingFooterRow extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget cash upcoming footer row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

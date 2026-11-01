@@ -63,6 +63,7 @@ class OcptBudgetRightDockView extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
+  /// Build the budget right dock view as an [OcptBudgetRightDock].
   @override
   Widget build(BuildContext context) {
     final availableTabs = [
@@ -106,6 +107,7 @@ class _OcptBudgetVersions extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetVersions({required this.state});
 
+  /// Build the budget versions as an [OcptProjectVersionsPanel].
   @override
   Widget build(BuildContext context) => OcptProjectVersionsPanel(
     versions: state.projectVersions,

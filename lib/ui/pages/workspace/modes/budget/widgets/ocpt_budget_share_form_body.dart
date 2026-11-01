@@ -64,6 +64,7 @@ class OcptBudgetShareFormBody extends StatefulWidget {
     required this.onDraftChanged,
   });
 
+  /// Create the [_OcptBudgetShareFormBodyState] holding the state of the budget share form body.
   @override
   State<OcptBudgetShareFormBody> createState() => _OcptBudgetShareFormBodyState();
 }
@@ -104,6 +105,7 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
     );
   }
 
+  /// Fill the fields from the existing share, and send the first draft after the first frame.
   @override
   void initState() {
     super.initState();
@@ -130,6 +132,7 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
     });
   }
 
+  /// Build the budget share form body as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -201,6 +204,7 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
+  /// Dispose [_labelController], [_shareController], [_reinvestController] and [_notesController].
   @override
   void dispose() {
     _labelController.dispose();

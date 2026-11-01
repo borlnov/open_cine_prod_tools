@@ -52,6 +52,7 @@ class OcptBudgetRegieView extends StatelessWidget {
     required this.onProvisionRequested,
   });
 
+  /// Build the budget regie view as an [OcptBudgetRegie].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

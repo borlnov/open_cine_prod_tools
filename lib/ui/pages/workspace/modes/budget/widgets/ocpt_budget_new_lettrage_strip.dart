@@ -47,6 +47,7 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the budget new lettrage strip as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -186,6 +187,7 @@ class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget new lettrage candidate row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -238,6 +240,7 @@ class _OcptBudgetNewLettrageNoneRow extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetNewLettrageNoneRow({required this.isSelected, required this.onTap});
 
+  /// Build the budget new lettrage none row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

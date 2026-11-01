@@ -21,6 +21,7 @@ class OcptBudgetEntryVatField extends StatelessWidget {
     required this.defaultVatRateBasisPoints,
   });
 
+  /// Build the budget entry VAT field as a [TextFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

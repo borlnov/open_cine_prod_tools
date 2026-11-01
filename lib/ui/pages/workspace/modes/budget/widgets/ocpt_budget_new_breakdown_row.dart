@@ -52,6 +52,7 @@ class OcptBudgetNewBreakdownRow extends StatelessWidget {
     required this.onQuantityChanged,
   });
 
+  /// Build the budget new breakdown row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

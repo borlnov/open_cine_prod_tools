@@ -252,6 +252,7 @@ class OcptBudgetFiche extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
+  /// Build the budget fiche as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final selection = this.selection;

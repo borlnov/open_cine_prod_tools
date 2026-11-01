@@ -23,6 +23,7 @@ class OcptBudgetFicheReceipt extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheReceipt({super.key, required this.fiche, required this.entry});
 
+  /// Build the budget fiche receipt as an [OcptBudgetFicheEntry].
   @override
   Widget build(BuildContext context) {
     final resources = fiche.resources;

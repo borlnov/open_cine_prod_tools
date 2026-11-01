@@ -38,6 +38,7 @@ class OcptBudgetCashShareableReminder extends StatelessWidget {
     required this.onOpenSharing,
   });
 
+  /// Build the budget cash shareable reminder as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -33,6 +33,7 @@ class OcptBudgetEntryRevenueField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry revenue field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

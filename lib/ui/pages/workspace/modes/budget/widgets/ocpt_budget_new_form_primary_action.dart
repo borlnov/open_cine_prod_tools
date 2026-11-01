@@ -26,6 +26,7 @@ class OcptBudgetNewFormPrimaryAction extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the budget new form primary action as a [FilledButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

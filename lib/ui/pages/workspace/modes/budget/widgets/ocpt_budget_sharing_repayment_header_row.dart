@@ -18,6 +18,7 @@ class OcptBudgetSharingRepaymentHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetSharingRepaymentHeaderRow({super.key});
 
+  /// Build the budget sharing repayment header row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

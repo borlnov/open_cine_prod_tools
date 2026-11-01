@@ -29,7 +29,7 @@ class OcptBudgetRightDockTabSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -55,7 +55,7 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetRightDockFractionChangedEvent({required this.fraction});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fraction];
 }
@@ -81,7 +81,7 @@ class OcptBudgetViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetViewSelectedEvent({required this.view, this.clearSelection = false});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, view, clearSelection];
 }
@@ -101,7 +101,7 @@ class OcptBudgetToolsViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetToolsViewSelectedEvent({required this.toolsView, this.clearSelection = false});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, toolsView, clearSelection];
 }
@@ -115,7 +115,7 @@ class OcptBudgetSimplifiedToggledEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetSimplifiedToggledEvent({required this.isSimplified});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, isSimplified];
 }
@@ -129,7 +129,7 @@ class OcptBudgetTaxBasisChangedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetTaxBasisChangedEvent({required this.basis});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, basis];
 }
@@ -144,7 +144,7 @@ class OcptBudgetRowExpansionToggledEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetRowExpansionToggledEvent({required this.nodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, nodeId];
 }
@@ -174,7 +174,7 @@ class OcptBudgetPosteFilterSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetPosteFilterSelectedEvent({required this.posteId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId];
 }
@@ -188,7 +188,7 @@ class OcptBudgetProvisionPosteSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetProvisionPosteSelectedEvent({required this.posteId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId];
 }

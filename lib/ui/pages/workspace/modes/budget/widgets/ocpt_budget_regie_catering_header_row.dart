@@ -12,6 +12,7 @@ class OcptBudgetRegieCateringHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetRegieCateringHeaderRow({super.key});
 
+  /// Build the budget regie catering header row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

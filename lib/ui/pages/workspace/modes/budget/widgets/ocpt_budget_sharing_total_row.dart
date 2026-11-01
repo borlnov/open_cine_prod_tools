@@ -16,6 +16,7 @@ class OcptBudgetSharingTotalRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetSharingTotalRow({super.key, required this.label, required this.valueText});
 
+  /// Build the budget sharing total row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

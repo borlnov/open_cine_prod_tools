@@ -26,6 +26,7 @@ class OcptBudgetSharingPotLine extends StatelessWidget {
     this.isEmphasized = false,
   });
 
+  /// Build the budget sharing pot line as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

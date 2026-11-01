@@ -61,6 +61,7 @@ class OcptBudgetRegieCateringColumn extends StatelessWidget {
     required this.onProjectSettingsRequested,
   });
 
+  /// Build the budget regie catering column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

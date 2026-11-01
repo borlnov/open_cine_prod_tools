@@ -21,7 +21,7 @@ class OcptBudgetPosteSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetPosteSelectedEvent({required this.posteId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId];
 }
@@ -35,7 +35,7 @@ class OcptBudgetLineSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetLineSelectedEvent({required this.lineId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, lineId];
 }
@@ -50,7 +50,7 @@ class OcptBudgetCommitmentSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetCommitmentSelectedEvent({required this.commitmentId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId];
 }
@@ -65,7 +65,7 @@ class OcptBudgetEntrySelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetEntrySelectedEvent({required this.entryId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, entryId];
 }
@@ -82,7 +82,7 @@ class OcptBudgetReceiptSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetReceiptSelectedEvent({required this.receiptId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, receiptId];
 }
@@ -98,7 +98,7 @@ class OcptBudgetResourceSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetResourceSelectedEvent({required this.resourceId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, resourceId];
 }
@@ -115,7 +115,7 @@ class OcptBudgetRevenueSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetRevenueSelectedEvent({required this.revenueId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, revenueId];
 }
@@ -130,7 +130,7 @@ class OcptBudgetShareSelectedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetShareSelectedEvent({required this.shareId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shareId];
 }
@@ -151,7 +151,7 @@ class OcptBudgetSelectionCreatedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetSelectionCreatedEvent({required this.selection, required this.opensInspector});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, selection, opensInspector];
 }
@@ -165,7 +165,7 @@ class OcptBudgetShareCreatedEvent extends OcptBudgetSelectionEvent {
   /// Class constructor
   const OcptBudgetShareCreatedEvent({required this.shareId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shareId];
 }

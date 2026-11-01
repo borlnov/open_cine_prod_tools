@@ -57,6 +57,8 @@ class OcptBudgetRevenueFormBody extends StatefulWidget {
     required this.onDraftChanged,
   });
 
+  /// Create the [_OcptBudgetRevenueFormBodyState] holding the state of the budget revenue form
+  /// body.
   @override
   State<OcptBudgetRevenueFormBody> createState() => _OcptBudgetRevenueFormBodyState();
 }
@@ -95,6 +97,7 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
     );
   }
 
+  /// Fill the fields from the existing revenue, and send the first draft after the first frame.
   @override
   void initState() {
     super.initState();
@@ -119,6 +122,7 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
     });
   }
 
+  /// Build the budget revenue form body as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -191,6 +195,7 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
+  /// Dispose [_labelController], [_amountController] and [_notesController].
   @override
   void dispose() {
     _labelController.dispose();
@@ -213,6 +218,7 @@ class _OcptRevenueStatusPicker extends StatelessWidget {
   /// Class constructor
   const _OcptRevenueStatusPicker({required this.value, required this.onChanged});
 
+  /// Build the revenue status picker as a [Wrap].
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,

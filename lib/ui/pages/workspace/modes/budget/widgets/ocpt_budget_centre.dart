@@ -93,6 +93,7 @@ class OcptBudgetCentre extends StatelessWidget {
     required this.onShareDeletionRequested,
   });
 
+  /// Build the budget centre as an [OcptWorkspaceFloatingAddButton].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

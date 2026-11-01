@@ -31,6 +31,7 @@ class OcptBudgetRegieAllowanceTwisty extends StatelessWidget {
     required this.rowHeight,
   });
 
+  /// Build the budget regie allowance twisty as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!isExpandable) {

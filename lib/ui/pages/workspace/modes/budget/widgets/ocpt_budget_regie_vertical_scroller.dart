@@ -22,6 +22,7 @@ class OcptBudgetRegieVerticalScroller extends StatelessWidget {
   /// Class constructor
   const OcptBudgetRegieVerticalScroller({super.key, required this.height, required this.child});
 
+  /// Build the budget regie vertical scroller as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     child: SizedBox(height: height, child: child),

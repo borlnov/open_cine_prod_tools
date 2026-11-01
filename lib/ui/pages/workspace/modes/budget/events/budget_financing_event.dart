@@ -22,7 +22,7 @@ class OcptBudgetAllowanceCreationConfirmedEvent extends OcptBudgetFinancingEvent
   /// Class constructor
   const OcptBudgetAllowanceCreationConfirmedEvent({required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields];
 }
@@ -39,7 +39,7 @@ class OcptBudgetAllowanceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   /// Class constructor
   const OcptBudgetAllowanceUpdateConfirmedEvent({required this.allowanceId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, allowanceId, fields];
 }
@@ -53,7 +53,7 @@ class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetFinancingEvent
   /// Class constructor
   const OcptBudgetAllowanceDeletionConfirmedEvent({required this.allowanceId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, allowanceId];
 }
@@ -75,7 +75,7 @@ class OcptBudgetProvisionConfirmedEvent extends OcptBudgetFinancingEvent {
   /// Class constructor
   const OcptBudgetProvisionConfirmedEvent({required this.posteId, required this.entries});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, posteId, entries];
 }
@@ -91,7 +91,7 @@ class OcptBudgetResourceCreationConfirmedEvent extends OcptBudgetFinancingEvent 
   /// Class constructor
   const OcptBudgetResourceCreationConfirmedEvent({required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields];
 }
@@ -108,7 +108,7 @@ class OcptBudgetResourceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   /// Class constructor
   const OcptBudgetResourceUpdateConfirmedEvent({required this.resourceId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, resourceId, fields];
 }
@@ -123,7 +123,7 @@ class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetFinancingEvent 
   /// Class constructor
   const OcptBudgetResourceDeletionConfirmedEvent({required this.resourceId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, resourceId];
 }

@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// One flattened row of the expenses tree — see [OcptBudgetCostTracking._rowsOf]'s own doc
 /// comment for how the list this sealed class populates is built.
 sealed class OcptBudgetCostTrackingTreeRow {
+  /// Class constructor
   const OcptBudgetCostTrackingTreeRow();
 }
 

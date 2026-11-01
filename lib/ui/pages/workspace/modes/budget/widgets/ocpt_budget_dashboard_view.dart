@@ -25,6 +25,7 @@ class OcptBudgetDashboardView extends StatelessWidget {
   /// Class constructor
   const OcptBudgetDashboardView({super.key, required this.state});
 
+  /// Build the budget dashboard view as an [OcptBudgetDashboard].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

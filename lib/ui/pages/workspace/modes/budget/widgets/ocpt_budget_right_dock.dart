@@ -49,6 +49,7 @@ class OcptBudgetRightDock extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the budget right dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -117,6 +118,7 @@ class _OcptBudgetRightDockTabLabel extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget right dock tab label as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

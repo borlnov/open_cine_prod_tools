@@ -69,6 +69,7 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
     required this.onQuantityChanged,
   });
 
+  /// Build the budget new breakdown step as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -128,6 +128,7 @@ class OcptBudgetSharing extends StatelessWidget {
     required this.onShareDeletionRequested,
   });
 
+  /// Build the budget sharing as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

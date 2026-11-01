@@ -18,6 +18,7 @@ class OcptBudgetFicheInfoBanner extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheInfoBanner({super.key, required this.message});
 
+  /// Build the budget fiche info banner as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

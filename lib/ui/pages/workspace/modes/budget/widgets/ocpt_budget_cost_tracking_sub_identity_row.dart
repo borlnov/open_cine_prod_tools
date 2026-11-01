@@ -59,6 +59,7 @@ class OcptBudgetCostTrackingSubIdentityRow extends StatelessWidget {
     required this.builder,
   });
 
+  /// Build the budget cost tracking sub identity row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -27,6 +27,7 @@ class OcptBudgetFinancingResourceStatusPill extends StatelessWidget {
     required this.status,
   });
 
+  /// Build the budget financing resource status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -57,6 +57,7 @@ class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
     required this.onTwistyTap,
   });
 
+  /// Build the budget cost tracking poste identity row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

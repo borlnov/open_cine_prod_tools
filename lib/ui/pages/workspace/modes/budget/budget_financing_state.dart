@@ -21,7 +21,7 @@ class OcptBudgetFinancingState extends BlocStateForMixin<OcptBudgetFinancingStat
   @override
   OcptBudgetFinancingState copyWith() => this;
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props];
 }

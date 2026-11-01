@@ -21,6 +21,8 @@ class OcptBudgetCashJournalVoucherMarker extends StatefulWidget {
   /// Class constructor
   const OcptBudgetCashJournalVoucherMarker({super.key, required this.path});
 
+  /// Create the [_OcptBudgetCashJournalVoucherMarkerState] holding the state of the budget cash
+  /// journal voucher marker.
   @override
   State<OcptBudgetCashJournalVoucherMarker> createState() =>
       _OcptBudgetCashJournalVoucherMarkerState();
@@ -32,6 +34,7 @@ class _OcptBudgetCashJournalVoucherMarkerState extends State<OcptBudgetCashJourn
   /// Whether the referenced file was there when it was last asked about.
   late bool _exists = File(widget.path).existsSync();
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant OcptBudgetCashJournalVoucherMarker oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -40,6 +43,7 @@ class _OcptBudgetCashJournalVoucherMarkerState extends State<OcptBudgetCashJourn
     }
   }
 
+  /// Build the budget cash journal voucher marker as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

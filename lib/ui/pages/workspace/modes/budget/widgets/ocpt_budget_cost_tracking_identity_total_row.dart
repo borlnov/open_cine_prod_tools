@@ -24,6 +24,7 @@ class OcptBudgetCostTrackingIdentityTotalRow extends StatelessWidget {
     required this.posteWidth,
   });
 
+  /// Build the budget cost tracking identity total row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

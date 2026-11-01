@@ -31,6 +31,7 @@ class OcptBudgetCommitmentPayments extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget commitment payments as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -717,7 +717,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

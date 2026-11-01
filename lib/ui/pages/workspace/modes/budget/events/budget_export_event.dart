@@ -51,7 +51,7 @@ class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -87,7 +87,7 @@ class OcptBudgetFinancingPlanExportRequestedEvent extends OcptBudgetExportEvent 
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
@@ -119,7 +119,7 @@ class OcptBudgetCashJournalExportRequestedEvent extends OcptBudgetExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -154,7 +154,7 @@ class OcptBudgetFinancialReportExportRequestedEvent extends OcptBudgetExportEven
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }

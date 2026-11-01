@@ -64,6 +64,7 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget cost tracking poste card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

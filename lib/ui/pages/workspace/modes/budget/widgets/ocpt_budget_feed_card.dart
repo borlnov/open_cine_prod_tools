@@ -58,6 +58,7 @@ class OcptBudgetFeedCard extends StatelessWidget {
     required this.onCateringFeedRequested,
   });
 
+  /// Build the budget feed card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -122,6 +123,7 @@ class _OcptFeedCardRow extends StatelessWidget {
   /// Class constructor
   const _OcptFeedCardRow({required this.title, required this.readOut, required this.onTap});
 
+  /// Build the feed card row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

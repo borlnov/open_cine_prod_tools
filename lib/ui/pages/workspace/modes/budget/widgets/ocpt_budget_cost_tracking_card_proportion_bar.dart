@@ -32,6 +32,7 @@ class OcptBudgetCostTrackingCardProportionBar extends StatelessWidget {
     required this.committedCents,
   });
 
+  /// Build the budget cost tracking card proportion bar as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

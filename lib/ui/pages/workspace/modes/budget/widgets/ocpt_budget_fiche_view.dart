@@ -65,6 +65,7 @@ class OcptBudgetFicheView extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
+  /// Build the budget fiche view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) =>
       BlocBuilder<OcptBudgetExpensesBloc, OcptBudgetExpensesState>(
@@ -119,6 +120,7 @@ class _OcptBudgetFicheBody extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
+  /// Build the budget fiche body as an [OcptBudgetFiche].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

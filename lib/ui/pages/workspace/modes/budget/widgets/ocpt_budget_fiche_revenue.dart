@@ -24,6 +24,7 @@ class OcptBudgetFicheRevenue extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheRevenue({super.key, required this.fiche, required this.revenue});
 
+  /// Build the budget fiche revenue as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final isReadOnly = fiche.isReadOnly;

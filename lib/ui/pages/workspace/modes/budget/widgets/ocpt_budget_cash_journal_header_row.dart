@@ -14,6 +14,7 @@ class OcptBudgetCashJournalHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetCashJournalHeaderRow({super.key});
 
+  /// Build the budget cash journal header row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

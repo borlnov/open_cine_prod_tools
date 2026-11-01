@@ -46,6 +46,7 @@ class OcptBudgetFicheLine extends StatelessWidget {
     required this.line,
   });
 
+  /// Build the budget fiche line as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final commitments = fiche.commitments;
@@ -274,6 +275,7 @@ class _OcptBudgetFicheLineFields extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetFicheLineFields({required this.fiche, required this.line});
 
+  /// Build the budget fiche line fields as a [Column].
   @override
   Widget build(BuildContext context) {
     final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;

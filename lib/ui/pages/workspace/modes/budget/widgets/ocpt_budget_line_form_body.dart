@@ -51,6 +51,7 @@ class OcptBudgetLineFormBody extends StatefulWidget {
     required this.onDraftChanged,
   });
 
+  /// Create the [_OcptBudgetLineFormBodyState] holding the state of the budget line form body.
   @override
   State<OcptBudgetLineFormBody> createState() => _OcptBudgetLineFormBodyState();
 }
@@ -86,6 +87,7 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
     );
   }
 
+  /// Create empty fields, and send the first draft after the first frame.
   @override
   void initState() {
     super.initState();
@@ -105,6 +107,7 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
     });
   }
 
+  /// Build the budget line form body as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -171,6 +174,8 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
   /// own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
+  /// Dispose [_labelController], [_quantityController], [_unitController] and
+  /// [_unitPriceController].
   @override
   void dispose() {
     _labelController.dispose();

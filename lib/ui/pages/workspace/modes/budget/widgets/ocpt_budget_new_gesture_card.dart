@@ -29,6 +29,7 @@ class OcptBudgetNewGestureCard extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the budget new gesture card as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -16,6 +16,7 @@ class OcptBudgetFicheBadge extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheBadge({super.key, required this.text, required this.color});
 
+  /// Build the budget fiche badge as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

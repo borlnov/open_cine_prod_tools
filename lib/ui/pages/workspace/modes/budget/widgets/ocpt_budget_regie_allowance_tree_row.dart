@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// One flattened row of the defrayal tree — see
 /// `OcptBudgetRegieAllowanceColumn._rowsOf`'s own doc comment.
 sealed class OcptBudgetRegieAllowanceTreeRow {
+  /// Class constructor
   const OcptBudgetRegieAllowanceTreeRow();
 }
 

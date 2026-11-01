@@ -20,7 +20,7 @@ class OcptBudgetSharingState extends BlocStateForMixin<OcptBudgetSharingState> {
   @override
   OcptBudgetSharingState copyWith() => this;
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props];
 }

@@ -42,6 +42,7 @@ class OcptBudgetHelp extends StatelessWidget {
   /// Class constructor
   const OcptBudgetHelp({super.key, required this.view, required this.toolsView});
 
+  /// Build the budget help as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -301,6 +302,7 @@ class _OcptBudgetHelpChain extends StatelessWidget {
     required this.currentStepBadge,
   });
 
+  /// Build the budget help chain as a [Table].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -360,6 +362,7 @@ class _OcptBudgetHelpChainCell extends StatelessWidget {
     required this.currentStepBadge,
   });
 
+  /// Build the budget help chain cell as a [Semantics].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

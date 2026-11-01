@@ -23,6 +23,7 @@ class OcptBudgetRegieProvisionFigure extends StatelessWidget {
     this.valueColor,
   });
 
+  /// Build the budget regie provision figure as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -49,6 +49,7 @@ class OcptBudgetCostTrackingOffQuoteIdentityRow extends StatelessWidget {
     required this.onTwistyTap,
   });
 
+  /// Build the budget cost tracking off quote identity row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

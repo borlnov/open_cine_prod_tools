@@ -41,6 +41,7 @@ class OcptBudgetNewGestureStep extends StatelessWidget {
     required this.onShowAllRequested,
   });
 
+  /// Build the budget new gesture step as a [Column].
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
@@ -80,6 +81,7 @@ class _OcptBudgetNewFilterTag extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetNewFilterTag({required this.filterLabel, required this.onShowAllRequested});
 
+  /// Build the budget new filter tag as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -110,6 +112,7 @@ class _OcptBudgetNewFamilyHeading extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetNewFamilyHeading({required this.family});
 
+  /// Build the budget new family heading as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -18,6 +18,7 @@ class OcptBudgetFinancingRevenueStatusPill extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFinancingRevenueStatusPill({super.key, required this.status});
 
+  /// Build the budget financing revenue status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

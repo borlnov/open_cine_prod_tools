@@ -115,6 +115,7 @@ class OcptBudgetDashboard extends StatelessWidget {
     required this.onCashAlertActionRequested,
   });
 
+  /// Build the budget dashboard as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -256,6 +257,7 @@ class _OcptDashboardTile extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardTile({required this.label, required this.value, this.hint});
 
+  /// Build the dashboard tile as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -336,6 +338,7 @@ class _OcptDashboardBalanceBar extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardBalanceBar({required this.balance, required this.currencyCode});
 
+  /// Build the dashboard balance bar as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -476,6 +479,7 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
     required this.onCashAlertActionRequested,
   });
 
+  /// Build the dashboard alerts card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -540,6 +544,7 @@ class _OcptDashboardAlert extends StatelessWidget {
     required this.onCashAlertActionRequested,
   });
 
+  /// Build the dashboard alert.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -616,6 +621,7 @@ class _OcptDashboardAlertRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the dashboard alert row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -667,6 +673,7 @@ class _OcptDashboardAlertBadge extends StatelessWidget {
   /// Class constructor
   const _OcptDashboardAlertBadge({required this.text, required this.color});
 
+  /// Build the dashboard alert badge as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

@@ -30,6 +30,7 @@ class OcptBudgetFichePoste extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFichePoste({super.key, required this.fiche, required this.poste});
 
+  /// Build the budget fiche poste as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final taxBasis = fiche.taxBasis;
@@ -118,6 +119,7 @@ class _OcptBudgetFichePosteFields extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetFichePosteFields({required this.fiche, required this.poste});
 
+  /// Build the budget fiche poste fields as a [Column].
   @override
   Widget build(BuildContext context) {
     final postes = fiche.postes;

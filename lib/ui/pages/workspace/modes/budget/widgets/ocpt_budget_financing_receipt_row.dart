@@ -41,6 +41,7 @@ class OcptBudgetFinancingReceiptRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget financing receipt row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

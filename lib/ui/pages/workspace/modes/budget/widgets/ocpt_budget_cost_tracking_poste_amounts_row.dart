@@ -82,6 +82,7 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
     required this.onFilterRequested,
   });
 
+  /// Build the budget cost tracking poste amounts row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

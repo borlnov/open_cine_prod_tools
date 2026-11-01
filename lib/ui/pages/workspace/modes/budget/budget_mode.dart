@@ -67,6 +67,7 @@ class OcptBudgetMode extends StatelessWidget {
   /// Creates the budget mode.
   const OcptBudgetMode({super.key});
 
+  /// Build the budget mode as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) {
     // Resolved against this outer, listening-safe context and only then captured by the
@@ -115,6 +116,7 @@ class _BudgetView extends StatefulWidget {
   /// Class constructor
   const _BudgetView();
 
+  /// Create the [_BudgetViewState] holding the state of the budget view.
   @override
   State<_BudgetView> createState() => _BudgetViewState();
 }
@@ -131,6 +133,7 @@ class _BudgetViewState extends State<_BudgetView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// Flush the pending field edits of the bloc before the view leaves the tree.
   @override
   void deactivate() {
     // Triggering the flush here, rather than dispatching an event, is what guarantees the last
@@ -140,6 +143,7 @@ class _BudgetViewState extends State<_BudgetView> {
     super.deactivate();
   }
 
+  /// Build the budget view as a [BlocConsumer].
   @override
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptBudgetBloc, OcptBudgetState>(
@@ -631,6 +635,7 @@ class _BudgetViewState extends State<_BudgetView> {
     }
   }
 
+  /// Dispose [_dockLayoutController].
   @override
   void dispose() {
     _dockLayoutController.dispose();

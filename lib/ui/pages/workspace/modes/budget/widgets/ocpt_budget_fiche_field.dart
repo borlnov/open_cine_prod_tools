@@ -47,6 +47,7 @@ class OcptBudgetFicheField extends StatelessWidget {
     this.multiline = false,
   });
 
+  /// Build the budget fiche field as an [OcptBudgetInlineField].
   @override
   Widget build(BuildContext context) {
     final fieldValueOf = fiche.fieldValueOf;

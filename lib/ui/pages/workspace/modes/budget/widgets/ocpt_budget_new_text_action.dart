@@ -24,6 +24,7 @@ class OcptBudgetNewTextAction extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the budget new text action as a [TextButton].
   @override
   Widget build(BuildContext context) =>
       TextButton(key: buttonKey, onPressed: onPressed, child: Text(label));

@@ -101,6 +101,7 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
     required this.secondaries,
   });
 
+  /// Build the budget fiche scaffold as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -13,6 +13,7 @@ class OcptBudgetFicheBreadcrumb extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheBreadcrumb({super.key, required this.segments});
 
+  /// Build the budget fiche breadcrumb as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -71,6 +71,7 @@ class OcptBudgetFinancingResourceRow extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
+  /// Build the budget financing resource row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

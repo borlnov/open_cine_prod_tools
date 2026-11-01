@@ -29,6 +29,7 @@ class OcptBudgetCashJournalView extends StatelessWidget {
     required this.onEntryDeletionRequested,
   });
 
+  /// Build the budget cash journal view as an [OcptBudgetCashJournal].
   @override
   Widget build(BuildContext context) {
     final isReadOnly = state.isPreviewingVersion;

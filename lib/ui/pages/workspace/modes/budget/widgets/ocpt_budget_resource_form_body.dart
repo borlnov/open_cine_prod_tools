@@ -140,6 +140,8 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
     this.offerCashOrInKindChoice = false,
   });
 
+  /// Create the [_OcptBudgetResourceFormBodyState] holding the state of the budget resource form
+  /// body.
   @override
   State<OcptBudgetResourceFormBody> createState() => _OcptBudgetResourceFormBodyState();
 }
@@ -194,6 +196,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     );
   }
 
+  /// Fill the fields from the existing resource, and send the first draft after the first frame.
   @override
   void initState() {
     super.initState();
@@ -220,6 +223,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     });
   }
 
+  /// Build the budget resource form body as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -405,6 +409,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogStatusHelperInKind,
   };
 
+  /// Dispose [_labelController], [_amountController] and [_notesController].
   @override
   void dispose() {
     _labelController.dispose();
@@ -434,6 +439,7 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the resource group kind picker as a [Wrap].
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,
@@ -499,6 +505,7 @@ class _OcptResourceStatusPicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the resource status picker as a [Wrap].
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,
@@ -564,6 +571,7 @@ class _OcptResourcePosteField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the resource poste field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

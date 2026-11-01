@@ -38,6 +38,8 @@ class OcptBudgetQuoteExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetQuoteExportDialog({required this.current, required this.taxBasis, super.key});
 
+  /// Create the [_OcptBudgetQuoteExportDialogState] holding the state of the budget quote export
+  /// dialog.
   @override
   State<OcptBudgetQuoteExportDialog> createState() => _OcptBudgetQuoteExportDialogState();
 
@@ -64,6 +66,7 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
   /// Whether the title page will be included in the exported document.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -71,6 +74,7 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
     _selectedTaxBasis = widget.taxBasis;
   }
 
+  /// Build the budget quote export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

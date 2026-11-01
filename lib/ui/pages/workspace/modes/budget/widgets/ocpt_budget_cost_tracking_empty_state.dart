@@ -55,6 +55,7 @@ class OcptBudgetCostTrackingEmptyState extends StatelessWidget {
     required this.onPosteCreationRequested,
   });
 
+  /// Build the budget cost tracking empty as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -96,6 +96,7 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
     required this.onPersonChanged,
   });
 
+  /// Build the budget entry link field.
   @override
   Widget build(BuildContext context) => switch (ocptBudgetEntryNatureLinkKindOf(nature)) {
     OcptBudgetEntryLinkKind.poste => OcptBudgetEntryPosteField(

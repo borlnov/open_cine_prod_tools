@@ -67,6 +67,7 @@ class OcptBudgetCostTrackingCompactCards extends StatelessWidget {
     required this.onPosteCreationRequested,
   });
 
+  /// Build the budget cost tracking compact cards as a [Column].
   @override
   Widget build(BuildContext context) {
     final onCreation = onPosteCreationRequested;

@@ -149,6 +149,7 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
     required this.onPersonSelected,
   });
 
+  /// Build the budget new attachment step.
   @override
   Widget build(BuildContext context) {
     final gesture = this.gesture;
@@ -247,6 +248,7 @@ class _OcptBudgetNewPosteAttachment extends StatelessWidget {
     required this.onPosteSelected,
   });
 
+  /// Build the budget new poste attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -329,6 +331,7 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
     required this.onNoLineSelected,
   });
 
+  /// Build the budget new poste and line attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     if (!posteAnswered) {
@@ -431,6 +434,7 @@ class _OcptBudgetNewResourceAttachment extends StatelessWidget {
     required this.onCreateResourceRequested,
   });
 
+  /// Build the budget new resource attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -522,6 +526,7 @@ class _OcptBudgetNewParticipantAttachment extends StatelessWidget {
     required this.onCreateShareRequested,
   });
 
+  /// Build the budget new participant attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -586,6 +591,7 @@ class _OcptBudgetNewPersonAttachment extends StatelessWidget {
     required this.onPersonSelected,
   });
 
+  /// Build the budget new person attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

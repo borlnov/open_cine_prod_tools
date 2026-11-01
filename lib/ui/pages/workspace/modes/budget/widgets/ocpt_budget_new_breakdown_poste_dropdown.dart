@@ -41,6 +41,7 @@ class OcptBudgetNewBreakdownPosteDropdown extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget new breakdown poste dropdown as a [DropdownButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

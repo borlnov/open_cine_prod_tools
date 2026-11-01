@@ -16,6 +16,7 @@ class OcptBudgetNewLabelAbove extends StatelessWidget {
   /// Class constructor
   const OcptBudgetNewLabelAbove({super.key, required this.label, required this.child});
 
+  /// Build the budget new label above as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

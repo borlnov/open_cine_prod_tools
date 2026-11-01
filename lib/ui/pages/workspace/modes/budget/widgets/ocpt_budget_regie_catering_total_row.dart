@@ -28,6 +28,7 @@ class OcptBudgetRegieCateringTotalRow extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget regie catering total row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

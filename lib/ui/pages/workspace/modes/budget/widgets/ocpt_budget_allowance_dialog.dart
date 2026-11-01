@@ -43,6 +43,7 @@ class OcptBudgetAllowanceDialog extends StatefulWidget {
     required this.currencyCode,
   });
 
+  /// Create the [_OcptBudgetAllowanceDialogState] holding the state of the budget allowance dialog.
   @override
   State<OcptBudgetAllowanceDialog> createState() => _OcptBudgetAllowanceDialogState();
 
@@ -75,6 +76,7 @@ class _OcptBudgetAllowanceDialogState extends State<OcptBudgetAllowanceDialog> {
   /// read at all — see [OcptBudgetAllowanceFormBody.onDraftChanged]'s own doc comment.
   OcptBudgetAllowanceFormFields? _draft;
 
+  /// Build the budget allowance dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

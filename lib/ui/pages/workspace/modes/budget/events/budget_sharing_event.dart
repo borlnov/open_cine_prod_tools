@@ -22,7 +22,7 @@ class OcptBudgetRevenueCreationConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetRevenueCreationConfirmedEvent({required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields];
 }
@@ -39,7 +39,7 @@ class OcptBudgetRevenueUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetRevenueUpdateConfirmedEvent({required this.revenueId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, revenueId, fields];
 }
@@ -56,7 +56,7 @@ class OcptBudgetRevenueReorderedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetRevenueReorderedEvent({required this.revenueId, required this.newPosition});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, revenueId, newPosition];
 }
@@ -70,7 +70,7 @@ class OcptBudgetRevenueDeletionConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetRevenueDeletionConfirmedEvent({required this.revenueId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, revenueId];
 }
@@ -84,7 +84,7 @@ class OcptBudgetShareCreationConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetShareCreationConfirmedEvent({required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields];
 }
@@ -101,7 +101,7 @@ class OcptBudgetShareUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetShareUpdateConfirmedEvent({required this.shareId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shareId, fields];
 }
@@ -118,7 +118,7 @@ class OcptBudgetShareReorderedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetShareReorderedEvent({required this.shareId, required this.newPosition});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shareId, newPosition];
 }
@@ -132,7 +132,7 @@ class OcptBudgetShareDeletionConfirmedEvent extends OcptBudgetSharingEvent {
   /// Class constructor
   const OcptBudgetShareDeletionConfirmedEvent({required this.shareId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shareId];
 }

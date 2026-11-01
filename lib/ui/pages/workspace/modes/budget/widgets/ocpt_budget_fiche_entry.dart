@@ -47,6 +47,7 @@ class OcptBudgetFicheEntry extends StatelessWidget {
     this.breadcrumbOverride,
   });
 
+  /// Build the budget fiche entry as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final commitments = fiche.commitments;

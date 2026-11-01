@@ -47,6 +47,7 @@ class OcptBudgetInlineField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptBudgetInlineFieldState] holding the state of the budget inline field.
   @override
   State<OcptBudgetInlineField> createState() => _OcptBudgetInlineFieldState();
 }
@@ -57,6 +58,7 @@ class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
   /// The field's own text editing controller.
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant OcptBudgetInlineField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -66,6 +68,7 @@ class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
     }
   }
 
+  /// Build the budget inline field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -101,6 +104,7 @@ class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
     );
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

@@ -36,6 +36,7 @@ class OcptBudgetPosteProportionBar extends StatelessWidget {
     required this.committedCents,
   });
 
+  /// Build the budget poste proportion bar as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;

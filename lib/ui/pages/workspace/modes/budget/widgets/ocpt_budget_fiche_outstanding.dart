@@ -16,6 +16,7 @@ class OcptBudgetFicheOutstanding extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheOutstanding({super.key, required this.label, required this.value});
 
+  /// Build the budget fiche outstanding as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

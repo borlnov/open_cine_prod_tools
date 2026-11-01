@@ -38,6 +38,7 @@ class OcptBudgetNewFullscreen extends StatelessWidget {
     required this.onCancelRequested,
   });
 
+  /// Build the budget new fullscreen as a [Dialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

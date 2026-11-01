@@ -12,6 +12,7 @@ class OcptBudgetCostTrackingAmountsHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetCostTrackingAmountsHeaderRow({super.key});
 
+  /// Build the budget cost tracking amounts header row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

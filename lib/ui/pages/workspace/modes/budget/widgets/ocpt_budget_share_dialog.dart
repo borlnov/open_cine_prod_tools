@@ -31,6 +31,7 @@ class OcptBudgetShareDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetShareDialog({super.key, required this.existing, required this.people});
 
+  /// Create the [_OcptBudgetShareDialogState] holding the state of the budget share dialog.
   @override
   State<OcptBudgetShareDialog> createState() => _OcptBudgetShareDialogState();
 
@@ -56,6 +57,7 @@ class _OcptBudgetShareDialogState extends State<OcptBudgetShareDialog> {
   /// at all — see [OcptBudgetShareFormBody.onDraftChanged]'s own doc comment.
   OcptBudgetShareFormFields? _draft;
 
+  /// Build the budget share dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -45,6 +45,7 @@ class OcptBudgetStatusBar extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget status bar as an [OcptWorkspaceStatusBar].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

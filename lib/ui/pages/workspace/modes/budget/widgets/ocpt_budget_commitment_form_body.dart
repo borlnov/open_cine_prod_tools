@@ -100,6 +100,8 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
     this.posteAlreadyAnswered = false,
   });
 
+  /// Create the [_OcptBudgetCommitmentFormBodyState] holding the state of the budget commitment
+  /// form body.
   @override
   State<OcptBudgetCommitmentFormBody> createState() => _OcptBudgetCommitmentFormBodyState();
 }
@@ -149,6 +151,8 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     );
   }
 
+  /// Fill the fields from the existing commitment or the prefill, and send the first draft after
+  /// the first frame.
   @override
   void initState() {
     super.initState();
@@ -181,6 +185,7 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     });
   }
 
+  /// Build the budget commitment form body as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -311,6 +316,7 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     return null;
   }
 
+  /// Dispose [_labelController], [_amountController] and [_vatRateController].
   @override
   void dispose() {
     _labelController.dispose();
@@ -336,6 +342,7 @@ class _OcptCommitmentStatusPicker extends StatelessWidget {
   /// Class constructor
   const _OcptCommitmentStatusPicker({required this.value, required this.onChanged});
 
+  /// Build the commitment status picker as a [Wrap].
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,
@@ -405,6 +412,7 @@ class _OcptCommitmentPosteField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the commitment poste field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<String>(
     initialValue: value,

@@ -39,6 +39,7 @@ class OcptBudgetFinancingFamilyRow extends StatelessWidget {
     required this.onTwistyTap,
   });
 
+  /// Build the budget financing family row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -51,6 +51,7 @@ class OcptBudgetSharingRepaymentLenderRow extends StatelessWidget {
     required this.onRepaymentRequested,
   });
 
+  /// Build the budget sharing repayment lender row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -34,6 +34,7 @@ class OcptBudgetFinancingCoverageBand extends StatelessWidget {
     required this.onExpensesRequested,
   });
 
+  /// Build the budget financing coverage band as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

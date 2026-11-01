@@ -35,6 +35,7 @@ class OcptBudgetEntryPosteField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry poste field as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -123,6 +123,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
     required this.onReceiptPickRequested,
   });
 
+  /// Build the budget new movement form as a [Form].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -243,6 +244,7 @@ class _OcptBudgetNewDateAmountBasisRow extends StatelessWidget {
     required this.onTaxInclusiveChanged,
   });
 
+  /// Build the budget new date amount basis row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -307,6 +309,7 @@ class _OcptBudgetNewDirectionField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget new direction field as an [OcptBudgetNewLabelAbove].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -336,6 +339,7 @@ class _OcptBudgetNewVatField extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetNewVatField({required this.controller, required this.defaultVatRateBasisPoints});
 
+  /// Build the budget new VAT field as an [OcptBudgetNewLabelAbove].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -376,6 +380,7 @@ class _OcptBudgetNewReceiptField extends StatelessWidget {
     required this.onPickRequested,
   });
 
+  /// Build the budget new receipt field as an [OcptBudgetNewLabelAbove].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

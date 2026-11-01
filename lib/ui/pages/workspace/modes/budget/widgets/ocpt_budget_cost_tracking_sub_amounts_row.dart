@@ -47,6 +47,7 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
     required this.menuBuilder,
   });
 
+  /// Build the budget cost tracking sub amounts row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

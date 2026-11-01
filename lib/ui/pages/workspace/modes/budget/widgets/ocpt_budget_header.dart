@@ -135,6 +135,7 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.onCaptureRequested,
   });
 
+  /// Build the budget header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
@@ -217,6 +218,7 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget switch segment as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -300,6 +302,7 @@ class _OcptBudgetPosteFilterTag extends StatelessWidget {
     required this.onCleared,
   });
 
+  /// Build the budget poste filter tag as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -352,6 +355,7 @@ class _OcptBudgetSwitchShell extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetSwitchShell({required this.children});
 
+  /// Build the budget switch shell as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(2),
@@ -387,6 +391,7 @@ class _OcptBudgetViewSwitch extends StatelessWidget {
     required this.alertCount,
   });
 
+  /// Build the budget view switch.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -437,6 +442,7 @@ class _OcptBudgetToolsViewSwitch extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetToolsViewSwitch({required this.value, required this.onChanged});
 
+  /// Build the budget tools view switch.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -477,6 +483,7 @@ class _OcptBudgetSimplifiedSwitch extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetSimplifiedSwitch({required this.value, required this.onChanged});
 
+  /// Build the budget simplified switch.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -511,6 +518,7 @@ class _OcptBudgetTaxBasisSwitch extends StatelessWidget {
   /// Class constructor
   const _OcptBudgetTaxBasisSwitch({required this.value, required this.onChanged});
 
+  /// Build the budget tax basis switch.
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

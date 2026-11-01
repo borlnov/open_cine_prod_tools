@@ -13,6 +13,7 @@ class OcptBudgetCashUpcomingHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetCashUpcomingHeaderRow({super.key});
 
+  /// Build the budget cash upcoming header row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

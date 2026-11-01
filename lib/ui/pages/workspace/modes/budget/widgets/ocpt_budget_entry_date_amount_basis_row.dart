@@ -43,6 +43,7 @@ class OcptBudgetEntryDateAmountBasisRow extends StatelessWidget {
     required this.onTaxBasisChanged,
   });
 
+  /// Build the budget entry date amount basis row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

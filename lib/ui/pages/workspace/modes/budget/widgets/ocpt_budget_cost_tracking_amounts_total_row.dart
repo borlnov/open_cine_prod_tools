@@ -56,6 +56,7 @@ class OcptBudgetCostTrackingAmountsTotalRow extends StatelessWidget {
     required this.coveredPosteCount,
   });
 
+  /// Build the budget cost tracking amounts total row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

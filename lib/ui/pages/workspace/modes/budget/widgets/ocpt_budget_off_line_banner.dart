@@ -44,6 +44,7 @@ class OcptBudgetOffLineBanner extends StatelessWidget {
     required this.onMoveOffQuoteRequested,
   });
 
+  /// Build the budget off line banner as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

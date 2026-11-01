@@ -60,6 +60,7 @@ class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
     required this.onReimburseRequested,
   });
 
+  /// Build the budget regie allowance person row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -66,6 +66,8 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  /// Create the [_OcptBudgetCommitmentDialogState] holding the state of the budget commitment
+  /// dialog.
   @override
   State<OcptBudgetCommitmentDialog> createState() => _OcptBudgetCommitmentDialogState();
 
@@ -108,6 +110,7 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
   /// own doc comment.
   String? _missingFieldsHint;
 
+  /// Build the budget commitment dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -29,6 +29,7 @@ class OcptBudgetSharingView extends StatelessWidget {
     required this.onShareDeletionRequested,
   });
 
+  /// Build the budget sharing view as an [OcptBudgetSharing].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

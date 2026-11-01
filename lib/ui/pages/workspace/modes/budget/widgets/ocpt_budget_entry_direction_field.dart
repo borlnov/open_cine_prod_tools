@@ -26,6 +26,7 @@ class OcptBudgetEntryDirectionField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry direction field as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

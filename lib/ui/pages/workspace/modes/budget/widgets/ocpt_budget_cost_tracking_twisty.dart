@@ -39,6 +39,7 @@ class OcptBudgetCostTrackingTwisty extends StatelessWidget {
     required this.rowHeight,
   });
 
+  /// Build the budget cost tracking twisty as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!isExpandable) {

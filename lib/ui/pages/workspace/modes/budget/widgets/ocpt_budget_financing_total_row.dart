@@ -38,6 +38,7 @@ class OcptBudgetFinancingTotalRow extends StatelessWidget {
     required this.valuedCents,
   });
 
+  /// Build the budget financing total row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -24,6 +24,7 @@ class OcptBudgetNewFilledAction extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the budget new filled action as a [FilledButton].
   @override
   Widget build(BuildContext context) =>
       FilledButton(key: buttonKey, onPressed: onPressed, child: Text(label));

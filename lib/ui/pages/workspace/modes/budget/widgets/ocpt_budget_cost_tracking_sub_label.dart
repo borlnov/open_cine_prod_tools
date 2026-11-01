@@ -40,6 +40,7 @@ class OcptBudgetCostTrackingSubLabel extends StatelessWidget {
     this.badgeColor,
   });
 
+  /// Build the budget cost tracking sub label as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

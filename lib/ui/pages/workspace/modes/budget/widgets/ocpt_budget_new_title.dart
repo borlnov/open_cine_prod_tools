@@ -38,6 +38,7 @@ class OcptBudgetNewTitle extends StatelessWidget {
     required this.onChangeGestureRequested,
   });
 
+  /// Build the budget new title as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -104,6 +105,7 @@ class _OcptBudgetNewTrail extends StatelessWidget {
     required this.onChangeGestureRequested,
   });
 
+  /// Build the budget new trail as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -48,6 +48,7 @@ class OcptBudgetSharingLeftColumn extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget sharing left column as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

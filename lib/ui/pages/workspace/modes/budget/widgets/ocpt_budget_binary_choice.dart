@@ -35,6 +35,7 @@ class OcptBudgetBinaryChoice extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget binary choice as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     children: [

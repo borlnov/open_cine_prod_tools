@@ -23,7 +23,7 @@ class OcptBudgetEntryCreationConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// Class constructor
   const OcptBudgetEntryCreationConfirmedEvent({required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields];
 }
@@ -40,7 +40,7 @@ class OcptBudgetEntryUpdateConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// Class constructor
   const OcptBudgetEntryUpdateConfirmedEvent({required this.entryId, required this.fields});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, entryId, fields];
 }
@@ -54,7 +54,7 @@ class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// Class constructor
   const OcptBudgetEntryDeletionConfirmedEvent({required this.entryId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, entryId];
 }
@@ -77,7 +77,7 @@ class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetCashJournalEv
   /// Class constructor
   const OcptBudgetCommitmentCreationConfirmedEvent({required this.fields, this.lineId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fields, lineId];
 }
@@ -100,7 +100,7 @@ class OcptBudgetCommitmentUpdateConfirmedEvent extends OcptBudgetCashJournalEven
     required this.fields,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId, fields];
 }
@@ -115,7 +115,7 @@ class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetCashJournalEv
   /// Class constructor
   const OcptBudgetCommitmentDeletionConfirmedEvent({required this.commitmentId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId];
 }
@@ -138,7 +138,7 @@ class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetCashJournal
     required this.fields,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId, fields];
 }
@@ -162,7 +162,7 @@ class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetCashJournalEvent {
   /// Class constructor
   const OcptBudgetEntryPromotedToQuoteEvent({required this.entryId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, entryId];
 }
@@ -181,7 +181,7 @@ class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetCashJournalEvent {
   /// Class constructor
   const OcptBudgetEntryMovedOffQuoteEvent({required this.entryId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, entryId];
 }
@@ -203,7 +203,7 @@ class OcptBudgetCommitmentPromotedToQuoteEvent extends OcptBudgetCashJournalEven
   /// Class constructor
   const OcptBudgetCommitmentPromotedToQuoteEvent({required this.commitmentId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId];
 }
@@ -224,7 +224,7 @@ class OcptBudgetCommitmentUnsettleRequestedEvent extends OcptBudgetCashJournalEv
   /// Class constructor
   const OcptBudgetCommitmentUnsettleRequestedEvent({required this.commitmentId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, commitmentId];
 }

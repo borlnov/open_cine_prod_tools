@@ -70,6 +70,7 @@ class OcptBudgetSharingDistributionColumn extends StatelessWidget {
     required this.onShareDeletionRequested,
   });
 
+  /// Build the budget sharing distribution column as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

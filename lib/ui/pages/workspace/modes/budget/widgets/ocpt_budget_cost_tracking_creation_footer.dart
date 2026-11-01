@@ -16,6 +16,7 @@ class OcptBudgetCostTrackingCreationFooter extends StatelessWidget {
   /// Class constructor
   const OcptBudgetCostTrackingCreationFooter({super.key, required this.onTap});
 
+  /// Build the budget cost tracking creation footer as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

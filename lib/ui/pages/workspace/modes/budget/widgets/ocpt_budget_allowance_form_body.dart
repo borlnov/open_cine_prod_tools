@@ -77,6 +77,8 @@ class OcptBudgetAllowanceFormBody extends StatefulWidget {
     required this.onDraftChanged,
   });
 
+  /// Create the [_OcptBudgetAllowanceFormBodyState] holding the state of the budget allowance form
+  /// body.
   @override
   State<OcptBudgetAllowanceFormBody> createState() => _OcptBudgetAllowanceFormBodyState();
 }
@@ -145,6 +147,9 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
       widget.mileageRates.isNotEmpty &&
       _mileageRateId != null;
 
+  /// Fill the fields from the existing allowance, pick the mileage rate it was priced with, and
+  /// send
+  /// the first draft after the first frame.
   @override
   void initState() {
     super.initState();
@@ -181,6 +186,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     });
   }
 
+  /// Build the budget allowance form body as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -427,6 +433,8 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     OcptBudgetAllowanceKind.other => tr.budgetAllowanceDialogQuantityHelperOther,
   };
 
+  /// Dispose [_labelController], [_quantityController], [_unitPriceController] and
+  /// [_notesController].
   @override
   void dispose() {
     _labelController.dispose();
@@ -450,6 +458,7 @@ class _OcptAllowanceKindPicker extends StatelessWidget {
   /// Class constructor
   const _OcptAllowanceKindPicker({required this.value, required this.onChanged});
 
+  /// Build the allowance kind picker as a [Wrap].
   @override
   Widget build(BuildContext context) => Wrap(
     spacing: 8,

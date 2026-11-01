@@ -21,6 +21,7 @@ class OcptBudgetCostTrackingIdentityHeaderCell extends StatelessWidget {
     required this.posteWidth,
   });
 
+  /// Build the budget cost tracking identity header cell as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

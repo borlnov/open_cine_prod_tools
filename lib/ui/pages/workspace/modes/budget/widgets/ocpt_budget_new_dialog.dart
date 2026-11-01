@@ -211,6 +211,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  /// Create the [_OcptBudgetNewDialogState] holding the state of the budget new dialog.
   @override
   State<OcptBudgetNewDialog> createState() => _OcptBudgetNewDialogState();
 
@@ -385,6 +386,9 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// no longer want it, rather than being walked back through steps they never saw.
   bool get _openedOnFormDirectly => widget.entryPrefill != null || widget.commitmentPrefill != null;
 
+  /// Fill the fields from the prefill, and open on the form when a prefill is given or on the
+  /// gesture
+  /// step otherwise.
   @override
   void initState() {
     super.initState();
@@ -423,6 +427,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
   }
 
+  /// Build the budget new dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -957,6 +962,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
   }
 
+  /// Dispose [_labelController], [_amountController], [_vatRateController] and [_breakdown].
   @override
   void dispose() {
     _labelController.dispose();

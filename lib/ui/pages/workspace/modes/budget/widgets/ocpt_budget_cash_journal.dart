@@ -172,6 +172,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
     required this.onOpenSharing,
   });
 
+  /// Build the budget cash journal as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

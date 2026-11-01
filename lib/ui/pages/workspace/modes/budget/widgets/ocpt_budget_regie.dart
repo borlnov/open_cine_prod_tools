@@ -234,6 +234,7 @@ class OcptBudgetRegie extends StatelessWidget {
     required this.provisionNote,
   });
 
+  /// Build the budget regie as a [Column].
   @override
   Widget build(BuildContext context) {
     final feedCard = Padding(

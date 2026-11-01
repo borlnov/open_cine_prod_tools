@@ -41,6 +41,7 @@ class OcptBudgetFinancingView extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
+  /// Build the budget financing view as an [OcptBudgetFinancing].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

@@ -213,6 +213,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
     required this.onBreakdownQuantityChanged,
   });
 
+  /// Build the budget new form step.
   @override
   Widget build(BuildContext context) {
     final gesture = this.gesture;

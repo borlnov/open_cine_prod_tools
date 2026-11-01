@@ -20,6 +20,7 @@ class OcptBudgetRegieTablePane extends StatelessWidget {
   /// Class constructor
   const OcptBudgetRegieTablePane({super.key, required this.height, required this.child});
 
+  /// Build the budget regie table pane.
   @override
   Widget build(BuildContext context) =>
       height == null ? Expanded(child: child) : SizedBox(height: height, child: child);

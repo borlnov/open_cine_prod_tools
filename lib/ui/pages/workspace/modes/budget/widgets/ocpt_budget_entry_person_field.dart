@@ -30,6 +30,7 @@ class OcptBudgetEntryPersonField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry person field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

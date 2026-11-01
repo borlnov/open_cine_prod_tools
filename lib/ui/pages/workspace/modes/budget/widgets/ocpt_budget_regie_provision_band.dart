@@ -58,6 +58,7 @@ class OcptBudgetRegieProvisionBand extends StatelessWidget {
     required this.note,
   });
 
+  /// Build the budget regie provision band as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

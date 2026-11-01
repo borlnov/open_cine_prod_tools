@@ -28,6 +28,7 @@ class OcptBudgetRevenueDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetRevenueDialog({super.key, required this.existing, required this.currencyCode});
 
+  /// Create the [_OcptBudgetRevenueDialogState] holding the state of the budget revenue dialog.
   @override
   State<OcptBudgetRevenueDialog> createState() => _OcptBudgetRevenueDialogState();
 
@@ -53,6 +54,7 @@ class _OcptBudgetRevenueDialogState extends State<OcptBudgetRevenueDialog> {
   /// at all — see [OcptBudgetRevenueFormBody.onDraftChanged]'s own doc comment.
   OcptBudgetRevenueFormFields? _draft;
 
+  /// Build the budget revenue dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

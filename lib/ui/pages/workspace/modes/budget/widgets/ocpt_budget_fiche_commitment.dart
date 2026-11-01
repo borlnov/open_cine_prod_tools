@@ -27,6 +27,7 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheCommitment({super.key, required this.fiche, required this.commitment});
 
+  /// Build the budget fiche commitment as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final entries = fiche.entries;

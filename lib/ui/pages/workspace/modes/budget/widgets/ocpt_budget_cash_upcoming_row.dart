@@ -59,6 +59,7 @@ class OcptBudgetCashUpcomingRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the budget cash upcoming row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

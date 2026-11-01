@@ -39,6 +39,7 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
     required this.onEntryDeletionRequested,
   });
 
+  /// Build the budget cost tracking view as an [OcptBudgetCostTracking].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();

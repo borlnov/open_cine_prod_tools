@@ -23,6 +23,7 @@ class OcptBudgetViewEffects extends StatelessWidget {
   /// Class constructor
   const OcptBudgetViewEffects({super.key, required this.child});
 
+  /// Build the budget view effects as a [MultiBlocListener].
   @override
   Widget build(BuildContext context) => MultiBlocListener(
     listeners: [

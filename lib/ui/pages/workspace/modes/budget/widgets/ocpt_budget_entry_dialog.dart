@@ -105,6 +105,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  /// Create the [_OcptBudgetEntryDialogState] holding the state of the budget entry dialog.
   @override
   State<OcptBudgetEntryDialog> createState() => _OcptBudgetEntryDialogState();
 
@@ -207,6 +208,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     return widget.existingReceipt?.path;
   }
 
+  /// Fill the fields from the existing entry, and work out its nature from the links it carries.
   @override
   void initState() {
     super.initState();
@@ -241,6 +243,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
+  /// Build the budget entry dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -427,6 +430,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
+  /// Dispose [_labelController], [_amountController], [_vatRateController] and
+  /// [_voucherController].
   @override
   void dispose() {
     _labelController.dispose();

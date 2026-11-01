@@ -17,6 +17,7 @@ class OcptBudgetFicheStepper extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheStepper({super.key, required this.stepLabels, required this.reachedCount});
 
+  /// Build the budget fiche stepper as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

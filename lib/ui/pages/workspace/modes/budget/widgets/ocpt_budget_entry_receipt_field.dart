@@ -31,6 +31,7 @@ class OcptBudgetEntryReceiptField extends StatelessWidget {
     required this.onPickRequested,
   });
 
+  /// Build the budget entry receipt field as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

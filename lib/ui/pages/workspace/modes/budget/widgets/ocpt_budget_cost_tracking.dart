@@ -332,6 +332,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.onCateringFeedRequested,
   });
 
+  /// Build the budget cost tracking as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     if (postes.isEmpty) {

@@ -191,6 +191,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     required this.onExpensesRequested,
   });
 
+  /// Build the budget financing as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

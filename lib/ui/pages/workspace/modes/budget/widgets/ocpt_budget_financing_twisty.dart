@@ -37,6 +37,7 @@ class OcptBudgetFinancingTwisty extends StatelessWidget {
     required this.rowHeight,
   });
 
+  /// Build the budget financing twisty as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!isExpandable) {

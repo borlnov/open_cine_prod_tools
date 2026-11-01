@@ -73,6 +73,7 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
+  /// Build the budget cash journal row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

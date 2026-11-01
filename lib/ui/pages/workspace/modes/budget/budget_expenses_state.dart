@@ -54,7 +54,7 @@ class OcptBudgetExpensesState extends BlocStateForMixin<OcptBudgetExpensesState>
     required Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits];
 }

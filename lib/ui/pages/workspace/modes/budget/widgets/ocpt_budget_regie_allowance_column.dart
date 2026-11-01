@@ -112,6 +112,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     required this.onReimburseRequested,
   });
 
+  /// Build the budget regie allowance column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

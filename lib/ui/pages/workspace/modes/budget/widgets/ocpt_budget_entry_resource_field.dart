@@ -27,6 +27,7 @@ class OcptBudgetEntryResourceField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry resource field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

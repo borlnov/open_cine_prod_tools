@@ -25,6 +25,7 @@ class OcptBudgetEntryTaxBasisField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the budget entry tax basis field as an [IntrinsicWidth].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -15,6 +15,7 @@ class OcptBudgetFicheFiguresRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheFiguresRow({super.key, required this.figures});
 
+  /// Build the budget fiche figures row as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

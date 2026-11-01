@@ -42,6 +42,7 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
     required this.currencyCode,
   });
 
+  /// Build the budget regie catering row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

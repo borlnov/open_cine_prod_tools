@@ -12,6 +12,7 @@ class OcptBudgetSharingDistributionHeaderRow extends StatelessWidget {
   /// Class constructor
   const OcptBudgetSharingDistributionHeaderRow({super.key});
 
+  /// Build the budget sharing distribution header row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

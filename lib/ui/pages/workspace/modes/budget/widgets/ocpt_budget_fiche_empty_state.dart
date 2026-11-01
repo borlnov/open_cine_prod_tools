@@ -12,6 +12,7 @@ class OcptBudgetFicheEmptyState extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheEmptyState({super.key});
 
+  /// Build the budget fiche empty as an [OcptWorkspaceEmptyMode].
   @override
   Widget build(BuildContext context) => OcptWorkspaceEmptyMode(
     icon: Icons.receipt_long_outlined,

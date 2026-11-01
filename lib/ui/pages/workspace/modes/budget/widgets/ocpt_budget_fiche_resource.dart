@@ -40,6 +40,7 @@ class OcptBudgetFicheResource extends StatelessWidget {
   /// Class constructor
   const OcptBudgetFicheResource({super.key, required this.fiche, required this.resource});
 
+  /// Build the budget fiche resource as an [OcptBudgetFicheScaffold].
   @override
   Widget build(BuildContext context) {
     final postes = fiche.postes;
