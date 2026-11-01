@@ -9,7 +9,7 @@
 /// told apart, whatever the ones after the first happen to contain.
 const _ocptRowStampKeySeparator = "/";
 
-/// The `row_field_versions.rowId` naming the row [parts] is the primary key of.
+/// Get the `row_field_versions.rowId` naming the row [parts] is the primary key of.
 ///
 /// Every synchronised table of this project keys its rows by a single text column except
 /// `shot_characters`, whose key is `{shotId, roleId}`: this is the one encoding the whole app
@@ -22,7 +22,7 @@ const _ocptRowStampKeySeparator = "/";
 /// A single-column key needs no encoding at all: pass it as is rather than through here.
 String ocptCompositeRowStampKey(Iterable<String> parts) => parts.join(_ocptRowStampKeySeparator);
 
-/// The SQL expression equivalent of [ocptCompositeRowStampKey]: concatenates [quotedColumns] —
+/// Get the SQL expression equivalent of [ocptCompositeRowStampKey]: concatenates [quotedColumns] —
 /// each already the quoted SQL identifier of one primary-key column, in the same declared order
 /// [ocptCompositeRowStampKey] itself receives its parts in — with the very same separator.
 ///

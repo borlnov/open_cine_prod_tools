@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 
-/// Converts a [OcptElementCategory] to and from the text stored in the `elements.category` column.
+/// Convert a [OcptElementCategory] to and from the text stored in the `elements.category` column.
 class OcptElementCategoryConverter extends TypeConverter<OcptElementCategory, String> {
   /// Class constructor
   const OcptElementCategoryConverter();

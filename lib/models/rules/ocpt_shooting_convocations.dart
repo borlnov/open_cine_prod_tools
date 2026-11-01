@@ -5,7 +5,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 
-/// Computes every convocation of a day from its [slots] — the rule recorded as ADR 0018,
+/// Compute every convocation of a day from its [slots] — the rule recorded as ADR 0018,
 /// implemented exactly once, here.
 ///
 /// **Nothing is offset from anything, and nobody types a call time, a wrap time or a PAT band.** A
@@ -138,7 +138,7 @@ List<OcptDayConvocation> ocptComputeDayConvocations({
   return convocations;
 }
 
-/// Builds the [OcptDayConvocation] of [personId] (or [roleId], or [guestPersonId], or
+/// Build the [OcptDayConvocation] of [personId] (or [roleId], or [guestPersonId], or
 /// [guestFreeName] — exactly one of the four is ever passed) over everything the day asks of them:
 /// the slots naming them, [ownSlots], and — for a person alone — the audition blocks seeing them,
 /// [ownAuditions], whose candidacies are [roleCandidateIds]. See [ocptComputeDayConvocations]'s own

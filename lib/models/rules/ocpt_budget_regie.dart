@@ -49,7 +49,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// catering pass prices separately.
 const int _ocptBudgetRegiePricedItemCount = 2;
 
-/// [days], each read for its own catering cost, in the order [days] was given.
+/// Get [days], each read for its own catering cost, in the order [days] was given.
 ///
 /// **Never reorders [days]** — the same discipline `ocptBudgetJournalRowsOf`
 /// (`lib/models/rules/ocpt_budget_journal.dart`) states about the cash journal: a caller wanting
@@ -108,7 +108,8 @@ List<OcptBudgetRegieDay> ocptBudgetRegieDaysOf({
     ),
 ];
 
-/// [day]'s own catering reading, over its own [slots] and [blocks] — see [ocptBudgetRegieDaysOf]'s
+/// Get [day]'s own catering reading, over its own [slots] and [blocks] — see
+/// [ocptBudgetRegieDaysOf]'s
 /// own doc comment for the arithmetic argued in full.
 OcptBudgetRegieDay _ocptBudgetRegieDayOf(
   OcptShootingDay day, {
@@ -173,7 +174,8 @@ OcptBudgetRegieDay _ocptBudgetRegieDayOf(
   );
 }
 
-/// [block]'s own meal sitting, read over its own [slot] — null while the block names a slot this
+/// Get [block]'s own meal sitting, read over its own [slot] — null while the block names a slot
+/// this
 /// day's own live slots no longer carry, which reads as an empty sitting (nobody fed) rather than a
 /// crash, mirroring how a candidacy removed under an audition block is read defensively elsewhere.
 ///
@@ -210,7 +212,7 @@ OcptBudgetRegieMealSitting _ocptBudgetRegieMealSittingOf(
   );
 }
 
-/// The catering cost over [mealCount] meals at [mealPriceCents] and [buffetCount] heads at the
+/// Get the catering cost over [mealCount] meals at [mealPriceCents] and [buffetCount] heads at the
 /// buffet, priced at [buffetPriceCents] — two priced items, each contributing to
 /// [OcptBudgetCoveredTotal.amountCents]/[OcptBudgetCoveredTotal.coveredLineCount] only when its own
 /// price is known, exactly the "null, never zero" reading `lib/models/rules/ocpt_budget_vat.dart`
@@ -242,7 +244,7 @@ OcptBudgetCoveredTotal _ocptBudgetRegieCostOf({
   );
 }
 
-/// [days]' own catering reading, folded into one total — see [OcptBudgetRegieTotals]'s own doc
+/// Get [days]' own catering reading, folded into one total — see [OcptBudgetRegieTotals]'s own doc
 /// comment.
 OcptBudgetRegieTotals ocptBudgetRegieTotalsOf(List<OcptBudgetRegieDay> days) {
   var headCount = 0;

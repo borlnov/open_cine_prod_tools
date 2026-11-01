@@ -30,7 +30,7 @@ sealed class OcptWorkspaceRevealRequest extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Asks the resources mode to open [tab] with the record [recordId] names already selected, so its
+/// Ask the resources mode to open [tab] with the record [recordId] names already selected, so its
 /// sheet is what the centre shows.
 ///
 /// [recordId] is read against [tab]'s own catalogue: a person id on [OcptResourcesTab.people], a
@@ -52,7 +52,7 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
   /// Class constructor
   const OcptResourcesRevealRequest({required this.tab, this.recordId});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptResourcesRevealRequest(tab: $tab, recordId: $recordId)";
 
@@ -61,7 +61,7 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
   List<Object?> get props => [...super.props, tab, recordId];
 }
 
-/// Asks the shot list mode to open its **floor plans** centre view on sequence [sceneId], its own
+/// Ask the shot list mode to open its **floor plans** centre view on sequence [sceneId], its own
 /// set tab [setId] already selected — the Resources location sheet's own `Open in shot list`: a
 /// floor plan belongs to the Resources set, so "open it" means landing on the very sequence and
 /// tab that show it, not a sheet of its own.
@@ -82,7 +82,7 @@ final class OcptShotListRevealRequest extends OcptWorkspaceRevealRequest {
   /// Class constructor
   const OcptShotListRevealRequest({required this.sceneId, required this.setId});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShotListRevealRequest(sceneId: $sceneId, setId: $setId)";
 

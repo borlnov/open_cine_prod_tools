@@ -22,7 +22,7 @@ class OcptScriptSidesPage extends Equatable {
   /// Class constructor
   const OcptScriptSidesPage({required this.scriptPageIndex, required this.lines});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScriptSidesPage(scriptPageIndex: $scriptPageIndex, lines: ${lines.length})";

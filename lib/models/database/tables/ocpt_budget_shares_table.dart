@@ -34,7 +34,7 @@ class OcptBudgetSharesTable extends Table {
   @override
   String get tableName => 'budget_shares';
 
-  /// The stable, unique id of this share (a UUID).
+  /// Get the stable, unique id of this share (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -43,22 +43,23 @@ class OcptBudgetSharesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The person this share names, or null — see this table's own doc comment: null is a real
+  /// Get the person this share names, or null — see this table's own doc comment: null is a real
   /// participant (a role rather than an individual), not "nobody has said yet".
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// This share's free-text wording, e.g. "Réalisatrice" or the participant's own role in the
+  /// Get this share's free-text wording, e.g. "Réalisatrice" or the participant's own role in the
   /// production.
   TextColumn get label => text()();
 
-  /// This participant's share of the whole pot, in per mille — see this table's own doc comment.
+  /// Get this participant's share of the whole pot, in per mille — see this table's own doc
+  /// comment.
   IntColumn get sharePermille => integer().withDefault(const Constant(0))();
 
-  /// The fraction of this participant's *own* [sharePermille] they reinvest in the next
+  /// Get the fraction of this participant's *own* [sharePermille] they reinvest in the next
   /// production, in per mille — see this table's own doc comment.
   IntColumn get reinvestPermille => integer().withDefault(const Constant(0))();
 
-  /// Free-form notes about this share.
+  /// Get free-form notes about this share.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

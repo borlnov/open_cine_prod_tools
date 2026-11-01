@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The Dart field name a drift table's own code generator derives [sqlColumnName] from, when no
+/// Get the Dart field name a drift table's own code generator derives [sqlColumnName] from, when no
 /// column declares `.named(...)` to override it: the inverse of the `snake_case` conversion drift
 /// itself applies to a column getter's name.
 ///
@@ -20,6 +20,6 @@ String ocptDartFieldName(String sqlColumnName) {
   return words.first + words.skip(1).map(_capitalise).join();
 }
 
-/// [word] with its first letter upper-cased, or [word] itself when empty — which a column name
+/// Get [word] with its first letter upper-cased, or [word] itself when empty — which a column name
 /// with no double underscore never produces, kept only so this never throws on one that did.
 String _capitalise(String word) => word.isEmpty ? word : word[0].toUpperCase() + word.substring(1);

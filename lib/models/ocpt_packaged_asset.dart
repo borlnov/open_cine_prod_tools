@@ -21,21 +21,21 @@ class OcptPackagedAsset extends Equatable {
   /// Class constructor
   const OcptPackagedAsset({required this.assetId, required this.entry, required this.originalPath});
 
-  /// Parses one packaged asset out of the JSON the manifest stores it as.
+  /// Parse one packaged asset out of the JSON the manifest stores it as.
   factory OcptPackagedAsset.fromJson(Map<String, dynamic> json) => OcptPackagedAsset(
     assetId: json["assetId"] as String? ?? "",
     entry: json["entry"] as String? ?? "",
     originalPath: json["originalPath"] as String? ?? "",
   );
 
-  /// This asset, as the manifest stores it.
+  /// Serialize this asset, as the manifest stores it.
   Map<String, dynamic> toJson() => {
     "assetId": assetId,
     "entry": entry,
     "originalPath": originalPath,
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptPackagedAsset(assetId: $assetId, entry: $entry, originalPath: $originalPath)";

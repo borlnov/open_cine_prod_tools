@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 /// catalogue has grown to — a hundred and fifty elements must still fit under the search field.
 const int ocptBreakdownSearchPerKindLimit = 5;
 
-/// The [candidates] matching [query], grouped by kind and ranked within each group, each group
+/// Get the [candidates] matching [query], grouped by kind and ranked within each group, each group
 /// capped at [perKindLimit].
 ///
 /// Matching is on a candidate's [OcptBreakdownSearchCandidate.name] **alone**, through
@@ -81,7 +81,8 @@ OcptBreakdownSearchResults ocptBreakdownSearchCatalogues({
   );
 }
 
-/// [candidates], sorted by [_compareCandidates] against [normalizedQuery] and cut to [perKindLimit]
+/// Get [candidates], sorted by [_compareCandidates] against [normalizedQuery] and cut to
+/// [perKindLimit]
 /// — ranking always happens over the whole group, the cap only ever the last step.
 List<OcptBreakdownSearchCandidate> _rankedAndCapped(
   List<OcptBreakdownSearchCandidate> candidates,
@@ -92,7 +93,7 @@ List<OcptBreakdownSearchCandidate> _rankedAndCapped(
   return ranked.take(perKindLimit).toList();
 }
 
-/// The ranking [ocptBreakdownSearchCatalogues] documents, as a [Comparator]: prefix match, then
+/// Get the ranking [ocptBreakdownSearchCatalogues] documents, as a [Comparator]: prefix match, then
 /// already-tagged, then normalized name, then id.
 int _compareCandidates(
   OcptBreakdownSearchCandidate a,
@@ -122,7 +123,8 @@ int _compareCandidates(
   return a.id.compareTo(b.id);
 }
 
-/// Whether [targetName] (and, where they exist, [categoryLabel]/[subCategory]/[ownerName]/[notes])
+/// Tell whether [targetName] (and, where they exist,
+/// [categoryLabel]/[subCategory]/[ownerName]/[notes])
 /// matches [query] — the recap's own row filter: the
 /// header's search field filters the recap's **rows**, and this is the predicate one row is kept
 /// or dropped by.
@@ -155,7 +157,7 @@ bool ocptBreakdownRecapRowMatches({
   ],
 );
 
-/// The candidates the tag popover searches, flattened out of [snapshot]'s three raw catalogues
+/// Get the candidates the tag popover searches, flattened out of [snapshot]'s three raw catalogues
 /// ([OcptBreakdownSnapshot.elements]/[OcptBreakdownSnapshot.roles]/[OcptBreakdownSnapshot.sets]) —
 /// never out of [OcptBreakdownSnapshot.targets] alone, which only ever names a thing **already**
 /// tagged somewhere and would therefore hide a role or a set the breakdown pass has not reached

@@ -6,7 +6,7 @@ import 'package:act_dart_utility/act_dart_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:equatable/equatable.dart';
 
-/// Represents a project the user has recently opened, so it can be listed and reopened quickly.
+/// Represent a project the user has recently opened, so it can be listed and reopened quickly.
 class OcptRecentProjectModel extends Equatable {
   /// This is the key used to stringify or parse the [path] from a JSON object
   static const _pathKey = "path";
@@ -65,7 +65,7 @@ class OcptRecentProjectModel extends Equatable {
     if (episodeCount != null) _episodeCountKey: episodeCount,
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptRecentProjectModel(path: $path, name: $name, lastOpenedAt: $lastOpenedAt, "

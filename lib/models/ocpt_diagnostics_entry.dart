@@ -33,7 +33,7 @@ class OcptDiagnosticsEntry extends Equatable {
     required this.message,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptDiagnosticsEntry(time: $time, category: $category, level: $level, message: $message)";

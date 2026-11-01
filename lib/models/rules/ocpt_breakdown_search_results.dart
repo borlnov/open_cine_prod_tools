@@ -17,7 +17,7 @@ class OcptBreakdownSearchResults extends Equatable {
   /// The matching elements, best match first.
   final List<OcptBreakdownSearchCandidate> elements;
 
-  /// Whether every section came back with nothing — the popover's cue to fall back on
+  /// Tell whether every section came back with nothing — the popover's cue to fall back on
   /// `Open in Resources` rather than an empty list.
   bool get isEmpty => roles.isEmpty && sets.isEmpty && elements.isEmpty;
 

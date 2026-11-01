@@ -88,12 +88,12 @@ class OcptBudgetQuoteLabels extends Equatable {
     required this.inKindLineMarker,
   });
 
-  /// The caption stating which of the two bases [basis] itself is — [includingTaxCaption] or
+  /// Get the caption stating which of the two bases [basis] itself is — [includingTaxCaption] or
   /// [excludingTaxCaption].
   String taxBasisCaptionOf(OcptBudgetTaxBasis basis) =>
       basis == OcptBudgetTaxBasis.includingTax ? includingTaxCaption : excludingTaxCaption;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetQuoteLabels(documentTitle: $documentTitle)";
 

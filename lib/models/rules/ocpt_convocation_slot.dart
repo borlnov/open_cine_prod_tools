@@ -76,7 +76,7 @@ class OcptConvocationSlot {
   /// guest's own verbatim `freeName`.
   final Set<String> guestFreeNames;
 
-  /// Builds a slot to feed to [ocptComputeDayConvocations].
+  /// Build a slot to feed to [ocptComputeDayConvocations].
   const OcptConvocationSlot({
     required this.id,
     required this.startMinute,

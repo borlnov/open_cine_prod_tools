@@ -289,7 +289,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   @override
   int get schemaVersion => currentSchemaVersion;
 
-  /// The database options used by this database.
+  /// Get the database options used by this database.
   ///
   /// `DriftDatabaseOptions.storeDateTimeAsText` is turned on so `dateTime()` columns (e.g.
   /// `screenplay_snapshots.createdAt`) keep full, sub-second precision instead of drift's default
@@ -299,7 +299,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   @override
   DriftDatabaseOptions get options => const DriftDatabaseOptions(storeDateTimeAsText: true);
 
-  /// How an existing `.ocpt` file is brought up to the current [schemaVersion].
+  /// Tell how an existing `.ocpt` file is brought up to the current [schemaVersion].
   ///
   /// Per `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`, no stable release had
   /// shipped before schema version 1, so that version itself carries no pre-stable migration
@@ -353,10 +353,10 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     },
   );
 
-  /// Opens (creating it if needed) the project database stored at [file].
+  /// Open (creating it if needed) the project database stored at [file].
   OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
 
-  /// Opens the project database stored at [file] while another [OcptProjectDatabase] is still
+  /// Open the project database stored at [file] while another [OcptProjectDatabase] is still
   /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
   /// holds both for the instant between verifying the copy and closing the original.
   ///
@@ -368,7 +368,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     : isPreview = false,
       super(_alongsideExecutor(file));
 
-  /// Opens a project database backed by an in-memory SQLite instance: the connection a version
+  /// Open a project database backed by an in-memory SQLite instance: the connection a version
   /// preview is hydrated into ([isPreview] true), and the one the tests run against.
   ///
   /// Its content is lost as soon as the database is closed, which is precisely what a preview
@@ -377,7 +377,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     : isPreview = isPreview,
       super(_memoryExecutor(isPreview: isPreview));
 
-  /// Whether the user-driven write named [operation] must be refused because it was handed a
+  /// Tell whether the user-driven write named [operation] must be refused because it was handed a
   /// preview connection, logging it when it is.
   ///
   /// {@template open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -405,7 +405,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     return true;
   }
 
-  /// The file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
+  /// Get the file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
   /// multiple-instances warning first (see that constructor's own doc comment).
   static QueryExecutor _alongsideExecutor(File file) {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -413,7 +413,7 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
     return NativeDatabase(file);
   }
 
-  /// The in-memory executor [OcptProjectDatabase.memory] runs on.
+  /// Get the in-memory executor [OcptProjectDatabase.memory] runs on.
   ///
   /// Opening a preview is the one moment the app holds two [OcptProjectDatabase] at once — the
   /// project file and the version being read — which is exactly what drift's

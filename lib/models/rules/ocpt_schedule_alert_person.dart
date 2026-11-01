@@ -19,7 +19,7 @@ class OcptScheduleAlertPerson {
   /// This person's own recorded unavailabilities, in no particular order.
   final List<OcptScheduleAlertUnavailability> unavailabilities;
 
-  /// Builds a person to feed to [ocptComputeScheduleAlerts].
+  /// Build a person to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertPerson({
     required this.id,
     required this.maxDailyPresenceMinutes,

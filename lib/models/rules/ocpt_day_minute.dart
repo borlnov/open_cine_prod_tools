@@ -10,7 +10,7 @@ const int _ocptMinutesPerDay = 1440;
 /// How many minutes a full hour holds.
 const int _ocptMinutesPerHour = 60;
 
-/// Writes [minute] as a `HH:mm` clock reading — `19:00`, `03:00` for `1620`, `00:00` for `0` or
+/// Write [minute] as a `HH:mm` clock reading — `19:00`, `03:00` for `1620`, `00:00` for `0` or
 /// `1440`.
 ///
 /// A shooting day's own times (`shooting_slots.crewCallMinute`, `shooting_day_blocks.anchorMinute`,
@@ -35,7 +35,7 @@ String ocptFormatDayMinute(int minute) {
   return "${_twoDigits(hours)}:${_twoDigits(minutes)}";
 }
 
-/// Reads [text] as a `HH:mm` clock reading and returns the minute [ocptFormatDayMinute] would print
+/// Read [text] as a `HH:mm` clock reading and return the minute [ocptFormatDayMinute] would print
 /// it back as, or null when [text] isn't one — an empty field, or something with no clock in it at
 /// all.
 ///
@@ -59,7 +59,7 @@ int? ocptParseDayMinute(String text) {
   return hours * _ocptMinutesPerHour + minutes;
 }
 
-/// Writes [minutes], a length of time rather than a point in the day, as `1 h 30` or `45 min`.
+/// Write [minutes], a length of time rather than a point in the day, as `1 h 30` or `45 min`.
 ///
 /// A bare figure of minutes below an hour reads as minutes alone; at an hour or above, the hour
 /// count is always shown and the leftover minutes are dropped entirely when there are none — `60`
@@ -85,5 +85,5 @@ String ocptFormatMinuteDuration(int minutes) {
 /// minute.
 final RegExp _ocptClockPattern = RegExp(r"^([0-9]{1,2}):([0-9]{2})$");
 
-/// [value] written on two digits, left-padded with a zero.
+/// Get [value] written on two digits, left-padded with a zero.
 String _twoDigits(int value) => value.toString().padLeft(2, "0");

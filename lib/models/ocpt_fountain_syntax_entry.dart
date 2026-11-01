@@ -44,7 +44,7 @@ class OcptFountainSyntaxEntry extends Equatable {
     this.lineType,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFountainSyntaxEntry(topic: $topic, section: $section, "

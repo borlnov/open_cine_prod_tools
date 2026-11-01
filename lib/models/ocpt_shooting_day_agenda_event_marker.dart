@@ -35,7 +35,7 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
     required this.row,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";

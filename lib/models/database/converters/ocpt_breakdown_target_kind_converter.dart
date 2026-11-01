@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 
-/// Converts a [OcptBreakdownTargetKind] to and from the text stored in the
+/// Convert a [OcptBreakdownTargetKind] to and from the text stored in the
 /// `breakdown_tags.targetKind` column.
 class OcptBreakdownTargetKindConverter extends TypeConverter<OcptBreakdownTargetKind, String> {
   /// Class constructor

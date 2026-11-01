@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 /// a possibility" is a question about the status itself, and a second reader deciding it again is
 /// how two counts of the same casting come to disagree.
 extension OcptRoleCandidateStatusLead on OcptRoleCandidateStatus {
-  /// Whether this status leaves the candidacy in the running. See the extension's doc comment.
+  /// Tell whether this status leaves the candidacy in the running. See the extension's doc comment.
   ///
   /// A `switch` with no `default`: a ninth status must be placed on one side or the other here
   /// rather than silently counting as a lead.

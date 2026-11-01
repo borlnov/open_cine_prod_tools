@@ -37,13 +37,13 @@ class OcptRoleCollisionAlert extends Equatable {
     required this.handAddedRoleId,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptRoleCollisionAlert(name: $name, screenplayRoleId: $screenplayRoleId, "
       "handAddedRoleId: $handAddedRoleId)";
 
-  /// Every collision found in [roles]: one alert per normalised name worn by both a live
+  /// Get every collision found in [roles]: one alert per normalised name worn by both a live
   /// `isFromScreenplay` role and a live hand-added one, sorted by [name] so the banners keep a
   /// stable order across reloads.
   ///

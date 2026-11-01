@@ -7,7 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 
-/// A quote line's own `Engagé` figure, the expenses tree's own sub-row reading — kept apart from
+/// Get a quote line's own `Engagé` figure, the expenses tree's own sub-row reading — kept apart
+/// from
 /// `ocpt_budget_totals.dart` because it reads a **line's own commitments**, a grouping
 /// `ocpt_budget_journal.dart`/`ocpt_budget_projection.dart` never need: those two files each read
 /// every commitment or every entry of the whole project, grouped by poste, and a line is a poste's
@@ -73,7 +74,7 @@ OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   );
 }
 
-/// A quote line's own `Payé` figure: the tax-inclusive sum of every `budget_entries` debit that
+/// Get a quote line's own `Payé` figure: the tax-inclusive sum of every `budget_entries` debit that
 /// settles each of [lineCommitments]' own **settled** commitments — never an entry read directly,
 /// since an entry never names a line, only the commitment it pays
 /// (`docs/architecture/budget.md`'s own "a commitment settles by naming the entry that paid it").

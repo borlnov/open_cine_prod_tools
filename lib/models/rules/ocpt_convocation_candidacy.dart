@@ -19,6 +19,6 @@ class OcptConvocationCandidacy {
   /// The person behind that candidacy (`role_candidates.personId`), resolved by the caller.
   final String personId;
 
-  /// Builds a candidacy to hang off an [OcptConvocationAudition].
+  /// Build a candidacy to hang off an [OcptConvocationAudition].
   const OcptConvocationCandidacy({required this.roleCandidateId, required this.personId});
 }

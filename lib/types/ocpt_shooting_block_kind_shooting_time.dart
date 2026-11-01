@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// reader deciding either again is how a printed call sheet and the convocations panel come to
 /// disagree about somebody's band.
 extension OcptShootingBlockKindShootingTime on OcptShootingBlockKind {
-  /// Whether a block of this kind is working time. See the extension's doc comment.
+  /// Tell whether a block of this kind is working time. See the extension's doc comment.
   ///
   /// A `switch` with no `default`: an eleventh kind must be placed on one side or the other here
   /// rather than silently counting as time around the work.
@@ -38,7 +38,7 @@ extension OcptShootingBlockKindShootingTime on OcptShootingBlockKind {
     OcptShootingBlockKind.wrap => false,
   };
 
-  /// Whether a block of this kind is **filming** — a take is made, or is going to be. True for
+  /// Tell whether a block of this kind is **filming** — a take is made, or is going to be. True for
   /// [OcptShootingBlockKind.shot] and for [OcptShootingBlockKind.hold], which reserves the time of
   /// a sequence the shot list cannot yet describe and is filmed all the same; false for everything
   /// else, [OcptShootingBlockKind.audition] and [OcptShootingBlockKind.rehearsal] included.

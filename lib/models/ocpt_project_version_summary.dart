@@ -37,7 +37,7 @@ class OcptProjectVersionSummary extends Equatable {
   /// Class constructor
   const OcptProjectVersionSummary({required this.pageCount, required this.brokenDownSequenceCount});
 
-  /// Measures [payload], at the page setup that payload carries.
+  /// Measure [payload], at the page setup that payload carries.
   ///
   /// The page count is the same one the status bar and the PDF exporter show, so a version's card
   /// and its restored project agree: it comes from [FountainScriptStatistics], summed over the live
@@ -76,7 +76,7 @@ class OcptProjectVersionSummary extends Equatable {
     _brokenDownSequenceCountKey: brokenDownSequenceCount,
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptProjectVersionSummary(pageCount: $pageCount, "
@@ -113,7 +113,7 @@ class OcptProjectVersionSummary extends Equatable {
     );
   }
 
-  /// Parses the [summaryJson] text stored in a `project_versions` row, falling back to [empty].
+  /// Parse the [summaryJson] text stored in a `project_versions` row, falling back to [empty].
   ///
   /// A summary is a display detail: a version whose counters can't be read back is still perfectly
   /// restorable, so an unreadable one is logged and shown as zeroes rather than hiding the version

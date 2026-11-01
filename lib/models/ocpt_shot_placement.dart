@@ -35,7 +35,7 @@ class OcptShotPlacement extends Equatable {
     required this.date,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShotPlacement(shotId: $shotId, dayId: $dayId, dayNumber: $dayNumber)";
 

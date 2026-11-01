@@ -96,7 +96,8 @@ class OcptBreakdownSnapshot extends Equatable {
   /// could have flagged, and the scene inspector's own "to check" alert must still list it.
   final int needsCheckTagCount;
 
-  /// The name of every location of [locations], keyed by id — what names the place a set belongs
+  /// Get the name of every location of [locations], keyed by id — what names the place a set
+  /// belongs
   /// to.
   ///
   /// A set has no sheet of its own, so it is only ever shown *somewhere*: the scene inspector's own
@@ -124,7 +125,7 @@ class OcptBreakdownSnapshot extends Equatable {
     required this.needsCheckTagCount,
   });
 
-  /// Builds an [OcptBreakdownSnapshot] for [screenplayId] by joining [scenes] (with empty tags),
+  /// Build an [OcptBreakdownSnapshot] for [screenplayId] by joining [scenes] (with empty tags),
   /// [tags] and the three catalogues [elements]/[roles]/[sets], deriving [targets] and the four
   /// counts from them. [people], [elements], [roles] and [sets] are all carried through verbatim —
   /// see their own doc comments for why the inspector and the tag popover need the raw rows rather
@@ -233,7 +234,7 @@ class OcptBreakdownSnapshot extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownSnapshot(screenplayId: $screenplayId, sceneCount: ${scenes.length}, "

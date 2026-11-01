@@ -95,7 +95,7 @@ enum OcptBudgetGesture {
   addSharingParticipant,
 }
 
-/// Which [OcptBudgetGestureFamily] heading [gesture] is offered under — step 1's own grouping,
+/// Tell which [OcptBudgetGestureFamily] heading [gesture] is offered under — step 1's own grouping,
 /// per the class doc comment's table.
 OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => switch (gesture) {
   OcptBudgetGesture.addQuoteLine => OcptBudgetGestureFamily.quote,
@@ -115,7 +115,8 @@ OcptBudgetGestureFamily ocptBudgetGestureFamilyOf(OcptBudgetGesture gesture) => 
   OcptBudgetGesture.addSharingParticipant => OcptBudgetGestureFamily.revenueSharing,
 };
 
-/// Which direction money moves under [gesture] — the semantic the `+ New` wizard filters by when it
+/// Tell which direction money moves under [gesture] — the semantic the `+ New` wizard filters by
+/// when it
 /// opens from a working view, **transverse to the families**: the `Expenses` view offers everything
 /// that makes money go out whatever family it sits in, the `Resources` view everything that brings
 /// money in. A gesture may do both ([OcptBudgetGesture.recordOtherMovement], whose direction the
@@ -143,7 +144,8 @@ Set<OcptBudgetGestureFlow> ocptBudgetGestureFlowsOf(OcptBudgetGesture gesture) =
   OcptBudgetGesture.addSharingParticipant => const {},
 };
 
-/// What the wizard's own step 2 asks for under [gesture] — every row of this answer is a decision
+/// Get what the wizard's own step 2 asks for under [gesture] — every row of this answer is a
+/// decision
 /// already taken, per the class doc comment's table; none of it is open.
 OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gesture) =>
     switch (gesture) {
@@ -170,7 +172,8 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
       OcptBudgetGesture.addSharingParticipant => OcptBudgetGestureAttachment.none,
     };
 
-/// How many steps the wizard takes for [gesture]: `2` while [ocptBudgetGestureAttachmentOf] answers
+/// Count how many steps the wizard takes for [gesture]: `2` while [ocptBudgetGestureAttachmentOf]
+/// answers
 /// [OcptBudgetGestureAttachment.none] — step 1, then straight to the form — `3` otherwise — step 1,
 /// step 2 asking the attachment, then the form.
 ///
@@ -179,7 +182,7 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
 int ocptBudgetGestureStepCountOf(OcptBudgetGesture gesture) =>
     ocptBudgetGestureAttachmentOf(gesture) == OcptBudgetGestureAttachment.none ? 2 : 3;
 
-/// The [OcptBudgetEntryNature] [gesture] writes, for the seven
+/// Get the [OcptBudgetEntryNature] [gesture] writes, for the seven
 /// [OcptBudgetGestureFamily.cashMovement] answers, or `null` for the other eight — a gesture that
 /// plans, quotes or creates a record is not a movement, so it has no nature to write.
 OcptBudgetEntryNature? ocptBudgetGestureNatureOf(OcptBudgetGesture gesture) => switch (gesture) {

@@ -29,14 +29,14 @@ const List<int> ocptWeekdays = [
   DateTime.sunday,
 ];
 
-/// Whether [mask] covers [weekday], a `DateTime.monday`…`DateTime.sunday` value.
+/// Tell whether [mask] covers [weekday], a `DateTime.monday`…`DateTime.sunday` value.
 bool ocptWeekdayMaskContains(int mask, int weekday) => mask & _bitOf(weekday) != 0;
 
-/// Whether [mask] covers the whole week, i.e. whether it narrows its range to nothing in
+/// Tell whether [mask] covers the whole week, i.e. whether it narrows its range to nothing in
 /// particular — which is how a range with no weekday restriction reads.
 bool ocptWeekdayMaskCoversEveryDay(int mask) => mask & ocptEveryWeekdayMask == ocptEveryWeekdayMask;
 
-/// [mask] with [weekday] added when it was missing, removed when it was there.
+/// Get [mask] with [weekday] added when it was missing, removed when it was there.
 ///
 /// Removing the **last** covered day returns [mask] untouched: a window has to cover some day, and
 /// the caller's control simply doesn't move rather than reporting an error the user can do nothing
@@ -51,11 +51,12 @@ int ocptWeekdayMaskToggled(int mask, int weekday) {
   return cleared == 0 ? mask : cleared;
 }
 
-/// Whether [date] falls on a day of the week [mask] covers.
+/// Tell whether [date] falls on a day of the week [mask] covers.
 bool ocptWeekdayMaskCoversDate(int mask, DateTime date) =>
     ocptWeekdayMaskContains(mask, date.weekday);
 
-/// The bit standing for [weekday] in a mask, 0 for a number that is no weekday at all — a stored
+/// Get the bit standing for [weekday] in a mask, 0 for a number that is no weekday at all — a
+/// stored
 /// mask outlives the code that wrote it, so nothing here throws on one.
 int _bitOf(int weekday) =>
     weekday < DateTime.monday || weekday > DateTime.sunday ? 0 : 1 << (weekday - 1);

@@ -33,7 +33,8 @@ class OcptBudgetCoveredTotal extends Equatable {
   /// were asked for, covered or not.
   final int lineCount;
 
-  /// Whether every line carried a known rate — [coveredLineCount] equals [lineCount]. Once true,
+  /// Tell whether every line carried a known rate — [coveredLineCount] equals [lineCount]. Once
+  /// true,
   /// the UI stops saying how many lines the figure covers: it has become the complete answer.
   bool get isComplete => coveredLineCount == lineCount;
 
@@ -44,7 +45,7 @@ class OcptBudgetCoveredTotal extends Equatable {
     required this.lineCount,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetCoveredTotal(amountCents: $amountCents, coveredLineCount: $coveredLineCount, "

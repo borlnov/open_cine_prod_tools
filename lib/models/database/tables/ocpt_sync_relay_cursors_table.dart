@@ -33,15 +33,18 @@ class OcptSyncRelayCursorsTable extends Table {
   @override
   String get tableName => 'sync_relay_cursors';
 
-  /// The relay this cursor tracks: an opaque identifier for the relay instance (its address or a
+  /// Get the relay this cursor tracks: an opaque identifier for the relay instance (its address or
+  /// a
   /// stable id it hands out), minted and read by the sync engine rather than by this table.
   TextColumn get relayId => text()();
 
-  /// The highest changeset sequence number fetched from [relayId] and applied to this replica's own
+  /// Get the highest changeset sequence number fetched from [relayId] and applied to this replica's
+  /// own
   /// tables; `0` until the first changeset is ever pulled from it.
   IntColumn get lastAppliedSequence => integer().withDefault(const Constant(0))();
 
-  /// The highest local `row_field_versions.version` stamp already pushed to [relayId]; `0` until
+  /// Get the highest local `row_field_versions.version` stamp already pushed to [relayId]; `0`
+  /// until
   /// this replica has ever pushed anything to it.
   IntColumn get outboxHighWaterMark => integer().withDefault(const Constant(0))();
 

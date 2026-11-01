@@ -13,17 +13,17 @@ class OcptPersonSkillsTable extends Table {
   @override
   String get tableName => 'person_skills';
 
-  /// The stable, unique id of this skill entry (a UUID).
+  /// Get the stable, unique id of this skill entry (a UUID).
   ///
   /// A UUID rather than {[personId], [label]} as the key: two people can share a skill label, but
   /// the same person could also type the same label twice by mistake, and a chip still needs a
   /// stable identity to be individually edited or removed either way.
   TextColumn get id => text()();
 
-  /// The person who has this skill.
+  /// Get the person who has this skill.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// The skill itself, free text (e.g. "Permis B", "Anglais courant", "Piano").
+  /// Get the skill itself, free text (e.g. "Permis B", "Anglais courant", "Piano").
   TextColumn get label => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}

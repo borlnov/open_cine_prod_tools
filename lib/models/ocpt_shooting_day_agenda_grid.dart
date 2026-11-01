@@ -88,7 +88,7 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// own rows, or leading/trailing just outside them.
   final List<OcptShootingDayAgendaEventMarker> events;
 
-  /// How many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
+  /// Count how many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
   int get rowCount => isEmpty ? 0 : (endMinute - startMinute) ~/ stepMinutes;
 
   /// Class constructor
@@ -111,7 +111,7 @@ class OcptShootingDayAgendaGrid extends Equatable {
       tiles = const [],
       events = const [];
 
-  /// Builds the grid from [columns]' own resolved timelines and [events], both pure inputs — see
+  /// Build the grid from [columns]' own resolved timelines and [events], both pure inputs — see
   /// this class's own doc comment for the rules this applies.
   ///
   /// [columns] carries one entry per slot the caller wants a column for, in the order the columns
@@ -188,14 +188,15 @@ class OcptShootingDayAgendaGrid extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: "
       "${columns.length}, "
       "tiles: ${tiles.length}, events: ${events.length})";
 
-  /// [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band: outside
+  /// Get [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band:
+  /// outside
   /// it on either side reads as [OcptShootingDayAgendaEventPlacement.beforeGrid]/`.afterGrid` with
   /// no [OcptShootingDayAgendaEventMarker.row], inside it as `.inGrid` with one.
   ///
@@ -236,15 +237,16 @@ class OcptShootingDayAgendaGrid extends Equatable {
     );
   }
 
-  /// [minute] rounded down to the nearest [stepMinutes] — including below the day's own midnight,
+  /// Get [minute] rounded down to the nearest [stepMinutes] — including below the day's own
+  /// midnight,
   /// see [_floorDiv]'s own doc comment for why this cannot be `(minute ~/ stepMinutes) *
   /// stepMinutes`.
   static int _floorToStep(int minute) => _floorDiv(minute, stepMinutes) * stepMinutes;
 
-  /// [minute] rounded up to the nearest [stepMinutes], mirroring [_floorToStep].
+  /// Get [minute] rounded up to the nearest [stepMinutes], mirroring [_floorToStep].
   static int _ceilToStep(int minute) => _ceilDiv(minute, stepMinutes) * stepMinutes;
 
-  /// Integer division of [value] by [divisor] (always [stepMinutes], always positive), rounded
+  /// Divide [value] by [divisor] as integers (always [stepMinutes], always positive), rounded
   /// **down** — floor, not truncation. Dart's `~/` truncates toward zero, which already is the
   /// floor for a non-negative [value] but rounds the *wrong* way for a negative one (`-5 ~/ 10`
   /// gives `0`, one row too late, where the floor is `-1`). An end-anchored slot resolves its own
@@ -260,7 +262,7 @@ class OcptShootingDayAgendaGrid extends Equatable {
     return (value < 0 && value % divisor != 0) ? quotient - 1 : quotient;
   }
 
-  /// Integer division of [value] by [divisor], rounded **up** — what turns an end minute into the
+  /// Divide [value] by [divisor] as integers, rounded **up** — what turns an end minute into the
   /// row index one past the last row it touches. The mirror of [_floorDiv]: Dart's truncation
   /// already rounds a negative, inexact [value] up (toward zero), so only a **positive** inexact
   /// one needs the extra step — `_floorDiv`'s minus becomes this function's plus.

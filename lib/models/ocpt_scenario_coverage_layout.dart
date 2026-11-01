@@ -76,7 +76,8 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// The summary page's rows: every sequence, in the snapshot's own order, orphan group last.
   final List<OcptCoverageSummaryRow> summary;
 
-  /// Whether any page needed more lanes than its margins hold: what the summary page prints its
+  /// Tell whether any page needed more lanes than its margins hold: what the summary page prints
+  /// its
   /// "some bars share a lane" warning from.
   bool get hasLaneOverflow => pages.any((page) => page.hasLaneOverflow);
 
@@ -87,7 +88,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     required this.summary,
   });
 
-  /// Lays [snapshot]'s coverage ranges out over [script], the screenplay [screenplayText] composed
+  /// Lay [snapshot]'s coverage ranges out over [script], the screenplay [screenplayText] composed
   /// with [metrics].
   ///
   /// [script] must be the layout `FountainScriptComposer` produced from that very text and those
@@ -133,18 +134,18 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScenarioCoverageLayout(pages: ${pages.length}, legend: ${legend.length}, "
       "summary: ${summary.length})";
 
-  /// The label [shot]'s bars and legend row carry: its abbreviation followed by its code
+  /// Get the label [shot]'s bars and legend row carry: its abbreviation followed by its code
   /// (`PM1/1`), or its code alone (`1/1`) while it has no abbreviation.
   static String labelOf(OcptShot shot) =>
       shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
 
-  /// Flattens [script]'s pages into one list of printed rows, in reading order, each still
+  /// Flatten [script]'s pages into one list of printed rows, in reading order, each still
   /// knowing which page and which row of it it is.
   ///
   /// Resolving a coverage range against one flat list is what lets a range spanning a page break
@@ -155,7 +156,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         _PrintedRow(pageIndex: pageIndex, rowIndex: row, line: script.pages[pageIndex].lines[row]),
   ];
 
-  /// Turns every coverage range of [snapshot] into the absolute source span it addresses in the
+  /// Turn every coverage range of [snapshot] into the absolute source span it addresses in the
   /// screenplay's text, together with the colour and label the bar drawn for it carries.
   ///
   /// A range is stored relative to its scene's `charStart`, so this is where the two are added
@@ -201,7 +202,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return resolved;
   }
 
-  /// The bar segments [range] draws: one per page it reaches, each carrying the rows it spans on
+  /// Get the bar segments [range] draws: one per page it reaches, each carrying the rows it spans
+  /// on
   /// that page.
   ///
   /// The rows come from the first and the last printed line whose own source span [range]
@@ -262,7 +264,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return segments;
   }
 
-  /// The column, in [line]'s own printed text, the absolute source [offset] falls at, or null
+  /// Get the column, in [line]'s own printed text, the absolute source [offset] falls at, or null
   /// when the boundary needs no tick because it lands on the line's first or last column.
   ///
   /// Walks the line's runs rather than its merged source range, so an emphasis marker between two
@@ -279,7 +281,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return column;
   }
 
-  /// The column [offset] falls at in [line]'s printed text, without [_columnOf]'s "is it worth a
+  /// Get the column [offset] falls at in [line]'s printed text, without [_columnOf]'s "is it worth
+  /// a
   /// tick" filtering, or null when the line carries no anchored run at all.
   static int? _rawColumnOf(FountainScriptLine line, int offset) {
     var cursor = 0;
@@ -304,7 +307,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return anchored ? cursor : null;
   }
 
-  /// Where the absolute source [offset] falls inside a run of [textLength] printed characters
+  /// Tell where the absolute source [offset] falls inside a run of [textLength] printed characters
   /// composed from [source], as a 0-based offset into that run's own text.
   static int _offsetIntoRun(int offset, FountainSourceRange source, int textLength) {
     final sourceLength = source.endOffset - source.startOffset;
@@ -318,7 +321,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return (local * textLength / sourceLength).round().clamp(0, textLength);
   }
 
-  /// The union of every resolved range, merged into disjoint intervals sorted by start offset:
+  /// Get the union of every resolved range, merged into disjoint intervals sorted by start offset:
   /// what an uncovered run is the complement of.
   static List<_Interval> _mergedIntervals(List<_ResolvedRange> ranges) {
     final sorted = ranges.map((range) => _Interval(range.startOffset, range.endOffset)).toList()
@@ -340,7 +343,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return merged;
   }
 
-  /// Builds one [OcptScenarioCoveragePage] per script page: its bars, once their lanes are
+  /// Build one [OcptScenarioCoveragePage] per script page: its bars, once their lanes are
   /// assigned, and the uncovered runs washed on it.
   static List<OcptScenarioCoveragePage> _pagesOf({
     required FountainScriptLayout script,
@@ -373,7 +376,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     ];
   }
 
-  /// Assigns [pending]'s bars to the lanes of page [pageIndex] and freezes the whole page.
+  /// Assign [pending]'s bars to the lanes of page [pageIndex] and freeze the whole page.
   ///
   /// The lanes come from a greedy interval colouring over the segments sorted by their first row:
   /// each bar takes the innermost lane no bar it overlaps already holds. Those lane indexes then
@@ -425,7 +428,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The runs of [row]'s printed text no interval of [covered] covers, trimmed of their
+  /// Get the runs of [row]'s printed text no interval of [covered] covers, trimmed of their
   /// surrounding whitespace and merged where two consecutive runs meet.
   ///
   /// A row with no anchored run of its own is left alone rather than washed whole: a blank spacer
@@ -491,7 +494,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     ];
   }
 
-  /// [gap] with the whitespace at either end of it dropped, or null once nothing but whitespace
+  /// Get [gap] with the whitespace at either end of it dropped, or null once nothing but whitespace
   /// is left: the wash goes behind words, never behind the blank columns around them.
   static OcptCoverageGap? _trimmed(OcptCoverageGap gap, String text) {
     var start = gap.startColumn.clamp(0, text.length);
@@ -515,7 +518,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The parts of `[start, end)` no interval of [covered] (disjoint and sorted) covers.
+  /// Get the parts of `[start, end)` no interval of [covered] (disjoint and sorted) covers.
   static List<_Interval> _complementOf(int start, int end, List<_Interval> covered) {
     final result = <_Interval>[];
     var cursor = start;
@@ -542,7 +545,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return result;
   }
 
-  /// The legend page's rows: every shot of [snapshot], in sequence then rank order, orphan shots
+  /// Get the legend page's rows: every shot of [snapshot], in sequence then rank order, orphan
+  /// shots
   /// included — an orphan draws no bar, but it is still a shot the reader may be looking for.
   static List<OcptCoverageLegendEntry> _legendOf(OcptShotListSnapshot snapshot) => [
     for (final sequence in snapshot.sequences)
@@ -558,7 +562,7 @@ class OcptScenarioCoverageLayout extends Equatable {
         ),
   ];
 
-  /// The summary page's rows, one per sequence of [snapshot] in its own order.
+  /// Get the summary page's rows, one per sequence of [snapshot] in its own order.
   ///
   /// The word counts go through [OcptScriptWordLayout], the very model the coverage editor lays
   /// a scene out with, so what the summary calls covered is exactly what the editor calls covered.
@@ -583,7 +587,7 @@ class OcptScenarioCoverageLayout extends Equatable {
       },
   ];
 
-  /// The summary row of a real scene [sequence], measured against its own slice of
+  /// Build the summary row of a real scene [sequence], measured against its own slice of
   /// [screenplayText].
   ///
   /// Measured over [_coverableBlocksOf] rather than over the whole scene, so the percentage and the
@@ -626,7 +630,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// The blocks of [layout] a shot can meaningfully cover: everything but the scene headings, which
+  /// Get the blocks of [layout] a shot can meaningfully cover: everything but the scene headings,
+  /// which
   /// name the scene rather than play in it and are left out of the whole coverage report — the
   /// washes drawn on the page as much as the figures measuring them.
   static List<OcptScriptWordBlock> _coverableBlocksOf(OcptScriptWordLayout layout) => [
@@ -634,7 +639,8 @@ class OcptScenarioCoverageLayout extends Equatable {
       if (block.type != FountainLineType.sceneHeading) block,
   ];
 
-  /// How many of [sequence]'s shots' coverage ranges no longer agree with the screenplay's text.
+  /// Count how many of [sequence]'s shots' coverage ranges no longer agree with the screenplay's
+  /// text.
   static int _staleRangeCountOf(OcptShotSequence sequence) {
     var count = 0;
     for (final shot in sequence.shots) {
@@ -643,7 +649,7 @@ class OcptScenarioCoverageLayout extends Equatable {
     return count;
   }
 
-  /// The uncovered passages of [blocks] — the coverable part of the scene [layout] lays out —
+  /// Get the uncovered passages of [blocks] — the coverable part of the scene [layout] lays out —
   /// quoted in reading order.
   ///
   /// Built from the scene's own words rather than from the printed rows, so an extract reads as
@@ -689,7 +695,8 @@ class OcptScenarioCoverageLayout extends Equatable {
     return extracts;
   }
 
-  /// [text] cut at [_maxUncoveredExtractLength] characters, ending on [_ellipsis] when it had to
+  /// Get [text] cut at [_maxUncoveredExtractLength] characters, ending on [_ellipsis] when it had
+  /// to
   /// be cut.
   static String _shortened(String text) => text.length <= _maxUncoveredExtractLength
       ? text
@@ -790,7 +797,7 @@ class _PendingSegment {
     required this.endTick,
   });
 
-  /// This segment, frozen into its final form now that [placement] says which lane it sits in.
+  /// Get this segment, frozen into its final form now that [placement] says which lane it sits in.
   OcptCoverageBarSegment placed(_LanePlacement placement) => OcptCoverageBarSegment(
     pageIndex: pageIndex,
     firstRow: firstRow,
@@ -878,7 +885,7 @@ class _LaneGeometry {
     );
   }
 
-  /// Where the bar holding the greedy lane [index] is drawn: the left margin's lanes first,
+  /// Tell where the bar holding the greedy lane [index] is drawn: the left margin's lanes first,
   /// innermost to outermost, then the right margin's, and the outermost lane of all for whatever
   /// this page has no room left for.
   _LanePlacement place(int index) {

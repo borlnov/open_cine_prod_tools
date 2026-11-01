@@ -16,19 +16,19 @@ class OcptScreenplaySnapshotsTable extends Table {
   @override
   String get tableName => 'screenplay_snapshots';
 
-  /// The unique id of this snapshot (a UUID).
+  /// Get the unique id of this snapshot (a UUID).
   TextColumn get id => text()();
 
-  /// The screenplay this snapshot was taken from.
+  /// Get the screenplay this snapshot was taken from.
   TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
-  /// The date and time at which the snapshot was taken.
+  /// Get the date and time at which the snapshot was taken.
   DateTimeColumn get createdAt => dateTime()();
 
-  /// Why this snapshot was taken.
+  /// Tell why this snapshot was taken.
   TextColumn get reason => text().map(const OcptSnapshotReasonConverter())();
 
-  /// The full Fountain source text captured by this snapshot, or the empty string once the
+  /// Get the full Fountain source text captured by this snapshot, or the empty string once the
   /// snapshot has been pruned (see [isDeleted]).
   TextColumn get fountainText => text()();
 

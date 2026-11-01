@@ -52,7 +52,7 @@ class OcptShootingDay extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingDay] from its stored [row] and its 1-based [dayNumber]. [dayNumber] is
+  /// Build an [OcptShootingDay] from its stored [row] and its 1-based [dayNumber]. [dayNumber] is
   /// passed in rather than read off [row]: see the class doc comment.
   factory OcptShootingDay.fromRow({required OcptShootingDayRow row, required int dayNumber}) =>
       OcptShootingDay(
@@ -65,7 +65,7 @@ class OcptShootingDay extends Equatable {
         notes: row.notes,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShootingDay(id: $id, dayNumber: $dayNumber, date: $date)";
 

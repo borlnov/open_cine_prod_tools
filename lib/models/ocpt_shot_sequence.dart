@@ -19,7 +19,7 @@ sealed class OcptShotSequence extends Equatable {
   /// This sequence's shots, in display order.
   final List<OcptShot> shots;
 
-  /// The identifier a view selects this sequence by: the scene's own id for an
+  /// Get the identifier a view selects this sequence by: the scene's own id for an
   /// [OcptSceneShotSequence], [OcptOrphanShotSequence.sequenceId] for the orphan group.
   ///
   /// The shot list mode holds a selection across reloads of the whole snapshot, so it cannot key
@@ -27,10 +27,10 @@ sealed class OcptShotSequence extends Equatable {
   /// below it); this is the stable key it uses instead.
   String get id;
 
-  /// The number of shots in this sequence.
+  /// Get the number of shots in this sequence.
   int get shotCount => shots.length;
 
-  /// The mean [OcptShot.averageDifficulty] across this sequence's shots, or 0 if it has none.
+  /// Get the mean [OcptShot.averageDifficulty] across this sequence's shots, or 0 if it has none.
   double get averageDifficulty {
     if (shots.isEmpty) {
       return 0;
@@ -38,7 +38,7 @@ sealed class OcptShotSequence extends Equatable {
     return shots.map((shot) => shot.averageDifficulty).reduce((a, b) => a + b) / shots.length;
   }
 
-  /// The number of shots in this sequence not yet marked [OcptShotStatus.shot] (a shot still
+  /// Get the number of shots in this sequence not yet marked [OcptShotStatus.shot] (a shot still
   /// [OcptShotStatus.toShoot] or awaiting an [OcptShotStatus.retake] both still need shooting).
   int get shotsLeftToShoot => shots.where((shot) => shot.status != OcptShotStatus.shot).length;
 
@@ -73,7 +73,7 @@ class OcptSceneShotSequence extends OcptShotSequence {
   /// scene, copied from the scene's own `scenes` row. See [charStart].
   final int charEnd;
 
-  /// The scene's own id: a scene is never listed twice in a snapshot, so it already identifies
+  /// Get the scene's own id: a scene is never listed twice in a snapshot, so it already identifies
   /// the sequence built from it.
   @override
   String get id => sceneId;
@@ -89,7 +89,7 @@ class OcptSceneShotSequence extends OcptShotSequence {
     required super.shots,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSceneShotSequence(sceneId: $sceneId, heading: $heading)";
 
@@ -122,7 +122,7 @@ class OcptOrphanShotSequence extends OcptShotSequence {
   /// [OcptSceneShotSequence] identifies itself by, and reads as what it is in a debugger.
   static const sequenceId = "orphans";
 
-  /// The constant [sequenceId]: there is exactly one orphan group per snapshot, so it needs no
+  /// Get the constant [sequenceId]: there is exactly one orphan group per snapshot, so it needs no
   /// identifier of its own beyond a sentinel telling it apart from every scene.
   @override
   String get id => sequenceId;
@@ -130,7 +130,7 @@ class OcptOrphanShotSequence extends OcptShotSequence {
   /// Class constructor
   const OcptOrphanShotSequence({required super.shots});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptOrphanShotSequence(shotCount: $shotCount)";
 

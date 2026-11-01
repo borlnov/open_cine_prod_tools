@@ -248,7 +248,7 @@ class OcptBudgetSnapshot extends Equatable {
     required this.shareCount,
   });
 
-  /// Builds an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
+  /// Build an [OcptBudgetSnapshot] from [postes], [entries], [commitments] and [resources], the
   /// project's [defaultVatRateBasisPoints] and [currencyCode], deriving every count and every map
   /// from them. [receiptsByEntryId] is loaded the same way everything else here is
   /// (`OcptBudgetJournalService.loadReceipts`) and simply carried through — defaulted to empty for
@@ -406,24 +406,25 @@ class OcptBudgetSnapshot extends Equatable {
     );
   }
 
-  /// [posteId]'s own paid total, in cents, tax-inclusive — [paidByPosteId]'s own entry for
+  /// Get [posteId]'s own paid total, in cents, tax-inclusive — [paidByPosteId]'s own entry for
   /// [posteId], or **0** while it carries none.
   ///
   /// This `?? 0` is honest because the journal is kept: a poste with no entry against it genuinely
   /// has had nothing move against it — zero is the true answer here, not a stand-in for one.
   int paidCentsOf(String posteId) => paidByPosteId[posteId]?.amountCents ?? 0;
 
-  /// [posteId]'s own committed total, in cents, tax-inclusive — [committedByPosteId]'s own entry
+  /// Get [posteId]'s own committed total, in cents, tax-inclusive — [committedByPosteId]'s own
+  /// entry
   /// for [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why
   /// `?? 0` is the honest reading now that the journal exists.
   int committedCentsOf(String posteId) => committedByPosteId[posteId]?.amountCents ?? 0;
 
-  /// [posteId]'s own in-kind covered total, in cents — [inKindCoveredByPosteId]'s own entry for
+  /// Get [posteId]'s own in-kind covered total, in cents — [inKindCoveredByPosteId]'s own entry for
   /// [posteId], or **0** while it carries none. See [paidCentsOf]'s own doc comment for why `?? 0`
   /// is the honest reading: a poste with no counterpart line genuinely has settled nothing in kind.
   int inKindCoveredCentsOf(String posteId) => inKindCoveredByPosteId[posteId] ?? 0;
 
-  /// [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
+  /// Get [resourceId]'s own received total, in cents, tax-inclusive — [receivedByResourceId]'s own
   /// entry for [resourceId], or **0** while it carries none.
   ///
   /// **This `?? 0` is the ordinary reading, not the one an in-kind resource's own row needs.** A
@@ -435,17 +436,18 @@ class OcptBudgetSnapshot extends Equatable {
   /// row kind, rather than through this method (`OcptBudgetFinancing`'s own class doc comment).
   int receivedCentsOf(String resourceId) => receivedByResourceId[resourceId]?.amountCents ?? 0;
 
-  /// [revenueId]'s own received total, in cents, tax-inclusive — [receivedByRevenueId]'s own entry
+  /// Get [revenueId]'s own received total, in cents, tax-inclusive — [receivedByRevenueId]'s own
+  /// entry
   /// for [revenueId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
   /// reading: a taking with no entry naming it genuinely has had nothing come in yet.
   int receivedRevenueCentsOf(String revenueId) => receivedByRevenueId[revenueId]?.amountCents ?? 0;
 
-  /// [shareId]'s own paid total, in cents, tax-inclusive — [paidByShareId]'s own entry for
+  /// Get [shareId]'s own paid total, in cents, tax-inclusive — [paidByShareId]'s own entry for
   /// [shareId], or **0** while it carries none. Mirrors [receivedCentsOf]'s own honest-zero
   /// reading: a share nobody has been paid against genuinely has had nothing move against it yet.
   int paidShareCentsOf(String shareId) => paidByShareId[shareId]?.amountCents ?? 0;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetSnapshot(posteCount: $posteCount, lineCount: $lineCount, "

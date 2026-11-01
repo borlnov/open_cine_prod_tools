@@ -23,19 +23,19 @@ class OcptShootingDayEventsTable extends Table {
   @override
   String get tableName => 'shooting_day_events';
 
-  /// The stable, unique id of this event (a UUID).
+  /// Get the stable, unique id of this event (a UUID).
   TextColumn get id => text()();
 
-  /// The day this event happens on.
+  /// Get the day this event happens on.
   TextColumn get shootingDayId => text().references(OcptShootingDaysTable, #id)();
 
-  /// The hour this event happens at, as an offset from the day's own midnight. May exceed 1440.
+  /// Get the hour this event happens at, as an offset from the day's own midnight. May exceed 1440.
   IntColumn get minute => integer()();
 
-  /// This event's own label ("Feu d'artifice du village", "Passage du cortège").
+  /// Get this event's own label ("Feu d'artifice du village", "Passage du cortège").
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this event.
+  /// Get free-form notes about this event.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}

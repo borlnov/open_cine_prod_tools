@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
-/// Converts a [OcptShotStatus] to and from the text stored in the `shots.status` column.
+/// Convert a [OcptShotStatus] to and from the text stored in the `shots.status` column.
 class OcptShotStatusConverter extends TypeConverter<OcptShotStatus, String> {
   /// Class constructor
   const OcptShotStatusConverter();

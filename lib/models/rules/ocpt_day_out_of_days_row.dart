@@ -38,10 +38,10 @@ class OcptDayOutOfDaysRow extends Equatable {
     required this.heldDayCount,
   });
 
-  /// This role's own code on [dayId], or null when [dayId] falls outside its span.
+  /// Get this role's own code on [dayId], or null when [dayId] falls outside its span.
   OcptDayOutOfDaysCode? codeOf(String dayId) => codeByDayId[dayId];
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptDayOutOfDaysRow(roleId: $roleId, worked: $workedDayCount, held: $heldDayCount)";

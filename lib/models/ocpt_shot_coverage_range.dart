@@ -47,7 +47,7 @@ class OcptShotCoverageRange extends Equatable {
     required this.isStale,
   });
 
-  /// Builds an [OcptShotCoverageRange] from its stored [row], paired with whether the caller has
+  /// Build an [OcptShotCoverageRange] from its stored [row], paired with whether the caller has
   /// determined it [isStale].
   factory OcptShotCoverageRange.fromRow({
     required OcptShotCoverageRow row,
@@ -61,7 +61,7 @@ class OcptShotCoverageRange extends Equatable {
     isStale: isStale,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShotCoverageRange(id: $id, sceneId: $sceneId, startOffset: $startOffset, "

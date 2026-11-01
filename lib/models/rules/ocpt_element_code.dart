@@ -15,7 +15,7 @@ const String _codeSeparator = "-";
 /// [ocptElementCodeOf] numbers around it rather than over it.
 final RegExp _generatedCodePattern = RegExp(r"^([A-Z]{3})-([1-9]\d*)$");
 
-/// The three-letter prefix a generated code carries for [category].
+/// Get the three-letter prefix a generated code carries for [category].
 ///
 /// **Stored data, so never localized**: a code ends up in the breakdown margin, in the workbook and
 /// in a version's payload, and a project opened in the other UI language must keep reading the same
@@ -42,7 +42,7 @@ String ocptElementCodePrefixOf(OcptElementCategory category) => switch (category
   OcptElementCategory.other => "OTH",
 };
 
-/// The code a new element of [category] gets: its prefix, then the first number no code in
+/// Get the code a new element of [category] gets: its prefix, then the first number no code in
 /// [existingCodes] already uses for that prefix.
 ///
 /// Numbered **within the category** rather than across the catalogue, so a code says which

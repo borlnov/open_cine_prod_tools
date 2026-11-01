@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 
-/// Converts a [OcptAssetKind] to and from the text stored in the `assets.kind` column.
+/// Convert a [OcptAssetKind] to and from the text stored in the `assets.kind` column.
 class OcptAssetKindConverter extends TypeConverter<OcptAssetKind, String> {
   /// Class constructor
   const OcptAssetKindConverter();

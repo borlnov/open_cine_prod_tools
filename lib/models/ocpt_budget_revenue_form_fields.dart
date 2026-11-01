@@ -38,7 +38,7 @@ class OcptBudgetRevenueFormFields extends Equatable {
     required this.notes,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetRevenueFormFields(date: $date, label: $label, "

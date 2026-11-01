@@ -22,7 +22,7 @@ final RegExp _ratioPattern = RegExp(r'(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)')
 /// `2.39` or `1.85` is written in when no `:1` follows it.
 final RegExp _bareDecimalPattern = RegExp(r'\d+\.\d+');
 
-/// The aspect ratio (width / height) found in [recordingFormat]'s free text, or
+/// Get the aspect ratio (width / height) found in [recordingFormat]'s free text, or
 /// [ocptStoryboardFallbackAspectRatio] (16:9) when none is found.
 ///
 /// A shot's `recordingFormat` is free text (ADR 0031) — this is

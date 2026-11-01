@@ -29,7 +29,7 @@ class OcptBudgetRegieMealSitting extends Equatable {
     required this.headCount,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetRegieMealSitting(blockId: $blockId, slotId: $slotId, headCount: $headCount)";

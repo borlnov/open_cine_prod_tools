@@ -21,7 +21,7 @@ const _ocptFractionalKeyBase = 62;
 /// keeps the common insertions short.
 const _ocptFractionalKeySequenceSpread = 4;
 
-/// A key strictly between [before] and [after], for the `sortKey` column of an ordered table.
+/// Get a key strictly between [before] and [after], for the `sortKey` column of an ordered table.
 ///
 /// A null [before] means "no lower bound" (inserting at the head of the group), a null [after]
 /// means "no upper bound" (appending at the tail); both null yields the first key of an empty
@@ -73,7 +73,8 @@ String ocptFractionalKeyBetween({String? before, String? after}) {
   }
 }
 
-/// [count] keys in strictly ascending order, evenly spread, for backfilling a whole group at once.
+/// Get [count] keys in strictly ascending order, evenly spread, for backfilling a whole group at
+/// once.
 ///
 /// This is what the schema v3 migration writes over the rows an older build ordered by `position`
 /// alone, and what any other bulk (re)keying of a whole group should use: allocating a group's
@@ -97,7 +98,8 @@ List<String> ocptFractionalKeySequence(int count) {
   return [for (var i = 1; i <= count; i++) _encode(_withRoomBelow(step * i), width)];
 }
 
-/// [count] keys in strictly ascending order, all strictly between [after] and [before]'s bounds.
+/// Get [count] keys in strictly ascending order, all strictly between [after] and [before]'s
+/// bounds.
 ///
 /// Each key is allocated against the one before it, so the whole run stays inside the gap it was
 /// asked for. A null bound means that side is open, exactly as in [ocptFractionalKeyBetween].
@@ -114,7 +116,7 @@ List<String> ocptFractionalKeysBetween({required int count, String? before, Stri
   return keys;
 }
 
-/// The smallest set of `sortKey` writes that puts a group into the order [currentKeys] lists it
+/// Get the smallest set of `sortKey` writes that puts a group into the order [currentKeys] lists it
 /// in, as a map from an index of [currentKeys] to the key that row must be given.
 ///
 /// [currentKeys] holds the group's rows' current keys, **listed in the order the group must end up
@@ -148,7 +150,7 @@ Map<int, String> ocptFractionalKeyRekeyPlan(List<String> currentKeys) {
   return plan;
 }
 
-/// The indexes of a longest strictly ascending subsequence of [keys], in ascending index order.
+/// Get the indexes of a longest strictly ascending subsequence of [keys], in ascending index order.
 ///
 /// Patience sorting: `tails` holds, for each length of subsequence found so far, the index of the
 /// smallest key that can end one, and `previousOf` threads each index back to its predecessor so
@@ -176,7 +178,7 @@ List<int> _longestAscendingSubsequence(List<String> keys) {
   return subsequence.reversed.toList(growable: false);
 }
 
-/// How many entries of [tails] end on a key strictly below [key]: the length of the longest
+/// Count how many entries of [tails] end on a key strictly below [key]: the length of the longest
 /// ascending subsequence [key] can be appended to, found by binary search since [tails] is itself
 /// ascending by construction.
 int _ascendingTails(List<int> tails, List<String> keys, String key) {
@@ -195,14 +197,15 @@ int _ascendingTails(List<int> tails, List<String> keys, String key) {
   return low;
 }
 
-/// [value] nudged up to the next index whose lowest digit isn't zero.
+/// Get [value] nudged up to the next index whose lowest digit isn't zero.
 ///
 /// See [ocptFractionalKeyBetween] for why a key must never end with the lowest digit. The nudge is
 /// always by one, and [ocptFractionalKeySequence] spaces its indexes several apart, so it can
 /// never reach the next key of the sequence.
 int _withRoomBelow(int value) => value % _ocptFractionalKeyBase == 0 ? value + 1 : value;
 
-/// [value] written in base [_ocptFractionalKeyBase], left-padded with the lowest digit to exactly
+/// Get [value] written in base [_ocptFractionalKeyBase], left-padded with the lowest digit to
+/// exactly
 /// [width] digits.
 ///
 /// Every key of a sequence sharing one width is what keeps them comparable digit by digit, and
@@ -219,7 +222,7 @@ String _encode(int value, int width) {
   return digits.join();
 }
 
-/// The value of the digit at [index] in [key].
+/// Get the value of the digit at [index] in [key].
 ///
 /// Throws an [ArgumentError] if that character isn't one of [_ocptFractionalKeyDigits]: a key that
 /// isn't a fractional key at all would otherwise silently allocate around a digit value of -1.

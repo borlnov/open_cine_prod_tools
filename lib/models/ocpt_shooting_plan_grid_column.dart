@@ -32,7 +32,7 @@ class OcptShootingPlanGridColumn extends Equatable {
     required this.slotLabel,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShootingPlanGridColumn(dayId: $dayId, slotId: $slotId)";
 

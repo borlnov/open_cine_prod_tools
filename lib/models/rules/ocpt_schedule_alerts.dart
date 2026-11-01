@@ -28,10 +28,10 @@ sealed class OcptScheduleAlert {
   /// casting is not a fact about any one day.
   final String? dayId;
 
-  /// Which of the ten rules raised this alert.
+  /// Tell which of the ten rules raised this alert.
   OcptScheduleAlertKind get kind;
 
-  /// [kind]'s own [OcptScheduleAlertKind.severity].
+  /// Get [kind]'s own [OcptScheduleAlertKind.severity].
   OcptScheduleAlertSeverity get severity => kind.severity;
 
   /// Class constructor
@@ -58,7 +58,7 @@ final class OcptSchedulePersonUnavailableAlert extends OcptScheduleAlert {
   /// with nothing in it is not raised at all.
   final List<String> slotIds;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.personUnavailable;
 
@@ -90,7 +90,7 @@ final class OcptSchedulePersonDoubleBookedAlert extends OcptScheduleAlert {
   /// The later of the two slots, in the day's own order.
   final String secondSlotId;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.personDoubleBooked;
 
@@ -118,7 +118,7 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
   /// The location [slotId] is booked at.
   final String locationId;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.locationUncovered;
 
@@ -145,7 +145,7 @@ final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
   /// necessarily the only one.
   final String shotId;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleNotConvoked;
 
@@ -169,7 +169,7 @@ final class OcptScheduleRoleUncastAlert extends OcptScheduleAlert {
   /// The role with no actor.
   final String roleId;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleUncast;
 
@@ -190,7 +190,7 @@ final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
   /// The anchor the block was pinned to, which [reachedMinute] ran past.
   final int anchorMinute;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.timelineOverrun;
 
@@ -216,7 +216,7 @@ final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
   /// The minute the slot's chain actually ends at.
   final int actualEndMinute;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.slotFixedEndMissed;
 
@@ -248,7 +248,7 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
   /// The maximum recorded for this person, in minutes — the figure [presenceMinutes] exceeds.
   final int maxDailyPresenceMinutes;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.presenceExceeded;
 
@@ -290,7 +290,7 @@ final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
   /// figure [restMinutes] fell short of.
   final int minimumRestMinutes;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.restTime;
 
@@ -320,7 +320,7 @@ final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
   /// The location [slotId] is booked at.
   final String locationId;
 
-  /// This alert's own kind.
+  /// Get this alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.permitNotValid;
 
@@ -336,7 +336,7 @@ final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
 /// 13:00, the same split the schedule mode's day-part pickers already offer.
 const int _dayPartSplitMinute = 13 * 60;
 
-/// Computes every [OcptScheduleAlert] the ten rules raise over [days], [people], [roles],
+/// Compute every [OcptScheduleAlert] the ten rules raise over [days], [people], [roles],
 /// [locationWindowsByLocationId], [minimumRestMinutes] and [permitWindowsByLocationId] — the
 /// schedule mode's alert computation, implemented exactly once, here.
 ///
@@ -406,7 +406,8 @@ List<OcptScheduleAlert> ocptComputeScheduleAlerts({
   return alerts;
 }
 
-/// [alerts] grouped by the day each of them concerns, every group keeping the order it was given —
+/// Get [alerts] grouped by the day each of them concerns, every group keeping the order it was
+/// given —
 /// what a day-level indicator (a day card, an agenda cell, the day view's own summary band) reads
 /// to say, without leaving the surface it is on, that this day has something wrong with it.
 ///
@@ -430,7 +431,8 @@ Map<String, List<OcptScheduleAlert>> ocptGroupScheduleAlertsByDay(List<OcptSched
   return grouped;
 }
 
-/// The string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so an
+/// Get the string the final sort ties two same-day, same-kind alerts on — an exhaustive switch, so
+/// an
 /// eleventh [OcptScheduleAlert] subclass cannot be added without this file being told how to order
 /// it.
 String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
@@ -448,7 +450,8 @@ String _tieBreakKeyOf(OcptScheduleAlert alert) => switch (alert) {
   OcptSchedulePermitNotValidAlert(:final slotId, :final locationId) => "$slotId|$locationId",
 };
 
-/// Rule 1: a person convoked on a day they recorded an unavailability for, honouring the window's
+/// Add the alerts of rule 1: a person convoked on a day they recorded an unavailability for,
+/// honouring the window's
 /// own day part against every slot they are linked to that day.
 void _addPersonUnavailableAlerts(
   List<OcptScheduleAlert> alerts,
@@ -503,7 +506,8 @@ void _addPersonUnavailableAlerts(
   }
 }
 
-/// Rule 2: a person linked to two slots of one day whose own resolved bands overlap in wall-clock
+/// Add the alerts of rule 2: a person linked to two slots of one day whose own resolved bands
+/// overlap in wall-clock
 /// time, strictly — a slot with no block at all (a null [OcptScheduleAlertSlot.endMinute]) never
 /// takes part.
 void _addPersonDoubleBookedAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
@@ -541,7 +545,8 @@ void _addPersonDoubleBookedAlerts(List<OcptScheduleAlert> alerts, List<OcptSched
   }
 }
 
-/// Rule 3: a slot whose location declares at least one window and none of them covers the slot's
+/// Add the alerts of rule 3: a slot whose location declares at least one window and none of them
+/// covers the slot's
 /// own resolved band on the day's own date — a location declaring no window at all is skipped
 /// entirely, raising nothing.
 void _addLocationUncoveredAlerts(
@@ -588,7 +593,8 @@ void _addLocationUncoveredAlerts(
   }
 }
 
-/// Rule 4: a role a placed shot calls for and no slot of that same day convokes, cast or not.
+/// Add the alerts of rule 4: a role a placed shot calls for and no slot of that same day convokes,
+/// cast or not.
 void _addRoleNotConvokedAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
   for (final day in days) {
     final convokedRoleIds = <String>{for (final slot in day.slots) ...slot.convokedRoleIds};
@@ -611,7 +617,8 @@ void _addRoleNotConvokedAlerts(List<OcptScheduleAlert> alerts, List<OcptSchedule
   }
 }
 
-/// Rule 5: a role with no actor, restricted to a role the schedule actually uses somewhere — cast
+/// Add the alerts of rule 5: a role with no actor, restricted to a role the schedule actually uses
+/// somewhere — cast
 /// on a slot of any day, or called for by a shot placed on any day.
 void _addRoleUncastAlerts(
   List<OcptScheduleAlert> alerts,
@@ -635,7 +642,8 @@ void _addRoleUncastAlerts(
   }
 }
 
-/// Rules 6 and 7: a straight pass-through of every day's own [OcptTimelineOverrun]s and
+/// Add the alerts of rules 6 and 7: a straight pass-through of every day's own
+/// [OcptTimelineOverrun]s and
 /// [OcptTimelineFixedEndMiss]es.
 void _addTimelineAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDay> days) {
   for (final day in days) {
@@ -662,7 +670,7 @@ void _addTimelineAlerts(List<OcptScheduleAlert> alerts, List<OcptScheduleAlertDa
   }
 }
 
-/// Every person's own arrival and departure on [day] — the earliest resolved slot start and the
+/// Get every person's own arrival and departure on [day] — the earliest resolved slot start and the
 /// latest resolved slot end over the slots of [day] they are linked to (`slot.personIds`), keyed
 /// by person id; a person linked to no slot of [day] has no entry.
 ///
@@ -693,7 +701,8 @@ Map<String, ({int arrival, int departure})> _personDayBandsOf(OcptScheduleAlertD
   };
 }
 
-/// Rule 8: a person whose computed presence on a day — the latest slot end they are linked to minus
+/// Add the alerts of rule 8: a person whose computed presence on a day — the latest slot end they
+/// are linked to minus
 /// the earliest slot start — exceeds their own recorded maximum, when one was recorded at all.
 void _addPresenceExceededAlerts(
   List<OcptScheduleAlert> alerts,
@@ -732,7 +741,8 @@ void _addPresenceExceededAlerts(
   }
 }
 
-/// Rule 9: a person's own departure on one day and their arrival on the **next day they are
+/// Add the alerts of rule 9: a person's own departure on one day and their arrival on the **next
+/// day they are
 /// actually convoked on** (never merely the next calendar date) are closer together than
 /// [minimumRestMinutes] — silent outright when nobody has recorded one (this function's own doc
 /// comment, and [OcptScheduleRestTimeAlert]'s).
@@ -797,7 +807,8 @@ void _addRestTimeAlerts(
   }
 }
 
-/// The whole number of calendar days between [start] and [end] (positive when [end] is the later
+/// Get the whole number of calendar days between [start] and [end] (positive when [end] is the
+/// later
 /// date), computed on [DateTime.utc]-anchored dates rather than local-time ones: a local `DateTime`
 /// difference taken across a daylight-saving change can read as 23 or 25 hours for what is
 /// genuinely a one-day gap, while a UTC one never observes a change that never happened to it.
@@ -807,7 +818,8 @@ int _wholeDayDifference(DateTime start, DateTime end) {
   return endUtc.difference(startUtc).inDays;
 }
 
-/// Rule 10: a slot booked at a location that declares at least one dated permit window, none of
+/// Add the alerts of rule 10: a slot booked at a location that declares at least one dated permit
+/// window, none of
 /// which covers the day's own date. A location with no window at all — the empty list, or a list
 /// whose every entry carries neither date — raises nothing: the identical argument rule 3 already
 /// makes for a location declaring no availability window.
@@ -842,7 +854,8 @@ void _addPermitNotValidAlerts(
   }
 }
 
-/// Whether [window] covers calendar [date] — a one-sided window (only [OcptSchedulePermitWindow
+/// Tell whether [window] covers calendar [date] — a one-sided window (only
+/// [OcptSchedulePermitWindow
 /// .validFrom] or only [OcptSchedulePermitWindow.validUntil] recorded) is open on the missing side,
 /// a different statement from a window recording neither, which [_addPermitNotValidAlerts] already
 /// filters out before this is ever called.
@@ -854,17 +867,18 @@ bool _permitWindowCoversDate(OcptSchedulePermitWindow window, DateTime date) {
       (validUntil == null || !day.isAfter(_dateOnly(validUntil)));
 }
 
-/// Whether [date] falls within [startDate]–[endDate], inclusive, comparing calendar dates alone —
+/// Tell whether [date] falls within [startDate]–[endDate], inclusive, comparing calendar dates
+/// alone —
 /// whatever time-of-day component a stored `DateTime` carries is ignored.
 bool _dateRangeContains(DateTime startDate, DateTime endDate, DateTime date) {
   final day = _dateOnly(date);
   return !day.isBefore(_dateOnly(startDate)) && !day.isAfter(_dateOnly(endDate));
 }
 
-/// [date] with its time-of-day component stripped.
+/// Get [date] with its time-of-day component stripped.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
-/// Whether a window of [dayPart] — [windowStartMinute]/[windowEndMinute] only meaningful when
+/// Tell whether a window of [dayPart] — [windowStartMinute]/[windowEndMinute] only meaningful when
 /// [dayPart] is [OcptDayPartSlot.custom] — **overlaps** the half-open band
 /// `[bandStartMinute, bandEndMinute)`. What rule 1 asks: is any part of this slot inside the
 /// window.
@@ -889,7 +903,7 @@ bool _dayPartOverlapsBand({
   }
 }
 
-/// Whether a window of [dayPart] **contains the whole** of the half-open band
+/// Tell whether a window of [dayPart] **contains the whole** of the half-open band
 /// `[bandStartMinute, bandEndMinute)` — what rule 3 asks: is this slot's entire band inside the
 /// window, not merely touching it. Deliberately a different test from [_dayPartOverlapsBand]: rule
 /// 1 asks whether any of the slot conflicts, rule 3 asks whether the whole of it is covered.

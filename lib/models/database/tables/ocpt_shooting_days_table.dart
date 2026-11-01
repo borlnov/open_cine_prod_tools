@@ -28,29 +28,29 @@ class OcptShootingDaysTable extends Table {
   @override
   String get tableName => 'shooting_days';
 
-  /// The stable, unique id of this day (a UUID).
+  /// Get the stable, unique id of this day (a UUID).
   TextColumn get id => text()();
 
-  /// The calendar date of this day. **Never null**: see the class doc comment.
+  /// Get the calendar date of this day. **Never null**: see the class doc comment.
   DateTimeColumn get date => dateTime()();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// Where this day stands.
+  /// Tell where this day stands.
   // The stored literal below must match `OcptShootingDayStatus.planned.name` exactly, for the same
   // reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time constant
   // expression, so it can't be written as `Constant(OcptShootingDayStatus.planned)`.
   TextColumn get status =>
       text().map(const OcptShootingDayStatusConverter()).withDefault(const Constant('planned'))();
 
-  /// The call sheet's "NOTE À L'ÉQUIPE": free multi-line text printed for the whole crew.
+  /// Get the call sheet's "NOTE À L'ÉQUIPE": free multi-line text printed for the whole crew.
   TextColumn get crewNote => text().withDefault(const Constant(''))();
 
-  /// The weather forecast for this day, typed by hand — the app never reaches the network.
+  /// Get the weather forecast for this day, typed by hand — the app never reaches the network.
   TextColumn get weatherNote => text().withDefault(const Constant(''))();
 
-  /// Internal notes about this day, never printed on a call sheet.
+  /// Get the internal notes about this day, never printed on a call sheet.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

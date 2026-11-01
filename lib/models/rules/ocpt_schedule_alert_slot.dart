@@ -34,7 +34,7 @@ class OcptScheduleAlertSlot {
   /// has cast yet.
   final Set<String> convokedRoleIds;
 
-  /// Builds a slot to feed to [ocptComputeScheduleAlerts].
+  /// Build a slot to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertSlot({
     required this.id,
     required this.startMinute,

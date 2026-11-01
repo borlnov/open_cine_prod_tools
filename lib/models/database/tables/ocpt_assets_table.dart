@@ -50,22 +50,23 @@ class OcptAssetsTable extends Table {
   @override
   String get tableName => 'assets';
 
-  /// The stable, unique id of this asset (a UUID).
+  /// Get the stable, unique id of this asset (a UUID).
   TextColumn get id => text()();
 
-  /// What subject this asset illustrates or documents.
+  /// Get what subject this asset illustrates or documents.
   TextColumn get kind => text().map(const OcptAssetKindConverter())();
 
-  /// The absolute path of the referenced file on the machine that recorded it. See the class doc
+  /// Get the absolute path of the referenced file on the machine that recorded it. See the class
+  /// doc
   /// comment: nothing outside the service that resolves an asset may read this column directly, or
   /// the day the app stops storing bytes this way, every call site would have to change instead of
   /// just that service.
   TextColumn get path => text()();
 
-  /// A user-facing label for this asset, free text.
+  /// Get a user-facing label for this asset, free text.
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// The date and time at which this asset reference was added.
+  /// Get the date and time at which this asset reference was added.
   DateTimeColumn get addedAt => dateTime()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -74,23 +75,23 @@ class OcptAssetsTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The person this asset belongs to, or null.
+  /// Get the person this asset belongs to, or null.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// The location this asset belongs to, or null.
+  /// Get the location this asset belongs to, or null.
   TextColumn get locationId => text().nullable().references(OcptLocationsTable, #id)();
 
-  /// The element this asset belongs to, or null.
+  /// Get the element this asset belongs to, or null.
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
-  /// The journal entry this asset is the voucher for, or null. → [OcptBudgetEntriesTable]
+  /// Get the journal entry this asset is the voucher for, or null. → [OcptBudgetEntriesTable]
   ///
   /// Set on an `OcptAssetKind.receipt` asset, and left null on every other kind — see the class doc
   /// comment for why this is different in nature from [personId]/[locationId]/[elementId] even
   /// though it fills the same "exactly one of four" slot.
   TextColumn get budgetEntryId => text().nullable().references(OcptBudgetEntriesTable, #id)();
 
-  /// The date this asset's document becomes valid, or null. Meaningful for a document with a
+  /// Get the date this asset's document becomes valid, or null. Meaningful for a document with a
   /// validity window — a filming permit runs from a date to a date — and meaningless for a photo,
   /// which carries it as null forever.
   ///
@@ -104,7 +105,7 @@ class OcptAssetsTable extends Table {
   /// — absence of data is not a claim that nothing is required.
   DateTimeColumn get validFrom => dateTime().nullable()();
 
-  /// The date this asset's document stops being valid, or null. See [validFrom].
+  /// Get the date this asset's document stops being valid, or null. See [validFrom].
   DateTimeColumn get validUntil => dateTime().nullable()();
 
   /// {@macro drift.Table.primaryKey}

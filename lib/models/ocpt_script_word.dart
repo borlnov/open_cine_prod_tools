@@ -29,7 +29,7 @@ class OcptScriptWord extends Equatable {
   /// Class constructor
   const OcptScriptWord({required this.text, required this.startOffset, required this.endOffset});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScriptWord(text: $text, startOffset: $startOffset, endOffset: $endOffset)";

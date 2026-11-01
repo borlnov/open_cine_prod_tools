@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 /// highlighting both index by, so the two surfaces always agree on what "one category" means.
 typedef OcptBreakdownLegendKey = (OcptBreakdownTargetKind kind, OcptElementCategory? category);
 
-/// The legend key [target] falls under.
+/// Get the legend key [target] falls under.
 OcptBreakdownLegendKey ocptBreakdownLegendKeyOf(OcptBreakdownTarget target) =>
     (target.kind, target.category);
 
@@ -37,7 +37,7 @@ class OcptBreakdownLegendEntry extends Equatable {
   /// [category].
   final int count;
 
-  /// This entry's own legend key: `(kind, category)`.
+  /// Get this entry's own legend key: `(kind, category)`.
   OcptBreakdownLegendKey get key => (kind, category);
 
   /// Class constructor
@@ -53,7 +53,8 @@ class OcptBreakdownLegendEntry extends Equatable {
   List<Object?> get props => [kind, category, color, count];
 }
 
-/// The legend rows of [targets] (`OcptBreakdownSnapshot.targets`): one per [OcptBreakdownLegendKey]
+/// Get the legend rows of [targets] (`OcptBreakdownSnapshot.targets`): one per
+/// [OcptBreakdownLegendKey]
 /// actually present among them, element categories first — in [OcptElementCategory.values] order —
 /// then roles, then sets.
 ///

@@ -75,7 +75,8 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetReceivedByResourceId(
   };
 }
 
-/// [entries]' own received total — the tax-inclusive sum of every credit, row by row, then summed
+/// Get [entries]' own received total — the tax-inclusive sum of every credit, row by row, then
+/// summed
 /// — paired with how many of them actually carried a known rate. The one resource-scoped loop
 /// [ocptBudgetReceivedByResourceId] runs once per resource, kept separate so that function stays a
 /// plain grouping followed by one reading per group.
@@ -106,7 +107,8 @@ OcptBudgetCoveredTotal _ocptBudgetReceivedTotalOf(
   );
 }
 
-/// The id of the most recently recorded live `budget_entries` credit naming [resourceId], read off
+/// Get the id of the most recently recorded live `budget_entries` credit naming [resourceId], read
+/// off
 /// [entries] in the very same chronological order `OcptBudgetJournalService.loadEntries` already
 /// establishes (`date` ascending, `sortKey` breaking a tie) — so the last matching entry in that
 /// order is the most recent movement against the resource. Null while no live credit names it,
@@ -128,7 +130,7 @@ String? ocptBudgetLatestReceiptEntryIdOf(
   return latestEntryId;
 }
 
-/// The plain sum of [resources]' own [OcptBudgetResource.amountCents].
+/// Get the plain sum of [resources]' own [OcptBudgetResource.amountCents].
 ///
 /// **No tax basis at all — never a [OcptBudgetCoveredTotal], never a rate to resolve.**
 /// `budget_resources` carries no money triple, because a financing resource is money coming *in*,
@@ -140,7 +142,8 @@ String? ocptBudgetLatestReceiptEntryIdOf(
 int ocptBudgetResourcesTotalCents(List<OcptBudgetResource> resources) =>
     resources.fold(0, (sum, resource) => sum + resource.amountCents);
 
-/// [resources]' own [OcptBudgetResource.amountCents], grouped by [OcptBudgetResource.groupKind] —
+/// Get [resources]' own [OcptBudgetResource.amountCents], grouped by [OcptBudgetResource.groupKind]
+/// —
 /// the financing view's own subsidy/cash/in-kind split.
 ///
 /// **A group with no resource of its own has no key at all**, the same discipline
@@ -158,7 +161,7 @@ Map<OcptBudgetResourceGroupKind, int> ocptBudgetResourcesTotalByGroupKind(
   return totals;
 }
 
-/// What is left of a resource meant to bring in [amountCents], having actually received
+/// Get what is left of a resource meant to bring in [amountCents], having actually received
 /// [receivedCents] against it.
 ///
 /// **May be negative, and that is a real fact, never clamped to zero**: a grant notified at one
@@ -171,7 +174,7 @@ Map<OcptBudgetResourceGroupKind, int> ocptBudgetResourcesTotalByGroupKind(
 int ocptBudgetResourceOutstandingCents({required int amountCents, required int receivedCents}) =>
     amountCents - receivedCents;
 
-/// Builds the balance between [needs] and [resourcesCents] — see
+/// Build the balance between [needs] and [resourcesCents] — see
 /// [OcptBudgetNeedsResourcesBalance]'s own doc comment.
 OcptBudgetNeedsResourcesBalance ocptBudgetNeedsResourcesBalanceOf({
   required OcptBudgetCoveredTotal needs,
@@ -182,7 +185,7 @@ OcptBudgetNeedsResourcesBalance ocptBudgetNeedsResourcesBalanceOf({
   differenceCents: resourcesCents - needs.amountCents,
 );
 
-/// Builds the resources document's own coverage band — see [OcptBudgetResourcesCoverage]'s own
+/// Build the resources document's own coverage band — see [OcptBudgetResourcesCoverage]'s own
 /// doc comment for the question it answers and how it differs from
 /// [OcptBudgetNeedsResourcesBalance].
 ///

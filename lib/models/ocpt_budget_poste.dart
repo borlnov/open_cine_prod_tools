@@ -53,7 +53,7 @@ class OcptBudgetPoste extends Equatable {
     required this.estimateToCompleteCents,
   });
 
-  /// Builds an [OcptBudgetPoste] from its stored [row] and the [lines] it holds.
+  /// Build an [OcptBudgetPoste] from its stored [row] and the [lines] it holds.
   factory OcptBudgetPoste.fromRow({
     required OcptBudgetPosteRow row,
     required List<OcptBudgetLine> lines,
@@ -67,7 +67,7 @@ class OcptBudgetPoste extends Equatable {
     estimateToCompleteCents: row.estimateToCompleteCents,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetPoste(id: $id, code: $code, label: $label, "

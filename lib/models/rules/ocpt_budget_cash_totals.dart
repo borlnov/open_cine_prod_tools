@@ -22,11 +22,12 @@ class OcptBudgetCashTotals extends Equatable {
   /// How many entries this total was asked to sum, covered or not.
   final int entryCount;
 
-  /// The journal's own balance: [creditCents] minus [debitCents], negative once the journal is, on
+  /// Get the journal's own balance: [creditCents] minus [debitCents], negative once the journal is,
+  /// on
   /// balance, a cost.
   int get balanceCents => creditCents - debitCents;
 
-  /// Whether every entry carried a known rate — [coveredEntryCount] equals [entryCount].
+  /// Tell whether every entry carried a known rate — [coveredEntryCount] equals [entryCount].
   bool get isComplete => coveredEntryCount == entryCount;
 
   /// Class constructor
@@ -37,7 +38,7 @@ class OcptBudgetCashTotals extends Equatable {
     required this.entryCount,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetCashTotals(debitCents: $debitCents, creditCents: $creditCents, "

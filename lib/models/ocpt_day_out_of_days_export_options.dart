@@ -44,7 +44,7 @@ class OcptDayOutOfDaysExportOptions extends Equatable {
     required this.includeTitlePage,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptDayOutOfDaysExportOptions(format: $format, margins: $margins, dayIds: $dayIds, "

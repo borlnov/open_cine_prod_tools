@@ -23,21 +23,22 @@ class OcptPersonPositionsTable extends Table {
   @override
   String get tableName => 'person_positions';
 
-  /// The stable, unique id of this assignment (a UUID).
+  /// Get the stable, unique id of this assignment (a UUID).
   ///
   /// A row isn't uniquely identified by [personId] and [positionId] alone: [positionId] is empty
   /// whenever [customLabel] is used instead, so two custom-labelled assignments for the same person
   /// would otherwise collide.
   TextColumn get id => text()();
 
-  /// The person holding this position.
+  /// Get the person holding this position.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// The stable code of the position, from `ocptCrewPositions` (`lib/constants/`), or the empty
+  /// Get the stable code of the position, from `ocptCrewPositions` (`lib/constants/`), or the empty
   /// string when this assignment is a free label ([customLabel]) instead of a catalogue entry.
   TextColumn get positionId => text().withDefault(const Constant(''))();
 
-  /// A free-text position label, used instead of [positionId] when the catalogue has nothing that
+  /// Get a free-text position label, used instead of [positionId] when the catalogue has nothing
+  /// that
   /// fits. Empty when [positionId] is set.
   TextColumn get customLabel => text().withDefault(const Constant(''))();
 

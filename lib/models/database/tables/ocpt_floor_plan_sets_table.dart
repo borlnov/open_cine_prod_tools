@@ -23,27 +23,27 @@ class OcptFloorPlanSetsTable extends Table {
   @override
   String get tableName => 'floor_plan_sets';
 
-  /// The Resources set this is the plan of — see this class's own doc comment for why this, and
+  /// Get the Resources set this is the plan of — see this class's own doc comment for why this, and
   /// not a fresh id, is the primary key.
   TextColumn get id => text().references(OcptSetsTable, #id)();
 
-  /// The imported photo or plan drawn under this set's symbols, an `assets` row of kind
+  /// Get the imported photo or plan drawn under this set's symbols, an `assets` row of kind
   /// `floorPlanUnderlay` — null until one is imported.
   TextColumn get underlayAssetId => text().nullable().references(OcptAssetsTable, #id)();
 
-  /// The underlay's centre X, in **metres** — null until the underlay is placed.
+  /// Get the underlay's centre X, in **metres** — null until the underlay is placed.
   RealColumn get underlayXM => real().nullable()();
 
-  /// The underlay's centre Y, in metres. See [underlayXM].
+  /// Get the underlay's centre Y, in metres. See [underlayXM].
   RealColumn get underlayYM => real().nullable()();
 
-  /// The underlay's width, in metres. See [underlayXM].
+  /// Get the underlay's width, in metres. See [underlayXM].
   RealColumn get underlayWidthM => real().nullable()();
 
-  /// The underlay's height, in metres. See [underlayXM].
+  /// Get the underlay's height, in metres. See [underlayXM].
   RealColumn get underlayHeightM => real().nullable()();
 
-  /// The underlay's rotation, in degrees. See [underlayXM].
+  /// Get the underlay's rotation, in degrees. See [underlayXM].
   RealColumn get underlayRotationDeg => real().nullable()();
 
   /// {@macro open_cine_prod_tools.isDeleted}

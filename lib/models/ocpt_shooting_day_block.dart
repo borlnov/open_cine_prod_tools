@@ -86,7 +86,7 @@ class OcptShootingDayBlock extends Equatable {
     required this.crewNote,
   });
 
-  /// Builds an [OcptShootingDayBlock] from its stored [row] and the live [candidates] it sees.
+  /// Build an [OcptShootingDayBlock] from its stored [row] and the live [candidates] it sees.
   factory OcptShootingDayBlock.fromRow({
     required OcptShootingDayBlockRow row,
     required List<OcptShootingBlockCandidate> candidates,
@@ -105,7 +105,7 @@ class OcptShootingDayBlock extends Equatable {
     crewNote: row.crewNote,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShootingDayBlock(id: $id, shootingDayId: $shootingDayId, kind: $kind)";
 

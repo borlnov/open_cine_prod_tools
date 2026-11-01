@@ -62,7 +62,7 @@ class OcptBudgetEntriesTable extends Table {
   @override
   String get tableName => 'budget_entries';
 
-  /// The stable, unique id of this entry (a UUID).
+  /// Get the stable, unique id of this entry (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -71,67 +71,70 @@ class OcptBudgetEntriesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The date this movement is recorded under.
+  /// Get the date this movement is recorded under.
   ///
   /// Non-nullable: an entry always happened on a day, unlike [posteId] or [vatRateBasisPoints],
   /// whose absence is a real fact rather than an omission still to be filled in.
   DateTimeColumn get date => dateTime()();
 
-  /// This entry's free-text wording, e.g. "Location camion — Transpalux".
+  /// Get this entry's free-text wording, e.g. "Location camion — Transpalux".
   TextColumn get label => text()();
 
-  /// The poste this entry is priced against, or null. → [OcptBudgetPostesTable]
+  /// Get the poste this entry is priced against, or null. → [OcptBudgetPostesTable]
   ///
   /// See this table's own doc comment: null is money that moved without pricing any one poste,
   /// most often cash coming in.
   TextColumn get posteId => text().nullable().references(OcptBudgetPostesTable, #id)();
 
-  /// What left the account on [date], exactly as typed, in cents — see this table's own doc
+  /// Get what left the account on [date], exactly as typed, in cents — see this table's own doc
   /// comment.
   IntColumn get debitCents => integer().withDefault(const Constant(0))();
 
-  /// What came into the account on [date], exactly as typed, in cents — see this table's own doc
+  /// Get what came into the account on [date], exactly as typed, in cents — see this table's own
+  /// doc
   /// comment.
   IntColumn get creditCents => integer().withDefault(const Constant(0))();
 
-  /// Whether [debitCents]/[creditCents] already include tax — see this table's own doc comment.
+  /// Tell whether [debitCents]/[creditCents] already include tax — see this table's own doc
+  /// comment.
   ///
   /// **Non-nullable, `true` by default**, for the same reason `OcptBudgetLinesTable.isTaxInclusive`
   /// is: the common case somebody types by hand off a till receipt or an invoice total already
   /// includes tax.
   BoolColumn get isTaxInclusive => boolean().withDefault(const Constant(true))();
 
-  /// The VAT rate this entry's figures carry, in basis points (550 for 5.5 %), or null — see this
+  /// Get the VAT rate this entry's figures carry, in basis points (550 for 5.5 %), or null — see
+  /// this
   /// table's own doc comment for the two facts a null and an explicit `0` state differently, read
   /// exactly as `OcptBudgetLinesTable.vatRateBasisPoints` reads them.
   IntColumn get vatRateBasisPoints => integer().nullable()();
 
-  /// The accounting reference this entry was minted with (e.g. `J-014`), free text.
+  /// Get the accounting reference this entry was minted with (e.g. `J-014`), free text.
   ///
   /// Defaults to the empty string only for a row created by hand outside `OcptBudgetJournalService`
   /// (a test fixture, a future import); every entry `createEntry` mints carries a real one — see
   /// that method's own doc comment for the numbering scheme.
   TextColumn get voucherNumber => text().withDefault(const Constant(''))();
 
-  /// The financing resource this movement settles, or null. → [OcptBudgetResourcesTable]
+  /// Get the financing resource this movement settles, or null. → [OcptBudgetResourcesTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that settles no
   /// resource, read exactly the way [posteId]'s own null is.
   TextColumn get resourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
 
-  /// The taking this credit is the actual cash for, or null. → [OcptBudgetRevenuesTable]
+  /// Get the taking this credit is the actual cash for, or null. → [OcptBudgetRevenuesTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that is not a taking
   /// coming in, read exactly the way [resourceId]'s own null is.
   TextColumn get revenueId => text().nullable().references(OcptBudgetRevenuesTable, #id)();
 
-  /// The participant this debit actually pays, or null. → [OcptBudgetSharesTable]
+  /// Get the participant this debit actually pays, or null. → [OcptBudgetSharesTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that pays no share of
   /// the revenue sharing, read exactly the way [resourceId]'s own null is.
   TextColumn get shareId => text().nullable().references(OcptBudgetSharesTable, #id)();
 
-  /// The commitment this debit actually pays, or null. → [OcptBudgetCommitmentsTable]
+  /// Get the commitment this debit actually pays, or null. → [OcptBudgetCommitmentsTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that pays no commitment
   /// at all, read exactly the way [resourceId]'s own null is. What a commitment has been paid is
@@ -141,7 +144,7 @@ class OcptBudgetEntriesTable extends Table {
   /// entry naming the very same commitment, never a second commitment standing in for it.
   TextColumn get commitmentId => text().nullable().references(OcptBudgetCommitmentsTable, #id)();
 
-  /// The person this debit actually reimburses, or null. → [OcptPeopleTable]
+  /// Get the person this debit actually reimburses, or null. → [OcptPeopleTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that reimburses nobody,
   /// read exactly the way [resourceId]'s own null is. What a person has been reimbursed is the

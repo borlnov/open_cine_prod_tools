@@ -31,7 +31,7 @@ class OcptScreenplayMergeConflict extends Equatable {
   /// The incoming text this replica could not cleanly merge in.
   final String incomingText;
 
-  /// Creates a screenplay merge conflict record.
+  /// Create a screenplay merge conflict record.
   const OcptScreenplayMergeConflict({
     required this.screenplayId,
     required this.baseText,

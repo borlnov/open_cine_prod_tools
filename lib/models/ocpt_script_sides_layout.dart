@@ -71,7 +71,7 @@ class OcptScriptSidesLayout extends Equatable {
   /// Class constructor
   const OcptScriptSidesLayout({required this.pages});
 
-  /// Lays [sceneSpans] out over [script] — the screenplay composed with [metrics] — as
+  /// Lay [sceneSpans] out over [script] — the screenplay composed with [metrics] — as
   /// [presentation] says.
   ///
   /// [script] must be the layout `FountainScriptComposer` produced from the very screenplay
@@ -117,11 +117,11 @@ class OcptScriptSidesLayout extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptScriptSidesLayout(pages: ${pages.length})";
 
-  /// Flattens [script]'s pages into one list of printed lines, in reading order — the same first
+  /// Flatten [script]'s pages into one list of printed lines, in reading order — the same first
   /// move `OcptScenarioCoverageLayout._printedRowsOf` makes, and for the same reason: resolving a
   /// span against one flat list is what lets a scene spanning a page break be found in a single
   /// pass.
@@ -135,7 +135,8 @@ class OcptScriptSidesLayout extends Equatable {
     for (final page in script.pages) ...page.lines,
   ];
 
-  /// The first and last index, into [lines], whose own `FountainScriptLine.sourceRange` overlaps
+  /// Get the first and last index, into [lines], whose own `FountainScriptLine.sourceRange`
+  /// overlaps
   /// [span] — the same overlap test `OcptScenarioCoverageLayout._segmentsOf` uses for a coverage
   /// range — or null when no line overlaps it at all.
   static (int, int)? _rowRangeOf(
@@ -157,7 +158,8 @@ class OcptScriptSidesLayout extends Equatable {
     return first == null ? null : (first, last);
   }
 
-  /// The [OcptSidesPresentation.scriptPages] reading: one output page per script page holding at
+  /// Get the [OcptSidesPresentation.scriptPages] reading: one output page per script page holding
+  /// at
   /// least one selected row, an unselected row inside that span replaced by [_blankFiller] so a
   /// selected row keeps its own true row index and the page keeps the shape a reader recognises.
   ///
@@ -200,7 +202,7 @@ class OcptScriptSidesLayout extends Equatable {
     return pages;
   }
 
-  /// The [OcptSidesPresentation.packed] reading: the selected rows alone, in reading order,
+  /// Get the [OcptSidesPresentation.packed] reading: the selected rows alone, in reading order,
   /// reflowed onto fresh pages of [FountainLayoutMetrics.linesPerPage] rows each.
   ///
   /// A run — a maximal contiguous stretch of selected rows — is never immediately followed by

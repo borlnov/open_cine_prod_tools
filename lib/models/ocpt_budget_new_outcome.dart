@@ -53,7 +53,7 @@ class OcptBudgetEntryWizardResult extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetEntryWizardResult({required this.fields, required this.acceptedSuggestion});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetEntryWizardResult(fields: $fields, acceptedSuggestion: $acceptedSuggestion)";

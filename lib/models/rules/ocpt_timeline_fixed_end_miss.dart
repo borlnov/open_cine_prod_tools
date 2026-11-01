@@ -27,7 +27,7 @@ class OcptTimelineFixedEndMiss {
   /// The minute the slot's chain actually ends at.
   final int actualEndMinute;
 
-  /// Builds a missed-fixed-end record.
+  /// Build a missed-fixed-end record.
   const OcptTimelineFixedEndMiss({
     required this.slotId,
     required this.fixedEndMinute,

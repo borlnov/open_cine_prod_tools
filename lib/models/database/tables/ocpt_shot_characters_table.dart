@@ -25,10 +25,10 @@ class OcptShotCharactersTable extends Table {
   @override
   String get tableName => 'shot_characters';
 
-  /// The shot this role is attached to.
+  /// Get the shot this role is attached to.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();
 
-  /// The role attached to the shot.
+  /// Get the role attached to the shot.
   TextColumn get roleId => text().references(OcptRolesTable, #id)();
 
   /// {@macro open_cine_prod_tools.position}

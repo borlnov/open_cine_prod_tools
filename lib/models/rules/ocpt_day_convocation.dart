@@ -110,11 +110,13 @@ class OcptDayConvocation {
   /// [OcptConvocationAudition]s.
   final List<String> slotIds;
 
-  /// Whether this convocation is a guest's — either half of the discriminator, [guestPersonId] or
+  /// Tell whether this convocation is a guest's — either half of the discriminator, [guestPersonId]
+  /// or
   /// [guestFreeName].
   bool get isGuest => guestPersonId != null || guestFreeName != null;
 
-  /// The key this convocation is picked by when named call sheets are asked for one recipient at a
+  /// Get the key this convocation is picked by when named call sheets are asked for one recipient
+  /// at a
   /// time — its own [personId] or [roleId], the two arms of the discriminator a named sheet is ever
   /// addressed to, and stable across the days of one export (somebody convoked on three days is one
   /// recipient, ticked once).
@@ -131,14 +133,14 @@ class OcptDayConvocation {
   /// second rule of its own.
   String? get selectionKey => personId ?? roleId;
 
-  /// Whether the day sees this person for a part at all — one candidacy is enough.
+  /// Tell whether the day sees this person for a part at all — one candidacy is enough.
   ///
   /// What the directories that answer "who is expected for what" read: the printed candidates list
   /// and the audition table both go through it, and both print one entry per candidacy rather than
   /// one per person.
   bool get isSeenForAPart => roleCandidateIds.isNotEmpty;
 
-  /// Whether being seen for a part is the **only** reason the day has for this person.
+  /// Tell whether being seen for a part is the **only** reason the day has for this person.
   ///
   /// What the convocations panel's own candidates group holds: somebody crewing the day and seen
   /// for Marie at eleven belongs among the crew, with one band covering both, and only somebody the
@@ -148,7 +150,7 @@ class OcptDayConvocation {
   /// with whatever else the day asks of them.
   bool get isOnlySeenForAPart => isSeenForAPart && !hasSlotConvocation;
 
-  /// Builds a computed day convocation.
+  /// Build a computed day convocation.
   const OcptDayConvocation({
     required this.personId,
     required this.roleId,

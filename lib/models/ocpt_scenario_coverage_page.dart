@@ -51,7 +51,7 @@ class OcptScenarioCoveragePage extends Equatable {
     required this.hasLaneOverflow,
   });
 
-  /// The distance, in inches, from the printable area's edge (the left margin for
+  /// Get the distance, in inches, from the printable area's edge (the left margin for
   /// [OcptCoverageBarSide.left], the right margin for [OcptCoverageBarSide.right]) outward to the
   /// inner edge of [segment]'s own lane band, which is [lanePitchInches] wide.
   ///
@@ -60,7 +60,7 @@ class OcptScenarioCoveragePage extends Equatable {
   double laneInsetInches(OcptCoverageBarSegment segment) =>
       OcptScenarioCoverageLayout.sceneNumberGutterInches + segment.lane * lanePitchInches;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScenarioCoveragePage(pageIndex: $pageIndex, segments: ${segments.length}, "

@@ -46,7 +46,7 @@ class OcptBudgetQuoteExportOptions extends Equatable {
     required this.taxBasis,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetQuoteExportOptions(format: $format, margins: $margins, "

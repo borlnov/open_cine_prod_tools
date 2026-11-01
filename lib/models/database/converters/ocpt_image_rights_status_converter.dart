@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 
-/// Converts a [OcptImageRightsStatus] to and from the text stored in the
+/// Convert a [OcptImageRightsStatus] to and from the text stored in the
 /// `people.imageRightsStatus` column.
 class OcptImageRightsStatusConverter extends TypeConverter<OcptImageRightsStatus, String> {
   /// Class constructor

@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
-/// Converts a [OcptScreenplayLanguage] to and from the text stored in the
+/// Convert a [OcptScreenplayLanguage] to and from the text stored in the
 /// `project_info.screenplayLanguage` column.
 class OcptScreenplayLanguageConverter extends TypeConverter<OcptScreenplayLanguage, String> {
   /// Class constructor

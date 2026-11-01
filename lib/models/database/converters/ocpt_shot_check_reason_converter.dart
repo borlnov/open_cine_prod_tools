@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 
-/// Converts a [OcptShotCheckReason] to and from the text stored in the `shots.checkReason`
+/// Convert a [OcptShotCheckReason] to and from the text stored in the `shots.checkReason`
 /// column.
 class OcptShotCheckReasonConverter extends TypeConverter<OcptShotCheckReason, String> {
   /// Class constructor

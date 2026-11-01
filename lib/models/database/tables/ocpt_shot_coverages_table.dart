@@ -21,24 +21,24 @@ class OcptShotCoveragesTable extends Table {
   @override
   String get tableName => 'shot_coverages';
 
-  /// The stable, unique id of this coverage range (a UUID).
+  /// Get the stable, unique id of this coverage range (a UUID).
   TextColumn get id => text()();
 
-  /// The shot this range is covered by.
+  /// Get the shot this range is covered by.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();
 
-  /// The scene this range belongs to. [startOffset]/[endOffset] are relative to this scene's
+  /// Get the scene this range belongs to. [startOffset]/[endOffset] are relative to this scene's
   /// `charStart`.
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// The character offset, relative to the scene's `charStart`, at which this range starts.
+  /// Get the character offset, relative to the scene's `charStart`, at which this range starts.
   IntColumn get startOffset => integer()();
 
-  /// The character offset, relative to the scene's `charStart`, one past the last character of
+  /// Get the character offset, relative to the scene's `charStart`, one past the last character of
   /// this range.
   IntColumn get endOffset => integer()();
 
-  /// A digest of the exact substring this range covered when it was last recorded or confirmed,
+  /// Get a digest of the exact substring this range covered when it was last recorded or confirmed,
   /// used to detect staleness without storing the substring itself.
   TextColumn get coveredTextDigest => text()();
 

@@ -27,10 +27,10 @@ class OcptAppVersion extends Equatable {
   /// — a stable release tag is exactly the case where this is null.
   final String? preRelease;
 
-  /// True iff a pre-release segment is present — everything but a stable release tag.
+  /// Tell whether a pre-release segment is present — everything but a stable release tag.
   bool get isPreRelease => preRelease != null;
 
-  /// The `MAJOR.MINOR.PATCH` core, normalized back to a string.
+  /// Get the `MAJOR.MINOR.PATCH` core, normalized back to a string.
   String get stableLine => "$major.$minor.$patch";
 
   /// Class constructor.
@@ -41,7 +41,7 @@ class OcptAppVersion extends Equatable {
     required this.preRelease,
   });
 
-  /// Parses [raw] leniently, never throwing.
+  /// Parse [raw] leniently, never throwing.
   ///
   /// A leading `v`/`V` is stripped first (CI already strips it from the tag it stamps a build
   /// with, but a defensive strip costs nothing here). Anything after the first `+` is build
@@ -81,15 +81,16 @@ class OcptAppVersion extends Equatable {
     return OcptAppVersion(major: major, minor: minor, patch: patch, preRelease: preRelease);
   }
 
-  /// True iff [other] shares this version's [stableLine], regardless of either one's pre-release
+  /// Tell whether [other] shares this version's [stableLine], regardless of either one's
+  /// pre-release
   /// segment.
   bool isSameStableLineAs(OcptAppVersion other) => stableLine == other.stableLine;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptAppVersion($stableLine${preRelease == null ? "" : "-$preRelease"})";
 
-  /// Object properties.
+  /// Get the object properties.
   @override
   List<Object?> get props => [major, minor, patch, preRelease];
 }

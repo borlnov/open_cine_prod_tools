@@ -19,6 +19,6 @@ class OcptTimelineAnchorCycle {
   /// walked them, the first one being the one the walk came back to.
   final List<String> slotIds;
 
-  /// Builds a cycle record.
+  /// Build a cycle record.
   const OcptTimelineAnchorCycle({required this.slotIds});
 }

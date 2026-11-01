@@ -105,7 +105,7 @@ const _scrubbedChildBlankedKeys = {
   "assets": ocptErasedAssetBlankedKeys,
 };
 
-/// [payload] — a project version payload decoded from its stored JSON — with every person of
+/// Get [payload] — a project version payload decoded from its stored JSON — with every person of
 /// [erasedPersonIds] scrubbed out of it, and a flag saying whether anything was actually changed.
 ///
 /// This is the **third** implementation of one rule, and the only one that is not typed:
@@ -178,7 +178,8 @@ const _scrubbedChildBlankedKeys = {
   return (payload: scrubbed, changed: changed);
 }
 
-/// [row], a `people` payload row, with everything it said about the person taken out of it and its
+/// Get [row], a `people` payload row, with everything it said about the person taken out of it and
+/// its
 /// tombstone raised.
 ///
 /// The rule is stated as what is **kept** rather than as what is removed, so a column added to
@@ -195,7 +196,7 @@ Map<String, dynamic> _scrubbedPersonRow(Map<String, dynamic> row) => {
     },
 };
 
-/// [row], a row belonging to an erased person, tombstoned and with [blankedKeys] emptied.
+/// Get [row], a row belonging to an erased person, tombstoned and with [blankedKeys] emptied.
 Map<String, dynamic> _scrubbedChildRow(
   Map<String, dynamic> row, {
   required Set<String> blankedKeys,
@@ -208,7 +209,8 @@ Map<String, dynamic> _scrubbedChildRow(
     },
 };
 
-/// The empty value of whatever [value] is: the empty string for a string, null for everything else.
+/// Get the empty value of whatever [value] is: the empty string for a string, null for everything
+/// else.
 ///
 /// The fallback of [ocptScrubErasedPeopleFromPayload] for a key it does not know — see its doc
 /// comment for why erring towards taking too much out is the only acceptable direction here.

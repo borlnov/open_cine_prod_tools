@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 
-/// Converts a [OcptStoryboardAnnotationKind] to and from the text stored in the
+/// Convert a [OcptStoryboardAnnotationKind] to and from the text stored in the
 /// `storyboard_annotations.kind` column.
 class OcptStoryboardAnnotationKindConverter
     extends TypeConverter<OcptStoryboardAnnotationKind, String> {

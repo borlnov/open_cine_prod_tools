@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 
-/// Converts a [OcptRoleCandidateStatus] to and from the text stored in the
+/// Convert a [OcptRoleCandidateStatus] to and from the text stored in the
 /// `role_candidates.status` column.
 class OcptRoleCandidateStatusConverter extends TypeConverter<OcptRoleCandidateStatus, String> {
   /// Class constructor

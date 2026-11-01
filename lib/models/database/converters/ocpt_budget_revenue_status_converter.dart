@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 
-/// Converts a [OcptBudgetRevenueStatus] to and from the text stored in the
+/// Convert a [OcptBudgetRevenueStatus] to and from the text stored in the
 /// `budget_revenues.status` column.
 class OcptBudgetRevenueStatusConverter extends TypeConverter<OcptBudgetRevenueStatus, String> {
   /// Class constructor

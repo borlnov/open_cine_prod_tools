@@ -31,7 +31,7 @@ class OcptDayOutOfDaysTable extends Equatable {
   /// One row per role convoked at least once over [dayIds], in the order the roles were given.
   final List<OcptDayOutOfDaysRow> rows;
 
-  /// Whether there is nothing at all to draw — no column, or no role convoked anywhere in the
+  /// Tell whether there is nothing at all to draw — no column, or no role convoked anywhere in the
   /// range.
   bool get isEmpty => dayIds.isEmpty || rows.isEmpty;
 
@@ -42,7 +42,7 @@ class OcptDayOutOfDaysTable extends Equatable {
   /// anywhere in, computes to. The caller prints a note rather than a table with no cell.
   const OcptDayOutOfDaysTable.empty() : dayIds = const [], rows = const [];
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptDayOutOfDaysTable(days: ${dayIds.length}, rows: ${rows.length})";
 

@@ -40,7 +40,7 @@ class OcptScriptWordBlock extends Equatable {
     required this.words,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScriptWordBlock(type: $type, startOffset: $startOffset, endOffset: $endOffset, "

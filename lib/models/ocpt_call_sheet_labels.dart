@@ -264,26 +264,28 @@ class OcptCallSheetLabels extends Equatable {
     required this.guestReasonHeader,
   });
 
-  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
+  /// Get [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the
+  /// one
   /// place that choice is written, so a named sheet's own band line, the day's own time band and
   /// the cast table's own column header can never name the same kind of band differently.
   String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
+  /// Get the label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
   String crewDepartmentLabelOf(OcptCrewDepartment department) =>
       crewDepartmentLabels[department] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
+  /// Get the label of the crew position [positionId] names, or an empty string if
+  /// [crewPositionLabels]
   /// holds none for it.
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptCallSheetLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";

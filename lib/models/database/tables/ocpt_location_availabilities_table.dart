@@ -37,20 +37,21 @@ class OcptLocationAvailabilitiesTable extends Table {
   @override
   String get tableName => 'location_availabilities';
 
-  /// The stable, unique id of this availability (a UUID).
+  /// Get the stable, unique id of this availability (a UUID).
   TextColumn get id => text()();
 
-  /// The location this window is about.
+  /// Get the location this window is about.
   TextColumn get locationId => text().references(OcptLocationsTable, #id)();
 
-  /// The first date this window covers.
+  /// Get the first date this window covers.
   DateTimeColumn get startDate => dateTime()();
 
-  /// The last date this window covers, inclusive — the same value as [startDate] for a single day,
+  /// Get the last date this window covers, inclusive — the same value as [startDate] for a single
+  /// day,
   /// never earlier than it.
   DateTimeColumn get endDate => dateTime()();
 
-  /// Which days of the week, inside the range, this window actually covers, as the bit mask
+  /// Tell which days of the week, inside the range, this window actually covers, as the bit mask
   /// `ocptWeekdayMask*` reads and writes (see `lib/models/rules/ocpt_weekday_mask.dart`).
   ///
   /// A mask rather than a table of its own: seven booleans that are only ever read together, and a
@@ -59,29 +60,31 @@ class OcptLocationAvailabilitiesTable extends Table {
   /// covering no day at all saying nothing.
   IntColumn get weekdays => integer().withDefault(const Constant(ocptEveryWeekdayMask))();
 
-  /// Which part of each covered day this window takes.
+  /// Tell which part of each covered day this window takes.
   // The stored literal below must match `OcptDayPartSlot.fullDay.name` exactly, for the reason
   // `person_unavailabilities.slot`'s default spells out.
   TextColumn get slot =>
       text().map(const OcptDayPartSlotConverter()).withDefault(const Constant('fullDay'))();
 
-  /// The start of the window, in minutes from midnight, or null unless [slot] is
+  /// Get the start of the window, in minutes from midnight, or null unless [slot] is
   /// [OcptDayPartSlot.custom]. Minutes rather than a timestamp, for the reason
   /// `person_unavailabilities.startMinute` spells out.
   IntColumn get startMinute => integer().nullable()();
 
-  /// The end of the window, in minutes from midnight, or null unless [slot] is
+  /// Get the end of the window, in minutes from midnight, or null unless [slot] is
   /// [OcptDayPartSlot.custom]. See [startMinute].
   IntColumn get endMinute => integer().nullable()();
 
-  /// Whether the location may be used freely over this window, or only under the condition [note]
+  /// Tell whether the location may be used freely over this window, or only under the condition
+  /// [note]
   /// spells out.
   // The stored literal must match `OcptLocationAvailabilityKind.available.name`, as above.
   TextColumn get kind => text()
       .map(const OcptLocationAvailabilityKindConverter())
       .withDefault(const Constant('available'))();
 
-  /// What qualifies this window, free multi-line text: the condition attached to it, the way in,
+  /// Get what qualifies this window, free multi-line text: the condition attached to it, the way
+  /// in,
   /// who to call — whatever the person who negotiated it needs to hand over.
   TextColumn get note => text().withDefault(const Constant(''))();
 

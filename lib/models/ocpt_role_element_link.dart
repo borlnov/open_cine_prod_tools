@@ -31,11 +31,11 @@ class OcptRoleElementLink extends Equatable {
   /// Class constructor
   const OcptRoleElementLink({required this.id, required this.roleId, required this.notes});
 
-  /// Builds an [OcptRoleElementLink] from its stored [row].
+  /// Build an [OcptRoleElementLink] from its stored [row].
   factory OcptRoleElementLink.fromRow(OcptRoleElementRow row) =>
       OcptRoleElementLink(id: row.id, roleId: row.roleId, notes: row.notes);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRoleElementLink(id: $id, roleId: $roleId)";
 

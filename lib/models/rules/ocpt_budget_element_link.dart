@@ -37,7 +37,7 @@ class OcptBudgetElementLinkCounts extends Equatable {
   /// Class constructor
   const OcptBudgetElementLinkCounts({required this.pricedCount, required this.unpricedCount});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetElementLinkCounts(pricedCount: $pricedCount, unpricedCount: $unpricedCount)";
@@ -47,7 +47,7 @@ class OcptBudgetElementLinkCounts extends Equatable {
   List<Object?> get props => [pricedCount, unpricedCount];
 }
 
-/// Builds [OcptBudgetElementLinkCounts] over [postes] and [elements] — see that class's own doc
+/// Build [OcptBudgetElementLinkCounts] over [postes] and [elements] — see that class's own doc
 /// comment.
 OcptBudgetElementLinkCounts ocptBudgetElementLinkCountsOf({
   required List<OcptBudgetPoste> postes,
@@ -62,7 +62,8 @@ OcptBudgetElementLinkCounts ocptBudgetElementLinkCountsOf({
   );
 }
 
-/// Every one of [elements] no live quote line of [postes] prices yet, in [elements]' own order —
+/// Get every one of [elements] no live quote line of [postes] prices yet, in [elements]' own order
+/// —
 /// what `OcptBudgetFiche`'s own `+ From breakdown` picker offers: an element already
 /// answered by a line is not offered a second time.
 List<OcptElement> ocptBudgetUnpricedElementsOf({

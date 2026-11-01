@@ -33,7 +33,7 @@ const int ocptScheduleEffectExteriorNightColor = 0xFF2A3B7A;
 /// The colour [OcptSceneEffectCategory.mixed] is drawn with, as an ARGB integer.
 const int ocptScheduleEffectMixedColor = 0xFF8C7FB8;
 
-/// The colour of effect category [category], as an ARGB integer.
+/// Get the colour of effect category [category], as an ARGB integer.
 ///
 /// A `switch` with no `default`: a new [OcptSceneEffectCategory] value must be given its own colour
 /// here rather than silently falling back to one already in use, exactly as `_elementColorOf`

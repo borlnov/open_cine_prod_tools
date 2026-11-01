@@ -69,7 +69,7 @@ class OcptFloorPlanSet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds an [OcptFloorPlanSet] from its Resources [setRow] (name), its own [planRow] — null
+  /// Build an [OcptFloorPlanSet] from its Resources [setRow] (name), its own [planRow] — null
   /// while nothing has been drawn on it yet — the resolved [underlayPath] of its underlay asset (or
   /// null), and its live [symbols] and [arrows].
   factory OcptFloorPlanSet.fromRows({
@@ -92,7 +92,7 @@ class OcptFloorPlanSet extends Equatable {
     arrows: arrows,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFloorPlanSet(id: $id, name: $name, symbols: ${symbols.length}, arrows: "

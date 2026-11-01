@@ -26,7 +26,7 @@ final RegExp _spaces = RegExp(r"\s");
 /// `40`.
 final RegExp _trailingZero = RegExp(r"\.0$");
 
-/// Reads [text] as a percentage typed into a field and returns it in **per mille**, or null when
+/// Read [text] as a percentage typed into a field and return it in **per mille**, or null when
 /// it holds no such figure at all — an empty field, something that is not a number, or a negative
 /// figure, which is not a share anybody meant.
 ///
@@ -56,7 +56,7 @@ int? ocptPercentPermilleOf(String text) {
   return (percent * _permillePerPercent).round();
 }
 
-/// Writes [permille] the way [ocptPercentPermilleOf] reads it back: a plain number of per cent, or
+/// Write [permille] the way [ocptPercentPermilleOf] reads it back: a plain number of per cent, or
 /// an empty string when there is no figure at all.
 ///
 /// No `%` sign: this is the text of an editable field, not a formatted rate — the sign is shown

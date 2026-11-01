@@ -35,7 +35,7 @@ class OcptBudgetProjectionStep extends Equatable {
     required this.balanceAfterCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetProjectionStep(commitmentId: $commitmentId, dueDate: $dueDate, "

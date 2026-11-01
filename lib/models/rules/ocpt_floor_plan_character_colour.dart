@@ -11,7 +11,7 @@ const double _characterColourSaturation = 0.55;
 /// both a filled disc's own colour and a border stroke, in light and dark theme alike.
 const double _characterColourLightness = 0.5;
 
-/// The deterministic, fully-opaque ARGB colour (`0xAARRGGBB`) a character symbol's own disc is
+/// Get the deterministic, fully-opaque ARGB colour (`0xAARRGGBB`) a character symbol's own disc is
 /// drawn in, derived from its [name] (`OcptFloorPlanSymbol.label`) — the same name always yields
 /// the same colour, on the canvas and on paper alike, with no palette stored anywhere: the
 /// "derived, never stored" rule already applied to a camera's own letter, applied here to a
@@ -46,7 +46,8 @@ int ocptFloorPlanCharacterColourOf(String name) {
   );
 }
 
-/// [hue] (0..360), [saturation] and [lightness] (0..1) converted to a fully opaque ARGB int — the
+/// Get [hue] (0..360), [saturation] and [lightness] (0..1) converted to a fully opaque ARGB int —
+/// the
 /// standard HSL-to-RGB conversion, written out directly rather than pulled in from a package for
 /// one small, pure computation this rule alone needs.
 int _argbOfHsl({required double hue, required double saturation, required double lightness}) {

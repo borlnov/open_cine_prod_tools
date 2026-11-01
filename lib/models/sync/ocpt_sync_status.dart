@@ -23,7 +23,7 @@ final class OcptSyncStatusInSync extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusInSync();
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSyncStatusInSync()";
 
@@ -39,7 +39,7 @@ final class OcptSyncStatusSyncing extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusSyncing();
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSyncStatusSyncing()";
 
@@ -63,7 +63,7 @@ final class OcptSyncStatusOffline extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusOffline({this.pendingEditCount});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSyncStatusOffline(pendingEditCount: $pendingEditCount)";
 
@@ -83,7 +83,7 @@ final class OcptSyncStatusError extends OcptSyncStatus {
   /// Class constructor
   const OcptSyncStatusError(this.message);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSyncStatusError(message: $message)";
 

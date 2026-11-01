@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The point, in a frame's own printed pixel/point space, a normalised storyboard annotation
+/// Get the point, in a frame's own printed pixel/point space, a normalised storyboard annotation
 /// coordinate `(xNorm, yNorm)` maps to — the one place a mark's drawn position is derived from
 /// its stored, normalised coordinate, read alike by
 /// `OcptStoryboardAnnotationOverlayPainter` (the on-screen overlay,

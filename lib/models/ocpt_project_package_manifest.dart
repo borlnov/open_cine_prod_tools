@@ -73,7 +73,7 @@ class OcptProjectPackageManifest extends Equatable {
     required this.skippedAssets,
   });
 
-  /// Parses a manifest out of the JSON a package stores it as.
+  /// Parse a manifest out of the JSON a package stores it as.
   ///
   /// Tolerant on every field but [packageFormat]: a manifest whose format this build knows is one
   /// it wrote the shape of, and a field missing from it is likelier to be an older format than a
@@ -97,7 +97,7 @@ class OcptProjectPackageManifest extends Equatable {
         ],
       );
 
-  /// This manifest, as the package stores it.
+  /// Serialize this manifest, as the package stores it.
   Map<String, dynamic> toJson() => {
     "packageFormat": packageFormat,
     "appVersion": appVersion,
@@ -108,7 +108,7 @@ class OcptProjectPackageManifest extends Equatable {
     "skippedAssets": [for (final asset in skippedAssets) asset.toJson()],
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptProjectPackageManifest(packageFormat: $packageFormat, appVersion: $appVersion, "

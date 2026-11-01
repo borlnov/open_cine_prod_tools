@@ -22,6 +22,6 @@ class OcptSchedulePermitWindow {
   /// The date this permit stops being valid, or null while unbounded on that side.
   final DateTime? validUntil;
 
-  /// Builds a permit window to feed to [ocptComputeScheduleAlerts].
+  /// Build a permit window to feed to [ocptComputeScheduleAlerts].
   const OcptSchedulePermitWindow({required this.validFrom, required this.validUntil});
 }

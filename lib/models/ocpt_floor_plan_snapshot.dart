@@ -30,7 +30,7 @@ class OcptFloorPlanSnapshot extends Equatable {
     required this.setsById,
   });
 
-  /// Builds an [OcptFloorPlanSnapshot] for [screenplayId] from [setsBySceneId], deriving
+  /// Build an [OcptFloorPlanSnapshot] for [screenplayId] from [setsBySceneId], deriving
   /// [setsById] from it.
   factory OcptFloorPlanSnapshot.build({
     required String screenplayId,
@@ -48,11 +48,12 @@ class OcptFloorPlanSnapshot extends Equatable {
     );
   }
 
-  /// [sceneId]'s sets, in tab order, or an empty list if it has none.
+  /// Get [sceneId]'s sets, in tab order, or an empty list if it has none.
   List<OcptFloorPlanSet> setsOfScene(String sceneId) =>
       setsBySceneId[sceneId] ?? const <OcptFloorPlanSet>[];
 
-  /// How many sequences (scenes) [setId] is linked to, project-wide — what tells apart a set-scope
+  /// Count how many sequences (scenes) [setId] is linked to, project-wide — what tells apart a
+  /// set-scope
   /// move/delete that never asks (one sequence) from one that must ask "every sequence / only this
   /// one" or offer "remove from sequence n" (two or more). Zero while [setId] names no live set at
   /// all.
@@ -60,7 +61,7 @@ class OcptFloorPlanSnapshot extends Equatable {
       .where((sets) => sets.any((floorPlanSet) => floorPlanSet.id == setId))
       .length;
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFloorPlanSnapshot(screenplayId: $screenplayId, setCount: ${setsById.length})";

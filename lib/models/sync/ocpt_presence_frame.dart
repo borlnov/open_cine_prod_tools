@@ -52,7 +52,7 @@ class OcptPresenceFrame extends Equatable {
     required this.heartbeat,
   });
 
-  /// Parses a presence frame from the JSON object [toJson] writes.
+  /// Parse a presence frame from the JSON object [toJson] writes.
   ///
   /// Casts straight through, exactly as `OcptFieldStamp.fromJson` does — a malformed frame throws
   /// (a [TypeError] from a failed cast), which `OcptPresenceService` catches and drops rather than
@@ -64,7 +64,7 @@ class OcptPresenceFrame extends Equatable {
     heartbeat: json[_heartbeatKey] as int,
   );
 
-  /// Serialises this frame to the JSON object it is carried as.
+  /// Serialise this frame to the JSON object it is carried as.
   Map<String, dynamic> toJson() => {
     _deviceIdKey: deviceId,
     _platformKey: platform,

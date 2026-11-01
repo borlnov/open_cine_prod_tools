@@ -27,27 +27,27 @@ class OcptPersonUnavailabilitiesTable extends Table {
   @override
   String get tableName => 'person_unavailabilities';
 
-  /// The stable, unique id of this unavailability (a UUID).
+  /// Get the stable, unique id of this unavailability (a UUID).
   TextColumn get id => text()();
 
-  /// The person who is unavailable.
+  /// Get the person who is unavailable.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// The first date this unavailability covers.
+  /// Get the first date this unavailability covers.
   DateTimeColumn get startDate => dateTime()();
 
-  /// The last date this unavailability covers, inclusive — the same value as [startDate] for a
+  /// Get the last date this unavailability covers, inclusive — the same value as [startDate] for a
   /// single day, never earlier than it.
   DateTimeColumn get endDate => dateTime()();
 
-  /// Which part of each covered day this unavailability takes.
+  /// Tell which part of each covered day this unavailability takes.
   // The stored literal below must match `OcptDayPartSlot.fullDay.name` exactly, for the
   // same reason `shots.status`'s default does: an enum's `.name` getter isn't a compile-time
   // constant expression, so it can't be written as `Constant(OcptDayPartSlot.fullDay)`.
   TextColumn get slot =>
       text().map(const OcptDayPartSlotConverter()).withDefault(const Constant('fullDay'))();
 
-  /// The start of the window, in minutes from midnight, or null unless [slot] is
+  /// Get the start of the window, in minutes from midnight, or null unless [slot] is
   /// [OcptDayPartSlot.custom].
   ///
   /// Minutes rather than a `DateTime`, because this is a time of day repeated over every date of
@@ -55,11 +55,11 @@ class OcptPersonUnavailabilitiesTable extends Table {
   /// [startDate] the moment the range moves.
   IntColumn get startMinute => integer().nullable()();
 
-  /// The end of the window, in minutes from midnight, or null unless [slot] is
+  /// Get the end of the window, in minutes from midnight, or null unless [slot] is
   /// [OcptDayPartSlot.custom]. See [startMinute].
   IntColumn get endMinute => integer().nullable()();
 
-  /// Why this person is unavailable, free multi-line text.
+  /// Tell why this person is unavailable, free multi-line text.
   TextColumn get reason => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

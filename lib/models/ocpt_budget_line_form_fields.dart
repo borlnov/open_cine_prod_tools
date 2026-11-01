@@ -36,7 +36,7 @@ class OcptBudgetLineFormFields extends Equatable {
     required this.unitAmountCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetLineFormFields(label: $label, quantityMilli: $quantityMilli, unit: $unit, "

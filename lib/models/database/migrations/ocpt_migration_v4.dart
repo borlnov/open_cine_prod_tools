@@ -5,7 +5,8 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 
-/// Schema version 4's own `onUpgrade` step, called from [OcptProjectDatabase.migration] for a file
+/// Run schema version 4's own `onUpgrade` step, called from [OcptProjectDatabase.migration] for a
+/// file
 /// opened below it: creates the five tables the storyboard and floor plans mode is built on —
 /// `storyboard_panels`, `storyboard_annotations`, `floor_plan_sets`, `floor_plan_symbols` and
 /// `floor_plan_arrows`.

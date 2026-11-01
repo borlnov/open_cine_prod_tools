@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
-/// Converts a [OcptFloorPlanSetElementShape] to and from the text stored in the
+/// Convert a [OcptFloorPlanSetElementShape] to and from the text stored in the
 /// `floor_plan_symbols.setElementShape` column.
 class OcptFloorPlanSetElementShapeConverter
     extends TypeConverter<OcptFloorPlanSetElementShape, String> {

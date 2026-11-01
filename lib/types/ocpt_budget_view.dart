@@ -37,7 +37,7 @@ enum OcptBudgetView {
   tools,
 }
 
-/// Whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
+/// Tell whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
 ///
 /// **True for [OcptBudgetView.expenses] alone.** It is the only surface left that draws a
 /// poste-keyed row — the tools drawer's cash-flow page no longer honours the filter (a statement
@@ -50,7 +50,7 @@ bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
   OcptBudgetView.dashboard || OcptBudgetView.resources || OcptBudgetView.tools => false,
 };
 
-/// Whether [view] (and, while it is [OcptBudgetView.tools], [toolsView]) has anything for the
+/// Tell whether [view] (and, while it is [OcptBudgetView.tools], [toolsView]) has anything for the
 /// right dock's `Inspector` tab — the polymorphic fiche — to show.
 ///
 /// **False for [OcptBudgetView.dashboard] and `tools › regie` alone.** The fiche reads

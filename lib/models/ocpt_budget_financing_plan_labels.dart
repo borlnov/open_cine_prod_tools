@@ -113,15 +113,16 @@ class OcptBudgetFinancingPlanLabels extends Equatable {
     required this.coverageReadOutTemplate,
   });
 
-  /// The section title of [kind], or an empty string if [groupTitles] holds none for it.
+  /// Get the section title of [kind], or an empty string if [groupTitles] holds none for it.
   String groupTitleOf(OcptBudgetResourceGroupKind kind) => groupTitles[kind] ?? "";
 
-  /// The label of [status] on a [kind] resource, or an empty string if [statusLabels] holds none
+  /// Get the label of [status] on a [kind] resource, or an empty string if [statusLabels] holds
+  /// none
   /// for that pair.
   String statusLabelOf(OcptBudgetResourceGroupKind kind, OcptBudgetResourceStatus status) =>
       statusLabels[kind]?[status] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetFinancingPlanLabels(documentTitle: $documentTitle)";
 

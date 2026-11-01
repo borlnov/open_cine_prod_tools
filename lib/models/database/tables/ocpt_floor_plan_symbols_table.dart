@@ -42,24 +42,25 @@ class OcptFloorPlanSymbolsTable extends Table {
   @override
   String get tableName => 'floor_plan_symbols';
 
-  /// The stable, unique id of this symbol (a UUID).
+  /// Get the stable, unique id of this symbol (a UUID).
   TextColumn get id => text()();
 
-  /// The Resources set this symbol is placed on (`floor_plan_sets.id`, itself `sets.id`).
+  /// Get the Resources set this symbol is placed on (`floor_plan_sets.id`, itself `sets.id`).
   TextColumn get setId => text().references(OcptFloorPlanSetsTable, #id)();
 
-  /// The sequence this symbol is scoped to — null on a set-scope or shot-scope symbol, set on a
+  /// Get the sequence this symbol is scoped to — null on a set-scope or shot-scope symbol, set on a
   /// scene-scope symbol. See the class doc comment.
   TextColumn get sceneId => text().nullable().references(OcptScenesTable, #id)();
 
-  /// The shot this symbol belongs to — null on a set-scope or scene-scope symbol, set on a
+  /// Get the shot this symbol belongs to — null on a set-scope or scene-scope symbol, set on a
   /// shot-scope symbol. See the class doc comment.
   TextColumn get shotId => text().nullable().references(OcptShotsTable, #id)();
 
-  /// Which layer this symbol is drawn on.
+  /// Tell which layer this symbol is drawn on.
   TextColumn get layer => text().map(const OcptFloorPlanLayerConverter())();
 
-  /// The live set-scope symbol (of the same [setId]) this scene-scope symbol replaces when drawing
+  /// Get the live set-scope symbol (of the same [setId]) this scene-scope symbol replaces when
+  /// drawing
   /// its own [sceneId]'s sequence — null for every symbol but a scene-scope override. See the class
   /// doc comment.
   TextColumn get overridesSymbolId =>
@@ -71,43 +72,45 @@ class OcptFloorPlanSymbolsTable extends Table {
   /// derived from.
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The symbol's centre X, in **metres**.
+  /// Get the symbol's centre X, in **metres**.
   RealColumn get xM => real()();
 
-  /// The symbol's centre Y, in metres.
+  /// Get the symbol's centre Y, in metres.
   RealColumn get yM => real()();
 
-  /// The symbol's rotation, in degrees — a camera's heading, a wall's angle.
+  /// Get the symbol's rotation, in degrees — a camera's heading, a wall's angle.
   RealColumn get rotationDeg => real().withDefault(const Constant(0))();
 
-  /// A set element's footprint width, in metres — null on every other layer in v1. The v2
+  /// Get a set element's footprint width, in metres — null on every other layer in v1. The v2
   /// per-symbol size override reuses this column with no migration.
   RealColumn get widthM => real().nullable()();
 
-  /// A set element's footprint height, in metres. See [widthM].
+  /// Get a set element's footprint height, in metres. See [widthM].
   RealColumn get heightM => real().nullable()();
 
-  /// A camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
+  /// Get a camera's field-of-view wedge, in degrees — null meaning the drawing's own default.
   RealColumn get fovDeg => real().nullable()();
 
-  /// How deep, in metres, a camera's own field-of-view wedge reaches along its own heading — its
+  /// Tell how deep, in metres, a camera's own field-of-view wedge reaches along its own heading —
+  /// its
   /// own axial height, from the lens to the wedge's own far chord, never the length of either
   /// angled edge — null meaning the drawing's own default (`ocptFloorPlanCameraFovWedgeLengthM`, 2
   /// m). Null for every other symbol, which doesn't draw a wedge.
   RealColumn get fovReachM => real().nullable()();
 
-  /// The text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,
+  /// Get the text label this symbol carries, e.g. `key · 1.2k`, `SAM · stand-in`,
   /// `85mm · reverse on Sam`. A character symbol's [label] is a free text pre-filled from the
   /// shot's characters field as a convenience only — it carries no link back to a role.
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// The visual primitive a set-element (sequence-layer) symbol is drawn as — a wall, a door, a
+  /// Get the visual primitive a set-element (sequence-layer) symbol is drawn as — a wall, a door, a
   /// piece of furniture, or a free-hand shape. **Null for every camera, character and light
   /// symbol**, which don't use it: only a symbol on [OcptFloorPlanLayer.set] carries one.
   TextColumn get setElementShape =>
       text().nullable().map(const OcptFloorPlanSetElementShapeConverter())();
 
-  /// Whether this scene-scope override masks its set-scope original for this one sequence — see
+  /// Tell whether this scene-scope override masks its set-scope original for this one sequence —
+  /// see
   /// this class's own doc comment. Always false outside a scene-scope override.
   BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
 

@@ -36,7 +36,7 @@ class OcptCardChoiceEntry<T> extends Equatable {
   /// about what exists.
   final String? unavailableReason;
 
-  /// Whether this card can be picked right now.
+  /// Tell whether this card can be picked right now.
   bool get isAvailable => unavailableReason == null;
 
   /// Class constructor
@@ -48,7 +48,7 @@ class OcptCardChoiceEntry<T> extends Equatable {
     this.unavailableReason,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptCardChoiceEntry(title: $title, isAvailable: $isAvailable)";
 

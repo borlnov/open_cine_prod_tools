@@ -17,7 +17,7 @@ class OcptSyncTransportFailure extends Equatable {
   /// Class constructor
   const OcptSyncTransportFailure({required this.error, this.stackTrace});
 
-  /// The caught error's own text, which is what a diagnostics line quotes.
+  /// Get the caught error's own text, which is what a diagnostics line quotes.
   @override
   String toString() => error.toString();
 

@@ -23,7 +23,7 @@ class OcptPresenceRoster extends Equatable {
   /// Class constructor
   const OcptPresenceRoster({required this.participants, required this.selfDeviceId});
 
-  /// Whether [frame] is this replica's own, rather than a peer's.
+  /// Tell whether [frame] is this replica's own, rather than a peer's.
   bool isSelf(OcptPresenceFrame frame) => frame.deviceId == selfDeviceId;
 
   /// Describe this [OcptPresenceRoster] for debugging and logging.

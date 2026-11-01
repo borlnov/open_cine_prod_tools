@@ -38,7 +38,7 @@ class OcptFloorPlanUnderlayShape extends Equatable {
     required this.rotationDeg,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptFloorPlanUnderlayShape(assetId: $assetId)";
 

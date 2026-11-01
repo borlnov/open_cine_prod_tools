@@ -35,7 +35,7 @@ class OcptSceneEffect {
   const OcptSceneEffect._() : printedEffect = null, place = null, timeOfDay = null;
 }
 
-/// [heading]'s own interior/exterior half and time-of-day half, joined as the reference call
+/// Get [heading]'s own interior/exterior half and time-of-day half, joined as the reference call
 /// sheet's own `EFFET` column reads (`EXT / JOUR`), plus how those two halves classify along
 /// [OcptScenePlace] and [OcptSceneTimeOfDay] — each of the two null on its own terms whenever the
 /// heading doesn't say, the app never inventing one for a heading that refuses to commit to it.
@@ -90,7 +90,8 @@ OcptSceneEffect ocptSceneEffectOf(String? heading) {
   );
 }
 
-/// The time-of-day half of [ocptSceneEffectOf]'s own classification — see that function's own doc
+/// Get the time-of-day half of [ocptSceneEffectOf]'s own classification — see that function's own
+/// doc
 /// comment for exactly which words are recognised and why the set stays small.
 OcptSceneTimeOfDay? _timeOfDayOf(String timeOfDayText) {
   final upper = timeOfDayText.toUpperCase();
@@ -103,7 +104,8 @@ OcptSceneTimeOfDay? _timeOfDayOf(String timeOfDayText) {
   return null;
 }
 
-/// A day's own overall effect reading, over every one of [headings] — one [OcptSceneEffectCategory]
+/// Get a day's own overall effect reading, over every one of [headings] — one
+/// [OcptSceneEffectCategory]
 /// per classifiable heading (through [ocptSceneEffectOf]), collapsed to a single category when they
 /// all agree, [OcptSceneEffectCategory.mixed] when at least two disagree, or null when none of
 /// [headings] classifies at all (including an empty list — a day with nothing placed).

@@ -29,7 +29,7 @@ class OcptContactListExportOptions extends Equatable {
   /// Class constructor
   const OcptContactListExportOptions({required this.format, required this.margins});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptContactListExportOptions(format: $format, margins: $margins)";
 

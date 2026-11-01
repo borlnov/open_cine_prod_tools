@@ -23,10 +23,10 @@ class OcptChangeset extends Equatable {
   /// Every field stamp this changeset carries.
   final List<OcptFieldStamp> fieldStamps;
 
-  /// Creates a changeset out of [fieldStamps].
+  /// Create a changeset out of [fieldStamps].
   const OcptChangeset({required this.fieldStamps});
 
-  /// Parses a changeset from the JSON object [toJson] writes.
+  /// Parse a changeset from the JSON object [toJson] writes.
   factory OcptChangeset.fromJson(Map<String, dynamic> json) => OcptChangeset(
     fieldStamps: [
       for (final entry in json[_fieldStampsKey] as List<dynamic>)
@@ -34,17 +34,17 @@ class OcptChangeset extends Equatable {
     ],
   );
 
-  /// Parses a changeset from the bytes an `OcptChangesetEnvelope.payload` carries — the inverse of
+  /// Parse a changeset from the bytes an `OcptChangesetEnvelope.payload` carries — the inverse of
   /// [encode].
   factory OcptChangeset.decode(Uint8List bytes) =>
       OcptChangeset.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 
-  /// Serialises this changeset to the JSON object it is carried as.
+  /// Serialise this changeset to the JSON object it is carried as.
   Map<String, dynamic> toJson() => {
     _fieldStampsKey: [for (final stamp in fieldStamps) stamp.toJson()],
   };
 
-  /// Serialises this changeset to the JSON bytes an `OcptChangesetEnvelope.payload` carries — the
+  /// Serialise this changeset to the JSON bytes an `OcptChangesetEnvelope.payload` carries — the
   /// inverse of [OcptChangeset.decode].
   Uint8List encode() => Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
 

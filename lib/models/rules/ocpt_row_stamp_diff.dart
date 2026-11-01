@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The names of the columns [to] holds a different value in than [from], as the Dart side of the
+/// Get the names of the columns [to] holds a different value in than [from], as the Dart side of
+/// the
 /// schema spells them — which is exactly how `row_field_versions.columnName` spells them too.
 ///
 /// [from] and [to] are a row's own `DataClass.toJson()` map, read off rather than compared field

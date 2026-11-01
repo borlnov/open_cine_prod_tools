@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The tick a device's Lamport clock advances to for its next transaction, given the highest tick
+/// Get the tick a device's Lamport clock advances to for its next transaction, given the highest
+/// tick
 /// [currentClock] has reached so far — or `null` when the clock has never ticked.
 ///
 /// `version` (`docs/adr/0010-sync-ready-data-model-prerequisites.md`) is a **device-local Lamport
@@ -17,7 +18,8 @@
 /// written below 1.
 int ocptNextRowStampVersion(int? currentClock) => (currentClock ?? 0) + 1;
 
-/// The clock tick a device must not fall behind, given the tick [knownClock] it has reached so far
+/// Get the clock tick a device must not fall behind, given the tick [knownClock] it has reached so
+/// far
 /// (or `null` when it has none) and [incomingVersion], a version carried in from elsewhere that the
 /// clock must not undercut either.
 ///

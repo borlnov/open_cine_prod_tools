@@ -31,10 +31,10 @@ class OcptProjectDictionaryWordsTable extends Table {
   @override
   String get tableName => 'project_dictionary_words';
 
-  /// The stable, unique id of this row (a UUID).
+  /// Get the stable, unique id of this row (a UUID).
   TextColumn get id => text()();
 
-  /// The word, exactly as it was typed when it was learned.
+  /// Get the word, exactly as it was typed when it was learned.
   TextColumn get word => text()();
 
   /// {@macro open_cine_prod_tools.isDeleted}

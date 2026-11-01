@@ -9,7 +9,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
-/// Whether [entry] is a debit that names a poste but no commitment — an off-line spend against a
+/// Tell whether [entry] is a debit that names a poste but no commitment — an off-line spend against
+/// a
 /// poste's own quote, never reconciled with it. The fiche's own banner reads this to offer `Add to
 /// the quote`/`Move off-quote` on such an entry (`OcptBudgetFiche`), and the bloc's own two
 /// handlers answering those actions read it again as a defensive guard
@@ -19,7 +20,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 bool ocptBudgetEntryIsOffLineDebit(OcptBudgetEntry entry) =>
     entry.debitCents > 0 && entry.posteId != null && entry.commitmentId == null;
 
-/// [entry]'s own [OcptBudgetEntry.debitCents], read **tax-inclusive**, given the project's own
+/// Get [entry]'s own [OcptBudgetEntry.debitCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
 ///
 /// Money that moved is always read tax-inclusive (`docs/architecture/budget.md`): unlike the
@@ -45,7 +46,7 @@ int? ocptBudgetEntryDebitCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// [entry]'s own [OcptBudgetEntry.creditCents], read **tax-inclusive**, given the project's own
+/// Get [entry]'s own [OcptBudgetEntry.creditCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
 ///
 /// [ocptBudgetEntryDebitCentsOf]'s mirror, over [OcptBudgetEntry.creditCents] rather than
@@ -64,7 +65,8 @@ int? ocptBudgetEntryCreditCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// [entries]' own debit, credit and balance, given the project's own [projectVatRateBasisPoints].
+/// Get [entries]' own debit, credit and balance, given the project's own
+/// [projectVatRateBasisPoints].
 ///
 /// **Row by row, then summed** — [ocptBudgetEntryDebitCentsOf] and [ocptBudgetEntryCreditCentsOf]
 /// are read for each entry individually before the covered ones are added together, exactly the
@@ -108,7 +110,8 @@ OcptBudgetCashTotals ocptBudgetCashTotalsOf(
   );
 }
 
-/// [entries], each paired with its own debit, credit and the running balance once it has fallen,
+/// Get [entries], each paired with its own debit, credit and the running balance once it has
+/// fallen,
 /// given the project's own [projectVatRateBasisPoints].
 ///
 /// **Never reorders [entries]**: `OcptBudgetJournalService.loadEntries` has already ordered them
@@ -167,7 +170,7 @@ List<OcptBudgetJournalRow> ocptBudgetJournalRowsOf(
   return rows;
 }
 
-/// What has actually been paid against each poste, given the project's own
+/// Get what has actually been paid against each poste, given the project's own
 /// [projectVatRateBasisPoints]: per poste, [OcptBudgetCoveredTotal.amountCents] is the
 /// tax-inclusive sum of [OcptBudgetEntry.debitCents] minus [OcptBudgetEntry.creditCents] over every
 /// entry naming that poste — a refund credited back against a poste genuinely reduces what that
@@ -207,7 +210,7 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByPosteId(
   };
 }
 
-/// The total of every debit that names **no poste at all** — spending that happened but that
+/// Get the total of every debit that names **no poste at all** — spending that happened but that
 /// prices no line of the quote — given the project's own [projectVatRateBasisPoints].
 ///
 /// `OcptBudgetEntriesTable.posteId`'s own doc comment reads a poste-less entry as "typically money
@@ -264,7 +267,8 @@ OcptBudgetCoveredTotal ocptBudgetOffQuotePaidTotalOf(
   );
 }
 
-/// [entries]' own paid total — the tax-inclusive sum of debit minus credit, row by row, then summed
+/// Get [entries]' own paid total — the tax-inclusive sum of debit minus credit, row by row, then
+/// summed
 /// — paired with how many of them actually carried a known rate. The one poste-scoped loop
 /// [ocptBudgetPaidCentsByPosteId] runs once per poste, kept separate so that function stays a plain
 /// grouping followed by one reading per group.

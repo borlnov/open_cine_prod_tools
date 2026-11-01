@@ -84,7 +84,7 @@ class OcptBudgetEntry extends Equatable {
     required this.personId,
   });
 
-  /// Builds an [OcptBudgetEntry] from its stored [row].
+  /// Build an [OcptBudgetEntry] from its stored [row].
   factory OcptBudgetEntry.fromRow(OcptBudgetEntryRow row) => OcptBudgetEntry(
     id: row.id,
     date: row.date,
@@ -103,7 +103,7 @@ class OcptBudgetEntry extends Equatable {
     personId: row.personId,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetEntry(id: $id, date: $date, label: $label, "

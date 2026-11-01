@@ -22,7 +22,7 @@ final class OcptRelayHostStopped extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostStopped();
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRelayHostStopped()";
 
@@ -37,7 +37,7 @@ final class OcptRelayHostStarting extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostStarting();
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRelayHostStarting()";
 
@@ -60,7 +60,7 @@ final class OcptRelayHostOnline extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostOnline({required this.lanBaseUri, required this.enrolmentSecret});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRelayHostOnline(lanBaseUri: $lanBaseUri)";
 
@@ -78,7 +78,7 @@ final class OcptRelayHostFailed extends OcptRelayHostState {
   /// Class constructor
   const OcptRelayHostFailed(this.message);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRelayHostFailed(message: $message)";
 

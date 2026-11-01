@@ -30,7 +30,7 @@ class OcptScheduleAlertUnavailability {
   /// [OcptDayPartSlot.custom].
   final int? endMinute;
 
-  /// Builds an unavailability window to feed to [ocptComputeScheduleAlerts].
+  /// Build an unavailability window to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertUnavailability({
     required this.id,
     required this.startDate,

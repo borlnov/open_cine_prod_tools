@@ -37,7 +37,7 @@ final RegExp _ocptLeadingOrTrailingClutter = RegExp(r'^[\s.]+|[\s.]+$');
 /// collapse into the same stem more often than they already would.
 const ocptSafeFileNameMaxLength = 80;
 
-/// Turns [name] — a project's free-typed display name — into a name a filesystem accepts on
+/// Turn [name] — a project's free-typed display name — into a name a filesystem accepts on
 /// Linux, Windows and macOS alike, falling back to [fallback] when nothing usable is left.
 ///
 /// Nothing here is filesystem-specific state, so this stays in `lib/models/rules/` rather than

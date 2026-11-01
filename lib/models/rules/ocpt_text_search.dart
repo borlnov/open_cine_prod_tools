@@ -34,7 +34,7 @@ const String _ocptWordDiacritics =
 /// letters/digits/underscore: every rune of [_ocptWordDiacritics], computed once.
 final Set<int> _ocptWordDiacriticCodeUnits = _ocptWordDiacritics.codeUnits.toSet();
 
-/// Whether the character of [text] at [index] counts as a "word" character for whole-word
+/// Tell whether the character of [text] at [index] counts as a "word" character for whole-word
 /// matching: an ASCII letter, a digit, an underscore, or one of [_ocptWordDiacritics].
 bool _isWordCharacterAt(String text, int index) {
   final codeUnit = text.codeUnitAt(index);
@@ -53,7 +53,7 @@ bool _isWordCharacterAt(String text, int index) {
   return _ocptWordDiacriticCodeUnits.contains(codeUnit);
 }
 
-/// Whether the `[start, end)` match found in [text] is bordered, on both sides, by a non-word
+/// Tell whether the `[start, end)` match found in [text] is bordered, on both sides, by a non-word
 /// character (or the start/end of [text] itself) — the whole-word test [ocptFindTextMatches]
 /// applies when asked for one.
 bool _isWholeWordMatch(String text, int start, int end) {
@@ -66,7 +66,7 @@ bool _isWholeWordMatch(String text, int start, int end) {
   return true;
 }
 
-/// Every non-overlapping occurrence of [query] in [text], left to right, or an empty list while
+/// Get every non-overlapping occurrence of [query] in [text], left to right, or an empty list while
 /// [query] is empty — no search is the same as "nothing found", not "everything found".
 ///
 /// [query] is matched literally: this never builds a `RegExp` out of it (a screenwriter's query is

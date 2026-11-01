@@ -12,7 +12,7 @@ const int _ocptMiddleDotRune = 0xB7;
 /// [_ocptMiddleDotRune] as a one-character string, what [ocptInclusiveReadingsOf] splits words on.
 const String _ocptMiddleDot = "\u00B7";
 
-/// Folds [value] the way `ocptResourcesSearchNormalized` does (trimmed, lower-cased, accents
+/// Fold [value] the way `ocptResourcesSearchNormalized` does (trimmed, lower-cased, accents
 /// folded through `ocptResourcesSearchFoldedRune`) and additionally drops every middle dot, so
 /// `OcptCrewPositionPickerDialog`'s search field matches a position's label whether or not the
 /// query types the inclusive-writing mark the label itself carries — `realisateurrice` and
@@ -35,7 +35,8 @@ String ocptCrewPositionSearchNormalized(String value) {
   return buffer.toString();
 }
 
-/// The masculine and the feminine readings of [label], a French crew position label in inclusive
+/// Get the masculine and the feminine readings of [label], a French crew position label in
+/// inclusive
 /// writing (`Premier·ère assistant·e réalisateur·rice`), in that order — or an empty list when
 /// [label] carries no middle dot at all, an English label or an epicene French one (`Scripte`)
 /// having no second reading to offer.
@@ -56,7 +57,8 @@ List<String> ocptInclusiveReadingsOf(String label) {
   ];
 }
 
-/// The feminine reading of [word], one word of a French label in inclusive writing: [word] itself
+/// Get the feminine reading of [word], one word of a French label in inclusive writing: [word]
+/// itself
 /// when it carries no middle dot, otherwise its base with its own end replaced by the ending the
 /// dot introduces.
 ///
@@ -90,7 +92,8 @@ String ocptInclusiveFeminineOf(String word) {
   return "$base$ending";
 }
 
-/// Whether [query] matches [label], both normalized through [ocptCrewPositionSearchNormalized] —
+/// Tell whether [query] matches [label], both normalized through [ocptCrewPositionSearchNormalized]
+/// —
 /// [label] itself, or either of its [ocptInclusiveReadingsOf], so `directrice` finds
 /// `Directeur·rice` as readily as `directeur` does.
 ///

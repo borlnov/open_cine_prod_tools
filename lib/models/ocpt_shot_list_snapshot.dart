@@ -40,7 +40,7 @@ class OcptShotListSnapshot extends Equatable {
   /// been placed on any day yet; empty for a project with no schedule at all.
   final Map<String, List<OcptShotPlacement>> placementsByShotId;
 
-  /// The total number of shots across every sequence, orphan group included.
+  /// Get the total number of shots across every sequence, orphan group included.
   int get totalShotCount => shotsById.length;
 
   /// Class constructor
@@ -51,7 +51,7 @@ class OcptShotListSnapshot extends Equatable {
     this.placementsByShotId = const {},
   });
 
-  /// Builds an [OcptShotListSnapshot] for [screenplayId] from its already-ordered [sequences],
+  /// Build an [OcptShotListSnapshot] for [screenplayId] from its already-ordered [sequences],
   /// deriving [shotsById] from them. [placementsByShotId] defaults to empty: the caller this
   /// factory serves (`OcptShotListService.loadShotList`) never reads the schedule, so it is left to
   /// [copyWithPlacements] to attach it afterwards.
@@ -73,7 +73,7 @@ class OcptShotListSnapshot extends Equatable {
     );
   }
 
-  /// Returns a copy of this snapshot carrying [placementsByShotId] in place of its own, [sequences]
+  /// Return a copy of this snapshot carrying [placementsByShotId] in place of its own, [sequences]
   /// and [shotsById] left untouched — how `OcptShotListBloc` joins the schedule's own read onto the
   /// snapshot `OcptShotListService` already built.
   OcptShotListSnapshot copyWithPlacements(
@@ -85,7 +85,7 @@ class OcptShotListSnapshot extends Equatable {
     placementsByShotId: placementsByShotId,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShotListSnapshot(screenplayId: $screenplayId, sequenceCount: ${sequences.length}, "

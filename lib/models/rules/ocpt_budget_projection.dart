@@ -10,7 +10,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection_step.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
-/// [commitment]'s own [OcptBudgetCommitment.amount], read **tax-inclusive**, given the project's
+/// Get [commitment]'s own [OcptBudgetCommitment.amount], read **tax-inclusive**, given the
+/// project's
 /// own [projectVatRateBasisPoints] — or null when that reading is impossible.
 ///
 /// A commitment is money that has not yet moved, but it stands for the very cash a payment would
@@ -28,7 +29,8 @@ int? ocptBudgetCommitmentCashCentsOf(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// Whether [commitment] names no quote line — an off-line commitment, a cost committed against a
+/// Tell whether [commitment] names no quote line — an off-line commitment, a cost committed against
+/// a
 /// poste that no quote line prices. It always names a poste ([OcptBudgetCommitment.posteId] is
 /// non-nullable), so, unlike a poste-less debit (`ocptBudgetEntryIsOffLineDebit`), it can only ever
 /// be reconciled one way: promoted into a quote line, never moved off-quote. The fiche's own banner
@@ -36,7 +38,7 @@ int? ocptBudgetCommitmentCashCentsOf(
 /// again as a defensive guard (`OcptBudgetCommitmentPromotedToQuoteEvent`).
 bool ocptBudgetCommitmentIsOffLine(OcptBudgetCommitment commitment) => commitment.lineId == null;
 
-/// What has been paid against each commitment, given the project's own
+/// Get what has been paid against each commitment, given the project's own
 /// [projectVatRateBasisPoints]: per commitment, the tax-inclusive sum of every `budget_entries`
 /// debit naming it through `budget_entries.commitmentId`.
 ///
@@ -73,7 +75,8 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidByCommitmentId(
   };
 }
 
-/// [entries]' own paid total against one commitment — the tax-inclusive sum of every debit, row by
+/// Get [entries]' own paid total against one commitment — the tax-inclusive sum of every debit, row
+/// by
 /// row, then summed — paired with how many of them actually carried a known rate. The one
 /// commitment-scoped loop [ocptBudgetPaidByCommitmentId] runs once per commitment, kept separate so
 /// that function stays a plain grouping followed by one reading per group, exactly the shape
@@ -106,7 +109,8 @@ OcptBudgetCoveredTotal _ocptBudgetCommitmentPaidTotalOf(
   );
 }
 
-/// [commitment]'s own paid total, read off [entries] — [ocptBudgetPaidByCommitmentId] narrowed to
+/// Get [commitment]'s own paid total, read off [entries] — [ocptBudgetPaidByCommitmentId] narrowed
+/// to
 /// this one commitment, and it does its own narrowing rather than asking every caller to group
 /// [entries] itself first: a fiche or a tree row reads one commitment at a time, and only a caller
 /// looping over every commitment of a poste or a project (`ocptBudgetCommittedCentsByPosteId`,
@@ -120,7 +124,7 @@ OcptBudgetCoveredTotal ocptBudgetCommitmentPaidCentsOf(
     if (entry.commitmentId == commitment.id) entry,
 ], projectVatRateBasisPoints: projectVatRateBasisPoints);
 
-/// [commitment]'s own outstanding amount, read off the already-grouped [paidByCommitmentId] —
+/// Get [commitment]'s own outstanding amount, read off the already-grouped [paidByCommitmentId] —
 /// [ocptBudgetPaidByCommitmentId]'s own map — rather than a raw entries list: the one place this
 /// arithmetic is written, so [ocptBudgetCommitmentOutstandingCentsOf],
 /// [ocptBudgetCommittedCentsByPosteId] and [ocptBudgetProjectionOf] read the very same figure for
@@ -148,7 +152,8 @@ int? _ocptBudgetOutstandingCentsOf(
   return cashCents - (paidByCommitmentId[commitment.id]?.amountCents ?? 0);
 }
 
-/// What [commitment] still owes, read off [entries] — [_ocptBudgetOutstandingCentsOf] over a map
+/// Get what [commitment] still owes, read off [entries] — [_ocptBudgetOutstandingCentsOf] over a
+/// map
 /// holding this one commitment's own paid total ([ocptBudgetCommitmentPaidCentsOf]), so a fiche or
 /// a tree row reading a single commitment answers the very same figure the poste-wide and
 /// project-wide aggregates below do, never a second calculation that could disagree with them.
@@ -164,7 +169,8 @@ int? ocptBudgetCommitmentOutstandingCentsOf(
   ),
 }, projectVatRateBasisPoints: projectVatRateBasisPoints);
 
-/// Whether [commitment] has been paid in full: its own [ocptBudgetCommitmentOutstandingCentsOf]
+/// Tell whether [commitment] has been paid in full: its own
+/// [ocptBudgetCommitmentOutstandingCentsOf]
 /// reading zero or under, read off [entries].
 ///
 /// **The replacement for the old, stored `settledEntryId != null` reading**
@@ -190,7 +196,8 @@ bool ocptBudgetCommitmentIsSettledOf(
   return outstandingCents != null && outstandingCents <= 0;
 }
 
-/// What is committed against each poste, given the project's own [projectVatRateBasisPoints]: per
+/// Get what is committed against each poste, given the project's own [projectVatRateBasisPoints]:
+/// per
 /// poste, the tax-inclusive sum of every **unsettled** commitment's own **outstanding** amount —
 /// [_ocptBudgetOutstandingCentsOf] — settlement itself read off [entries] through
 /// [ocptBudgetCommitmentIsSettledOf].
@@ -245,7 +252,8 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetCommittedCentsByPosteId(
   };
 }
 
-/// [commitments]' own committed total — the tax-inclusive sum of every one's own **outstanding**
+/// Get [commitments]' own committed total — the tax-inclusive sum of every one's own
+/// **outstanding**
 /// amount ([_ocptBudgetOutstandingCentsOf], read off [paidByCommitmentId]), row by row, then summed
 /// — paired with how many of them actually carried a known rate. [commitments] is assumed already
 /// filtered to the unsettled ones; the poste-scoped loop [ocptBudgetCommittedCentsByPosteId] runs
@@ -301,12 +309,13 @@ class OcptBudgetProjection extends Equatable {
   /// `ocptBudgetCommittedCentsByPosteId` excludes it from its own coverage.
   final int commitmentCount;
 
-  /// The balance once every step has fallen — [steps]' own last
+  /// Get the balance once every step has fallen — [steps]' own last
   /// [OcptBudgetProjectionStep.balanceAfterCents], or [openingBalanceCents] itself when there is no
   /// step at all.
   int get finalBalanceCents => steps.isEmpty ? openingBalanceCents : steps.last.balanceAfterCents;
 
-  /// The first step whose [OcptBudgetProjectionStep.balanceAfterCents] is negative, or null when
+  /// Get the first step whose [OcptBudgetProjectionStep.balanceAfterCents] is negative, or null
+  /// when
   /// the projection never goes under.
   ///
   /// Reading its own [OcptBudgetProjectionStep.dueDate] as null is a different fact from
@@ -325,7 +334,8 @@ class OcptBudgetProjection extends Equatable {
     return null;
   }
 
-  /// Whether the projection ever goes under — [firstNegativeStep] answering something rather than
+  /// Tell whether the projection ever goes under — [firstNegativeStep] answering something rather
+  /// than
   /// null.
   bool get goesNegative => firstNegativeStep != null;
 
@@ -337,7 +347,7 @@ class OcptBudgetProjection extends Equatable {
     required this.commitmentCount,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetProjection(openingBalanceCents: $openingBalanceCents, steps: ${steps.length}, "
@@ -348,7 +358,8 @@ class OcptBudgetProjection extends Equatable {
   List<Object?> get props => [openingBalanceCents, steps, coveredCommitmentCount, commitmentCount];
 }
 
-/// The cash projection built from [openingBalanceCents] and [commitments], given the project's own
+/// Get the cash projection built from [openingBalanceCents] and [commitments], given the project's
+/// own
 /// [projectVatRateBasisPoints].
 ///
 /// **Never reorders [commitments]**: `OcptBudgetJournalService.loadCommitments` has already put the

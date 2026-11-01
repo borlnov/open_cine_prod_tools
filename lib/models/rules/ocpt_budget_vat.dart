@@ -26,7 +26,7 @@ class OcptBudgetEffectiveVatRate extends Equatable {
   /// Class constructor
   const OcptBudgetEffectiveVatRate({required this.basisPoints, required this.isOverridden});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetEffectiveVatRate(basisPoints: $basisPoints, isOverridden: $isOverridden)";
@@ -36,7 +36,8 @@ class OcptBudgetEffectiveVatRate extends Equatable {
   List<Object?> get props => [basisPoints, isOverridden];
 }
 
-/// The rate a line carrying [lineVatRateBasisPoints] actually reads under, given the project's own
+/// Get the rate a line carrying [lineVatRateBasisPoints] actually reads under, given the project's
+/// own
 /// [projectVatRateBasisPoints].
 ///
 /// `OcptBudgetLinesTable.vatRateBasisPoints`'s null means "inherit the project's rate", so a null
@@ -57,7 +58,7 @@ OcptBudgetEffectiveVatRate ocptEffectiveVatRateOf({
   );
 }
 
-/// [money]'s amount **excluding** tax, in cents, given the project's own
+/// Get [money]'s amount **excluding** tax, in cents, given the project's own
 /// [projectVatRateBasisPoints] — or null when that figure cannot be known.
 ///
 /// An amount already stated excluding tax ([OcptMoney.isTaxInclusive] false) is its own answer,
@@ -85,7 +86,7 @@ int? ocptExcludingTaxAmountCentsOf(OcptMoney money, {required int? projectVatRat
   return (money.amountCents * _ocptBasisPointsPerWhole / (_ocptBasisPointsPerWhole + rate)).round();
 }
 
-/// [money]'s amount **including** tax, in cents, given the project's own
+/// Get [money]'s amount **including** tax, in cents, given the project's own
 /// [projectVatRateBasisPoints] — or null when that figure cannot be known.
 ///
 /// [ocptExcludingTaxAmountCentsOf]'s mirror: an amount already stated including tax is its own
@@ -109,7 +110,7 @@ int? ocptIncludingTaxAmountCentsOf(OcptMoney money, {required int? projectVatRat
   return (money.amountCents * (_ocptBasisPointsPerWhole + rate) / _ocptBasisPointsPerWhole).round();
 }
 
-/// The VAT [money] carries, in cents, given the project's own [projectVatRateBasisPoints] — the
+/// Get the VAT [money] carries, in cents, given the project's own [projectVatRateBasisPoints] — the
 /// difference between [ocptIncludingTaxAmountCentsOf] and [ocptExcludingTaxAmountCentsOf], or null
 /// when either of those is: an amount whose excluding-tax figure cannot be known has no VAT figure
 /// either, for the same reason.
@@ -156,7 +157,7 @@ final RegExp _ocptSpaces = RegExp(r"\s");
 /// as `5.5`.
 final RegExp _ocptTrailingZeroes = RegExp(r"0+$");
 
-/// Reads [text] as a VAT rate typed **in per cent** and returns it in **basis points**, or null
+/// Read [text] as a VAT rate typed **in per cent** and return it in **basis points**, or null
 /// when it holds no such figure at all — an empty field, something that is not a number, or a
 /// negative figure, which is not a rate anybody meant.
 ///
@@ -188,7 +189,7 @@ int? ocptVatRateBasisPointsOf(String text) {
   return basisPoints < 0 ? null : basisPoints;
 }
 
-/// Writes [basisPoints] the way [ocptVatRateBasisPointsOf] reads it back: a plain number of per
+/// Write [basisPoints] the way [ocptVatRateBasisPointsOf] reads it back: a plain number of per
 /// cent, or an empty string while nobody has recorded a rate.
 ///
 /// A whole number of per cent is written bare (`2000` is `20`, never `20.0`), and anything else
@@ -210,7 +211,8 @@ String ocptVatRatePercentTextOf(int? basisPoints) {
       .replaceFirst(_ocptTrailingZeroes, "");
 }
 
-/// The one rate every one of [lines] reads under, through [ocptEffectiveVatRateOf], or null while
+/// Get the one rate every one of [lines] reads under, through [ocptEffectiveVatRateOf], or null
+/// while
 /// [lines] is empty, carries no known rate at all, or disagrees about it (either the figure or
 /// whether it is overridden) — what the cost-tracking table's own `Quote` sub-line shows the rate
 /// for, and only then: "only when the poste's lines all share one known rate"

@@ -66,7 +66,7 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetReceivedByRevenueId(
   };
 }
 
-/// What has actually been paid out to each participant, given the project's own
+/// Get what has actually been paid out to each participant, given the project's own
 /// [projectVatRateBasisPoints]: per share, the tax-inclusive sum of every `budget_entries`
 /// **debit** naming it through `budget_entries.shareId`.
 ///
@@ -104,7 +104,8 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidByShareId(
   };
 }
 
-/// [entries]' own credit total — row by row, then summed — paired with how many of them carried a
+/// Get [entries]' own credit total — row by row, then summed — paired with how many of them carried
+/// a
 /// known rate.
 OcptBudgetCoveredTotal _ocptBudgetCreditTotalOf(
   List<OcptBudgetEntry> entries, {
@@ -133,7 +134,7 @@ OcptBudgetCoveredTotal _ocptBudgetCreditTotalOf(
   );
 }
 
-/// [entries]' own debit total — [_ocptBudgetCreditTotalOf]'s mirror, reading the other column.
+/// Get [entries]' own debit total — [_ocptBudgetCreditTotalOf]'s mirror, reading the other column.
 OcptBudgetCoveredTotal _ocptBudgetDebitTotalOf(
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
@@ -161,7 +162,7 @@ OcptBudgetCoveredTotal _ocptBudgetDebitTotalOf(
   );
 }
 
-/// Every taking's own received total, summed: what the film has actually earned so far.
+/// Get every taking's own received total, summed: what the film has actually earned so far.
 ///
 /// [receivedByRevenueId] is [ocptBudgetReceivedByRevenueId]'s own map, and [revenues] the live
 /// takings it is read against — a revenue absent from the map contributes a zero amount and, since
@@ -195,7 +196,8 @@ OcptBudgetCoveredTotal ocptBudgetRevenuesReceivedTotalOf({
   );
 }
 
-/// The plain sum of every **reimbursable** resource's own amount: what the financing plan has to
+/// Get the plain sum of every **reimbursable** resource's own amount: what the financing plan has
+/// to
 /// give back out of the takings before anything at all is split.
 ///
 /// No [OcptBudgetCoveredTotal] and no tax basis, for the reason `ocptBudgetResourcesTotalCents`
@@ -210,7 +212,7 @@ int ocptBudgetReimbursableTotalCents(List<OcptBudgetResource> resources) => reso
     .where((resource) => resource.isReimbursable)
     .fold(0, (sum, resource) => sum + resource.amountCents);
 
-/// What the production has already paid back against its reimbursable contributions: the
+/// Get what the production has already paid back against its reimbursable contributions: the
 /// tax-inclusive sum of every `budget_entries` **debit** naming one of them through
 /// `budget_entries.resourceId`.
 ///
@@ -239,7 +241,7 @@ OcptBudgetCoveredTotal ocptBudgetRepaidContributionsTotalOf(
   return _ocptBudgetDebitTotalOf(repayments, projectVatRateBasisPoints: projectVatRateBasisPoints);
 }
 
-/// Builds the pot from its three readings — see [OcptBudgetSharingPot]'s own doc comment.
+/// Build the pot from its three readings — see [OcptBudgetSharingPot]'s own doc comment.
 OcptBudgetSharingPot ocptBudgetSharingPotOf({
   required OcptBudgetCoveredTotal received,
   required int reimbursableCents,
@@ -247,7 +249,7 @@ OcptBudgetSharingPot ocptBudgetSharingPotOf({
 }) =>
     OcptBudgetSharingPot(received: received, reimbursableCents: reimbursableCents, repaid: repaid);
 
-/// The split of [pot] across [shares], in the order they are handed in — never reordered, the
+/// Get the split of [pot] across [shares], in the order they are handed in — never reordered, the
 /// sharing view's own `sortKey` order being the order the participants agreed to read them in.
 ///
 /// **Each line is computed on its own and no remainder is redistributed.** Three participants
@@ -284,7 +286,8 @@ List<OcptBudgetShareSplit> ocptBudgetShareSplitsOf({
   ];
 }
 
-/// [amountCents] times [permille] thousandths, rounded to the nearest cent, in integer arithmetic
+/// Get [amountCents] times [permille] thousandths, rounded to the nearest cent, in integer
+/// arithmetic
 /// throughout — the reason `quantityMilli` exists at all, applied to a fraction of a pot. Rounds
 /// half away from zero, so a negative amount rounds the way its positive mirror does.
 int _ocptBudgetPermilleOf(int amountCents, int permille) {
@@ -294,7 +297,7 @@ int _ocptBudgetPermilleOf(int amountCents, int permille) {
   return (scaled + half) ~/ 1000;
 }
 
-/// The sum of every live share's own [OcptBudgetShare.sharePermille].
+/// Get the sum of every live share's own [OcptBudgetShare.sharePermille].
 ///
 /// Offered so the view can **state** it rather than police it: `1000` means the plan adds up,
 /// anything else means it does not, and `OcptBudgetSharesTable`'s own doc comment argues why the
@@ -303,7 +306,7 @@ int _ocptBudgetPermilleOf(int amountCents, int permille) {
 int ocptBudgetSharesPermilleTotal(List<OcptBudgetShare> shares) =>
     shares.fold(0, (sum, share) => sum + share.sharePermille);
 
-/// What [splits] reinvest in the next production, in total — the sharing table's own footer.
+/// Get what [splits] reinvest in the next production, in total — the sharing table's own footer.
 ///
 /// Summed from each line's own already-rounded [OcptBudgetShareSplit.reinvestedCents], row by row,
 /// exactly as every other total in this mode is: computing it from the pot and a summed reinvest
@@ -311,7 +314,7 @@ int ocptBudgetSharesPermilleTotal(List<OcptBudgetShare> shares) =>
 int ocptBudgetReinvestedTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.reinvestedCents);
 
-/// What [splits] are due in total, in cents — summed row by row for
+/// Get what [splits] are due in total, in cents — summed row by row for
 /// [ocptBudgetReinvestedTotalCents]' own reason.
 ///
 /// This is deliberately **not** the same figure as [OcptBudgetSharingPot.shareableCents]: it is
@@ -321,7 +324,7 @@ int ocptBudgetReinvestedTotalCents(List<OcptBudgetShareSplit> splits) =>
 int ocptBudgetDueTotalCents(List<OcptBudgetShareSplit> splits) =>
     splits.fold(0, (sum, split) => sum + split.dueCents);
 
-/// Groups [resources] by contributor, for the sharing view's own `What each person put in` card:
+/// Group [resources] by contributor, for the sharing view's own `What each person put in` card:
 /// the product owner could not tell, from the plan's own three aggregate figures, that one person
 /// having lent money three times over meant one debt rather than three (*"si Marie me donne de
 /// l'argent... comment je fais pour voir qu'elle m'a prêté 3 fois 100 €, et que donc je dois la

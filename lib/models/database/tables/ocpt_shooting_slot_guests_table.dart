@@ -28,24 +28,26 @@ class OcptShootingSlotGuestsTable extends Table {
   @override
   String get tableName => 'shooting_slot_guests';
 
-  /// The stable, unique id of this attendance (a UUID).
+  /// Get the stable, unique id of this attendance (a UUID).
   TextColumn get id => text()();
 
-  /// The slot this guest attends.
+  /// Get the slot this guest attends.
   TextColumn get slotId => text().references(OcptShootingSlotsTable, #id)();
 
-  /// The address-book person this guest is, or null when [freeName] is used instead. Exactly one of
+  /// Get the address-book person this guest is, or null when [freeName] is used instead. Exactly
+  /// one of
   /// the two is set.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// A free-text name, used instead of [personId] when the guest is not, and will never be, a row
+  /// Get a free-text name, used instead of [personId] when the guest is not, and will never be, a
+  /// row
   /// of `people`. Empty when [personId] is set.
   TextColumn get freeName => text().withDefault(const Constant(''))();
 
-  /// Why this guest is on set ("Maire, prête la place", "Journaliste, Ouest-France").
+  /// Tell why this guest is on set ("Maire, prête la place", "Journaliste, Ouest-France").
   TextColumn get reason => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this attendance.
+  /// Get free-form notes about this attendance.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}

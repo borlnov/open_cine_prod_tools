@@ -9,7 +9,7 @@
 /// (`OcptWorkspaceDock.resolveDockWidths`) can no longer coexist with the 320 px centre floor.
 const double ocptCompactWidthBreakpoint = 816;
 
-/// Tells whether [width] is narrow enough that the workspace shell should treat it as compact —
+/// Tell whether [width] is narrow enough that the workspace shell should treat it as compact —
 /// see [ocptCompactWidthBreakpoint].
 ///
 /// A pure predicate so every call site (the shell, a mode, a test) agrees on the same boundary.
@@ -23,7 +23,7 @@ bool ocptIsCompactWidth(double width) => width < ocptCompactWidthBreakpoint;
 /// summoned dock as an edge drawer over the centre, keeping some of the centre in view.
 const double ocptPhoneWidthBreakpoint = 600;
 
-/// Tells whether [width] is a phone — at or below [ocptPhoneWidthBreakpoint].
+/// Tell whether [width] is a phone — at or below [ocptPhoneWidthBreakpoint].
 ///
 /// A pure predicate so every call site agrees on the same boundary: the workspace toolbar folds its
 /// secondary actions (export, settings, help) into the `⋮` overflow at this width, and a summoned

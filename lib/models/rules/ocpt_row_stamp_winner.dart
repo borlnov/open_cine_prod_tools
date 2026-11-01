@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// Whether an incoming `(version, deviceId)` pair wins the per-column merge over the column's own
+/// Tell whether an incoming `(version, deviceId)` pair wins the per-column merge over the column's
+/// own
 /// local stamp — `docs/adr/0010-sync-ready-data-model-prerequisites.md`'s Lamport ordering: the
 /// higher `version` wins outright, and [incomingDeviceId]/[localDeviceId] break a tie
 /// lexicographically. [localVersion] and [localDeviceId] are both null when the column carries no

@@ -34,7 +34,7 @@ final class OcptCleanThreeWayMerge extends OcptThreeWayMergeResult {
   /// rejoined with `\n`.
   final String mergedText;
 
-  /// Creates a clean merge result.
+  /// Create a clean merge result.
   const OcptCleanThreeWayMerge(this.mergedText);
 
   /// Describe this [OcptCleanThreeWayMerge] for debugging and logging.
@@ -54,7 +54,7 @@ final class OcptThreeWayMergeConflict extends OcptThreeWayMergeResult {
   /// Every base region the two diverging sides changed differently, in document order.
   final List<OcptThreeWayMergeHunk> hunks;
 
-  /// Creates a conflict result. `hunks` is never empty — that is exactly what makes this a
+  /// Create a conflict result. `hunks` is never empty — that is exactly what makes this a
   /// [OcptThreeWayMergeConflict] rather than an [OcptCleanThreeWayMerge].
   const OcptThreeWayMergeConflict(this.hunks);
 
@@ -79,7 +79,7 @@ class OcptThreeWayMergeHunk extends Equatable {
   /// The lines the second diverging side holds in the corresponding region.
   final List<String> rightLines;
 
-  /// Creates a merge hunk.
+  /// Create a merge hunk.
   const OcptThreeWayMergeHunk({
     required this.baseLines,
     required this.leftLines,
@@ -97,7 +97,7 @@ class OcptThreeWayMergeHunk extends Equatable {
   List<Object?> get props => [baseLines, leftLines, rightLines];
 }
 
-/// Merges [left] and [right], two texts that independently diverged from their common ancestor
+/// Merge [left] and [right], two texts that independently diverged from their common ancestor
 /// [base], line by line.
 ///
 /// ## The algorithm
@@ -207,7 +207,7 @@ OcptThreeWayMergeResult ocptThreeWayMerge({
   return OcptCleanThreeWayMerge(mergedLines.join('\n'));
 }
 
-/// For every index of [base] that sits inside a matching block shared with [other] (see
+/// Get, for every index of [base], that sits inside a matching block shared with [other] (see
 /// [_matchingBlocks]), the corresponding index into [other] — `null` for a [base] index [other]
 /// does not hold unchanged, which is exactly the set of base lines this side of the merge touched.
 List<int?> _matchedIndexByBaseIndex(List<String> base, List<String> other) {
@@ -235,7 +235,7 @@ class _MatchingBlock {
   const _MatchingBlock({required this.baseStart, required this.otherStart, required this.length});
 }
 
-/// The matching blocks — maximal runs of consecutive lines common to [base] and [other], in
+/// Get the matching blocks — maximal runs of consecutive lines common to [base] and [other], in
 /// document order on both sides — computed from the longest common subsequence of the two line
 /// lists.
 ///
@@ -292,7 +292,7 @@ List<_MatchingBlock> _matchingBlocks(List<String> base, List<String> other) {
   return blocks;
 }
 
-/// Whether [a] and [b] hold the same lines in the same order — `List<String>`'s own `==` is
+/// Tell whether [a] and [b] hold the same lines in the same order — `List<String>`'s own `==` is
 /// identity, not content equality, so every comparison [ocptThreeWayMerge] itself makes goes
 /// through this instead.
 bool _listEquals(List<String> a, List<String> b) {

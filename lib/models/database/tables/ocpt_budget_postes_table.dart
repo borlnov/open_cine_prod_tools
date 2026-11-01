@@ -23,7 +23,7 @@ class OcptBudgetPostesTable extends Table {
   @override
   String get tableName => 'budget_postes';
 
-  /// The stable, unique id of this poste (a UUID).
+  /// Get the stable, unique id of this poste (a UUID).
   ///
   /// The ten seeded postes carry a **constant** id, declared alongside them in
   /// `lib/constants/ocpt_budget_cnc_postes.dart`, so two replicas seeding the same project produce
@@ -36,7 +36,7 @@ class OcptBudgetPostesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The CNC poste number as printed on a commission's own nomenclature (e.g. `2`, `4.1`), free
+  /// Get the CNC poste number as printed on a commission's own nomenclature (e.g. `2`, `4.1`), free
   /// text.
   ///
   /// Free text rather than an integer or an enum: the nomenclature is seeded and then editable, a
@@ -44,10 +44,10 @@ class OcptBudgetPostesTable extends Table {
   /// (`4.1`, `4.2`) is not an integer at all.
   TextColumn get code => text().withDefault(const Constant(''))();
 
-  /// This poste's display name, e.g. "Personnel".
+  /// Get this poste's display name, e.g. "Personnel".
   TextColumn get label => text()();
 
-  /// This poste's name in the mode's simplified header state, or null.
+  /// Get this poste's name in the mode's simplified header state, or null.
   ///
   /// **Null means "this poste has no simplified wording of its own"**, not "no name at all": the
   /// simplified display then falls back to [label], exactly the reading a nullable override always
@@ -58,7 +58,7 @@ class OcptBudgetPostesTable extends Table {
   /// free to leave this null and read the same way in both header states.
   TextColumn get simpleLabel => text().nullable()();
 
-  /// What is still expected to be spent on this poste beyond what has already been paid and
+  /// Get what is still expected to be spent on this poste beyond what has already been paid and
   /// committed against it, in cents, or null.
   ///
   /// **Null means "derive it", not "zero"**: `lib/models/rules/ocpt_budget_totals.dart`'s

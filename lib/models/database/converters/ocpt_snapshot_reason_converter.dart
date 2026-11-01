@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
-/// Converts a [OcptSnapshotReason] to and from the text stored in the
+/// Convert a [OcptSnapshotReason] to and from the text stored in the
 /// `screenplay_snapshots.reason` column.
 class OcptSnapshotReasonConverter extends TypeConverter<OcptSnapshotReason, String> {
   /// Class constructor

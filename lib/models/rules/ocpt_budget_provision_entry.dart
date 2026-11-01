@@ -27,7 +27,7 @@ class OcptBudgetProvisionEntry extends Equatable {
   /// What the provisioning would do to it.
   final OcptBudgetProvisionOutcome outcome;
 
-  /// What the provisioning would stamp onto the line it writes.
+  /// Get what the provisioning would stamp onto the line it writes.
   String get digest => ocptBudgetProvisionDigestOf(
     label: label,
     quantityMilli: quantityMilli,
@@ -44,7 +44,7 @@ class OcptBudgetProvisionEntry extends Equatable {
     required this.outcome,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetProvisionEntry(kind: $kind, lineId: $lineId, outcome: $outcome, "

@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
-/// Converts a [OcptShootingSlotAnchorEdge] to and from the text stored in the
+/// Convert a [OcptShootingSlotAnchorEdge] to and from the text stored in the
 /// `shooting_slots.anchor_edge` column.
 class OcptShootingSlotAnchorEdgeConverter
     extends TypeConverter<OcptShootingSlotAnchorEdge, String> {

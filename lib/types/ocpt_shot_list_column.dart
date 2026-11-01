@@ -36,7 +36,7 @@ enum OcptShotListColumn {
   /// The shooting status of the shot.
   status;
 
-  /// Whether this column is visible for a user who never opened the `Columns ▾` menu.
+  /// Tell whether this column is visible for a user who never opened the `Columns ▾` menu.
   ///
   /// The default set matches the mock-up's own: the three columns a director reads while
   /// planning a day of shooting ([duration], [shootingDay] and [status]), every other one folded
@@ -52,7 +52,7 @@ enum OcptShotListColumn {
     OcptShotListColumn.sound => false,
   };
 
-  /// The columns visible by default, i.e. every value whose [isDefaultVisible] is true.
+  /// Get the columns visible by default, i.e. every value whose [isDefaultVisible] is true.
   static Set<OcptShotListColumn> get defaultVisibleColumns =>
       OcptShotListColumn.values.where((column) => column.isDefaultVisible).toSet();
 }

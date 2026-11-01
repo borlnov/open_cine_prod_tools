@@ -31,23 +31,24 @@ class OcptRowFieldVersionsTable extends Table {
   @override
   String get tableName => 'row_field_versions';
 
-  /// The name of the table the stamped row lives in.
+  /// Get the name of the table the stamped row lives in.
   ///
   /// Named apart from its SQL column because `tableName` is already how a drift table declares its
   /// own name, right above.
   TextColumn get targetTableName => text().named('table_name')();
 
-  /// The primary key of the stamped row, rendered as text. See the class doc comment.
+  /// Get the primary key of the stamped row, rendered as text. See the class doc comment.
   TextColumn get rowId => text()();
 
-  /// The name of the stamped column, as the Dart side of the schema spells it.
+  /// Get the name of the stamped column, as the Dart side of the schema spells it.
   TextColumn get columnName => text()();
 
-  /// The version this column was last written at: a merge keeps the higher of two, and falls back
+  /// Get the version this column was last written at: a merge keeps the higher of two, and falls
+  /// back
   /// to [deviceId] to break a tie.
   IntColumn get version => integer()();
 
-  /// The `OcptPropertiesManager.deviceId` of the replica that wrote that version.
+  /// Get the `OcptPropertiesManager.deviceId` of the replica that wrote that version.
   TextColumn get deviceId => text()();
 
   /// {@macro drift.Table.primaryKey}

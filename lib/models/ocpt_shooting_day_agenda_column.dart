@@ -20,7 +20,7 @@ class OcptShootingDayAgendaColumn extends Equatable {
   /// Class constructor
   const OcptShootingDayAgendaColumn({required this.slotId, required this.label});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShootingDayAgendaColumn(slotId: $slotId, label: $label)";
 

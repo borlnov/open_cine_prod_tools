@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
-/// Converts a [OcptPageFormat] to and from the text stored in the `project_info.pageFormat`
+/// Convert a [OcptPageFormat] to and from the text stored in the `project_info.pageFormat`
 /// column.
 class OcptPageFormatConverter extends TypeConverter<OcptPageFormat, String> {
   /// Class constructor

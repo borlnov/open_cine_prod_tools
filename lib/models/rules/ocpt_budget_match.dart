@@ -72,7 +72,8 @@ const Map<String, String> _ocptBudgetMatchDiacritics = {
 /// plain lowercase letter or digit once [_ocptBudgetMatchFold] has run.
 final RegExp _ocptBudgetMatchWordSeparators = RegExp("[^a-z0-9]+");
 
-/// [text], lower-cased and every accented letter [_ocptBudgetMatchDiacritics] knows folded onto its
+/// Get [text], lower-cased and every accented letter [_ocptBudgetMatchDiacritics] knows folded onto
+/// its
 /// plain one.
 String _ocptBudgetMatchFold(String text) {
   final buffer = StringBuffer();
@@ -83,7 +84,7 @@ String _ocptBudgetMatchFold(String text) {
   return buffer.toString();
 }
 
-/// [text] split into its own significant words — folded through [_ocptBudgetMatchFold], cut on
+/// Get [text] split into its own significant words — folded through [_ocptBudgetMatchFold], cut on
 /// [_ocptBudgetMatchWordSeparators], and read as a set (so "Couronne, Couronne" is one word, not
 /// two) of at least [_ocptBudgetMatchMinWordLength] letters each.
 Set<String> _ocptBudgetMatchWordsOf(String text) => _ocptBudgetMatchFold(text)
@@ -108,7 +109,7 @@ class _OcptBudgetMatchCandidate {
   /// than a match in its own right.
   final int wordOverlapCount;
 
-  /// Whether this candidate agreed with the draft on at least one of amount, date or wording —
+  /// Tell whether this candidate agreed with the draft on at least one of amount, date or wording —
   /// [ocptBudgetMatchSuggestionsOf]'s own filter: a candidate agreeing on nothing is worse offered
   /// than not offered at all.
   bool get isWorthOffering =>
@@ -122,7 +123,7 @@ class _OcptBudgetMatchCandidate {
   });
 }
 
-/// Ranks what a draft movement — [isDebit], [draftAmountCents], [draftDate] and
+/// Rank what a draft movement — [isDebit], [draftAmountCents], [draftDate] and
 /// [draftWording] — could settle among [commitments], [allowances], [resources] and [revenues],
 /// given the project's own [projectVatRateBasisPoints].
 ///
@@ -302,7 +303,8 @@ List<OcptBudgetMatchSuggestion> ocptBudgetMatchSuggestionsOf({
       .toList();
 }
 
-/// [ocptBudgetMatchSuggestionsOf]'s own comparator — see that function's own doc comment for the
+/// Get [ocptBudgetMatchSuggestionsOf]'s own comparator — see that function's own doc comment for
+/// the
 /// three keys this reads, in order, and for why a missing date sorts after every present one rather
 /// than comparing as infinitely distant.
 int _ocptBudgetMatchRank(_OcptBudgetMatchCandidate a, _OcptBudgetMatchCandidate b) {

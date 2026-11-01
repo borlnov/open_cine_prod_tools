@@ -56,7 +56,7 @@ class OcptScheduleSnapshot extends Equatable {
   /// placements is read.
   final Set<String> placedShotIds;
 
-  /// The total number of live days.
+  /// Get the total number of live days.
   int get dayCount => days.length;
 
   /// Class constructor
@@ -69,7 +69,7 @@ class OcptScheduleSnapshot extends Equatable {
     required this.placedShotIds,
   });
 
-  /// Builds an [OcptScheduleSnapshot] of the project from its already-ordered [days],
+  /// Build an [OcptScheduleSnapshot] of the project from its already-ordered [days],
   /// [slotsByDayId], [blocksByDayId] and [eventsByDayId], deriving [daysById] and [placedShotIds]
   /// from them.
   factory OcptScheduleSnapshot.build({
@@ -94,7 +94,7 @@ class OcptScheduleSnapshot extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptScheduleSnapshot(dayCount: $dayCount, placedShotCount: ${placedShotIds.length})";

@@ -27,10 +27,10 @@ class OcptSyncPairingsTable extends Table {
   @override
   String get tableName => 'sync_pairings';
 
-  /// The project this row pairs, matching `project_info.id`.
+  /// Get the project this row pairs, matching `project_info.id`.
   TextColumn get projectId => text()();
 
-  /// The relay this project is paired with, e.g. `https://relay.example.org/`.
+  /// Get the relay this project is paired with, e.g. `https://relay.example.org/`.
   TextColumn get relayBaseUrl => text()();
 
   /// {@macro drift.Table.primaryKey}

@@ -31,7 +31,7 @@ class OcptBudgetResourcesTable extends Table {
   @override
   String get tableName => 'budget_resources';
 
-  /// The stable, unique id of this resource (a UUID).
+  /// Get the stable, unique id of this resource (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -40,7 +40,7 @@ class OcptBudgetResourcesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// What kind of financing this resource is.
+  /// Get what kind of financing this resource is.
   // The stored literal below must match `OcptBudgetResourceGroupKind.subsidy.name` exactly, for the
   // same reason `budget_commitments.status`'s default does: an enum's `.name` getter isn't a
   // compile-time constant expression, so it can't be written as `Constant(…)`.
@@ -48,7 +48,7 @@ class OcptBudgetResourcesTable extends Table {
       .map(const OcptBudgetResourceGroupKindConverter())
       .withDefault(const Constant('subsidy'))();
 
-  /// The person this resource comes from, or null. → [OcptPeopleTable]
+  /// Get the person this resource comes from, or null. → [OcptPeopleTable]
   ///
   /// Declared exactly as `OcptBudgetSharesTable.personId` is: nullable because a subsidy names no
   /// one person, and null is a real fact rather than "nobody has said yet". A cash contribution or
@@ -57,13 +57,14 @@ class OcptBudgetResourcesTable extends Table {
   /// revenue sharing's own repayment reading groups by this column.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// This resource's free-text wording, e.g. "Région Île-de-France — aide à la production".
+  /// Get this resource's free-text wording, e.g. "Région Île-de-France — aide à la production".
   TextColumn get label => text()();
 
-  /// The amount this resource comes to, exactly as typed, in cents.
+  /// Get the amount this resource comes to, exactly as typed, in cents.
   IntColumn get amountCents => integer().withDefault(const Constant(0))();
 
-  /// How far this resource has progressed towards actually financing the production — the step it
+  /// Tell how far this resource has progressed towards actually financing the production — the step
+  /// it
   /// stands at, whose *word* is the group's rather than the step's: see
   /// [OcptBudgetResourceStatus]'s own doc comment.
   // The stored literal below must match `OcptBudgetResourceStatus.pending.name` exactly, for the
@@ -74,11 +75,11 @@ class OcptBudgetResourcesTable extends Table {
       .map(const OcptBudgetResourceStatusConverter())
       .withDefault(const Constant('pending'))();
 
-  /// Whether this resource has to be repaid before the revenue sharing splits what is left —
+  /// Tell whether this resource has to be repaid before the revenue sharing splits what is left —
   /// the revenue sharing's own "reimbursable contributions repaid before anything is split".
   BoolColumn get isReimbursable => boolean().withDefault(const Constant(false))();
 
-  /// Free-form notes about this resource.
+  /// Get free-form notes about this resource.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

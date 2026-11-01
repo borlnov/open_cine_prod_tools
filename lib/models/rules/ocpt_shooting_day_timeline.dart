@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// reading when it deletes one, and two constants that had to agree would eventually stop agreeing.
 const int ocptDefaultBlockDurationMinutes = 30;
 
-/// Chains [blocks], in the order given, into a computed [OcptShootingSlotTimeline] — the rule
+/// Chain [blocks], in the order given, into a computed [OcptShootingSlotTimeline] — the rule
 /// recorded as ADR 0015 (as amended), implemented exactly once, here.
 ///
 /// A slot owns its own chain: it starts at [slotStartMinute] and runs only over that slot's own
@@ -133,7 +133,7 @@ OcptShootingSlotTimeline ocptComputeSlotTimeline({
   );
 }
 
-/// Resolves each of [slots]' own anchors, then computes each one's [OcptShootingSlotTimeline]
+/// Resolve each of [slots]' own anchors, then compute each one's [OcptShootingSlotTimeline]
 /// independently through [ocptComputeSlotTimeline], joined into one [OcptShootingDayTimelines].
 ///
 /// A day used to be chained as a single sequence; it no longer is. Two slots of a day — two units
@@ -327,7 +327,7 @@ OcptShootingDayTimelines ocptComputeShootingDayTimelines({
   );
 }
 
-/// Whether pinning [slotId]'s own anchored edge to [sourceSlotId]'s opposite one would close a
+/// Tell whether pinning [slotId]'s own anchored edge to [sourceSlotId]'s opposite one would close a
 /// circle, given [anchorSourceBySlotId] — every slot of the day mapped to the id its own anchor
 /// currently reads, or null when its anchor is a typed hour.
 ///

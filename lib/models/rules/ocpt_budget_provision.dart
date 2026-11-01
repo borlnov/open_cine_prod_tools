@@ -13,7 +13,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_provision_outcome.
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_provision_kind.dart';
 
-/// What the provisioning last wrote into a quote line, as `budget_lines.provisionDigest` stores it:
+/// Get what the provisioning last wrote into a quote line, as `budget_lines.provisionDigest` stores
+/// it:
 /// `[label, quantityMilli, unitAmountCents]` as JSON.
 ///
 /// **Deliberately readable rather than hashed**: it lives in a project file somebody may one day
@@ -25,7 +26,7 @@ String ocptBudgetProvisionDigestOf({
   required int unitAmountCents,
 }) => jsonEncode([label, quantityMilli, unitAmountCents]);
 
-/// Every figure the régie view currently has to provision, in [OcptBudgetProvisionKind] order.
+/// Get every figure the régie view currently has to provision, in [OcptBudgetProvisionKind] order.
 ///
 /// **A nature with nothing to say is left out entirely**, the discipline every grouping of this
 /// mode keeps: no meal price recorded, or no shooting day at all, and there is no meal figure —
@@ -73,7 +74,7 @@ List<OcptBudgetProvisionItem> ocptBudgetProvisionItemsOf({
   ];
 }
 
-/// Everything the provisioning would do to [posteLines], one entry per nature it touches.
+/// Get everything the provisioning would do to [posteLines], one entry per nature it touches.
 ///
 /// **The plan is computed whole before a single row is written**, so the gesture can be described
 /// to the user in a confirmation before it happens — how many lines would be created, how many
@@ -163,7 +164,7 @@ List<OcptBudgetProvisionEntry> ocptBudgetProvisionPlanOf({
   return entries;
 }
 
-/// What the provisioning would do to [existing], given the figure it now holds.
+/// Get what the provisioning would do to [existing], given the figure it now holds.
 OcptBudgetProvisionOutcome _outcomeOf({
   required OcptBudgetLine? existing,
   required String label,

@@ -49,17 +49,17 @@ class OcptShotListXlsxLabels extends Equatable {
     required this.dayTagPrefix,
   });
 
-  /// The header of [column], or an empty string if [columnHeaders] holds none for it.
+  /// Get the header of [column], or an empty string if [columnHeaders] holds none for it.
   String headerOf(OcptShotListXlsxColumn column) => columnHeaders[column] ?? "";
 
-  /// The label of [status], or an empty string if [statusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [statusLabels] holds none for it.
   String labelOf(OcptShotStatus status) => statusLabels[status] ?? "";
 
-  /// The separator row title of the sequence [sequenceId], or an empty string if
+  /// Get the separator row title of the sequence [sequenceId], or an empty string if
   /// [sequenceTitles] holds none for it.
   String titleOfSequence(String sequenceId) => sequenceTitles[sequenceId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShotListXlsxLabels(sheetName: $sheetName)";
 

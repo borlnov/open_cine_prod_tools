@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
-/// Converts a [OcptElementStatus] to and from the text stored in the `elements.status` column.
+/// Convert a [OcptElementStatus] to and from the text stored in the `elements.status` column.
 class OcptElementStatusConverter extends TypeConverter<OcptElementStatus, String> {
   /// Class constructor
   const OcptElementStatusConverter();

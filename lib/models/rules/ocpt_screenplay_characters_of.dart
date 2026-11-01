@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 
-/// Parses [screenplayText] and delegates to `fountain_kit`'s `screenplayCharactersOf`, whose
+/// Parse [screenplayText] and delegate to `fountain_kit`'s `screenplayCharactersOf`, whose
 /// normalisation matches `shot_characters.characterName`'s own (both go through
 /// `normalizeCharacterName`) so a shot's character and a screenplay's own compare equal
 /// byte-for-byte.

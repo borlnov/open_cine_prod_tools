@@ -60,7 +60,7 @@ class OcptLocationAvailability extends Equatable {
     required this.note,
   });
 
-  /// Builds an [OcptLocationAvailability] from its stored [row].
+  /// Build an [OcptLocationAvailability] from its stored [row].
   factory OcptLocationAvailability.fromRow(OcptLocationAvailabilityRow row) =>
       OcptLocationAvailability(
         id: row.id,
@@ -75,7 +75,7 @@ class OcptLocationAvailability extends Equatable {
         note: row.note,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptLocationAvailability(id: $id, startDate: $startDate, endDate: $endDate, kind: $kind)";

@@ -50,7 +50,7 @@ class OcptBudgetRepaymentLine extends Equatable {
   /// exactly as [ocptBudgetRepaidContributionsTotalOf] reads it for the whole plan.
   final OcptBudgetCoveredTotal repaid;
 
-  /// What is still owed to this contributor: [reimbursableCents] less [repaid]'s own amount,
+  /// Get what is still owed to this contributor: [reimbursableCents] less [repaid]'s own amount,
   /// floored at zero — [OcptBudgetSharingPot.outstandingRepaymentCents]'s own reading, read per
   /// contributor rather than for the whole plan.
   ///
@@ -70,7 +70,7 @@ class OcptBudgetRepaymentLine extends Equatable {
     required this.repaid,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetRepaymentLine(personId: $personId, label: $label, "

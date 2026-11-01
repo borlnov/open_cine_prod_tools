@@ -32,7 +32,8 @@ const _timeOfDaySeparator = " - ";
 /// spell it.
 const _minimumContainmentLength = 3;
 
-/// The set the scene headed [heading] is most likely shot in, among every set of [locations], or
+/// Get the set the scene headed [heading] is most likely shot in, among every set of [locations],
+/// or
 /// null when nothing in the project resembles it.
 ///
 /// This is a **suggestion and only ever a suggestion**: the
@@ -90,7 +91,7 @@ String? ocptSceneSetSuggestionOf({required String heading, required List<OcptLoc
   return bestSetId;
 }
 
-/// The place scene heading [heading] names: its interior/exterior prefix and its time of day
+/// Get the place scene heading [heading] names: its interior/exterior prefix and its time of day
 /// dropped, its whitespace collapsed, upper-cased.
 ///
 /// Exposed on its own because it is also what a reader wants to *see* — a scene offered for a set
@@ -117,11 +118,11 @@ String ocptSceneHeadingPlaceOf(String heading) {
   return place.trim();
 }
 
-/// [value] upper-cased, with its outer whitespace trimmed and its inner runs of whitespace
+/// Get [value] upper-cased, with its outer whitespace trimmed and its inner runs of whitespace
 /// collapsed to one space, so `INT.  CUISINE` and `int. cuisine` are one and the same place.
 String _normalize(String value) => value.trim().toUpperCase().replaceAll(RegExp(r"\s+"), " ");
 
-/// Whether one of [place] and [setName] contains the other, both being long enough for that to
+/// Tell whether one of [place] and [setName] contains the other, both being long enough for that to
 /// mean something (see [_minimumContainmentLength]).
 bool _containsEitherWay(String place, String setName) {
   if (place.length < _minimumContainmentLength || setName.length < _minimumContainmentLength) {

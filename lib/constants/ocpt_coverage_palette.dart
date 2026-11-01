@@ -51,7 +51,7 @@ const List<int> ocptCoveragePalette = [
 /// entries keep the lightness and saturation the palette was picked for — only the hue moves.
 const double _cycleHueRotationDegrees = 30;
 
-/// The colour a shot of [rank] within its sequence is drawn with, as an ARGB integer.
+/// Get the colour a shot of [rank] within its sequence is drawn with, as an ARGB integer.
 ///
 /// [rank] is the shot's 0-based position in its own sequence, unbounded: the first 16 shots take
 /// [ocptCoveragePalette] as it stands, and every further cycle takes it again with its hue rotated
@@ -68,7 +68,7 @@ int ocptCoverageColorAt(int rank) {
   return _rotateHue(color, cycle * _cycleHueRotationDegrees);
 }
 
-/// [color] with its hue rotated by [degrees], keeping its alpha, saturation and lightness.
+/// Get [color] with its hue rotated by [degrees], keeping its alpha, saturation and lightness.
 ///
 /// Written out here rather than taken from a colour package because this file must stay free of
 /// both Flutter and `pdf`: the conversion is the textbook RGB → HSL → RGB round trip, over the
@@ -108,7 +108,8 @@ int _rotateHue(int color, double degrees) {
   );
 }
 
-/// The ARGB integer of the colour with [alpha], [hue] (in degrees), [saturation] and [lightness],
+/// Get the ARGB integer of the colour with [alpha], [hue] (in degrees), [saturation] and
+/// [lightness],
 /// the inverse of the decomposition [_rotateHue] runs.
 int _fromHsl({
   required int alpha,

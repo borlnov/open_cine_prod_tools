@@ -338,7 +338,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.isBudgetSimplified,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptProjectVersionPayload(screenplays: ${screenplays.length}, scenes: ${scenes.length}, "

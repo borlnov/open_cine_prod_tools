@@ -63,7 +63,8 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetReimbursedByPersonId(
   };
 }
 
-/// [entries]' own reimbursed total against one person — the tax-inclusive sum of every debit, row
+/// Get [entries]' own reimbursed total against one person — the tax-inclusive sum of every debit,
+/// row
 /// by row, then summed — paired with how many of them actually carried a known rate. The one
 /// person-scoped loop [ocptBudgetReimbursedByPersonId] runs once per person, kept separate so that
 /// function stays a plain grouping followed by one reading per group, exactly the shape
@@ -96,7 +97,7 @@ OcptBudgetCoveredTotal _ocptBudgetReimbursedTotalOf(
   );
 }
 
-/// [personId]'s own reimbursed total, read off [entries] — [ocptBudgetReimbursedByPersonId]
+/// Get [personId]'s own reimbursed total, read off [entries] — [ocptBudgetReimbursedByPersonId]
 /// narrowed to this one person, doing its own narrowing rather than asking every caller to group
 /// [entries] itself first, exactly the reason `ocptBudgetCommitmentPaidCentsOf`
 /// (`lib/models/rules/ocpt_budget_projection.dart`) does its own.
@@ -109,7 +110,8 @@ OcptBudgetCoveredTotal ocptBudgetPersonReimbursedCentsOf(
     if (entry.personId == personId) entry,
 ], projectVatRateBasisPoints: projectVatRateBasisPoints);
 
-/// What [personId] has advanced, across every one of [allowances] naming them — the plain sum of
+/// Get what [personId] has advanced, across every one of [allowances] naming them — the plain sum
+/// of
 /// [ocptBudgetAllowanceAmountCents], needing no VAT rate at all: see this file's own doc comment
 /// for why a defrayal answers a plain amount rather than an [OcptBudgetCoveredTotal].
 int ocptBudgetPersonAdvancedCents(String personId, List<OcptBudgetAllowance> allowances) =>
@@ -117,7 +119,7 @@ int ocptBudgetPersonAdvancedCents(String personId, List<OcptBudgetAllowance> all
         .where((allowance) => allowance.personId == personId)
         .fold(0, (sum, allowance) => sum + ocptBudgetAllowanceCentsOf(allowance));
 
-/// What is still owed to a person who has advanced [advancedCents] and been reimbursed
+/// Get what is still owed to a person who has advanced [advancedCents] and been reimbursed
 /// [reimbursedCents].
 ///
 /// **Not clamped at zero**, for the reason `ocptBudgetResourceOutstandingCents`

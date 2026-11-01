@@ -50,7 +50,7 @@ class OcptShootingDayAgendaTile extends Equatable {
     required this.rowSpan,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingDayAgendaTile(blockId: $blockId, slotId: $slotId, rows: $startRow+$rowSpan)";

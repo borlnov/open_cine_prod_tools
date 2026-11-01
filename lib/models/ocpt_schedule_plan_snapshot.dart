@@ -350,7 +350,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     required this.shotsById,
   });
 
-  /// Builds an [OcptSchedulePlanSnapshot] from [schedule], every live episode's own [shotLists],
+  /// Build an [OcptSchedulePlanSnapshot] from [schedule], every live episode's own [shotLists],
   /// the four catalogues and [minimumRestMinutes], deriving [locationById]/[setById]/[roleById]/
   /// [personById]/[roleCandidateById]/[episodeById]/[shotsById] from them once.
   ///
@@ -400,12 +400,13 @@ class OcptSchedulePlanSnapshot extends Equatable {
     shotsById: Map.unmodifiable({for (final shotList in shotLists) ...shotList.shotsById}),
   );
 
-  /// The shot [shotId] names, or null while it hasn't been read yet (or it has since been deleted).
+  /// Get the shot [shotId] names, or null while it hasn't been read yet (or it has since been
+  /// deleted).
   /// Reads the merged [shotsById] rather than walking [shotLists] itself — see that field's own doc
   /// comment for why.
   OcptShot? shotById(String shotId) => shotsById[shotId];
 
-  /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
+  /// Get [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
   /// all.
   ///
@@ -452,7 +453,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast role
+  /// Get day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person, per uncast
+  /// role
   /// and per guest linked to any of its live slots, plus one per candidacy named on any of its live
   /// audition blocks (ADR 0024), empty while [dayId] names no day with a live slot at all.
   ///
@@ -483,7 +485,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
+  /// Get day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
   /// ([OcptShootingDayTimelines.dayStartMinute]) — or null while it has no live slot at all.
   ///
   /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
@@ -493,7 +495,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// amended a second time).
   int? dayArrivalMinute(String dayId) => timelinesOfDay(dayId)?.dayStartMinute;
 
-  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
+  /// Get [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live
+  /// slot
   /// has no location, or that location has no coordinates pinned yet.
   OcptSunTimes? sunTimesOfDay(String dayId) {
     final day = schedule.daysById[dayId];
@@ -512,14 +515,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return ocptSunTimesOf(date: day.date, latitudeDegrees: latitude, longitudeDegrees: longitude);
   }
 
-  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
+  /// Get [dayId]'s own first live slot's location, or null while it has none — what a day's own
+  /// tint
   /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
   OcptLocation? firstLocationOfDay(String dayId) {
     final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
     return slots.isEmpty ? null : locationById[slots.first.locationId];
   }
 
-  /// The scene ids of every [OcptShootingBlockKind.shot] block placed on [dayId], deduplicated —
+  /// Get the scene ids of every [OcptShootingBlockKind.shot] block placed on [dayId], deduplicated
+  /// —
   /// the scenes the day actually plays, which is what [elementsToBringOnDay] joins an element's own
   /// [OcptElement.sceneLinks] against. A block naming no shot, or a shot with no scene (an orphaned
   /// heading), contributes nothing: there is no scene id to test an element's own link against.
@@ -534,7 +539,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
         if (shotById(block.shotId!)?.sceneId case final sceneId?) sceneId,
   };
 
-  /// Every role [dayId] convokes, across all of its live slots — the union of their own
+  /// Get every role [dayId] convokes, across all of its live slots — the union of their own
   /// `shooting_slot_cast` rows, which is what the *Day Out of Days* reads a cell from.
   ///
   /// Names **roles**, never actors, and deliberately so: a *Day Out of Days* is negotiated per
@@ -550,7 +555,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       for (final member in slot.cast) member.roleId,
   };
 
-  /// The live elements [personId] is due to bring to [dayId]: every [elements] row whose
+  /// Get the live elements [personId] is due to bring to [dayId]: every [elements] row whose
   /// [OcptElement.broughtByPersonId] is [personId] **and** at least one of whose
   /// [OcptElement.sceneLinks] names a scene [sceneIdsOfDay] says the day actually plays — the join
   /// a named call sheet's own "to bring" section reads. Sorted by [OcptElement.category] (the
@@ -579,7 +584,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return toBring;
   }
 
-  /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
+  /// Get [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of
+  /// every
   /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four
   /// categories when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when
   /// nothing placed on [dayId] classifies at all. What `OcptScheduleAgendaColorMode.effect` tints a
@@ -599,7 +605,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     ]);
   }
 
-  /// The presence grid's own effective cell for [personId] on [dayId] — entirely computed, in
+  /// Get the presence grid's own effective cell for [personId] on [dayId] — entirely computed, in
   /// order: [OcptPresenceCode.working] when [personId] is convoked on [dayId]
   /// ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable] when they are not convoked but
   /// one of their own [OcptPerson.unavailabilities] covers [dayId]'s own calendar date, or null
@@ -627,7 +633,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return null;
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptSchedulePlanSnapshot(shotListCount: ${shotLists.length}, "
@@ -636,7 +642,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
       "elementCount: ${elements.length}, roleCandidateCount: ${roleCandidates.length}, "
       "minimumRestMinutes: $minimumRestMinutes)";
 
-  /// The [OcptConvocationAudition] of every live [OcptShootingBlockKind.audition] block among
+  /// Get the [OcptConvocationAudition] of every live [OcptShootingBlockKind.audition] block among
   /// [blocks] that names at least one candidacy [roleCandidateById] still holds, its hours read off
   /// [timelines]' own resolved entry for it.
   ///
@@ -698,7 +704,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return auditions;
   }
 
-  /// Builds [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
+  /// Build [slot]'s own [OcptConvocationSlot]: [OcptConvocationSlot.shootingStartMinute]/
   /// [OcptConvocationSlot.shootingEndMinute] are the minimum start and the maximum end, over
   /// [timeline]'s own entries whose [blocksById] row is a shooting block
   /// (`OcptShootingBlockKind.isShootingTime` — a shot, a hold, an audition or a rehearsal), and
@@ -789,14 +795,16 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet (or
+  /// Get [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet
+  /// (or
   /// the shot isn't loaded).
   int? _durationMinutesOfShot(String shotId) {
     final estimatedDurationMs = shotById(shotId)?.estimatedDurationMs;
     return estimatedDurationMs == null ? null : (estimatedDurationMs / 60000).round();
   }
 
-  /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing
+  /// Tell whether any of [person]'s own recorded unavailabilities covers calendar [date] —
+  /// comparing
   /// dates alone, own time-of-day component dropped, mirroring
   /// `lib/models/rules/ocpt_schedule_alerts.dart`'s own private `_dateRangeContains` (duplicated
   /// rather than shared: that file's own doc comment keeps it free of anything beyond the eleven
@@ -824,7 +832,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return false;
   }
 
-  /// Builds [day]'s own [OcptScheduleAlertDay]: its live slots ([_alertSlotOf]), the timeline
+  /// Build [day]'s own [OcptScheduleAlertDay]: its live slots ([_alertSlotOf]), the timeline
   /// diagnostics [timelinesOfDay] already computes for it, and the roles a shot placed on it calls
   /// for ([_calledRolesOfDay]).
   OcptScheduleAlertDay _alertDayOf(OcptShootingDay day) {
@@ -846,7 +854,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Builds [slot]'s own [OcptScheduleAlertSlot]: its resolved band (from [timeline]), who is
+  /// Build [slot]'s own [OcptScheduleAlertSlot]: its resolved band (from [timeline]), who is
   /// convoked on it as a human ([OcptScheduleAlertSlot.personIds], the same computation
   /// [_convocationSlotOf] makes for [convocationsOfDay]) and which roles it convokes at all, cast
   /// or not ([OcptScheduleAlertSlot.convokedRoleIds]).
@@ -871,7 +879,8 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Every role a shot placed on [dayId] calls for, one [OcptScheduleAlertCalledRole] per matched
+  /// Get every role a shot placed on [dayId] calls for, one [OcptScheduleAlertCalledRole] per
+  /// matched
   /// character of every `shot` block of that day's own blocks, in block order. A character with no
   /// matching role (through [_roleIdByNormalizedName]) names nothing this rule can act on and is
   /// silently skipped, exactly as `OcptShootingPlanDaySections.roleNamesOf` skips one.

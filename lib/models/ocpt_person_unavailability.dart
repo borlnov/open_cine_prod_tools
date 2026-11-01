@@ -49,7 +49,7 @@ class OcptPersonUnavailability extends Equatable {
     required this.reason,
   });
 
-  /// Builds an [OcptPersonUnavailability] from its stored [row].
+  /// Build an [OcptPersonUnavailability] from its stored [row].
   factory OcptPersonUnavailability.fromRow(OcptPersonUnavailabilityRow row) =>
       OcptPersonUnavailability(
         id: row.id,
@@ -62,7 +62,7 @@ class OcptPersonUnavailability extends Equatable {
         reason: row.reason,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptPersonUnavailability(id: $id, startDate: $startDate, endDate: $endDate, slot: $slot)";

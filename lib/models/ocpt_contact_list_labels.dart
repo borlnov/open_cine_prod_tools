@@ -83,15 +83,16 @@ class OcptContactListLabels extends Equatable {
     required this.emptyDocumentNote,
   });
 
-  /// The label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
+  /// Get the label of [department], or an empty string if [crewDepartmentLabels] holds none for it.
   String crewDepartmentLabelOf(OcptCrewDepartment department) =>
       crewDepartmentLabels[department] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
+  /// Get the label of the crew position [positionId] names, or an empty string if
+  /// [crewPositionLabels]
   /// holds none for it.
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptContactListLabels(documentTitle: $documentTitle)";
 

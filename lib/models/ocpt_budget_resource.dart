@@ -53,7 +53,7 @@ class OcptBudgetResource extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetResource] from its stored [row].
+  /// Build an [OcptBudgetResource] from its stored [row].
   factory OcptBudgetResource.fromRow(OcptBudgetResourceRow row) => OcptBudgetResource(
     id: row.id,
     groupKind: row.groupKind,
@@ -66,7 +66,7 @@ class OcptBudgetResource extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetResource(id: $id, groupKind: $groupKind, personId: $personId, "

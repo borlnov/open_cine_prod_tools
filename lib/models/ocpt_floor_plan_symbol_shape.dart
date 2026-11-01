@@ -138,7 +138,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     this.overrideLevel,
   });
 
-  /// Returns a copy of this shape with [symbolId], the three override-marking flags and
+  /// Return a copy of this shape with [symbolId], the three override-marking flags and
   /// [overrideLevel] overridden — the only fields `OcptFloorPlanSheet.of` ever needs to adjust
   /// after the fact, since every other field is already resolved by [OcptFloorPlanSheet._shapeOf].
   OcptFloorPlanSymbolShape copyWith({
@@ -173,7 +173,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
     overrideLevel: overrideLevel ?? (forceOverrideLevelValue ? null : this.overrideLevel),
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFloorPlanSymbolShape(symbolId: $symbolId, layer: $layer, isGhost: $isGhost)";

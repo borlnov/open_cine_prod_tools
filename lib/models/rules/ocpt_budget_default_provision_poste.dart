@@ -4,7 +4,8 @@
 
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 
-/// The poste the régie view's own provisioning starts out pointed at: the CNC nomenclature's own
+/// Get the poste the régie view's own provisioning starts out pointed at: the CNC nomenclature's
+/// own
 /// `Transports, défraiements, régie`, by its **stable seeded id**, when the project still has it,
 /// and the first poste otherwise.
 ///

@@ -70,11 +70,11 @@ class OcptSidesLabels extends Equatable {
     required this.emptyDayNote,
   });
 
-  /// [screenplayId]'s own label, or an empty string if [episodeLabels] holds none for it — the
+  /// Get [screenplayId]'s own label, or an empty string if [episodeLabels] holds none for it — the
   /// same fallback `OcptOneLineScheduleLabels.titleOfDay` already uses.
   String episodeLabelOf(String screenplayId) => episodeLabels[screenplayId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSidesLabels(documentTitle: $documentTitle, dayTitle: $dayTitle)";
 

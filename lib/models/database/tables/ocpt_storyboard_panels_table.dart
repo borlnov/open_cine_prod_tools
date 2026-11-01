@@ -22,20 +22,22 @@ class OcptStoryboardPanelsTable extends Table {
   @override
   String get tableName => 'storyboard_panels';
 
-  /// The stable, unique id of this panel (a UUID).
+  /// Get the stable, unique id of this panel (a UUID).
   TextColumn get id => text()();
 
-  /// The shot this panel belongs to.
+  /// Get the shot this panel belongs to.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The panel's frame, an `assets` row of kind `storyboardPanelImage` — null while no image has
+  /// Get the panel's frame, an `assets` row of kind `storyboardPanelImage` — null while no image
+  /// has
   /// been imported yet, or after one was removed without a replacement.
   TextColumn get imageAssetId => text().nullable().references(OcptAssetsTable, #id)();
 
-  /// The free comment shown under the frame. No start/end captions — a single comment per panel.
+  /// Get the free comment shown under the frame. No start/end captions — a single comment per
+  /// panel.
   TextColumn get comment => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

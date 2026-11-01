@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
-/// Converts a [OcptRoleKind] to and from the text stored in the `roles.kind` column.
+/// Convert a [OcptRoleKind] to and from the text stored in the `roles.kind` column.
 class OcptRoleKindConverter extends TypeConverter<OcptRoleKind, String> {
   /// Class constructor
   const OcptRoleKindConverter();

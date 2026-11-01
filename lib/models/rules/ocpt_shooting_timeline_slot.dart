@@ -28,7 +28,7 @@ class OcptShootingTimelineSlot {
   /// of the day appears in more than one [OcptShootingTimelineSlot].
   final List<OcptShootingTimelineBlock> blocks;
 
-  /// Builds a slot to feed to [ocptComputeShootingDayTimelines].
+  /// Build a slot to feed to [ocptComputeShootingDayTimelines].
   const OcptShootingTimelineSlot({
     required this.id,
     required this.anchorEdge,

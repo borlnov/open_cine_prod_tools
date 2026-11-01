@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 
-/// The label of the group a target of [kind] falling under [category] is printed in: the
+/// Get the label of the group a target of [kind] falling under [category] is printed in: the
 /// category's own label for an element, [roleGroupLabel] or [setGroupLabel] otherwise.
 ///
 /// The single switch every legend-keyed label reads off (`ocptBreakdownLegendKeyLabel` makes the
@@ -127,16 +127,16 @@ class OcptBreakdownSheetsLabels extends Equatable {
     required this.emptyDocumentNote,
   });
 
-  /// The title of the scene [sceneId], or an empty string if [sceneTitles] holds none for it.
+  /// Get the title of the scene [sceneId], or an empty string if [sceneTitles] holds none for it.
   String titleOfScene(String sceneId) => sceneTitles[sceneId] ?? "";
 
-  /// The label of [status], or an empty string if [sceneStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [sceneStatusLabels] holds none for it.
   String sceneStatusLabelOf(OcptBreakdownSceneStatus status) => sceneStatusLabels[status] ?? "";
 
-  /// The label of [status], or an empty string if [elementStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [elementStatusLabels] holds none for it.
   String elementStatusLabelOf(OcptElementStatus status) => elementStatusLabels[status] ?? "";
 
-  /// The label of the group a target of [kind] falling under [category] is printed in: the
+  /// Get the label of the group a target of [kind] falling under [category] is printed in: the
   /// category's own label for an element, [roleGroupLabel] or [setGroupLabel] otherwise.
   ///
   /// Delegates to [ocptBreakdownGroupLabelOf], the single switch every export that groups targets
@@ -151,7 +151,7 @@ class OcptBreakdownSheetsLabels extends Equatable {
         setGroupLabel: setGroupLabel,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownSheetsLabels(documentTitle: $documentTitle, sceneCount: ${sceneTitles.length})";

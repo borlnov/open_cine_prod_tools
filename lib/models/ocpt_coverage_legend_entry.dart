@@ -42,7 +42,7 @@ class OcptCoverageLegendEntry extends Equatable {
     required this.cameraMove,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptCoverageLegendEntry(shotId: $shotId, label: $label)";
 

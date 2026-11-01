@@ -27,19 +27,20 @@ class OcptProjectInfoTable extends Table {
   @override
   String get tableName => 'project_info';
 
-  /// The row id, always 1: this table only ever holds a single row.
+  /// Get the row id, always 1: this table only ever holds a single row.
   IntColumn get id => integer().withDefault(const Constant(1))();
 
-  /// The display name of the project.
+  /// Get the display name of the project.
   TextColumn get name => text()();
 
-  /// The date and time at which the project was created.
+  /// Get the date and time at which the project was created.
   DateTimeColumn get createdAt => dateTime()();
 
-  /// The version of Open Cine Prod Tools that created this project file.
+  /// Get the version of Open Cine Prod Tools that created this project file.
   TextColumn get appVersionAtCreation => text()();
 
-  /// The app version that last created or migrated this project file (semver; a pre-release build
+  /// Get the app version that last created or migrated this project file (semver; a pre-release
+  /// build
   /// carries a suffix), or null when this build never wrote it.
   ///
   /// This is the writer identity `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`
@@ -48,10 +49,10 @@ class OcptProjectInfoTable extends Table {
   /// reading [minimumRestMinutes]'s own doc comment gives its own null.
   TextColumn get migratedByAppVersion => text().nullable()();
 
-  /// The physical page format used to paginate this project's screenplays.
+  /// Get the physical page format used to paginate this project's screenplays.
   TextColumn get pageFormat => text().map(const OcptPageFormatConverter())();
 
-  /// The ISO 4217 code of the currency this project counts its costs in (e.g. `EUR`, `USD`).
+  /// Get the ISO 4217 code of the currency this project counts its costs in (e.g. `EUR`, `USD`).
   ///
   /// A property of the **project**, not of the app: a production shot in France and one shot in
   /// the US count their costs in different currencies, and that fact has to travel inside the
@@ -61,10 +62,10 @@ class OcptProjectInfoTable extends Table {
   /// nothing to do with any one project.
   TextColumn get currencyCode => text().withDefault(const Constant(ocptDefaultCurrencyCode))();
 
-  /// Free-form project settings, stored as a JSON object, or null if there are none yet.
+  /// Get free-form project settings, stored as a JSON object, or null if there are none yet.
   TextColumn get settingsJson => text().nullable()();
 
-  /// The minimum rest, in minutes, this production says it owes between two shooting days, or
+  /// Get the minimum rest, in minutes, this production says it owes between two shooting days, or
   /// null.
   ///
   /// **Nullable, and deliberately not defaulted to 660** (the eleven hours French law sets): this
@@ -76,7 +77,7 @@ class OcptProjectInfoTable extends Table {
   /// window already do.
   IntColumn get minimumRestMinutes => integer().nullable()();
 
-  /// The language this project's screenplays are **written** in ([OcptScreenplayLanguage]), or
+  /// Get the language this project's screenplays are **written** in ([OcptScreenplayLanguage]), or
   /// null.
   ///
   /// A property of the **project**, not of the app — the same reasoning [currencyCode] carries: a
@@ -93,7 +94,7 @@ class OcptProjectInfoTable extends Table {
   TextColumn get screenplayLanguage =>
       text().nullable().map(const OcptScreenplayLanguageConverter())();
 
-  /// The default VAT rate the budget mode applies to a line that doesn't override it, in basis
+  /// Get the default VAT rate the budget mode applies to a line that doesn't override it, in basis
   /// points (550 for 5.5 %), or null.
   ///
   /// **Nullable, and deliberately not defaulted to any rate**: this app ships in more than one
@@ -106,7 +107,8 @@ class OcptProjectInfoTable extends Table {
   /// rest alert stays silent when it is null.
   IntColumn get defaultVatRateBasisPoints => integer().nullable()();
 
-  /// The price of one meal, in cents, the budget mode's catering view charges per head, or null.
+  /// Get the price of one meal, in cents, the budget mode's catering view charges per head, or
+  /// null.
   ///
   /// Nullable for the reason [defaultVatRateBasisPoints] is: no figure here would be one this app
   /// could validate on the production's behalf, so null means "nobody has recorded a price" and the
@@ -114,11 +116,12 @@ class OcptProjectInfoTable extends Table {
   /// advancing a price nobody typed.
   IntColumn get mealPriceCents => integer().nullable()();
 
-  /// The price of one snack, in cents, the budget mode's catering view charges per head, or null —
+  /// Get the price of one snack, in cents, the budget mode's catering view charges per head, or
+  /// null —
   /// [mealPriceCents]'s sibling, read the same way and for the same reason.
   IntColumn get snackPriceCents => integer().nullable()();
 
-  /// Whether the budget mode's header currently shows the simplified view rather than the
+  /// Tell whether the budget mode's header currently shows the simplified view rather than the
   /// detailed one, or null.
   ///
   /// **Nullable, and deliberately not defaulted to either reading**: the toggle used to live in
@@ -130,7 +133,8 @@ class OcptProjectInfoTable extends Table {
   /// column existed at all.
   BoolColumn get isBudgetSimplified => boolean().nullable()();
 
-  /// The project version the working copy descends from, or null in a project which never had one.
+  /// Get the project version the working copy descends from, or null in a project which never had
+  /// one.
   ///
   /// This is what tells the `Versions` panel which of its cards is the current one: it is set when
   /// a version is created and when one is restored, and cleared when the version it points at is

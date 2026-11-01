@@ -45,7 +45,7 @@ class OcptShootingSlotGuest extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingSlotGuest] from its stored [row].
+  /// Build an [OcptShootingSlotGuest] from its stored [row].
   factory OcptShootingSlotGuest.fromRow(OcptShootingSlotGuestRow row) => OcptShootingSlotGuest(
     id: row.id,
     slotId: row.slotId,
@@ -55,7 +55,7 @@ class OcptShootingSlotGuest extends Equatable {
     notes: row.notes,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingSlotGuest(id: $id, slotId: $slotId, personId: $personId, freeName: $freeName)";

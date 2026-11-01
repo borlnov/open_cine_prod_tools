@@ -23,7 +23,7 @@ class OcptShootingTimelineEntry {
   /// whichever [ocptComputeSlotTimeline] fell back to.
   final int durationMinutes;
 
-  /// Builds a placed entry.
+  /// Build a placed entry.
   const OcptShootingTimelineEntry({
     required this.blockId,
     required this.startMinute,

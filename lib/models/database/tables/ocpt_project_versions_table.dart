@@ -29,42 +29,44 @@ class OcptProjectVersionsTable extends Table {
   @override
   String get tableName => 'project_versions';
 
-  /// The stable, unique id of this version (a UUID).
+  /// Get the stable, unique id of this version (a UUID).
   TextColumn get id => text()();
 
-  /// The user-facing name of this version, e.g. `v4 — Shot list seq. 1 to 3`.
+  /// Get the user-facing name of this version, e.g. `v4 — Shot list seq. 1 to 3`.
   TextColumn get name => text()();
 
-  /// The user's free-text description of this version; empty when they wrote none.
+  /// Get the user's free-text description of this version; empty when they wrote none.
   TextColumn get note => text().withDefault(const Constant(''))();
 
-  /// The date and time at which the user created this version.
+  /// Get the date and time at which the user created this version.
   ///
   /// The database stores date times as text (`DriftDatabaseOptions.storeDateTimeAsText`), so this
   /// keeps its sub-second precision: two versions created within the same second still order
   /// correctly in the list, which is ordered by this column alone.
   DateTimeColumn get createdAt => dateTime()();
 
-  /// The version of Open Cine Prod Tools that created this version.
+  /// Get the version of Open Cine Prod Tools that created this version.
   TextColumn get appVersion => text()();
 
-  /// The format [payload] is written in, **independent of the database's own schema version**: a
+  /// Get the format [payload] is written in, **independent of the database's own schema version**:
+  /// a
   /// payload outlives the app build that wrote it, and `OcptProjectVersionCodec` upgrades any older
   /// format it knows on decode rather than only rejecting what it doesn't.
   IntColumn get payloadFormat => integer()();
 
-  /// The serialized state of the whole project at the moment this version was created, as the JSON
+  /// Get the serialized state of the whole project at the moment this version was created, as the
+  /// JSON
   /// text `OcptProjectVersionCodec` writes and is the only thing to read.
   TextColumn get payload => text()();
 
-  /// The counters shown on this version's card (its page count, how many sequences were broken
+  /// Get the counters shown on this version's card (its page count, how many sequences were broken
   /// down), as JSON.
   ///
   /// They are computed **once**, when the version is created, and stored here: drawing the list
   /// must never mean deserializing every payload.
   TextColumn get summaryJson => text()();
 
-  /// The `OcptPropertiesManager.deviceId` of the replica that created this version.
+  /// Get the `OcptPropertiesManager.deviceId` of the replica that created this version.
   ///
   /// Recorded for provenance, **never shown**: the app has no accounts and no identities, and a
   /// device id names a machine's copy of the app rather than a person. Nothing reads this column
@@ -72,7 +74,7 @@ class OcptProjectVersionsTable extends Table {
   /// on every version already stored in users' files.
   TextColumn get createdByDeviceId => text()();
 
-  /// The SHA-256 hex digest `OcptProjectVersionCodec.contentDigest` computed over [payload] at
+  /// Get the SHA-256 hex digest `OcptProjectVersionCodec.contentDigest` computed over [payload] at
   /// capture time — the primitive both "is the working copy the same as this version?" and a
   /// restore's deduplicated safety version rest on.
   ///

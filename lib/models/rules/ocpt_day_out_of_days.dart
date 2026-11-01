@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days_row.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 
-/// Computes the *Day Out of Days* of [days] over [roleIds] — the most standard cast-scheduling
+/// Compute the *Day Out of Days* of [days] over [roleIds] — the most standard cast-scheduling
 /// document there is, and one this app already holds every figure for.
 ///
 /// [days] comes in **in printing order** (the schedule mode's own date order), and [roleIds] in the
@@ -78,7 +78,7 @@ OcptDayOutOfDaysTable ocptComputeDayOutOfDays({
   return OcptDayOutOfDaysTable(dayIds: List.unmodifiable(dayIds), rows: List.unmodifiable(rows));
 }
 
-/// The code of the day at [index], inside a role's own `[firstIndex, lastIndex]` span:
+/// Get the code of the day at [index], inside a role's own `[firstIndex, lastIndex]` span:
 /// [OcptDayOutOfDaysCode.hold] while the role is not convoked there, and one of the three worked
 /// codes otherwise — [OcptDayOutOfDaysCode.startWorkFinish] on the one cell where the span's two
 /// ends meet.

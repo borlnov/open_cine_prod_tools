@@ -39,7 +39,7 @@ class OcptShootingPlanElementsGridCategoryBand extends OcptShootingPlanElementsG
   /// Class constructor
   const OcptShootingPlanElementsGridCategoryBand({required this.label});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptShootingPlanElementsGridCategoryBand(label: $label)";
 
@@ -64,7 +64,7 @@ class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGri
   /// Class constructor
   const OcptShootingPlanElementsGridElementRow({required this.label, required this.cells});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanElementsGridElementRow(label: $label, cells: ${cells.length})";
@@ -145,7 +145,7 @@ class OcptShootingPlanGrids extends Equatable {
     required this.elementsRows,
   });
 
-  /// Builds the four grids of [plan] over [dayIds] — see the class doc comment for why every
+  /// Build the four grids of [plan] over [dayIds] — see the class doc comment for why every
   /// localized word arrives as a plain parameter or a map rather than a labels object.
   factory OcptShootingPlanGrids.of({
     required OcptSchedulePlanSnapshot plan,
@@ -201,12 +201,13 @@ class OcptShootingPlanGrids extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanGrids(slotColumns: ${slotColumns.length}, dayColumns: ${dayColumns.length})";
 
-  /// One `(day, slot)` pair per live slot of every live day of [dayIds] that carries at least one,
+  /// Get one `(day, slot)` pair per live slot of every live day of [dayIds] that carries at least
+  /// one,
   /// in the order given — the raw material [slotColumns] is built from, and every one of the three
   /// slot-shaped grids' own rows are resolved against. A day with no live slot at all contributes
   /// no pair, since its own slot loop below simply runs zero times.
@@ -227,7 +228,8 @@ class OcptShootingPlanGrids extends Equatable {
     return columns;
   }
 
-  /// The locations grid's own rows — see [OcptShootingPlanGrids.locationsRows]'s own doc comment.
+  /// Get the locations grid's own rows — see [OcptShootingPlanGrids.locationsRows]'s own doc
+  /// comment.
   static List<OcptShootingPlanGridRow> _locationsRowsOf({
     required OcptSchedulePlanSnapshot plan,
     required List<({OcptShootingDay day, OcptShootingSlot slot})> columns,
@@ -283,7 +285,7 @@ class OcptShootingPlanGrids extends Equatable {
     return rows;
   }
 
-  /// [slot]'s own set name, or [presenceMark] while it names none.
+  /// Get [slot]'s own set name, or [presenceMark] while it names none.
   static String _locationSetCellOf({
     required OcptSchedulePlanSnapshot plan,
     required OcptShootingSlot slot,
@@ -294,7 +296,8 @@ class OcptShootingPlanGrids extends Equatable {
     return (setName != null && setName.isNotEmpty) ? setName : presenceMark;
   }
 
-  /// The sequences grid's own rows — see [OcptShootingPlanGrids.sequencesRows]'s own doc comment.
+  /// Get the sequences grid's own rows — see [OcptShootingPlanGrids.sequencesRows]'s own doc
+  /// comment.
   static List<OcptShootingPlanGridRow> _sequencesRowsOf({
     required OcptSchedulePlanSnapshot plan,
     required List<({OcptShootingDay day, OcptShootingSlot slot})> columns,
@@ -343,7 +346,8 @@ class OcptShootingPlanGrids extends Equatable {
     return rows;
   }
 
-  /// The crew and cast grid's own rows — see [OcptShootingPlanGrids.peopleRows]'s own doc comment.
+  /// Get the crew and cast grid's own rows — see [OcptShootingPlanGrids.peopleRows]'s own doc
+  /// comment.
   static List<OcptShootingPlanGridRow> _peopleRowsOf({
     required OcptSchedulePlanSnapshot plan,
     required List<({OcptShootingDay day, OcptShootingSlot slot})> columns,
@@ -398,7 +402,8 @@ class OcptShootingPlanGrids extends Equatable {
     return rows;
   }
 
-  /// The first names of every distinct person of [slot] holding [positionId], sorted and joined.
+  /// Get the first names of every distinct person of [slot] holding [positionId], sorted and
+  /// joined.
   static String _crewCellOf({
     required OcptSchedulePlanSnapshot plan,
     required OcptShootingSlot slot,
@@ -418,7 +423,7 @@ class OcptShootingPlanGrids extends Equatable {
     return sorted.join(", ");
   }
 
-  /// [role]'s own actor's first name against [slot], or [presenceMark] while [slot] convokes it
+  /// Get [role]'s own actor's first name against [slot], or [presenceMark] while [slot] convokes it
   /// uncast, or the empty string while [slot] does not convoke it at all.
   static String _castCellOf({
     required OcptSchedulePlanSnapshot plan,
@@ -435,7 +440,7 @@ class OcptShootingPlanGrids extends Equatable {
     return (actorFirstName != null && actorFirstName.isNotEmpty) ? actorFirstName : presenceMark;
   }
 
-  /// Every distinct first name of a person linked to [slot], crew and cast alike (a cast role's
+  /// Get every distinct first name of a person linked to [slot], crew and cast alike (a cast role's
   /// actor read through `roles.personId`), sorted.
   static List<String> _slotPersonFirstNames(OcptSchedulePlanSnapshot plan, OcptShootingSlot slot) {
     final names = <String>{};
@@ -457,7 +462,7 @@ class OcptShootingPlanGrids extends Equatable {
     return sorted;
   }
 
-  /// The elements grid's own rows — see [OcptShootingPlanGrids.elementsRows]'s own doc comment.
+  /// Get the elements grid's own rows — see [OcptShootingPlanGrids.elementsRows]'s own doc comment.
   static List<OcptShootingPlanElementsGridRow> _elementsRowsOf({
     required OcptSchedulePlanSnapshot plan,
     required List<OcptShootingDay> dayColumns,

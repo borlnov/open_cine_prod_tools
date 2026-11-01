@@ -39,7 +39,7 @@ class OcptShootingBlockCandidate extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingBlockCandidate] from its stored [row].
+  /// Build an [OcptShootingBlockCandidate] from its stored [row].
   factory OcptShootingBlockCandidate.fromRow(OcptShootingBlockCandidateRow row) =>
       OcptShootingBlockCandidate(
         id: row.id,
@@ -48,7 +48,7 @@ class OcptShootingBlockCandidate extends Equatable {
         notes: row.notes,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingBlockCandidate(id: $id, blockId: $blockId, roleCandidateId: $roleCandidateId)";

@@ -28,7 +28,7 @@ class OcptBudgetNeedsResourcesBalance extends Equatable {
   /// plan raises more than the quote asks for, negative while it still falls short.
   final int differenceCents;
 
-  /// Whether the financing plan covers the quote — [differenceCents] at or above zero. A real
+  /// Tell whether the financing plan covers the quote — [differenceCents] at or above zero. A real
   /// financing plan rarely lands on exactly zero, and over-financing is still a plan that holds: it
   /// is a shortfall alone that this reads as unbalanced.
   bool get isBalanced => differenceCents >= 0;
@@ -40,7 +40,7 @@ class OcptBudgetNeedsResourcesBalance extends Equatable {
     required this.differenceCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetNeedsResourcesBalance(needs: $needs, resourcesCents: $resourcesCents, "

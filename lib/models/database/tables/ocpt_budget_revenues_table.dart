@@ -27,7 +27,7 @@ class OcptBudgetRevenuesTable extends Table {
   @override
   String get tableName => 'budget_revenues';
 
-  /// The stable, unique id of this revenue (a UUID).
+  /// Get the stable, unique id of this revenue (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -36,24 +36,25 @@ class OcptBudgetRevenuesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The date this taking is expected, declared exactly as `OcptBudgetEntriesTable.date` is:
+  /// Get the date this taking is expected, declared exactly as `OcptBudgetEntriesTable.date` is:
   /// non-nullable, since a taking is always dated, unlike a status or a note whose absence is a
   /// real fact rather than an omission still to be filled in.
   DateTimeColumn get date => dateTime()();
 
-  /// This taking's free-text wording, e.g. "Vente VOD — plateforme X".
+  /// Get this taking's free-text wording, e.g. "Vente VOD — plateforme X".
   TextColumn get label => text()();
 
-  /// The amount this taking is expected to bring in, exactly as typed, in cents.
+  /// Get the amount this taking is expected to bring in, exactly as typed, in cents.
   IntColumn get amountCents => integer().withDefault(const Constant(0))();
 
-  /// How far this taking's own paperwork has progressed — see this table's own doc comment for why
+  /// Tell how far this taking's own paperwork has progressed — see this table's own doc comment for
+  /// why
   /// this is never a claim about the cash.
   TextColumn get status => text()
       .map(const OcptBudgetRevenueStatusConverter())
       .withDefault(const Constant('expected'))();
 
-  /// Free-form notes about this taking.
+  /// Get free-form notes about this taking.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

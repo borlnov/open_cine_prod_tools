@@ -34,7 +34,7 @@ class OcptConvocationAudition {
   /// [OcptConvocationCandidacy] carries.
   final List<OcptConvocationCandidacy> candidacies;
 
-  /// Builds an audition to feed to [ocptComputeDayConvocations].
+  /// Build an audition to feed to [ocptComputeDayConvocations].
   const OcptConvocationAudition({
     required this.slotId,
     required this.startMinute,

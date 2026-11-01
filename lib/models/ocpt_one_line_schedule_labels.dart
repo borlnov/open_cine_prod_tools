@@ -91,10 +91,10 @@ class OcptOneLineScheduleLabels extends Equatable {
     required this.emptyDocumentNote,
   });
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";

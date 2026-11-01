@@ -79,7 +79,7 @@ class OcptResourcesSnapshot extends Equatable {
     required this.elementCount,
   });
 
-  /// Builds an [OcptResourcesSnapshot] from [people], [roles], [locations], [elements],
+  /// Build an [OcptResourcesSnapshot] from [people], [roles], [locations], [elements],
   /// [candidatesByRoleId] and [scenes], deriving the five counts from them.
   factory OcptResourcesSnapshot.build({
     required List<OcptPerson> people,
@@ -102,7 +102,7 @@ class OcptResourcesSnapshot extends Equatable {
     elementCount: elements.length,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptResourcesSnapshot(peopleCount: $peopleCount, roleCount: $roleCount, "

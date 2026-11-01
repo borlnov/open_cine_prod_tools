@@ -82,11 +82,12 @@ class OcptScenarioCoverageLabels extends Equatable {
     required this.sequenceTitles,
   });
 
-  /// The title of the sequence [sequenceId], or an empty string if [sequenceTitles] holds none for
+  /// Get the title of the sequence [sequenceId], or an empty string if [sequenceTitles] holds none
+  /// for
   /// it.
   String titleOfSequence(String sequenceId) => sequenceTitles[sequenceId] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptScenarioCoverageLabels(legendTitle: $legendTitle)";
 

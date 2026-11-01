@@ -5,7 +5,7 @@
 import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 
-/// What one defrayal comes to, in whole cents: [quantityMilli] thousandths of a unit at
+/// Get what one defrayal comes to, in whole cents: [quantityMilli] thousandths of a unit at
 /// [unitAmountMilliCents] thousandths of a cent each.
 ///
 /// **Rounded half-up at the very last step, never before**, exactly as the mileage arithmetic this
@@ -25,14 +25,15 @@ int ocptBudgetAllowanceAmountCents({
       : (millionths + 500000) ~/ 1000000;
 }
 
-/// What [allowance] comes to, in whole cents — [ocptBudgetAllowanceAmountCents] read off the row
+/// Get what [allowance] comes to, in whole cents — [ocptBudgetAllowanceAmountCents] read off the
+/// row
 /// itself.
 int ocptBudgetAllowanceCentsOf(OcptBudgetAllowance allowance) => ocptBudgetAllowanceAmountCents(
   quantityMilli: allowance.quantityMilli,
   unitAmountMilliCents: allowance.unitAmountMilliCents,
 );
 
-/// What every one of [allowances] comes to, summed.
+/// Get what every one of [allowances] comes to, summed.
 ///
 /// **Each row is rounded before the sum, not after it**, because each row is a figure somebody is
 /// actually owed: rounding the total instead would leave the sum of what the app prints per person
@@ -40,7 +41,8 @@ int ocptBudgetAllowanceCentsOf(OcptBudgetAllowance allowance) => ocptBudgetAllow
 int ocptBudgetAllowancesTotalCents(List<OcptBudgetAllowance> allowances) =>
     allowances.fold(0, (sum, allowance) => sum + ocptBudgetAllowanceCentsOf(allowance));
 
-/// [allowances]' own totals, grouped by [OcptBudgetAllowance.kind] — one figure per nature, which
+/// Get [allowances]' own totals, grouped by [OcptBudgetAllowance.kind] — one figure per nature,
+/// which
 /// is what the provisioning writes one quote line each from.
 ///
 /// **A kind with no defrayal of its own has no key at all**, the discipline every grouping of this

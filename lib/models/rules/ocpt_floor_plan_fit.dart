@@ -7,7 +7,8 @@ import 'dart:math' as math;
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 
-/// A floor plan sheet's own tight bounding box, in metres, or null while it draws nothing at all
+/// Get a floor plan sheet's own tight bounding box, in metres, or null while it draws nothing at
+/// all
 /// (an empty plan — no set-scope symbol, no arrow, no underlay): there is no room to fit a
 /// viewport to.
 ///
@@ -74,7 +75,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart'
   return (minXM: resolvedMinX, minYM: resolvedMinY, maxXM: resolvedMaxX, maxYM: resolvedMaxY);
 }
 
-/// The zoom and pan — this canvas's own convention (`ocpt_floor_plan_canvas_painter.dart`'s
+/// Get the zoom and pan — this canvas's own convention (`ocpt_floor_plan_canvas_painter.dart`'s
 /// `ocptFloorPlanScreenPointOf`: metres `(0, 0)` at the viewport's own centre before `pan`, in
 /// logical pixels) — that fit [sheet]'s own [ocptFloorPlanContentBoundsOf] inside a viewport
 /// [viewportWidthPx] × [viewportHeightPx], centred, with [marginPx] of breathing room on every

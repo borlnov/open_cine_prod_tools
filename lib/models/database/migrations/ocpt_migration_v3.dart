@@ -14,7 +14,8 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 /// short window between the rename and the drop, below.
 const _legacyShotCharactersTableName = 'shot_characters_v2';
 
-/// Schema version 3's own `onUpgrade` step, called from [OcptProjectDatabase.migration] for a file
+/// Run schema version 3's own `onUpgrade` step, called from [OcptProjectDatabase.migration] for a
+/// file
 /// opened below it: reshapes `shot_characters` from its frozen v2 shape —
 /// `{shotId, characterName}`, a free normalised name with no foreign key — to `{shotId, roleId}`,
 /// referencing [OcptRolesTable] (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`).

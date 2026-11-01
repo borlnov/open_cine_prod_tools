@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 
-/// Converts an [OcptDayPartSlot] to and from the text stored in the `slot` column of
+/// Convert an [OcptDayPartSlot] to and from the text stored in the `slot` column of
 /// `person_unavailabilities` and `location_availabilities`.
 ///
 /// The converter of an enum shared by **two** tables: a person is unavailable over a part of a day,

@@ -55,7 +55,7 @@ enum OcptFloorPlanTool {
   label,
 }
 
-/// The fixed layer [tool] always places, or null for a tool whose own layer isn't fixed by the
+/// Get the fixed layer [tool] always places, or null for a tool whose own layer isn't fixed by the
 /// tool alone ([OcptFloorPlanTool.setElement], always [OcptFloorPlanLayer.set] but placed at
 /// either scope) or that places nothing ([OcptFloorPlanTool.select]/`.arrow`/`.label`).
 OcptFloorPlanLayer? ocptFloorPlanFixedLayerOf(OcptFloorPlanTool tool) => switch (tool) {

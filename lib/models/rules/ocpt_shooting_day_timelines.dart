@@ -45,7 +45,7 @@ class OcptShootingDayTimelines {
   /// doc comment on what "empty" means for one slot).
   final int? dayEndMinute;
 
-  /// Builds a computed set of timelines.
+  /// Build a computed set of timelines.
   const OcptShootingDayTimelines({
     required this.bySlotId,
     required this.entries,

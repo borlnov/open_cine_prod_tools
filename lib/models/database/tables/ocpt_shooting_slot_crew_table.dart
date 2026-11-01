@@ -25,28 +25,29 @@ class OcptShootingSlotCrewTable extends Table {
   @override
   String get tableName => 'shooting_slot_crew';
 
-  /// The stable, unique id of this assignment (a UUID).
+  /// Get the stable, unique id of this assignment (a UUID).
   TextColumn get id => text()();
 
-  /// The slot this assignment is for.
+  /// Get the slot this assignment is for.
   TextColumn get slotId => text().references(OcptShootingSlotsTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The person holding this position during the slot.
+  /// Get the person holding this position during the slot.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// The stable code of the position, from `ocptCrewPositions` (`lib/constants/`), or the empty
+  /// Get the stable code of the position, from `ocptCrewPositions` (`lib/constants/`), or the empty
   /// string when this assignment is a free label ([customLabel]) instead of a catalogue entry.
   /// Mirrors `person_positions.positionId`.
   TextColumn get positionId => text().withDefault(const Constant(''))();
 
-  /// A free-text position label, used instead of [positionId] when the catalogue has nothing that
+  /// Get a free-text position label, used instead of [positionId] when the catalogue has nothing
+  /// that
   /// fits. Empty when [positionId] is set.
   TextColumn get customLabel => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this assignment.
+  /// Get free-form notes about this assignment.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

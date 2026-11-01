@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 
-/// Converts a [OcptBudgetAllowanceKind] to and from the text stored in the
+/// Convert a [OcptBudgetAllowanceKind] to and from the text stored in the
 /// `budget_allowances.kind` column.
 class OcptBudgetAllowanceKindConverter extends TypeConverter<OcptBudgetAllowanceKind, String> {
   /// Class constructor

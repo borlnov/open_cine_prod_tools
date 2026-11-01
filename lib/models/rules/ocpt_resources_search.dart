@@ -42,7 +42,7 @@ const Map<String, String> _ocptDiacriticsFoldingMap = {
   "æ": "ae",
 };
 
-/// Lower-cases the single code point [rune] and folds it, through
+/// Lower-case the single code point [rune] and fold it, through
 /// [_ocptDiacriticsFoldingMap], to its plain search equivalent — one letter for almost every rune,
 /// two for `œ`/`æ`.
 ///
@@ -57,7 +57,7 @@ String ocptResourcesSearchFoldedRune(int rune) {
   return _ocptDiacriticsFoldingMap[char] ?? char;
 }
 
-/// Trims [value], lower-cases it and folds every accented character
+/// Trim [value], lower-case it and fold every accented character
 /// [_ocptDiacriticsFoldingMap] knows about to its plain equivalent, so two spellings of the same
 /// word that only differ by case, accents or stray leading/trailing whitespace (a space bar
 /// pressed before the first real character) compare equal.
@@ -76,7 +76,7 @@ String ocptResourcesSearchNormalized(String value) {
   return buffer.toString();
 }
 
-/// Whether [query] matches at least one of [fields], both normalized through
+/// Tell whether [query] matches at least one of [fields], both normalized through
 /// [ocptResourcesSearchNormalized] first.
 ///
 /// An empty (or whitespace-only, once normalized) [query] always matches: no search is the same as

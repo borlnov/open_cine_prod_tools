@@ -59,7 +59,7 @@ class OcptBreakdownScene extends Equatable {
   /// its own, and the caller (a bloc) is the one that already knows the project's episode count.
   final int? episodeNumber;
 
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// Get the number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
   /// 1-based index among the screenplay's scenes — exactly what `OcptSceneRef.displayNumber` and
   /// `OcptSceneShotSequence.displaySceneNumber` derive — prefixed with [episodeNumber] once the
   /// project holds more than one.
@@ -83,7 +83,7 @@ class OcptBreakdownScene extends Equatable {
     required this.episodeNumber,
   });
 
-  /// Builds an [OcptBreakdownScene] from its stored [sceneRow] and the live [breakdownRow] of it,
+  /// Build an [OcptBreakdownScene] from its stored [sceneRow] and the live [breakdownRow] of it,
   /// if any — null reading as [OcptBreakdownSceneStatus.toDo] and empty notes, per this class's own
   /// doc comment. [tags] defaults to empty: `OcptBreakdownService.loadScenes` leaves it for
   /// `OcptBreakdownSnapshot.build` to fill in, the way it joins every other read. [episodeNumber]
@@ -106,7 +106,7 @@ class OcptBreakdownScene extends Equatable {
     episodeNumber: episodeNumber,
   );
 
-  /// This scene with [tags] replacing its own — how `OcptBreakdownSnapshot.build` attaches each
+  /// Get this scene with [tags] replacing its own — how `OcptBreakdownSnapshot.build` attaches each
   /// live tag to the scene it belongs to, once `OcptBreakdownService.loadScenes` has loaded the
   /// scenes with none.
   OcptBreakdownScene copyWith({required List<OcptBreakdownTag> tags}) => OcptBreakdownScene(
@@ -122,7 +122,7 @@ class OcptBreakdownScene extends Equatable {
     episodeNumber: episodeNumber,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownScene(id: $id, heading: $heading, status: $status, tagCount: ${tags.length})";

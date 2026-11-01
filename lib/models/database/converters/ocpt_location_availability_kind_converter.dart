@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
 
-/// Converts an [OcptLocationAvailabilityKind] to and from the text stored in the
+/// Convert an [OcptLocationAvailabilityKind] to and from the text stored in the
 /// `location_availabilities.kind` column.
 class OcptLocationAvailabilityKindConverter
     extends TypeConverter<OcptLocationAvailabilityKind, String> {

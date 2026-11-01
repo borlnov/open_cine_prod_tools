@@ -15,7 +15,8 @@ const _ocptTombstoneColumnSqlName = 'is_deleted';
 /// merge rather than edited directly — see `OcptScenesTable`'s own doc comment.
 const _ocptDerivedTableName = 'scenes';
 
-/// Every table of [database] the changeset engine may generate a changeset from, or apply one to:
+/// Get every table of [database] the changeset engine may generate a changeset from, or apply one
+/// to:
 /// every [TableInfo] carrying the tombstone column ADR 0010 puts on a synchronised table, minus
 /// [_ocptDerivedTableName].
 ///

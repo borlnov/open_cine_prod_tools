@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// What is left of the typed edits [current] once [written] has reached the database.
+/// Get what is left of the typed edits [current] once [written] has reached the database.
 ///
 /// An edit is forgotten only if it still holds the very text that was written: a keystroke typed
 /// while the write was in flight replaced it in [current] and has not been written yet, so it stays

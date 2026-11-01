@@ -16,18 +16,19 @@ class OcptCrewPositionRef extends Equatable {
   /// fits. Empty when [positionId] is set.
   final String customLabel;
 
-  /// True when this ref names neither a catalogue entry nor a free label — a crew row holding
+  /// Tell whether this ref names neither a catalogue entry nor a free label — a crew row holding
   /// neither holds **no** position and must never count as one.
   bool get isEmpty => positionId.isEmpty && customLabel.isEmpty;
 
   /// Class constructor
   const OcptCrewPositionRef({required this.positionId, required this.customLabel});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptCrewPositionRef(positionId: $positionId, customLabel: $customLabel)";
 
-  /// Object properties. Equality is exact on both strings — a free label is what the user typed,
+  /// Get the object properties. Equality is exact on both strings — a free label is what the user
+  /// typed,
   /// so it is compared verbatim, with no trimming and no case folding.
   @override
   List<Object?> get props => [positionId, customLabel];

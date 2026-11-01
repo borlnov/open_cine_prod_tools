@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_scene_status.dart';
 
-/// Converts a [OcptBreakdownSceneStatus] to and from the text stored in the
+/// Convert a [OcptBreakdownSceneStatus] to and from the text stored in the
 /// `scene_breakdowns.status` column.
 class OcptBreakdownSceneStatusConverter extends TypeConverter<OcptBreakdownSceneStatus, String> {
   /// Class constructor

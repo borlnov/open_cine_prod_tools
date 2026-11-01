@@ -31,7 +31,7 @@ class OcptScheduleAlertLocationWindow {
   /// [OcptDayPartSlot.custom].
   final int? endMinute;
 
-  /// Builds a location window to feed to [ocptComputeScheduleAlerts].
+  /// Build a location window to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertLocationWindow({
     required this.startDate,
     required this.endDate,

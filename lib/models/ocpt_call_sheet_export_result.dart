@@ -39,7 +39,7 @@ class OcptCallSheetExportResult extends Equatable {
   /// for the user to find — mobile's own outcome, `false` everywhere else.
   final bool wasShared;
 
-  /// Whether every file this run attempted was written successfully.
+  /// Tell whether every file this run attempted was written successfully.
   bool get isComplete => failedFileNames.isEmpty;
 
   /// Class constructor
@@ -50,7 +50,7 @@ class OcptCallSheetExportResult extends Equatable {
     this.wasShared = false,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptCallSheetExportResult(folderPath: $folderPath, "

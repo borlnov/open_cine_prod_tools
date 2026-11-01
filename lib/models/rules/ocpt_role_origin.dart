@@ -4,7 +4,7 @@
 
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
-/// Whether a role wearing [isFromScreenplay] and [kind] was named by a character introduced in
+/// Tell whether a role wearing [isFromScreenplay] and [kind] was named by a character introduced in
 /// capitals in an action line, as opposed to cued in dialogue or added by hand.
 ///
 /// The three ways a role's two columns combine:

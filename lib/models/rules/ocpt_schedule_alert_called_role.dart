@@ -14,6 +14,6 @@ class OcptScheduleAlertCalledRole {
   /// The shot that calls for [roleId].
   final String shotId;
 
-  /// Builds a called role to feed to [ocptComputeScheduleAlerts].
+  /// Build a called role to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertCalledRole({required this.roleId, required this.shotId});
 }

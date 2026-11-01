@@ -66,7 +66,7 @@ enum OcptBudgetEntryNature {
   personReimbursement,
 }
 
-/// Which direction [nature] fixes the movement to: `true` for a debit (money leaving the
+/// Tell which direction [nature] fixes the movement to: `true` for a debit (money leaving the
 /// account), `false` for a credit, or `null` while [nature] leaves the direction to be asked —
 /// [OcptBudgetEntryNature.other] alone, in step 2 of the wizard.
 ///
@@ -82,7 +82,7 @@ bool? ocptBudgetEntryNatureDirectionOf(OcptBudgetEntryNature nature) => switch (
   OcptBudgetEntryNature.other => null,
 };
 
-/// Which single field step 2 of the wizard asks for under [nature] — the one link every other
+/// Tell which single field step 2 of the wizard asks for under [nature] — the one link every other
 /// nature's own field is silent about, per the class doc comment.
 ///
 /// [OcptBudgetEntryNature.other] answers [OcptBudgetEntryLinkKind.poste] too: its own poste is
@@ -100,7 +100,8 @@ OcptBudgetEntryLinkKind ocptBudgetEntryNatureLinkKindOf(OcptBudgetEntryNature na
       OcptBudgetEntryNature.personReimbursement => OcptBudgetEntryLinkKind.person,
     };
 
-/// The nature implied by which of the five link fields an entry names, [isDebit] telling the two
+/// Get the nature implied by which of the five link fields an entry names, [isDebit] telling the
+/// two
 /// resource-linked answers apart.
 ///
 /// **[personId] is consulted first, ahead of every other link.** An entry naming a person is

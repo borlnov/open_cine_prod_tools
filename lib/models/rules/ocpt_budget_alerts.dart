@@ -65,7 +65,7 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
     required this.varianceCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetPosteOverQuoteAlert(posteId: $posteId, varianceCents: $varianceCents)";
@@ -108,7 +108,7 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
     required this.balanceAfterCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetCashProjectionNegativeAlert(balanceCents: $balanceCents, dueDate: $dueDate, "
@@ -119,7 +119,7 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
   List<Object?> get props => [balanceCents, dueDate, fallingDueCents, balanceAfterCents];
 }
 
-/// Computes the header's alerts band's own two alerts over [postes] and [commitments] — **both
+/// Compute the header's alerts band's own two alerts over [postes] and [commitments] — **both
 /// computed, neither configured** (ADR 0027): nothing here advances a
 /// figure nobody in the project actually entered.
 ///

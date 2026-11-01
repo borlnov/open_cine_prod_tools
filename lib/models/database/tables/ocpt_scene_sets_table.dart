@@ -27,13 +27,13 @@ class OcptSceneSetsTable extends Table {
   @override
   String get tableName => 'scene_sets';
 
-  /// The stable, unique id of this link (a UUID).
+  /// Get the stable, unique id of this link (a UUID).
   TextColumn get id => text()();
 
-  /// The scene this link is for.
+  /// Get the scene this link is for.
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// The set this scene is shot in.
+  /// Get the set this scene is shot in.
   TextColumn get setId => text().references(OcptSetsTable, #id)();
 
   /// {@macro open_cine_prod_tools.isDeleted}

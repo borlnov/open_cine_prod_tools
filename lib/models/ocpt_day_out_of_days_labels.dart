@@ -95,16 +95,17 @@ class OcptDayOutOfDaysLabels extends Equatable {
     required this.emptyTableNote,
   });
 
-  /// The short date of the day [dayId], or an empty string if [dayDateLabels] holds none for it.
+  /// Get the short date of the day [dayId], or an empty string if [dayDateLabels] holds none for
+  /// it.
   String dateOfDay(String dayId) => dayDateLabels[dayId] ?? "";
 
-  /// The letter printed for [code], or an empty string if [codeLabels] holds none for it.
+  /// Get the letter printed for [code], or an empty string if [codeLabels] holds none for it.
   String codeLabelOf(OcptDayOutOfDaysCode code) => codeLabels[code] ?? "";
 
-  /// What [code] means, or an empty string if [codeDescriptions] holds none for it.
+  /// Get what [code] means, or an empty string if [codeDescriptions] holds none for it.
   String codeDescriptionOf(OcptDayOutOfDaysCode code) => codeDescriptions[code] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";

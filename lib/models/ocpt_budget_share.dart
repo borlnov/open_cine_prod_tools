@@ -43,7 +43,7 @@ class OcptBudgetShare extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetShare] from its stored [row].
+  /// Build an [OcptBudgetShare] from its stored [row].
   factory OcptBudgetShare.fromRow(OcptBudgetShareRow row) => OcptBudgetShare(
     id: row.id,
     personId: row.personId,
@@ -54,7 +54,7 @@ class OcptBudgetShare extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetShare(id: $id, personId: $personId, label: $label, "

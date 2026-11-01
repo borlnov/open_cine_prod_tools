@@ -251,21 +251,22 @@ class OcptShootingPlanLabels extends Equatable {
     required this.unnamedPersonLabel,
   });
 
-  /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
+  /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
+  /// Get the label of the crew position [positionId] names, or an empty string if
+  /// [crewPositionLabels]
   /// holds none for it.
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.
   String elementCategoryLabelOf(OcptElementCategory category) =>
       elementCategoryLabels[category] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";

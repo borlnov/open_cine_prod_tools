@@ -29,7 +29,8 @@ enum OcptBudgetResourceFamily {
   /// A taking the production expects — every live `OcptBudgetRevenue`.
   takings;
 
-  /// The family a resource of [groupKind] draws in — see the class doc comment for why a subsidy
+  /// Get the family a resource of [groupKind] draws in — see the class doc comment for why a
+  /// subsidy
   /// stays apart while cash and in-kind fold into one.
   static OcptBudgetResourceFamily of(OcptBudgetResourceGroupKind groupKind) => switch (groupKind) {
     OcptBudgetResourceGroupKind.subsidy => OcptBudgetResourceFamily.subsidies,

@@ -22,7 +22,7 @@ class OcptTimelineOverrun {
   /// The anchor the block was pinned to, which [reachedMinute] ran past.
   final int anchorMinute;
 
-  /// Builds an over-run record.
+  /// Build an over-run record.
   const OcptTimelineOverrun({
     required this.blockId,
     required this.reachedMinute,

@@ -14,7 +14,7 @@ import 'package:uuid/uuid.dart';
 /// once as an ordinary random UUID v4 and frozen here.
 const _ocptDeterministicIdNamespace = 'e26e6b0e-9a8b-4d5b-9d16-8a6c2d1e9c9a';
 
-/// The id a hand-added silent role must get when the schema v3 migration mints one for a shot
+/// Get the id a hand-added silent role must get when the schema v3 migration mints one for a shot
 /// list's character name that matches no live role
 /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 6).
 ///
@@ -27,7 +27,7 @@ const _ocptDeterministicIdNamespace = 'e26e6b0e-9a8b-4d5b-9d16-8a6c2d1e9c9a';
 String ocptDeterministicRoleId(String normalizedCharacterName) =>
     const Uuid().v5(_ocptDeterministicIdNamespace, normalizedCharacterName);
 
-/// The id the `role_episodes` link from [roleId] to [screenplayId] must get when the schema v3
+/// Get the id the `role_episodes` link from [roleId] to [screenplayId] must get when the schema v3
 /// migration mints it alongside a role [ocptDeterministicRoleId] minted for the same name
 /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 6).
 ///

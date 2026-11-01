@@ -20,20 +20,21 @@ class OcptSceneElementsTable extends Table {
   @override
   String get tableName => 'scene_elements';
 
-  /// The stable, unique id of this link (a UUID).
+  /// Get the stable, unique id of this link (a UUID).
   TextColumn get id => text()();
 
-  /// The scene this element is needed in.
+  /// Get the scene this element is needed in.
   TextColumn get sceneId => text().references(OcptScenesTable, #id)();
 
-  /// The element needed.
+  /// Get the element needed.
   TextColumn get elementId => text().references(OcptElementsTable, #id)();
 
-  /// How many of the element this scene needs, overriding `elements.quantity` for this scene alone.
+  /// Count how many of the element this scene needs, overriding `elements.quantity` for this scene
+  /// alone.
   /// A decimal number stored as text, for the same reason `elements.quantity` is.
   TextColumn get quantity => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this scene's need for the element.
+  /// Get free-form notes about this scene's need for the element.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

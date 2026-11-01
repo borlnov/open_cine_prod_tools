@@ -17,7 +17,7 @@ const int _maximumLength = 3;
 /// of them.
 final RegExp _generatedCodePattern = RegExp("^[A-Z]{1,$_maximumLength}\$");
 
-/// The code a new set gets: the first letters no code in [existingCodes] already uses.
+/// Get the code a new set gets: the first letters no code in [existingCodes] already uses.
 ///
 /// Letters rather than the `PRP-3` shape an element's code carries, for two reasons. A set has no
 /// category, so a prefix would be the same three characters on every row of the project and would
@@ -47,7 +47,8 @@ String ocptSetCodeOf({required Iterable<String> existingCodes}) {
   return _codeOf(highest + 1);
 }
 
-/// The 1-based rank [code] names (`A` is 1, `AA` is 27), or null when it is not a code this file
+/// Get the 1-based rank [code] names (`A` is 1, `AA` is 27), or null when it is not a code this
+/// file
 /// would have generated.
 int? _indexOf(String code) {
   final trimmed = code.trim();
@@ -63,7 +64,7 @@ int? _indexOf(String code) {
   return index;
 }
 
-/// The code of the 1-based rank [index], the inverse of [_indexOf].
+/// Get the code of the 1-based rank [index], the inverse of [_indexOf].
 String _codeOf(int index) {
   final letters = <String>[];
   var remaining = index;

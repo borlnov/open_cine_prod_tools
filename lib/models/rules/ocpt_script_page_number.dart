@@ -9,7 +9,7 @@
 /// band rather than tying it to the body's own margin.
 const double ocptScriptPageNumberTopInches = 0.5;
 
-/// The annotation a script page whose 1-based number among script pages is [scriptPageNumber]
+/// Get the annotation a script page whose 1-based number among script pages is [scriptPageNumber]
 /// prints at its top right, or null when that page prints none.
 ///
 /// The professional convention this states once: a page number reads `N.`, the title page is not a

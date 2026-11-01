@@ -55,7 +55,7 @@ class OcptStoryboardAnnotation extends Equatable {
     required this.text,
   });
 
-  /// Builds an [OcptStoryboardAnnotation] from its stored [row].
+  /// Build an [OcptStoryboardAnnotation] from its stored [row].
   factory OcptStoryboardAnnotation.fromRow(OcptStoryboardAnnotationRow row) =>
       OcptStoryboardAnnotation(
         id: row.id,
@@ -69,7 +69,7 @@ class OcptStoryboardAnnotation extends Equatable {
         text: row.labelText,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptStoryboardAnnotation(id: $id, panelId: $panelId, kind: $kind, text: $text)";

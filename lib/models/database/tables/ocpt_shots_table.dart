@@ -22,22 +22,23 @@ class OcptShotsTable extends Table {
   @override
   String get tableName => 'shots';
 
-  /// The stable, unique id of this shot (a UUID).
+  /// Get the stable, unique id of this shot (a UUID).
   TextColumn get id => text()();
 
-  /// The screenplay this shot belongs to: the shot list is per screenplay, like the scene index.
+  /// Get the screenplay this shot belongs to: the shot list is per screenplay, like the scene
+  /// index.
   TextColumn get screenplayId => text().references(OcptScreenplaysTable, #id)();
 
-  /// The scene this shot belongs to, or null if the scene was deleted from the screenplay: the
+  /// Get the scene this shot belongs to, or null if the scene was deleted from the screenplay: the
   /// shot is then orphaned rather than destroyed (see [orphanedHeading]).
   TextColumn get sceneId => text().nullable().references(OcptScenesTable, #id)();
 
-  /// The heading the scene had at the moment it was deleted, so an orphaned shot still shows
+  /// Get the heading the scene had at the moment it was deleted, so an orphaned shot still shows
   /// which scene it used to belong to. Null while [sceneId] is still set.
   TextColumn get orphanedHeading => text().nullable()();
 
   /// {@template open_cine_prod_tools.position}
-  /// The rank this row had within its group when it was inserted. **No longer what orders the
+  /// Get the rank this row had within its group when it was inserted. **No longer what orders the
   /// group** — [sortKey] is.
   ///
   /// It is kept, stamped once at insertion and never renumbered afterwards, only because
@@ -48,7 +49,7 @@ class OcptShotsTable extends Table {
   IntColumn get position => integer()();
 
   /// {@template open_cine_prod_tools.sortKey}
-  /// The fractional index this row is ordered by within its group: a string sorting strictly
+  /// Get the fractional index this row is ordered by within its group: a string sorting strictly
   /// between its two neighbours' own keys.
   ///
   /// This is what makes an insertion or a move write **exactly one row**
@@ -59,10 +60,11 @@ class OcptShotsTable extends Table {
   /// {@endtemplate}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// The shot size ("valeur de plan"), free text.
+  /// Get the shot size ("valeur de plan"), free text.
   TextColumn get shotSize => text().withDefault(const Constant(''))();
 
-  /// The short abbreviation of [shotSize] (`PM` for a "Plan moyen", `GP` for a "Gros plan"), free
+  /// Get the short abbreviation of [shotSize] (`PM` for a "Plan moyen", `GP` for a "Gros plan"),
+  /// free
   /// text, empty until deduced or typed.
   ///
   /// It exists because [shotSize] is deliberately free text and the shot **code** is only
@@ -72,22 +74,24 @@ class OcptShotsTable extends Table {
   /// when it hasn't.
   TextColumn get abbreviation => text().withDefault(const Constant(''))();
 
-  /// The framing and composition ("angle et composition du cadre"), free text.
+  /// Get the framing and composition ("angle et composition du cadre"), free text.
   TextColumn get framing => text().withDefault(const Constant(''))();
 
-  /// The camera move ("mouvement d'appareil"), free text.
+  /// Get the camera move ("mouvement d'appareil"), free text.
   TextColumn get cameraMove => text().withDefault(const Constant(''))();
 
-  /// The lens/focal length ("focale / objectif"), free text.
+  /// Get the lens/focal length ("focale / objectif"), free text.
   TextColumn get lens => text().withDefault(const Constant(''))();
 
-  /// The recording format/frame rate (e.g. `4K · 25 fps`), free text.
+  /// Get the recording format/frame rate (e.g. `4K · 25 fps`), free text.
   TextColumn get recordingFormat => text().withDefault(const Constant(''))();
 
-  /// The estimated duration of the shot, in milliseconds, rendered `m:ss`; null until estimated.
+  /// Get the estimated duration of the shot, in milliseconds, rendered `m:ss`; null until
+  /// estimated.
   IntColumn get estimatedDurationMs => integer().nullable()();
 
-  /// **Blank and unwritten from schema version 11 on**, kept only because
+  /// Get the legacy shooting day, **blank and unwritten from schema version 11 on**, kept only
+  /// because
   /// `docs/adr/0010-sync-ready-data-model-prerequisites.md` does not allow dropping a synchronised
   /// column — exactly the way `position` is kept past the version that stopped ordering by it. A
   /// shot's shooting day is read out of `shooting_day_blocks` now: the schedule's placement is the
@@ -95,42 +99,44 @@ class OcptShotsTable extends Table {
   /// mandatory there and a `J3` typed by hand carries none to migrate from.
   TextColumn get shootingDay => text().nullable()();
 
-  /// The number of takes planned for this shot; null until planned.
+  /// Get the number of takes planned for this shot; null until planned.
   IntColumn get plannedTakes => integer().nullable()();
 
-  /// Sound notes for this shot, free text.
+  /// Get the sound notes for this shot, free text.
   TextColumn get sound => text().withDefault(const Constant(''))();
 
-  /// The shooting status of this shot.
+  /// Get the shooting status of this shot.
   // The stored literal below must match `OcptShotStatus.toShoot.name` exactly: `withDefault`
   // requires a `Constant` of the column's raw SQL type, and an enum's `.name` getter is not a
   // compile-time constant expression, so it cannot be used inside `const Constant(...)` directly.
   TextColumn get status =>
       text().map(const OcptShotStatusConverter()).withDefault(const Constant('toShoot'))();
 
-  /// The difficulty of the set/location, on a 0-5 scale.
+  /// Get the difficulty of the set/location, on a 0-5 scale.
   IntColumn get difficultySet => integer().withDefault(const Constant(1))();
 
-  /// The difficulty of the camera move, on a 0-5 scale.
+  /// Get the difficulty of the camera move, on a 0-5 scale.
   IntColumn get difficultyCamera => integer().withDefault(const Constant(1))();
 
-  /// The difficulty of the acting, on a 0-5 scale.
+  /// Get the difficulty of the acting, on a 0-5 scale.
   IntColumn get difficultyActing => integer().withDefault(const Constant(1))();
 
-  /// The difficulty of the sound recording, on a 0-5 scale.
+  /// Get the difficulty of the sound recording, on a 0-5 scale.
   IntColumn get difficultySound => integer().withDefault(const Constant(1))();
 
-  /// The director's notes for this shot, free multi-line text.
+  /// Get the director's notes for this shot, free multi-line text.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
-  /// Location scouting notes for this shot, free multi-line text: a deliberate placeholder for a
+  /// Get the location scouting notes for this shot, free multi-line text: a deliberate placeholder
+  /// for a
   /// future locations module rather than a modelled relation.
   TextColumn get locationNotes => text().withDefault(const Constant(''))();
 
-  /// Whether this shot needs checking by a human before it can be trusted (see [checkReason]).
+  /// Tell whether this shot needs checking by a human before it can be trusted (see [checkReason]).
   BoolColumn get needsCheck => boolean().withDefault(const Constant(false))();
 
-  /// Why [needsCheck] is set, or null while it is false. See [OcptShotCheckReason] for why this
+  /// Tell why [needsCheck] is set, or null while it is false. See [OcptShotCheckReason] for why
+  /// this
   /// is a stable reason code rather than a localised string.
   TextColumn get checkReason => text().nullable().map(const OcptShotCheckReasonConverter())();
 

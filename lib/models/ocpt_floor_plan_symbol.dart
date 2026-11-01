@@ -98,7 +98,7 @@ class OcptFloorPlanSymbol extends Equatable {
     required this.isHidden,
   });
 
-  /// Builds an [OcptFloorPlanSymbol] from its stored [row].
+  /// Build an [OcptFloorPlanSymbol] from its stored [row].
   factory OcptFloorPlanSymbol.fromRow(OcptFloorPlanSymbolRow row) => OcptFloorPlanSymbol(
     id: row.id,
     setId: row.setId,
@@ -119,7 +119,7 @@ class OcptFloorPlanSymbol extends Equatable {
     isHidden: row.isHidden,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFloorPlanSymbol(id: $id, setId: $setId, sceneId: $sceneId, shotId: $shotId, "

@@ -48,7 +48,7 @@ class OcptBreakdownTarget extends Equatable {
   /// inspector's "jump to" list and the recap's per-scene column read.
   final int occurrenceCount;
 
-  /// This target's colour, delegating to [ocptBreakdownColorOf].
+  /// Get this target's colour, delegating to [ocptBreakdownColorOf].
   int get color => ocptBreakdownColorOf(kind: kind, category: category);
 
   /// Class constructor
@@ -62,7 +62,7 @@ class OcptBreakdownTarget extends Equatable {
     required this.occurrenceCount,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownTarget(kind: $kind, id: $id, name: $name, occurrenceCount: $occurrenceCount)";

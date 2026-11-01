@@ -33,7 +33,7 @@ class OcptScheduleAlertDay {
   /// rest.
   final List<OcptScheduleAlertCalledRole> calledRoles;
 
-  /// Builds a day to feed to [ocptComputeScheduleAlerts].
+  /// Build a day to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertDay({
     required this.id,
     required this.date,

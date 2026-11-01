@@ -27,7 +27,8 @@ class OcptCrewPositionPrefill {
   });
 }
 
-/// The join between the address book and the schedule: `person_positions` says *that* someone holds
+/// Get the join between the address book and the schedule: `person_positions` says *that* someone
+/// holds
 /// a function on the film, a slot's own crew row says *when* and *at which post*, and nothing
 /// joined the two until this function did.
 ///

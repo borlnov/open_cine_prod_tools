@@ -49,7 +49,7 @@ class OcptRelayInvite extends Equatable {
   /// Class constructor
   const OcptRelayInvite({required this.relayBaseUri, required this.projectId, required this.token});
 
-  /// Encodes this invite as the single string a QR code carries and [OcptRelayInvite.parse] reads
+  /// Encode this invite as the single string a QR code carries and [OcptRelayInvite.parse] reads
   /// back: `ocpt://join?r=<relayBaseUri>&p=<projectId>&t=<token>`, every value percent-encoded.
   String toInviteString() => Uri(
     scheme: _scheme,
@@ -61,7 +61,7 @@ class OcptRelayInvite extends Equatable {
     },
   ).toString();
 
-  /// A human-readable summary that never leaks [token] in full.
+  /// Get a human-readable summary that never leaks [token] in full.
   @override
   String toString() {
     final maskedToken = token.length <= 4
@@ -71,7 +71,7 @@ class OcptRelayInvite extends Equatable {
         'token: $maskedToken)';
   }
 
-  /// Parses [inviteString] back into an [OcptRelayInvite], answering the matching failure status
+  /// Parse [inviteString] back into an [OcptRelayInvite], answering the matching failure status
   /// (and no value) when it is not an `ocpt://join` URI carrying all three of `r`, `p` and `t`
   /// non-empty.
   ///

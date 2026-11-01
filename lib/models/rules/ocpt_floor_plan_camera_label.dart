@@ -10,7 +10,8 @@
 /// than throwing.
 const String _letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-/// The label a camera symbol shows: [shotRank] alone while its shot carries only this one camera
+/// Get the label a camera symbol shows: [shotRank] alone while its shot carries only this one
+/// camera
 /// ([cameraCount] `<= 1`), or [shotRank] followed by a letter for every camera of the shot,
 /// starting at the first, the moment it carries two or more.
 ///
@@ -35,7 +36,7 @@ String ocptFloorPlanCameraLabelOf({
   return "$shotRank${_letterOf(cameraRank < 0 ? 0 : cameraRank)}";
 }
 
-/// The spreadsheet-column-style letter(s) for the 0-based [index], over [_letters] (`I`/`O`
+/// Get the spreadsheet-column-style letter(s) for the 0-based [index], over [_letters] (`I`/`O`
 /// skipped): `0` → `A`, `23` → `Z`, `24` → `AA`, and so on.
 String _letterOf(int index) {
   var value = index;

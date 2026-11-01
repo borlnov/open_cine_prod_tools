@@ -20,32 +20,33 @@ class OcptFloorPlanArrowsTable extends Table {
   @override
   String get tableName => 'floor_plan_arrows';
 
-  /// The stable, unique id of this arrow (a UUID).
+  /// Get the stable, unique id of this arrow (a UUID).
   TextColumn get id => text()();
 
-  /// The set this arrow is drawn on.
+  /// Get the set this arrow is drawn on.
   TextColumn get setId => text().references(OcptFloorPlanSetsTable, #id)();
 
-  /// The shot this movement belongs to. Always set — see the class doc comment.
+  /// Get the shot this movement belongs to. Always set — see the class doc comment.
   TextColumn get shotId => text().references(OcptShotsTable, #id)();
 
-  /// Whether this arrow is a movement between two symbols or a camera move.
+  /// Tell whether this arrow is a movement between two symbols or a camera move.
   TextColumn get kind => text().map(const OcptFloorPlanArrowKindConverter())();
 
-  /// The symbol this arrow starts from.
+  /// Get the symbol this arrow starts from.
   TextColumn get fromSymbolId => text().references(OcptFloorPlanSymbolsTable, #id)();
 
-  /// The symbol this arrow points to.
+  /// Get the symbol this arrow points to.
   TextColumn get toSymbolId => text().references(OcptFloorPlanSymbolsTable, #id)();
 
-  /// The arrow's own text label, free text.
+  /// Get the arrow's own text label, free text.
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// A curved arrow's bezier control point X, in **metres** — **null meaning a straight arrow**.
+  /// Get a curved arrow's bezier control point X, in **metres** — **null meaning a straight
+  /// arrow**.
   /// Set alongside [ctrlYM] by bending an otherwise straight movement or camera-move arrow.
   RealColumn get ctrlXM => real().nullable()();
 
-  /// A curved arrow's bezier control point Y, in metres. See [ctrlXM].
+  /// Get a curved arrow's bezier control point Y, in metres. See [ctrlXM].
   RealColumn get ctrlYM => real().nullable()();
 
   /// {@macro open_cine_prod_tools.isDeleted}

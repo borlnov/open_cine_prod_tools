@@ -49,7 +49,7 @@ class OcptBreakdownSheetsExportOptions extends Equatable {
     required this.includeToFindList,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownSheetsExportOptions(format: $format, margins: $margins, "

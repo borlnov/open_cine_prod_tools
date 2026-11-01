@@ -42,7 +42,7 @@ class OcptBudgetAllowancesTable extends Table {
   @override
   String get tableName => 'budget_allowances';
 
-  /// The stable, unique id of this defrayal (a UUID).
+  /// Get the stable, unique id of this defrayal (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -51,38 +51,39 @@ class OcptBudgetAllowancesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The person this defrayal is owed to, or null — see this table's own doc comment.
+  /// Get the person this defrayal is owed to, or null — see this table's own doc comment.
   TextColumn get personId => text().nullable().references(OcptPeopleTable, #id)();
 
-  /// What this defrayal is for.
+  /// Get what this defrayal is for.
   // The stored literal below must match `OcptBudgetAllowanceKind.travel.name` exactly, for the same
   // reason `budget_resources.groupKind`'s default does: an enum's `.name` getter isn't a
   // compile-time constant expression, so it can't be written as `Constant(…)`.
   TextColumn get kind =>
       text().map(const OcptBudgetAllowanceKindConverter()).withDefault(const Constant('travel'))();
 
-  /// This defrayal's free-text wording, e.g. "Aller Paris — Le Havre".
+  /// Get this defrayal's free-text wording, e.g. "Aller Paris — Le Havre".
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// The day this defrayal applies to, or the day a stay begins — null while nobody has said.
+  /// Get the day this defrayal applies to, or the day a stay begins — null while nobody has said.
   DateTimeColumn get date => dateTime().nullable()();
 
-  /// The day a stay ends, or null.
+  /// Get the day a stay ends, or null.
   ///
   /// Nullable **and normally null**: a journey and a meal happen on one day, and only a stay spans
   /// two. A row carrying an [endDate] reads as a span in the table; one carrying none reads as a
   /// single date, and neither is more complete than the other.
   DateTimeColumn get endDate => dateTime().nullable()();
 
-  /// How many kilometres, nights or meals this defrayal covers, in thousandths — see this table's
+  /// Count how many kilometres, nights or meals this defrayal covers, in thousandths — see this
+  /// table's
   /// own doc comment.
   IntColumn get quantityMilli => integer().withDefault(const Constant(0))();
 
-  /// What one kilometre, night or meal is paid back at, in thousandths of a cent — see this
+  /// Get what one kilometre, night or meal is paid back at, in thousandths of a cent — see this
   /// table's own doc comment.
   IntColumn get unitAmountMilliCents => integer().withDefault(const Constant(0))();
 
-  /// Free-form notes about this defrayal.
+  /// Get free-form notes about this defrayal.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}

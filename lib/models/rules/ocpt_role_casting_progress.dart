@@ -31,7 +31,7 @@ class OcptRoleCastingProgress extends Equatable {
   /// Class constructor
   const OcptRoleCastingProgress({required this.stage, required this.candidateCount});
 
-  /// Reads [role]'s own casting progress off [candidates].
+  /// Read [role]'s own casting progress off [candidates].
   ///
   /// [candidates] is assumed to already be **that role's own** live candidacies — the caller reads
   /// them out of `OcptResourcesSnapshot.candidatesByRoleId[role.id]` (or the empty list, absent an
@@ -55,7 +55,7 @@ class OcptRoleCastingProgress extends Equatable {
     return OcptRoleCastingProgress(stage: stage, candidateCount: leadCount);
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptRoleCastingProgress(stage: $stage, candidateCount: $candidateCount)";
 
@@ -64,6 +64,6 @@ class OcptRoleCastingProgress extends Equatable {
   List<Object?> get props => [stage, candidateCount];
 }
 
-/// How many of [roles] are cast (`OcptRole.personId != null`) — the `M` half of the roles tab
+/// Count how many of [roles] are cast (`OcptRole.personId != null`) — the `M` half of the roles tab
 /// header's `N roles · M cast`.
 int ocptCastRoleCount(List<OcptRole> roles) => roles.where((role) => role.personId != null).length;

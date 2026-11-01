@@ -30,11 +30,12 @@ class OcptLocalErasuresTable extends Table {
   @override
   String get tableName => 'local_erasures';
 
-  /// The id of the erased person. References [OcptPeopleTable]: erasure blanks and tombstones the
+  /// Get the id of the erased person. References [OcptPeopleTable]: erasure blanks and tombstones
+  /// the
   /// person's row, it does not remove it, so the row this points at still exists.
   TextColumn get personId => text().references(OcptPeopleTable, #id)();
 
-  /// The date and time at which this person was erased.
+  /// Get the date and time at which this person was erased.
   DateTimeColumn get erasedAt => dateTime()();
 
   /// {@macro drift.Table.primaryKey}

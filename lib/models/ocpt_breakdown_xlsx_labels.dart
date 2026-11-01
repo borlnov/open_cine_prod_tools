@@ -68,22 +68,24 @@ class OcptBreakdownXlsxLabels extends Equatable {
     required this.setGroupLabel,
   });
 
-  /// The header of [column] in the `Scenes` sheet, or an empty string if [scenesColumnHeaders]
+  /// Get the header of [column] in the `Scenes` sheet, or an empty string if [scenesColumnHeaders]
   /// holds none for it.
   String scenesHeaderOf(OcptBreakdownScenesXlsxColumn column) => scenesColumnHeaders[column] ?? "";
 
-  /// The header of [column] in the `Breakdown` sheet, or an empty string if [entriesColumnHeaders]
+  /// Get the header of [column] in the `Breakdown` sheet, or an empty string if
+  /// [entriesColumnHeaders]
   /// holds none for it.
   String entriesHeaderOf(OcptBreakdownEntriesXlsxColumn column) =>
       entriesColumnHeaders[column] ?? "";
 
-  /// The label of [status], or an empty string if [sceneStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [sceneStatusLabels] holds none for it.
   String sceneStatusLabelOf(OcptBreakdownSceneStatus status) => sceneStatusLabels[status] ?? "";
 
-  /// The label of [status], or an empty string if [elementStatusLabels] holds none for it.
+  /// Get the label of [status], or an empty string if [elementStatusLabels] holds none for it.
   String elementStatusLabelOf(OcptElementStatus status) => elementStatusLabels[status] ?? "";
 
-  /// The label of the group a target of [kind] falling under [category] is written in: delegates to
+  /// Get the label of the group a target of [kind] falling under [category] is written in:
+  /// delegates to
   /// [ocptBreakdownGroupLabelOf], the single switch `OcptBreakdownSheetsLabels.groupLabelOf` itself
   /// delegates to — see that function's own doc comment.
   String groupLabelOf({required OcptBreakdownTargetKind kind, OcptElementCategory? category}) =>
@@ -95,7 +97,7 @@ class OcptBreakdownXlsxLabels extends Equatable {
         setGroupLabel: setGroupLabel,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBreakdownXlsxLabels(scenesSheetName: $scenesSheetName, entriesSheetName: "

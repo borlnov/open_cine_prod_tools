@@ -29,7 +29,7 @@ class OcptBudgetProvisionItem extends Equatable {
     required this.unitAmountCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetProvisionItem(kind: $kind, quantityMilli: $quantityMilli, "

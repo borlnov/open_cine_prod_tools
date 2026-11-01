@@ -34,7 +34,7 @@ class OcptSceneRef extends Equatable {
   /// its own, and the caller (a bloc) is the one that already knows the project's episode count.
   final int? episodeNumber;
 
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// Get the number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
   /// 1-based index among the screenplay's scenes — exactly what the styled screenplay editor
   /// displays for a heading with no explicit number, and what `OcptSceneShotSequence` derives its
   /// own `displaySceneNumber` as — prefixed with [episodeNumber] once the project holds more than
@@ -54,7 +54,7 @@ class OcptSceneRef extends Equatable {
     required this.episodeNumber,
   });
 
-  /// Builds an [OcptSceneRef] from its stored [row], carrying [episodeNumber] straight through —
+  /// Build an [OcptSceneRef] from its stored [row], carrying [episodeNumber] straight through —
   /// see the field's own doc comment for why this factory cannot derive it itself.
   factory OcptSceneRef.fromRow({required OcptSceneRow row, required int? episodeNumber}) =>
       OcptSceneRef(
@@ -65,7 +65,7 @@ class OcptSceneRef extends Equatable {
         episodeNumber: episodeNumber,
       );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptSceneRef(id: $id, heading: $heading)";
 

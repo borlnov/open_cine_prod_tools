@@ -19,7 +19,7 @@ const int _centDigits = 2;
 /// no-break ones a spreadsheet's own formatting carries into a paste.
 final RegExp _spaces = RegExp(r"\s");
 
-/// Reads [text] as an amount of money and returns it in **cents**, or null when it holds no amount
+/// Read [text] as an amount of money and return it in **cents**, or null when it holds no amount
 /// at all — an empty field, or something that is not a number.
 ///
 /// The one place the app turns typed money into `elements.cost`, so the sheet, the bloc and any
@@ -49,7 +49,7 @@ int? ocptCostCentsOf(String text) {
   return (amount * _centsPerUnit).round();
 }
 
-/// Writes [cents] the way [ocptCostCentsOf] reads it back: a plain number with two decimals, or an
+/// Write [cents] the way [ocptCostCentsOf] reads it back: a plain number with two decimals, or an
 /// empty string when there is no amount at all.
 ///
 /// No currency symbol and no grouping: this is the text of an editable field, not a formatted

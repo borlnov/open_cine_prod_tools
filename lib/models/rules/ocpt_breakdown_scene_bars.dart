@@ -14,12 +14,12 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 /// than the whole target list being walked once per scene.
 typedef OcptBreakdownTargetsById = Map<(OcptBreakdownTargetKind, String), OcptBreakdownTarget>;
 
-/// Builds [OcptBreakdownTargetsById] from [targets] — `OcptBreakdownSnapshot.targets`.
+/// Build [OcptBreakdownTargetsById] from [targets] — `OcptBreakdownSnapshot.targets`.
 OcptBreakdownTargetsById ocptBreakdownTargetsById(List<OcptBreakdownTarget> targets) => {
   for (final target in targets) (target.kind, target.id): target,
 };
 
-/// The live targets [scene]'s tags resolve to against [targetById], one entry per **distinct**
+/// Get the live targets [scene]'s tags resolve to against [targetById], one entry per **distinct**
 /// tagged target: a target tagged twice in the same scene counts once here, which is what both the
 /// scene panel's bars and its `N elements` count read.
 ///
@@ -75,7 +75,7 @@ class OcptBreakdownSceneBarBucket extends Equatable {
   List<Object?> get props => [kind, category, color, count];
 }
 
-/// The bar buckets of [scene]: one per [OcptElementCategory] present among its live tags (in
+/// Get the bar buckets of [scene]: one per [OcptElementCategory] present among its live tags (in
 /// [OcptElementCategory.values] order), then — if present — one for its tagged roles and one for
 /// its tagged sets. `OcptBreakdownScenePanel`'s own per-scene bars.
 List<OcptBreakdownSceneBarBucket> ocptBreakdownSceneBarBucketsOf(

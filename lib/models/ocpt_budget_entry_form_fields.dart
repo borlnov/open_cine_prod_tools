@@ -140,7 +140,7 @@ class OcptBudgetEntryFormFields extends Equatable {
     required this.isReceiptDetached,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetEntryFormFields(date: $date, label: $label, posteId: $posteId, "

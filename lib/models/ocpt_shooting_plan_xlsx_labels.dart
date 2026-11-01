@@ -109,23 +109,24 @@ class OcptShootingPlanXlsxLabels extends Equatable {
     required this.blockKindLabels,
   });
 
-  /// The header of [column] in the `Chronology` sheet, or an empty string if
+  /// Get the header of [column] in the `Chronology` sheet, or an empty string if
   /// [chronologyColumnHeaders] holds none for it.
   String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) =>
       chronologyColumnHeaders[column] ?? "";
 
-  /// The label of the crew position [positionId] names, or an empty string if [crewPositionLabels]
+  /// Get the label of the crew position [positionId] names, or an empty string if
+  /// [crewPositionLabels]
   /// holds none for it.
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
-  /// The label of [category], or an empty string if [elementCategoryLabels] holds none for it.
+  /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.
   String elementCategoryLabelOf(OcptElementCategory category) =>
       elementCategoryLabels[category] ?? "";
 
-  /// The label of [kind], or an empty string if [blockKindLabels] holds none for it.
+  /// Get the label of [kind], or an empty string if [blockKindLabels] holds none for it.
   String blockKindLabelOf(OcptShootingBlockKind kind) => blockKindLabels[kind] ?? "";
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingPlanXlsxLabels(locationsSheetName: $locationsSheetName, chronologySheetName: "

@@ -36,7 +36,7 @@ class OcptShootingDayEvent extends Equatable {
     required this.notes,
   });
 
-  /// Builds an [OcptShootingDayEvent] from its stored [row].
+  /// Build an [OcptShootingDayEvent] from its stored [row].
   factory OcptShootingDayEvent.fromRow(OcptShootingDayEventRow row) => OcptShootingDayEvent(
     id: row.id,
     shootingDayId: row.shootingDayId,
@@ -45,7 +45,7 @@ class OcptShootingDayEvent extends Equatable {
     notes: row.notes,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptShootingDayEvent(id: $id, shootingDayId: $shootingDayId, minute: $minute, "

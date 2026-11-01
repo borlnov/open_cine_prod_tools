@@ -30,19 +30,19 @@ class OcptShootingSlotCastTable extends Table {
   @override
   String get tableName => 'shooting_slot_cast';
 
-  /// The stable, unique id of this convocation (a UUID).
+  /// Get the stable, unique id of this convocation (a UUID).
   TextColumn get id => text()();
 
-  /// The slot this convocation is for.
+  /// Get the slot this convocation is for.
   TextColumn get slotId => text().references(OcptShootingSlotsTable, #id)();
 
-  /// The role convoked during the slot.
+  /// Get the role convoked during the slot.
   TextColumn get roleId => text().references(OcptRolesTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// Free-form notes about this convocation.
+  /// Get free-form notes about this convocation.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

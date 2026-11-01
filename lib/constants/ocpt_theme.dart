@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 /// theme with no scaling at all.
 typedef OcptSizeScaler = double Function(double value);
 
-/// The default [OcptSizeScaler]: returns [value] unchanged, so a theme built with no scaler
+/// Get the default [OcptSizeScaler]: returns [value] unchanged, so a theme built with no scaler
 /// argument is byte-identical to a theme with no scaling concept at all.
 double _identityScaler(double value) => value;
 
@@ -153,7 +153,7 @@ const double ocptTableRowHorizontalPadding = 12;
 /// builds itself) pass this same constant at their call site.
 const WidgetStateMouseCursor ocptClickableCursor = WidgetStateMouseCursor.clickable;
 
-/// Builds the dense UI type scale of the studio design system from [baseThemeData]'s own
+/// Build the dense UI type scale of the studio design system from [baseThemeData]'s own
 /// [ThemeData.textTheme], via [TextTheme.copyWith] so every slot keeps the brightness-correct
 /// default color Material 3 computed for it (a hand-written [TextTheme] would lose that).
 ///
@@ -202,7 +202,7 @@ TextTheme _buildTextTheme({required ThemeData baseThemeData, OcptSizeScaler sp =
   );
 }
 
-/// Builds the studio design system's component themes from [baseThemeData] (already carrying the
+/// Build the studio design system's component themes from [baseThemeData] (already carrying the
 /// dense [TextTheme] [_buildTextTheme] produced, since [ActThemeModel] applies
 /// `overrideDefaultTextTheme` before `overrideDefaultThemeData`).
 ///
@@ -406,7 +406,7 @@ ThemeData _buildThemeData({
   );
 }
 
-/// This defines the light and dark themes of the app.
+/// Define the light and dark themes of the app.
 ///
 /// [OcptSpecificColors] carries the application-specific colors that fall outside the standard
 /// Material 3 [ColorScheme]: `previewBackdrop` (the light value matches [_lightColorScheme]'s own

@@ -103,7 +103,7 @@ const ({double widthM, double heightM}) ocptFloorPlanDoorDefaultFootprintM = (
   heightM: 0.12,
 );
 
-/// The default footprint, in metres, a set-element symbol of [shape] is drawn at absent a
+/// Get the default footprint, in metres, a set-element symbol of [shape] is drawn at absent a
 /// per-symbol `widthM`/`heightM` override — [OcptFloorPlanSetElementShape.wall] long and thin,
 /// [OcptFloorPlanSetElementShape.door] a standard door's own width, and
 /// [OcptFloorPlanSetElementShape.furniture]/[OcptFloorPlanSetElementShape.freeform] the generic
@@ -130,7 +130,7 @@ const double ocptFloorPlanBasePixelsPerMetre = 48;
 /// number a viewer can do mental arithmetic against.
 const List<double> _niceScaleBarMultipliers = [1, 2, 5];
 
-/// The default footprint, in metres, a symbol of [layer] is drawn at absent a per-symbol
+/// Get the default footprint, in metres, a symbol of [layer] is drawn at absent a per-symbol
 /// `widthM`/`heightM` override.
 ///
 /// A `switch` with no `default`, mirroring [OcptFloorPlanScope]'s own doc comment: an eighth layer
@@ -144,22 +144,24 @@ double ocptFloorPlanDefaultFootprintM(OcptFloorPlanLayer layer) => switch (layer
   OcptFloorPlanLayer.set => ocptFloorPlanDefaultElementFootprintM,
 };
 
-/// How many logical pixels one metre draws at when the canvas is at [zoom] (1.0 = neutral/100%).
+/// Count how many logical pixels one metre draws at when the canvas is at [zoom] (1.0 =
+/// neutral/100%).
 ///
 /// Zoom is a **view concern, never synchronised** (`docs/adr/0031-…`): this is the one place the
 /// canvas, the scale bar and the metrics overlay all derive screen coordinates from stored metres,
 /// so they can never disagree about what a given zoom looks like.
 double ocptFloorPlanPixelsPerMetreAt(double zoom) => ocptFloorPlanBasePixelsPerMetre * zoom;
 
-/// [metres] converted to logical pixels at [zoom]. See [ocptFloorPlanPixelsPerMetreAt].
+/// Get [metres] converted to logical pixels at [zoom]. See [ocptFloorPlanPixelsPerMetreAt].
 double ocptFloorPlanMetresToPixels({required double metres, required double zoom}) =>
     metres * ocptFloorPlanPixelsPerMetreAt(zoom);
 
-/// [pixels] converted to metres at [zoom], the inverse of [ocptFloorPlanMetresToPixels].
+/// Get [pixels] converted to metres at [zoom], the inverse of [ocptFloorPlanMetresToPixels].
 double ocptFloorPlanPixelsToMetres({required double pixels, required double zoom}) =>
     pixels / ocptFloorPlanPixelsPerMetreAt(zoom);
 
-/// The straight-line distance, in metres, between two points of a floor plan's geometry — what the
+/// Get the straight-line distance, in metres, between two points of a floor plan's geometry — what
+/// the
 /// metrics toggle prints between the selected symbol and every other visible one, and between a
 /// selected camera and its subject.
 double ocptFloorPlanDistanceM({
@@ -173,7 +175,8 @@ double ocptFloorPlanDistanceM({
   return math.sqrt(dx * dx + dy * dy);
 }
 
-/// The scale bar's length, in metres, at [zoom]: the "nice" round number (`1 m`, `2 m`, `5 m`, and
+/// Get the scale bar's length, in metres, at [zoom]: the "nice" round number (`1 m`, `2 m`, `5 m`,
+/// and
 /// their decades either way) whose on-screen length is closest to [targetPixelLength] without
 /// exceeding it — so the bar stays legible and inside the canvas corner it is drawn in, whatever
 /// the zoom.
@@ -209,7 +212,8 @@ double ocptFloorPlanScaleBarLengthM({required double zoom, double targetPixelLen
   return best;
 }
 
-/// [lengthM] (a scale bar's own [ocptFloorPlanScaleBarLengthM]) formatted as a plain number with
+/// Get [lengthM] (a scale bar's own [ocptFloorPlanScaleBarLengthM]) formatted as a plain number
+/// with
 /// no trailing `.0` (`2`, `0.5`) — what `shotListFloorPlanScaleBarLengthLabel` prints its `m` unit
 /// around. A pure string helper rather than an ICU `double` placeholder: every value this rule
 /// hands out is already a "nice" one- or two-digit number, so a locale-aware `NumberFormat` would

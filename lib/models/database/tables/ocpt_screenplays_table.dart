@@ -15,19 +15,19 @@ class OcptScreenplaysTable extends Table {
   @override
   String get tableName => 'screenplays';
 
-  /// The unique, stable id of this screenplay (a UUID).
+  /// Get the unique, stable id of this screenplay (a UUID).
   TextColumn get id => text()();
 
-  /// The display title of the screenplay.
+  /// Get the display title of the screenplay.
   TextColumn get title => text()();
 
-  /// The full Fountain source text of the screenplay.
+  /// Get the full Fountain source text of the screenplay.
   TextColumn get fountainText => text().withDefault(const Constant(''))();
 
-  /// The date and time at which [fountainText] was last saved.
+  /// Get the date and time at which [fountainText] was last saved.
   DateTimeColumn get updatedAt => dateTime()();
 
-  /// This episode's printed number — an ordinary integer, shown beside the page wherever the
+  /// Get this episode's printed number — an ordinary integer, shown beside the page wherever the
   /// episode is named, and carrying **no uniqueness constraint**. Two episodes numbered 4 is a
   /// state the user can reach by hand (mid-renumbering, or simply a mistake) and repair by hand; a
   /// constraint would refuse that intermediate state rather than help, exactly the reasoning that
@@ -40,7 +40,7 @@ class OcptScreenplaysTable extends Table {
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
   /// {@template open_cine_prod_tools.isDeleted}
-  /// Whether this row has been deleted: a tombstone rather than a removal.
+  /// Tell whether this row has been deleted: a tombstone rather than a removal.
   ///
   /// Every synchronised table carries this
   /// (`docs/adr/0010-sync-ready-data-model-prerequisites.md`): a replica that was offline when a

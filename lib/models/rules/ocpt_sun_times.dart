@@ -76,7 +76,7 @@ class OcptSunTimes {
   /// converted through, so a caller can show which one was used rather than leaving it implicit.
   final Duration utcOffsetUsed;
 
-  /// Builds a computed set of sun times. Callers get one of these from [ocptSunTimesOf]; the
+  /// Build a computed set of sun times. Callers get one of these from [ocptSunTimesOf]; the
   /// constructor is public only so tests can build fixtures without going through the algorithm.
   const OcptSunTimes({
     required this.sunriseMinute,
@@ -91,7 +91,7 @@ class OcptSunTimes {
   });
 }
 
-/// Computes [OcptSunTimes] for [date] at [latitudeDegrees]/[longitudeDegrees] — positive north and
+/// Compute [OcptSunTimes] for [date] at [latitudeDegrees]/[longitudeDegrees] — positive north and
 /// east respectively, matching `locations.latitude`/`locations.longitude` — entirely offline.
 ///
 /// This is the NOAA General Solar Position Calculations' low-precision formulas (the ones on
@@ -160,7 +160,8 @@ OcptSunTimes ocptSunTimesOf({
   );
 }
 
-/// One sun event (a sunrise, a sunset, or a twilight's start or end), in UTC minutes from midnight
+/// Get one sun event (a sunrise, a sunset, or a twilight's start or end), in UTC minutes from
+/// midnight
 /// of the day [dayOfYear] names — solved twice, as this file's top doc comment explains: once
 /// against noon's own solar position, then again against the solar position at that first estimate,
 /// which is what keeps the result close to accurate away from the solstices.
@@ -208,7 +209,8 @@ double? _ocptEventUtcMinute({
   return solve((dayOfYear - 1) + firstPassMinute / 1440) ?? firstPassMinute;
 }
 
-/// The declination and the equation of time for [fractionalDayOfYear] — 0 at midnight of 1 January,
+/// Get the declination and the equation of time for [fractionalDayOfYear] — 0 at midnight of 1
+/// January,
 /// growing by a full unit per day — the two quantities every [_ocptEventUtcMinute] pass needs and
 /// the only place either is computed.
 ({double equationOfTimeMinutes, double declinationRadians}) _ocptSolarPositionAt(
@@ -236,7 +238,7 @@ double? _ocptEventUtcMinute({
   return (equationOfTimeMinutes: equationOfTimeMinutes, declinationRadians: declinationRadians);
 }
 
-/// The half-day length as an hour angle, in radians and always non-negative when it exists: how
+/// Get the half-day length as an hour angle, in radians and always non-negative when it exists: how
 /// long before and after solar noon the sun takes to reach [zenithDegrees] below the horizon, given
 /// [declinationRadians] (see [_ocptSolarPositionAt]).
 ///
@@ -261,6 +263,6 @@ double? _ocptHourAngleRadians({
   return math.acos(cosineOfHourAngle);
 }
 
-/// [local]'s ordinal day within its own year, 1 for 1 January.
+/// Get [local]'s ordinal day within its own year, 1 for 1 January.
 int _ocptDayOfYear(DateTime local) =>
     DateTime(local.year, local.month, local.day).difference(DateTime(local.year)).inDays + 1;

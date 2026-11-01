@@ -23,21 +23,21 @@ class OcptSkippedAsset extends Equatable {
   /// Class constructor
   const OcptSkippedAsset({required this.assetId, required this.label, required this.originalPath});
 
-  /// Parses one skipped asset out of the JSON the manifest stores it as.
+  /// Parse one skipped asset out of the JSON the manifest stores it as.
   factory OcptSkippedAsset.fromJson(Map<String, dynamic> json) => OcptSkippedAsset(
     assetId: json["assetId"] as String? ?? "",
     label: json["label"] as String? ?? "",
     originalPath: json["originalPath"] as String? ?? "",
   );
 
-  /// This asset, as the manifest stores it.
+  /// Serialize this asset, as the manifest stores it.
   Map<String, dynamic> toJson() => {
     "assetId": assetId,
     "label": label,
     "originalPath": originalPath,
   };
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptSkippedAsset(assetId: $assetId, label: $label, originalPath: $originalPath)";

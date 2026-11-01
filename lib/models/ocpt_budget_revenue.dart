@@ -43,7 +43,7 @@ class OcptBudgetRevenue extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetRevenue] from its stored [row].
+  /// Build an [OcptBudgetRevenue] from its stored [row].
   factory OcptBudgetRevenue.fromRow(OcptBudgetRevenueRow row) => OcptBudgetRevenue(
     id: row.id,
     date: row.date,
@@ -54,7 +54,7 @@ class OcptBudgetRevenue extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetRevenue(id: $id, date: $date, label: $label, "

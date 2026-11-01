@@ -78,7 +78,7 @@ class OcptFieldStamp extends Equatable {
   /// The device that wrote this stamp — `row_field_versions.deviceId`.
   final String deviceId;
 
-  /// Creates a field stamp.
+  /// Create a field stamp.
   const OcptFieldStamp({
     required this.tableName,
     required this.rowId,
@@ -88,7 +88,7 @@ class OcptFieldStamp extends Equatable {
     required this.deviceId,
   });
 
-  /// Parses a field stamp from the JSON object [toJson] writes.
+  /// Parse a field stamp from the JSON object [toJson] writes.
   factory OcptFieldStamp.fromJson(Map<String, dynamic> json) => OcptFieldStamp(
     tableName: json[_tableNameKey] as String,
     rowId: json[_rowIdKey] as String,
@@ -98,7 +98,7 @@ class OcptFieldStamp extends Equatable {
     deviceId: json[_deviceIdKey] as String,
   );
 
-  /// Serialises this stamp to the JSON object an `OcptChangeset` carries it as.
+  /// Serialise this stamp to the JSON object an `OcptChangeset` carries it as.
   Map<String, dynamic> toJson() => {
     _tableNameKey: tableName,
     _rowIdKey: rowId,
@@ -114,7 +114,7 @@ class OcptFieldStamp extends Equatable {
       'OcptFieldStamp(tableName: $tableName, rowId: $rowId, columnName: $columnName, '
       'value: $value, version: $version, deviceId: $deviceId)';
 
-  /// [value] turned into whatever `jsonEncode` can write: `int`, `double`, `String`, `bool` and
+  /// Get [value] turned into whatever `jsonEncode` can write: `int`, `double`, `String`, `bool` and
   /// `null` already are, and pass through untouched. A [Uint8List] is the one case that isn't — it
   /// is base64-encoded and nested one level under [_blobKey], which is what [_decodeValue] looks
   /// for to tell a blob apart from every other case: a raw SQL value is never itself a JSON object
@@ -124,7 +124,7 @@ class OcptFieldStamp extends Equatable {
   static Object? _encodeValue(Object? value) =>
       value is Uint8List ? {_blobKey: base64Encode(value)} : value;
 
-  /// The inverse of [_encodeValue]: a JSON value shaped exactly like a tagged blob — a `Map`
+  /// Get the inverse of [_encodeValue]: a JSON value shaped exactly like a tagged blob — a `Map`
   /// carrying [_blobKey] and nothing else — decodes back to the [Uint8List] it was base64-encoded
   /// from; every other JSON value (including a `Map` [_encodeValue] itself never produces) passes
   /// through unchanged.

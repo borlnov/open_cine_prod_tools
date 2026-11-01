@@ -29,7 +29,7 @@ enum OcptWorkspaceMode {
   /// The budget tracker: the production's quote, cash journal, financing and revenue sharing.
   budget;
 
-  /// Whether this mode has real content today, rather than the shared "coming in a future
+  /// Tell whether this mode has real content today, rather than the shared "coming in a future
   /// version" empty state.
   ///
   /// Every value answers true today; the getter is kept as an explicit list rather than collapsed

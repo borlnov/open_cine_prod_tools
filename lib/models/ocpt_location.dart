@@ -124,7 +124,7 @@ class OcptLocation extends Equatable {
     required this.availabilities,
   });
 
-  /// Builds an [OcptLocation] from its stored [row], its already-ordered [sets], [photos] and
+  /// Build an [OcptLocation] from its stored [row], its already-ordered [sets], [photos] and
   /// [availabilities], and the [permitDocument] its `permitAssetId` resolved to.
   factory OcptLocation.fromRow({
     required OcptLocationRow row,
@@ -161,7 +161,7 @@ class OcptLocation extends Equatable {
     availabilities: availabilities,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptLocation(id: $id, name: $name, setCount: ${sets.length})";
 

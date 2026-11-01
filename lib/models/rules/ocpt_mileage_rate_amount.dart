@@ -20,7 +20,7 @@ const int _rateDigits = 3;
 /// own `_spaces`.
 final RegExp _spaces = RegExp(r"\s");
 
-/// Reads [text] as a per-kilometre reimbursement rate and returns it in **thousandths of a
+/// Read [text] as a per-kilometre reimbursement rate and return it in **thousandths of a
 /// cent**, or null when it holds no rate at all — an empty field, or something that is not a
 /// number.
 ///
@@ -54,7 +54,7 @@ int? ocptMileageRateMilliCentsOf(String text) {
   return (rate * _milliCentsPerCent).round();
 }
 
-/// Writes [milliCents] the way [ocptMileageRateMilliCentsOf] reads it back: a plain number with
+/// Write [milliCents] the way [ocptMileageRateMilliCentsOf] reads it back: a plain number with
 /// three decimals, or an empty string when there is no rate at all.
 ///
 /// No currency symbol and no unit: this is the text of an editable field, not a formatted price

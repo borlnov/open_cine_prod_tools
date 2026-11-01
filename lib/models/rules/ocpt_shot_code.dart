@@ -20,12 +20,13 @@ library;
 
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 
-/// The scene-number half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call sheet's
+/// Get the scene-number half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call
+/// sheet's
 /// own `SEQ` column and a shooting plan's own sequence grid read a shot's scene off.
 String ocptShotSceneNumberOf(OcptShot shot) =>
     shot.code.contains("/") ? shot.code.split("/").first : shot.code;
 
-/// The per-scene rank half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call
+/// Get the per-scene rank half of [shot]'s own `<sceneNumber>/<rank>` display code — what a call
 /// sheet's own `PLANS` column and a shooting plan's own `Plan`/sequence-grid cells read, since
 /// whichever one is naming it already says the scene.
 String ocptShotRankOf(OcptShot shot) =>

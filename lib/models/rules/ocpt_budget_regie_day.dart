@@ -46,19 +46,21 @@ class OcptBudgetRegieDay extends Equatable {
   /// rather than the whole figure.
   final OcptBudgetCoveredTotal cost;
 
-  /// How many people the buffet actually has to serve today — [crewCount] plus [castCount] plus
+  /// Count how many people the buffet actually has to serve today — [crewCount] plus [castCount]
+  /// plus
   /// [extraCount]. A derived reading, not a field of its own: it would otherwise be a second copy
   /// of the very three counts it is computed from. **Unaffected by [mealSittings]**: the buffet is
   /// still one per head per shooting day, exactly as before this pass started reading meal blocks.
   int get headCount => crewCount + castCount + extraCount;
 
-  /// [headCount] under its own name for the buffet's own column — the two happen to read the same
+  /// Get [headCount] under its own name for the buffet's own column — the two happen to read the
+  /// same
   /// figure today, but they answer different questions ("how many people are on set" versus "how
   /// many meal-block sittings a day makes"), so this is its own reading rather than a caller
   /// borrowing [headCount] for a purpose it isn't named for.
   int get buffetCount => headCount;
 
-  /// How many meals this day accounts for — the sum of every [mealSittings] entry's own
+  /// Count how many meals this day accounts for — the sum of every [mealSittings] entry's own
   /// [OcptBudgetRegieMealSitting.headCount]. A person fed at two sittings of the same day (lunch
   /// and dinner) is counted twice here, on purpose: they ate twice, and the production pays for
   /// both.
@@ -76,7 +78,7 @@ class OcptBudgetRegieDay extends Equatable {
     required this.cost,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetRegieDay(dayId: $dayId, dayNumber: $dayNumber, headCount: $headCount, "

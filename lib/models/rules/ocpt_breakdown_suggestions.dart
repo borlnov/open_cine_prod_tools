@@ -73,7 +73,7 @@ class _OcptFoldedSceneText {
   /// Class constructor
   const _OcptFoldedSceneText({required this.folded, required this.foldedToOriginalOffset});
 
-  /// Folds [sceneText] rune by rune, building the index map alongside it.
+  /// Fold [sceneText] rune by rune, building the index map alongside it.
   factory _OcptFoldedSceneText.of(String sceneText) {
     final foldedBuffer = StringBuffer();
     final foldedToOriginalOffset = <int>[];
@@ -100,7 +100,7 @@ class _OcptFoldedSceneText {
   }
 }
 
-/// Every passage of [scenes] that reads like one of its own live tags' `taggedText` and is not
+/// Get every passage of [scenes] that reads like one of its own live tags' `taggedText` and is not
 /// itself tagged — what the target inspector's own "Suggested occurrences" section offers, one
 /// entry per (target, scene, range), the user confirming each one before it becomes a tag of its
 /// own (a repeated occurrence is offered, never applied).
@@ -214,7 +214,7 @@ List<OcptBreakdownSuggestion> ocptBreakdownSuggestionsOf({
   return suggestions;
 }
 
-/// [scene]'s own slice of [screenplayText], its `charStart`/`charEnd` clamped to
+/// Get [scene]'s own slice of [screenplayText], its `charStart`/`charEnd` clamped to
 /// [screenplayText]'s own length first so a scene whose offsets no longer fit it (a stale read
 /// racing an edit) is truncated rather than crashing the search.
 String _sceneTextOf(OcptBreakdownScene scene, String screenplayText) {
@@ -223,7 +223,8 @@ String _sceneTextOf(OcptBreakdownScene scene, String screenplayText) {
   return screenplayText.substring(start, end);
 }
 
-/// Whether the match `[start, end)` of [folded] is bounded by whole words: neither the character
+/// Tell whether the match `[start, end)` of [folded] is bounded by whole words: neither the
+/// character
 /// right before [start] nor the one right at [end] may be a letter or a digit, checked with
 /// [_letterOrDigit] against the **folded** text — a folded letter still folds to a letter.
 bool _isWholeWordMatch(String folded, int start, int end) {

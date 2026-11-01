@@ -15,7 +15,7 @@
 /// [ocptEmailLooksWellFormed]).
 final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$');
 
-/// Whether [value] looks like an email address, ignoring the whitespace around it.
+/// Tell whether [value] looks like an email address, ignoring the whitespace around it.
 ///
 /// **An empty [value] is well-formed**: no email address is a normal state in an address book, and
 /// only a value somebody actually typed can be wrong.

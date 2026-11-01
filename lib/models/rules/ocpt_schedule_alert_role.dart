@@ -13,6 +13,6 @@ class OcptScheduleAlertRole {
   /// The actor cast in this role, or null while it is uncast — `roles.personId` verbatim.
   final String? personId;
 
-  /// Builds a role to feed to [ocptComputeScheduleAlerts].
+  /// Build a role to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertRole({required this.id, required this.personId});
 }

@@ -42,7 +42,7 @@ class OcptCoverageSummaryRow extends Equatable {
   /// is listed to be named, not to be measured.
   final bool isOrphanGroup;
 
-  /// The share of the scene's words at least one shot covers, between 0 and 1; 0 when the scene
+  /// Get the share of the scene's words at least one shot covers, between 0 and 1; 0 when the scene
   /// holds no word at all (an empty scene is not "fully covered").
   double get coveredWordShare => wordCount == 0 ? 0 : coveredWordCount / wordCount;
 
@@ -59,7 +59,7 @@ class OcptCoverageSummaryRow extends Equatable {
     required this.isOrphanGroup,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptCoverageSummaryRow(sequenceId: $sequenceId, shotCount: $shotCount, "

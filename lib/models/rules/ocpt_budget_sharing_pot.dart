@@ -24,7 +24,8 @@ class OcptBudgetSharingPot extends Equatable {
   /// [ocptBudgetRepaidContributionsTotalOf]'s own figure.
   final OcptBudgetCoveredTotal repaid;
 
-  /// What is still owed to the contributors: [reimbursableCents] less what [repaid] says has gone
+  /// Get what is still owed to the contributors: [reimbursableCents] less what [repaid] says has
+  /// gone
   /// back, floored at zero — a production that has paid back more than it owed has finished
   /// repaying, not started being owed.
   int get outstandingRepaymentCents {
@@ -32,7 +33,7 @@ class OcptBudgetSharingPot extends Equatable {
     return outstanding < 0 ? 0 : outstanding;
   }
 
-  /// What is left to share, in cents: the takings less the **whole** of [reimbursableCents],
+  /// Get what is left to share, in cents: the takings less the **whole** of [reimbursableCents],
   /// floored at zero.
   ///
   /// **The whole of it, not merely what is still outstanding.** Whether a contribution has been
@@ -46,7 +47,8 @@ class OcptBudgetSharingPot extends Equatable {
     return shareable < 0 ? 0 : shareable;
   }
 
-  /// Whether there is anything at all to share yet. False while the takings have not yet cleared
+  /// Tell whether there is anything at all to share yet. False while the takings have not yet
+  /// cleared
   /// the contributions, which is the ordinary state of a film for a long time — and the state in
   /// which every participant's own due is honestly zero rather than unknown.
   bool get hasSomethingToShare => shareableCents > 0;
@@ -58,7 +60,7 @@ class OcptBudgetSharingPot extends Equatable {
     required this.repaid,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetSharingPot(received: $received, reimbursableCents: $reimbursableCents, "

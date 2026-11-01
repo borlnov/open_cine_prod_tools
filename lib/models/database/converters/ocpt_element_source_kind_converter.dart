@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 
-/// Converts a [OcptElementSourceKind] to and from the text stored in the `elements.sourceKind`
+/// Convert a [OcptElementSourceKind] to and from the text stored in the `elements.sourceKind`
 /// column.
 class OcptElementSourceKindConverter extends TypeConverter<OcptElementSourceKind, String> {
   /// Class constructor

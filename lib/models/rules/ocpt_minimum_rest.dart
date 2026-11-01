@@ -24,7 +24,7 @@ final RegExp _spaces = RegExp(r"\s");
 /// reads as `11.5`.
 final RegExp _trailingZeroes = RegExp(r"0+$");
 
-/// Reads [text] as a minimum rest typed **in hours** and returns it in **minutes**, or null when it
+/// Read [text] as a minimum rest typed **in hours** and return it in **minutes**, or null when it
 /// holds no such figure at all — an empty field, something that is not a number, or a figure that
 /// is not a positive length of time.
 ///
@@ -57,7 +57,7 @@ int? ocptMinimumRestMinutesOf(String text) {
   return minutes <= 0 ? null : minutes;
 }
 
-/// Writes [minutes] the way [ocptMinimumRestMinutesOf] reads it back: a plain number of hours, or
+/// Write [minutes] the way [ocptMinimumRestMinutesOf] reads it back: a plain number of hours, or
 /// an empty string while nobody has recorded a minimum.
 ///
 /// A whole number of hours is written bare (`660` is `11`, never `11.0`), and anything else keeps

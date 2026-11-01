@@ -4,7 +4,8 @@
 
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 
-/// The number a scene is shown by, as `docs/adr/0019` settles it: its own explicit [sceneNumber]
+/// Get the number a scene is shown by, as `docs/adr/0019` settles it: its own explicit
+/// [sceneNumber]
 /// when it has one, otherwise its 1-based [position] among its episode's scenes — prefixed with
 /// `<episodeNumber>.` as soon as the project holds more than one episode.
 ///
@@ -28,7 +29,7 @@ String ocptSceneDisplayNumberOf({
   return episodeNumber == null ? ownNumber : "$episodeNumber.$ownNumber";
 }
 
-/// The episode number [ocptSceneDisplayNumberOf] prefixes a scene of screenplay [screenplayId]
+/// Get the episode number [ocptSceneDisplayNumberOf] prefixes a scene of screenplay [screenplayId]
 /// with, read off [episodes] — the other half of the same rule, so "more than one episode" also
 /// has one implementation.
 ///

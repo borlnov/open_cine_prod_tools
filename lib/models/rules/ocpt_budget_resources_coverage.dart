@@ -45,10 +45,10 @@ class OcptBudgetResourcesCoverage extends Equatable {
   /// How far [plannedCents] still falls short of [needs]' own amount, floored at zero.
   final int missingCents;
 
-  /// [received]'s own amount plus [promisedCents] — the plan as it stands, arrived or not.
+  /// Get [received]'s own amount plus [promisedCents] — the plan as it stands, arrived or not.
   int get plannedCents => received.amountCents + promisedCents;
 
-  /// Whether the plan, arrived or promised, covers the quote — [plannedCents] at or above
+  /// Tell whether the plan, arrived or promised, covers the quote — [plannedCents] at or above
   /// [needs]' own amount. Over-financing is still a plan that holds; a shortfall alone reads as
   /// uncovered, the same register [OcptBudgetNeedsResourcesBalance.isBalanced] already reads in.
   bool get isCovered => plannedCents >= needs.amountCents;
@@ -61,7 +61,7 @@ class OcptBudgetResourcesCoverage extends Equatable {
     required this.missingCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetResourcesCoverage(needs: $needs, received: $received, "

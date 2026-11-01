@@ -25,11 +25,11 @@ class OcptPersonSkill extends Equatable {
   /// Class constructor
   const OcptPersonSkill({required this.id, required this.personId, required this.label});
 
-  /// Builds an [OcptPersonSkill] from its stored [row].
+  /// Build an [OcptPersonSkill] from its stored [row].
   factory OcptPersonSkill.fromRow(OcptPersonSkillRow row) =>
       OcptPersonSkill(id: row.id, personId: row.personId, label: row.label);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptPersonSkill(id: $id, label: $label)";
 

@@ -4,7 +4,7 @@
 
 import 'package:path/path.dart' as p;
 
-/// Returns the first path under [directoryPath] that [exists] reports as free: [baseName] itself
+/// Return the first path under [directoryPath] that [exists] reports as free: [baseName] itself
 /// first (`"$baseName.$extension"`), then `"$baseName (2).$extension"`,
 /// `"$baseName (3).$extension"` and so on until one is.
 ///

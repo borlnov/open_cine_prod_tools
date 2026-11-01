@@ -14,7 +14,7 @@ final RegExp _boneyardPattern = RegExp(r'/\*[\s\S]*?\*/');
 /// lines — the mirror of [_boneyardPattern].
 final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
 
-/// Whether a screenplay line of [type] is prose a spell check should ever look at, rather than
+/// Tell whether a screenplay line of [type] is prose a spell check should ever look at, rather than
 /// scaffolding or a fixed vocabulary the language itself does not own.
 ///
 /// A scene heading (`INT. KITCHEN - DAY`) is a set name in capitals: proper nouns, abbreviations
@@ -63,7 +63,8 @@ bool ocptIsSpellCheckedLineType(FountainLineType type) {
 /// already on by default.
 const SpellTokenizerOptions ocptScreenplaySpellTokenizerOptions = SpellTokenizerOptions();
 
-/// The [FountainLineType] a parsed [block] corresponds to, or null for the three block kinds that
+/// Get the [FountainLineType] a parsed [block] corresponds to, or null for the three block kinds
+/// that
 /// have none of their own.
 ///
 /// `FountainDocument.blocks` is a sealed [FountainBlock] hierarchy, not a list of typed lines, so
@@ -109,7 +110,7 @@ FountainLineType? ocptLineTypeOfBlock(FountainBlock block) {
   }
 }
 
-/// The spans of every inline authoring note (`[[ ... ]]`) and boneyard comment (`/* ... */`)
+/// Get the spans of every inline authoring note (`[[ ... ]]`) and boneyard comment (`/* ... */`)
 /// found inside a block's own [source] text, in ascending order.
 ///
 /// A block's displayed text and its raw Fountain source agree almost everywhere, but a note or a

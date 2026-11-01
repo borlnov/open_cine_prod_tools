@@ -24,7 +24,7 @@ class OcptShootingSlotTimeline {
   /// [ocptComputeSlotTimeline]'s doc comment on the empty-slot case.
   final int? endMinute;
 
-  /// Builds a computed timeline.
+  /// Build a computed timeline.
   const OcptShootingSlotTimeline({
     required this.entries,
     required this.overruns,

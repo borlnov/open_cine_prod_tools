@@ -28,7 +28,7 @@ class OcptBudgetShareSplit extends Equatable {
   /// `dueCents × reinvestPermille ÷ 1000`, rounded to the nearest cent.
   final int reinvestedCents;
 
-  /// [dueCents] less [reinvestedCents]: what is theirs to actually take.
+  /// Get [dueCents] less [reinvestedCents]: what is theirs to actually take.
   int get takeHomeCents => dueCents - reinvestedCents;
 
   /// Class constructor
@@ -39,7 +39,7 @@ class OcptBudgetShareSplit extends Equatable {
     required this.reinvestedCents,
   });
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptBudgetShareSplit(share: ${share.id}, dueCents: $dueCents, paid: $paid, "

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// Reads [text] as a person's maximum daily presence and returns it in **minutes**, or null when
+/// Read [text] as a person's maximum daily presence and return it in **minutes**, or null when
 /// it holds no figure at all — an empty field, something that isn't a whole number, or a negative
 /// one.
 ///
@@ -27,6 +27,6 @@ int? ocptMaxDailyPresenceMinutesOf(String text) {
   return minutes;
 }
 
-/// Writes [minutes] the way [ocptMaxDailyPresenceMinutesOf] reads it back: the bare number, or an
+/// Write [minutes] the way [ocptMaxDailyPresenceMinutesOf] reads it back: the bare number, or an
 /// empty string while nobody has recorded one.
 String ocptMaxDailyPresenceTextOf(int? minutes) => minutes == null ? "" : "$minutes";

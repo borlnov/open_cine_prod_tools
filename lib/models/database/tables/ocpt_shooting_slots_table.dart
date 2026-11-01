@@ -46,27 +46,28 @@ class OcptShootingSlotsTable extends Table {
   @override
   String get tableName => 'shooting_slots';
 
-  /// The stable, unique id of this slot (a UUID).
+  /// Get the stable, unique id of this slot (a UUID).
   TextColumn get id => text()();
 
-  /// The day this slot belongs to.
+  /// Get the day this slot belongs to.
   TextColumn get shootingDayId => text().references(OcptShootingDaysTable, #id)();
 
   /// {@macro open_cine_prod_tools.sortKey}
   TextColumn get sortKey => text().withDefault(const Constant(''))();
 
-  /// This slot's own label ("Matin", "Nuit"), free text — printed on the call sheet as the name of
+  /// Get this slot's own label ("Matin", "Nuit"), free text — printed on the call sheet as the name
+  /// of
   /// the convocation window.
   TextColumn get label => text().withDefault(const Constant(''))();
 
-  /// The location this slot is shot at, or null while none is chosen.
+  /// Get the location this slot is shot at, or null while none is chosen.
   TextColumn get locationId => text().nullable().references(OcptLocationsTable, #id)();
 
-  /// The set (décor) this slot is shot at, or null while none is chosen. Its own
+  /// Get the set (décor) this slot is shot at, or null while none is chosen. Its own
   /// `sets.locationId` must be [locationId].
   TextColumn get setId => text().nullable().references(OcptSetsTable, #id)();
 
-  /// Which of this slot's two edges is the pinned one — see the class doc comment.
+  /// Tell which of this slot's two edges is the pinned one — see the class doc comment.
   // The stored literal below must match `OcptShootingSlotAnchorEdge.start.name` exactly, for the
   // same reason `shooting_days.status`'s default does: an enum's `.name` getter isn't a
   // compile-time constant expression.
@@ -74,15 +75,15 @@ class OcptShootingSlotsTable extends Table {
       .map(const OcptShootingSlotAnchorEdgeConverter())
       .withDefault(const Constant('start'))();
 
-  /// The hour [anchorEdge] is pinned to, typed by hand — **null exactly when [anchorSlotId] is
+  /// Get the hour [anchorEdge] is pinned to, typed by hand — **null exactly when [anchorSlotId] is
   /// set**. May exceed 1440, see the class doc comment.
   IntColumn get anchorMinute => integer().nullable()();
 
-  /// The slot of the same day whose **opposite** edge [anchorEdge] reads its hour off — **null
+  /// Get the slot of the same day whose **opposite** edge [anchorEdge] reads its hour off — **null
   /// exactly when [anchorMinute] is set**. See the class doc comment.
   TextColumn get anchorSlotId => text().nullable().references(OcptShootingSlotsTable, #id)();
 
-  /// Free-form notes about this slot.
+  /// Get free-form notes about this slot.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.isDeleted}

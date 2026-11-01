@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 
-/// Converts a [OcptPermitStatus] to and from the text stored in the `locations.permitStatus`
+/// Convert a [OcptPermitStatus] to and from the text stored in the `locations.permitStatus`
 /// column.
 class OcptPermitStatusConverter extends TypeConverter<OcptPermitStatus, String> {
   /// Class constructor

@@ -20,12 +20,12 @@ const int _ocptQuantityMilliPerUnit = 1000;
 /// 90 %, the figure [ocptBudgetPosteStrainOf]'s own strain reading is drawn at.
 const double _ocptBudgetNearStrainRatio = 0.9;
 
-/// [line]'s own total, in cents, in whatever tax basis it was typed in — never converted:
+/// Get [line]'s own total, in cents, in whatever tax basis it was typed in — never converted:
 /// `quantityMilli × unitAmountCents ÷ 1000`, rounded to the nearest cent.
 int ocptBudgetLineTotalCents(OcptBudgetLine line) =>
     (line.quantityMilli * line.unitPrice.amountCents / _ocptQuantityMilliPerUnit).round();
 
-/// [line]'s own total **excluding tax**, in cents, given the project's own
+/// Get [line]'s own total **excluding tax**, in cents, given the project's own
 /// [projectVatRateBasisPoints] — or null when that figure cannot be known, exactly as
 /// `ocptExcludingTaxAmountCentsOf` reads for a single amount.
 ///
@@ -46,7 +46,7 @@ int? ocptBudgetLineExcludingTaxTotalCents(
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
-/// [poste]'s quoted total, in cents, in the tax-inclusive-as-typed basis: the sum of
+/// Get [poste]'s quoted total, in cents, in the tax-inclusive-as-typed basis: the sum of
 /// [ocptBudgetLineTotalCents] over its own [OcptBudgetPoste.lines].
 ///
 /// **Row by row, then summed** — never the other way round: `OcptBudgetPostesTable`'s own doc
@@ -56,12 +56,13 @@ int? ocptBudgetLineExcludingTaxTotalCents(
 int ocptBudgetPosteQuotedTotalCents(OcptBudgetPoste poste) =>
     poste.lines.fold(0, (sum, line) => sum + ocptBudgetLineTotalCents(line));
 
-/// The whole project's quoted total, in cents: the sum of [ocptBudgetPosteQuotedTotalCents] over
+/// Get the whole project's quoted total, in cents: the sum of [ocptBudgetPosteQuotedTotalCents]
+/// over
 /// [postes] — row by row, poste by poste, then summed, for the same reason that method is.
 int ocptBudgetProjectQuotedTotalCents(List<OcptBudgetPoste> postes) =>
     postes.fold(0, (sum, poste) => sum + ocptBudgetPosteQuotedTotalCents(poste));
 
-/// What each poste has settled **in kind**, keyed by `OcptBudgetPoste.id`: the sum of
+/// Get what each poste has settled **in kind**, keyed by `OcptBudgetPoste.id`: the sum of
 /// [ocptBudgetLineTotalCents] over its own lines whose [OcptBudgetLine.inKindResourceId] is not
 /// null — a counterpart line minted to balance an in-kind contribution
 /// (`docs/architecture/budget.md`, "A balanced in-kind contribution"). This is the settled-in-kind
@@ -101,7 +102,8 @@ Map<String, int> ocptBudgetInKindCoveredCentsByPosteId(List<OcptBudgetPoste> pos
   return coveredCentsByPosteId;
 }
 
-/// The counterpart quote line balancing in-kind contribution [resourceId] — the one line, across
+/// Get the counterpart quote line balancing in-kind contribution [resourceId] — the one line,
+/// across
 /// every poste, whose [OcptBudgetLine.inKindResourceId] names it — or null while it has none: an
 /// ordinary contribution not (or not yet) in kind, or one whose line has not been minted.
 ///
@@ -126,7 +128,8 @@ OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(List<OcptBudgetPoste> postes, 
   return null;
 }
 
-/// [totals]' own combined figure — the sum of every [OcptBudgetCoveredTotal.amountCents], paired
+/// Get [totals]' own combined figure — the sum of every [OcptBudgetCoveredTotal.amountCents],
+/// paired
 /// with how many of the underlying rows actually carried a known rate: a plain reduction over
 /// already-computed pure structures, not a rule of its own.
 ///
@@ -153,7 +156,8 @@ OcptBudgetCoveredTotal ocptBudgetCoveredTotalsFoldOf(Iterable<OcptBudgetCoveredT
   );
 }
 
-/// The excluding-tax total of [lines], given the project's own [projectVatRateBasisPoints], paired
+/// Get the excluding-tax total of [lines], given the project's own [projectVatRateBasisPoints],
+/// paired
 /// with how many of them that figure actually covers.
 ///
 /// **Row by row, then summed** — [ocptBudgetLineExcludingTaxTotalCents] is computed for each line
@@ -187,7 +191,7 @@ OcptBudgetCoveredTotal ocptBudgetExcludingTaxTotalOf(
   );
 }
 
-/// What is left of a poste quoted at [quotedAmountCents], having paid [paidCents], committed
+/// Get what is left of a poste quoted at [quotedAmountCents], having paid [paidCents], committed
 /// [committedCents] and settled [inKindCoveredCents] against it — negative once the poste has gone
 /// over its quote.
 ///
@@ -213,7 +217,8 @@ int ocptBudgetRemainingCents({
   required int inKindCoveredCents,
 }) => quotedAmountCents - paidCents - committedCents - inKindCoveredCents;
 
-/// How far a poste quoted at [quotedAmountCents] sits from what has actually moved against it —
+/// Tell how far a poste quoted at [quotedAmountCents] sits from what has actually moved against it
+/// —
 /// [paidCents] plus [committedCents] plus [inKindCoveredCents], minus the quote. Positive once the
 /// poste has gone over, negative while it still has room: [ocptBudgetRemainingCents]'s own figure
 /// with the sign read the other way round, for the financial report's "quoted vs. actual" reading
@@ -228,7 +233,7 @@ int ocptBudgetVarianceCents({
   required int inKindCoveredCents,
 }) => paidCents + committedCents + inKindCoveredCents - quotedAmountCents;
 
-/// What is still expected to be spent on a poste quoted at [quotedAmountCents] beyond what has
+/// Get what is still expected to be spent on a poste quoted at [quotedAmountCents] beyond what has
 /// already been [paidCents], [committedCents] and [inKindCoveredCents] against it.
 ///
 /// [typedEstimateToCompleteCents] **is** the answer, verbatim, whenever it is non-null: a human has
@@ -275,7 +280,7 @@ int ocptBudgetEstimateToCompleteCents({
   );
 }
 
-/// The whole of what a poste is now expected to have cost by the end: [paidCents] plus
+/// Get the whole of what a poste is now expected to have cost by the end: [paidCents] plus
 /// [committedCents] plus [estimateToCompleteCents].
 ///
 /// [estimateToCompleteCents] is taken **already resolved** — [ocptBudgetEstimateToCompleteCents]
@@ -288,7 +293,8 @@ int ocptBudgetFinalCostCents({
   required int estimateToCompleteCents,
 }) => paidCents + committedCents + estimateToCompleteCents;
 
-/// How far a poste quoted at [quotedAmountCents] sits from [finalCostCents], the whole of what it
+/// Tell how far a poste quoted at [quotedAmountCents] sits from [finalCostCents], the whole of what
+/// it
 /// is now expected to have cost by the end ([ocptBudgetFinalCostCents]). Positive once the poste is
 /// expected to end over its quote, negative while it is expected to come in under.
 ///
@@ -308,7 +314,7 @@ int ocptBudgetFinalCostVarianceCents({
   required int finalCostCents,
 }) => finalCostCents - quotedAmountCents;
 
-/// How much of a poste quoted at [quotedAmountCents] has been consumed by [paidCents] plus
+/// Tell how much of a poste quoted at [quotedAmountCents] has been consumed by [paidCents] plus
 /// [committedCents] plus [inKindCoveredCents], as a ratio (`1.0` meaning exactly on quote) — or
 /// null when the poste carries no quote at all ([quotedAmountCents] zero), where a ratio would be a
 /// division by zero rather than a figure.
@@ -328,7 +334,7 @@ double? ocptBudgetConsumedRatioOf({
   return (paidCents + committedCents + inKindCoveredCents) / quotedAmountCents;
 }
 
-/// How stretched a poste quoted at [quotedAmountCents] is, having paid [paidCents], committed
+/// Tell how stretched a poste quoted at [quotedAmountCents] is, having paid [paidCents], committed
 /// [committedCents] and settled [inKindCoveredCents] in kind against it.
 ///
 /// A poste with no quote at all ([quotedAmountCents] zero) reads [OcptBudgetPosteStrain.within]
@@ -366,7 +372,8 @@ OcptBudgetPosteStrain ocptBudgetPosteStrainOf({
   return OcptBudgetPosteStrain.within;
 }
 
-/// [lines]' own total read in [basis], paired with how many of them that reading actually covers —
+/// Get [lines]' own total read in [basis], paired with how many of them that reading actually
+/// covers —
 /// `ocpt_budget_vat.dart`'s "null, never zero" rule applied to a whole basis rather than
 /// to the excluding-tax one alone, which is all `ocptBudgetExcludingTaxTotalOf` itself answers.
 ///

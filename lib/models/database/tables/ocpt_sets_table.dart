@@ -14,20 +14,20 @@ class OcptSetsTable extends Table {
   @override
   String get tableName => 'sets';
 
-  /// The stable, unique id of this set (a UUID).
+  /// Get the stable, unique id of this set (a UUID).
   TextColumn get id => text()();
 
-  /// The location this set belongs to.
+  /// Get the location this set belongs to.
   TextColumn get locationId => text().references(OcptLocationsTable, #id)();
 
-  /// The short code a breakdown margin has room for (e.g. `A`, `B`), free text, empty until
+  /// Get the short code a breakdown margin has room for (e.g. `A`, `B`), free text, empty until
   /// assigned.
   TextColumn get code => text().withDefault(const Constant(''))();
 
-  /// The set's display name (e.g. "Cuisine").
+  /// Get the set's display name (e.g. "Cuisine").
   TextColumn get name => text()();
 
-  /// Free-form notes about this set.
+  /// Get free-form notes about this set.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro open_cine_prod_tools.sortKey}

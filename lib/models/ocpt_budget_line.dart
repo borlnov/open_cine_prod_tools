@@ -67,7 +67,7 @@ class OcptBudgetLine extends Equatable {
     required this.sortKey,
   });
 
-  /// Builds an [OcptBudgetLine] from its stored [row].
+  /// Build an [OcptBudgetLine] from its stored [row].
   factory OcptBudgetLine.fromRow(OcptBudgetLineRow row) => OcptBudgetLine(
     id: row.id,
     posteId: row.posteId,
@@ -87,7 +87,7 @@ class OcptBudgetLine extends Equatable {
     sortKey: row.sortKey,
   );
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptBudgetLine(id: $id, posteId: $posteId, label: $label)";
 

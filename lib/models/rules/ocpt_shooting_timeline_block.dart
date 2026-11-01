@@ -30,7 +30,7 @@ class OcptShootingTimelineBlock {
   /// unconditionally — see rule 3 on [ocptComputeSlotTimeline].
   final int? anchorMinute;
 
-  /// Builds a block to feed to [ocptComputeSlotTimeline].
+  /// Build a block to feed to [ocptComputeSlotTimeline].
   const OcptShootingTimelineBlock({
     required this.id,
     this.durationMinutes,

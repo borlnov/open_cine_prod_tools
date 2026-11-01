@@ -25,7 +25,7 @@ final class OcptReconcileSucceeded extends OcptReconcileOutcome {
   /// Class constructor
   const OcptReconcileSucceeded({required this.pushed, required this.pulled});
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptReconcileSucceeded(pushed: $pushed, pulled: $pulled)";
 
@@ -43,7 +43,7 @@ final class OcptReconcileFailed extends OcptReconcileOutcome {
   /// Class constructor
   const OcptReconcileFailed(this.message);
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptReconcileFailed(message: $message)";
 

@@ -5,7 +5,7 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 
-/// Converts a [OcptBudgetResourceGroupKind] to and from the text stored in the
+/// Convert a [OcptBudgetResourceGroupKind] to and from the text stored in the
 /// `budget_resources.groupKind` column.
 class OcptBudgetResourceGroupKindConverter
     extends TypeConverter<OcptBudgetResourceGroupKind, String> {

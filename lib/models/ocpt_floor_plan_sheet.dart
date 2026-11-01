@@ -17,7 +17,8 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 
-/// The ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the canvas,
+/// Get the ARGB colour (`0xAARRGGBB`) a symbol of [layer] is drawn with — the one palette the
+/// canvas,
 /// the metrics overlay and the floor-plans PDF all read, so a colour is never picked twice.
 int ocptFloorPlanLayerColorArgb(OcptFloorPlanLayer layer) => switch (layer) {
   OcptFloorPlanLayer.set => 0xFF6B7280,
@@ -67,7 +68,7 @@ class OcptFloorPlanSheet extends Equatable {
     required this.arrows,
   });
 
-  /// Builds the sheet [floorPlanSet] draws for sequence [focusSceneId], under one focus.
+  /// Build the sheet [floorPlanSet] draws for sequence [focusSceneId], under one focus.
   ///
   /// [focusShotId] is null for the **sequence** focus (every set-scope symbol not overridden for
   /// [focusSceneId], plus [focusSceneId]'s own scene-scope symbols, plus every live camera of every
@@ -336,12 +337,12 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// Object string representation, useful for debugging and logging.
+  /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
       "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
 
-  /// The underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
+  /// Get the underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
   /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
   /// there is nothing yet to draw it at.
   static OcptFloorPlanUnderlayShape? _underlayOf(OcptFloorPlanSet floorPlanSet) {
@@ -365,7 +366,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// Freezes [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
+  /// Freeze [symbols] into their drawn shapes, in `sortKey` order, deriving each camera symbol's
   /// [OcptFloorPlanSymbolShape.cameraLabel] from its 0-based rank among, and the total count of,
   /// the *same shot's* camera symbols within this very list — which is always exactly the group a
   /// caller of this factory means by "the same shot's live cameras on the same set"
@@ -400,7 +401,8 @@ class OcptFloorPlanSheet extends Equatable {
     ];
   }
 
-  /// The live camera symbol count of every shot found in [symbols], keyed by shot id — the first
+  /// Get the live camera symbol count of every shot found in [symbols], keyed by shot id — the
+  /// first
   /// pass [_shapesOf] needs before it can tell whether a shot's cameras are lettered at all.
   static Map<String, int> _cameraCountByShotIdOf(List<OcptFloorPlanSymbol> symbols) {
     final counts = <String, int>{};
@@ -414,7 +416,7 @@ class OcptFloorPlanSheet extends Equatable {
     return counts;
   }
 
-  /// The camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
+  /// Get the camera label [symbol] draws, or null when it isn't a camera symbol on a shot, or that
   /// shot's rank isn't known. Advances [cameraRankByShotId] for [symbol]'s shot as a side effect,
   /// which is what gives the *next* camera symbol of that same shot the following rank.
   static String? _cameraLabelOf(
@@ -443,7 +445,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// Freezes [symbol] into its drawn shape, its footprint resolved to
+  /// Freeze [symbol] into its drawn shape, its footprint resolved to
   /// [ocptFloorPlanSetElementDefaultFootprintM] for a set-element symbol (own typed shape) or
   /// [ocptFloorPlanDefaultFootprintM] for every other layer when it carries no `widthM`/`heightM`
   /// of its own, its [OcptFloorPlanSymbolShape.glyphKind] derived from [OcptFloorPlanSymbol.layer]
@@ -499,7 +501,7 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
-  /// The glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
+  /// Get the glyph [layer] draws as — see [OcptFloorPlanSymbolGlyphKind]'s own doc comment for the
   /// mapping. A `switch` with no `default`: an eighth layer must be placed on one glyph or another
   /// here rather than silently falling back to whichever branch happens to be listed last.
   static OcptFloorPlanSymbolGlyphKind _glyphKindOf(OcptFloorPlanLayer layer) => switch (layer) {

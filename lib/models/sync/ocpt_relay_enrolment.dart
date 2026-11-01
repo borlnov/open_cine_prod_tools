@@ -51,7 +51,7 @@ class OcptRelayEnrolment extends Equatable {
   /// Class constructor
   const OcptRelayEnrolment({required this.relayBaseUri, required this.enrolmentSecret});
 
-  /// Encodes this enrolment as the single string a QR code carries and
+  /// Encode this enrolment as the single string a QR code carries and
   /// [OcptRelayEnrolment.parse] reads back: `ocpt://relay?r=<relayBaseUri>&e=<enrolmentSecret>`,
   /// every value percent-encoded.
   String toEnrolmentString() => Uri(
@@ -63,7 +63,7 @@ class OcptRelayEnrolment extends Equatable {
     },
   ).toString();
 
-  /// A human-readable summary that never leaks [enrolmentSecret] in full.
+  /// Get a human-readable summary that never leaks [enrolmentSecret] in full.
   @override
   String toString() {
     final secretLength = enrolmentSecret.length;
@@ -73,7 +73,7 @@ class OcptRelayEnrolment extends Equatable {
     return 'OcptRelayEnrolment(relayBaseUri: $relayBaseUri, enrolmentSecret: $maskedSecret)';
   }
 
-  /// Parses [enrolmentString] back into an [OcptRelayEnrolment], answering the matching failure
+  /// Parse [enrolmentString] back into an [OcptRelayEnrolment], answering the matching failure
   /// status (and no value) when it is not an `ocpt://relay` URI carrying both `r` and `e`
   /// non-empty.
   ///

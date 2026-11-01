@@ -36,7 +36,7 @@ class OcptBudgetLinesTable extends Table {
   @override
   String get tableName => 'budget_lines';
 
-  /// The stable, unique id of this line (a UUID).
+  /// Get the stable, unique id of this line (a UUID).
   TextColumn get id => text()();
 
   /// {@macro open_cine_prod_tools.sortKey}
@@ -45,45 +45,46 @@ class OcptBudgetLinesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// The poste this line belongs to. → [OcptBudgetPostesTable]
+  /// Get the poste this line belongs to. → [OcptBudgetPostesTable]
   TextColumn get posteId => text().references(OcptBudgetPostesTable, #id)();
 
-  /// This line's display name, e.g. "First assistant camera".
+  /// Get this line's display name, e.g. "First assistant camera".
   TextColumn get label => text()();
 
-  /// The quantity this line prices, in thousandths — see this table's own doc comment.
+  /// Get the quantity this line prices, in thousandths — see this table's own doc comment.
   ///
   /// Defaults to `1000` (a plain quantity of one) rather than to zero: a freshly created line
   /// prices one of something until the user says otherwise, which is the reading that keeps a fresh
   /// line's total equal to its unit price rather than silently zero.
   IntColumn get quantityMilli => integer().withDefault(const Constant(1000))();
 
-  /// The unit [quantityMilli] is counted in, free text (e.g. "day", "km", "unit").
+  /// Get the unit [quantityMilli] is counted in, free text (e.g. "day", "km", "unit").
   TextColumn get unit => text().withDefault(const Constant(''))();
 
-  /// The unit price, exactly as typed, in cents — see this table's own doc comment.
+  /// Get the unit price, exactly as typed, in cents — see this table's own doc comment.
   IntColumn get unitAmountCents => integer().withDefault(const Constant(0))();
 
-  /// Whether [unitAmountCents] already includes tax — see this table's own doc comment.
+  /// Tell whether [unitAmountCents] already includes tax — see this table's own doc comment.
   ///
   /// **Non-nullable, `true` by default**: a real budget mixes tax-inclusive and tax-exclusive
   /// figures, but the common case a person types by hand off a receipt or an invoice total already
   /// includes tax, so a freshly created line reads that way until corrected.
   BoolColumn get isTaxInclusive => boolean().withDefault(const Constant(true))();
 
-  /// The VAT rate this line's [unitAmountCents] carries, in basis points (550 for 5.5 %), or null —
+  /// Get the VAT rate this line's [unitAmountCents] carries, in basis points (550 for 5.5 %), or
+  /// null —
   /// see this table's own doc comment for the two facts a null and an explicit `0` state
   /// differently.
   IntColumn get vatRateBasisPoints => integer().nullable()();
 
-  /// The breakdown element this line prices, or null. → [OcptElementsTable]
+  /// Get the breakdown element this line prices, or null. → [OcptElementsTable]
   ///
   /// A quote line and a breakdown element are captured independently; the budget fiche's
   /// `From breakdown` action is what crosses them (`elements.cost` seeding a fresh line's unit
   /// price).
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();
 
-  /// The in-kind `budget_resources` contribution this line is the counterpart of, or null. →
+  /// Get the in-kind `budget_resources` contribution this line is the counterpart of, or null. →
   /// [OcptBudgetResourcesTable]
   ///
   /// Names the valued cost that balances a `budget_resources` row of kind `inKind` on the quote
@@ -93,7 +94,7 @@ class OcptBudgetLinesTable extends Table {
   /// nobody's counterpart.
   TextColumn get inKindResourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
 
-  /// What wrote this line, or null while a human typed it.
+  /// Get what wrote this line, or null while a human typed it.
   ///
   /// A **stable key naming the thing provisioned** rather than a foreign key — `regie:meal`,
   /// `regie:snack`, `allowance:travel` and so on: the régie view provisions *one line per nature*,
@@ -105,7 +106,7 @@ class OcptBudgetLinesTable extends Table {
   /// a lesser line, and the provisioning leaves every one of them alone.
   TextColumn get provisionKey => text().nullable()();
 
-  /// What the provisioning last wrote into this line, or null while it never wrote it.
+  /// Get what the provisioning last wrote into this line, or null while it never wrote it.
   ///
   /// Holds `[label, quantityMilli, unitAmountCents]` as JSON, exactly as those three stood when
   /// the provisioning last set them. **It is how a hand edit is told from a stale figure**: on the
@@ -115,7 +116,7 @@ class OcptBudgetLinesTable extends Table {
   /// everywhere else — an amount is what was typed.
   TextColumn get provisionDigest => text().nullable()();
 
-  /// Free-form notes about this line.
+  /// Get free-form notes about this line.
   TextColumn get notes => text().withDefault(const Constant(''))();
 
   /// {@macro drift.Table.primaryKey}
