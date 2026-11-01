@@ -26,7 +26,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the shooting plan options dialog)
 /// exactly as the real `GoRouter.pop` would — both push onto the very same root `Navigator`. See
-/// `test/ui/pages/editor/editor_page_test.dart`'s own instance of the same pattern.
+/// `test/ui/pages/editor/editor_page_test_doubles.dart`'s own instance of the same pattern.
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through

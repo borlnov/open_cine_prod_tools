@@ -613,17 +613,18 @@ void main() {
       await propertiesManager.isPageSimulationEnabled.store(true);
 
       // `flutter test` forces `defaultTargetPlatform` to `TargetPlatform.android` (see
-      // `ocpt_styled_screenplay_editor_test.dart`'s own `_testWidgetsAsDesktop`), which makes
-      // `SuperEditor` build its Android touch interactor instead of the desktop
-      // `DocumentMouseInteractor` this app actually ships with. That interactor's own handle/
-      // magnifier machinery reaches `View.of` from a `didChangeMetrics` callback, which crashes
-      // once this test's own `resetPhysicalSize` teardown changes the view's metrics while the
-      // styled editor this test forces onto the phone-width screen is still mounted — every other
-      // test that merely switches to styled mode on a stable, desktop-sized view never resizes out
-      // from under it, so it never has occasion to hit this. Set and reset from inside the test
-      // body, in a `try`/`finally`, not through `addTearDown`: `testWidgets` asserts every
-      // foundation debug variable is back to its default before the `test` package's own
-      // `tearDown` queue runs, so resetting it there fires that assertion too late.
+      // `ocpt_styled_screenplay_editor_spell_check_and_context_menu_test.dart`'s own
+      // `_testWidgetsAsDesktop`), which makes `SuperEditor` build its Android touch interactor
+      // instead of the desktop `DocumentMouseInteractor` this app actually ships with. That
+      // interactor's own handle/ magnifier machinery reaches `View.of` from a `didChangeMetrics`
+      // callback, which crashes once this test's own `resetPhysicalSize` teardown changes the
+      // view's metrics while the styled editor this test forces onto the phone-width screen is
+      // still mounted — every other test that merely switches to styled mode on a stable,
+      // desktop-sized view never resizes out from under it, so it never has occasion to hit this.
+      // Set and reset from inside the test body, in a `try`/`finally`, not through `addTearDown`:
+      // `testWidgets` asserts every foundation debug variable is back to its default before the
+      // `test` package's own `tearDown` queue runs, so resetting it there fires that assertion too
+      // late.
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
       try {
         // The exact top of the phone range (`ocptIsPhoneWidth` is inclusive), rather than a
@@ -706,9 +707,11 @@ void main() {
     await tester.placeCaretInParagraph(lastNode.id, lastNode.text.toPlainText().length);
     await tester.typeImeText(" indeed.");
     // `typeImeText` already settles fully after every character it sends (see the doc comment on
-    // the equivalent call in `ocpt_styled_screenplay_editor_test.dart`), draining the sync/parse/
-    // autosave debounces along the way; this test only cares that the edit survives a mode
-    // switch, not about the flush-on-removal path itself (see the dedicated test below for that).
+    // the equivalent call in
+    // `ocpt_styled_screenplay_editor_spell_check_and_context_menu_test.dart`), draining the
+    // sync/parse/ autosave debounces along the way; this test only cares that the edit survives a
+    // mode switch, not about the flush-on-removal path itself (see the dedicated test below for
+    // that).
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(OcptEditorPage));

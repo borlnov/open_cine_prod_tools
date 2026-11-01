@@ -113,8 +113,8 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
                 // to its non-positioned children, so making every child positioned would leave it
                 // sizing to its incoming constraints instead, handing `SuperEditor` a
                 // differently-constrained viewport — which, in turn, breaks its IME connection
-                // (`editor_page_test.dart`'s "an edit made in styled mode survives switching back
-                // to raw mode" catches exactly that).
+                // (`editor_page_toolbar_and_preview_test.dart`'s "an edit made in styled mode
+                // survives switching back to raw mode" catches exactly that).
                 Align(
                   alignment: Alignment.topLeft,
                   child: Transform.translate(

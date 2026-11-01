@@ -165,8 +165,9 @@ class _FakeHostManager extends OcptRelayHostManager {
 
 /// A [PlatformManager] whose [isDesktop] is stubbed, so [OcptSharingView]'s own gating can be
 /// exercised on either branch without a real platform underneath it — mirrors
-/// `ocpt_export_manager_test.dart`'s own `_StubPlatformManager`, stubbing `isDesktop` directly
-/// rather than `isMobile`/`isLinux`/etc., since that is the one flag the gating actually reads.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager`,
+/// stubbing `isDesktop` directly rather than `isMobile`/`isLinux`/etc., since that is the one flag
+/// the gating actually reads.
 class _StubPlatformManager extends PlatformManager {
   /// Class constructor
   _StubPlatformManager({required this.isDesktop});

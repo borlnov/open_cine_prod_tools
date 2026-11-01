@@ -69,7 +69,7 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so the manager's desktop guard can be
 /// exercised on either branch without a real platform underneath it — mirrors
-/// `ocpt_export_manager_test.dart`'s own stub.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own stub.
 class _StubPlatformManager extends PlatformManager {
   /// Class constructor
   _StubPlatformManager({required this.isMobile});

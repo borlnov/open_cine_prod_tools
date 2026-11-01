@@ -217,7 +217,7 @@ const sidesLabels = OcptSidesLabels(
 
 /// An export manager whose schedule PDF entry points are stubbed and whose calls are recorded, so
 /// the bloc's export handlers can be exercised without any real native dialog or PDF write. Mirrors
-/// `breakdown_bloc_test.dart`'s own `_FakeExportManager`.
+/// `breakdown_export_bloc_test.dart`'s own `_FakeExportManager`.
 class FakeScheduleExportManager extends OcptExportManager {
   /// Class constructor
   FakeScheduleExportManager({

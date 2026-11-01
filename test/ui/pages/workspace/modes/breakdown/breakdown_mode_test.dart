@@ -39,7 +39,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the breakdown sheets options dialog)
 /// exactly as the real `GoRouter.pop` would — both push onto the very same root `Navigator`. See
-/// `test/ui/pages/editor/editor_page_test.dart`'s own instance of the same pattern.
+/// `test/ui/pages/editor/editor_page_test_doubles.dart`'s own instance of the same pattern.
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through
@@ -372,11 +372,11 @@ void main() {
       final tr = Tr.of(tester.element(find.byType(OcptBreakdownMode)));
       expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsNothing);
 
-      // Orphan CLARA, then force the mode to reload — the compact banner is a pure read over
-      // roles already loaded, so a fresh load is all a test needs to see it change. The bloc lives
-      // below `OcptWorkspaceShell` (`OcptBreakdownMode` itself only wires the `BlocProvider` up),
-      // so that's where a test reaches it from — mirroring `editor_page_test.dart`'s own
-      // `BlocProvider.of` calls.
+      // Orphan CLARA, then force the mode to reload — the compact banner is a pure read over roles
+      // already loaded, so a fresh load is all a test needs to see it change. The bloc lives below
+      // `OcptWorkspaceShell` (`OcptBreakdownMode` itself only wires the `BlocProvider` up), so
+      // that's where a test reaches it from — mirroring
+      // `editor_page_mode_switch_and_menus_test.dart`'s own `BlocProvider.of` calls.
       await projectsManager.screenplayService.saveScreenplayText(
         database: project.database,
         screenplayId: project.primaryScreenplayId,

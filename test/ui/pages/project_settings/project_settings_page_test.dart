@@ -71,7 +71,8 @@ class _RecordingRouterManager extends OcptRouterManager {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of the `Project
 /// file` card's own branches without a real platform underneath it — the same double
-/// `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager` already
+/// is.
 class _StubPlatformManager extends PlatformManager {
   _StubPlatformManager({required this.isMobile});
 

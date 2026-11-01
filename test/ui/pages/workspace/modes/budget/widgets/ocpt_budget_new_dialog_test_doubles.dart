@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 
 /// The navigator [wrap] mounts, so [RecordingRouterManager.pop] can close a dialog opened through
 /// `showDialog` (step 2's own trailing create row) on top of the wizard itself — mirrors
-/// `budget_mode_test.dart`'s own instance of this pattern.
+/// `budget_mode_test_doubles.dart`'s own instance of this pattern.
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] records the last call and its value — mirrors

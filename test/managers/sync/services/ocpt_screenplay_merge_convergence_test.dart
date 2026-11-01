@@ -48,10 +48,11 @@ void main() {
   const originalText = 'INT. HOUSE - DAY\n\nAction one.\n\nEXT. STREET - NIGHT\n\nAction two.';
 
   /// A "device" bundle: a full `OcptScreenplayService` (with its own five collaborator services,
-  /// mirroring `ocpt_screenplay_service_test.dart`'s own wiring) plus the `OcptChangesetService`
-  /// wired to route `fountainText` through a real `OcptScreenplayMergeService`, both stamping every
-  /// write as [deviceId]'s own — exactly what one real app instance, bound to one device id, would
-  /// build for itself (`OcptSyncManager`'s own constructor).
+  /// mirroring `ocpt_screenplay_service_text_and_snapshots_test.dart`'s own wiring) plus the
+  /// `OcptChangesetService` wired to route `fountainText` through a real
+  /// `OcptScreenplayMergeService`, both stamping every write as [deviceId]'s own — exactly what one
+  /// real app instance, bound to one device id, would build for itself (`OcptSyncManager`'s own
+  /// constructor).
   ({OcptScreenplayService screenplayService, OcptChangesetService changesetService}) buildDevice(
     String deviceId,
   ) {

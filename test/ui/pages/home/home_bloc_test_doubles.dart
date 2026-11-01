@@ -20,7 +20,8 @@ import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
 /// [OcptHomeBloc]'s "New project"/import branches without a real platform underneath it — the same
-/// double `ocpt_export_manager_test.dart`'s own `StubPlatformManager` already is.
+/// double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `StubPlatformManager`
+/// already is.
 class StubPlatformManager extends PlatformManager {
   /// Class constructor
   StubPlatformManager({required this.isMobile});

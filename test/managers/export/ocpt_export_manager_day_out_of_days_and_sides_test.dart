@@ -33,7 +33,7 @@ void main() {
 
   // A folder a call sheet export cannot write into logs the failure through appLogger(), which
   // requires a global manager instance to be set; merely accessing it creates the (otherwise
-  // unused) singleton — the same fixture `ocpt_schedule_service_test.dart` uses.
+  // unused) singleton — the same fixture `ocpt_schedule_service_days_and_slots_test.dart` uses.
   setUpAll(() => OcptGlobalManager.instance);
 
   late Directory tempDir;

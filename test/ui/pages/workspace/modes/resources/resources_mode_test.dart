@@ -28,8 +28,8 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close the
 /// export panel opened through `showDialog` exactly as the real `GoRouter.pop` would — both push
-/// onto the very same root `Navigator`. See `test/ui/pages/editor/editor_page_test.dart`'s own
-/// instance of the same pattern.
+/// onto the very same root `Navigator`. See `test/ui/pages/editor/editor_page_test_doubles.dart`'s
+/// own instance of the same pattern.
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] pops [_navigatorKey]'s own navigator, so a dialog opened through
@@ -243,7 +243,8 @@ void main() {
       // Orphan CLARA, then force the mode to reload — the same trigger the project settings page
       // uses once it's closed after changing something. The bloc lives below `OcptWorkspaceShell`
       // (`OcptResourcesMode` itself only wires the `BlocProvider` up), so that's where a test
-      // reaches it from — mirroring `editor_page_test.dart`'s own `BlocProvider.of` calls.
+      // reaches it from — mirroring `editor_page_mode_switch_and_menus_test.dart`'s own
+      // `BlocProvider.of` calls.
       await projectsManager.screenplayService.saveScreenplayText(
         database: project.database,
         screenplayId: project.primaryScreenplayId,

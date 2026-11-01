@@ -390,8 +390,8 @@ OcptShotListSnapshot buildShotList({
 );
 
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
-/// whichever catalogues a test needs, exactly as `ocpt_schedule_plan_snapshot_test.dart`'s own
-/// fixture builder does.
+/// whichever catalogues a test needs, exactly as `ocpt_schedule_plan_snapshot_test_doubles.dart`'s
+/// own fixture builder does.
 OcptSchedulePlanSnapshot buildSnapshot({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,

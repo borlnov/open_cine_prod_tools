@@ -31,22 +31,22 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 /// only a guard, ready for the day a stable release has actually shipped one —
 ///
 /// - a payload written in an **older** format would be upgraded, in memory, step by step, up to
-///   [currentPayloadFormat]; the stored text is never rewritten, so a version stays byte-identical
-///   to what was captured. The 0.1.0 release froze the first such format at 1; the 0.2.0 release
-///   froze format 2 in turn, added for `budget_lines.inKindResourceId`
-///   (`docs/architecture/budget.md`) — additive and nullable, so a format-1 payload, missing the
-///   key outright, already decodes through the very same [OcptVersionJsonReader.readNullableString] read a format-2 one
-///   does, with no dedicated upgrade step to write. The 0.2.1 release froze format 3, the first
-///   that **isn't** additive: `shot_characters` drops `characterName` for `roleId`
-///   (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a pre-3 payload's
-///   `shotCharacters` rows cannot be reshaped into roles the way a project's live database is
-///   migrated — [decode] drops them instead, a version captured before the reshape restoring with
-///   every plan except its shot list's cast (this class's own [decode] doc comment, and the ADR's
-///   "Consequences" section, spell out why remapping was turned down). The 0.3.0 release froze
-///   format 4, which adds the storyboard and floor plan tables — additive, so a pre-4 payload
-///   decodes with its five new lists empty. The retired format-1, format-2 and format-3 shapes are
-///   pinned in `test/managers/projects/services/ocpt_project_version_codec_test.dart`, per the
-///   guidance below;
+/// [currentPayloadFormat]; the stored text is never rewritten, so a version stays byte-identical to
+/// what was captured. The 0.1.0 release froze the first such format at 1; the 0.2.0 release froze
+/// format 2 in turn, added for `budget_lines.inKindResourceId` (`docs/architecture/budget.md`) —
+/// additive and nullable, so a format-1 payload, missing the key outright, already decodes through
+/// the very same [OcptVersionJsonReader.readNullableString] read a format-2 one does, with no
+/// dedicated upgrade step to write. The 0.2.1 release froze format 3, the first that **isn't**
+/// additive: `shot_characters` drops `characterName` for `roleId`
+/// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a pre-3 payload's
+/// `shotCharacters` rows cannot be reshaped into roles the way a project's live database is
+/// migrated — [decode] drops them instead, a version captured before the reshape restoring with
+/// every plan except its shot list's cast (this class's own [decode] doc comment, and the ADR's
+/// "Consequences" section, spell out why remapping was turned down). The 0.3.0 release froze format
+/// 4, which adds the storyboard and floor plan tables — additive, so a pre-4 payload decodes with
+/// its five new lists empty. The retired format-1, format-2 and format-3 shapes are pinned in
+/// `test/managers/projects/services/ocpt_project_version_codec_digest_changes_budget_and_decoding_test.dart`,
+/// per the guidance below;
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
 ///   app — is refused with [OcptProjectVersionPayloadStatus.unsupportedFutureFormat] rather than
 ///   half-restored.

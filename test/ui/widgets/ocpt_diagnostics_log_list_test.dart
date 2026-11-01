@@ -51,7 +51,8 @@ void main() {
       managers.registerSingleton<OcptDiagnosticsManager>(manager);
 
       // `Clipboard.setData` has no built-in mock handler on this SDK: without one it never
-      // completes, exactly `ocpt_styled_screenplay_editor_test.dart`'s own reasoning.
+      // completes, exactly `ocpt_styled_screenplay_editor_typing_and_shortcuts_test.dart`'s own
+      // reasoning.
       clipboardText = null;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         SystemChannels.platform,

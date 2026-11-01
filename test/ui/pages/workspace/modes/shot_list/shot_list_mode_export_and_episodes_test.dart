@@ -69,7 +69,7 @@ class _RecordingExportManager extends OcptExportManager {
 
 /// A file selector manager answering the picker with a file of its own, so a board test never
 /// opens a native dialog: [pickedPath] is what the user is pretending to pick. Mirrors
-/// `shot_list_bloc_test.dart`'s own test double of the same name.
+/// `shot_list_floor_plan_sets_bloc_test_doubles.dart`'s own test double of the same name.
 class _StubFileSelectorManager extends FileSelectorManager {
   /// The path the next pick answers with.
   final String pickedPath;

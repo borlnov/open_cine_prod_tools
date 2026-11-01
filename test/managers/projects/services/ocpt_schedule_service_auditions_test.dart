@@ -57,7 +57,8 @@ void main() {
       );
 
   /// Inserts a role, satisfying `shooting_slot_cast.roleId`'s foreign key without going through
-  /// `OcptRoleIndexService`'s reconciliation, exactly as `ocpt_breakdown_service_test.dart` does.
+  /// `OcptRoleIndexService`'s reconciliation, exactly as
+  /// `ocpt_breakdown_service_reconcile_and_stamps_test.dart` does.
   Future<String> createRole(String id, {String name = "LÉA"}) async {
     await database
         .into(database.ocptRolesTable)

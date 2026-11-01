@@ -192,7 +192,7 @@ OcptShotListSnapshot _buildShotList({required List<OcptShot> shots}) => OcptShot
 
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs — mirrors
-/// `ocpt_shooting_plan_pdf_service_test.dart`'s own `_buildSnapshot`.
+/// `ocpt_shooting_plan_pdf_service_test_doubles.dart`'s own `_buildSnapshot`.
 OcptSchedulePlanSnapshot _buildSnapshot({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,

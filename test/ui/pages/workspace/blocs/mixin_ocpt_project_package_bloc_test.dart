@@ -76,7 +76,8 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so the mixin's desktop/mobile branch can be
 /// exercised on either side without a real platform underneath it — the same idiom
-/// `ocpt_export_manager_test.dart` uses for the manager's own write funnel.
+/// `ocpt_export_manager_documents_and_write_funnel_test.dart` uses for the manager's own write
+/// funnel.
 class _StubPlatformManager extends PlatformManager {
   /// Class constructor
   _StubPlatformManager({required this.isMobile});

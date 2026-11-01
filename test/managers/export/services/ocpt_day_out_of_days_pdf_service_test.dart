@@ -30,7 +30,8 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 /// Every localized string of the document, filled with recognisable placeholders: nothing here
 /// asserts on the printed text (Courier Prime is embedded as an Identity-H composite font, so a
 /// content stream holds glyph indices rather than readable characters), only on what changes when
-/// the schedule does — the same convention `ocpt_shooting_plan_pdf_service_test.dart` follows.
+/// the schedule does — the same convention `ocpt_shooting_plan_pdf_service_test_doubles.dart`
+/// follows.
 const _labels = OcptDayOutOfDaysLabels(
   fileNameSuffix: "day out of days",
   documentTitle: "Day Out of Days",
@@ -482,15 +483,15 @@ void main() {
 }
 
 /// Counts a PDF's pages by counting its `/Type /Page` object markers (excluding `/Type /Pages`, the
-/// tree node) — the same cheap approach `ocpt_shooting_plan_pdf_service_test.dart` uses.
+/// tree node) — the same cheap approach `ocpt_shooting_plan_pdf_service_test_doubles.dart` uses.
 int _pageCount(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   return RegExp(r"/Type\s*/Page[^s]").allMatches(text).length;
 }
 
 /// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
-/// — see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
-/// printed text, is what every "prints something different" assertion above compares.
+/// — see `ocpt_call_sheet_pdf_service_test_doubles.dart`'s own doc comment for why this, rather
+/// than the printed text, is what every "prints something different" assertion above compares.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

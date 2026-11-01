@@ -133,8 +133,8 @@ String fieldValueOf(OcptPerson person, OcptPersonField field) => switch (field) 
 };
 
 /// The navigator [wrapInApp] mounts, so [RecordingRouterManager.pop] can close a dialog opened
-/// through `showDialog` (the crew position picker) exactly as the real `GoRouter.pop` would —
-/// both push onto the very same root `Navigator`. Mirrors `ocpt_schedule_slot_card_test.dart`'s
+/// through `showDialog` (the crew position picker) exactly as the real `GoRouter.pop` would — both
+/// push onto the very same root `Navigator`. Mirrors `ocpt_schedule_slot_card_test_doubles.dart`'s
 /// own instance of the same pattern.
 final navigatorKey = GlobalKey<NavigatorState>();
 

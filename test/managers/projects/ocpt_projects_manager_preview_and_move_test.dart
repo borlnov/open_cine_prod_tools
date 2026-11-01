@@ -443,8 +443,8 @@ void main() {
     // `OcptProjectFileCompatibilityService.probe` had no positive schema number below the current
     // one for a test file to state (`PRAGMA user_version <= 0` reads as `unreadable`, not `older`),
     // so `older`/`migrationRequired` could not be exercised through the manager at all; now that a
-    // real schema version 2 exists, `home_bloc_test.dart`'s "a project file from another build"
-    // group is where that flow is actually driven through a bloc, and
+    // real schema version 2 exists, `home_bloc_recent_projects_and_import_test.dart`'s "a project
+    // file from another build" group is where that flow is actually driven through a bloc, and
     // `OcptProjectFileCompatibilityService`'s own tests cover the verdict in isolation, at a schema
     // number decoupled from this constant.
 

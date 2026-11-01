@@ -155,7 +155,8 @@ class _FakeSyncManager extends OcptSyncManager {
 
 /// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
 /// `OcptJoiningBloc._resolveParentDirectoryPath`'s branches without a real platform underneath it —
-/// the same double `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
+/// the same double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own
+/// `_StubPlatformManager` already is.
 class _StubPlatformManager extends PlatformManager {
   _StubPlatformManager({required this.isMobile});
 
@@ -209,7 +210,7 @@ class _FakeExportManager extends OcptExportManager {
 
 /// A router manager whose [push]/[replace] only record the route they were called with — this
 /// bloc's own tests don't build a real GoRouter for it to operate on, exactly
-/// `home_bloc_test.dart`'s own `_RecordingRouterManager`.
+/// `home_bloc_test_doubles.dart`'s own `_RecordingRouterManager`.
 class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [push] was called with, or null if it never was.
   OcptRoute? pushedRoute;

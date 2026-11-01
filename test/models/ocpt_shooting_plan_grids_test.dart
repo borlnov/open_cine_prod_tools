@@ -238,7 +238,7 @@ OcptElement _buildElement({
 
 /// Builds a one-scene shot list snapshot for one episode, its scene's own display number already
 /// carrying the `<episode>.<scene>` prefix `OcptShotListService.loadShotList` would have given it —
-/// mirrors `ocpt_schedule_plan_snapshot_test.dart`'s own `_buildEpisodeShotList`.
+/// mirrors `ocpt_schedule_plan_snapshot_test_doubles.dart`'s own `_buildEpisodeShotList`.
 OcptShotListSnapshot _buildEpisodeShotList({
   required String screenplayId,
   required String sceneId,
@@ -262,7 +262,7 @@ OcptShotListSnapshot _buildEpisodeShotList({
 
 /// Builds an [OcptSchedulePlanSnapshot] over one screenplay's worth of days/slots/blocks, plus
 /// whichever catalogues a test needs — mirrors
-/// `ocpt_shooting_plan_pdf_service_test.dart`'s own `_buildSnapshot`.
+/// `ocpt_shooting_plan_pdf_service_test_doubles.dart`'s own `_buildSnapshot`.
 OcptSchedulePlanSnapshot _buildSnapshot({
   required List<OcptShootingDay> days,
   required Map<String, List<OcptShootingSlot>> slotsByDayId,

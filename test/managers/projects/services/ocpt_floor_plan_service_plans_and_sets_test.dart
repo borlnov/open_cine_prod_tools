@@ -258,7 +258,7 @@ void main() {
 
       // The store carries every scope on the one shared row; narrowing a scene-scope symbol down
       // to its own sequence is `OcptFloorPlanSheet.of`'s job (tested in
-      // `ocpt_floor_plan_sheet_test.dart`), not the loader's.
+      // `ocpt_floor_plan_sheet_scopes_and_overrides_test.dart`), not the loader's.
       expect(snapshot.setsById[setId]!.symbols.single.sceneId, scenes[0]);
     });
 

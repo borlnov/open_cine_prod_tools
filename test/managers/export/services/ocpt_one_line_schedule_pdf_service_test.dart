@@ -81,7 +81,7 @@ OcptShootingSlot _buildSlot({
 
 /// Builds a shooting day block with the few fields these tests read, everything else neutral —
 /// chaining after the slot's own resolved start (or the block before it) by leaving its own anchor
-/// minute null, exactly as `ocpt_call_sheet_pdf_service_test.dart`'s own fixture does.
+/// minute null, exactly as `ocpt_call_sheet_pdf_service_test_doubles.dart`'s own fixture does.
 OcptShootingDayBlock _buildBlock({
   required String id,
   required String shootingDayId,
@@ -156,7 +156,7 @@ OcptRole _buildRole({required String id, required String name, required int numb
 );
 
 /// Builds a one-scene shot list snapshot over [shots], all belonging to `scene-1` — the same
-/// fixture shape `ocpt_call_sheet_pdf_service_test.dart` uses.
+/// fixture shape `ocpt_call_sheet_pdf_service_test_doubles.dart` uses.
 OcptShotListSnapshot _buildShotList({
   required List<OcptShot> shots,
   String sceneId = "scene-1",
@@ -353,8 +353,9 @@ void main() {
         final twoLineBytes = await generateFor(twoLinePlan);
 
         expect(_contentStreams(foldedBytes), isNot(_contentStreams(twoLineBytes)));
-        // One row prints less than two: the same trade `ocpt_shooting_plan_pdf_service_test.dart`
-        // makes for "less content prints a smaller file".
+        // One row prints less than two: the same trade
+        // `ocpt_shooting_plan_pdf_service_elements_and_file_names_test.dart` makes for "less
+        // content prints a smaller file".
         expect(foldedBytes.length, lessThan(twoLineBytes.length));
       },
     );
@@ -618,8 +619,8 @@ int _pageCount(Uint8List bytes) {
 }
 
 /// The raw (still-compressed) bytes of every `stream`/`endstream` object in [bytes], in file order
-/// — see `ocpt_call_sheet_pdf_service_test.dart`'s own doc comment for why this, rather than the
-/// printed text, is what every "prints something different" assertion above compares.
+/// — see `ocpt_call_sheet_pdf_service_test_doubles.dart`'s own doc comment for why this, rather
+/// than the printed text, is what every "prints something different" assertion above compares.
 List<String> _contentStreams(Uint8List bytes) {
   final text = latin1.decode(bytes, allowInvalid: true);
   final pattern = RegExp(r"stream\r?\n(.*?)endstream", dotAll: true);

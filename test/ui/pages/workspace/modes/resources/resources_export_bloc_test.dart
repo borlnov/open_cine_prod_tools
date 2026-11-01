@@ -47,7 +47,7 @@ const Map<int, String> _weekdayLabels = {
 
 /// An export manager whose [exportResourcesXlsx] is stubbed and whose calls are recorded, so the
 /// bloc's export path can be exercised without any real native dialog or workbook write. Mirrors
-/// `shot_list_bloc_test.dart`'s own `_FakeExportManager`.
+/// `shot_list_export_bloc_test_doubles.dart`'s own `_FakeExportManager`.
 class _FakeExportManager extends OcptExportManager {
   /// Class constructor
   _FakeExportManager({this.exportResult, this.fails = false})

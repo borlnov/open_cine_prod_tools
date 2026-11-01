@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 /// The navigator [wrapWithLocalization] mounts, so [RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the scenario coverage options dialog)
 /// exactly as the real `GoRouter.pop` would — both push onto the very same root `Navigator`. See
-/// `test/ui/pages/editor/editor_page_test.dart`'s own instance of the same pattern.
+/// `test/ui/pages/editor/editor_page_test_doubles.dart`'s own instance of the same pattern.
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] records every call and then pops [navigatorKey]'s own navigator,

@@ -97,12 +97,12 @@ void main() {
 
     // The migration from 1 to 2 is additive-only and only ever creates `sync_relay_cursors` and
     // `sync_pairings`, and adds `budget_lines.in_kind_resource_id`
-    // (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is therefore exactly
-    // what `onCreate` produces here minus those two tables, that column, and — from schema
-    // version 3 on — minus `shot_characters`' reshape to `{shotId, roleId}`
-    // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), undone below by
-    // recreating the table in its frozen v1/v2 shape. Seed a real database at the current schema,
-    // then undo those additions by hand — the same trick `home_bloc_test.dart`'s
+    // (`OcptProjectDatabase.migration`'s own doc comment): a real v1 file is therefore exactly what
+    // `onCreate` produces here minus those two tables, that column, and — from schema version 3 on
+    // — minus `shot_characters`' reshape to `{shotId, roleId}`
+    // (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), undone below by recreating
+    // the table in its frozen v1/v2 shape. Seed a real database at the current schema, then undo
+    // those additions by hand — the same trick `home_bloc_recent_projects_and_import_test.dart`'s
     // `createProjectAtPreviousFormat` uses — so reopening it exercises the real `onUpgrade` step
     // rather than a fixture standing in for it. [_v1Ddl] below covers the structural side of the
     // same claim, verbatim rather than by undoing the current schema.
@@ -452,11 +452,11 @@ void main() {
 /// migration test can assert the stamp rekey as well as the row mapping.
 ///
 /// Every table but `shot_characters` is seeded through the typed API, since only that one's shape
-/// differs between v2 and v3 — a real v2 file already carries `sync_relay_cursors`,
-/// `sync_pairings` and `budget_lines.in_kind_resource_id`, schema version 2's own frozen addition,
-/// which a fresh [OcptProjectDatabase] already creates. `shot_characters` itself, and its own
-/// stamps, go in through raw SQL against the v2 shape instead: the same trick
-/// `createProjectAtPreviousFormat` in `test/ui/pages/home/home_bloc_test.dart` uses.
+/// differs between v2 and v3 — a real v2 file already carries `sync_relay_cursors`, `sync_pairings`
+/// and `budget_lines.in_kind_resource_id`, schema version 2's own frozen addition, which a fresh
+/// [OcptProjectDatabase] already creates. `shot_characters` itself, and its own stamps, go in
+/// through raw SQL against the v2 shape instead: the same trick `createProjectAtPreviousFormat` in
+/// `test/ui/pages/home/home_bloc_recent_projects_and_import_test.dart` uses.
 ///
 /// Every id here is a fixed literal rather than a freshly generated UUID, which is what makes this
 /// fixture reproducible byte-for-byte between two calls at two different paths — the convergence

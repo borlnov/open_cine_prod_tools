@@ -28,7 +28,7 @@ void main() {
 
   // A folder a call sheet export cannot write into logs the failure through appLogger(), which
   // requires a global manager instance to be set; merely accessing it creates the (otherwise
-  // unused) singleton — the same fixture `ocpt_schedule_service_test.dart` uses.
+  // unused) singleton — the same fixture `ocpt_schedule_service_days_and_slots_test.dart` uses.
   setUpAll(() => OcptGlobalManager.instance);
 
   late Directory tempDir;
@@ -266,9 +266,10 @@ void main() {
         // `buildPlan` convokes exactly one person, holding no display name at all (blank first/last
         // name), so the file name falls back to the labels' own unnamed-person fallback. Whether
         // the named PDF is smaller than the general one — the crew list it never reads — is
-        // asserted at the service level (`ocpt_call_sheet_pdf_service_test.dart`), against a
-        // fixture with an actual crew to make the comparison meaningful; this manager-level test's
-        // own job is only that the right number of files land under the right names.
+        // asserted at the service level
+        // (`ocpt_call_sheet_pdf_service_named_sheet_sections_test.dart`), against a fixture with an
+        // actual crew to make the comparison meaningful; this manager-level test's own job is only
+        // that the right number of files land under the right names.
         expect(result.writtenFileNames, ["FDS-D2-No-name.pdf"]);
         expect(result.failedFileNames, isEmpty);
 

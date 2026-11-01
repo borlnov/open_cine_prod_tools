@@ -25,9 +25,9 @@ Widget _wrap(Widget child) => MaterialApp(
 
 void main() {
   /// Pumps [OcptBudgetHelp] for the given route and returns its own [Tr], resolved from its own
-  /// element — mirrors `ocpt_budget_fiche_test.dart`'s own `pumpFiche`. [toolsView] is read only
-  /// while [view] is [OcptBudgetView.tools], defaulting to `cashFlow` since most tests below name
-  /// a route outside the drawer.
+  /// element — mirrors `ocpt_budget_fiche_test_doubles.dart`'s own `pumpFiche`. [toolsView] is read
+  /// only while [view] is [OcptBudgetView.tools], defaulting to `cashFlow` since most tests below
+  /// name a route outside the drawer.
   Future<Tr> pumpHelp(
     WidgetTester tester, {
     required OcptBudgetView view,
