@@ -33,8 +33,6 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
@@ -61,6 +59,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_form_writes.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -1365,7 +1364,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// other — the one reading no single database column mirrors, see that model's own doc comment.
   ///
   /// Writes whatever `event.fields` collected about the fresh entry's own voucher
-  /// ([_writeEntryReceiptChange]) once it exists, in this very handler, before the one reload at
+  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) once it exists, in this very handler, before the one reload at
   /// its end.
   Future<void> _onEntryCreationConfirmed(
     OcptBudgetEntryCreationConfirmedEvent event,
@@ -1396,7 +1395,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       vatRateBasisPoints: fields.vatRateBasisPoints,
     );
     if (entryId != null) {
-      await _writeEntryReceiptChange(project, entryId, fields);
+      await _budgetJournalService.writeEntryReceiptChange(
+        database: project.database,
+        entryId: entryId,
+        fields: fields,
+      );
     }
 
     await _applyBudgetSnapshot(emitter, project);
@@ -1417,7 +1420,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// accident.
   ///
   /// Writes whatever `event.fields` collected about the entry's own voucher
-  /// ([_writeEntryReceiptChange]) in this very handler too, before the one reload at its end.
+  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) in this very handler too, before the one reload at its end.
   Future<void> _onEntryUpdateConfirmed(
     OcptBudgetEntryUpdateConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -1451,7 +1454,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),
       voucherNumber: voucherNumber == null ? const Value.absent() : Value(voucherNumber),
     );
-    await _writeEntryReceiptChange(project, event.entryId, fields);
+    await _budgetJournalService.writeEntryReceiptChange(
+      database: project.database,
+      entryId: event.entryId,
+      fields: fields,
+    );
 
     await _applyBudgetSnapshot(emitter, project);
   }
@@ -1472,16 +1479,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return null;
     }
 
-    final revenueId = await _budgetSharingService.createRevenue(
+    return _budgetSharingService.createRevenueWithFields(
       database: project.database,
-      date: newRevenue.date,
-      label: newRevenue.label,
+      fields: newRevenue,
     );
-    if (revenueId != null) {
-      await _writeRevenueFields(project, revenueId, newRevenue);
-    }
-
-    return revenueId;
   }
 
   /// Creates the financing resource `fields` carries as still-to-be-made
@@ -1498,15 +1499,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return null;
     }
 
-    final resourceId = await _budgetFinancingService.createResource(
+    return _budgetFinancingService.createResourceWithFields(
       database: project.database,
-      label: newResource.label,
+      fields: newResource,
     );
-    if (resourceId != null) {
-      await _writeResourceFields(project, resourceId, newResource);
-    }
-
-    return resourceId;
   }
 
   /// Creates the revenue-sharing participant `fields` carries as still-to-be-made
@@ -1522,44 +1518,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return null;
     }
 
-    final shareId = await _budgetSharingService.createShare(
+    return _budgetSharingService.createShareWithFields(
       database: project.database,
-      label: newShare.label,
+      fields: newShare,
     );
-    if (shareId != null) {
-      await _writeShareFields(project, shareId, newShare);
-    }
-
-    return shareId;
-  }
-
-  /// Writes whatever `fields` collected about a journal entry's own voucher, once the entry itself
-  /// exists: a fresh pick ([OcptBudgetEntryFormFields.pickedReceiptPath]) references it, replacing
-  /// whatever the entry already carried; the dialog's own `Detach` action
-  /// ([OcptBudgetEntryFormFields.isReceiptDetached]) drops it instead — never both at once, see
-  /// that field's own doc comment. A no-op when the dialog asked for neither.
-  ///
-  /// Shared by every handler that creates or writes a journal entry ([_onEntryCreationConfirmed],
-  /// [_onEntryUpdateConfirmed], [_onCommitmentSettlementConfirmed]), each already reloading the
-  /// snapshot once on its own right after calling this.
-  Future<void> _writeEntryReceiptChange(
-    OcptOpenProjectModel project,
-    String entryId,
-    OcptBudgetEntryFormFields fields,
-  ) async {
-    final pickedReceiptPath = fields.pickedReceiptPath;
-    if (pickedReceiptPath != null) {
-      await _budgetJournalService.setEntryReceipt(
-        database: project.database,
-        entryId: entryId,
-        path: pickedReceiptPath,
-      );
-      return;
-    }
-
-    if (fields.isReceiptDetached) {
-      await _budgetJournalService.clearEntryReceipt(database: project.database, entryId: entryId);
-    }
   }
 
   /// Deletes cash-journal entry `event.entryId` for good, confirmed by the mode's own
@@ -1715,7 +1677,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
 
     if (entryId != null) {
-      await _writeEntryReceiptChange(project, entryId, fields);
+      await _budgetJournalService.writeEntryReceiptChange(
+        database: project.database,
+        entryId: entryId,
+        fields: fields,
+      );
     }
 
     await _applyBudgetSnapshot(emitter, project);
@@ -1784,7 +1750,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
 
     if (entryId != null) {
-      await _writeEntryReceiptChange(project, entryId, fields);
+      await _budgetJournalService.writeEntryReceiptChange(
+        database: project.database,
+        entryId: entryId,
+        fields: fields,
+      );
     }
 
     await _applyBudgetSnapshot(emitter, project);
@@ -2087,12 +2057,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
-    final resourceId = await _budgetFinancingService.createResource(
+    final resourceId = await _budgetFinancingService.createResourceWithFields(
       database: project.database,
-      label: fields.label,
+      fields: fields,
     );
     if (resourceId != null) {
-      await _writeResourceFields(project, resourceId, fields);
       await _reconcileInKindCounterpartLine(project, resourceId, fields);
     }
 
@@ -2118,32 +2087,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _writeResourceFields(project, event.resourceId, event.fields);
+    await _budgetFinancingService.writeResourceFields(
+      database: project.database,
+      resourceId: event.resourceId,
+      fields: event.fields,
+    );
     await _reconcileInKindCounterpartLine(project, event.resourceId, event.fields);
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Writes every field of `fields` onto resource `resourceId` — shared by
-  /// [_onResourceCreationConfirmed] (right after minting the row) and
-  /// [_onResourceUpdateConfirmed].
-  Future<void> _writeResourceFields(
-    OcptOpenProjectModel project,
-    String resourceId,
-    OcptBudgetResourceFormFields fields,
-  ) => _budgetFinancingService.updateResource(
-    database: project.database,
-    resourceId: resourceId,
-    groupKind: Value(fields.groupKind),
-    personId: Value(fields.personId),
-    label: Value(fields.label),
-    amountCents: Value(fields.amountCents),
-    status: Value(fields.status),
-    isReimbursable: Value(fields.isReimbursable),
-    notes: Value(fields.notes),
-  );
-
   /// Keeps in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
-  /// called right after [_writeResourceFields] writes the contribution itself, from both
+  /// called right after `OcptBudgetFinancingFormWrites.writeResourceFields` writes the contribution itself, from both
   /// [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the resource and its
   /// counterpart line are two rows kept in step by one caller, the same "one write, two rows"
   /// shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment and its entry
@@ -2368,7 +2322,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Creates a new taking from `event.fields` and selects it — mirrors
   /// [_onResourceCreationConfirmed]: `OcptBudgetSharingService.createRevenue` mints the row from a
   /// date and a label alone, every other field written straight after through
-  /// [_writeRevenueFields], the very same call [_onRevenueUpdateConfirmed] itself uses.
+  /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call [_onRevenueUpdateConfirmed]
+  /// itself uses.
   Future<void> _onRevenueCreationConfirmed(
     OcptBudgetRevenueCreationConfirmedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -2379,14 +2334,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
-    final revenueId = await _budgetSharingService.createRevenue(
+    final revenueId = await _budgetSharingService.createRevenueWithFields(
       database: project.database,
-      date: fields.date,
-      label: fields.label,
+      fields: fields,
     );
-    if (revenueId != null) {
-      await _writeRevenueFields(project, revenueId, fields);
-    }
 
     await _applyBudgetSnapshot(emitter, project);
     if (revenueId != null) {
@@ -2410,25 +2361,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _writeRevenueFields(project, event.revenueId, event.fields);
+    await _budgetSharingService.writeRevenueFields(
+      database: project.database,
+      revenueId: event.revenueId,
+      fields: event.fields,
+    );
     await _applyBudgetSnapshot(emitter, project);
   }
-
-  /// Writes every field of `fields` onto revenue `revenueId` — shared by
-  /// [_onRevenueCreationConfirmed] (right after minting the row) and [_onRevenueUpdateConfirmed].
-  Future<void> _writeRevenueFields(
-    OcptOpenProjectModel project,
-    String revenueId,
-    OcptBudgetRevenueFormFields fields,
-  ) => _budgetSharingService.updateRevenue(
-    database: project.database,
-    revenueId: revenueId,
-    date: Value(fields.date),
-    label: Value(fields.label),
-    amountCents: Value(fields.amountCents),
-    status: Value(fields.status),
-    notes: Value(fields.notes),
-  );
 
   /// Moves revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
   /// order — mirrors [_onPosteReordered].
@@ -2498,13 +2437,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
 
     final fields = event.fields;
-    final shareId = await _budgetSharingService.createShare(
+    final shareId = await _budgetSharingService.createShareWithFields(
       database: project.database,
-      label: fields.label,
+      fields: fields,
     );
-    if (shareId != null) {
-      await _writeShareFields(project, shareId, fields);
-    }
 
     await _applyBudgetSnapshot(emitter, project);
     if (shareId != null) {
@@ -2528,25 +2464,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _writeShareFields(project, event.shareId, event.fields);
+    await _budgetSharingService.writeShareFields(
+      database: project.database,
+      shareId: event.shareId,
+      fields: event.fields,
+    );
     await _applyBudgetSnapshot(emitter, project);
   }
-
-  /// Writes every field of `fields` onto share `shareId` — shared by [_onShareCreationConfirmed]
-  /// (right after minting the row) and [_onShareUpdateConfirmed].
-  Future<void> _writeShareFields(
-    OcptOpenProjectModel project,
-    String shareId,
-    OcptBudgetShareFormFields fields,
-  ) => _budgetSharingService.updateShare(
-    database: project.database,
-    shareId: shareId,
-    personId: Value(fields.personId),
-    label: Value(fields.label),
-    sharePermille: Value(fields.sharePermille),
-    reinvestPermille: Value(fields.reinvestPermille),
-    notes: Value(fields.notes),
-  );
 
   /// Moves share `event.shareId` to `event.newPosition` within the sharing view's own flat order —
   /// mirrors [_onRevenueReordered].
