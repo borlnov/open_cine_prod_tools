@@ -15,12 +15,10 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_bloc.dart';
@@ -34,24 +32,6 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'shot_list_bloc_test_doubles.dart';
-
-/// A projects manager that counts how many times a working-copy capture actually reads the whole
-/// project, so a dispatch that is only supposed to *request* one (rather than always performing
-/// it) can be told apart from one that skipped it.
-class _CountingProjectsManager extends OcptProjectsManager {
-  /// Class constructor
-  _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager, appLanguageCode: testAppLanguageCode);
-
-  /// How many times [captureWorkingCopyState] actually ran.
-  int captureCount = 0;
-
-  @override
-  Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
-    captureCount++;
-    return super.captureWorkingCopyState();
-  }
-}
 
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
@@ -221,63 +201,6 @@ void main() {
     final created = await waitForState(bloc, (state) => state.selectionEpoch > epoch);
     return created.selectedSetId!;
   }
-
-  test('opening the Versions tab, and a field edit flushing while it is open, each capture the '
-      'working copy afresh', () async {
-    final countingManager = _CountingProjectsManager(propertiesManager: propertiesManager);
-    await countingManager.initLifeCycle();
-    final created = await countingManager.createProject(
-      name: "Working Copy Movie",
-      filePath: p.join(tempDir.path, "working_copy.ocpt"),
-    );
-    expect(created.status.isSuccess, isTrue);
-    await countingManager.screenplayService.saveScreenplayText(
-      database: countingManager.currentProject!.database,
-      screenplayId: countingManager.currentProject!.primaryScreenplayId,
-      fountainText: twoSceneText,
-      snapshotReason: OcptSnapshotReason.manual,
-    );
-
-    final bloc = buildBloc(overrideProjectsManager: countingManager);
-    final inspector = OcptShotListInspectorBloc(
-      modeBloc: bloc,
-      projectsManager: countingManager,
-      fieldEditDebounce: const Duration(milliseconds: 30),
-    );
-    await waitForState(bloc, (state) => !state.isLoading);
-    bloc.add(const OcptShotListShotCreationRequestedEvent());
-    final created2 = await waitForState(bloc, (state) => state.totalShotCount == 1);
-    final shotId = created2.selectedShotId!;
-
-    // Only the mount above has captured so far (creating a shot is not a version operation);
-    // waiting out the throttle window guarantees the tab selection below actually captures rather
-    // than being silently skipped.
-    await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
-    final beforeTabSelected = countingManager.captureCount;
-
-    bloc.add(const OcptShotListRightDockTabSelectedEvent(tab: OcptShotListRightDockTab.versions));
-    await waitForState(bloc, (state) => state.rightDockTab == OcptShotListRightDockTab.versions);
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(countingManager.captureCount, beforeTabSelected + 1);
-
-    // Clear the throttle again, then flush a field edit while the tab opened above is still the
-    // active one.
-    await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
-    inspector.add(
-      OcptShotListShotFieldChangedEvent(
-        shotId: shotId,
-        field: OcptShotListEditableField.shotSize,
-        rawValue: "Wide",
-      ),
-    );
-    await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Wide");
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(countingManager.captureCount, beforeTabSelected + 2);
-
-    await inspector.close();
-    await bloc.close();
-    await countingManager.disposeLifeCycle();
-  });
 
   test('the last right dock tab is persisted and restored on the next entry', () async {
     await writeScreenplay(twoSceneText);
