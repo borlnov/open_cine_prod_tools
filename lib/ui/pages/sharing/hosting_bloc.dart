@@ -121,22 +121,16 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
         : null;
 
     emit(
-      state.copyWith(
-        isLoading: false,
+      state.copyToLoaded(
         hostState: hostState,
         presenceRoster: presenceRoster,
-        forcePresenceRosterValue: presenceRoster == null,
         canSetAutoRestart: projectId != null,
         hostOnLaunch: hostOnLaunch,
         availableAddresses: extras?.availableAddresses ?? const [],
         selectedAddress: extras?.selectedAddress,
-        forceSelectedAddressValue: extras == null,
         boundPort: extras?.boundPort,
-        forceBoundPortValue: extras == null,
         enrolment: extras?.enrolment,
-        forceEnrolmentValue: extras == null,
         joinInvite: extras?.joinInvite,
-        forceJoinInviteValue: extras?.joinInvite == null,
       ),
     );
   }
@@ -165,32 +159,20 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
       final extras = await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress);
 
       emitter(
-        state.copyWith(
+        state.copyWithHostOnline(
           hostState: hostState,
-          canSetAutoRestart: true,
           hostOnLaunch: hostOnLaunch,
           presenceRoster: presenceRoster,
-          forcePresenceRosterValue: presenceRoster == null,
           availableAddresses: extras.availableAddresses,
           selectedAddress: extras.selectedAddress,
           boundPort: extras.boundPort,
           enrolment: extras.enrolment,
           joinInvite: extras.joinInvite,
-          forceJoinInviteValue: extras.joinInvite == null,
         ),
       );
     } else {
       await _unsubscribeFromPresence();
-      emitter(
-        state.copyWith(
-          hostState: hostState,
-          forcePresenceRosterValue: true,
-          forceSelectedAddressValue: true,
-          forceBoundPortValue: true,
-          forceEnrolmentValue: true,
-          forceJoinInviteValue: true,
-        ),
-      );
+      emitter(state.copyWithHostOffline(hostState: hostState));
     }
   }
 
@@ -208,7 +190,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
         message: 'peers: $previousCount -> $newCount',
       );
     }
-    emitter(state.copyWith(presenceRoster: roster, forcePresenceRosterValue: roster == null));
+    emitter(state.copyWithPresenceRoster(presenceRoster: roster));
   }
 
   /// Starts or stops hosting the current project — [OcptHostingHostStateChangedEvent] is what
@@ -249,7 +231,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
     }
 
     await _propertiesManager.setHostOnLaunch(projectId: id, value: event.value);
-    emitter(state.copyWith(hostOnLaunch: event.value));
+    emitter(state.copyWithHostOnLaunch(hostOnLaunch: event.value));
   }
 
   /// Parses [event]'s own invite text and, when it is a well-formed `ocpt://join` link, runs
@@ -263,25 +245,13 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
   ) async {
     final invite = OcptRelayInvite.parse(event.inviteText.trim()).value;
     if (invite == null) {
-      emitter(
-        state.copyWith(
-          reconcileInviteInvalid: true,
-          isReconciling: false,
-          forceReconcileOutcomeValue: true,
-        ),
-      );
+      emitter(state.copyWithReconcileInviteInvalid());
       return;
     }
 
-    emitter(
-      state.copyWith(
-        isReconciling: true,
-        reconcileInviteInvalid: false,
-        forceReconcileOutcomeValue: true,
-      ),
-    );
+    emitter(state.copyWithReconciling());
     final outcome = await _hostManager.reconcileWithUpstream(invite);
-    emitter(state.copyWith(isReconciling: false, reconcileOutcome: outcome));
+    emitter(state.copyWithReconcileOutcome(reconcileOutcome: outcome));
   }
 
   /// Clears [OcptHostingState.reconcileOutcome] and [OcptHostingState.reconcileInviteInvalid] once
@@ -291,7 +261,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
     OcptHostingReconcileDismissedEvent event,
     Emitter<OcptHostingState> emitter,
   ) {
-    emitter(state.copyWith(forceReconcileOutcomeValue: true, reconcileInviteInvalid: false));
+    emitter(state.copyWithReconcileDismissed());
   }
 
   /// Applies [event]'s own address to [OcptHostingState.selectedAddress] and rebuilds
@@ -325,11 +295,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
           );
 
     emitter(
-      state.copyWith(
+      state.copyWithSelectedAddress(
         selectedAddress: event.address,
         enrolment: enrolment,
         joinInvite: joinInvite,
-        forceJoinInviteValue: joinInvite == null,
       ),
     );
   }
@@ -356,7 +325,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
 
   /// Applies [event]'s own kind straight to [OcptHostingState.qrKind].
   void _onQrKindChanged(OcptHostingQrKindChangedEvent event, Emitter<OcptHostingState> emitter) {
-    emitter(state.copyWith(qrKind: event.kind));
+    emitter(state.copyWithQrKind(qrKind: event.kind));
   }
 
   /// Re-reads `_hostManager.availableLanAddresses` into [OcptHostingState.availableAddresses],
@@ -376,10 +345,9 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
         : (availableAddresses.isNotEmpty ? availableAddresses.first : currentSelection);
 
     emitter(
-      state.copyWith(
+      state.copyWithRefreshedAddresses(
         availableAddresses: availableAddresses,
         selectedAddress: selectedAddress,
-        forceSelectedAddressValue: selectedAddress == null,
       ),
     );
   }
