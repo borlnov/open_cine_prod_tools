@@ -97,7 +97,7 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   /// `OcptStoryboardAnnotationOverlay`'s own doc comment.
   final ValueChanged<String>? onAnnotationSelected;
 
-  /// [onReordered], withheld whenever [activeAnnotationTool] is on — see the class doc comment.
+  /// Get [onReordered], withheld whenever [activeAnnotationTool] is on — see the class doc comment.
   void Function(String panelId, int newPosition)? get effectiveOnReordered =>
       activeAnnotationTool == null ? onReordered : null;
 
@@ -201,7 +201,7 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     );
   }
 
-  /// Reports [effectiveOnReordered] with the panel dragged from [oldIndex] and the 0-based
+  /// Report [effectiveOnReordered] with the panel dragged from [oldIndex] and the 0-based
   /// position it lands on: `ReorderableListView`'s own `onReorderItem` already hands back
   /// [newIndex] adjusted for the moved item's own removal — exactly the position
   /// `OcptStoryboardService.reorderPanel` expects — so nothing is translated here beyond reading

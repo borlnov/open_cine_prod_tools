@@ -105,7 +105,7 @@ class OcptShotListFloorPlanCanvasBloc
     on<OcptShotListFloorPlanCanvasWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Clears what the mode's selection move invalidates, and drops what the mode's fresh data no
+  /// Clear what the mode's selection move invalidates, and drop what the mode's fresh data no
   /// longer holds.
   ///
   /// Reads the floor plans from [modeBloc]'s current state — the latest data — but the cause of
@@ -202,7 +202,7 @@ class OcptShotListFloorPlanCanvasBloc
     );
   }
 
-  /// Picks the floor plans canvas's own active tool. A view preference.
+  /// Pick the floor plans canvas's own active tool. A view preference.
   ///
   /// Clears the arrow tool's own pending anchor whenever a different tool is picked: leaving the
   /// arrow tool abandons whatever first click was still waiting for its second.
@@ -213,8 +213,8 @@ class OcptShotListFloorPlanCanvasBloc
     emitter(state.copyWithActiveTool(tool: event.tool));
   }
 
-  /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, carrying
-  /// `event.setElementShape` on a décor placement, then selects it once the mode holds it
+  /// Place a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, carrying
+  /// `event.setElementShape` on a décor placement, then select it once the mode holds it
   /// (`OcptFloorPlanService.placeSymbol`). Written immediately.
   ///
   /// `event.shotId` is null on a sequence layer (the `setElement` tool) and the focused shot's id
@@ -274,7 +274,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Selects symbol `event.symbolId`, or clears the selection when it is null. Also clears the
+  /// Select symbol `event.symbolId`, or clear the selection when it is null. Also clears the
   /// arrow selection when a symbol actually gets selected: the two are mutually exclusive on the
   /// canvas.
   Future<void> _onSymbolSelected(
@@ -285,7 +285,7 @@ class OcptShotListFloorPlanCanvasBloc
     emitter(state.copyWithSelectedSymbol(symbolId: symbolId));
   }
 
-  /// Moves symbol `event.symbolId` to `event.xM`/`event.yM`, writing exactly one row, dispatched
+  /// Move symbol `event.symbolId` to `event.xM`/`event.yM`, writing exactly one row, dispatched
   /// once a drag on it ends.
   Future<void> _onSymbolMoved(
     OcptShotListFloorPlanSymbolMovedEvent event,
@@ -315,7 +315,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Resizes symbol `event.symbolId` to `event.widthM`/`event.heightM`, writing exactly one row,
+  /// Resize symbol `event.symbolId` to `event.widthM`/`event.heightM`, writing exactly one row,
   /// dispatched once a drag on its own resize handle ends.
   Future<void> _onSymbolResized(
     OcptShotListFloorPlanSymbolResizedEvent event,
@@ -345,7 +345,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Rotates symbol `event.symbolId` to `event.rotationDeg`, writing exactly one row, dispatched
+  /// Rotate symbol `event.symbolId` to `event.rotationDeg`, writing exactly one row, dispatched
   /// once a drag on its own rotate handle ends.
   Future<void> _onSymbolRotated(
     OcptShotListFloorPlanSymbolRotatedEvent event,
@@ -374,7 +374,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Stores the pending scope decision, dispatched by the mode the instant a set-scope move (or a
+  /// Store the pending scope decision, dispatched by the mode the instant a set-scope move (or a
   /// scene-scope one — see `event.level`) rotate or resize ends on a symbol two-or-more
   /// sequences/shots share — no write yet, [_onScopeDecisionResolved] is what actually writes (or
   /// drops) it.
@@ -399,7 +399,7 @@ class OcptShotListFloorPlanCanvasBloc
     );
   }
 
-  /// Resolves `state.pendingFloorPlanScopeDecision` — writes it onto the original (`every`), onto
+  /// Resolve `state.pendingFloorPlanScopeDecision` — writes it onto the original (`every`), onto
   /// an override of the focused sequence or shot, per `decision.level` (`only`, updating one that
   /// already exists or creating one), or simply drops it (`cancel`, the element snaps back since
   /// nothing was ever written). A no-op while nothing is pending, or the focused sequence isn't a
@@ -488,7 +488,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Resolves a tap on symbol `event.symbolId` while the arrow tool is active, exactly as
+  /// Resolve a tap on symbol `event.symbolId` while the arrow tool is active, exactly as
   /// `OcptShotListFloorPlanArrowSymbolTappedEvent` documents: with no anchor pending, picks it as
   /// the arrow's first end; with one already pending and a different symbol tapped, completes a
   /// movement arrow from the anchor to it, on the focused shot; a tap on the anchor itself is a
@@ -537,7 +537,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Cancels the arrow tool's own pending anchor, dispatched by `Escape` or a click on empty
+  /// Cancel the arrow tool's own pending anchor, dispatched by `Escape` or a click on empty
   /// canvas while it is on. Leaves every arrow untouched, exactly as
   /// `OcptShotListInspectorBloc`'s coverage anchor cancellation leaves every coverage range
   /// untouched.
@@ -548,7 +548,7 @@ class OcptShotListFloorPlanCanvasBloc
     emitter(state.copyWithArrowAnchorCleared());
   }
 
-  /// Selects arrow `event.arrowId`, or clears the selection when it is null. A view preference;
+  /// Select arrow `event.arrowId`, or clear the selection when it is null. A view preference;
   /// also clears the symbol selection, the two being mutually exclusive on the canvas.
   Future<void> _onArrowSelected(
     OcptShotListFloorPlanArrowSelectedEvent event,
@@ -558,7 +558,7 @@ class OcptShotListFloorPlanCanvasBloc
     emitter(state.copyWithSelectedArrow(arrowId: arrowId));
   }
 
-  /// Bends arrow `event.arrowId` through `event.ctrlXM`/`event.ctrlYM`, or straightens it back out
+  /// Bend arrow `event.arrowId` through `event.ctrlXM`/`event.ctrlYM`, or straighten it back out
   /// when both are null, writing exactly one row (`OcptFloorPlanService.updateArrowCurve`),
   /// dispatched once a drag on its own midpoint handle ends, or by its own straighten button.
   Future<void> _onArrowCurveChanged(
@@ -589,10 +589,10 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Duplicates symbol `event.symbolId` into an independent copy — never a link — on the very same
+  /// Duplicate symbol `event.symbolId` into an independent copy — never a link — on the very same
   /// set/shot/layer, at `event.xM`/`event.yM` when given or offset from the source by
   /// `ocptFloorPlanDuplicateOffsetM` otherwise (`Ctrl+D`, which reports no position of its own),
-  /// then selects the copy once the mode holds it. A no-op while the source symbol can no longer
+  /// then select the copy once the mode holds it. A no-op while the source symbol can no longer
   /// be found (a stale shortcut on a canvas rebuilt underneath).
   Future<void> _onSymbolDuplicated(
     OcptShotListFloorPlanSymbolDuplicatedEvent event,
@@ -644,7 +644,7 @@ class OcptShotListFloorPlanCanvasBloc
     }
   }
 
-  /// Clears [OcptShotListFloorPlanCanvasState.pendingCharacterNamePromptSymbolId], dispatched by
+  /// Clear [OcptShotListFloorPlanCanvasState.pendingCharacterNamePromptSymbolId], dispatched by
   /// the mode's own listener the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it.
   Future<void> _onCharacterNamePromptDismissed(
     OcptShotListFloorPlanCharacterNamePromptDismissedEvent event,
@@ -653,7 +653,7 @@ class OcptShotListFloorPlanCanvasBloc
     emitter(state.copyWithCharacterNamePromptDismissed());
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListFloorPlanCanvasWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,

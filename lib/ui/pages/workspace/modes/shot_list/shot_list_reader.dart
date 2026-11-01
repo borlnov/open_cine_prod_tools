@@ -80,7 +80,7 @@ class OcptShotListReader {
        _locationsService = locationsService,
        _screenplayIdOf = screenplayIdOf;
 
-  /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
+  /// Read the whole shot list of the selected episode's screenplay, joined with where each of its
   /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id — what
   /// the `Jour de tournage` read-out is built from. A project with no schedule joins an empty map.
   ///
@@ -102,43 +102,43 @@ class OcptShotListReader {
     return snapshot.copyWithPlacements(placements);
   }
 
-  /// Reads the whole storyboard of the selected episode's screenplay — every live shot's panels,
+  /// Read the whole storyboard of the selected episode's screenplay — every live shot's panels,
   /// keyed by shot id — what the board reads through `OcptShotListState.panelsOfShot`.
   Future<OcptStoryboardSnapshot> loadStoryboard(OcptOpenProjectModel project) => _storyboardService
       .loadStoryboard(database: project.database, screenplayId: _screenplayIdOf(project));
 
-  /// Reads the whole floor plans of the selected episode's screenplay — every live set of every
+  /// Read the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through
   /// `OcptShotListState.setsOfSelectedSequence`.
   Future<OcptFloorPlanSnapshot> loadFloorPlans(OcptOpenProjectModel project) => _floorPlanService
       .loadFloorPlans(database: project.database, screenplayId: _screenplayIdOf(project));
 
-  /// Reads the project's whole Resources catalogue — every location and its own sets, each
+  /// Read the project's whole Resources catalogue — every location and its own sets, each
   /// carrying the scenes it is linked to — what the set tabs' `＋ Set` menu groups by, and what
   /// `ocptSceneSetSuggestionOf` reads. Project-wide, unlike [loadFloorPlans]: a set the gallery
   /// offers to link may already be linked to another episode's sequence.
   Future<List<OcptLocation>> loadLocations(OcptOpenProjectModel project) =>
       _locationsService.loadLocations(database: project.database);
 
-  /// Reads the set-scope symbols of every live Resources set of the project, keyed by set id — the
+  /// Read the set-scope symbols of every live Resources set of the project, keyed by set id — the
   /// gallery thumbnails' content, which draw a set's own décor alone. Project-wide, like
   /// [loadLocations].
   Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsBySetId(
     OcptOpenProjectModel project,
   ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
 
-  /// Reads the production's whole cast — every live role, in `sortKey` order — what the character
+  /// Read the production's whole cast — every live role, in `sortKey` order — what the character
   /// chips and the shared role alert banner are derived from.
   Future<List<OcptRole>> loadRoles(OcptOpenProjectModel project) =>
       _roleIndexService.loadRoles(database: project.database);
 
-  /// Reads the selected episode's current Fountain source text, kept in
+  /// Read the selected episode's current Fountain source text, kept in
   /// `OcptShotListState.screenplayText` for `ocptScreenplayCharactersOf` and the scenario coverage.
   Future<String> loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
       .screenplayService
       .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
 
-  /// Reads the page setup the screenplay is typeset with: the open project's own page format,
+  /// Read the page setup the screenplay is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
   /// pairs them. The scenario coverage dialog's simulated paper sheet is laid out with it.
   ///
@@ -153,7 +153,7 @@ class OcptShotListReader {
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Reads every free-text field's suggestion list, scoped to the selected episode.
+  /// Read every free-text field's suggestion list, scoped to the selected episode.
   Future<OcptShotFieldSuggestions> loadSuggestions(OcptOpenProjectModel project) => _shotListService
       .loadFieldSuggestions(database: project.database, screenplayId: _screenplayIdOf(project));
 }

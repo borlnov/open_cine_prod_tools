@@ -19,7 +19,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// enough that the sampled polyline never visibly diverges from the drawn curve.
 const int _arrowCurveHitTestSamples = 12;
 
-/// The geometry [symbol] is drawn with: [liveOverride] while it names [symbol] (the symbol is being
+/// Get the geometry [symbol] is drawn with: [liveOverride] while it names [symbol] (the symbol is
+/// being
 /// dragged), the symbol's own stored geometry otherwise.
 OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolGeometryOf(
   OcptFloorPlanSymbolShape symbol,
@@ -38,7 +39,8 @@ OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolGeometryOf(
   );
 }
 
-/// [override] after a move or resize drag by [screenDelta] logical pixels, or null for any other
+/// Get [override] after a move or resize drag by [screenDelta] logical pixels, or null for any
+/// other
 /// [kind] — those are not driven by a pointer delta.
 ///
 /// The move handle's own `GestureDetector` is wrapped in a `Transform.rotate`, so Flutter hands
@@ -89,7 +91,7 @@ OcptFloorPlanSymbolLiveOverride? ocptFloorPlanSymbolDraggedBy({
   return null;
 }
 
-/// [override] with its own rotation (bearing) set from the pointer's own bearing around the
+/// Get [override] with its own rotation (bearing) set from the pointer's own bearing around the
 /// symbol's centre (0° pointing up, clockwise positive — see `ocptFloorPlanRotateVector`'s own doc
 /// comment for the same screen convention read the other way), **[localPosition] already converted
 /// to canvas space** — the handle's own local position is relative to that tiny hit box rather
@@ -131,7 +133,7 @@ OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolAimedAt({
   );
 }
 
-/// [override] with its own field-of-view angle set from the pointer's own bearing around the
+/// Get [override] with its own field-of-view angle set from the pointer's own bearing around the
 /// symbol's centre, in **canvas space** ([localPosition], converted as for
 /// [ocptFloorPlanSymbolAimedAt]), turned into the symbol's own **local** frame (`-rotationDeg`,
 /// undoing its own heading) so `0°` always means "straight ahead" whichever way the camera itself
@@ -171,7 +173,8 @@ OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolFovDraggedTo({
   );
 }
 
-/// [override] with its own field-of-view reach (the wedge's own axial height/depth) set from the
+/// Get [override] with its own field-of-view reach (the wedge's own axial height/depth) set from
+/// the
 /// pointer's own distance from the symbol's centre, projected onto its own heading vector (so a
 /// pointer straying sideways still reads as a forward/backward depth rather than snapping — the
 /// wedge's own half-width at that depth is for the edge handles' own corners to derive, never this
@@ -213,7 +216,7 @@ OcptFloorPlanSymbolLiveOverride ocptFloorPlanSymbolFovReachDraggedTo({
   );
 }
 
-/// The id of the closest editable (non-ghost) arrow of [sheet] whose own shaft (straight or
+/// Get the id of the closest editable (non-ghost) arrow of [sheet] whose own shaft (straight or
 /// curved) comes within [ocptFloorPlanArrowHitTolerancePx] of the point [xM]/[yM] (set metres), or
 /// null while none does.
 String? ocptFloorPlanArrowHitAt(OcptFloorPlanSheet sheet, double xM, double yM, double zoom) {
@@ -238,7 +241,7 @@ String? ocptFloorPlanArrowHitAt(OcptFloorPlanSheet sheet, double xM, double yM, 
   return bestId;
 }
 
-/// The shortest distance, in metres, from point [xM]/[yM] to [arrow]'s own shaft: a straight
+/// Get the shortest distance, in metres, from point [xM]/[yM] to [arrow]'s own shaft: a straight
 /// point-to-segment distance while it carries no control point, otherwise the smallest
 /// point-to-segment distance over [_arrowCurveHitTestSamples] chords approximating its own
 /// quadratic bezier — the same curve `OcptFloorPlanCanvasPainter._paintArrow` draws.
@@ -274,7 +277,7 @@ double ocptFloorPlanDistanceToArrowM(OcptFloorPlanArrowShape arrow, double xM, d
   return minDistanceM;
 }
 
-/// [arrow]'s own quadratic bezier point at parameter [t] (0 = [OcptFloorPlanArrowShape.fromXM]/
+/// Get [arrow]'s own quadratic bezier point at parameter [t] (0 = [OcptFloorPlanArrowShape.fromXM]/
 /// `.fromYM`, 1 = `.toXM`/`.toYM`), through its own control point — requires
 /// [OcptFloorPlanArrowShape.ctrlXM]/`.ctrlYM` to be set.
 Offset _quadraticBezierPointM(OcptFloorPlanArrowShape arrow, double t) {
@@ -287,7 +290,7 @@ Offset _quadraticBezierPointM(OcptFloorPlanArrowShape arrow, double t) {
   );
 }
 
-/// The shortest distance from point [px]/[py] to the segment `(x1, y1)`–`(x2, y2)`, all in the
+/// Get the shortest distance from point [px]/[py] to the segment `(x1, y1)`–`(x2, y2)`, all in the
 /// same unit (metres throughout the floor plans).
 double ocptFloorPlanDistanceToSegmentM(
   double px,

@@ -10,7 +10,7 @@ sealed class OcptShotListShotEvent extends OcptShotListEvent {
   const OcptShotListShotEvent();
 }
 
-/// Requests creating a new shot at the end of the selected sequence, then selecting it.
+/// Request creating a new shot at the end of the selected sequence, then selecting it.
 ///
 /// Does nothing while no sequence is selected, or while the selected one is the orphan group: a
 /// shot only ever exists inside a real screenplay scene, and the orphan group is where shots go
@@ -20,7 +20,7 @@ class OcptShotListShotCreationRequestedEvent extends OcptShotListShotEvent {
   const OcptShotListShotCreationRequestedEvent();
 }
 
-/// Requests deleting shot [shotId], dispatched once the inspector's own confirmation dialog has
+/// Request deleting shot [shotId], dispatched once the inspector's own confirmation dialog has
 /// already confirmed it. Renumbers the remaining shots of its group and clears the selection if
 /// [shotId] was the selected shot (the sequence stays selected).
 class OcptShotListShotDeletionRequestedEvent extends OcptShotListShotEvent {

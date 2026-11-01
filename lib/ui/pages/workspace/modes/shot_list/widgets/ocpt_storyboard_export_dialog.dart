@@ -37,7 +37,7 @@ class OcptStoryboardExportDialog extends StatefulWidget {
   @override
   State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
 
-  /// Shows the dialog and returns the [OcptStoryboardExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptStoryboardExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptStoryboardExportOptions?> show(
     BuildContext context, {
@@ -129,13 +129,13 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptStoryboardExportOptions].
+  /// Pop the dialog returning the resulting [OcptStoryboardExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

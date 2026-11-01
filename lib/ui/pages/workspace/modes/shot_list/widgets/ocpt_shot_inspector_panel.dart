@@ -351,18 +351,19 @@ class OcptShotInspectorPanel extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` an editable field of [field] is given: the one reporting to [onFieldChanged],
+  /// Get the `onChanged` an editable field of [field] is given: the one reporting to
+  /// [onFieldChanged],
   /// or null while [isReadOnly], which is what makes the field read out its value instead of
   /// accepting a new one.
   ValueChanged<String>? _onFieldChangedOrNull(OcptShotListEditableField field) =>
       isReadOnly ? null : (value) => onFieldChanged(field, value);
 
-  /// The `onChanged` a difficulty row of [axis] is given, null under the same condition as
+  /// Get the `onChanged` a difficulty row of [axis] is given, null under the same condition as
   /// [_onFieldChangedOrNull] and with the same effect: the dots then only read the axis out.
   ValueChanged<int>? _onDifficultyChangedOrNull(OcptShotDifficultyAxis axis) =>
       isReadOnly ? null : (value) => onDifficultyChanged(axis, value);
 
-  /// One section title, the accent-coloured header the mock-up uses to separate the panel's
+  /// Build one section title, the accent-coloured header the mock-up uses to separate the panel's
   /// sections (Image, Difficulty, Production, …).
   Widget _sectionTitle(BuildContext context, String title) => Text(
     title,
@@ -477,7 +478,7 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
     );
   }
 
-  /// The localised label of [reason].
+  /// Get the localised label of [reason].
   String _reasonLabel(Tr tr) => switch (reason) {
     OcptShotCheckReason.coveredTextChanged => tr.shotListNeedsCheckReasonCoveredTextChanged,
     OcptShotCheckReason.coverageOutOfBounds => tr.shotListNeedsCheckReasonCoverageOutOfBounds,

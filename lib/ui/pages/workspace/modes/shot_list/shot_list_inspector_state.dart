@@ -44,7 +44,7 @@ class OcptShotListInspectorState extends BlocStateForMixin<OcptShotListInspector
     required this.hasWriteError,
   });
 
-  /// Builds the state of an inspector nothing has been typed in yet.
+  /// Build the state of an inspector nothing has been typed in yet.
   const OcptShotListInspectorState.init()
     : pendingFieldEdits = const {},
       pendingCoverageAnchor = null,
@@ -68,7 +68,7 @@ class OcptShotListInspectorState extends BlocStateForMixin<OcptShotListInspector
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
-  /// Copies this state with [pendingFieldEdits] dropped to what is still pending after the shot
+  /// Copy this state with [pendingFieldEdits] dropped to what is still pending after the shot
   /// list lost rows, and the coverage anchor cleared when [isAnchorCleared].
   ///
   /// A null [pendingFieldEdits] keeps the current edits.
@@ -80,43 +80,43 @@ class OcptShotListInspectorState extends BlocStateForMixin<OcptShotListInspector
     forcePendingCoverageAnchorValue: isAnchorCleared,
   );
 
-  /// Copies this state with [pendingFieldEdits] as the edits waiting in the debounce, a keystroke
+  /// Copy this state with [pendingFieldEdits] as the edits waiting in the debounce, a keystroke
   /// later.
   OcptShotListInspectorState copyWithTypedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with no field edit left pending.
+  /// Copy this state with no field edit left pending.
   OcptShotListInspectorState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  /// Copy this state with [pendingFieldEdits] as what the write that just landed left pending.
   OcptShotListInspectorState copyWithFlushedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// Copy this state with the write error raised, [pendingFieldEdits] being what the failed
   /// flush left pending.
   OcptShotListInspectorState copyToFlushFailed({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingCoverageAnchor] as the first word of the range being drawn.
+  /// Copy this state with [pendingCoverageAnchor] as the first word of the range being drawn.
   OcptShotListInspectorState copyWithCoverageAnchor({
     required ({int wordStartOffset, int wordEndOffset}) pendingCoverageAnchor,
   }) => copyWith(pendingCoverageAnchor: pendingCoverageAnchor);
 
-  /// Copies this state with no coverage range being drawn.
+  /// Copy this state with no coverage range being drawn.
   OcptShotListInspectorState copyWithCoverageAnchorCleared() =>
       copyWith(forcePendingCoverageAnchorValue: true);
 
-  /// Copies this state with the write error raised and no coverage range being drawn.
+  /// Copy this state with the write error raised and no coverage range being drawn.
   OcptShotListInspectorState copyToCoverageWriteFailed() =>
       copyWith(hasWriteError: true, forcePendingCoverageAnchorValue: true);
 
-  /// Copies this state with the write error raised.
+  /// Copy this state with the write error raised.
   OcptShotListInspectorState copyToWriteFailed() => copyWith(hasWriteError: true);
 
-  /// Copies this state with the write error dismissed.
+  /// Copy this state with the write error dismissed.
   OcptShotListInspectorState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

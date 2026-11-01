@@ -42,7 +42,8 @@ class OcptShotListStatusBarView extends StatelessWidget {
     );
   }
 
-  /// The status bar's own trailing hint for the active centre view: the board's `Panel 2 of 3
+  /// Get the status bar's own trailing hint for the active centre view: the board's
+  /// `Panel 2 of 3 selected · drag to reorder`
   /// selected · drag to reorder` while it is shown and a panel is selected, the floor plans'
   /// `Kitchen · 5 cameras on 4 shots · 12/5 has no camera yet` (the last segment only while a shot
   /// of the sequence still has none) while a set is selected, or null otherwise (the table, and

@@ -65,7 +65,7 @@ class OcptShotListExportBloc
     on<OcptShotListIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports the whole shot list to an XLSX workbook.
+  /// Export the whole shot list to an XLSX workbook.
   ///
   /// Writes every pending edit first — that also re-reads the snapshot, so the workbook holds the
   /// value the user typed seconds ago rather than the one the database held before it — then hands
@@ -130,7 +130,7 @@ class OcptShotListExportBloc
     }
   }
 
-  /// Exports the screenplay annotated with the shots covering it, as a PDF.
+  /// Export the screenplay annotated with the shots covering it, as a PDF.
   ///
   /// The read-only sibling of [_onXlsxExportRequested], and built the same way: write whatever is
   /// still pending — that also re-reads the snapshot, so the legend holds the shot size the user
@@ -178,7 +178,7 @@ class OcptShotListExportBloc
     );
   }
 
-  /// Exports the storyboard — every shot's imported frames, annotated, with its key information —
+  /// Export the storyboard — every shot's imported frames, annotated, with its key information —
   /// as a PDF.
   ///
   /// Built the same way as [_onXlsxExportRequested] and [_onScenarioCoverageExportRequested]: write
@@ -224,7 +224,7 @@ class OcptShotListExportBloc
     );
   }
 
-  /// Exports the floor plans — one plan per shot that has a camera placed on it — as a PDF.
+  /// Export the floor plans — one plan per shot that has a camera placed on it — as a PDF.
   ///
   /// The read-only sibling of [_onStoryboardExportRequested], opening no options dialog of its own
   /// (its page format is [OcptShotListState.pageSetup], exactly as the shot list workbook's own
@@ -261,7 +261,7 @@ class OcptShotListExportBloc
     );
   }
 
-  /// Runs one of the read-only exports through [export], then raises the transient notice of its
+  /// Run one of the read-only exports through [export], then raise the transient notice of its
   /// outcome: [succeededKind] with the saved path, nothing at all when [export] answers null (the
   /// user cancelled the save dialog), or [failedKind] when it throws (logged as a problem exporting
   /// [what]).
@@ -297,7 +297,7 @@ class OcptShotListExportBloc
     }
   }
 
-  /// Clears the transient export notice currently shown, if any.
+  /// Clear the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptShotListIoNoticeDismissedEvent event,
     Emitter<OcptShotListExportState> emitter,

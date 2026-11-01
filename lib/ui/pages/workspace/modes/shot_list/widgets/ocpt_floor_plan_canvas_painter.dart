@@ -24,7 +24,7 @@ const double _scaleCornerMargin = 16;
 /// The gap, in logical pixels, between the reference silhouette and the scale bar above it.
 const double _scaleBlockGap = 10;
 
-/// The screen point (logical pixels, this canvas's own local coordinate space) [xM]/[yM] (plan
+/// Get the screen point (logical pixels, this canvas's own local coordinate space) [xM]/[yM] (plan
 /// metres) draws at, given the canvas's [canvasSize], current [zoom] and current [pan].
 ///
 /// The **origin convention** every renderer sharing this canvas agrees on: metres `(0, 0)` sits at
@@ -46,7 +46,8 @@ Offset ocptFloorPlanScreenPointOf({
   );
 }
 
-/// The inverse of [ocptFloorPlanScreenPointOf]: the plan metres [screenPoint] (this canvas's own
+/// Get the inverse of [ocptFloorPlanScreenPointOf]: the plan metres [screenPoint] (this canvas's
+/// own
 /// local coordinate space) names.
 Offset ocptFloorPlanMetrePointOf({
   required Offset screenPoint,
@@ -61,7 +62,8 @@ Offset ocptFloorPlanMetrePointOf({
   );
 }
 
-/// A screen-space delta converted to plan metres at [zoom] — a pure scale with no translation, what
+/// Get a screen-space delta converted to plan metres at [zoom] — a pure scale with no translation,
+/// what
 /// a drag's own per-frame delta is converted through (never through [ocptFloorPlanMetrePointOf],
 /// which would also subtract the canvas centre and the pan offset).
 Offset ocptFloorPlanScreenVectorToMetres({required Offset screenDelta, required double zoom}) {
@@ -69,7 +71,8 @@ Offset ocptFloorPlanScreenVectorToMetres({required Offset screenDelta, required 
   return Offset(screenDelta.dx / pixelsPerMetre, screenDelta.dy / pixelsPerMetre);
 }
 
-/// [vector] turned by [degrees] clockwise (screen convention: Y grows downward) — what un-rotating
+/// Get [vector] turned by [degrees] clockwise (screen convention: Y grows downward) — what
+/// un-rotating
 /// a resize handle's own screen-space drag delta into the symbol's own local width/height axes
 /// needs, and what placing a rotate handle at the current rotation needs the other way around.
 Offset ocptFloorPlanRotateVector(Offset vector, double degrees) {
@@ -104,7 +107,7 @@ const double _overrideGhostOpacity = 0.35;
 /// The radius, in logical pixels, an override's own pin badge circle is drawn at.
 const double _overridePinBadgeRadius = 5;
 
-/// Paints a `OcptFloorPlanSheet`'s own symbols, the always-on scale bar and reference silhouette
+/// Paint a `OcptFloorPlanSheet`'s own symbols, the always-on scale bar and reference silhouette
 /// (`docs/adr/0031-storyboard-panels-and-floor-plans-in-metres.md`), for the floor plans canvas.
 ///
 /// The underlay itself is **not** drawn here: it is a real `OcptReferencedImage` positioned by
@@ -229,7 +232,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       !const ListEquality<OcptFloorPlanMetricLine>().equals(oldDelegate.metricLines, metricLines) ||
       oldDelegate.metricLineColor != metricLineColor;
 
-  /// One movement or camera-move arrow: a quadratic bezier shaft through
+  /// Paint one movement or camera-move arrow: a quadratic bezier shaft through
   /// [OcptFloorPlanArrowShape.ctrlXM]/[OcptFloorPlanArrowShape.ctrlYM] when set, a straight shaft
   /// otherwise, with a small head at its own [OcptFloorPlanArrowShape.toXM]/
   /// [OcptFloorPlanArrowShape.toYM] end, at reduced opacity while [OcptFloorPlanArrowShape.isGhost]
@@ -301,7 +304,8 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// [source] split into short dashes and gaps ([_dashLength] each), along whatever shape it draws
+  /// Get [source] split into short dashes and gaps ([_dashLength] each), along whatever shape it
+  /// draws
   /// — straight, curved, or a closed rect outline — since `Paint` carries no dash pattern of its
   /// own in Flutter.
   Path _dashedPathOf(Path source) {
@@ -321,7 +325,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     return dashed;
   }
 
-  /// One metrics overlay line: a thin dashed-looking (short, evenly spaced) segment from the
+  /// Paint one metrics overlay line: a thin dashed-looking (short, evenly spaced) segment from the
   /// selected symbol to another visible one, its own distance label at the midpoint.
   void _paintMetricLine(Canvas canvas, Size size, OcptFloorPlanMetricLine line) {
     final from = ocptFloorPlanScreenPointOf(
@@ -368,7 +372,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
   }
 
-  /// Paints one symbol shape, applying [liveOverride] when it names this very symbol — the glyph
+  /// Paint one symbol shape, applying [liveOverride] when it names this very symbol — the glyph
   /// [OcptFloorPlanSymbolShape.glyphKind] names (a character's own disc, a camera's own body/lens/
   /// wedge, a light's own body/beam, or a décor primitive), the selected/arrow-anchor ring on top,
   /// unchanged for every glyph.
@@ -481,7 +485,8 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A character's own filled disc, in its own derived [color] (`ocptFloorPlanCharacterColourOf`
+  /// Paint a character's own filled disc, in its own derived [color]
+  /// (`ocptFloorPlanCharacterColourOf`
   /// — resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), never
   /// white: a ~22% fill of [color] ([ocptFloorPlanCharacterDiscFillAlpha]) with a
   /// [ocptFloorPlanCharacterStrokeWidth] stroke in that same colour, plus a facing indicator (a
@@ -556,7 +561,8 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to its back
+  /// Paint a camera's own body, lens, its own derived [cameraLabel] as a filled pill attached to
+  /// its back
   /// edge (drawn after the body/lens, opposite the lens' own "forward" direction) and, while
   /// [fovWedgeDeg] is set, its field-of-view wedge — a cone [fovWedgeReachM] **deep** (its own
   /// axial height, falling back to [ocptFloorPlanCameraFovWedgeLengthM] when null), spanning
@@ -624,7 +630,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// The camera's own derived [cameraLabel] (`3A`), as a filled pill near/behind its body —
+  /// Paint the camera's own derived [cameraLabel] (`3A`), as a filled pill near/behind its body —
   /// anchored on the back edge (the "down"/local `+y` side, opposite the lens), drawn wider than
   /// the body so it reads as a badge the camera sits on rather than a caption competing with
   /// `_paintLabel`'s own below-symbol placement (skipped for a camera whose label this pill already
@@ -663,7 +669,8 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
   }
 
-  /// A light/projector's own body, barn doors and a warm beam [_lightBeamLengthM] long, pointing
+  /// Paint a light/projector's own body, barn doors and a warm beam [_lightBeamLengthM] long,
+  /// pointing
   /// local "up" (see [_paintCharacterGlyph]'s own doc comment for the shared bearing convention).
   void _paintLightGlyph(
     Canvas canvas,
@@ -709,7 +716,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
   }
 
-  /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
+  /// Paint a décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
   /// segment, [OcptFloorPlanSetElementShape.door] an open-sided frame plus its swing arc,
   /// [OcptFloorPlanSetElementShape.furniture] a filled rounded rect (today's generic look, kept for
   /// this one shape), [OcptFloorPlanSetElementShape.freeform] the same rect with a dashed outline
@@ -779,7 +786,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     }
   }
 
-  /// A live, visible scene-scope override's own marking: a dashed outline just outside [rect]
+  /// Paint a live, visible scene-scope override's own marking: a dashed outline just outside [rect]
   /// (already in the symbol's own rotated local frame, like the glyph itself) and a small filled
   /// pin badge at its top-right corner — the one visual cue telling a re-dressed set element apart
   /// from the set's own original, on a set shared by two or more sequences.
@@ -816,7 +823,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     );
   }
 
-  /// A symbol's own free-text label, centred under its footprint.
+  /// Paint a symbol's own free-text label, centred under its footprint.
   void _paintLabel(Canvas canvas, Offset anchor, String text) {
     final textPainter = TextPainter(
       text: TextSpan(
@@ -830,7 +837,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(anchor.dx - textPainter.width / 2, anchor.dy));
   }
 
-  /// Paints the always-on reference silhouette (the [ocptFloorPlanCharacterFootprintM] character,
+  /// Paint the always-on reference silhouette (the [ocptFloorPlanCharacterFootprintM] character,
   /// from above) and the scale bar, bottom-right of the canvas, both from
   /// `ocpt_floor_plan_geometry.dart` at the current [zoom] — the one place a viewer can check the
   /// plan's own scale against, with no calibration step (ADR 0031).

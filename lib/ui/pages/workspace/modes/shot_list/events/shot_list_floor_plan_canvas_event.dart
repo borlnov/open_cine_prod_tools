@@ -18,7 +18,7 @@ sealed class OcptShotListFloorPlanCanvasEvent extends OcptShotListEvent {
   const OcptShotListFloorPlanCanvasEvent();
 }
 
-/// Picks the floor plans canvas's own active tool, dispatched by the tool bar.
+/// Pick the floor plans canvas's own active tool, dispatched by the tool bar.
 class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListFloorPlanCanvasEvent {
   /// The tool just picked.
   final OcptFloorPlanTool tool;
@@ -31,7 +31,7 @@ class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListFloorPlanCanvas
   List<Object?> get props => [...super.props, tool];
 }
 
-/// Clears `OcptShotListFloorPlanCanvasState.pendingCharacterNamePromptSymbolId`, dispatched by the
+/// Clear `OcptShotListFloorPlanCanvasState.pendingCharacterNamePromptSymbolId`, dispatched by the
 /// mode's own `BlocListener` the moment it opens `OcptFloorPlanCharacterNamePickerDialog` for it —
 /// see that field's own doc comment for why the clear happens before the dialog's own result is
 /// known.
@@ -41,7 +41,7 @@ class OcptShotListFloorPlanCharacterNamePromptDismissedEvent
   const OcptShotListFloorPlanCharacterNamePromptDismissedEvent();
 }
 
-/// Places a new set element symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`
+/// Place a new set element symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`
 /// (metres), dispatched by a click on empty canvas while the `setElement` tool is on. Written
 /// immediately (`OcptFloorPlanService.placeSymbol`), then selects the freshly minted symbol.
 class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListFloorPlanCanvasEvent {
@@ -106,7 +106,7 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListFloorPlanCanvas
   ];
 }
 
-/// Selects symbol `event.symbolId` on the floor plans canvas, or clears the selection when
+/// Select symbol `event.symbolId` on the floor plans canvas, or clear the selection when
 /// `event.symbolId` is null (a click on empty canvas while the `select` tool is on).
 class OcptShotListFloorPlanSymbolSelectedEvent extends OcptShotListFloorPlanCanvasEvent {
   /// The id of the symbol to select, or null to clear the selection.
@@ -120,7 +120,7 @@ class OcptShotListFloorPlanSymbolSelectedEvent extends OcptShotListFloorPlanCanv
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Moves symbol `event.symbolId` to `event.xM`/`event.yM` (metres), dispatched once a drag on it
+/// Move symbol `event.symbolId` to `event.xM`/`event.yM` (metres), dispatched once a drag on it
 /// ends. Written as a single row (`OcptFloorPlanService.updateSymbol`), never per frame: the live
 /// drag position is a purely local widget concern, exactly as the underlay's own drag is.
 class OcptShotListFloorPlanSymbolMovedEvent extends OcptShotListFloorPlanCanvasEvent {
@@ -145,7 +145,7 @@ class OcptShotListFloorPlanSymbolMovedEvent extends OcptShotListFloorPlanCanvasE
   List<Object?> get props => [...super.props, symbolId, xM, yM];
 }
 
-/// Resizes set element symbol `event.symbolId` to `event.widthM`/`event.heightM` (metres),
+/// Resize set element symbol `event.symbolId` to `event.widthM`/`event.heightM` (metres),
 /// dispatched once a drag on its own resize handle ends. Written as a single row, never per frame.
 class OcptShotListFloorPlanSymbolResizedEvent extends OcptShotListFloorPlanCanvasEvent {
   /// The id of the symbol being resized.
@@ -169,7 +169,7 @@ class OcptShotListFloorPlanSymbolResizedEvent extends OcptShotListFloorPlanCanva
   List<Object?> get props => [...super.props, symbolId, widthM, heightM];
 }
 
-/// Rotates symbol `event.symbolId` to `event.rotationDeg`, dispatched once a drag on its own
+/// Rotate symbol `event.symbolId` to `event.rotationDeg`, dispatched once a drag on its own
 /// rotate handle ends. Written as a single row, never per frame.
 class OcptShotListFloorPlanSymbolRotatedEvent extends OcptShotListFloorPlanCanvasEvent {
   /// The id of the symbol being rotated.
@@ -189,7 +189,7 @@ class OcptShotListFloorPlanSymbolRotatedEvent extends OcptShotListFloorPlanCanva
   List<Object?> get props => [...super.props, symbolId, rotationDeg];
 }
 
-/// Reports a move, rotate or resize awaiting the scope bubble's own answer, dispatched by the mode
+/// Report a move, rotate or resize awaiting the scope bubble's own answer, dispatched by the mode
 /// instead of writing anything, the instant such a gesture ends — a **set-scope** symbol
 /// belonging to a set linked to
 /// `event.sequenceCount` (two or more) sequences ([OcptFloorPlanOverrideLevel.sequence]), or a
@@ -256,7 +256,8 @@ class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListFloor
   ];
 }
 
-/// Resolves `OcptShotListFloorPlanCanvasState.pendingFloorPlanScopeDecision` — the scope bubble's own `Every
+/// Resolve `OcptShotListFloorPlanCanvasState.pendingFloorPlanScopeDecision` — the scope bubble's
+/// own `Every sequence`/`Only sequence n`/`Cancel`
 /// sequence`/`Only sequence n`/`Cancel` — writing it (onto the original, or onto a scene-scope
 /// override of the focused sequence, creating one if none exists yet) or simply dropping it.
 /// A no-op while nothing is pending.
@@ -272,7 +273,7 @@ class OcptShotListFloorPlanScopeDecisionResolvedEvent extends OcptShotListFloorP
   List<Object?> get props => [...super.props, choice];
 }
 
-/// Records a tap on symbol `event.symbolId` while the canvas's own `arrow` tool is active,
+/// Record a tap on symbol `event.symbolId` while the canvas's own `arrow` tool is active,
 /// dispatched by a symbol's own hit overlay.
 ///
 /// One event backs the whole two-click interaction, the bloc rather than the widget deciding what
@@ -293,7 +294,7 @@ class OcptShotListFloorPlanArrowSymbolTappedEvent extends OcptShotListFloorPlanC
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Cancels the arrow tool's own pending anchor, dispatched by `Escape` (only while an anchor is
+/// Cancel the arrow tool's own pending anchor, dispatched by `Escape` (only while an anchor is
 /// pending) or a click on empty canvas while the anchor tool is on — mirroring
 /// `OcptShotListCoverageAnchorCancelledEvent`.
 class OcptShotListFloorPlanArrowAnchorCancelledEvent extends OcptShotListFloorPlanCanvasEvent {
@@ -301,7 +302,7 @@ class OcptShotListFloorPlanArrowAnchorCancelledEvent extends OcptShotListFloorPl
   const OcptShotListFloorPlanArrowAnchorCancelledEvent();
 }
 
-/// Selects arrow `event.arrowId` on the floor plans canvas, or clears the selection when it is
+/// Select arrow `event.arrowId` on the floor plans canvas, or clear the selection when it is
 /// null — a click near the arrow's own shaft under the `select` tool, or a click on empty canvas or
 /// on a symbol (the two selections are mutually exclusive). Never withheld: selecting only reads.
 class OcptShotListFloorPlanArrowSelectedEvent extends OcptShotListFloorPlanCanvasEvent {
@@ -316,8 +317,8 @@ class OcptShotListFloorPlanArrowSelectedEvent extends OcptShotListFloorPlanCanva
   List<Object?> get props => [...super.props, arrowId];
 }
 
-/// Bends arrow `event.arrowId` through control point `event.ctrlXM`/`event.ctrlYM` (metres), or
-/// straightens it back out when both are null, dispatched once a drag on its own midpoint handle
+/// Bend arrow `event.arrowId` through control point `event.ctrlXM`/`event.ctrlYM` (metres), or
+/// straighten it back out when both are null, dispatched once a drag on its own midpoint handle
 /// ends (`OcptFloorPlanService.updateArrowCurve`), or by the handle's own neighbouring straighten
 /// button. Written as a single row, never per frame: the live drag position is a purely local
 /// canvas concern, exactly as a symbol's own move/resize/rotate is.
@@ -343,7 +344,7 @@ class OcptShotListFloorPlanArrowCurveChangedEvent extends OcptShotListFloorPlanC
   List<Object?> get props => [...super.props, arrowId, ctrlXM, ctrlYM];
 }
 
-/// Duplicates symbol `event.symbolId` into an independent copy on the very same set/shot/layer —
+/// Duplicate symbol `event.symbolId` into an independent copy on the very same set/shot/layer —
 /// never a link, the copy carries no reference back to its source — dispatched by `Ctrl+D` (no
 /// explicit position: the bloc offsets the copy from its source by `ocptFloorPlanDuplicateOffsetM`)
 /// or by an `Alt`-drag ending (`event.xM`/`event.yM` the drag's own settled position, the source
@@ -368,7 +369,7 @@ class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListFloorPlanCa
   List<Object?> get props => [...super.props, symbolId, xM, yM];
 }
 
-/// Dismisses the transient write error the floor plan canvas bloc raised.
+/// Dismiss the transient write error the floor plan canvas bloc raised.
 class OcptShotListFloorPlanCanvasWriteErrorDismissedEvent extends OcptShotListFloorPlanCanvasEvent {
   /// Class constructor
   const OcptShotListFloorPlanCanvasWriteErrorDismissedEvent();

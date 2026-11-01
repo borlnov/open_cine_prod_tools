@@ -317,8 +317,8 @@ class _ZoomCluster extends StatelessWidget {
     },
   );
 
-  /// Sets [viewportController]'s own zoom immediately (a click is already a settled gesture, no
-  /// debounce needed unlike the canvas's own scroll wheel), then reports it.
+  /// Set [viewportController]'s own zoom immediately (a click is already a settled gesture, no
+  /// debounce needed unlike the canvas's own scroll wheel), then report it.
   void _applyZoom(double value) {
     viewportController.setZoom(value);
     onZoomSettled(viewportController.zoom);

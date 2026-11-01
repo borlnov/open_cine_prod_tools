@@ -13,7 +13,7 @@ sealed class OcptShotListStoryboardEvent extends OcptShotListEvent {
   const OcptShotListStoryboardEvent();
 }
 
-/// Selects panel [panelId] on the board, dispatched by a click on one of the selected shot's own
+/// Select panel [panelId] on the board, dispatched by a click on one of the selected shot's own
 /// `OcptStoryboardPanelFrame`s.
 class OcptShotListPanelSelectedEvent extends OcptShotListStoryboardEvent {
   /// The id of the panel to select.
@@ -27,7 +27,7 @@ class OcptShotListPanelSelectedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, panelId];
 }
 
-/// Sets the board's common panel height to [size], dispatched by the header's own `Panel size ▾`
+/// Set the board's common panel height to [size], dispatched by the header's own `Panel size ▾`
 /// menu. A **view preference**, held in state for the session alone — never persisted.
 class OcptShotListPanelSizeChangedEvent extends OcptShotListStoryboardEvent {
   /// The panel size just picked.
@@ -41,7 +41,7 @@ class OcptShotListPanelSizeChangedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, size];
 }
 
-/// Requests importing a frame onto shot [shotId]'s storyboard, dispatched by its panel strip's
+/// Request importing a frame onto shot [shotId]'s storyboard, dispatched by its panel strip's
 /// trailing `Import frame` slot.
 ///
 /// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
@@ -63,7 +63,7 @@ class OcptShotListPanelImportRequestedEvent extends OcptShotListStoryboardEvent 
   List<Object?> get props => [...super.props, shotId, fileTypeLabel];
 }
 
-/// Requests replacing panel [panelId]'s image, dispatched by its frame's own `Replace image`
+/// Request replacing panel [panelId]'s image, dispatched by its frame's own `Replace image`
 /// action.
 ///
 /// The same picker [OcptShotListPanelImportRequestedEvent] uses; a cancelled dialog leaves the
@@ -87,7 +87,7 @@ class OcptShotListPanelReplaceRequestedEvent extends OcptShotListStoryboardEvent
   List<Object?> get props => [...super.props, panelId, fileTypeLabel];
 }
 
-/// Moves panel [panelId] of shot [shotId] to [newPosition] (0-based) among its shot's other panels,
+/// Move panel [panelId] of shot [shotId] to [newPosition] (0-based) among its shot's other panels,
 /// dispatched by the strip's own drag-to-reorder gesture. Written immediately, one row
 /// (`OcptStoryboardService.reorderPanel`).
 class OcptShotListPanelReorderedEvent extends OcptShotListStoryboardEvent {
@@ -112,7 +112,7 @@ class OcptShotListPanelReorderedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, shotId, panelId, newPosition];
 }
 
-/// Records the raw text just typed into panel [panelId]'s free comment, dispatched by the
+/// Record the raw text just typed into panel [panelId]'s free comment, dispatched by the
 /// inspector's Panels group on every keystroke.
 ///
 /// Rides the mode's own field-edit autosave debounce exactly as
@@ -133,7 +133,7 @@ class OcptShotListPanelCommentChangedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, panelId, rawValue];
 }
 
-/// Requests deleting panel [panelId] for good, dispatched once the inspector's Panels group's own
+/// Request deleting panel [panelId] for good, dispatched once the inspector's Panels group's own
 /// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
 class OcptShotListPanelDeletionRequestedEvent extends OcptShotListStoryboardEvent {
   /// The id of the panel to delete.
@@ -147,8 +147,8 @@ class OcptShotListPanelDeletionRequestedEvent extends OcptShotListStoryboardEven
   List<Object?> get props => [...super.props, panelId];
 }
 
-/// Sets the board's active annotation tool to [tool], dispatched by the inspector's own `Annotate`
-/// control, or clears it (null) when the tool already on is picked again. Scoped to the currently
+/// Set the board's active annotation tool to [tool], dispatched by the inspector's own `Annotate`
+/// control, or clear it (null) when the tool already on is picked again. Scoped to the currently
 /// selected panel — see `OcptShotListState.activeAnnotationTool`'s own doc comment for when it is
 /// cleared on its own.
 class OcptShotListAnnotationToolSelectedEvent extends OcptShotListStoryboardEvent {
@@ -163,7 +163,7 @@ class OcptShotListAnnotationToolSelectedEvent extends OcptShotListStoryboardEven
   List<Object?> get props => [...super.props, tool];
 }
 
-/// Adds a mark of [kind] to panel [panelId] at the normalised tail/head `(x1, y1)`-`(x2, y2)`,
+/// Add a mark of [kind] to panel [panelId] at the normalised tail/head `(x1, y1)`-`(x2, y2)`,
 /// dispatched once a drag over the selected panel's own frame finishes drawing an arrow. Written
 /// immediately, then selects the freshly minted mark (`OcptStoryboardService.addAnnotation`).
 class OcptShotListAnnotationDrawnEvent extends OcptShotListStoryboardEvent {
@@ -201,7 +201,7 @@ class OcptShotListAnnotationDrawnEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, panelId, kind, x1, y1, x2, y2];
 }
 
-/// Places a [OcptStoryboardAnnotationKind.label] on panel [panelId] at the normalised point
+/// Place a [OcptStoryboardAnnotationKind.label] on panel [panelId] at the normalised point
 /// `(x1, y1)`, dispatched by a click over the selected panel's own frame while the label tool is
 /// on. Written immediately, then selects the freshly minted mark so its text field opens ready
 /// for typing (`OcptStoryboardService.addAnnotation`).
@@ -227,7 +227,7 @@ class OcptShotListAnnotationPlacedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, panelId, x1, y1];
 }
 
-/// Selects mark [annotationId], dispatched by a click on it (either on the frame's own overlay, or
+/// Select mark [annotationId], dispatched by a click on it (either on the frame's own overlay, or
 /// on its row of the inspector Panels group's annotation section).
 class OcptShotListAnnotationSelectedEvent extends OcptShotListStoryboardEvent {
   /// The id of the mark to select.
@@ -241,7 +241,7 @@ class OcptShotListAnnotationSelectedEvent extends OcptShotListStoryboardEvent {
   List<Object?> get props => [...super.props, annotationId];
 }
 
-/// Records the raw text just typed into mark [annotationId]'s own text — a label's text, or an
+/// Record the raw text just typed into mark [annotationId]'s own text — a label's text, or an
 /// arrow's optional caption — dispatched by the annotation section's own text field on every
 /// keystroke. Rides the mode's field-edit autosave debounce, keyed by
 /// `OcptShotListAnnotationTextEditKey`.
@@ -263,7 +263,7 @@ class OcptShotListAnnotationTextChangedEvent extends OcptShotListStoryboardEvent
   List<Object?> get props => [...super.props, annotationId, rawValue];
 }
 
-/// Requests deleting mark [annotationId] for good, dispatched once the annotation section's own
+/// Request deleting mark [annotationId] for good, dispatched once the annotation section's own
 /// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
 class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListStoryboardEvent {
   /// The id of the mark to delete.
@@ -277,14 +277,14 @@ class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListStoryboar
   List<Object?> get props => [...super.props, annotationId];
 }
 
-/// Requests writing every panel comment and mark text still sitting in the board's autosave
+/// Request writing every panel comment and mark text still sitting in the board's autosave
 /// debounce, dispatched by the bloc itself once the delay since the last keystroke has elapsed.
 class OcptShotListStoryboardFieldEditFlushRequestedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListStoryboardFieldEditFlushRequestedEvent();
 }
 
-/// Dismisses the transient write error the board currently shows, if any.
+/// Dismiss the transient write error the board currently shows, if any.
 class OcptShotListStoryboardWriteErrorDismissedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListStoryboardWriteErrorDismissedEvent();

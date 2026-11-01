@@ -108,7 +108,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
     );
   }
 
-  /// One `label — value` line of the card's découpage read-out.
+  /// Build one `label — value` line of the card's découpage read-out.
   Widget _readOut(BuildContext context, String label, String value) {
     final theme = Theme.of(context);
 

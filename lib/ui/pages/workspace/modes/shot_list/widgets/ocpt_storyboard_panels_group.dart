@@ -381,14 +381,14 @@ class _AnnotationRow extends StatelessWidget {
     );
   }
 
-  /// The icon shown for [kind].
+  /// Get the icon shown for [kind].
   IconData _iconOf(OcptStoryboardAnnotationKind kind) => switch (kind) {
     OcptStoryboardAnnotationKind.movementArrow => Icons.north_east,
     OcptStoryboardAnnotationKind.cameraMoveArrow => Icons.videocam_outlined,
     OcptStoryboardAnnotationKind.label => Icons.label_outline,
   };
 
-  /// The colour [kind] is drawn with on the frame's own overlay — matches
+  /// Get the colour [kind] is drawn with on the frame's own overlay — matches
   /// `OcptStoryboardAnnotationOverlay`'s own colour tokens, so a mark reads the same here as it
   /// does on the image.
   Color _colorOf(ThemeData theme, OcptStoryboardAnnotationKind kind) => switch (kind) {
@@ -397,7 +397,7 @@ class _AnnotationRow extends StatelessWidget {
     OcptStoryboardAnnotationKind.label => theme.colorScheme.secondary,
   };
 
-  /// The localized label of [kind].
+  /// Get the localized label of [kind].
   String _labelOf(Tr tr, OcptStoryboardAnnotationKind kind) => switch (kind) {
     OcptStoryboardAnnotationKind.movementArrow => tr.shotListBoardAnnotationKindMovementArrow,
     OcptStoryboardAnnotationKind.cameraMoveArrow => tr.shotListBoardAnnotationKindCameraMoveArrow,

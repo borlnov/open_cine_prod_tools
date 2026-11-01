@@ -154,7 +154,7 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
     );
   }
 
-  /// Submits the typed name (trimmed) if it isn't empty, then collapses back to the chip either
+  /// Submit the typed name (trimmed) if it isn't empty, then collapse back to the chip either
   /// way, clearing the field.
   void _submit() {
     final value = _controller.text.trim();

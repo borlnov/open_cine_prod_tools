@@ -668,10 +668,10 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// Redraws the canvas whenever a drag moves its live geometry.
+  /// Redraw the canvas whenever a drag moves its live geometry.
   void _onDragChanged() => setState(() {});
 
-  /// [globalPosition] converted into this canvas's own local coordinate space, through
+  /// Get [globalPosition] converted into this canvas's own local coordinate space, through
   /// [_canvasStackKey]'s `RenderBox` — the fix for a handle drag's own `onPanUpdate`, whose
   /// `details.localPosition` is relative to the handle's own tiny hit box rather than to the
   /// canvas. Falls back to [globalPosition] unchanged on the one frame the render object isn't
@@ -681,7 +681,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return renderObject is RenderBox ? renderObject.globalToLocal(globalPosition) : globalPosition;
   }
 
-  /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
+  /// Tell whether [symbol] may be dragged, resized, rotated, given a field of view or deleted:
+  /// never a
   /// ghost — the onion-skin kind ([OcptFloorPlanSymbolShape.isGhost]) or an override-marking one
   /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/[OcptFloorPlanSymbolShape
   /// .isHiddenOverrideGhost]) — since none of the three ever represents this sequence's own
@@ -703,7 +704,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return symbol.shotId == null || symbol.shotId == widget.focusShotId;
   }
 
-  /// A palette entry dropped onto this canvas (drag-from-palette placement): places a symbol of
+  /// Handle a palette entry dropped onto this canvas (drag-from-palette placement): places a symbol
+  /// of
   /// `details.data`'s own tool exactly at the
   /// drop point, the drag-and-drop sibling of [_handleBackgroundTap]'s own click-to-arm-then-click
   /// path. A no-op for [OcptFloorPlanTool.select], [OcptFloorPlanTool.arrow] and
@@ -759,7 +761,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// The scene id a symbol placed on [layer] carries — [OcptFloorPlanCanvas.focusSceneId] for a
+  /// Get the scene id a symbol placed on [layer] carries — [OcptFloorPlanCanvas.focusSceneId] for a
   /// `props` placement (always scene-scoped) or a `set`-layer placement whose own [sceneScope]
   /// is [OcptFloorPlanScope.scene] (the palette's `Sequence` group), null otherwise (the `Set`
   /// group, or any shot-scoped layer).
@@ -773,7 +775,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     return null;
   }
 
-  /// A click on empty canvas (no symbol, no underlay handle caught it first): places a new symbol
+  /// Handle a click on empty canvas (no symbol, no underlay handle caught it first): places a new
+  /// symbol
   /// under a placing tool (`setElement` at [OcptFloorPlanCanvas.activeSetElementScope]'s own scope,
   /// `prop` on [OcptFloorPlanCanvas.focusSceneId] with [OcptFloorPlanCanvas.activeLabel], or
   /// `camera`/`character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op
@@ -862,7 +865,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     widget.onSymbolSelected(null);
   }
 
-  /// Zooms in/out one [_wheelZoomStep] per scroll-wheel notch, live on
+  /// Zoom in/out one [_wheelZoomStep] per scroll-wheel notch, live on
   /// [OcptFloorPlanCanvas.viewportController] with no bloc emission, then (re)starts the debounce
   /// that eventually settles it into [OcptFloorPlanCanvas.onZoomSettled] — see
   /// `OcptFloorPlanViewportController`'s own doc comment.
@@ -886,7 +889,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     });
   }
 
-  /// A tap on [symbol]: reports it to [OcptFloorPlanCanvas.onArrowSymbolTapped] under the `arrow`
+  /// Handle a tap on [symbol]: reports it to [OcptFloorPlanCanvas.onArrowSymbolTapped] under the
+  /// `arrow`
   /// tool (ignored on a ghost, see [OcptFloorPlanSymbolHitOverlay]'s own doc comment), selects it
   /// otherwise (clearing any arrow selection, the two being mutually exclusive).
   void _handleSymbolTap(OcptFloorPlanSymbolShape symbol) {
@@ -901,7 +905,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     widget.onSymbolSelected(symbol.symbolId);
   }
 
-  /// Starts a move drag on [symbol]: selects it (clearing any arrow selection, the two being
+  /// Start a move drag on [symbol]: selects it (clearing any arrow selection, the two being
   /// mutually exclusive) and arms the live preview at its own stored geometry. Starting the drag
   /// with `Alt` held (and [OcptFloorPlanCanvas.onSymbolDuplicateDragged] not withheld) makes it a
   /// duplicate: the live preview still tracks the pointer exactly like a plain move, but
@@ -917,8 +921,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     );
   }
 
-  /// Reports the dragged symbol's own settled geometry (move, resize, aim or field of view,
-  /// whichever gesture it was) and clears the live drag state. A move drag that was an `Alt`-drag
+  /// Report the dragged symbol's own settled geometry (move, resize, aim or field of view,
+  /// whichever gesture it was) and clear the live drag state. A move drag that was an `Alt`-drag
   /// duplicate reports through [OcptFloorPlanCanvas.onSymbolDuplicateDragged] instead of
   /// [OcptFloorPlanCanvas.onSymbolMoved]: [symbol] itself is left untouched at its own original
   /// position, a new, independent copy placed at the drag's own settled point instead.
@@ -953,7 +957,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     }
   }
 
-  /// Reports the underlay's own settled frame and clears the live drag state.
+  /// Report the underlay's own settled frame and clear the live drag state.
   void _commitUnderlayDrag() {
     final frame = _drag.endUnderlayDrag();
     if (frame == null) {
@@ -962,7 +966,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     widget.onUnderlayTransformChanged?.call(frame.xM, frame.yM, frame.widthM, frame.heightM);
   }
 
-  /// Reports the dragged arrow's own settled control point and clears the live drag state — unless
+  /// Report the dragged arrow's own settled control point and clear the live drag state — unless
   /// it landed close enough to the straight from-to line ([ocptFloorPlanArrowStraightenToleranceM]),
   /// in which case it straightens the arrow back out instead.
   void _commitArrowCurveDrag(OcptFloorPlanArrowShape arrow) {

@@ -14,8 +14,8 @@ sealed class OcptShotListFloorPlanSetsEvent extends OcptShotListEvent {
   const OcptShotListFloorPlanSetsEvent();
 }
 
-/// Requests creating a new Resources set named after the selected sequence's scene heading's
-/// place, linked to it (`OcptLocationsService.createSetLinkedToScene`), then selects it. Does
+/// Request creating a new Resources set named after the selected sequence's scene heading's place,
+/// linked to it (`OcptLocationsService.createSetLinkedToScene`), then select it. Does
 /// nothing while no sequence is selected, or while the selected one is the orphan group: a set
 /// tab only ever belongs to a real screenplay scene, exactly as a new shot only ever belongs to
 /// one.
@@ -37,8 +37,8 @@ class OcptShotListSetCreationRequestedEvent extends OcptShotListFloorPlanSetsEve
   List<Object?> get props => [...super.props, locationId];
 }
 
-/// Requests linking Resources set [setId] to the selected sequence
-/// (`OcptLocationsService.assignSceneToSet`), then selects it — the empty-state gallery's own
+/// Request linking Resources set [setId] to the selected sequence
+/// (`OcptLocationsService.assignSceneToSet`), then select it — the empty-state gallery's own
 /// card click and the `＋ Set` menu's own suggestion entry and `Link an existing set ▸` submenu
 /// entries. Does nothing while no sequence is selected, or
 /// while the selected one is the orphan group, exactly like
@@ -55,7 +55,7 @@ class OcptShotListSetLinkRequestedEvent extends OcptShotListFloorPlanSetsEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
+/// Record the raw text just typed into set `event.setId`'s own tab as a pending edit, and
 /// (re)starts the sets bloc's field-edit debounce.
 class OcptShotListSetNameChangedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The id of the set whose name was edited.
@@ -72,7 +72,7 @@ class OcptShotListSetNameChangedEvent extends OcptShotListFloorPlanSetsEvent {
   List<Object?> get props => [...super.props, setId, rawValue];
 }
 
-/// Requests unlinking set `event.setId` from the selected sequence
+/// Request unlinking set `event.setId` from the selected sequence
 /// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
 /// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself is kept —
 /// relinking the set brings its placements back. Clears the selection (and, with it, the symbol
@@ -89,7 +89,7 @@ class OcptShotListSetDeletionRequestedEvent extends OcptShotListFloorPlanSetsEve
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Duplicates set `event.setId` into a new Resources set named `event.newSetName`, in the same
+/// Duplicate set `event.setId` into a new Resources set named `event.newSetName`, in the same
 /// location, linked to the selected sequence (`OcptFloorPlanService.duplicateSet`,
 /// `OcptLocationsService.createSiblingSet`/`.assignSceneToSet`), dispatched by the set tabs' own
 /// `＋ Set` menu's `Duplicate this set` entry. Selects the
@@ -110,7 +110,7 @@ class OcptShotListSetDuplicationRequestedEvent extends OcptShotListFloorPlanSets
   List<Object?> get props => [...super.props, setId, newSetName];
 }
 
-/// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
+/// Copy shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
 /// focused shot (`OcptFloorPlanService.copyShotBlocking`), dispatched by the set tabs' own
 /// `＋ Set` menu's `Copy blocking from another shot` entry, once the mode's own source-shot picker
 /// has returned a pick.
@@ -133,7 +133,7 @@ class OcptShotListFloorPlanBlockingCopyRequestedEvent extends OcptShotListFloorP
   List<Object?> get props => [...super.props, setId, sourceShotId];
 }
 
-/// Records the floor plans canvas's own zoom as last **settled** by
+/// Record the floor plans canvas's own zoom as last **settled** by
 /// `OcptFloorPlanViewportController`, dispatched once a zoom gesture (the tool bar's `−`/`+`
 /// buttons, or the canvas's own scroll-wheel zoom, debounced) ends — never per frame. A view
 /// preference, held for the session alone; see `OcptShotListFloorPlanSetsState.floorPlanZoom`'s own doc comment.
@@ -149,7 +149,7 @@ class OcptShotListFloorPlanZoomChangedEvent extends OcptShotListFloorPlanSetsEve
   List<Object?> get props => [...super.props, zoom];
 }
 
-/// Picks the sequence layer a placed set element lands on, dispatched by a click on one of the
+/// Pick the sequence layer a placed set element lands on, dispatched by a click on one of the
 /// tray's own sequence layer rows.
 class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The layer just picked. Always sequence-scoped: the tray only ever offers sequence layer
@@ -164,7 +164,7 @@ class OcptShotListFloorPlanActiveLayerChangedEvent extends OcptShotListFloorPlan
   List<Object?> get props => [...super.props, layer];
 }
 
-/// Picks the décor primitive a `setElement` placement carries, dispatched by a click on one of the
+/// Pick the décor primitive a `setElement` placement carries, dispatched by a click on one of the
 /// palette's own four typed set-element entries (wall/door/furniture/freeform).
 class OcptShotListFloorPlanActiveSetElementShapeChangedEvent
     extends OcptShotListFloorPlanSetsEvent {
@@ -179,7 +179,7 @@ class OcptShotListFloorPlanActiveSetElementShapeChangedEvent
   List<Object?> get props => [...super.props, shape];
 }
 
-/// Picks the scope a `setElement` placement lands at, dispatched by a click on one of the
+/// Pick the scope a `setElement` placement lands at, dispatched by a click on one of the
 /// palette's own typed set-element entries — [OcptFloorPlanScope.set] for the `Set` group's own
 /// four, [OcptFloorPlanScope.scene] for the `Sequence` group's own furniture/freeform pair.
 class OcptShotListFloorPlanActiveSetElementScopeChangedEvent
@@ -195,7 +195,7 @@ class OcptShotListFloorPlanActiveSetElementScopeChangedEvent
   List<Object?> get props => [...super.props, scope];
 }
 
-/// Picks the label a `prop` placement carries, dispatched by a click on one of the palette's
+/// Pick the label a `prop` placement carries, dispatched by a click on one of the palette's
 /// own breakdown-props chips, or by the `Other…` chip's own name picker resolving.
 class OcptShotListFloorPlanActiveLabelChangedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The label just picked.
@@ -209,7 +209,7 @@ class OcptShotListFloorPlanActiveLabelChangedEvent extends OcptShotListFloorPlan
   List<Object?> get props => [...super.props, label];
 }
 
-/// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
+/// Toggle the visibility of sequence layer `event.layer` on the floor plans canvas, dispatched by
 /// the tray's own eye icon. A view preference; never withheld under a read-only preview, since it
 /// only reads.
 class OcptShotListFloorPlanLayerVisibilityToggledEvent extends OcptShotListFloorPlanSetsEvent {
@@ -224,14 +224,14 @@ class OcptShotListFloorPlanLayerVisibilityToggledEvent extends OcptShotListFloor
   List<Object?> get props => [...super.props, layer];
 }
 
-/// Toggles the selected set's underlay visibility on the floor plans canvas, dispatched by the
+/// Toggle the selected set's underlay visibility on the floor plans canvas, dispatched by the
 /// tray's own underlay row eye icon. A view preference; never withheld under a read-only preview.
 class OcptShotListFloorPlanUnderlayVisibilityToggledEvent extends OcptShotListFloorPlanSetsEvent {
   /// Class constructor
   const OcptShotListFloorPlanUnderlayVisibilityToggledEvent();
 }
 
-/// Toggles the visibility of camera symbol `event.symbolId` on the floor plans canvas, dispatched
+/// Toggle the visibility of camera symbol `event.symbolId` on the floor plans canvas, dispatched
 /// by the tray's own per-camera eye under the `Sequence` focus's expanded cameras row. A view
 /// preference; never withheld under a read-only preview, since it only reads.
 class OcptShotListFloorPlanCameraVisibilityToggledEvent extends OcptShotListFloorPlanSetsEvent {
@@ -246,7 +246,7 @@ class OcptShotListFloorPlanCameraVisibilityToggledEvent extends OcptShotListFloo
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Toggles the onion skin's own previous (`event.isPrevious`) or next neighbour, dispatched by the
+/// Toggle the onion skin's own previous (`event.isPrevious`) or next neighbour, dispatched by the
 /// tray's own `Onion skin` block. A view preference.
 class OcptShotListFloorPlanOnionSkinToggledEvent extends OcptShotListFloorPlanSetsEvent {
   /// Whether the previous shot's own ghost is toggled (true) or the next shot's (false).
@@ -260,7 +260,7 @@ class OcptShotListFloorPlanOnionSkinToggledEvent extends OcptShotListFloorPlanSe
   List<Object?> get props => [...super.props, isPrevious];
 }
 
-/// Sets the onion skin's own ghost opacity, dispatched by the tray's own `Onion skin` block slider.
+/// Set the onion skin's own ghost opacity, dispatched by the tray's own `Onion skin` block slider.
 /// A view preference.
 class OcptShotListFloorPlanOnionSkinOpacityChangedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The new opacity, 0..1.
@@ -274,13 +274,13 @@ class OcptShotListFloorPlanOnionSkinOpacityChangedEvent extends OcptShotListFloo
   List<Object?> get props => [...super.props, opacity];
 }
 
-/// Toggles the metrics overlay, dispatched by the tray's own metrics toggle. A view preference.
+/// Toggle the metrics overlay, dispatched by the tray's own metrics toggle. A view preference.
 class OcptShotListFloorPlanMetricsToggledEvent extends OcptShotListFloorPlanSetsEvent {
   /// Class constructor
   const OcptShotListFloorPlanMetricsToggledEvent();
 }
 
-/// Requests importing set `event.setId`'s underlay, dispatched by the tool bar's own underlay
+/// Request importing set `event.setId`'s underlay, dispatched by the tool bar's own underlay
 /// action.
 ///
 /// The bloc picks the file through `FileSelectorManager`, filtered to JPEG and PNG
@@ -306,7 +306,7 @@ class OcptShotListFloorPlanUnderlayImportRequestedEvent extends OcptShotListFloo
   List<Object?> get props => [...super.props, setId, fileTypeLabel];
 }
 
-/// Sets set `event.setId`'s underlay frame to `event.xM`/`event.yM`/`event.widthM`/
+/// Set set `event.setId`'s underlay frame to `event.xM`/`event.yM`/`event.widthM`/
 /// `event.heightM` (metres), dispatched once a drag moving or resizing it ends. Written as a
 /// single call (`OcptFloorPlanService.setSetUnderlay`, re-pointed at the same already-imported
 /// file), never per frame.
@@ -340,7 +340,7 @@ class OcptShotListFloorPlanUnderlayTransformChangedEvent extends OcptShotListFlo
   List<Object?> get props => [...super.props, setId, xM, yM, widthM, heightM];
 }
 
-/// Requests clearing set `event.setId`'s underlay for good, dispatched once the tray's own
+/// Request clearing set `event.setId`'s underlay for good, dispatched once the tray's own
 /// `Clear underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
 class OcptShotListFloorPlanUnderlayClearRequestedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The id of the set whose underlay is cleared.
@@ -354,7 +354,7 @@ class OcptShotListFloorPlanUnderlayClearRequestedEvent extends OcptShotListFloor
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Walks the selected sequence's own shots by `event.delta` (`-1` for `←`, `1` for `→`),
+/// Walk the selected sequence's own shots by `event.delta` (`-1` for `←`, `1` for `→`),
 /// dispatched by the floor plans focus strip's own keyboard shortcut. Selects the sequence's first
 /// shot when nothing is selected yet and `event.delta` is positive, does nothing at either end of
 /// the list, and does nothing while the selected sequence is the orphan group (its shots have no
@@ -371,14 +371,14 @@ class OcptShotListFloorPlanShotWalkRequestedEvent extends OcptShotListFloorPlanS
   List<Object?> get props => [...super.props, delta];
 }
 
-/// Writes every set name still sitting in the sets bloc's autosave debounce, dispatched by the
+/// Write every set name still sitting in the sets bloc's autosave debounce, dispatched by the
 /// debounce timer elapsing with no further typing.
 class OcptShotListFloorPlanSetsFieldEditFlushRequestedEvent extends OcptShotListFloorPlanSetsEvent {
   /// Class constructor
   const OcptShotListFloorPlanSetsFieldEditFlushRequestedEvent();
 }
 
-/// Reads the breakdown props of sequence [sequenceId] for the palette's `Sequence` group chips,
+/// Read the breakdown props of sequence [sequenceId] for the palette's `Sequence` group chips,
 /// dispatched by the sets bloc to itself when the mode loads or moves to another sequence.
 class OcptShotListFloorPlanPropsLoadRequestedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The id of the sequence whose props are read, or null while none is selected.
@@ -392,7 +392,7 @@ class OcptShotListFloorPlanPropsLoadRequestedEvent extends OcptShotListFloorPlan
   List<Object?> get props => [...super.props, sequenceId];
 }
 
-/// Dismisses the transient write error the floor plan sets bloc raised.
+/// Dismiss the transient write error the floor plan sets bloc raised.
 class OcptShotListFloorPlanSetsWriteErrorDismissedEvent extends OcptShotListFloorPlanSetsEvent {
   /// Class constructor
   const OcptShotListFloorPlanSetsWriteErrorDismissedEvent();

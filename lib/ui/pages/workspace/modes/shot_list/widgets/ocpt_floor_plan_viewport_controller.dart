@@ -46,13 +46,13 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
   /// of work; this controller only carries the flag.
   bool _showFieldOfView;
 
-  /// The canvas's current zoom.
+  /// Get the canvas's current zoom.
   double get zoom => _zoom;
 
-  /// The canvas's current pan offset, in logical pixels.
+  /// Get the canvas's current pan offset, in logical pixels.
   Offset get pan => _pan;
 
-  /// Whether a camera's own field-of-view wedge is currently drawn. See [_showFieldOfView].
+  /// Tell whether a camera's own field-of-view wedge is currently drawn. See [_showFieldOfView].
   bool get showFieldOfView => _showFieldOfView;
 
   /// Class constructor
@@ -64,7 +64,7 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
        _pan = pan,
        _showFieldOfView = showFieldOfView;
 
-  /// Sets the live zoom to [value] (clamped), notifying listeners if it actually changed.
+  /// Set the live zoom to [value] (clamped), notifying listeners if it actually changed.
   void setZoom(double value) {
     final clamped = value.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom);
     if (_zoom == clamped) {
@@ -74,7 +74,7 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sets the live pan offset to [value], notifying listeners if it actually changed.
+  /// Set the live pan offset to [value], notifying listeners if it actually changed.
   void setPan(Offset value) {
     if (_pan == value) {
       return;
@@ -83,10 +83,10 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds [delta] to the live pan offset — a canvas drag's own `onPanUpdate`.
+  /// Add [delta] to the live pan offset — a canvas drag's own `onPanUpdate`.
   void panBy(Offset delta) => setPan(_pan + delta);
 
-  /// Sets whether a camera's own field-of-view wedge is drawn, notifying listeners if it actually
+  /// Set whether a camera's own field-of-view wedge is drawn, notifying listeners if it actually
   /// changed. Not called anywhere yet — a future tray toggle's own handler.
   void setShowFieldOfView({required bool value}) {
     if (_showFieldOfView == value) {
@@ -96,7 +96,7 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pushes the bloc's persisted [zoom] onto this controller — e.g. once this controller is first
+  /// Push the bloc's persisted [zoom] onto this controller — e.g. once this controller is first
   /// created from `OcptShotListFloorPlanSetsState.floorPlanZoom`, or should the bloc's own value change for a
   /// reason other than this controller's own commit. A no-op for the value already current, which
   /// is what a zoom gesture's own settled-value report relies on to not bounce the value it just

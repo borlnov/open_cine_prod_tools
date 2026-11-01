@@ -93,7 +93,7 @@ enum OcptShotListTableColumn {
     this.alignment = TextAlign.left,
   });
 
-  /// This column's header label.
+  /// Get this column's header label.
   String label(Tr tr) {
     final optionalColumn = this.optionalColumn;
     if (optionalColumn != null) {
@@ -112,7 +112,8 @@ enum OcptShotListTableColumn {
     };
   }
 
-  /// The text this column shows for [shot], whose sequence has the heading [sequenceHeading] and
+  /// Get the text this column shows for [shot], whose sequence has the heading [sequenceHeading]
+  /// and
   /// whose placement(s) in the schedule are [placements] (empty while it hasn't been placed on any
   /// day yet).
   String valueFor(
@@ -138,7 +139,7 @@ enum OcptShotListTableColumn {
     OcptShotListTableColumn.status => ocptShotStatusLabel(Tr.of(context), shot.status),
   };
 
-  /// The columns to lay out given the [visibleColumns] the user toggled on: every always-shown
+  /// Get the columns to lay out given the [visibleColumns] the user toggled on: every always-shown
   /// column, plus the optional ones currently visible.
   static List<OcptShotListTableColumn> visibleIn(Set<OcptShotListColumn> visibleColumns) => [
     for (final column in OcptShotListTableColumn.values)

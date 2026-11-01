@@ -10,7 +10,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.da
 /// The reads the floor plans' symbol deletion is decided from: how far deleting a symbol reaches,
 /// and so which of the confirmation dialogs the mode asks.
 extension OcptShotListStateDeleteTargetsExtension on OcptShotListState {
-  /// Whether [symbolId] names a **set-scope** symbol (or a scene-scope override of one) whose own
+  /// Tell whether [symbolId] names a **set-scope** symbol (or a scene-scope override of one) whose
+  /// own
   /// set is linked to two or more sequences — the condition under which deleting it asks the
   /// sequence-level extended three-button dialog — or null while it doesn't (a scene-/shot-scope
   /// symbol, or a set-scope one on a single-sequence set), in which case [multiShotDeleteTargetOf]
@@ -52,7 +53,8 @@ extension OcptShotListStateDeleteTargetsExtension on OcptShotListState {
     );
   }
 
-  /// Whether [symbolId] names a **scene-scope** symbol (a prop, the sequence's own furniture, or
+  /// Tell whether [symbolId] names a **scene-scope** symbol (a prop, the sequence's own furniture,
+  /// or
   /// itself a sequence-scope override — or a shot-scope override of one) of a sequence holding two
   /// or more shots — the condition under which deleting it asks the shot-level extended
   /// three-button dialog — or null while it doesn't

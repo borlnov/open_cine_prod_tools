@@ -113,7 +113,7 @@ class OcptShotListStoryboardBloc
     on<OcptShotListStoryboardWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Clears what the mode's selection move invalidates, and drops what the mode's fresh data no
+  /// Clear what the mode's selection move invalidates, and drop what the mode's fresh data no
   /// longer holds.
   ///
   /// Reads the storyboard from [modeBloc]'s current state — the latest data — but the cause of the
@@ -184,7 +184,7 @@ class OcptShotListStoryboardBloc
     );
   }
 
-  /// Writes every pending edit immediately: cancels the debounce timer (a no-op if it already fired
+  /// Write every pending edit immediately: cancels the debounce timer (a no-op if it already fired
   /// or there was none), writes each one, then has the mode read the storyboard again and only then
   /// forgets them, so what a field shows never falls back to a stale stored value between the two.
   /// A no-op while nothing is pending.
@@ -237,7 +237,7 @@ class OcptShotListStoryboardBloc
     return true;
   }
 
-  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
+  /// Write every pending edit directly to the database, bypassing the debounce timer, the bloc's
   /// own event queue and its state — for the moments no handler can emit from (the mode leaving the
   /// tree, this bloc closing). A failure is only logged.
   @override
@@ -269,7 +269,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Selects panel `event.panelId` on the board, dispatched by a click on one of the selected
+  /// Select panel `event.panelId` on the board, dispatched by a click on one of the selected
   /// shot's own panel frames. Clears the annotation tool and mark selection: both are scoped to
   /// the panel that was selected before this one (`OcptShotListStoryboardState.activeAnnotationTool`'s
   /// own doc comment).
@@ -280,7 +280,7 @@ class OcptShotListStoryboardBloc
     emitter(state.copyWithSelectedPanel(panelId: event.panelId));
   }
 
-  /// Sets the board's common panel height, a view preference held for the session alone.
+  /// Set the board's common panel height, a view preference held for the session alone.
   Future<void> _onPanelSizeChanged(
     OcptShotListPanelSizeChangedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
@@ -288,9 +288,9 @@ class OcptShotListStoryboardBloc
     emitter(state.copyWithBoardPanelSize(size: event.size));
   }
 
-  /// Picks a frame through the native "open" dialog, filtered to JPEG and PNG
-  /// (`ocptStoryboardPanelImageFileExtensions`), appends a new panel of shot `event.shotId` and
-  /// points it at the file picked, then selects the new panel once the mode holds it. A cancelled
+  /// Pick a frame through the native "open" dialog, filtered to JPEG and PNG
+  /// (`ocptStoryboardPanelImageFileExtensions`), append a new panel of shot `event.shotId` and
+  /// point it at the file picked, then select the new panel once the mode holds it. A cancelled
   /// dialog changes nothing at all.
   Future<void> _onPanelImportRequested(
     OcptShotListPanelImportRequestedEvent event,
@@ -332,7 +332,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Picks a fresh frame the same way [_onPanelImportRequested] does and re-points panel
+  /// Pick a fresh frame the same way [_onPanelImportRequested] does and re-point panel
   /// `event.panelId` at it, dispatched by its frame's own `Replace image` action. A cancelled
   /// dialog leaves the panel's current image untouched.
   Future<void> _onPanelReplaceRequested(
@@ -367,8 +367,8 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Shows the native "open" dialog filtered to [ocptStoryboardPanelImageFileExtensions] and
-  /// returns the path picked, or null when the user cancelled it, when it failed, or when the
+  /// Show the native "open" dialog filtered to [ocptStoryboardPanelImageFileExtensions] and return
+  /// the path picked, or null when the user cancelled it, when it failed, or when the
   /// platform gave a file with no path at all.
   ///
   /// **The file itself is never read here** (`docs/adr/0013-binary-assets-referenced-by-path.md`):
@@ -391,7 +391,7 @@ class OcptShotListStoryboardBloc
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Moves panel `event.panelId` of shot `event.shotId` to `event.newPosition`, writing exactly one
+  /// Move panel `event.panelId` of shot `event.shotId` to `event.newPosition`, writing exactly one
   /// row (`OcptStoryboardService.reorderPanel`), dispatched by the strip's own drag-to-reorder
   /// gesture.
   Future<void> _onPanelReordered(
@@ -421,7 +421,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Records the raw text just typed into panel `event.panelId`'s comment as a pending edit, and
+  /// Record the raw text just typed into panel `event.panelId`'s comment as a pending edit, and
   /// (re)starts the field-edit debounce shared with [_onAnnotationTextChanged].
   Future<void> _onPanelCommentChanged(
     OcptShotListPanelCommentChangedEvent event,
@@ -434,7 +434,7 @@ class OcptShotListStoryboardBloc
     );
   }
 
-  /// Deletes panel `event.panelId` for good, dispatched once the inspector's Panels group's own
+  /// Delete panel `event.panelId` for good, dispatched once the inspector's Panels group's own
   /// `Delete panel` action has already been confirmed through `OcptConfirmDialog`, by the mode.
   /// Clears the panel selection (and, with it, the annotation tool and selection — see
   /// `OcptShotListStoryboardState.activeAnnotationTool`'s own doc comment) and drops any pending
@@ -491,7 +491,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Sets the board's active annotation tool, dispatched by the inspector's own `Annotate`
+  /// Set the board's active annotation tool, dispatched by the inspector's own `Annotate`
   /// control — `event.tool` is null both for "turn it off" and for the control's own toggle-off
   /// gesture (picking the tool already on again), so this always writes through
   /// `forceActiveAnnotationToolValue` rather than leaning on `copyWith`'s `??` fallback, which
@@ -504,8 +504,8 @@ class OcptShotListStoryboardBloc
     emitter(state.copyWithActiveAnnotationTool(tool: tool));
   }
 
-  /// Adds a mark of `event.kind` to panel `event.panelId` at the normalised tail/head just dragged
-  /// out on its own frame, then selects the freshly minted mark once the mode holds it
+  /// Add a mark of `event.kind` to panel `event.panelId` at the normalised tail/head just dragged
+  /// out on its own frame, then select the freshly minted mark once the mode holds it
   /// (`OcptStoryboardService.addAnnotation`).
   Future<void> _onAnnotationDrawn(
     OcptShotListAnnotationDrawnEvent event,
@@ -542,7 +542,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Places a label on panel `event.panelId` at the normalised point just clicked, then selects
+  /// Place a label on panel `event.panelId` at the normalised point just clicked, then select
   /// the freshly minted mark so its own text field opens ready for typing
   /// (`OcptStoryboardService.addAnnotation`).
   Future<void> _onAnnotationPlaced(
@@ -578,7 +578,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Selects mark `event.annotationId`, dispatched by a click on it — on its own frame's overlay,
+  /// Select mark `event.annotationId`, dispatched by a click on it — on its own frame's overlay,
   /// or on its row of the inspector Panels group's annotation section.
   Future<void> _onAnnotationSelected(
     OcptShotListAnnotationSelectedEvent event,
@@ -587,7 +587,7 @@ class OcptShotListStoryboardBloc
     emitter(state.copyWithSelectedAnnotation(annotationId: event.annotationId));
   }
 
-  /// Records the raw text just typed into mark `event.annotationId`'s own text as a pending edit,
+  /// Record the raw text just typed into mark `event.annotationId`'s own text as a pending edit,
   /// and (re)starts the field-edit debounce shared with [_onPanelCommentChanged].
   Future<void> _onAnnotationTextChanged(
     OcptShotListAnnotationTextChangedEvent event,
@@ -600,7 +600,7 @@ class OcptShotListStoryboardBloc
     );
   }
 
-  /// Deletes mark `event.annotationId` for good, dispatched once the annotation section's own
+  /// Delete mark `event.annotationId` for good, dispatched once the annotation section's own
   /// remove action has already been confirmed through `OcptConfirmDialog`, by the mode. Clears the
   /// mark's own selection and drops any pending text edit that still targeted it.
   Future<void> _onAnnotationDeletionRequested(
@@ -642,7 +642,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListStoryboardWriteErrorDismissedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
@@ -650,7 +650,7 @@ class OcptShotListStoryboardBloc
     emitter(state.copyWithWriteErrorDismissed());
   }
 
-  /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
+  /// Record [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
   /// field-edit debounce that eventually writes it — the body [_onPanelCommentChanged] and
   /// [_onAnnotationTextChanged] share, since both ride the very same debounce.
   void _recordPendingEdit({
@@ -665,7 +665,7 @@ class OcptShotListStoryboardBloc
     restartDebounce(_fieldEditDebounce, const OcptShotListStoryboardFieldEditFlushRequestedEvent());
   }
 
-  /// Writes every pending edit once the debounce elapses with no further typing.
+  /// Write every pending edit once the debounce elapses with no further typing.
   ///
   /// When something was written and the `Versions` tab is the one showing, also asks the mode to
   /// refresh its working-copy card, as the mode itself does when a flush it runs lands.
@@ -680,7 +680,7 @@ class OcptShotListStoryboardBloc
     }
   }
 
-  /// Writes every entry of [pending], switching on its key's own kind: a panel comment through
+  /// Write every entry of [pending], switching on its key's own kind: a panel comment through
   /// `OcptStoryboardService.updatePanelComment`, or a mark's own text through
   /// `OcptStoryboardService.updateAnnotation`.
   Future<void> _writeAllPendingEdits({

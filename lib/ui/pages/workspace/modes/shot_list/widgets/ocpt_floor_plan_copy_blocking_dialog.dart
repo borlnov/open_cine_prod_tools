@@ -55,7 +55,7 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog and returns the picked shot's id, or null if the user dismissed it.
+  /// Show the dialog and return the picked shot's id, or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
     required List<OcptFloorPlanCopyBlockingCandidate> candidates,

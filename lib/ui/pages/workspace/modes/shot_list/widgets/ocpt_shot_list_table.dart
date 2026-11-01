@@ -115,7 +115,7 @@ class OcptShotListTable extends StatelessWidget {
     );
   }
 
-  /// Resolves the pixel width of each of [columns] inside an area [availableWidth] wide.
+  /// Resolve the pixel width of each of [columns] inside an area [availableWidth] wide.
   ///
   /// Every column starts at its own minimum; whatever room is left over is shared between the
   /// columns declaring a flex, in proportion to it. When the minimums alone already overflow, no

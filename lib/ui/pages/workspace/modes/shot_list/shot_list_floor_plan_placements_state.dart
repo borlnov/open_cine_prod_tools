@@ -32,7 +32,7 @@ class OcptShotListFloorPlanPlacementsState
     required this.hasWriteError,
   });
 
-  /// Builds the state of placements nothing has been done on yet.
+  /// Build the state of placements nothing has been done on yet.
   const OcptShotListFloorPlanPlacementsState.init()
     : pendingFieldEdits = const {},
       hasWriteError = false;
@@ -47,37 +47,37 @@ class OcptShotListFloorPlanPlacementsState
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
-  /// Copies this state with [pendingFieldEdits] as what is still pending after the floor plan
+  /// Copy this state with [pendingFieldEdits] as what is still pending after the floor plan
   /// lost symbols.
   OcptShotListFloorPlanPlacementsState copyWithPrunedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as the labels waiting in the debounce, a keystroke
+  /// Copy this state with [pendingFieldEdits] as the labels waiting in the debounce, a keystroke
   /// later.
   OcptShotListFloorPlanPlacementsState copyWithTypedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with no field edit left pending.
+  /// Copy this state with no field edit left pending.
   OcptShotListFloorPlanPlacementsState copyWithFieldEditsCleared() =>
       copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  /// Copy this state with [pendingFieldEdits] as what the write that just landed left pending.
   OcptShotListFloorPlanPlacementsState copyWithFlushedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// Copy this state with the write error raised, [pendingFieldEdits] being what the failed
   /// flush left pending.
   OcptShotListFloorPlanPlacementsState copyToFlushFailed({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with the write error raised.
+  /// Copy this state with the write error raised.
   OcptShotListFloorPlanPlacementsState copyToWriteFailed() => copyWith(hasWriteError: true);
 
-  /// Copies this state with the write error dismissed.
+  /// Copy this state with the write error dismissed.
   OcptShotListFloorPlanPlacementsState copyWithWriteErrorDismissed() =>
       copyWith(hasWriteError: false);
 

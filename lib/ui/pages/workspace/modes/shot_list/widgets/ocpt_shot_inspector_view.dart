@@ -97,7 +97,7 @@ class OcptShotInspectorView extends StatelessWidget {
     );
   }
 
-  /// [shot]'s current value for [field], for the inspector's editable fields: a pending edit
+  /// Get [shot]'s current value for [field], for the inspector's editable fields: a pending edit
   /// still sitting in the inspector bloc's debounce takes priority over the shot's own stored
   /// value, so typing is never overwritten by an unrelated reload. Formatted for an editable field
   /// (an empty string for a missing value, never [ocptShotListEmptyValue], which is the table and
@@ -132,7 +132,7 @@ class OcptShotInspectorView extends StatelessWidget {
     };
   }
 
-  /// Opens the dialog a shot's scenario coverage is selected in, keeping it in step with the blocs
+  /// Open the dialog a shot's scenario coverage is selected in, keeping it in step with the blocs
   /// for as long as it is open.
   ///
   /// The dialog is built inside a [_CoverageDialogHost] on the blocs explicitly handed down rather

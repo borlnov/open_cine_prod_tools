@@ -120,7 +120,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
     );
   }
 
-  /// The total number of words across every block of [layout], the denominator of the footer's
+  /// Get the total number of words across every block of [layout], the denominator of the footer's
   /// `N words covered of M` counter.
   int _totalWordCount(OcptScriptWordLayout layout) =>
       layout.blocks.fold(0, (total, block) => total + block.words.length);
@@ -198,7 +198,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     );
   }
 
-  /// The label of the blocks [range] runs through, in reading order, as `ACTION → DIALOGUE`.
+  /// Get the label of the blocks [range] runs through, in reading order, as `ACTION → DIALOGUE`.
   ///
   /// Two consecutive blocks of the same type are named once: a range covering three lines of one
   /// action paragraph reads `ACTION`, not `ACTION → ACTION → ACTION`.
@@ -214,7 +214,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     return labels.join(" → ");
   }
 
-  /// Whether [other] overlaps the quoted [range] at all: what decides whether the shot owning
+  /// Tell whether [other] overlaps the quoted [range] at all: what decides whether the shot owning
   /// [other] is named under this extract.
   bool _overlapsRange(OcptShotCoverageRange other) =>
       other.startOffset < range.endOffset && other.endOffset > range.startOffset;

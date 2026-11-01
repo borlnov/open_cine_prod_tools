@@ -204,7 +204,7 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
     );
   }
 
-  /// [ratio] formatted as `W:9` against a fixed 9-unit height, the reading a storyboard frame's
+  /// Get [ratio] formatted as `W:9` against a fixed 9-unit height, the reading a storyboard frame's
   /// ratio is conventionally printed at (`16:9`, `2.39:1`-derived frames read as their own decimal
   /// instead, since forcing every one onto a `:9` base would misstate a scope frame as `21:9`-ish
   /// nonsense) — kept simple and purely cosmetic: `ocptAspectRatioOf` is the one source of truth

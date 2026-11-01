@@ -12,7 +12,7 @@ sealed class OcptShotListInspectorEvent extends OcptShotListEvent {
   const OcptShotListInspectorEvent();
 }
 
-/// Records the raw text just typed into [field] of shot [shotId], dispatched by the inspector on
+/// Record the raw text just typed into [field] of shot [shotId], dispatched by the inspector on
 /// every keystroke.
 ///
 /// The typed value becomes visible immediately as a pending edit in
@@ -41,7 +41,7 @@ class OcptShotListShotFieldChangedEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, shotId, field, rawValue];
 }
 
-/// Sets one difficulty axis of shot [shotId] to [value] (0-5), dispatched by the inspector's
+/// Set one difficulty axis of shot [shotId] to [value] (0-5), dispatched by the inspector's
 /// difficulty dots.
 ///
 /// Written immediately: clicking a dot is a single discrete action, not typing, so it never goes
@@ -68,7 +68,7 @@ class OcptShotListShotDifficultyChangedEvent extends OcptShotListInspectorEvent 
   List<Object?> get props => [...super.props, shotId, axis, value];
 }
 
-/// Attaches role [roleId] to shot [shotId] if it isn't already attached, detaches it otherwise,
+/// Attach role [roleId] to shot [shotId] if it isn't already attached, detach it otherwise,
 /// dispatched by the inspector's character chips.
 ///
 /// Written immediately: toggling a chip is a single discrete action, not typing, so it never goes
@@ -88,7 +88,7 @@ class OcptShotListShotCharacterToggledEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, shotId, roleId];
 }
 
-/// Requests attaching a character typed into the inspector's `＋ Add` field to shot [shotId],
+/// Request attaching a character typed into the inspector's `＋ Add` field to shot [shotId],
 /// dispatched once the field is submitted.
 ///
 /// [characterName] resolves to a live role of that name, or **creates** a hand-added silent role
@@ -111,7 +111,7 @@ class OcptShotListCharacterAddRequestedEvent extends OcptShotListInspectorEvent 
   List<Object?> get props => [...super.props, shotId, characterName];
 }
 
-/// Records a click on a word of the selected shot's scenario coverage.
+/// Record a click on a word of the selected shot's scenario coverage.
 ///
 /// One event backs the whole three-state interaction, the bloc rather than the widget deciding
 /// what a click means: with no range open, a click on already-covered text removes the range
@@ -140,7 +140,7 @@ class OcptShotListCoverageWordClickedEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, shotId, wordStartOffset, wordEndOffset];
 }
 
-/// Requests removing every scenario coverage range of shot [shotId], dispatched by the inspector's
+/// Request removing every scenario coverage range of shot [shotId], dispatched by the inspector's
 /// `Clear all` action. Written immediately, like every other coverage change.
 class OcptShotListCoverageClearRequestedEvent extends OcptShotListInspectorEvent {
   /// The id of the shot whose coverage ranges are all removed.
@@ -154,7 +154,7 @@ class OcptShotListCoverageClearRequestedEvent extends OcptShotListInspectorEvent
   List<Object?> get props => [...super.props, shotId];
 }
 
-/// Clears the coverage anchor currently pending, dispatched by the coverage dialog's `Escape` (only
+/// Clear the coverage anchor currently pending, dispatched by the coverage dialog's `Escape` (only
 /// while an anchor is pending, so `Escape` still closes the dialog otherwise), a click on empty
 /// space in the dialog's script area, or the dialog closing through its × or `Close` button — the
 /// user changed their mind about the passage, not just about where it should end.
@@ -167,7 +167,7 @@ class OcptShotListCoverageAnchorCancelledEvent extends OcptShotListInspectorEven
   const OcptShotListCoverageAnchorCancelledEvent();
 }
 
-/// Requests deleting role [roleId] for good, dispatched once the shared role alert banner's
+/// Request deleting role [roleId] for good, dispatched once the shared role alert banner's
 /// orphaned variant has already been confirmed through `OcptConfirmDialog`, by the mode.
 ///
 /// Written immediately through `OcptRoleIndexService.deleteRole`, whose cascade tombstones the
@@ -185,7 +185,7 @@ class OcptShotListOrphanedRoleDeleteRequestedEvent extends OcptShotListInspector
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests keeping orphaned role [roleId] as a hand-added silent role, dispatched by the shared
+/// Request keeping orphaned role [roleId] as a hand-added silent role, dispatched by the shared
 /// role alert banner's orphaned variant's `Keep as silent` action — not destructive, so reached
 /// with no confirmation dialog, exactly as the resources mode's own equivalent isn't.
 class OcptShotListOrphanedRoleKeptEvent extends OcptShotListInspectorEvent {
@@ -200,7 +200,7 @@ class OcptShotListOrphanedRoleKeptEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
+/// Request merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
 /// alert banner's merge affordance — either variant — has already been confirmed through
 /// `OcptConfirmDialog`, by the mode.
 ///
@@ -224,7 +224,7 @@ class OcptShotListRoleMergeRequestedEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
 
-/// Requests clearing shot [shotId]'s `needsCheck` flag and re-stamping every one of its scenario
+/// Request clearing shot [shotId]'s `needsCheck` flag and re-stamping every one of its scenario
 /// coverage ranges' digests to the screenplay's current text, dispatched by the inspector's
 /// `Needs checking` callout's `Mark as checked` button.
 class OcptShotListShotMarkedAsCheckedEvent extends OcptShotListInspectorEvent {
@@ -239,7 +239,7 @@ class OcptShotListShotMarkedAsCheckedEvent extends OcptShotListInspectorEvent {
   List<Object?> get props => [...super.props, shotId];
 }
 
-/// Requests writing every typed shot field still sitting in the inspector's autosave debounce,
+/// Request writing every typed shot field still sitting in the inspector's autosave debounce,
 /// dispatched by the bloc itself once the delay since the last keystroke has elapsed. Not meant to
 /// be dispatched by a widget directly.
 class OcptShotListInspectorFieldEditFlushRequestedEvent extends OcptShotListInspectorEvent {
@@ -247,7 +247,7 @@ class OcptShotListInspectorFieldEditFlushRequestedEvent extends OcptShotListInsp
   const OcptShotListInspectorFieldEditFlushRequestedEvent();
 }
 
-/// Dismisses the transient write error the inspector currently shows, if any.
+/// Dismiss the transient write error the inspector currently shows, if any.
 class OcptShotListInspectorWriteErrorDismissedEvent extends OcptShotListInspectorEvent {
   /// Class constructor
   const OcptShotListInspectorWriteErrorDismissedEvent();

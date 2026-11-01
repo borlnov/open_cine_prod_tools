@@ -214,7 +214,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     onAwaited<OcptShotListFloorPlanPlacementChangedEvent>(_onFloorPlanPlacementChanged);
   }
 
-  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// Get the screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
   String screenplayIdOf(OcptOpenProjectModel project) =>
@@ -330,7 +330,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     await _load(emit);
   }
 
-  /// Writes every pending edit of the views directly to the database, without touching [state].
+  /// Write every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring
   /// `OcptStyledScreenplayEditor.deactivate()`: `deactivate()` runs before `dispose()` for every
@@ -340,7 +340,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// see — is what guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
   Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
-  /// Loads the persisted preferences and the current project's shot list, selecting its first
+  /// Load the persisted preferences and the current project's shot list, selecting its first
   /// sequence.
   ///
   /// The workspace route is guarded by the router manager, so a project is normally always open
@@ -445,7 +445,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     });
   }
 
-  /// Selects a sequence, clearing the selected shot when it actually changes sequence (the centre
+  /// Select a sequence, clearing the selected shot when it actually changes sequence (the centre
   /// table then lists shots the previous selection isn't among).
   ///
   /// Flushes any pending field edit first, so switching sequences right after typing never loses
@@ -477,7 +477,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Selects a shot, together with the sequence holding it, and opens the right dock on its
+  /// Select a shot, together with the sequence holding it, and open the right dock on its
   /// inspector tab.
   ///
   /// Flushes any pending field edit first, so switching shots right after typing never loses it.
@@ -499,7 +499,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithSelectedShot(sequenceId: sequence.id, shotId: event.shotId));
   }
 
-  /// Creates a shot at the end of the selected scene sequence, reloads the shot list and selects
+  /// Create a shot at the end of the selected scene sequence, reload the shot list and select
   /// the new shot.
   ///
   /// Deliberately a no-op when the selected sequence is the orphan group (or when nothing is
@@ -546,7 +546,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Toggles the left (sequences) dock's visibility.
+  /// Toggle the left (sequences) dock's visibility.
   Future<void> _onSequencePanelToggled(
     OcptShotListSequencePanelToggledEvent event,
     Emitter<OcptShotListState> emitter,
@@ -554,8 +554,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithSequencePanelToggled());
   }
 
-  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
-  /// or switches to it) and records it as the tab the toolbar's toggle reopens the dock on.
+  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
+  /// switches to it) and record it as the tab the toolbar's toggle reopens the dock on.
   ///
   /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
   /// working-copy card needs a fresh read for: the other is a field edit flushing while it is
@@ -574,7 +574,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptShotListState.lastRightDockTab].
   Future<void> _onRightDockToggled(
     OcptShotListRightDockToggledEvent event,
@@ -587,7 +587,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Closes the right dock via its own × close button.
+  /// Close the right dock via its own × close button.
   Future<void> _onRightDockClosed(
     OcptShotListRightDockClosedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -595,7 +595,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  /// Persist [tab] as the mode's last right dock tab, unless it already is.
   Future<void> _persistLastRightDockTab(OcptShotListRightDockTab tab) async {
     if (state.lastRightDockTab == tab) {
       return;
@@ -604,7 +604,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     await _propertiesManager.shotListLastRightDockTab.store(tab);
   }
 
-  /// Applies and persists whichever dock fraction the ended drag gesture reports.
+  /// Apply and persist whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(
     OcptShotListDockFractionsChangedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -622,7 +622,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
-  /// Restores both dock fractions to their defaults, persisting them.
+  /// Restore both dock fractions to their defaults, persisting them.
   Future<void> _onDockLayoutReset(
     OcptShotListDockLayoutResetEvent event,
     Emitter<OcptShotListState> emitter,
@@ -640,7 +640,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
   }
 
-  /// Shows or hides an optional table column, persisting the new set.
+  /// Show or hide an optional table column, persisting the new set.
   Future<void> _onColumnToggled(
     OcptShotListColumnToggledEvent event,
     Emitter<OcptShotListState> emitter,
@@ -654,7 +654,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithVisibleColumns(visibleColumns: visibleColumns));
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListWriteErrorDismissedEvent event,
     Emitter<OcptShotListState> emitter,
@@ -662,7 +662,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithWriteErrorDismissed());
   }
 
-  /// Leaves the workspace: flushes any pending field edit, closes the current project, and
+  /// Leave the workspace: flushes any pending field edit, closes the current project, and
   /// navigates back to the home page.
   Future<void> _onBackRequested(
     OcptShotListBackRequestedEvent event,
@@ -673,7 +673,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     _routerManager.pop();
   }
 
-  /// Re-reads the page setup after the project settings page changed something, so the scenario
+  /// Re-read the page setup after the project settings page changed something, so the scenario
   /// coverage export dialog pre-fills from the format actually in effect.
   Future<void> _onProjectSettingsChanged(
     OcptShotListProjectSettingsChangedEvent event,
@@ -690,7 +690,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     });
   }
 
-  /// Writes every pending write of the mode's views immediately, through the flushers they
+  /// Write every pending write of the mode's views immediately, through the flushers they
   /// registered.
   ///
   /// Up front of every handler that changes what shot or sequence is selected, that leaves the
@@ -705,7 +705,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
+  /// Delete shot `event.shotId`, reselecting the sequence's own next first shot when it was the
   /// selected one (the sequence stays selected; null only while the sequence now holds none at all
   /// — the "always a current shot" invariant). `OcptShotListService.deleteShot`'s own cascade
   /// tombstones the shot's panels and floor plan symbols alongside it, and the view blocs drop the
@@ -757,8 +757,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
   }
 
-  /// Selects centre view `event.view`, dispatched by `OcptShotListCentreHeader`'s own switch, and
-  /// persists it so reopening the mode restores it.
+  /// Select centre view `event.view`, dispatched by `OcptShotListCentreHeader`'s own switch, and
+  /// persist it so reopening the mode restores it.
   ///
   /// Keeps [OcptShotListState.selectedShotId]/`.selectedSequenceId` untouched: the two views read
   /// the same selection.
@@ -770,7 +770,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithCentreView(view: event.view));
   }
 
-  /// Selects set `event.setId` on the floor plans view. A symbol only ever belongs to the set
+  /// Select set `event.setId` on the floor plans view. A symbol only ever belongs to the set
   /// currently shown, which the canvas bloc sees in the selection's cause.
   Future<void> _onSetSelected(
     OcptShotListSetSelectedEvent event,
@@ -779,8 +779,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithSelectedSet(setId: event.setId));
   }
 
-  /// Selects set `event.setId`, one the floor plan sets bloc just added to the selected sequence
-  /// (created, linked or duplicated) and has had this bloc read the floor plans for. Moves the
+  /// Select set `event.setId`, one the floor plan sets bloc just added to the selected sequence
+  /// (created, linked or duplicated) and have had this bloc read the floor plans for. Moves the
   /// selection like any other set selection, saying why.
   Future<void> _onSetAdded(
     OcptShotListSetAddedEvent event,
@@ -789,7 +789,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithAddedSet(setId: event.setId));
   }
 
-  /// Falls back to the selected sequence's own first set (null while it has none left), after the
+  /// Fall back to the selected sequence's own first set (null while it has none left), after the
   /// floor plan sets bloc unlinked the selected set from it and had this bloc read the floor plans
   /// again.
   Future<void> _onSetRemoved(
@@ -804,7 +804,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     emitter(state.copyWithRemovedSetFallback(setId: nextSetId));
   }
 
-  /// Reads the floor plans again after a placement was removed or hidden, then moves the selection
+  /// Read the floor plans again after a placement was removed or hidden, then move the selection
   /// saying why and which row (`event.cause`, `event.targetId`): the canvas clears what the gesture
   /// always cleared. Dispatched by the placements bloc once it wrote, and awaited.
   ///

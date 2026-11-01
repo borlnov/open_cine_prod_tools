@@ -23,7 +23,7 @@ const double _labelDotRadius = 4;
 /// The radius, in logical pixels, of a selected mark's endpoint handles.
 const double _handleRadius = 4;
 
-/// Paints `OcptStoryboardPanel.annotations` (and, while a drag is in progress, one extra "draft"
+/// Paint `OcptStoryboardPanel.annotations` (and, while a drag is in progress, one extra "draft"
 /// mark) over an `OcptStoryboardPanelFrame`'s image, in the frame's own pixel space.
 ///
 /// **Coordinate convention**: every mark's `x1`/`y1`/`x2`/`y2` is normalised 0..1 to the frame —
@@ -150,7 +150,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
       oldDelegate.draftStart != draftStart ||
       oldDelegate.draftEnd != draftEnd;
 
-  /// Paints one mark, dispatching on [kind]. Normalised coordinates are mapped to [size] here —
+  /// Paint one mark, dispatching on [kind]. Normalised coordinates are mapped to [size] here —
   /// the one place this painter does it — per the class doc comment's coordinate convention.
   void _paintMark({
     required Canvas canvas,
@@ -208,7 +208,8 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
-  /// A [OcptStoryboardAnnotationKind.movementArrow]: a solid shaft and a filled triangular head.
+  /// Paint a [OcptStoryboardAnnotationKind.movementArrow]: a solid shaft and a filled triangular
+  /// head.
   void _paintSolidArrow({
     required Canvas canvas,
     required Offset tail,
@@ -245,7 +246,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
-  /// A [OcptStoryboardAnnotationKind.cameraMoveArrow]: a dashed shaft and an open (unfilled)
+  /// Paint a [OcptStoryboardAnnotationKind.cameraMoveArrow]: a dashed shaft and an open (unfilled)
   /// chevron head — visually distinct from [_paintSolidArrow]'s solid shaft and filled head.
   void _paintDashedArrow({
     required Canvas canvas,
@@ -274,7 +275,8 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
-  /// A [OcptStoryboardAnnotationKind.label]: a small anchor dot, and — while [text] isn't empty —
+  /// Paint a [OcptStoryboardAnnotationKind.label]: a small anchor dot, and — while [text] isn't
+  /// empty —
   /// a rounded caption chip drawn beside it.
   void _paintLabel({
     required Canvas canvas,
@@ -332,7 +334,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     );
   }
 
-  /// A small round handle marking a selected mark's own defining point.
+  /// Paint a small round handle marking a selected mark's own defining point.
   void _paintHandle(Canvas canvas, Offset point, Color color) {
     canvas.drawCircle(point, _handleRadius, Paint()..color = Colors.white);
     canvas.drawCircle(
@@ -345,7 +347,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     );
   }
 
-  /// The two points an arrowhead's side strokes reach back to from [head], turned
+  /// Get the two points an arrowhead's side strokes reach back to from [head], turned
   /// [_headHalfAngle] off the shaft's own direction (tail to head), or null when [tail] and [head]
   /// coincide (nothing to turn an angle off of).
   (Offset, Offset)? _headSidePoints(Offset tail, Offset head) {
@@ -360,7 +362,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     return (sideAt(_headHalfAngle), sideAt(-_headHalfAngle));
   }
 
-  /// Draws a dashed line from [from] to [to], each dash and gap `dashLength` logical pixels long
+  /// Draw a dashed line from [from] to [to], each dash and gap `dashLength` logical pixels long
   /// — the same technique `OcptDashedRoundedRectPainter` uses for its own outline.
   void _drawDashedLine({
     required Canvas canvas,
@@ -383,7 +385,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
-  /// Whether [a] and [b] hold the same marks in the same order — `Equatable`'s own `==` per
+  /// Tell whether [a] and [b] hold the same marks in the same order — `Equatable`'s own `==` per
   /// element, already comparing every stored field.
   bool _annotationsEqual(List<OcptStoryboardAnnotation> a, List<OcptStoryboardAnnotation> b) {
     if (a.length != b.length) {

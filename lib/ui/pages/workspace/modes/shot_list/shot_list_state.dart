@@ -513,7 +513,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Copies this state with the data a reload read, each given part replacing its counterpart.
+  /// Copy this state with the data a reload read, each given part replacing its counterpart.
   ///
   /// A null part is kept as it is. [reloadEpoch] moves by one, whichever parts were given.
   OcptShotListState copyWithReloadedData({
@@ -535,7 +535,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     reloadEpoch: reloadEpoch + 1,
   );
 
-  /// Copies this state as loaded when no project is open: the preferences restored, no snapshot,
+  /// Copy this state as loaded when no project is open: the preferences restored, no snapshot,
   /// and no version previewed.
   OcptShotListState copyToLoadedWithoutProject({
     required double leftDockFraction,
@@ -553,7 +553,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     forcePreviewedVersionIdValue: true,
   );
 
-  /// Copies this state as loaded from the open project: everything read from it, the preferences
+  /// Copy this state as loaded from the open project: everything read from it, the preferences
   /// restored and the first selection made, whose cause is [OcptShotListSelectionCause.load]. The
   /// pending reveal request is consumed.
   ///
@@ -612,7 +612,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionCause: OcptShotListSelectionCause.load,
   );
 
-  /// Copies this state with sequence [sequenceId] selected, [selectedShotId] and [selectedSetId]
+  /// Copy this state with sequence [sequenceId] selected, [selectedShotId] and [selectedSetId]
   /// as its selected shot and set (each going back to null when null).
   ///
   /// The selection's cause says whether [isSameSequence] was picked again.
@@ -633,7 +633,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         : OcptShotListSelectionCause.sequence,
   );
 
-  /// Copies this state with shot [shotId] of sequence [sequenceId] selected, the inspector tab
+  /// Copy this state with shot [shotId] of sequence [sequenceId] selected, the inspector tab
   /// showing.
   OcptShotListState copyWithSelectedShot({required String sequenceId, required String shotId}) =>
       copyWith(
@@ -645,7 +645,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         selectionCause: OcptShotListSelectionCause.shot,
       );
 
-  /// Copies this state with [snapshot] as the shot list that holds the freshly created [shotId] of
+  /// Copy this state with [snapshot] as the shot list that holds the freshly created [shotId] of
   /// sequence [sequenceId], selected with the inspector tab showing.
   ///
   /// A null [shotId] keeps the current shot selection.
@@ -663,11 +663,11 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionCause: OcptShotListSelectionCause.shotCreated,
   );
 
-  /// Copies this state with the sequences dock's visibility flipped.
+  /// Copy this state with the sequences dock's visibility flipped.
   OcptShotListState copyWithSequencePanelToggled() =>
       copyWith(isSequencePanelVisible: !isSequencePanelVisible);
 
-  /// Copies this state with [tab] as the last right dock tab, and the dock closed when
+  /// Copy this state with [tab] as the last right dock tab, and the dock closed when
   /// [isAlreadyActive] or showing [tab] otherwise.
   OcptShotListState copyWithRightDockTabSelected({
     required OcptShotListRightDockTab tab,
@@ -678,27 +678,27 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     lastRightDockTab: tab,
   );
 
-  /// Copies this state with the right dock closed.
+  /// Copy this state with the right dock closed.
   OcptShotListState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
 
-  /// Copies this state with the right dock opened on the last tab it showed.
+  /// Copy this state with the right dock opened on the last tab it showed.
   OcptShotListState copyWithRightDockReopened() => copyWith(rightDockTab: lastRightDockTab);
 
-  /// Copies this state with [left] and [right] as the dock fractions.
+  /// Copy this state with [left] and [right] as the dock fractions.
   ///
   /// A null fraction keeps the current one.
   OcptShotListState copyWithDockFractions({required double? left, required double? right}) =>
       copyWith(leftDockFraction: left, rightDockFraction: right);
 
-  /// Copies this state with [visibleColumns] as the optional table columns shown.
+  /// Copy this state with [visibleColumns] as the optional table columns shown.
   OcptShotListState copyWithVisibleColumns({required Set<OcptShotListColumn> visibleColumns}) =>
       copyWith(visibleColumns: visibleColumns);
 
-  /// Copies this state with [pageSetup] as the screenplay's page setup.
+  /// Copy this state with [pageSetup] as the screenplay's page setup.
   OcptShotListState copyWithPageSetup({required OcptPageSetup pageSetup}) =>
       copyWith(pageSetup: pageSetup);
 
-  /// Copies this state after a shot was deleted, with the data read back and [reselectedShotId] as
+  /// Copy this state after a shot was deleted, with the data read back and [reselectedShotId] as
   /// the selected shot (going back to null when null).
   ///
   /// The selection moves, with the cause [OcptShotListSelectionCause.shotDeleted], only when
@@ -722,25 +722,25 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
   );
 
-  /// Copies this state with [view] as the centre view.
+  /// Copy this state with [view] as the centre view.
   OcptShotListState copyWithCentreView({required OcptShotListCentreView view}) =>
       copyWith(centreView: view);
 
-  /// Copies this state with set [setId] selected.
+  /// Copy this state with set [setId] selected.
   OcptShotListState copyWithSelectedSet({required String setId}) => copyWith(
     selectedSetId: setId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptShotListSelectionCause.set,
   );
 
-  /// Copies this state with set [setId], just added to the selected sequence, selected.
+  /// Copy this state with set [setId], just added to the selected sequence, selected.
   OcptShotListState copyWithAddedSet({required String setId}) => copyWith(
     selectedSetId: setId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptShotListSelectionCause.setAdded,
   );
 
-  /// Copies this state with [setId] selected after the selected set was removed, going back to
+  /// Copy this state with [setId] selected after the selected set was removed, going back to
   /// null when null.
   OcptShotListState copyWithRemovedSetFallback({required String? setId}) => copyWith(
     selectedSetId: setId,
@@ -749,7 +749,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionCause: OcptShotListSelectionCause.setRemoved,
   );
 
-  /// Copies this state with the selection moved for [cause], naming the row [targetId].
+  /// Copy this state with the selection moved for [cause], naming the row [targetId].
   ///
   /// A null [targetId] keeps the current one.
   OcptShotListState copyWithMovedSelection({
@@ -761,13 +761,14 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionTargetId: targetId,
   );
 
-  /// Copies this state with the write error raised.
+  /// Copy this state with the write error raised.
   OcptShotListState copyToWriteFailed() => copyWith(hasWriteError: true);
 
-  /// Copies this state with the write error dismissed.
+  /// Copy this state with the write error dismissed.
   OcptShotListState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
+  /// Tell whether any of the given pieces of data read from the project database is a new value,
+  /// i.e.
   /// whether a copy made with them re-reads the data (see [copyWith]).
   static bool _isDataReplacedBy({
     required Object? snapshot,

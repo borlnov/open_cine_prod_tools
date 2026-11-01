@@ -80,7 +80,8 @@ class OcptShotDifficultyRating extends StatelessWidget {
     );
   }
 
-  /// The colour of this row's filled dots and its numeric value: the accent below 3, the warning
+  /// Get the colour of this row's filled dots and its numeric value: the accent below 3, the
+  /// warning
   /// colour at 3, the error colour at 4 and above.
   Color _colorFor(BuildContext context) {
     final theme = Theme.of(context);

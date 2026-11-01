@@ -114,7 +114,7 @@ class OcptShotListRow extends StatelessWidget {
     );
   }
 
-  /// The text style of [column]'s cell for this shot: the shot code in the screenplay's
+  /// Get the text style of [column]'s cell for this shot: the shot code in the screenplay's
   /// fixed-pitch family, the difficulty warning-coloured once it reaches its threshold, the
   /// status in its own status colour, everything else the table's plain body style.
   TextStyle? _styleFor(BuildContext context, OcptShotListTableColumn column) {

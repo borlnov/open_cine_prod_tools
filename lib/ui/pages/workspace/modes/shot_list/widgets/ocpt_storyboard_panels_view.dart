@@ -86,7 +86,7 @@ class OcptStoryboardPanelsView extends StatelessWidget {
     );
   }
 
-  /// [panelId]'s current comment value: a pending edit still in the board's debounce, or the
+  /// Get [panelId]'s current comment value: a pending edit still in the board's debounce, or the
   /// panel's own stored value.
   String _panelCommentValueOf(
     OcptShotListState mode,
@@ -106,7 +106,7 @@ class OcptStoryboardPanelsView extends StatelessWidget {
     return "";
   }
 
-  /// [annotationId]'s current text value: a pending edit still in the board's debounce, or the
+  /// Get [annotationId]'s current text value: a pending edit still in the board's debounce, or the
   /// mark's own stored text — the annotation section's equivalent of [_panelCommentValueOf].
   String _annotationTextValueOf(
     OcptShotListState mode,

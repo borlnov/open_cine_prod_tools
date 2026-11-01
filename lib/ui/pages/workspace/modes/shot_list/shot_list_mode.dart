@@ -75,7 +75,7 @@ class OcptShotListMode extends StatelessWidget {
   /// `OcptResourcesMode.revealRequest` reaches `OcptResourcesBloc`.
   final OcptShotListRevealRequest? revealRequest;
 
-  /// Creates the shot list mode.
+  /// Create the shot list mode.
   const OcptShotListMode({super.key, this.revealRequest});
 
   /// Build the shot list mode as a [MultiBlocProvider].
@@ -293,7 +293,7 @@ class _ShotListViewState extends State<_ShotListView> {
     ),
   );
 
-  /// Builds the four entries the toolbar's `Export` button offers: the shot list workbook and the
+  /// Build the four entries the toolbar's `Export` button offers: the shot list workbook and the
   /// scenario coverage PDF, unavailable while the shot list holds no shot at all — there would be
   /// nothing in the workbook but its header row, and nothing to annotate the screenplay with — and
   /// the storyboard PDF and the floor plans PDF, each unavailable for its own, narrower reason:
@@ -342,7 +342,7 @@ class _ShotListViewState extends State<_ShotListView> {
     ];
   }
 
-  /// Opens the export panel, then dispatches the picked document's own request: the XLSX export
+  /// Open the export panel, then dispatch the picked document's own request: the XLSX export
   /// event and the floor plans export event directly (neither opens an options dialog of its own —
   /// the table's own `Export XLSX` button mirrors the first, the workbook mirrors the second), or
   /// [_requestScenarioCoverageExport]/[_requestStoryboardExport], which each open their own export
@@ -384,7 +384,7 @@ class _ShotListViewState extends State<_ShotListView> {
     }
   }
 
-  /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
+  /// Dispatch the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the workbook and the native save dialog carry.
   void _requestXlsxExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
@@ -399,7 +399,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Shows the scenario coverage export options dialog, then dispatches the export request if the
+  /// Show the scenario coverage export options dialog, then dispatch the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized
   /// string the exported document and the native save dialog carry.
   Future<void> _requestScenarioCoverageExport(
@@ -428,7 +428,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Shows the storyboard export options dialog, then dispatches the export request if the user
+  /// Show the storyboard export options dialog, then dispatch the export request if the user
   /// applied it, resolving here — the last place with a [BuildContext] — every localized string
   /// the exported document (and, when its toggle is on, the appended floor plan sheets) and the
   /// native save dialog carry.
@@ -459,7 +459,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Dispatches the floor plans export request, resolving here — the last place with a
+  /// Dispatch the floor plans export request, resolving here — the last place with a
   /// [BuildContext] — every localized string the exported document and the native save dialog
   /// carry. Opens no options dialog of its own, mirroring the table's own `Export XLSX` button.
   void _requestFloorPlansExport(BuildContext context, OcptShotListState state, Rect? shareAnchor) {
@@ -475,7 +475,8 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// Get the selected episode's own tag (`ep. 2`), or null while the open project holds one episode
+  /// or
   /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
   /// exactly as every other localized export payload already is.
   String? _episodeExportTag(BuildContext context) {
@@ -487,7 +488,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Opens the project settings page, then re-reads the page setup if the user changed anything
+  /// Open the project settings page, then re-read the page setup if the user changed anything
   /// there.
   ///
   /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
@@ -507,7 +508,7 @@ class _ShotListViewState extends State<_ShotListView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Confirms and dispatches the deletion of the orphaned shot [shotId], the left dock's own delete
+  /// Confirm and dispatch the deletion of the orphaned shot [shotId], the left dock's own delete
   /// button, going through the same confirmation dialog and the same event as the inspector's
   /// `Delete shot` action. Ignores a click on a shot the snapshot no longer holds.
   Future<void> _handleOrphanedShotDeletion(
@@ -523,13 +524,13 @@ class _ShotListViewState extends State<_ShotListView> {
     await _handleDeleteRequested(context, shot);
   }
 
-  /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
+  /// Get the display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
   /// resort — the role merge confirmation names both roles, and a role gone from the cast between
   /// the click and the dialog opening is the only way this fallback is ever seen.
   String _roleNameOf(OcptShotListState state, String roleId) =>
       state.roles.firstWhereOrNull((role) => role.id == roleId)?.name ?? roleId;
 
-  /// Shows the delete confirmation dialog, then dispatches the orphaned role's deletion if the user
+  /// Show the delete confirmation dialog, then dispatch the orphaned role's deletion if the user
   /// confirmed it — the shared role alert banner's `Delete the role` action.
   Future<void> _handleRoleDeleteRequested(
     BuildContext context,
@@ -555,7 +556,7 @@ class _ShotListViewState extends State<_ShotListView> {
     inspectorBloc.add(OcptShotListOrphanedRoleDeleteRequestedEvent(roleId: roleId));
   }
 
-  /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
+  /// Show the merge confirmation dialog, naming both roles, then dispatch the merge if the user
   /// confirmed it — the shared role alert banner's merge affordance, either variant.
   Future<void> _handleRoleMergeRequested(
     BuildContext context,
@@ -587,7 +588,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Opens `OcptFloorPlanCopyBlockingDialog` over the sequence's own other shots, then dispatches
+  /// Open `OcptFloorPlanCopyBlockingDialog` over the sequence's own other shots, then dispatch
   /// the copy once one is picked — the set tabs' own `＋ Set` menu `Copy blocking from another
   /// shot` entry, which only asks which shot to copy from.
   Future<void> _handleCopyBlockingRequested(
@@ -623,9 +624,9 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Shows the unlink confirmation dialog — naming what leaves the view, its own unlink counts,
-  /// when the sequence has anything placed on the set —
-  /// then dispatches the set's unlinking if the user confirmed it — a tab's own close action,
+  /// Show the unlink confirmation dialog — naming what leaves the view, its own unlink counts, when
+  /// the sequence has anything placed on the set — then dispatch the set's unlinking if the user
+  /// confirmed it — a tab's own close action,
   /// which only asks. Not destructive (`isDestructive: false`): the plan itself is kept, only the
   /// sequence link goes.
   Future<void> _handleSetDeleteRequested(
@@ -659,7 +660,7 @@ class _ShotListViewState extends State<_ShotListView> {
     setsBloc.add(OcptShotListSetDeletionRequestedEvent(setId: setId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the symbol's deletion if the user
+  /// Show the delete confirmation dialog, then dispatch the symbol's deletion if the user
   /// confirmed it — the canvas's own delete handle and the Placements group's own remove action,
   /// which only ask.
   ///
@@ -779,7 +780,7 @@ class _ShotListViewState extends State<_ShotListView> {
     placementsBloc.add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the arrow's deletion if the user
+  /// Show the delete confirmation dialog, then dispatch the arrow's deletion if the user
   /// confirmed it — the Placements group's own remove action, which only asks.
   Future<void> _handleArrowDeleteRequested(BuildContext context, String arrowId) async {
     final placementsBloc = context.read<OcptShotListFloorPlanPlacementsBloc>();
@@ -801,7 +802,7 @@ class _ShotListViewState extends State<_ShotListView> {
     placementsBloc.add(OcptShotListFloorPlanArrowDeletionRequestedEvent(arrowId: arrowId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the underlay's clearing if the user
+  /// Show the delete confirmation dialog, then dispatch the underlay's clearing if the user
   /// confirmed it — the tray's own `Clear underlay` action, which only asks.
   Future<void> _handleUnderlayClearRequested(BuildContext context, String setId) async {
     final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();
@@ -823,7 +824,7 @@ class _ShotListViewState extends State<_ShotListView> {
     setsBloc.add(OcptShotListFloorPlanUnderlayClearRequestedEvent(setId: setId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the panel's deletion if the user
+  /// Show the delete confirmation dialog, then dispatch the panel's deletion if the user
   /// confirmed it — the inspector's Panels group's own `Delete panel` action, which only asks.
   Future<void> _handlePanelDeleteRequested(BuildContext context, String panelId) async {
     final storyboardBloc = context.read<OcptShotListStoryboardBloc>();
@@ -845,7 +846,7 @@ class _ShotListViewState extends State<_ShotListView> {
     storyboardBloc.add(OcptShotListPanelDeletionRequestedEvent(panelId: panelId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the mark's deletion if the user
+  /// Show the delete confirmation dialog, then dispatch the mark's deletion if the user
   /// confirmed it — the annotation section's own remove action, which only asks.
   Future<void> _handleAnnotationDeleteRequested(BuildContext context, String annotationId) async {
     final storyboardBloc = context.read<OcptShotListStoryboardBloc>();
@@ -867,7 +868,7 @@ class _ShotListViewState extends State<_ShotListView> {
     storyboardBloc.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: annotationId));
   }
 
-  /// Shows the delete confirmation dialog, then dispatches the deletion request if the user
+  /// Show the delete confirmation dialog, then dispatch the deletion request if the user
   /// confirmed it.
   Future<void> _handleDeleteRequested(BuildContext context, OcptShot shot) async {
     final bloc = context.read<OcptShotListBloc>();
@@ -889,7 +890,7 @@ class _ShotListViewState extends State<_ShotListView> {
     bloc.add(OcptShotListShotDeletionRequestedEvent(shotId: shot.id));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, and the transient write
+  /// Apply bloc-driven effects onto the page: the live dock fractions, and the transient write
   /// error SnackBar.
   void _onStateChanged(BuildContext context, OcptShotListState state) {
     // Pushes the bloc's persisted fractions (the initial load, or "Reset panel layout") onto the
@@ -934,7 +935,7 @@ class _ShotListViewState extends State<_ShotListView> {
     }
   }
 
-  /// Dispatches the project package export, resolving here — the last place with a
+  /// Dispatch the project package export, resolving here — the last place with a
   /// [BuildContext] — the label the native save dialog carries.
   ///
   /// What happens next depends on what the project references: everything being there, the save
@@ -948,7 +949,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can

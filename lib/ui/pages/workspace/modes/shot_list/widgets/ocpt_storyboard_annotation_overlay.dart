@@ -165,7 +165,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     );
   }
 
-  /// Records the pointer's down point as the drag's own start, but only for a drag-shaped tool
+  /// Record the pointer's down point as the drag's own start, but only for a drag-shaped tool
   /// ([OcptStoryboardAnnotationToolBehaviour.isDrag]): the label tool never drags, so it never
   /// shows a draft.
   void _handlePointerDown(Offset local, OcptStoryboardAnnotationTool activeTool) {
@@ -178,7 +178,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     });
   }
 
-  /// Updates the drag's own current point, redrawing the live draft arrow.
+  /// Update the drag's own current point, redrawing the live draft arrow.
   void _handlePointerMove(Offset local) {
     if (_dragStart == null) {
       return;
@@ -186,7 +186,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     setState(() => _dragCurrent = local);
   }
 
-  /// The pointer lifted: if it travelled at least [_minDragDistance] under an arrow tool, reports
+  /// Handle the pointer lifted: if it travelled at least [_minDragDistance] under an arrow tool,
+  /// reports
   /// [OcptStoryboardAnnotationOverlay.onArrowDrawn] with the normalised tail/head; otherwise treats
   /// the whole gesture as a tap ([_handleTap]) — selecting a mark under the point, or (label tool
   /// only) placing a new one there.
@@ -215,7 +216,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     _handleTap(local, size, activeTool);
   }
 
-  /// A tap (no drag, or one that never travelled far enough to count as one): selects the mark
+  /// Handle a tap (no drag, or one that never travelled far enough to count as one): selects the
+  /// mark
   /// under [local] if there is one, otherwise — only with the label tool — places a new label
   /// there.
   void _handleTap(Offset local, Size size, OcptStoryboardAnnotationTool activeTool) {
@@ -233,7 +235,8 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     }
   }
 
-  /// The id of the topmost (last-drawn) mark within [_hitTestRadius] of [local], or null when none
+  /// Get the id of the topmost (last-drawn) mark within [_hitTestRadius] of [local], or null when
+  /// none
   /// is that close — a label is tested against its own anchor point, an arrow against its whole
   /// shaft (the closest point of the tail-head segment).
   String? _hitTestAnnotation(Offset local, Size size) {
@@ -254,7 +257,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     return null;
   }
 
-  /// The shortest distance from [point] to the segment [a]-[b].
+  /// Get the shortest distance from [point] to the segment [a]-[b].
   double _distanceToSegment(Offset point, Offset a, Offset b) {
     final segment = b - a;
     final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;

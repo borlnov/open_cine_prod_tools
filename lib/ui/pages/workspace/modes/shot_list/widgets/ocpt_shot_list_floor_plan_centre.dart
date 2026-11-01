@@ -284,7 +284,8 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     );
   }
 
-  /// [canvasState]'s own pending scope decision, resolved into the live override the canvas draws (and
+  /// Get [canvasState]'s own pending scope decision, resolved into the live override the canvas
+  /// draws (and
   /// hit-tests) instead of the symbol's own stored geometry while the scope bubble is showing — or
   /// null while nothing is pending. Falls back to the original symbol's own currently stored
   /// footprint (resolved exactly like `OcptFloorPlanSheet._shapeOf` would) for whichever field the
@@ -319,7 +320,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     );
   }
 
-  /// The scope bubble's own broader-scope label — `Every sequence (n)` at
+  /// Get the scope bubble's own broader-scope label — `Every sequence (n)` at
   /// [OcptFloorPlanOverrideLevel.sequence], `The whole sequence` at
   /// [OcptFloorPlanOverrideLevel.shot] — or null while nothing is pending.
   String? _scopeBubbleEveryLabelOf(OcptShotListFloorPlanCanvasState canvasState, Tr tr) {
@@ -332,7 +333,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
         : tr.shotListFloorPlanScopeBubbleEveryAction(decision.sequenceCount);
   }
 
-  /// The scope bubble's own narrower-scope label — `Only sequence n` at
+  /// Get the scope bubble's own narrower-scope label — `Only sequence n` at
   /// [OcptFloorPlanOverrideLevel.sequence], `Only shot n` at [OcptFloorPlanOverrideLevel.shot]
   /// — or null while nothing is pending.
   String? _scopeBubbleOnlyLabelOf(
@@ -351,7 +352,8 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     return tr.shotListFloorPlanScopeBubbleOnlyAction(ocptShotSequenceDisplayNumberOf(sequence));
   }
 
-  /// Whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed by
+  /// Tell whether each of [sequence]'s own shots has a live camera symbol on [selectedSet], keyed
+  /// by
   /// shot id — the focus strip's own filled/hollow dots.
   Map<String, bool> _hasCameraOnSetOf(OcptShotSequence sequence, OcptFloorPlanSet? selectedSet) {
     if (selectedSet == null) {
@@ -364,7 +366,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     return {for (final shot in sequence.shots) shot.id: shotIdsWithCamera.contains(shot.id)};
   }
 
-  /// Every live camera symbol of [selectedSet], numbered, for the tray's own expandable cameras
+  /// Get every live camera symbol of [selectedSet], numbered, for the tray's own expandable cameras
   /// row under the `Sequence` focus — built from the very same `OcptFloorPlanSheet.of` the canvas
   /// itself draws that focus from, so the tray's own labels can never disagree with the canvas.
   List<OcptFloorPlanTraySequenceCamera> _sequenceCamerasOf(
@@ -391,7 +393,8 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     ];
   }
 
-  /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
+  /// Handle a move's own canvas callback: dispatches the plain move straight away, unless
+  /// [symbolId]
   /// names a **set-scope** symbol whose own set is linked to two or more sequences, or a
   /// **scene-scope** one whose own sequence holds two or more shots, in which case it
   /// dispatches the scope decision instead — the scope bubble asks before anything is written.
@@ -420,7 +423,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     );
   }
 
-  /// A resize's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
+  /// Handle a resize's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
   void _handleSymbolResized(
     BuildContext context,
     OcptShotListState state,
@@ -452,7 +455,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     );
   }
 
-  /// A rotate's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
+  /// Handle a rotate's own canvas callback. See [_handleSymbolMoved]'s own doc comment.
   void _handleSymbolRotated(
     BuildContext context,
     OcptShotListState state,
@@ -478,7 +481,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     );
   }
 
-  /// Whether [symbolId] names a symbol whose move/rotate/resize should ask the scope bubble
+  /// Tell whether [symbolId] names a symbol whose move/rotate/resize should ask the scope bubble
   /// instead of writing straight away, and at which level:
   /// - A **live, set-scope** symbol (never an override) whose own set is linked to two or more
   ///   sequences — [OcptFloorPlanOverrideLevel.sequence].
@@ -520,7 +523,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
         : null;
   }
 
-  /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
+  /// Get [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
   /// symbol's own stored label.
   static String symbolLabelValueOf(
     OcptShotListState state,

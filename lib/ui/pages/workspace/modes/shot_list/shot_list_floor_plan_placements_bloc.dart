@@ -102,7 +102,7 @@ class OcptShotListFloorPlanPlacementsBloc
     on<OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Drops the labels typed for a symbol the mode's fresh floor plans no longer hold, and stops
+  /// Drop the labels typed for a symbol the mode's fresh floor plans no longer hold, and stop
   /// the debounce when none is left. Waits for nothing.
   @override
   Future<void> onModeStateChanged(
@@ -138,7 +138,7 @@ class OcptShotListFloorPlanPlacementsBloc
     emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
   }
 
-  /// Writes every pending symbol label immediately: cancels the debounce timer (a no-op if it
+  /// Write every pending symbol label immediately: cancels the debounce timer (a no-op if it
   /// already fired or there was none), writes each one, then has the mode read the floor plans
   /// again and only then forgets what was written, so what a label shows never falls back to a
   /// stale stored value between the two. A no-op while nothing is pending.
@@ -191,7 +191,7 @@ class OcptShotListFloorPlanPlacementsBloc
     return true;
   }
 
-  /// Writes every pending symbol label directly to the database, bypassing the debounce timer, the
+  /// Write every pending symbol label directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
   /// leaving the tree, this bloc closing). A failure is only logged.
   @override
@@ -223,7 +223,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Deletes symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
+  /// Delete symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
   /// already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc drops its
   /// selection of the symbol, and of the arrow, once the mode says the symbol was removed.
   Future<void> _onSymbolDeletionRequested(
@@ -254,7 +254,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Deletes set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names a
+  /// Delete set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names a
   /// scene-scope override, the set-scope original it overrides) and every live override of it, in
   /// every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch of the
   /// extended delete confirmation, dispatched once it has already been confirmed through
@@ -290,7 +290,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a hidden
+  /// Mask set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a hidden
   /// override, setting `isHidden` on one that already exists or creating one copied from the
   /// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
   /// delete confirmation, dispatched once it has already been confirmed through
@@ -351,7 +351,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
+  /// Mask scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
   /// shot-scope override, mirroring [_onSymbolHideRequested] one level down: setting `isHidden` on
   /// one that already exists or creating one copied from the scene symbol's own geometry — the
   /// alternative branch ("Remove from shot n") of the shot-level extended delete confirmation.
@@ -415,7 +415,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Restores scene-scope override `event.symbolId` as in the set — tombstones it, so its own
+  /// Restore scene-scope override `event.symbolId` as in the set — tombstones it, so its own
   /// set-scope original reappears for that sequence. Reversible: never asks.
   Future<void> _onSymbolRestoreRequested(
     OcptShotListFloorPlanSymbolRestoreRequestedEvent event,
@@ -445,7 +445,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Deletes arrow `event.arrowId` for good, dispatched once the Placements group's own remove
+  /// Delete arrow `event.arrowId` for good, dispatched once the Placements group's own remove
   /// action has already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc
   /// drops its selection of the arrow if it was the selected one.
   Future<void> _onArrowDeletionRequested(
@@ -476,7 +476,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Records the raw text just typed into symbol `event.symbolId`'s own label as a pending edit,
+  /// Record the raw text just typed into symbol `event.symbolId`'s own label as a pending edit,
   /// visible immediately, and (re)starts the field-edit debounce.
   Future<void> _onSymbolLabelChanged(
     OcptShotListFloorPlanSymbolLabelChangedEvent event,
@@ -492,7 +492,7 @@ class OcptShotListFloorPlanPlacementsBloc
     );
   }
 
-  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge to `event.fovDeg`, dispatched by
+  /// Set camera symbol `event.symbolId`'s own field-of-view wedge to `event.fovDeg`, dispatched by
   /// a drag on one of its own edge handles ending, or by the inspector's own Placements group
   /// `−`/`+` stepper. Written immediately, one row (`OcptFloorPlanService.updateSymbol(fovDeg:)`).
   Future<void> _onSymbolFovChanged(
@@ -522,7 +522,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+  /// Set camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
   /// dispatched by a drag on its own tip handle ending. Written immediately
   /// (`OcptFloorPlanService.updateSymbol(fovReachM:)`), one row.
   Future<void> _onSymbolFovReachChanged(
@@ -552,7 +552,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanPlacementsState> emitter,
@@ -560,7 +560,7 @@ class OcptShotListFloorPlanPlacementsBloc
     emitter(state.copyWithWriteErrorDismissed());
   }
 
-  /// Writes every pending symbol label once the debounce elapses with no further typing.
+  /// Write every pending symbol label once the debounce elapses with no further typing.
   ///
   /// When something was written and the `Versions` tab is the one showing, also asks the mode to
   /// refresh its working-copy card.
@@ -575,7 +575,7 @@ class OcptShotListFloorPlanPlacementsBloc
     }
   }
 
-  /// Writes every entry of [pending] through `OcptFloorPlanService.updateSymbol`.
+  /// Write every entry of [pending] through `OcptFloorPlanService.updateSymbol`.
   Future<void> _writeAllPendingEdits({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,

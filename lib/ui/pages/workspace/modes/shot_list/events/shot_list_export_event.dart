@@ -18,7 +18,7 @@ sealed class OcptShotListExportEvent extends OcptShotListEvent {
   const OcptShotListExportEvent();
 }
 
-/// Requests exporting the whole shot list to an XLSX workbook, dispatched by the table's
+/// Request exporting the whole shot list to an XLSX workbook, dispatched by the table's
 /// `Export XLSX` button and by the mode's `⋮` menu alike.
 ///
 /// Both localized payloads are resolved by the widget dispatching this, since the bloc has no
@@ -56,7 +56,7 @@ class OcptShotListXlsxExportRequestedEvent extends OcptShotListExportEvent {
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
-/// Requests exporting the screenplay annotated with the shots covering it, dispatched by the mode's
+/// Request exporting the screenplay annotated with the shots covering it, dispatched by the mode's
 /// `⋮` menu once its own options dialog has resolved.
 ///
 /// [options] is what that dialog returned — the page format and margins the document is typeset
@@ -105,7 +105,7 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListExpor
   ];
 }
 
-/// Requests exporting the storyboard — every shot's imported frames, annotated, with its key
+/// Request exporting the storyboard — every shot's imported frames, annotated, with its key
 /// information — dispatched by the mode's own `⋮` menu once its own options dialog has resolved.
 ///
 /// [options] is what that dialog returned — the page format and margins, the shots-per-page count
@@ -162,7 +162,7 @@ class OcptShotListStoryboardExportRequestedEvent extends OcptShotListExportEvent
   ];
 }
 
-/// Requests exporting the floor plans — one plan per shot that has a camera placed on it —
+/// Request exporting the floor plans — one plan per shot that has a camera placed on it —
 /// dispatched by the toolbar's export panel directly: unlike the storyboard, this document opens
 /// no options dialog of its own, its page format coming from `OcptShotListState.pageSetup`
 /// (mirroring the shot list workbook's own `Export XLSX` button).
@@ -200,7 +200,7 @@ class OcptShotListFloorPlansExportRequestedEvent extends OcptShotListExportEvent
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
-/// Dismisses the transient export notice currently shown, if any.
+/// Dismiss the transient export notice currently shown, if any.
 class OcptShotListIoNoticeDismissedEvent extends OcptShotListExportEvent {
   /// Class constructor
   const OcptShotListIoNoticeDismissedEvent();

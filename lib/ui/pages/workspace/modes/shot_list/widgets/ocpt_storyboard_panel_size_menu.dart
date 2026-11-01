@@ -55,7 +55,7 @@ class OcptStoryboardPanelSizeMenu extends StatelessWidget {
     );
   }
 
-  /// The localized label of [size].
+  /// Get the localized label of [size].
   String _labelOf(Tr tr, OcptStoryboardPanelSize size) => switch (size) {
     OcptStoryboardPanelSize.small => tr.shotListBoardPanelSizeSmall,
     OcptStoryboardPanelSize.medium => tr.shotListBoardPanelSizeMedium,

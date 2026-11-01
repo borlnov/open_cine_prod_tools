@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_metric_line.dart';
 
-/// The sheet a floor plan canvas draws for [floorPlanSet], under [focusShotId]'s own focus,
+/// Get the sheet a floor plan canvas draws for [floorPlanSet], under [focusShotId]'s own focus,
 /// filtered to [hiddenLayers] and [hiddenCameraSymbolIds] — applied to every camera shape alike,
 /// the focused shot's own or an onion-skin ghost's (the bug this once had: the filter used to run
 /// only under the old `Sequence` focus — there is always a current shot now, so it silently
@@ -59,7 +59,7 @@ OcptFloorPlanSheet ocptFloorPlanVisibleSheetOf({
   );
 }
 
-/// The metrics overlay's own lines, from [selected] to every other symbol [sheet] draws — empty
+/// Get the metrics overlay's own lines, from [selected] to every other symbol [sheet] draws — empty
 /// while the overlay is off ([isMetricsShown]) or nothing is selected.
 List<OcptFloorPlanMetricLine> ocptFloorPlanMetricLinesOf({
   required OcptFloorPlanSheet sheet,
@@ -95,11 +95,11 @@ List<OcptFloorPlanMetricLine> ocptFloorPlanMetricLinesOf({
   ];
 }
 
-/// [metres] rounded to the nearest tenth, for the metrics overlay's own labels — the distance
+/// Get [metres] rounded to the nearest tenth, for the metrics overlay's own labels — the distance
 /// rule ([ocptFloorPlanDistanceM]) is exact, but a floor plan is never measured that precisely.
 double _roundToOneDecimetre(double metres) => (metres * 10).round() / 10;
 
-/// The symbol [symbolId] names out of [sheet], or null while none is selected or it isn't
+/// Get the symbol [symbolId] names out of [sheet], or null while none is selected or it isn't
 /// (currently) visible.
 OcptFloorPlanSymbolShape? ocptFloorPlanSymbolOf(OcptFloorPlanSheet sheet, String? symbolId) {
   if (symbolId == null) {
@@ -113,7 +113,7 @@ OcptFloorPlanSymbolShape? ocptFloorPlanSymbolOf(OcptFloorPlanSheet sheet, String
   return null;
 }
 
-/// The arrow [arrowId] names out of [sheet], or null while none is selected or it isn't
+/// Get the arrow [arrowId] names out of [sheet], or null while none is selected or it isn't
 /// (currently) visible — [ocptFloorPlanSymbolOf]'s own equivalent for arrows.
 OcptFloorPlanArrowShape? ocptFloorPlanArrowOf(OcptFloorPlanSheet sheet, String? arrowId) {
   if (arrowId == null) {
@@ -127,7 +127,7 @@ OcptFloorPlanArrowShape? ocptFloorPlanArrowOf(OcptFloorPlanSheet sheet, String? 
   return null;
 }
 
-/// The underlay's own screen rect, un-rotated (its rotation is applied by a `Transform.rotate`
+/// Get the underlay's own screen rect, un-rotated (its rotation is applied by a `Transform.rotate`
 /// wrapping whichever widget this sizes), from [frame] — the live frame of an underlay drag in
 /// progress — or [floorPlanSet]'s own stored one.
 Rect ocptFloorPlanUnderlayScreenRect({

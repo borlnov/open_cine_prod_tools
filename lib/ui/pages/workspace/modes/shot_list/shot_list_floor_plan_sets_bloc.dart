@@ -163,7 +163,7 @@ class OcptShotListFloorPlanSetsBloc
     on<OcptShotListFloorPlanSetsWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Reads the palette's props again when the mode loads or selects another sequence, the only
+  /// Read the palette's props again when the mode loads or selects another sequence, the only
   /// moves of the mode's state this bloc depends on.
   ///
   /// Waits for nothing: the read runs as an event of its own
@@ -201,7 +201,7 @@ class OcptShotListFloorPlanSetsBloc
     );
   }
 
-  /// Writes every pending set name immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending set name immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one, then has the mode read the floor plans and the
   /// catalogue again and only then forgets them, so what a tab shows never falls back to a stale
   /// stored name between the two. A no-op while nothing is pending.
@@ -257,7 +257,7 @@ class OcptShotListFloorPlanSetsBloc
     return true;
   }
 
-  /// Writes every pending set name directly to the database, bypassing the debounce timer, the
+  /// Write every pending set name directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
   /// leaving the tree, this bloc closing). A failure is only logged.
   @override
@@ -289,7 +289,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Reads the breakdown props of sequence `event.sequenceId` and offers them to the palette,
+  /// Read the breakdown props of sequence `event.sequenceId` and offer them to the palette,
   /// unless the mode has moved to another sequence meanwhile.
   Future<void> _onPropsLoadRequested(
     OcptShotListFloorPlanPropsLoadRequestedEvent event,
@@ -317,7 +317,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
+  /// Get [sequenceId]'s own breakdown props (`OcptElementsService.propsOfScene`), or an empty list
   /// while [sequenceId] is null or names the orphan group, which has no scene of its own to read —
   /// the floor plans palette's own `Sequence` group chips.
   Future<List<OcptScenePropSummary>> _loadPropsOfSequence({
@@ -335,10 +335,10 @@ class OcptShotListFloorPlanSetsBloc
     return const [];
   }
 
-  /// Creates a new Resources set named after the selected sequence's own heading place, in
-  /// `event.locationId` (or a fresh location of its own, when null), links it to that sequence
-  /// (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path), has the mode read
-  /// the floor plans and the Resources catalogue again, and selects it. Deliberately a no-op when
+  /// Create a new Resources set named after the selected sequence's own heading place, in
+  /// `event.locationId` (or a fresh location of its own, when null), link it to that sequence
+  /// (`OcptLocationsService.createSetLinkedToScene`, the breakdown's own path), have the mode read
+  /// the floor plans and the Resources catalogue again, and select it. Deliberately a no-op when
   /// the selected sequence is the orphan group (or when nothing is selected at all): see
   /// [OcptShotListSetCreationRequestedEvent].
   Future<void> _onSetCreationRequested(
@@ -378,8 +378,8 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Links Resources set `event.setId` to the selected sequence
-  /// (`OcptLocationsService.assignSceneToSet`), has the mode read the floor plans again and selects
+  /// Link Resources set `event.setId` to the selected sequence
+  /// (`OcptLocationsService.assignSceneToSet`), have the mode read the floor plans again and select
   /// it — the empty-state gallery's own card click and the `＋ Set` menu's own suggestion/`Link an
   /// existing set ▸` entries. Deliberately a no-op when the selected sequence is the orphan group
   /// (or when nothing is selected at all), exactly like [_onSetCreationRequested].
@@ -415,7 +415,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Records the raw text just typed into set `event.setId`'s own tab as a pending edit, and
+  /// Record the raw text just typed into set `event.setId`'s own tab as a pending edit, and
   /// (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onSetNameChanged(
     OcptShotListSetNameChangedEvent event,
@@ -431,7 +431,7 @@ class OcptShotListFloorPlanSetsBloc
     );
   }
 
-  /// Unlinks set `event.setId` from the selected sequence
+  /// Unlink set `event.setId` from the selected sequence
   /// (`OcptLocationsService.removeSceneFromSet`), dispatched once the tab's own close action has
   /// already been confirmed through `OcptConfirmDialog`, by the mode. The plan itself — its
   /// underlay, its symbols, its arrows — is untouched: relinking the same set brings every
@@ -485,7 +485,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Duplicates set `event.setId` into a new Resources set in the same location, named
+  /// Duplicate set `event.setId` into a new Resources set in the same location, named
   /// `event.newSetName`, copying its set-scope symbols only and linking it to the selected
   /// sequence — the set tabs' own `＋ Set` menu `Duplicate this set` entry, **one** atomic call
   /// (`OcptLocationsService.duplicateSetForScene`) that rules out an orphan set. Has the mode read
@@ -527,8 +527,8 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Copies shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
-  /// focused shot (`OcptFloorPlanService.copyShotBlocking`), then has the mode read the floor
+  /// Copy shot `event.sourceShotId`'s own live blocking on set `event.setId` onto the currently
+  /// focused shot (`OcptFloorPlanService.copyShotBlocking`), then have the mode read the floor
   /// plans again — the set tabs' own `＋ Set` menu `Copy blocking from another shot` entry,
   /// dispatched once the mode's own source-shot picker returns a pick. A no-op while no shot is
   /// focused (defensive only: the mode never offers the menu entry without one).
@@ -563,7 +563,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Records the floor plans canvas's own zoom as last settled by
+  /// Record the floor plans canvas's own zoom as last settled by
   /// `OcptFloorPlanViewportController`. A view preference; see
   /// `OcptShotListFloorPlanSetsState.floorPlanZoom`'s own doc comment.
   Future<void> _onZoomChanged(
@@ -573,7 +573,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithZoom(zoom: event.zoom));
   }
 
-  /// Picks the sequence layer a placed set element lands on. A view preference.
+  /// Pick the sequence layer a placed set element lands on. A view preference.
   Future<void> _onActiveLayerChanged(
     OcptShotListFloorPlanActiveLayerChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -581,7 +581,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithActiveLayer(layer: event.layer));
   }
 
-  /// Picks the décor primitive a `setElement` placement carries. A view preference.
+  /// Pick the décor primitive a `setElement` placement carries. A view preference.
   Future<void> _onActiveSetElementShapeChanged(
     OcptShotListFloorPlanActiveSetElementShapeChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -589,7 +589,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithActiveSetElementShape(shape: event.shape));
   }
 
-  /// Picks the scope a `setElement` placement lands at. A view preference.
+  /// Pick the scope a `setElement` placement lands at. A view preference.
   Future<void> _onActiveSetElementScopeChanged(
     OcptShotListFloorPlanActiveSetElementScopeChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -597,7 +597,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithActiveSetElementScope(scope: event.scope));
   }
 
-  /// Picks the label a `prop` placement carries. A view preference.
+  /// Pick the label a `prop` placement carries. A view preference.
   Future<void> _onActiveLabelChanged(
     OcptShotListFloorPlanActiveLabelChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -605,7 +605,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithActiveLabel(label: event.label));
   }
 
-  /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas. A view
+  /// Toggle the visibility of sequence layer `event.layer` on the floor plans canvas. A view
   /// preference; never withheld under a read-only preview, since it only reads.
   Future<void> _onLayerVisibilityToggled(
     OcptShotListFloorPlanLayerVisibilityToggledEvent event,
@@ -618,7 +618,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithHiddenLayers(hiddenLayers: hidden));
   }
 
-  /// Toggles the selected set's underlay visibility on the floor plans canvas. A view preference;
+  /// Toggle the selected set's underlay visibility on the floor plans canvas. A view preference;
   /// never withheld under a read-only preview.
   Future<void> _onUnderlayVisibilityToggled(
     OcptShotListFloorPlanUnderlayVisibilityToggledEvent event,
@@ -627,8 +627,8 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithUnderlayVisibilityToggled());
   }
 
-  /// Picks a file through the native "open" dialog, filtered to JPEG and PNG
-  /// (`ocptFloorPlanUnderlayImageFileExtensions`), and sets set `event.setId`'s underlay to it,
+  /// Pick a file through the native "open" dialog, filtered to JPEG and PNG
+  /// (`ocptFloorPlanUnderlayImageFileExtensions`), and set set `event.setId`'s underlay to it,
   /// framed at a default rectangle centred on the canvas ([_defaultUnderlayXM]/…): the user drags
   /// and resizes it afterwards to match the reference silhouette (ADR 0031). A cancelled dialog
   /// changes nothing at all.
@@ -668,8 +668,8 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Shows the native "open" dialog filtered to [ocptFloorPlanUnderlayImageFileExtensions] and
-  /// returns the path picked, or null when the user cancelled it, when it failed, or when the
+  /// Show the native "open" dialog filtered to [ocptFloorPlanUnderlayImageFileExtensions] and
+  /// return the path picked, or null when the user cancelled it, when it failed, or when the
   /// platform gave a file with no path at all. The underlay's own sibling of
   /// `OcptShotListStoryboardBloc`'s panel frame picker.
   Future<String?> _pickUnderlayPath({required String fileTypeLabel}) async {
@@ -688,7 +688,7 @@ class OcptShotListFloorPlanSetsBloc
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Re-frames set `event.setId`'s underlay to `event.xM`/`event.yM`/`event.widthM`/
+  /// Re-frame set `event.setId`'s underlay to `event.xM`/`event.yM`/`event.widthM`/
   /// `event.heightM`, dispatched once a drag moving or resizing it ends.
   /// `OcptFloorPlanService.updateUnderlayFrame` — never `setSetUnderlay`, which would tombstone
   /// and re-mint the underlay's own `assets` row on every drag-end — is the one write this touches;
@@ -729,7 +729,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Clears set `event.setId`'s underlay for good, dispatched once the tray's own `Clear
+  /// Clear set `event.setId`'s underlay for good, dispatched once the tray's own `Clear underlay`
   /// underlay` action has already been confirmed through `OcptConfirmDialog`, by the mode.
   Future<void> _onUnderlayClearRequested(
     OcptShotListFloorPlanUnderlayClearRequestedEvent event,
@@ -754,7 +754,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Walks the selected sequence's own shots by `event.delta`, dispatched by the floor plans focus
+  /// Walk the selected sequence's own shots by `event.delta`, dispatched by the floor plans focus
   /// strip's own `←`/`→` keyboard shortcut: see [OcptShotListFloorPlanShotWalkRequestedEvent]'s own
   /// doc comment for the full rule. Walking to a neighbour is exactly selecting it, which the mode
   /// does (`OcptShotListShotSelectedEvent`): this only works out which shot that is.
@@ -786,7 +786,7 @@ class OcptShotListFloorPlanSetsBloc
     await addToModeAndWait(OcptShotListShotSelectedEvent(shotId: neighbour.id));
   }
 
-  /// Toggles the visibility of camera symbol `event.symbolId` on the floor plans canvas. A view
+  /// Toggle the visibility of camera symbol `event.symbolId` on the floor plans canvas. A view
   /// preference; never withheld under a read-only preview, since it only reads.
   Future<void> _onCameraVisibilityToggled(
     OcptShotListFloorPlanCameraVisibilityToggledEvent event,
@@ -799,7 +799,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithHiddenCameraSymbols(symbolIds: hidden));
   }
 
-  /// Toggles the onion skin's own previous or next ghost. A view preference.
+  /// Toggle the onion skin's own previous or next ghost. A view preference.
   Future<void> _onOnionSkinToggled(
     OcptShotListFloorPlanOnionSkinToggledEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -807,7 +807,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithOnionSkinToggled(isPrevious: event.isPrevious));
   }
 
-  /// Sets the onion skin's own ghost opacity, clamped to a visible range. A view preference.
+  /// Set the onion skin's own ghost opacity, clamped to a visible range. A view preference.
   Future<void> _onOnionSkinOpacityChanged(
     OcptShotListFloorPlanOnionSkinOpacityChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -815,7 +815,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithOnionSkinOpacity(opacity: event.opacity.clamp(0.05, 1.0)));
   }
 
-  /// Toggles the metrics overlay. A view preference.
+  /// Toggle the metrics overlay. A view preference.
   Future<void> _onMetricsToggled(
     OcptShotListFloorPlanMetricsToggledEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -823,7 +823,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithMetricsToggled());
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListFloorPlanSetsWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
@@ -831,7 +831,7 @@ class OcptShotListFloorPlanSetsBloc
     emitter(state.copyWithWriteErrorDismissed());
   }
 
-  /// Writes every pending set name once the debounce elapses with no further typing.
+  /// Write every pending set name once the debounce elapses with no further typing.
   ///
   /// When something was written and the `Versions` tab is the one showing, also asks the mode to
   /// refresh its working-copy card, as the mode itself does when a flush it runs lands.
@@ -846,7 +846,7 @@ class OcptShotListFloorPlanSetsBloc
     }
   }
 
-  /// Writes every entry of [pending] through `OcptLocationsService.updateSet`.
+  /// Write every entry of [pending] through `OcptLocationsService.updateSet`.
   Future<void> _writeAllPendingEdits({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,

@@ -12,7 +12,7 @@ sealed class OcptShotListFloorPlanPlacementsEvent extends OcptShotListEvent {
   const OcptShotListFloorPlanPlacementsEvent();
 }
 
-/// Requests deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
+/// Request deleting symbol `event.symbolId` for good, dispatched once the canvas's own delete
 /// action has already been confirmed through `OcptConfirmDialog`, by the mode.
 class OcptShotListFloorPlanSymbolDeletionRequestedEvent
     extends OcptShotListFloorPlanPlacementsEvent {
@@ -27,7 +27,7 @@ class OcptShotListFloorPlanSymbolDeletionRequestedEvent
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Requests deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
+/// Request deleting set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names
 /// a scene-scope override instead, the set-scope original it overrides) and every live override of
 /// it, in every sequence (`OcptFloorPlanService.deleteSymbolEverywhere`) — the destructive branch
 /// of the extended delete confirmation for an element used by two or more sequences,
@@ -46,7 +46,7 @@ class OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Masks set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a **hidden**
+/// Mask set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a **hidden**
 /// override, setting `isHidden` on one that already exists or creating one, copied from the
 /// original's own geometry — the alternative branch ("Remove from sequence n") of the extended
 /// delete confirmation, dispatched once it has already been confirmed through
@@ -72,7 +72,7 @@ class OcptShotListFloorPlanSymbolHideRequestedEvent extends OcptShotListFloorPla
   List<Object?> get props => [...super.props, symbolId, targetSceneId];
 }
 
-/// Masks scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
+/// Mask scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a **hidden**
 /// shot-scope override, setting `isHidden` on one that already exists or creating one, copied from
 /// the scene symbol's own geometry — the alternative
 /// branch ("Remove from shot n") of the shot-level extended delete confirmation, dispatched once it
@@ -101,7 +101,7 @@ class OcptShotListFloorPlanSymbolHideForShotRequestedEvent
   List<Object?> get props => [...super.props, symbolId, targetShotId];
 }
 
-/// Restores override `event.symbolId` as in the level above it — tombstones it
+/// Restore override `event.symbolId` as in the level above it — tombstones it
 /// (`OcptFloorPlanService.deleteSymbol`), so the original it names reappears there: a set-scope
 /// original for a scene-scope override, or a scene-scope symbol for a shot-scope one — the
 /// canvas's own `Restore` handle and the inspector's own `Restore as in the set`/`Restore as in
@@ -120,7 +120,7 @@ class OcptShotListFloorPlanSymbolRestoreRequestedEvent
   List<Object?> get props => [...super.props, symbolId];
 }
 
-/// Requests deleting arrow `event.arrowId` for good, dispatched once the Placements group's own
+/// Request deleting arrow `event.arrowId` for good, dispatched once the Placements group's own
 /// remove action has already been confirmed through `OcptConfirmDialog`, by the mode.
 class OcptShotListFloorPlanArrowDeletionRequestedEvent
     extends OcptShotListFloorPlanPlacementsEvent {
@@ -135,7 +135,7 @@ class OcptShotListFloorPlanArrowDeletionRequestedEvent
   List<Object?> get props => [...super.props, arrowId];
 }
 
-/// Records the raw text just typed into symbol `event.symbolId`'s own label, dispatched by the
+/// Record the raw text just typed into symbol `event.symbolId`'s own label, dispatched by the
 /// canvas's own `label` tool inline text field on every keystroke. Rides the placements bloc's
 /// field-edit autosave debounce, keyed by `OcptShotListSymbolLabelEditKey`.
 class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlanPlacementsEvent {
@@ -156,7 +156,7 @@ class OcptShotListFloorPlanSymbolLabelChangedEvent extends OcptShotListFloorPlan
   List<Object?> get props => [...super.props, symbolId, rawValue];
 }
 
-/// Sets camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`,
+/// Set camera symbol `event.symbolId`'s own field-of-view wedge angle to `event.fovDeg`,
 /// dispatched by a drag on one of its own edge handles ending, or by the inspector's Placements
 /// group `−`/`+` stepper. Written immediately (`OcptFloorPlanService.updateSymbol(fovDeg:)`); a
 /// drag reports once on end, never per frame — the live wedge shown while dragging is a purely
@@ -176,7 +176,7 @@ class OcptShotListFloorPlanSymbolFovChangedEvent extends OcptShotListFloorPlanPl
   List<Object?> get props => [...super.props, symbolId, fovDeg];
 }
 
-/// Sets camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
+/// Set camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
 /// dispatched by a drag on its own tip handle ending. Written immediately
 /// (`OcptFloorPlanService.updateSymbol(fovReachM:)`); a drag reports once on end, never per frame
 /// — the live wedge shown while dragging is a purely local canvas concern, exactly as
@@ -208,7 +208,7 @@ class OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent
   const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent();
 }
 
-/// Dismisses the transient write error the placements bloc raised.
+/// Dismiss the transient write error the placements bloc raised.
 class OcptShotListFloorPlanPlacementsWriteErrorDismissedEvent
     extends OcptShotListFloorPlanPlacementsEvent {
   /// Class constructor

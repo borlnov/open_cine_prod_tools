@@ -54,7 +54,7 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
   State<OcptFloorPlanCharacterNamePickerDialog> createState() =>
       _OcptFloorPlanCharacterNamePickerDialogState();
 
-  /// Shows the dialog and returns the name picked (trimmed), or null if the user dismissed it.
+  /// Show the dialog and return the name picked (trimmed), or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
     required String initialValue,
@@ -137,7 +137,7 @@ class _OcptFloorPlanCharacterNamePickerDialogState
     );
   }
 
-  /// Pops the dialog with [value], trimmed.
+  /// Pop the dialog with [value], trimmed.
   void _submit(String value) => globalGetIt().get<OcptRouterManager>().pop<String>(value.trim());
 
   /// Dispose [_controller].

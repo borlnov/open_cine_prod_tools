@@ -14,7 +14,7 @@ sealed class OcptShotListWorkspaceEvent extends OcptShotListEvent {
   const OcptShotListWorkspaceEvent();
 }
 
-/// Selects the sequence [sequenceId], expanding it in the left dock and showing its shots in the
+/// Select the sequence [sequenceId], expanding it in the left dock and showing its shots in the
 /// centre table.
 ///
 /// Selecting a sequence other than the one already selected clears the selected shot: the table
@@ -31,7 +31,7 @@ class OcptShotListSequenceSelectedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, sequenceId];
 }
 
-/// Selects the shot [shotId], dispatched by a table row and by a shot entry of the left dock.
+/// Select the shot [shotId], dispatched by a table row and by a shot entry of the left dock.
 ///
 /// Selecting a shot also selects the sequence holding it (so clicking a shot in the left dock's
 /// tree switches the centre table too) and opens the right dock on its inspector tab, matching
@@ -48,13 +48,13 @@ class OcptShotListShotSelectedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, shotId];
 }
 
-/// Toggles the visibility of the left (sequences) dock.
+/// Toggle the visibility of the left (sequences) dock.
 class OcptShotListSequencePanelToggledEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListSequencePanelToggledEvent();
 }
 
-/// Selects a tab of the right dock, dispatched by the dock's own tab row.
+/// Select a tab of the right dock, dispatched by the dock's own tab row.
 ///
 /// Follows the screenplay editor's toggle semantics exactly: selecting the tab already active
 /// closes the dock, any other tab opens (or switches) it. Either way [tab] becomes
@@ -72,20 +72,20 @@ class OcptShotListRightDockTabSelectedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Toggles the right dock as a whole, dispatched by the workspace toolbar's right dock toggle: an
+/// Toggle the right dock as a whole, dispatched by the workspace toolbar's right dock toggle: an
 /// open dock closes, a closed one reopens on `OcptShotListState.lastRightDockTab`.
 class OcptShotListRightDockToggledEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListRightDockToggledEvent();
 }
 
-/// Closes the right dock via its own × close button, whichever tab is currently active.
+/// Close the right dock via its own × close button, whichever tab is currently active.
 class OcptShotListRightDockClosedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListRightDockClosedEvent();
 }
 
-/// Requests updating the mode's dock width fractions, persisting whichever of [left]/[right] is
+/// Request updating the mode's dock width fractions, persisting whichever of [left]/[right] is
 /// given.
 ///
 /// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame, exactly like the
@@ -105,13 +105,13 @@ class OcptShotListDockFractionsChangedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, left, right];
 }
 
-/// Requests restoring both dock fractions to their defaults ("Reset panel layout").
+/// Request restoring both dock fractions to their defaults ("Reset panel layout").
 class OcptShotListDockLayoutResetEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListDockLayoutResetEvent();
 }
 
-/// Shows or hides the optional table column [column], persisting the new set.
+/// Show or hide the optional table column [column], persisting the new set.
 class OcptShotListColumnToggledEvent extends OcptShotListWorkspaceEvent {
   /// The optional column whose visibility is toggled.
   final OcptShotListColumn column;
@@ -124,13 +124,13 @@ class OcptShotListColumnToggledEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, column];
 }
 
-/// Dismisses the transient write error currently shown, if any.
+/// Dismiss the transient write error currently shown, if any.
 class OcptShotListWriteErrorDismissedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListWriteErrorDismissedEvent();
 }
 
-/// Requests leaving the workspace and going back to the projects list.
+/// Request leaving the workspace and going back to the projects list.
 ///
 /// Flushes any pending field edit before closing the current project, so navigating back right
 /// after typing never loses it.
@@ -139,7 +139,7 @@ class OcptShotListBackRequestedEvent extends OcptShotListWorkspaceEvent {
   const OcptShotListBackRequestedEvent();
 }
 
-/// Reports that the project settings page was closed after changing something.
+/// Report that the project settings page was closed after changing something.
 ///
 /// The page format is the only field the scenario coverage export dialog pre-fills from, so this
 /// re-reads it (through `OcptShotListState.pageSetup`) rather than carrying the new value on the
@@ -149,7 +149,7 @@ class OcptShotListProjectSettingsChangedEvent extends OcptShotListWorkspaceEvent
   const OcptShotListProjectSettingsChangedEvent();
 }
 
-/// Selects centre view [view], dispatched by `OcptShotListCentreHeader`'s own switch, and persists
+/// Select centre view [view], dispatched by `OcptShotListCentreHeader`'s own switch, and persist
 /// it through `OcptPropertiesManager.shotListLastCentreView`.
 ///
 /// Keeps `OcptShotListState.selectedShotId`/`.selectedSequenceId` exactly as they were: the two
@@ -166,7 +166,7 @@ class OcptShotListCentreViewSelectedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, view];
 }
 
-/// Selects set `event.setId` on the floor plans view, dispatched by a click on its own tab.
+/// Select set `event.setId` on the floor plans view, dispatched by a click on its own tab.
 /// A symbol only ever belongs to the set currently shown, so the floor plan canvas drops its
 /// selection when it sees the selection move.
 class OcptShotListSetSelectedEvent extends OcptShotListWorkspaceEvent {
@@ -181,7 +181,7 @@ class OcptShotListSetSelectedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Selects set [setId], one the floor plans just linked to the selected sequence (created, linked
+/// Select set [setId], one the floor plans just linked to the selected sequence (created, linked
 /// or duplicated), dispatched by `OcptShotListFloorPlanSetsBloc` once the mode holds the set.
 ///
 /// Moves the selection like [OcptShotListSetSelectedEvent] does, saying why: the set was added.
@@ -197,7 +197,7 @@ class OcptShotListSetAddedEvent extends OcptShotListWorkspaceEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Falls back to the first set of the selected sequence, after the selected set was unlinked from
+/// Fall back to the first set of the selected sequence, after the selected set was unlinked from
 /// it, dispatched by `OcptShotListFloorPlanSetsBloc` once the mode holds the sequence's sets
 /// without it. Selects none when the sequence has no set left.
 class OcptShotListSetRemovedEvent extends OcptShotListWorkspaceEvent {
@@ -205,7 +205,7 @@ class OcptShotListSetRemovedEvent extends OcptShotListWorkspaceEvent {
   const OcptShotListSetRemovedEvent();
 }
 
-/// Reads the floor plans again after a placement was removed or hidden, then moves the selection
+/// Read the floor plans again after a placement was removed or hidden, then move the selection
 /// saying why ([cause]) and which row ([targetId]): dispatched by
 /// `OcptShotListFloorPlanPlacementsBloc` once it wrote, and awaited, so the canvas has cleared what
 /// the gesture always cleared by the time the placements bloc goes on.

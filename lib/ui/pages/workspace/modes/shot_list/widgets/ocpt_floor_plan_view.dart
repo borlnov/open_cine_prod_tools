@@ -399,7 +399,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// button, which calls [_fitToContent] directly, bypassing this guard on purpose) does.
   String? _framedSetId;
 
-  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
+  /// Get [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
   /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
   /// this shot only` group header.
   String? get _focusShotCode {
@@ -415,7 +415,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     return null;
   }
 
-  /// Each `View` group layer's own count of elements the canvas currently draws for the focused
+  /// Get each `View` group layer's own count of elements the canvas currently draws for the focused
   /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
   /// visibility filter — built the same way that filter's own `full` sheet is, so
   /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
@@ -621,7 +621,8 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     );
   }
 
-  /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
+  /// Handle key presses: `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own
+  /// pending anchor while
   /// one is pending; `Ctrl+D` duplicates the selected symbol — see the class doc comment.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) {
@@ -653,7 +654,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     return KeyEventResult.ignored;
   }
 
-  /// [_fitToContent]'s own guarded entry point: a no-op while [OcptFloorPlanView.floorPlanSet]
+  /// Guard the call to [_fitToContent]: a no-op while [OcptFloorPlanView.floorPlanSet]
   /// is null (nothing to frame) or already names [_framedSetId] (already framed — an unrelated
   /// rebuild, or the user's own pan/zoom, never re-triggers this), otherwise records it as framed
   /// and fits. Always called after a frame ([initState]/[didUpdateWidget]'s own post-frame
@@ -670,7 +671,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     _fitToContent();
   }
 
-  /// Fits the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
+  /// Fit the viewport onto [OcptFloorPlanView.floorPlanSet]'s own drawn content
   /// (`ocptFloorPlanFitOf`), reporting the fitted zoom through [OcptFloorPlanView.onZoomSettled] so
   /// it becomes the bloc's own persisted value — the same path a tool bar zoom click reports
   /// through — and never fights [OcptFloorPlanViewportController.syncZoomFromPersisted] on the next
@@ -708,11 +709,11 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     widget.onZoomSettled(fit.zoom);
   }
 
-  /// Opens the character name-picker dialog's own pattern for a free-typed prop label (the
-  /// palette's own `Other…` chip, with its own title and field hint — the reused dialog must
-  /// never still hint at a character), then places it at once — at the centre of this view's own
-  /// currently visible canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and
-  /// selects it, exactly like every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
+  /// Open the character name-picker dialog's own pattern for a free-typed prop label (the palette's
+  /// own `Other…` chip, with its own title and field hint — the reused dialog must never still hint
+  /// at a character), then place it at once — at the centre of this view's own currently visible
+  /// canvas area, at scene scope on [OcptFloorPlanView.focusSceneId] — and select it, exactly like
+  /// every other placement (`OcptShotListBloc._onFloorPlanSymbolPlaced`
   /// already selects whatever it just placed). Never arms the `prop` tool the way the chips do:
   /// a free-typed label is one-shot, unlike a chip staying usable for several placements.
   ///

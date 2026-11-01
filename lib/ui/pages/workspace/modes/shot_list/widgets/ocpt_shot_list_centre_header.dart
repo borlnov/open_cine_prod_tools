@@ -47,7 +47,7 @@ class OcptShotListCentreHeader extends StatelessWidget {
   /// What the active view needs on the header's trailing edge, built by the mode.
   final Widget trailing;
 
-  /// [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
+  /// Get [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
   /// only ever prints the panel count for the view that made it meaningful.
   int? get _summaryPanelCount =>
       isBoardAvailable && centreView == OcptShotListCentreView.board ? boardPanelCount : null;

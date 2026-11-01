@@ -82,7 +82,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
   /// either of the dialog's own close actions.
   final VoidCallback onAnchorCancelled;
 
-  /// The total number of words across every block of [layout], the denominator of the footer's
+  /// Get the total number of words across every block of [layout], the denominator of the footer's
   /// `N words covered of M` counter.
   int get _totalWordCount => layout.blocks.fold(0, (total, block) => total + block.words.length);
 
@@ -243,7 +243,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
     );
   }
 
-  /// Cancels [pendingAnchor], if one is pending, then closes the dialog through
+  /// Cancel [pendingAnchor], if one is pending, then close the dialog through
   /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
   void _cancelAnchorAndClose() {
     if (pendingAnchor != null) {
@@ -351,7 +351,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// Called with a clicked word's own scene-relative start/end offsets.
   final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
-  /// The screenplay layout box [block]'s own line type is typeset in.
+  /// Get the screenplay layout box [block]'s own line type is typeset in.
   ///
   /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
   /// the layout has no block for at all) have no box of their own: they borrow the action box, so
@@ -374,7 +374,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     };
   }
 
-  /// The horizontal alignment [block]'s element is typeset with.
+  /// Get the horizontal alignment [block]'s element is typeset with.
   TextAlign get _textAlign => switch (_elementLayout.alignment) {
     FountainLayoutAlignment.center => TextAlign.center,
     FountainLayoutAlignment.right => TextAlign.right,
@@ -462,7 +462,8 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     );
   }
 
-  /// How [word] is currently painted: the anchor of a range being drawn wins over every coverage,
+  /// Tell how [word] is currently painted: the anchor of a range being drawn wins over every
+  /// coverage,
   /// and this shot's own coverage wins over another shot's.
   _OcptScriptWordState _stateOf(OcptScriptWord word) {
     if (pendingAnchor?.wordStartOffset == word.startOffset) {
@@ -570,7 +571,7 @@ class _OcptScriptWord extends StatelessWidget {
     );
   }
 
-  /// Applies a run's own inline emphasis on top of [base], the element's print style having
+  /// Apply a run's own inline emphasis on top of [base], the element's print style having
   /// already set the base weight and slope: an `*italic*` run inside a bold scene heading prints
   /// bold-italic, exactly as it does in the paper preview and in the PDF.
   static TextStyle _styleOf(FountainInlineStyle style, TextStyle base) => switch (style) {

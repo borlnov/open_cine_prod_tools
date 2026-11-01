@@ -141,7 +141,7 @@ class OcptShotListInspectorBloc
     on<OcptShotListInspectorWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// Clears what the mode's selection move invalidates, and drops what the mode's fresh data no
+  /// Clear what the mode's selection move invalidates, and drop what the mode's fresh data no
   /// longer holds.
   ///
   /// Reads the shot list from [modeBloc]'s current state — the latest data — but the cause of the
@@ -198,7 +198,7 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one through `OcptShotListService.updateShot`, then has
   /// the mode read the shot list and the suggestion lists again, so every derived aggregate and
   /// every field's suggestions reflect what the database now says, and only then forgets them, so
@@ -256,7 +256,7 @@ class OcptShotListInspectorBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// Write every pending field edit directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -301,7 +301,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
+  /// Record the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
   /// visible immediately, and (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onShotFieldChanged(
     OcptShotListShotFieldChangedEvent event,
@@ -314,7 +314,7 @@ class OcptShotListInspectorBloc
     restartDebounce(_fieldEditDebounce, const OcptShotListInspectorFieldEditFlushRequestedEvent());
   }
 
-  /// Writes every pending field edit once the debounce elapses with no further typing.
+  /// Write every pending field edit once the debounce elapses with no further typing.
   ///
   /// When something was written and the `Versions` tab is the one showing, also asks the mode to
   /// refresh its working-copy card, as the mode itself does when a flush it runs lands.
@@ -329,7 +329,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Writes every entry of [pending] that is a shot field through
+  /// Write every entry of [pending] that is a shot field through
   /// `OcptShotListService.updateShot` (translating it into the matching named argument, see
   /// `OcptShotListEditableField`'s own doc comment for the mapping, and deducing an abbreviation
   /// alongside every shot size committed here, see [_deduceAbbreviationIfEmpty]).
@@ -374,7 +374,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Writes onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
+  /// Write onto shot [shotId] the abbreviation [ocptDeduceShotAbbreviation] reads out of the
   /// [shotSize] just committed, unless the shot already carries one.
   ///
   /// Deduced once, at that moment only: an abbreviation the user has typed — or one deduced from
@@ -404,7 +404,7 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Writes a single field edit through `OcptShotListService.updateShot`.
+  /// Write a single field edit through `OcptShotListService.updateShot`.
   /// [OcptShotListEditableField.estimatedDuration] is parsed first; an entry whose raw text
   /// doesn't parse is silently skipped, leaving whatever the database already holds untouched,
   /// rather than failing the whole flush.
@@ -438,7 +438,7 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Sets one difficulty axis of shot `event.shotId` to `event.value`, written immediately.
+  /// Set one difficulty axis of shot `event.shotId` to `event.value`, written immediately.
   Future<void> _onShotDifficultyChanged(
     OcptShotListShotDifficultyChangedEvent event,
     Emitter<OcptShotListInspectorState> emitter,
@@ -467,7 +467,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Attaches role `event.roleId` to shot `event.shotId` if it isn't already, detaches it
+  /// Attach role `event.roleId` to shot `event.shotId` if it isn't already, detach it
   /// otherwise, written immediately.
   Future<void> _onShotCharacterToggled(
     OcptShotListShotCharacterToggledEvent event,
@@ -507,8 +507,8 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Resolves `event.characterName` to a live role, or **creates** a hand-added silent one linked
-  /// to the selected episode (decision 1), then attaches it to shot `event.shotId`: the inspector's
+  /// Resolve `event.characterName` to a live role, or **creates** a hand-added silent one linked to
+  /// the selected episode (decision 1), then attach it to shot `event.shotId`: the inspector's
   /// `＋ Add` field, dispatched once submitted. Written immediately, and reads both the shot list
   /// and the whole cast again, since this is the one shot list action that can mint a fresh role.
   Future<void> _onCharacterAddRequested(
@@ -545,7 +545,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Deletes orphaned role `event.roleId` for good, written immediately: the shared role alert
+  /// Delete orphaned role `event.roleId` for good, written immediately: the shared role alert
   /// banner's orphaned variant's `Delete the role` action, dispatched once the mode's own
   /// `OcptConfirmDialog` has already confirmed it.
   Future<void> _onOrphanedRoleDeleteRequested(
@@ -558,7 +558,7 @@ class OcptShotListInspectorBloc
         _roleIndexService.deleteRole(database: project.database, roleId: event.roleId),
   );
 
-  /// Keeps orphaned role `event.roleId` as a hand-added silent role, written immediately: the
+  /// Keep orphaned role `event.roleId` as a hand-added silent role, written immediately: the
   /// shared role alert banner's orphaned variant's `Keep as silent` action — not destructive, so
   /// reached with no confirmation dialog.
   Future<void> _onOrphanedRoleKept(
@@ -573,7 +573,7 @@ class OcptShotListInspectorBloc
     ),
   );
 
-  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
+  /// Merge role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
   /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
   /// `OcptConfirmDialog` has already confirmed it.
   Future<void> _onRoleMergeRequested(
@@ -589,7 +589,7 @@ class OcptShotListInspectorBloc
     ),
   );
 
-  /// Writes a cast-wide role change through [action] and has the mode read both the shot list and
+  /// Write a cast-wide role change through [action] and have the mode read both the shot list and
   /// the whole cast again, so every view derived from either (the shared role alert banner, a
   /// shot's own chips, the table's characters column) reflects what the database now says. Mirrors
   /// [_writeCoverageChange]'s own try/catch shape, for the three actions the shared role alert
@@ -618,7 +618,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Resolves a click on a scenario coverage word, exactly as
+  /// Resolve a click on a scenario coverage word, exactly as
   /// `OcptShotListCoverageWordClickedEvent` documents: with no range open, a click on one of the
   /// selected shot's own already-covered words removes the range covering it and any other click
   /// opens a range on that word; with a range open, the click closes it wherever it lands. Written
@@ -709,7 +709,7 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Attaches to shot [shotId] every character the range just recorded covers, so selecting a
+  /// Attach to shot [shotId] every character the range just recorded covers, so selecting a
   /// shot's scenario coverage ticks its character chips on its own instead of leaving the same
   /// names to be clicked twice.
   ///
@@ -747,7 +747,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Removes every scenario coverage range of shot `event.shotId`, written immediately: the
+  /// Remove every scenario coverage range of shot `event.shotId`, written immediately: the
   /// inspector's `Clear all` action.
   Future<void> _onCoverageClearRequested(
     OcptShotListCoverageClearRequestedEvent event,
@@ -767,7 +767,7 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Clears the pending coverage anchor, exactly as `OcptShotListCoverageAnchorCancelledEvent`
+  /// Clear the pending coverage anchor, exactly as `OcptShotListCoverageAnchorCancelledEvent`
   /// documents: dispatched by the coverage dialog's `Escape`, a click on empty space in its script
   /// area, or the dialog closing. Leaves the selected shot's own coverage ranges untouched.
   Future<void> _onCoverageAnchorCancelled(
@@ -777,7 +777,7 @@ class OcptShotListInspectorBloc
     emitter(state.copyWithCoverageAnchorCleared());
   }
 
-  /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
+  /// Clear shot `event.shotId`'s `needsCheck` flag and re-stamp every one of its scenario
   /// coverage ranges' digests to the screenplay's current text, written immediately: the
   /// inspector's `Needs checking` callout's `Mark as checked` button.
   ///
@@ -807,9 +807,9 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Writes a scenario coverage change through [action], has the mode read the shot list again so
+  /// Write a scenario coverage change through [action], have the mode read the shot list again so
   /// every dependent aggregate (the `modified` badge, the "also covered by" wash, a shot's
-  /// `needsCheck`) reflects what the database now says, and clears the pending coverage anchor — a
+  /// `needsCheck`) reflects what the database now says, and clear the pending coverage anchor — a
   /// coverage write always leaves the interaction back at its initial, no-anchor state. Mirrors
   /// `_onShotDifficultyChanged`/`_onShotCharacterToggled`'s own try/catch shape.
   Future<void> _writeCoverageChange({
@@ -833,7 +833,7 @@ class OcptShotListInspectorBloc
     }
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptShotListInspectorWriteErrorDismissedEvent event,
     Emitter<OcptShotListInspectorState> emitter,

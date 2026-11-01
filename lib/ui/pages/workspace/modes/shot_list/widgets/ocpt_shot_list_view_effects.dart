@@ -66,7 +66,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     child: child,
   );
 
-  /// Shows the transient write error the board raised as a SnackBar, then dismisses it.
+  /// Show the transient write error the board raised as a SnackBar, then dismiss it.
   void _onStoryboardStateChanged(BuildContext context, OcptShotListStoryboardState state) {
     if (!state.hasWriteError) {
       return;
@@ -80,7 +80,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     );
   }
 
-  /// Shows the transient write error the inspector raised as a SnackBar, then dismisses it.
+  /// Show the transient write error the inspector raised as a SnackBar, then dismiss it.
   void _onInspectorStateChanged(BuildContext context, OcptShotListInspectorState state) {
     if (!state.hasWriteError) {
       return;
@@ -94,7 +94,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     );
   }
 
-  /// Shows the transient write error the floor plan sets bloc raised as a SnackBar, then dismisses
+  /// Show the transient write error the floor plan sets bloc raised as a SnackBar, then dismiss
   /// it.
   void _onFloorPlanSetsStateChanged(BuildContext context, OcptShotListFloorPlanSetsState state) {
     if (!state.hasWriteError) {
@@ -109,7 +109,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     );
   }
 
-  /// Shows the transient write error the placements bloc raised as a SnackBar, then dismisses it.
+  /// Show the transient write error the placements bloc raised as a SnackBar, then dismiss it.
   void _onFloorPlanPlacementsStateChanged(
     BuildContext context,
     OcptShotListFloorPlanPlacementsState state,
@@ -126,8 +126,8 @@ class OcptShotListViewEffects extends StatelessWidget {
     );
   }
 
-  /// Shows the transient write error the floor plan canvas raised as a SnackBar, then dismisses
-  /// it, and opens the character name prompt a freshly placed character symbol asks for.
+  /// Show the transient write error the floor plan canvas raised as a SnackBar, then dismiss it,
+  /// and open the character name prompt a freshly placed character symbol asks for.
   void _onFloorPlanCanvasStateChanged(
     BuildContext context,
     OcptShotListFloorPlanCanvasState state,
@@ -156,7 +156,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     }
   }
 
-  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  /// Show the outcome of an export as a SnackBar, then dismiss it.
   void _onExportStateChanged(BuildContext context, OcptShotListExportState state) {
     final ioNotice = state.ioNotice;
     if (ioNotice == null) {
@@ -169,7 +169,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     context.read<OcptShotListExportBloc>().add(const OcptShotListIoNoticeDismissedEvent());
   }
 
-  /// Opens `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
+  /// Open `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
   /// just placed, pre-filled with its own already-assigned
   /// default label ([OcptShotListFloorPlanCentre.symbolLabelValueOf]) and offering the selected shot's
   /// own characters as
@@ -212,7 +212,7 @@ class OcptShotListViewEffects extends StatelessWidget {
     placementsBloc.add(const OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent());
   }
 
-  /// Maps [notice] to its localized, user-facing message.
+  /// Map [notice] to its localized, user-facing message.
   ///
   /// A succeeded kind degrades to the generic "shared" message on mobile
   /// ([OcptShotListIoNotice.wasShared]): there is no path to name, the export having been handed to

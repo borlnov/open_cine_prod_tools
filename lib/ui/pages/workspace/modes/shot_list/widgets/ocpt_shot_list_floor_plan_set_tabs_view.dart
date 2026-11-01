@@ -98,7 +98,8 @@ class OcptShotListFloorPlanSetTabsView extends StatelessWidget {
     );
   }
 
-  /// How many of the selected sequence's own shots carry at least one live symbol on set [setId] —
+  /// Count how many of the selected sequence's own shots carry at least one live symbol on set
+  /// [setId] —
   /// the set tabs' own placed-shot count badge.
   int _placedShotCountOf(OcptShotListState state, String setId) {
     for (final floorPlanSet in state.setsOfSelectedSequence) {
@@ -113,7 +114,7 @@ class OcptShotListFloorPlanSetTabsView extends StatelessWidget {
     return 0;
   }
 
-  /// [suggestedSetId]'s own display name, read off the project's whole Resources catalogue, or
+  /// Get [suggestedSetId]'s own display name, read off the project's whole Resources catalogue, or
   /// null while [suggestedSetId] is.
   String? _suggestedSetNameOf(OcptShotListState state, String? suggestedSetId) {
     if (suggestedSetId == null) {
@@ -129,7 +130,8 @@ class OcptShotListFloorPlanSetTabsView extends StatelessWidget {
     return null;
   }
 
-  /// Every Resources set of the project **not already linked** to [sequence], grouped by its own
+  /// Get every Resources set of the project **not already linked** to [sequence], grouped by its
+  /// own
   /// location's name — the `＋ Set` menu's own `Link an existing set ▸` submenu entries. A location
   /// with nothing left to offer (every one of its sets already linked) is left out entirely.
   List<(String, List<(String, String)>)> _linkableSetsByLocationOf(
@@ -151,13 +153,13 @@ class OcptShotListFloorPlanSetTabsView extends StatelessWidget {
     return groups;
   }
 
-  /// Every location of the project, `(id, name)` — the `＋ Set` menu's own `Create a set ▸`
+  /// Get every location of the project, `(id, name)` — the `＋ Set` menu's own `Create a set ▸`
   /// submenu's per-location entries.
   List<(String, String)> _locationsForCreationOf(OcptShotListState state) => [
     for (final location in state.locations) (location.id, location.name),
   ];
 
-  /// [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
+  /// Get [setId]'s current name: a pending edit still in the bloc's debounce, or the set's own
   /// stored value.
   String _setNameValueOf(
     OcptShotListState state,

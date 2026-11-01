@@ -65,7 +65,7 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     required this.hasWriteError,
   });
 
-  /// Builds the state of a board nothing has been done on yet.
+  /// Build the state of a board nothing has been done on yet.
   const OcptShotListStoryboardState.init()
     : selectedPanelId = null,
       boardPanelSize = OcptStoryboardPanelSize.medium,
@@ -74,7 +74,8 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
       pendingFieldEdits = const {},
       hasWriteError = false;
 
-  /// The panel [selectedPanelId] identifies among the selected shot of [modeState], or null if none
+  /// Get the panel [selectedPanelId] identifies among the selected shot of [modeState], or null if
+  /// none
   /// is selected (or the selected one is not a panel of the selected shot any more, as happens for
   /// the moment between the mode moving its selection and this bloc reacting to it).
   OcptStoryboardPanel? selectedPanelIn(OcptShotListState modeState) {
@@ -116,7 +117,7 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
-  /// Copies this state with [pendingFieldEdits] as what is still pending once the panels that are
+  /// Copy this state with [pendingFieldEdits] as what is still pending once the panels that are
   /// gone lost theirs, and the panel selection, the annotation tool and the annotation selection
   /// dropped when [isCleared].
   ///
@@ -131,7 +132,7 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     forceSelectedAnnotationIdValue: isCleared,
   );
 
-  /// Copies this state with panel [panelId] selected, the annotation tool and the annotation
+  /// Copy this state with panel [panelId] selected, the annotation tool and the annotation
   /// selection dropped.
   ///
   /// A null [panelId] keeps the current panel selection.
@@ -141,11 +142,11 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     forceSelectedAnnotationIdValue: true,
   );
 
-  /// Copies this state with [size] as the board's common panel height.
+  /// Copy this state with [size] as the board's common panel height.
   OcptShotListStoryboardState copyWithBoardPanelSize({required OcptStoryboardPanelSize size}) =>
       copyWith(boardPanelSize: size);
 
-  /// Copies this state after a panel was deleted: [pendingFieldEdits] is what is still pending,
+  /// Copy this state after a panel was deleted: [pendingFieldEdits] is what is still pending,
   /// and the panel selection, the annotation tool and the annotation selection are dropped when
   /// [wasSelected].
   OcptShotListStoryboardState copyWithDeletedPanelEdits({
@@ -158,48 +159,48 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     forceSelectedAnnotationIdValue: wasSelected,
   );
 
-  /// Copies this state with [tool] as the active annotation tool, or none when it is null.
+  /// Copy this state with [tool] as the active annotation tool, or none when it is null.
   OcptShotListStoryboardState copyWithActiveAnnotationTool({
     required OcptStoryboardAnnotationTool? tool,
   }) => copyWith(activeAnnotationTool: tool, forceActiveAnnotationToolValue: tool == null);
 
-  /// Copies this state with annotation [annotationId] selected.
+  /// Copy this state with annotation [annotationId] selected.
   ///
   /// A null [annotationId] keeps the current annotation selection.
   OcptShotListStoryboardState copyWithSelectedAnnotation({required String? annotationId}) =>
       copyWith(selectedAnnotationId: annotationId);
 
-  /// Copies this state after an annotation was deleted: [pendingFieldEdits] is what is still
+  /// Copy this state after an annotation was deleted: [pendingFieldEdits] is what is still
   /// pending, and the annotation selection is dropped when [wasSelected].
   OcptShotListStoryboardState copyWithDeletedAnnotationEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
     required bool wasSelected,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits, forceSelectedAnnotationIdValue: wasSelected);
 
-  /// Copies this state with [pendingFieldEdits] as the comments and texts waiting in the debounce,
+  /// Copy this state with [pendingFieldEdits] as the comments and texts waiting in the debounce,
   /// a keystroke later.
   OcptShotListStoryboardState copyWithTypedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with no field edit left pending.
+  /// Copy this state with no field edit left pending.
   OcptShotListStoryboardState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  /// Copy this state with [pendingFieldEdits] as what the write that just landed left pending.
   OcptShotListStoryboardState copyWithFlushedFieldEdits({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// Copy this state with the write error raised, [pendingFieldEdits] being what the failed
   /// flush left pending.
   OcptShotListStoryboardState copyToFlushFailed({
     required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
   }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with the write error raised.
+  /// Copy this state with the write error raised.
   OcptShotListStoryboardState copyToWriteFailed() => copyWith(hasWriteError: true);
 
-  /// Copies this state with the write error dismissed.
+  /// Copy this state with the write error dismissed.
   OcptShotListStoryboardState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
