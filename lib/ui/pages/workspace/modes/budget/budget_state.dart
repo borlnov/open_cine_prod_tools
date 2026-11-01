@@ -35,10 +35,12 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_sharing_pot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -94,7 +96,8 @@ class OcptBudgetIoNotice extends Equatable {
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsState<OcptBudgetState>,
-        MixinOcptProjectPackageState<OcptBudgetState> {
+        MixinOcptProjectPackageState<OcptBudgetState>,
+        MixinOcptModeState<OcptBudgetState> {
   /// Whether the quote read is still being loaded from the project database.
   final bool isLoading;
 
@@ -248,6 +251,17 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// A day with no key here names neither in any of its slots, which the view reads as nothing
   /// rather than a placeholder.
   final Map<String, String> regieDecorNameByDayId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  @override
+  final int selectionEpoch;
+
+  /// What moved the selection the last time [selectionEpoch] advanced.
+  final OcptBudgetSelectionCause selectionCause;
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
@@ -537,6 +551,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.mileageRates,
     required this.provisionPosteId,
     required this.regieDecorNameByDayId,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.selectionCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -575,6 +592,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       mileageRates = const [],
       provisionPosteId = null,
       regieDecorNameByDayId = const {},
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      selectionCause = OcptBudgetSelectionCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -593,6 +613,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// [selection], [filterPosteId] and [rightDockTab] all legitimately go back to null while the
   /// mode is alive, so each has its own force flag. [pendingFieldEdits] is always replaced
   /// wholesale — the caller (the bloc's own field-edit handler) always computes the full next map.
+  ///
+  /// **[reloadEpoch] moves by itself** whenever a copy replaces [snapshot], so no handler can read
+  /// the data again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that
+  /// moves it without replacing anything.
   @override
   OcptBudgetState copyWith({
     bool? isLoading,
@@ -623,6 +647,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     String? provisionPosteId,
     bool forceProvisionPosteIdValue = false,
     Map<String, String>? regieDecorNameByDayId,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptBudgetSelectionCause? selectionCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -667,6 +694,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     provisionPosteId:
         provisionPosteId ?? (forceProvisionPosteIdValue ? null : this.provisionPosteId),
     regieDecorNameByDayId: regieDecorNameByDayId ?? this.regieDecorNameByDayId,
+    reloadEpoch: reloadEpoch ?? (snapshot != null ? this.reloadEpoch + 1 : this.reloadEpoch),
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    selectionCause: selectionCause ?? this.selectionCause,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -763,6 +793,9 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     mileageRates,
     provisionPosteId,
     regieDecorNameByDayId,
+    reloadEpoch,
+    selectionEpoch,
+    selectionCause,
     pageSetup,
     ioNotice,
   ];

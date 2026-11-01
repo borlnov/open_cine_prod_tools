@@ -50,11 +50,14 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -110,7 +113,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
-        MixinOcptProjectPackageBloc<OcptBudgetState> {
+        MixinOcptProjectPackageBloc<OcptBudgetState>,
+        MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "budget_bloc";
 
@@ -338,8 +342,65 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
     await _flushPendingFieldEdits(emitter);
-    emitter(state.copyWith(forceSelectionValue: true, forceSelectedShareIdValue: true));
+    emitter(
+      state.copyWith(
+        forceSelectionValue: true,
+        forceSelectedShareIdValue: true,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.cleared,
+      ),
+    );
     return true;
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// Always true, like [flushPendingProjectWrites]: a write that fails is not caught anywhere in
+  /// this mode, so it stops the handler it ran in and nothing after the flush happens.
+  @protected
+  @override
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptBudgetState> emitter) async {
+    await _flushPendingFieldEdits(emitter);
+    await runPendingWritesFlushers();
+    return true;
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// Reading the snapshot also reconciles the shared selection against what was read
+  /// ([_readBudgetSnapshot]). A read that fails is logged and answers false, which stops the view
+  /// that asked: it must not select a row the state may not hold.
+  @protected
+  @override
+  Future<bool> reloadScopesIn(
+    Set<OcptBudgetReloadScope> scopes,
+    Emitter<OcptBudgetState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return false;
+    }
+
+    try {
+      // A switch statement over an enum must name every value: a scope added to the enum does not
+      // compile until it is read here.
+      for (final scope in scopes) {
+        switch (scope) {
+          case OcptBudgetReloadScope.snapshot:
+            await _readBudgetSnapshot(emitter, project);
+        }
+      }
+
+      return true;
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to read again the $scopes of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      return false;
+    }
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -381,37 +442,45 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           people: const [],
           elements: const [],
           regieDecorNameByDayId: const {},
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.load,
         ),
       );
       return;
     }
 
-    final previewedVersion = project.previewedVersion;
-    final loaded = await _loadBudgetSnapshot(project);
-    final pageSetup = await _loadPageSetup(project);
+    // Queued with the views' reloads: a read made here but emitted after a newer one would put
+    // older data over it.
+    await runSerially(() async {
+      final previewedVersion = project.previewedVersion;
+      final loaded = await _loadBudgetSnapshot(project);
+      final pageSetup = await _loadPageSetup(project);
 
-    emitter(
-      state.copyWith(
-        isLoading: false,
-        title: project.name,
-        previewedVersionId: previewedVersion?.id,
-        forcePreviewedVersionIdValue: previewedVersion == null,
-        snapshot: loaded.snapshot,
-        currencyCode: loaded.snapshot.currencyCode,
-        forceSelectionValue: true,
-        forceSelectedShareIdValue: true,
-        pendingFieldEdits: const {},
-        roles: loaded.roles,
-        people: loaded.people,
-        elements: loaded.elements,
-        mileageRates: loaded.mileageRates,
-        provisionPosteId: _defaultProvisionPosteIdOf(loaded.snapshot.postes),
-        regieDecorNameByDayId: loaded.regieDecorNameByDayId,
-        rightDockFraction: rightDockFraction,
-        lastRightDockTab: lastRightDockTab,
-        pageSetup: pageSetup,
-      ),
-    );
+      emitter(
+        state.copyWith(
+          isLoading: false,
+          title: project.name,
+          previewedVersionId: previewedVersion?.id,
+          forcePreviewedVersionIdValue: previewedVersion == null,
+          snapshot: loaded.snapshot,
+          currencyCode: loaded.snapshot.currencyCode,
+          forceSelectionValue: true,
+          forceSelectedShareIdValue: true,
+          pendingFieldEdits: const {},
+          roles: loaded.roles,
+          people: loaded.people,
+          elements: loaded.elements,
+          mileageRates: loaded.mileageRates,
+          provisionPosteId: _defaultProvisionPosteIdOf(loaded.snapshot.postes),
+          regieDecorNameByDayId: loaded.regieDecorNameByDayId,
+          rightDockFraction: rightDockFraction,
+          lastRightDockTab: lastRightDockTab,
+          pageSetup: pageSetup,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.load,
+        ),
+      );
+    });
   }
 
   /// Reads the page setup the mode's own three PDF export dialogs are pre-filled with: the open
@@ -655,7 +724,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     // reads exactly like an app that ignores what it is told.
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(view: event.view, forceSelectionValue: event.clearSelection));
+    emitter(
+      state.copyWith(
+        view: event.view,
+        forceSelectionValue: event.clearSelection,
+        selectionEpoch: event.clearSelection ? state.selectionEpoch + 1 : null,
+        selectionCause: event.clearSelection ? OcptBudgetSelectionCause.viewChanged : null,
+      ),
+    );
   }
 
   /// Switches which of the tools drawer's own three pages is shown — dispatched by the header's
@@ -668,7 +744,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     await _flushPendingFieldEdits(emitter);
 
-    emitter(state.copyWith(toolsView: event.toolsView, forceSelectionValue: event.clearSelection));
+    emitter(
+      state.copyWith(
+        toolsView: event.toolsView,
+        forceSelectionValue: event.clearSelection,
+        selectionEpoch: event.clearSelection ? state.selectionEpoch + 1 : null,
+        selectionCause: event.clearSelection ? OcptBudgetSelectionCause.viewChanged : null,
+      ),
+    );
   }
 
   /// Toggles the header's simplified/detailed switch.
@@ -713,6 +796,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetPosteSelection(event.posteId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -736,6 +821,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           selection: OcptBudgetPosteSelection(posteId),
           rightDockTab: OcptBudgetRightDockTab.inspector,
           lastRightDockTab: OcptBudgetRightDockTab.inspector,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
         ),
       );
     }
@@ -807,6 +894,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetLineSelection(event.lineId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -828,6 +917,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetCommitmentSelection(event.commitmentId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -849,6 +940,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetEntrySelection(event.entryId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -870,6 +963,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetReceiptSelection(event.receiptId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -908,6 +1003,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           selection: OcptBudgetLineSelection(lineId),
           rightDockTab: OcptBudgetRightDockTab.inspector,
           lastRightDockTab: OcptBudgetRightDockTab.inspector,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
         ),
       );
     }
@@ -960,6 +1057,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           selection: OcptBudgetLineSelection(lineId),
           rightDockTab: OcptBudgetRightDockTab.inspector,
           lastRightDockTab: OcptBudgetRightDockTab.inspector,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
         ),
       );
     }
@@ -1500,12 +1599,24 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     final posteId = event.posteId;
     if (posteId == null) {
-      emitter(state.copyWith(forceFilterPosteIdValue: true));
+      emitter(
+        state.copyWith(
+          forceFilterPosteIdValue: true,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.filtered,
+        ),
+      );
       return;
     }
 
     if (state.postes.any((poste) => poste.id == posteId)) {
-      emitter(state.copyWith(filterPosteId: posteId));
+      emitter(
+        state.copyWith(
+          filterPosteId: posteId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.filtered,
+        ),
+      );
     }
   }
 
@@ -1866,10 +1977,21 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   Future<void> _applyBudgetSnapshot(
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,
+  ) => runSerially(() => _readBudgetSnapshot(emitter, project));
+
+  /// Reads [project]'s whole snapshot, reconciles the shared selection against it, emits both in
+  /// one state, and asks for a fresh working-copy capture while the `Versions` tab is open.
+  ///
+  /// Not queued: [_applyBudgetSnapshot] and [reloadScopesIn] queue it, each in its own way. Whatever
+  /// the selection, the filter or the share named that the snapshot no longer holds is dropped in
+  /// the very state that carries the snapshot, and moves the selection epoch with
+  /// [OcptBudgetSelectionCause.reconciled].
+  Future<void> _readBudgetSnapshot(
+    Emitter<OcptBudgetState> emitter,
+    OcptOpenProjectModel project,
   ) async {
     final loaded = await _loadBudgetSnapshot(project);
     final snapshot = loaded.snapshot;
-
     // The filter is reconciled exactly as the selection is: a poste deleted while every view was
     // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
     // naming a poste the project no longer has.
@@ -1904,6 +2026,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         state.selectedShareId == null ||
         snapshot.shares.any((share) => share.id == state.selectedShareId);
 
+    final hasDroppedSelection = !selectionStillExists || !filterStillExists || !shareStillExists;
+
     emitter(
       state.copyWith(
         snapshot: snapshot,
@@ -1921,6 +2045,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         forceSelectionValue: !selectionStillExists,
         forceFilterPosteIdValue: !filterStillExists,
         forceSelectedShareIdValue: !shareStillExists,
+        selectionEpoch: hasDroppedSelection ? state.selectionEpoch + 1 : null,
+        selectionCause: hasDroppedSelection ? OcptBudgetSelectionCause.reconciled : null,
       ),
     );
 
@@ -1944,6 +2070,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetResourceSelection(event.resourceId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -1976,7 +2104,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (resourceId != null) {
-      emitter(state.copyWith(selection: OcptBudgetResourceSelection(resourceId)));
+      emitter(
+        state.copyWith(
+          selection: OcptBudgetResourceSelection(resourceId),
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
+        ),
+      );
     }
   }
 
@@ -2164,7 +2298,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   void _onProvisionPosteSelected(
     OcptBudgetProvisionPosteSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
-  ) => emitter(state.copyWith(provisionPosteId: event.posteId));
+  ) => emitter(
+    state.copyWith(
+      provisionPosteId: event.posteId,
+      selectionEpoch: state.selectionEpoch + 1,
+      selectionCause: OcptBudgetSelectionCause.provisionSelected,
+    ),
+  );
 
   /// Carries out `event.entries` against poste `event.posteId`, confirmed by the mode's own
   /// `OcptConfirmDialog`.
@@ -2225,6 +2365,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selection: OcptBudgetRevenueSelection(event.revenueId),
         rightDockTab: OcptBudgetRightDockTab.inspector,
         lastRightDockTab: OcptBudgetRightDockTab.inspector,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
   }
@@ -2254,7 +2396,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (revenueId != null) {
-      emitter(state.copyWith(selection: OcptBudgetRevenueSelection(revenueId)));
+      emitter(
+        state.copyWith(
+          selection: OcptBudgetRevenueSelection(revenueId),
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
+        ),
+      );
     }
   }
 
@@ -2335,7 +2483,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    emitter(state.copyWith(selectedShareId: event.shareId));
+    emitter(
+      state.copyWith(
+        selectedShareId: event.shareId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.shareSelected,
+      ),
+    );
   }
 
   /// Creates a new share from `event.fields` and selects it — mirrors
@@ -2360,7 +2514,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     await _applyBudgetSnapshot(emitter, project);
     if (shareId != null) {
-      emitter(state.copyWith(selectedShareId: shareId));
+      emitter(
+        state.copyWith(
+          selectedShareId: shareId,
+          selectionEpoch: state.selectionEpoch + 1,
+          selectionCause: OcptBudgetSelectionCause.created,
+        ),
+      );
     }
   }
 

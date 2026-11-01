@@ -35,11 +35,13 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
@@ -344,6 +346,166 @@ void main() {
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
+
+  group("the epochs the views react to", () {
+    test("entering the mode moves both epochs and says why", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, greaterThan(0));
+      expect(state.selectionEpoch, greaterThan(0));
+      expect(state.selectionCause, OcptBudgetSelectionCause.load);
+    });
+
+    test("reading the snapshot again answers true and moves the reload epoch alone", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      // Written behind the mode's back, as a view's own write would be.
+      await projectsManager.budgetQuoteService.createPoste(
+        database: projectsManager.currentProject!.database,
+        label: "Late poste",
+      );
+
+      final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
+
+      expect(hasRead, isTrue);
+      expect(bloc.state.postes, hasLength(_smallSeed.length + 1));
+      expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+    });
+
+    test("reading again with no project open answers false and moves nothing", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      await projectsManager.closeCurrentProject();
+
+      final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
+
+      expect(hasRead, isFalse);
+      expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+    });
+
+    test("a read that fails answers false and moves nothing", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final database = projectsManager.currentProject!.database;
+
+      await database.customStatement("ALTER TABLE budget_entries RENAME TO budget_entries_gone");
+      try {
+        final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
+
+        expect(hasRead, isFalse);
+        expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+      } finally {
+        await database.customStatement("ALTER TABLE budget_entries_gone RENAME TO budget_entries");
+      }
+    });
+
+    test("each way of moving the selection names itself", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      Future<OcptBudgetSelectionCause> causeOf(OcptBudgetEvent event) async {
+        final before = bloc.state.selectionEpoch;
+        bloc.add(event);
+        final moved = await waitForState(bloc, (state) => state.selectionEpoch > before);
+        return moved.selectionCause;
+      }
+
+      expect(
+        await causeOf(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+        OcptBudgetSelectionCause.selected,
+      );
+      expect(
+        await causeOf(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+        OcptBudgetSelectionCause.filtered,
+      );
+      expect(
+        await causeOf(OcptBudgetProvisionPosteSelectedEvent(posteId: posteId)),
+        OcptBudgetSelectionCause.provisionSelected,
+      );
+      expect(
+        await causeOf(
+          const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses, clearSelection: true),
+        ),
+        OcptBudgetSelectionCause.viewChanged,
+      );
+      expect(await causeOf(const OcptBudgetPosteCreatedEvent()), OcptBudgetSelectionCause.created);
+    });
+
+    test("selecting the same row again is still a move, a stale id is not", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      final selected = await waitForState(
+        bloc,
+        (state) => state.selectionEpoch > loaded.selectionEpoch,
+      );
+
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      await waitForState(bloc, (state) => state.selectionEpoch > selected.selectionEpoch);
+
+      final reselected = bloc.state;
+      bloc.add(const OcptBudgetPosteSelectedEvent(posteId: "not-a-poste"));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(bloc.state.selectionEpoch, reselected.selectionEpoch);
+    });
+
+    test("a read that finds the selected poste gone drops it and says so", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      final selected = await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+
+      // Deleted behind the mode's back, as another view's write would be.
+      await projectsManager.budgetQuoteService.deletePoste(
+        database: projectsManager.currentProject!.database,
+        posteId: posteId,
+      );
+      expect(await bloc.reload({OcptBudgetReloadScope.snapshot}), isTrue);
+
+      expect(bloc.state.selection, isNull);
+      expect(bloc.state.selectionEpoch, greaterThan(selected.selectionEpoch));
+      expect(bloc.state.selectionCause, OcptBudgetSelectionCause.reconciled);
+    });
+
+    test("a change that replaces no data leaves both epochs alone", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetSimplifiedToggledEvent(isSimplified: true));
+      await waitForState(bloc, (state) => state.isSimplified);
+
+      expect(bloc.state.reloadEpoch, loaded.reloadEpoch);
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+    });
+
+    test("the project settings page moves the reload epoch, never the selection", () async {
+      final bloc = buildBloc();
+      addTearDown(bloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptBudgetProjectSettingsChangedEvent());
+      await waitForState(bloc, (state) => state.reloadEpoch > loaded.reloadEpoch);
+
+      expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
+    });
+  });
 
   group("loading the quote", () {
     test("seeds the ten CNC postes on the first read of an empty project", () async {
@@ -2219,6 +2381,7 @@ void main() {
     test("loads every live resource alongside the quote", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
 
       final resourceId = await projectsManager.budgetFinancingService.createResource(
@@ -2240,6 +2403,7 @@ void main() {
     test("highlights it, ignoring an id naming no live resource", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final resourceId = await projectsManager.budgetFinancingService.createResource(
         database: project.database,
@@ -2297,6 +2461,7 @@ void main() {
     test("writes every field back", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final resourceId = await projectsManager.budgetFinancingService.createResource(
         database: project.database,
@@ -2337,6 +2502,7 @@ void main() {
     test("tombstones it, and clears the selection when it was selected", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final resourceId = await projectsManager.budgetFinancingService.createResource(
         database: project.database,
@@ -2673,6 +2839,7 @@ void main() {
     test("writes resourceId, and it shows up in receivedByResourceId once credited", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final resourceId = await projectsManager.budgetFinancingService.createResource(
         database: project.database,
@@ -2712,6 +2879,7 @@ void main() {
     test("an edit can also name a resource, wiring it the very same way", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final resourceId = await projectsManager.budgetFinancingService.createResource(
         database: project.database,
@@ -2762,6 +2930,7 @@ void main() {
     test("loads every live revenue and share alongside the quote", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
 
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
@@ -2795,6 +2964,7 @@ void main() {
     test("highlights it, ignoring an id naming no live revenue", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -2818,6 +2988,7 @@ void main() {
     test("opens the Inspector tab, mirroring selecting a resource", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -2871,6 +3042,7 @@ void main() {
     test("writes every field back", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -2907,6 +3079,7 @@ void main() {
     test("moves it to the new position", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final firstId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -2934,6 +3107,7 @@ void main() {
     test("tombstones it, and clears the selection when it was selected", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -2959,6 +3133,7 @@ void main() {
     test("writes revenueId, and it shows up in receivedByRevenueId once credited", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final revenueId = await projectsManager.budgetSharingService.createRevenue(
         database: project.database,
@@ -3001,6 +3176,7 @@ void main() {
     test("highlights it, ignoring an id naming no live share", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final shareId = await projectsManager.budgetSharingService.createShare(
         database: project.database,
@@ -3054,6 +3230,7 @@ void main() {
     test("writes every field back", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final shareId = await projectsManager.budgetSharingService.createShare(
         database: project.database,
@@ -3089,6 +3266,7 @@ void main() {
     test("moves it to the new position", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final firstId = await projectsManager.budgetSharingService.createShare(
         database: project.database,
@@ -3114,6 +3292,7 @@ void main() {
     test("tombstones it, and clears the selection when it was selected", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final shareId = await projectsManager.budgetSharingService.createShare(
         database: project.database,
@@ -3138,6 +3317,7 @@ void main() {
     test("writes shareId, and it shows up in paidByShareId once debited", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
+      await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
       final shareId = await projectsManager.budgetSharingService.createShare(
         database: project.database,
@@ -3181,6 +3361,7 @@ void main() {
       () async {
         final bloc = buildBloc();
         addTearDown(bloc.close);
+        await waitForState(bloc, (state) => !state.isLoading);
         final project = projectsManager.currentProject!;
 
         final personId = await projectsManager.peopleService.createPerson(
