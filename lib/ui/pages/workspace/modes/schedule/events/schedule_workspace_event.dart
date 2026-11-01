@@ -14,17 +14,6 @@ sealed class OcptScheduleWorkspaceEvent extends OcptScheduleEvent {
   const OcptScheduleWorkspaceEvent();
 }
 
-/// Requests loading the current project's whole schedule read: the days with their slots, crew,
-/// cast and blocks, the shot list (for the shots still to place and every placed block's own
-/// label) and the resources catalogues (locations, roles, people) the inspector and the slot/cast
-/// pickers read.
-///
-/// Dispatched once by the bloc's own constructor; it isn't meant to be sent by a widget.
-class OcptScheduleLoadRequestedEvent extends OcptScheduleWorkspaceEvent {
-  /// Class constructor
-  const OcptScheduleLoadRequestedEvent();
-}
-
 /// Requests leaving the workspace: closes the current project and navigates back to the home page.
 class OcptScheduleBackRequestedEvent extends OcptScheduleWorkspaceEvent {
   /// Class constructor

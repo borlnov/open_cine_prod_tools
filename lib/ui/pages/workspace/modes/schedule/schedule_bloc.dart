@@ -79,7 +79,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// since nothing here is a single save.
 ///
 /// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
-/// [flushPendingProjectWrites] and [reloadFromProjectDatabase] (the entry read, [_onLoadRequested]),
+/// [flushPendingProjectWrites] and [reloadFromProjectDatabase] (the entry read, [_load]),
 /// and [MixinOcptProjectPackageBloc] too, which writes the whole project out as a portable package
 /// from the `Export` panel's own standing card. That mixin reuses [flushPendingProjectWrites] —
 /// what a colleague receives is the project *file*, so a debounced edit has to reach it first — and
@@ -92,7 +92,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     with
         MixinOcptProjectVersionsBloc<OcptScheduleState>,
         MixinOcptProjectPackageBloc<OcptScheduleState>,
-        MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope> {
+        MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope>,
+        MixinAsyncInitBloc<OcptScheduleState> {
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
@@ -173,15 +174,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
        _roleCandidatesService =
            roleCandidatesService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleCandidatesService,
-       super(OcptScheduleState.init()) {
-    add(const OcptScheduleLoadRequestedEvent());
-  }
+       super(OcptScheduleState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptScheduleLoadRequestedEvent>(_onLoadRequested);
     on<OcptScheduleBackRequestedEvent>(_onBackRequested);
     on<OcptScheduleLeftPanelToggledEvent>(_onLeftPanelToggled);
     on<OcptScheduleRightDockTabSelectedEvent>(_onRightDockTabSelected);
@@ -313,8 +311,18 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptScheduleState> emitter) =>
-      _onLoadRequested(const OcptScheduleLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptScheduleState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptScheduleState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the current project's whole schedule read: the schedule itself, the shot list and the
   /// three resources catalogues.
@@ -326,10 +334,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// stale one is dropped rather than trusted to still mean the same thing. The selected **day**
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
-  Future<void> _onLoadRequested(
-    OcptScheduleLoadRequestedEvent event,
-    Emitter<OcptScheduleState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.scheduleLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -889,12 +894,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// change. A partial re-read would leave a deleted episode's shots on the board, so the whole
   /// read is redone, exactly as [reloadFromProjectDatabase] redoes it.
   ///
-  /// The cost is the one [_onLoadRequested] always carries and states: the selected day is chosen
+  /// The cost is the one [_load] always carries and states: the selected day is chosen
   /// afresh, and the selected block and shot are dropped. Coming back from a page reached through
   /// the toolbar is a deliberate detour, and a selection kept over a database that may have lost
   /// rows underneath it is worth less than one that is certainly true.
   Future<void> _onProjectSettingsChanged(
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
-  ) => _onLoadRequested(const OcptScheduleLoadRequestedEvent(), emitter);
+  ) => _load(emitter);
 }
