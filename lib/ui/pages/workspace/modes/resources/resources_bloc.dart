@@ -125,9 +125,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// to open on the mode's own default.
   ///
   /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
-  /// load goes through the very same handler (entering or leaving a version preview calls
-  /// [reloadFromProjectDatabase], which is [_load]), and re-applying it there would
-  /// yank the user back to a record they may well have navigated away from.
+  /// load goes through the very same method (entering or leaving a version preview calls
+  /// [reloadFromProjectDatabase], which is [_load]), and re-applying it there would yank the user
+  /// back to a record they may well have navigated away from.
   OcptResourcesRevealRequest? _pendingRevealRequest;
 
   /// The episode this bloc reads and writes, handed down by `OcptResourcesMode` from
@@ -298,9 +298,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   Future<void> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
-  ///
-  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
-  /// again.
   @protected
   @override
   Future<void> initAsyncBloc({required Emitter<OcptResourcesState> emit}) async {
