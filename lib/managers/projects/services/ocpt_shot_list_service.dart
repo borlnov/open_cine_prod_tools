@@ -3,14 +3,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_cascade_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_character_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_rows.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_suggestion_ops.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_shots_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
@@ -19,7 +21,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
-import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -280,7 +281,7 @@ class OcptShotListService extends AbsOcptService {
       return null;
     }
 
-    final existing = await _shotRowsOfGroup(
+    final existing = await OcptShotListRows.shotRowsOfGroup(
       database: database,
       screenplayId: screenplayId,
       sceneId: sceneId,
@@ -385,7 +386,7 @@ class OcptShotListService extends AbsOcptService {
     );
 
     await database.transaction(() async {
-      final current = await _liveShotRowOrNull(database: database, shotId: shotId);
+      final current = await OcptShotListRows.liveShotRowOrNull(database: database, shotId: shotId);
       if (current == null) {
         return;
       }
@@ -491,7 +492,10 @@ class OcptShotListService extends AbsOcptService {
         );
       }
 
-      final characterRows = await _characterRowsOfShot(database: database, shotId: shotId);
+      final characterRows = await OcptShotListRows.characterRowsOfShot(
+        database: database,
+        shotId: shotId,
+      );
       for (final row in characterRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -514,7 +518,7 @@ class OcptShotListService extends AbsOcptService {
         stamps: stamps,
       );
 
-      final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
+      final shot = await OcptShotListRows.liveShotRowOrNull(database: database, shotId: shotId);
       if (shot != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -548,8 +552,8 @@ class OcptShotListService extends AbsOcptService {
     }
 
     await database.transaction(() async {
-      final shot = await _getShotRow(database: database, shotId: shotId);
-      final others = (await _shotRowsOfGroup(
+      final shot = await OcptShotListRows.getShotRow(database: database, shotId: shotId);
+      final others = (await OcptShotListRows.shotRowsOfGroup(
         database: database,
         screenplayId: shot.screenplayId,
         sceneId: shot.sceneId,
@@ -577,508 +581,112 @@ class OcptShotListService extends AbsOcptService {
     });
   }
 
-  /// Attaches role [roleId] to shot [shotId], appended after its current characters. Does nothing
-  /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name
-  /// a live role.
-  ///
-  /// A shot's characters are the production's `roles`
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), and `shot_characters` is
-  /// keyed by `{shotId, roleId}`: this method is purely mechanical, taking [roleId] as given rather
-  /// than resolving one out of a typed name — that resolution (or creation, decision 1) is the
-  /// caller's, through [resolveOrCreateRoleId]. A character detached earlier left a tombstone
-  /// behind: re-attaching it therefore lifts that tombstone rather than inserting a second row,
-  /// which the key would refuse anyway.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptShotListCharacterOps.attachCharacter].
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String roleId,
-  }) async {
-    if (database.refusesUserWrite("attachCharacter")) {
-      return;
-    }
+  }) => OcptShotListCharacterOps.attachCharacter(
+    database: database,
+    shotId: shotId,
+    roleId: roleId,
+    deviceId: deviceId,
+  );
 
-    await database.transaction(() async {
-      final shot = await _liveShotRowOrNull(database: database, shotId: shotId);
-      if (shot == null || !await _liveRoleExists(database: database, roleId: roleId)) {
-        return;
-      }
-
-      final existing = await _characterRowsOfShot(database: database, shotId: shotId);
-      if (existing.any((row) => row.roleId == roleId)) {
-        return;
-      }
-
-      final sortKey = ocptFractionalKeyBetween(
-        before: existing.isEmpty ? null : existing.last.sortKey,
-      );
-
-      final tombstone = await _characterRow(database: database, shotId: shotId, roleId: roleId);
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      final rowId = ocptCompositeRowStampKey([shotId, roleId]);
-
-      if (tombstone != null) {
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptShotCharactersTable,
-          rowId: rowId,
-          current: tombstone,
-          next: tombstone.copyWith(sortKey: sortKey, isDeleted: false),
-          stamps: stamps,
-        );
-        await stamps.flush(database);
-        return;
-      }
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotCharactersTable,
-        rowId: rowId,
-        current: null,
-        next: OcptShotCharacterRow(
-          shotId: shotId,
-          roleId: roleId,
-          position: existing.length,
-          sortKey: sortKey,
-          isDeleted: false,
-        ),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Detaches role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
-  /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that
-  /// doesn't exist.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptShotListCharacterOps.detachCharacter].
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
     required String roleId,
-  }) async {
-    if (database.refusesUserWrite("detachCharacter")) {
-      return;
-    }
+  }) => OcptShotListCharacterOps.detachCharacter(
+    database: database,
+    shotId: shotId,
+    roleId: roleId,
+    deviceId: deviceId,
+  );
 
-    await database.transaction(() async {
-      final current = await _characterRow(database: database, shotId: shotId, roleId: roleId);
-      if (current == null || current.isDeleted) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotCharactersTable,
-        rowId: ocptCompositeRowStampKey([shotId, roleId]),
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// The hook `OcptSceneIndexService.reconcile` invokes, through `OcptScreenplayService`,
-  /// immediately before tombstoning [scenesAboutToBeDeleted] in the `scenes` table.
-  ///
-  /// Every shot of every one of [scenesAboutToBeDeleted] is orphaned: its `sceneId` becomes null,
-  /// its `orphanedHeading` becomes the scene's heading, `needsCheck` becomes true with
-  /// [OcptShotCheckReason.sceneDeleted], and its coverage ranges are tombstoned (a range anchored
-  /// to a scene that no longer exists is meaningless). The newly orphaned shots are appended, in
-  /// the order [scenesAboutToBeDeleted] lists their scenes and each scene's own shot order, after
-  /// whichever shots were already orphaned, each getting a `sortKey` past the orphan group's
-  /// current tail so [OcptOrphanShotSequence] reads grouped by [OcptShot.orphanedHeading] without
-  /// any extra grouping logic at read time.
-  ///
-  /// Called inside `reconcile`'s own transaction: this method does not open one of its own, and
-  /// stamps through [stamps] — the caller's own instance, seeded and flushed around the whole
-  /// save — rather than resolving a device id of its own.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptShotListCascadeOps.detachShotsFromDeletedScenes].
   Future<void> detachShotsFromDeletedScenes({
     required OcptProjectDatabase database,
     required List<OcptSceneRow> scenesAboutToBeDeleted,
     required OcptRowStampService? stamps,
-  }) async {
-    if (database.refusesUserWrite("detachShotsFromDeletedScenes")) {
-      return;
-    }
+  }) => OcptShotListCascadeOps.detachShotsFromDeletedScenes(
+    database: database,
+    scenesAboutToBeDeleted: scenesAboutToBeDeleted,
+    stamps: stamps,
+  );
 
-    if (scenesAboutToBeDeleted.isEmpty) {
-      return;
-    }
-
-    // Every scene about to be deleted belongs to the same screenplay: `reconcile` only ever
-    // reconciles one screenplay's scenes at a time.
-    final screenplayId = scenesAboutToBeDeleted.first.screenplayId;
-
-    final existingOrphans = await _shotRowsOfGroup(
-      database: database,
-      screenplayId: screenplayId,
-      sceneId: null,
-    );
-    var previousSortKey = existingOrphans.isEmpty ? null : existingOrphans.last.sortKey;
-    var nextPosition = existingOrphans.length;
-
-    for (final scene in scenesAboutToBeDeleted) {
-      final shotsOfScene = await _shotRowsOfGroup(
-        database: database,
-        screenplayId: screenplayId,
-        sceneId: scene.id,
-      );
-
-      for (final shot in shotsOfScene) {
-        final coverageRows = await (database.select(
-          database.ocptShotCoveragesTable,
-        )..where((table) => table.shotId.equals(shot.id) & table.isDeleted.not())).get();
-        for (final coverageRow in coverageRows) {
-          await OcptRowStampService.writeAndStamp(
-            database: database,
-            table: database.ocptShotCoveragesTable,
-            rowId: coverageRow.id,
-            current: coverageRow,
-            next: coverageRow.copyWith(isDeleted: true),
-            stamps: stamps,
-          );
-        }
-
-        previousSortKey = ocptFractionalKeyBetween(before: previousSortKey);
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptShotsTable,
-          rowId: shot.id,
-          current: shot,
-          next: shot.copyWith(
-            sceneId: const Value(null),
-            orphanedHeading: Value(scene.heading),
-            position: nextPosition,
-            sortKey: previousSortKey,
-            needsCheck: true,
-            checkReason: const Value(OcptShotCheckReason.sceneDeleted),
-          ),
-          stamps: stamps,
-        );
-        nextPosition++;
-      }
-    }
-  }
-
-  /// Tombstones every live shot of [screenplayId] — across every scene and the orphan group alike —
-  /// carrying off its `shot_characters`, `shot_coverages`, storyboard panels and floor plan
-  /// shot-layer placements exactly as [deleteShot] does for one shot, and returns the ids it
-  /// tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which needs those ids to also
-  /// tombstone whatever a schedule block placed of one of them.
-  ///
-  /// **Unguarded**, exactly as `OcptElementsService.tombstoneRoleLinksOfRole` is: its only caller
-  /// has already refused the write on a preview connection and is already inside the transaction
-  /// removing the episode, so a second guard here would only be able to disagree with the first —
-  /// and stamps through [stamps], that caller's own instance, for the same reason
-  /// [detachShotsFromDeletedScenes] does.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forwards to [OcptShotListCascadeOps.tombstoneShotsOfScreenplay].
   Future<List<String>> tombstoneShotsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
     required OcptRowStampService? stamps,
-  }) async {
-    final shotIds = await _shotIdsOfScreenplay(database: database, screenplayId: screenplayId);
-    if (shotIds.isEmpty) {
-      return const [];
-    }
+  }) => OcptShotListCascadeOps.tombstoneShotsOfScreenplay(
+    database: database,
+    screenplayId: screenplayId,
+    stamps: stamps,
+    storyboardService: storyboardService,
+    floorPlanService: floorPlanService,
+  );
 
-    final coverageRows = await (database.select(
-      database.ocptShotCoveragesTable,
-    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
-    for (final row in coverageRows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotCoveragesTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-
-    final characterRows = await (database.select(
-      database.ocptShotCharactersTable,
-    )..where((table) => table.shotId.isIn(shotIds) & table.isDeleted.not())).get();
-    for (final row in characterRows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotCharactersTable,
-        rowId: ocptCompositeRowStampKey([row.shotId, row.roleId]),
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-
-    for (final shotId in shotIds) {
-      await storyboardService.tombstonePanelsOfShot(
-        database: database,
-        shotId: shotId,
-        stamps: stamps,
-      );
-      await floorPlanService.tombstoneFloorPlanRowsOfShot(
-        database: database,
-        shotId: shotId,
-        stamps: stamps,
-      );
-    }
-
-    final shotRows = await (database.select(
-      database.ocptShotsTable,
-    )..where((table) => table.id.isIn(shotIds) & table.isDeleted.not())).get();
-    for (final row in shotRows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptShotsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-
-    return shotIds;
-  }
-
-  /// Every distinct, non-empty value of `shots.shotSize` across screenplay [screenplayId], for the
-  /// field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctShotSizes].
   Future<List<String>> distinctShotSizes({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
-    database: database,
-    screenplayId: screenplayId,
-    column: (table) => table.shotSize,
-  );
+  }) => OcptShotListSuggestionOps.distinctShotSizes(database: database, screenplayId: screenplayId);
 
-  /// Every distinct, non-empty value of `shots.framing` across screenplay [screenplayId], for the
-  /// field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctFramings].
   Future<List<String>> distinctFramings({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
-    database: database,
-    screenplayId: screenplayId,
-    column: (table) => table.framing,
-  );
+  }) => OcptShotListSuggestionOps.distinctFramings(database: database, screenplayId: screenplayId);
 
-  /// Every distinct, non-empty value of `shots.cameraMove` across screenplay [screenplayId], for
-  /// the field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctCameraMoves].
   Future<List<String>> distinctCameraMoves({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
-    database: database,
-    screenplayId: screenplayId,
-    column: (table) => table.cameraMove,
-  );
+  }) =>
+      OcptShotListSuggestionOps.distinctCameraMoves(database: database, screenplayId: screenplayId);
 
-  /// Every distinct, non-empty value of `shots.lens` across screenplay [screenplayId], for the
-  /// field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctLenses].
   Future<List<String>> distinctLenses({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
-    database: database,
-    screenplayId: screenplayId,
-    column: (table) => table.lens,
-  );
+  }) => OcptShotListSuggestionOps.distinctLenses(database: database, screenplayId: screenplayId);
 
-  /// Every distinct, non-empty value of `shots.recordingFormat` across screenplay [screenplayId],
-  /// for the field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctRecordingFormats].
   Future<List<String>> distinctRecordingFormats({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
+  }) => OcptShotListSuggestionOps.distinctRecordingFormats(
     database: database,
     screenplayId: screenplayId,
-    column: (table) => table.recordingFormat,
   );
 
-  /// Every distinct, non-empty value of `shots.sound` across screenplay [screenplayId], for the
-  /// field's project-wide suggestion list.
+  /// Forwards to [OcptShotListSuggestionOps.distinctSounds].
   Future<List<String>> distinctSounds({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => _distinctValuesOf(
-    database: database,
-    screenplayId: screenplayId,
-    column: (table) => table.sound,
-  );
+  }) => OcptShotListSuggestionOps.distinctSounds(database: database, screenplayId: screenplayId);
 
-  /// Every free-text field's suggestion list, scoped to screenplay [screenplayId]: what has already
-  /// been entered elsewhere in *this* screenplay, not the whole project's.
+  /// Forwards to [OcptShotListSuggestionOps.loadFieldSuggestions].
   Future<OcptShotFieldSuggestions> loadFieldSuggestions({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async => OcptShotFieldSuggestions(
-    shotSizes: await distinctShotSizes(database: database, screenplayId: screenplayId),
-    framings: await distinctFramings(database: database, screenplayId: screenplayId),
-    cameraMoves: await distinctCameraMoves(database: database, screenplayId: screenplayId),
-    lenses: await distinctLenses(database: database, screenplayId: screenplayId),
-    recordingFormats: await distinctRecordingFormats(
-      database: database,
-      screenplayId: screenplayId,
-    ),
-    sounds: await distinctSounds(database: database, screenplayId: screenplayId),
+  }) => OcptShotListSuggestionOps.loadFieldSuggestions(
+    database: database,
+    screenplayId: screenplayId,
   );
 
-  /// Collects the distinct, non-empty values of a single free-text column of `shots` across
-  /// screenplay [screenplayId], sorted alphabetically.
-  Future<List<String>> _distinctValuesOf({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required TextColumn Function(OcptShotsTable table) column,
-  }) async {
-    final query = database.selectOnly(database.ocptShotsTable, distinct: true)
-      ..addColumns([column(database.ocptShotsTable)])
-      ..where(
-        database.ocptShotsTable.screenplayId.equals(screenplayId) &
-            database.ocptShotsTable.isDeleted.not() &
-            column(database.ocptShotsTable).equals("").not(),
-      )
-      ..orderBy([OrderingTerm.asc(column(database.ocptShotsTable))]);
-
-    final rows = await query.get();
-    return [for (final row in rows) row.read(column(database.ocptShotsTable))!];
-  }
-
-  /// Reads back the shot row [shotId], throwing if it doesn't exist or has been tombstoned.
-  Future<OcptShotRow> _getShotRow({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) => (database.select(
-    database.ocptShotsTable,
-  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingle();
-
-  /// Reads back the shot row [shotId], or null if it doesn't exist or has been tombstoned: the
-  /// non-throwing sibling of [_getShotRow], for a write that is a silent no-op on a stale id
-  /// rather than a bug.
-  Future<OcptShotRow?> _liveShotRowOrNull({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) => (database.select(
-    database.ocptShotsTable,
-  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
-
-  /// Every live shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies
-  /// (a real scene, or the orphan group when [sceneId] is null), ordered by `sortKey`.
-  Future<List<OcptShotRow>> _shotRowsOfGroup({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String? sceneId,
-  }) {
-    final sceneCondition = sceneId == null
-        ? database.ocptShotsTable.sceneId.isNull()
-        : database.ocptShotsTable.sceneId.equals(sceneId);
-
-    return (database.select(database.ocptShotsTable)
-          ..where(
-            (table) =>
-                table.screenplayId.equals(screenplayId) & sceneCondition & table.isDeleted.not(),
-          )
-          ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-        .get();
-  }
-
-  /// Every live shot id of screenplay [screenplayId], across every scene and the orphan group
-  /// alike.
-  Future<List<String>> _shotIdsOfScreenplay({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) async {
-    final rows = await (database.select(
-      database.ocptShotsTable,
-    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
-    return rows.map((row) => row.id).toList(growable: false);
-  }
-
-  /// Every live character row of shot [shotId], ordered by `sortKey`.
-  Future<List<OcptShotCharacterRow>> _characterRowsOfShot({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) =>
-      (database.select(database.ocptShotCharactersTable)
-            ..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
-
-  /// The `{shotId, roleId}` row, **tombstoned or not**, or null if that pair was never attached at
-  /// all: the one read that has to see through tombstones, since the primary key it looks up is
-  /// what an insertion would collide with.
-  Future<OcptShotCharacterRow?> _characterRow({
-    required OcptProjectDatabase database,
-    required String shotId,
-    required String roleId,
-  }) => (database.select(
-    database.ocptShotCharactersTable,
-  )..where((table) => table.shotId.equals(shotId) & table.roleId.equals(roleId))).getSingleOrNull();
-
-  /// Whether role [roleId] names a live row of [database] — the guard [attachCharacter] takes
-  /// against being handed a role id that doesn't (or no longer) exist, since a roleId-native caller
-  /// is trusted for the id's shape but not for its liveness.
-  Future<bool> _liveRoleExists({
-    required OcptProjectDatabase database,
-    required String roleId,
-  }) async {
-    final role = await (database.select(
-      database.ocptRolesTable,
-    )..where((table) => table.id.equals(roleId) & table.isDeleted.not())).getSingleOrNull();
-    return role != null;
-  }
-
-  /// Resolves [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
-  /// role's id in [database], or **creates** a hand-added silent role linked to [screenplayId]
-  /// through [roleIndexService] when none exists
-  /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the
-  /// resolve-or- create path the shot list's own add-character affordance calls before
-  /// [attachCharacter], now that [attachCharacter] itself is roleId-native (the resolution lives in
-  /// the caller, not in the service).
-  ///
-  /// The first in `sortKey` order wins on the rare chance more than one live role shares a name —
-  /// the same deterministic tie-break `OcptRoleIndexService.reconcile` and the schema v3 migration
-  /// use.
-  ///
-  /// Opens no transaction of its own: [OcptRoleIndexService.addRole] opens one when it actually
-  /// mints a role, which simply runs as part of whichever transaction the caller is already inside
-  /// (`ConnectionUser.transaction`'s own doc comment on nested transactions) — or on its own when
-  /// the caller isn't inside one, exactly as reading is always safe to do outside a transaction.
-  ///
-  /// Returns null only if creating a fresh role is refused for having been handed a preview
-  /// connection.
+  /// Forwards to [OcptShotListCharacterOps.resolveOrCreateRoleId].
   Future<String?> resolveOrCreateRoleId({
     required OcptProjectDatabase database,
     required String screenplayId,
     required String name,
-  }) async {
-    final normalizedName = normalizeCharacterName(name);
-
-    final existingRole =
-        await (database.select(database.ocptRolesTable)
-              ..where((table) => table.name.equals(normalizedName) & table.isDeleted.not())
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)])
-              ..limit(1))
-            .getSingleOrNull();
-    if (existingRole != null) {
-      return existingRole.id;
-    }
-
-    return roleIndexService.addRole(
-      database: database,
-      screenplayId: screenplayId,
-      name: normalizedName,
-      kind: OcptRoleKind.silent,
-    );
-  }
+  }) => OcptShotListCharacterOps.resolveOrCreateRoleId(
+    database: database,
+    screenplayId: screenplayId,
+    name: name,
+    roleIndexService: roleIndexService,
+  );
 }
