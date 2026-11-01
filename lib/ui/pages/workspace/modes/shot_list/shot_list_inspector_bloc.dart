@@ -190,9 +190,9 @@ class OcptShotListInspectorBloc
     }
 
     emitter(
-      state.copyWith(
+      state.copyWithPrunedFieldEdits(
         pendingFieldEdits: pending.length == state.pendingFieldEdits.length ? null : pending,
-        forcePendingCoverageAnchorValue: isAnchorCleared,
+        isAnchorCleared: isAnchorCleared,
       ),
     );
   }
@@ -205,7 +205,7 @@ class OcptShotListInspectorBloc
   ) async {
     final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
       ..[OcptShotListShotFieldEditKey(shotId: event.shotId, field: event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptShotListInspectorFieldEditFlushRequestedEvent());
   }
@@ -245,7 +245,7 @@ class OcptShotListInspectorBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -256,7 +256,7 @@ class OcptShotListInspectorBloc
         OcptShotListReloadScope.suggestions,
       });
       emitter(
-        state.copyWith(
+        state.copyWithFlushedFieldEdits(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,
@@ -271,8 +271,7 @@ class OcptShotListInspectorBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
-          hasWriteError: true,
+        state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,
@@ -463,7 +462,7 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -503,7 +502,7 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -543,7 +542,7 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -616,7 +615,7 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -655,7 +654,7 @@ class OcptShotListInspectorBloc
       );
       if (coveringRange == null) {
         emitter(
-          state.copyWith(
+          state.copyWithCoverageAnchor(
             pendingCoverageAnchor: (
               wordStartOffset: event.wordStartOffset,
               wordEndOffset: event.wordEndOffset,
@@ -776,7 +775,7 @@ class OcptShotListInspectorBloc
     OcptShotListCoverageAnchorCancelledEvent event,
     Emitter<OcptShotListInspectorState> emitter,
   ) async {
-    emitter(state.copyWith(forcePendingCoverageAnchorValue: true));
+    emitter(state.copyWithCoverageAnchorCleared());
   }
 
   /// Clears shot `event.shotId`'s `needsCheck` flag and re-stamps every one of its scenario
@@ -823,7 +822,7 @@ class OcptShotListInspectorBloc
     try {
       await action();
       await modeBloc.reload({OcptShotListReloadScope.snapshot});
-      emitter(state.copyWith(forcePendingCoverageAnchorValue: true));
+      emitter(state.copyWithCoverageAnchorCleared());
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to change the scenario coverage of shot $shotId of "
@@ -831,7 +830,7 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, forcePendingCoverageAnchorValue: true));
+      emitter(state.copyToCoverageWriteFailed());
     }
   }
 
@@ -840,6 +839,6 @@ class OcptShotListInspectorBloc
     OcptShotListInspectorWriteErrorDismissedEvent event,
     Emitter<OcptShotListInspectorState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 }
