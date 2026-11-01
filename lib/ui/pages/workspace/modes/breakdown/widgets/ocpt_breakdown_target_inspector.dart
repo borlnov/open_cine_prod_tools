@@ -230,7 +230,9 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(child: _buildTitle(context, theme)),
+            Expanded(
+              child: _Title(target: target, nameValue: nameValue, onNameChanged: onNameChanged),
+            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -242,31 +244,45 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         const SizedBox(height: 16),
 
         if (element != null) ...[
-          _sectionTitle(context, tr.breakdownElementStatusSectionTitle),
+          _SectionTitle(title: tr.breakdownElementStatusSectionTitle),
           const SizedBox(height: 8),
-          _buildStatusChips(context, element),
+          _StatusChips(element: element, onStatusChanged: onStatusChanged),
           const SizedBox(height: 16),
 
-          _sectionTitle(context, tr.breakdownElementCategorySectionTitle),
+          _SectionTitle(title: tr.breakdownElementCategorySectionTitle),
           const SizedBox(height: 8),
-          _buildCategoryGrid(context, element),
+          _CategoryGrid(element: element, onCategoryChanged: onCategoryChanged),
           const SizedBox(height: 16),
 
-          _sectionTitle(context, tr.breakdownElementDetailsSectionTitle),
+          _SectionTitle(title: tr.breakdownElementDetailsSectionTitle),
           const SizedBox(height: 8),
-          _buildDetails(context, tr, element),
+          _Details(
+            element: element,
+            people: people,
+            owner: owner,
+            bringer: bringer,
+            fieldValueOf: fieldValueOf,
+            onFieldChanged: onFieldChanged,
+            onOwnerChanged: onOwnerChanged,
+            onBringerChanged: onBringerChanged,
+          ),
           const SizedBox(height: 16),
         ],
 
-        _sectionTitle(context, tr.breakdownOccurrencesSectionTitle),
+        _SectionTitle(title: tr.breakdownOccurrencesSectionTitle),
         const SizedBox(height: 8),
-        _buildOccurrences(context, tr, occurrences),
+        _Occurrences(occurrences: occurrences, onOccurrenceSelected: onOccurrenceSelected),
         const SizedBox(height: 16),
 
         if (suggestions.isNotEmpty) ...[
-          _sectionTitle(context, tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length)),
+          _SectionTitle(title: tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length)),
           const SizedBox(height: 8),
-          _buildSuggestedOccurrences(context, tr, suggestions),
+          _SuggestedOccurrences(
+            suggestions: suggestions,
+            scenes: scenes,
+            onOccurrenceSelected: onOccurrenceSelected,
+            onSuggestionAccepted: onSuggestionAccepted,
+          ),
           const SizedBox(height: 16),
         ],
 
@@ -286,25 +302,130 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     );
   }
 
-  /// The status chips row, one per [OcptElementStatus], the current one filled.
-  Widget _buildStatusChips(BuildContext context, OcptElement element) => Wrap(
-    spacing: 6,
-    runSpacing: 6,
-    children: [
-      for (final status in OcptElementStatus.values)
-        OcptBreakdownChoiceChip(
-          label: ocptElementStatusLabel(Tr.of(context), status),
-          color: ocptElementStatusColor(context, status),
-          isSelected: element.status == status,
-          onTap: onStatusChanged == null ? null : () => onStatusChanged!(status),
-        ),
-    ],
-  );
+  /// [target]'s live occurrences, resolved out of [scenes] in scene order — each scene's own
+  /// [OcptBreakdownScene.tags] already ordered by start offset, the order the passages are read in.
+  List<_OcptBreakdownOccurrence> _occurrencesOf() => [
+    for (final scene in scenes)
+      for (final tag in scene.tags)
+        if (tag.targetKind == target.kind && tag.targetId == target.id)
+          _OcptBreakdownOccurrence(
+            sceneId: scene.id,
+            sceneNumber: scene.displayNumber,
+            sceneHeading: scene.heading,
+            extract: tag.taggedText,
+          ),
+  ];
+}
 
-  /// The two-column category grid, each entry carrying its own palette swatch, the current one
-  /// marked.
-  Widget _buildCategoryGrid(BuildContext context, OcptElement element) {
+/// The panel's title: [target]'s name, typed into directly when it may be renamed and read out as
+/// plain text when it may not.
+///
+/// The rename lives here rather than among the details below because this *is* the thing being
+/// renamed: an element or a set created from the script carries the passage's own wording, and the
+/// moment to correct it is while reading the name, not after scrolling past a status grid to find a
+/// field repeating it.
+class _Title extends StatelessWidget {
+  /// The selected target.
+  final OcptBreakdownTarget target;
+
+  /// [target]'s current name.
+  final String nameValue;
+
+  /// Called with the title field's raw text on every keystroke, or null while [target] may not be
+  /// renamed.
+  final ValueChanged<String>? onNameChanged;
+
+  /// Class constructor
+  const _Title({required this.target, required this.nameValue, required this.onNameChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleSmall;
+    final onNameChanged = this.onNameChanged;
+
+    if (onNameChanged == null) {
+      return Text(nameValue, style: style);
+    }
+
+    // Keyed by the kind as well as the id, so switching from an element to a set that happens to
+    // carry the same id resets the field rather than keeping the name it was showing.
+    return OcptResourcesSheetField(
+      ownerId: "${target.kind.name}/${target.id}",
+      label: "",
+      value: nameValue,
+      textStyle: style,
+      onChanged: onNameChanged,
+    );
+  }
+}
+
+/// One section title, the accent-coloured header the mock-up uses to separate the panel's sections,
+/// mirroring the shot inspector's own section title.
+class _SectionTitle extends StatelessWidget {
+  /// The title's text.
+  final String title;
+
+  /// Class constructor
+  const _SectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Text(
+      title,
+      style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+    );
+  }
+}
+
+/// The status chips row, one per [OcptElementStatus], the current one filled.
+class _StatusChips extends StatelessWidget {
+  /// The element whose status is shown.
+  final OcptElement element;
+
+  /// Called with the status just picked, or null while it may not be changed.
+  final ValueChanged<OcptElementStatus>? onStatusChanged;
+
+  /// Class constructor
+  const _StatusChips({required this.element, required this.onStatusChanged});
+
+  @override
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
+    final onStatusChanged = this.onStatusChanged;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final status in OcptElementStatus.values)
+          OcptBreakdownChoiceChip(
+            label: ocptElementStatusLabel(tr, status),
+            color: ocptElementStatusColor(context, status),
+            isSelected: element.status == status,
+            onTap: onStatusChanged == null ? null : () => onStatusChanged(status),
+          ),
+      ],
+    );
+  }
+}
+
+/// The two-column category grid, each entry carrying its own palette swatch, the current one marked.
+class _CategoryGrid extends StatelessWidget {
+  /// The element whose category is shown.
+  final OcptElement element;
+
+  /// Called with the category just picked, or null while it may not be changed.
+  final ValueChanged<OcptElementCategory>? onCategoryChanged;
+
+  /// Class constructor
+  const _CategoryGrid({required this.element, required this.onCategoryChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onCategoryChanged = this.onCategoryChanged;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -321,72 +442,128 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
               ocptBreakdownColorOf(kind: OcptBreakdownTargetKind.element, category: category),
             ),
             isSelected: element.category == category,
-            onTap: onCategoryChanged == null ? null : () => onCategoryChanged!(category),
+            onTap: onCategoryChanged == null ? null : () => onCategoryChanged(category),
           ),
       ],
     );
   }
+}
 
-  /// The sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
-  ///
-  /// The name is not among them: it is the panel's own title ([_buildTitle]), where the thing being
-  /// renamed is the thing being read.
-  Widget _buildDetails(BuildContext context, Tr tr, OcptElement element) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      OcptResourcesSheetField(
-        ownerId: element.id,
-        label: tr.resourcesElementSubCategoryLabel,
-        value: fieldValueOf(OcptElementField.subCategory),
-        onChanged: onFieldChanged == null
-            ? null
-            : (value) => onFieldChanged!(OcptElementField.subCategory, value),
-      ),
-      const SizedBox(height: 10),
-      OcptResourcesSheetField(
-        ownerId: element.id,
-        label: tr.resourcesElementQuantityLabel,
-        value: fieldValueOf(OcptElementField.quantity),
-        onChanged: onFieldChanged == null
-            ? null
-            : (value) => onFieldChanged!(OcptElementField.quantity, value),
-      ),
-      const SizedBox(height: 10),
-      OcptResourcesSheetField(
-        ownerId: element.id,
-        label: tr.breakdownElementNotesLabel,
-        value: fieldValueOf(OcptElementField.notes),
-        multiline: true,
-        onChanged: onFieldChanged == null
-            ? null
-            : (value) => onFieldChanged!(OcptElementField.notes, value),
-      ),
-      const SizedBox(height: 10),
-      OcptResourcesPersonPicker(
-        people: people,
-        selectedPerson: owner,
-        label: tr.resourcesElementOwnerLabel,
-        emptyLabel: tr.resourcesElementNoOwner,
-        onChanged: onOwnerChanged,
-      ),
-      const SizedBox(height: 10),
-      OcptResourcesPersonPicker(
-        people: people,
-        selectedPerson: bringer,
-        label: tr.resourcesElementBringerLabel,
-        emptyLabel: tr.resourcesElementNoBringer,
-        onChanged: onBringerChanged,
-      ),
-    ],
-  );
+/// The sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
+///
+/// The name is not among them: it is the panel's own title ([_Title]), where the thing being renamed
+/// is the thing being read.
+class _Details extends StatelessWidget {
+  /// The element the fields belong to.
+  final OcptElement element;
 
-  /// The bordered list of [occurrences], each row clickable.
-  Widget _buildOccurrences(
-    BuildContext context,
-    Tr tr,
-    List<_OcptBreakdownOccurrence> occurrences,
-  ) {
+  /// The whole address book, offered by the two pickers.
+  final List<OcptPerson> people;
+
+  /// The person named by [element]'s own owner, or null while nobody is.
+  final OcptPerson? owner;
+
+  /// The person named by [element]'s own who-brings-it, or null while nobody is.
+  final OcptPerson? bringer;
+
+  /// [element]'s current value for `field`.
+  final String Function(OcptElementField field) fieldValueOf;
+
+  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
+  /// to.
+  final void Function(OcptElementField field, String rawValue)? onFieldChanged;
+
+  /// Called with the person who now owns [element], or null to clear it; itself null while it may
+  /// not be changed.
+  final ValueChanged<String?>? onOwnerChanged;
+
+  /// Called with the person who now brings [element], or null to clear it; itself null while it may
+  /// not be changed.
+  final ValueChanged<String?>? onBringerChanged;
+
+  /// Class constructor
+  const _Details({
+    required this.element,
+    required this.people,
+    required this.owner,
+    required this.bringer,
+    required this.fieldValueOf,
+    required this.onFieldChanged,
+    required this.onOwnerChanged,
+    required this.onBringerChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final onFieldChanged = this.onFieldChanged;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OcptResourcesSheetField(
+          ownerId: element.id,
+          label: tr.resourcesElementSubCategoryLabel,
+          value: fieldValueOf(OcptElementField.subCategory),
+          onChanged: onFieldChanged == null
+              ? null
+              : (value) => onFieldChanged(OcptElementField.subCategory, value),
+        ),
+        const SizedBox(height: 10),
+        OcptResourcesSheetField(
+          ownerId: element.id,
+          label: tr.resourcesElementQuantityLabel,
+          value: fieldValueOf(OcptElementField.quantity),
+          onChanged: onFieldChanged == null
+              ? null
+              : (value) => onFieldChanged(OcptElementField.quantity, value),
+        ),
+        const SizedBox(height: 10),
+        OcptResourcesSheetField(
+          ownerId: element.id,
+          label: tr.breakdownElementNotesLabel,
+          value: fieldValueOf(OcptElementField.notes),
+          multiline: true,
+          onChanged: onFieldChanged == null
+              ? null
+              : (value) => onFieldChanged(OcptElementField.notes, value),
+        ),
+        const SizedBox(height: 10),
+        OcptResourcesPersonPicker(
+          people: people,
+          selectedPerson: owner,
+          label: tr.resourcesElementOwnerLabel,
+          emptyLabel: tr.resourcesElementNoOwner,
+          onChanged: onOwnerChanged,
+        ),
+        const SizedBox(height: 10),
+        OcptResourcesPersonPicker(
+          people: people,
+          selectedPerson: bringer,
+          label: tr.resourcesElementBringerLabel,
+          emptyLabel: tr.resourcesElementNoBringer,
+          onChanged: onBringerChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// The bordered list of [occurrences], each row clickable.
+class _Occurrences extends StatelessWidget {
+  /// The inspected target's live occurrences, in scene order.
+  final List<_OcptBreakdownOccurrence> occurrences;
+
+  /// Called with an occurrence's own scene id when its row is clicked.
+  final ValueChanged<String> onOccurrenceSelected;
+
+  /// Class constructor
+  const _Occurrences({required this.occurrences, required this.onOccurrenceSelected});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     if (occurrences.isEmpty) {
       return const SizedBox.shrink();
@@ -441,17 +618,37 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// The bordered list of [suggestions], the same shape [_buildOccurrences] builds for the live
-  /// occurrences above it, each row additionally carrying a trailing add control tagging that
-  /// passage — withheld, as a null [onSuggestionAccepted], while [isReadOnly]. A row whose own
-  /// scene has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded
-  /// snapshot) is skipped rather than shown with nothing to head it.
-  Widget _buildSuggestedOccurrences(
-    BuildContext context,
-    Tr tr,
-    List<OcptBreakdownSuggestion> suggestions,
-  ) {
+/// The bordered list of [suggestions], the same shape [_Occurrences] builds for the live
+/// occurrences above it, each row additionally carrying a trailing add control tagging that passage
+/// — withheld, as a null [onSuggestionAccepted], while the panel is read-only. A row whose own scene
+/// has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded snapshot) is
+/// skipped rather than shown with nothing to head it.
+class _SuggestedOccurrences extends StatelessWidget {
+  /// The target's own suggested occurrences.
+  final List<OcptBreakdownSuggestion> suggestions;
+
+  /// Every scene of the loaded snapshot, in source order.
+  final List<OcptBreakdownScene> scenes;
+
+  /// Called with a scene id when a row is clicked.
+  final ValueChanged<String> onOccurrenceSelected;
+
+  /// Called with a suggestion when its add control is clicked, or null while it may not be
+  /// accepted.
+  final ValueChanged<OcptBreakdownSuggestion>? onSuggestionAccepted;
+
+  /// Class constructor
+  const _SuggestedOccurrences({
+    required this.suggestions,
+    required this.scenes,
+    required this.onOccurrenceSelected,
+    required this.onSuggestionAccepted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
@@ -463,28 +660,66 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
       child: Column(
         children: [
           for (var i = 0; i < suggestions.length; i++)
-            _buildSuggestedOccurrenceRow(
-              context,
-              theme,
-              tr,
-              suggestions[i],
+            _SuggestedOccurrenceRow(
+              suggestion: suggestions[i],
+              scene: _sceneById(suggestions[i].sceneId),
               isLast: i == suggestions.length - 1,
+              onOccurrenceSelected: onOccurrenceSelected,
+              onSuggestionAccepted: onSuggestionAccepted,
             ),
         ],
       ),
     );
   }
 
-  /// One row of [_buildSuggestedOccurrences]: [suggestion]'s own scene and passage, exactly as an
-  /// occurrence row reads, plus a trailing add control.
-  Widget _buildSuggestedOccurrenceRow(
-    BuildContext context,
-    ThemeData theme,
-    Tr tr,
-    OcptBreakdownSuggestion suggestion, {
-    required bool isLast,
-  }) {
-    final scene = _sceneById(suggestion.sceneId);
+  /// The scene of [scenes] whose id is [sceneId], or null while none is — a suggestion's own scene
+  /// having disappeared from a snapshot rebuilt underneath.
+  OcptBreakdownScene? _sceneById(String sceneId) {
+    for (final scene in scenes) {
+      if (scene.id == sceneId) {
+        return scene;
+      }
+    }
+
+    return null;
+  }
+}
+
+/// One row of [_SuggestedOccurrences]: [suggestion]'s own scene and passage, exactly as an
+/// occurrence row reads, plus a trailing add control.
+class _SuggestedOccurrenceRow extends StatelessWidget {
+  /// The suggestion the row shows.
+  final OcptBreakdownSuggestion suggestion;
+
+  /// The scene [suggestion] is in, or null while it has disappeared from the snapshot.
+  final OcptBreakdownScene? scene;
+
+  /// Whether this is the last row of the list, which draws no separator.
+  final bool isLast;
+
+  /// Called with a scene id when the row is clicked.
+  final ValueChanged<String> onOccurrenceSelected;
+
+  /// Called with [suggestion] when its add control is clicked, or null while it may not be
+  /// accepted.
+  final ValueChanged<OcptBreakdownSuggestion>? onSuggestionAccepted;
+
+  /// Class constructor
+  const _SuggestedOccurrenceRow({
+    required this.suggestion,
+    required this.scene,
+    required this.isLast,
+    required this.onOccurrenceSelected,
+    required this.onSuggestionAccepted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final scene = this.scene;
+    final onSuggestionAccepted = this.onSuggestionAccepted;
+
     if (scene == null) {
       return const SizedBox.shrink();
     }
@@ -530,74 +765,13 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 18),
                 tooltip: tr.breakdownSuggestionAcceptAction,
                 visualDensity: VisualDensity.compact,
-                onPressed: () => onSuggestionAccepted!(suggestion),
+                onPressed: () => onSuggestionAccepted(suggestion),
               ),
           ],
         ),
       ),
     );
   }
-
-  /// The scene of [scenes] whose id is [sceneId], or null while none is — a suggestion's own scene
-  /// having disappeared from a snapshot rebuilt underneath.
-  OcptBreakdownScene? _sceneById(String sceneId) {
-    for (final scene in scenes) {
-      if (scene.id == sceneId) {
-        return scene;
-      }
-    }
-
-    return null;
-  }
-
-  /// [target]'s live occurrences, resolved out of [scenes] in scene order — each scene's own
-  /// [OcptBreakdownScene.tags] already ordered by start offset, the order the passages are read in.
-  List<_OcptBreakdownOccurrence> _occurrencesOf() => [
-    for (final scene in scenes)
-      for (final tag in scene.tags)
-        if (tag.targetKind == target.kind && tag.targetId == target.id)
-          _OcptBreakdownOccurrence(
-            sceneId: scene.id,
-            sceneNumber: scene.displayNumber,
-            sceneHeading: scene.heading,
-            extract: tag.taggedText,
-          ),
-  ];
-
-  /// The panel's title: [target]'s name, typed into directly when it may be renamed and read out
-  /// as plain text when it may not.
-  ///
-  /// The rename lives here rather than among the details below because this *is* the thing being
-  /// renamed: an element or a set created from the script carries the passage's own wording, and
-  /// the moment to correct it is while reading the name, not after scrolling past a status grid to
-  /// find a field repeating it.
-  Widget _buildTitle(BuildContext context, ThemeData theme) {
-    final onNameChanged = this.onNameChanged;
-    final style = theme.textTheme.titleSmall;
-
-    if (onNameChanged == null) {
-      return Text(nameValue, style: style);
-    }
-
-    // Keyed by the kind as well as the id, so switching from an element to a set that happens to
-    // carry the same id resets the field rather than keeping the name it was showing.
-    return OcptResourcesSheetField(
-      ownerId: "${target.kind.name}/${target.id}",
-      label: "",
-      value: nameValue,
-      textStyle: style,
-      onChanged: onNameChanged,
-    );
-  }
-
-  /// One section title, the accent-coloured header the mock-up uses to separate the panel's
-  /// sections, mirroring `OcptShotInspectorPanel._sectionTitle`.
-  Widget _sectionTitle(BuildContext context, String title) => Text(
-    title,
-    style: Theme.of(
-      context,
-    ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
-  );
 }
 
 /// One entry of the two-column category grid: a swatch and a label, tinted when [isSelected].
