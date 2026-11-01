@@ -49,7 +49,7 @@ void main() {
       await SharedPreferencesAsyncPlatform.instance!.setString(
         'RECENT_PROJECTS',
         'not json',
-        SharedPreferencesOptions(),
+        const SharedPreferencesOptions(),
       );
 
       expect(await manager.recentProjects.load(), isNull);

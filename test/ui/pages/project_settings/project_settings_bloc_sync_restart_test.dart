@@ -27,7 +27,6 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.da
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -218,7 +217,7 @@ void main() {
     addTearDown(bloc.close);
 
     bloc.add(const OcptProjectSettingsMoveRequestedEvent(fileTypeLabel: "Project"));
-    final OcptProjectSettingsState state = await bloc.stream
+    final state = await bloc.stream
         .firstWhere((state) => state.projectFilePath == movedPath)
         .timeout(const Duration(seconds: 5));
 

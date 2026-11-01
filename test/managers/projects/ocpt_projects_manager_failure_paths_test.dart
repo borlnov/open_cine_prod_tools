@@ -9,16 +9,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_project_preview_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_version_codec.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_versions_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
+import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
-import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -37,7 +37,7 @@ class _ThrowingHydrationService extends OcptProjectVersionsService {
   _ThrowingHydrationService({required super.screenplayService})
     : super(
         logger: const SilentLogger(),
-        codec: OcptProjectVersionCodec(logger: const SilentLogger()),
+        codec: const OcptProjectVersionCodec(logger: SilentLogger()),
       );
 
   @override
