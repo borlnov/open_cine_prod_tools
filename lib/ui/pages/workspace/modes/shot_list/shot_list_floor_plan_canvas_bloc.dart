@@ -20,7 +20,6 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_tool.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
@@ -191,13 +190,13 @@ class OcptShotListFloorPlanCanvasBloc
     }
 
     emitter(
-      state.copyWith(
-        forceSelectedFloorPlanSymbolIdValue: isSymbolCleared || isSymbolGone,
-        // The arrow goes with the symbol: the two are never selected together.
-        forceSelectedFloorPlanArrowIdValue:
-            isArrowCleared || isSymbolCleared || isSymbolGone || isArrowGone,
-        forcePendingFloorPlanArrowAnchorSymbolIdValue: isAnchorCleared,
-        forcePendingFloorPlanScopeDecisionValue: isDecisionCleared,
+      state.copyWithPrunedSelection(
+        isSymbolCleared: isSymbolCleared,
+        isArrowCleared: isArrowCleared,
+        isSymbolGone: isSymbolGone,
+        isArrowGone: isArrowGone,
+        isAnchorCleared: isAnchorCleared,
+        isDecisionCleared: isDecisionCleared,
       ),
     );
   }
@@ -210,12 +209,7 @@ class OcptShotListFloorPlanCanvasBloc
     OcptShotListFloorPlanToolSelectedEvent event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        floorPlanActiveTool: event.tool,
-        forcePendingFloorPlanArrowAnchorSymbolIdValue: event.tool != OcptFloorPlanTool.arrow,
-      ),
-    );
+    emitter(state.copyWithActiveTool(tool: event.tool));
   }
 
   /// Places a new symbol on set `event.setId`'s `event.layer`, at `event.xM`/`event.yM`, carrying
@@ -270,14 +264,7 @@ class OcptShotListFloorPlanCanvasBloc
       if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
         return;
       }
-      emitter(
-        state.copyWith(
-          selectedFloorPlanSymbolId: symbolId,
-          forceSelectedFloorPlanArrowIdValue: true,
-          pendingCharacterNamePromptSymbolId: isCharacter ? symbolId : null,
-          forcePendingCharacterNamePromptSymbolIdValue: !isCharacter,
-        ),
-      );
+      emitter(state.copyWithPlacedSymbol(symbolId: symbolId, isCharacter: isCharacter));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a ${event.layer} symbol on set ${event.setId} "
@@ -285,7 +272,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -297,13 +284,7 @@ class OcptShotListFloorPlanCanvasBloc
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
     final symbolId = event.symbolId;
-    emitter(
-      state.copyWith(
-        selectedFloorPlanSymbolId: symbolId,
-        forceSelectedFloorPlanSymbolIdValue: symbolId == null,
-        forceSelectedFloorPlanArrowIdValue: symbolId != null,
-      ),
-    );
+    emitter(state.copyWithSelectedSymbol(symbolId: symbolId));
   }
 
   /// Moves symbol `event.symbolId` to `event.xM`/`event.yM`, writing exactly one row, dispatched
@@ -332,7 +313,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -362,7 +343,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -391,7 +372,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -404,8 +385,8 @@ class OcptShotListFloorPlanCanvasBloc
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
     emitter(
-      state.copyWith(
-        pendingFloorPlanScopeDecision: OcptFloorPlanScopeDecision(
+      state.copyWithScopeDecision(
+        decision: OcptFloorPlanScopeDecision(
           symbolId: event.symbolId,
           setId: event.setId,
           level: event.level,
@@ -436,13 +417,13 @@ class OcptShotListFloorPlanCanvasBloc
     }
 
     if (event.choice == OcptFloorPlanScopeChoice.cancel) {
-      emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+      emitter(state.copyWithScopeDecisionDismissed());
       return;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+      emitter(state.copyWithScopeDecisionDismissed());
       return;
     }
 
@@ -455,14 +436,14 @@ class OcptShotListFloorPlanCanvasBloc
         if (decision.level == OcptFloorPlanOverrideLevel.sequence) {
           final sequence = modeState.selectedSequence;
           if (sequence is! OcptSceneShotSequence) {
-            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+            emitter(state.copyWithScopeDecisionDismissed());
             return;
           }
           targetSceneId = sequence.sceneId;
         } else {
           final shotId = modeState.selectedShotId;
           if (shotId == null) {
-            emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+            emitter(state.copyWithScopeDecisionDismissed());
             return;
           }
           targetShotId = shotId;
@@ -490,12 +471,12 @@ class OcptShotListFloorPlanCanvasBloc
         targetShotId: targetShotId,
       );
       if (!isWritten) {
-        emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+        emitter(state.copyWithScopeDecisionDismissed());
         return;
       }
 
       await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-      emitter(state.copyWith(forcePendingFloorPlanScopeDecisionValue: true));
+      emitter(state.copyWithScopeDecisionDismissed());
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resolve the scope decision on symbol "
@@ -503,7 +484,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true, forcePendingFloorPlanScopeDecisionValue: true));
+      emitter(state.copyToScopeDecisionFailed());
     }
   }
 
@@ -526,7 +507,7 @@ class OcptShotListFloorPlanCanvasBloc
 
     final anchor = state.pendingFloorPlanArrowAnchorSymbolId;
     if (anchor == null) {
-      emitter(state.copyWith(pendingFloorPlanArrowAnchorSymbolId: event.symbolId));
+      emitter(state.copyWithArrowAnchor(symbolId: event.symbolId));
       return;
     }
 
@@ -544,7 +525,7 @@ class OcptShotListFloorPlanCanvasBloc
         toSymbolId: event.symbolId,
       );
       await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-      emitter(state.copyWith(forcePendingFloorPlanArrowAnchorSymbolIdValue: true));
+      emitter(state.copyWithArrowAnchorCleared());
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to add an arrow from symbol $anchor to ${event.symbolId} "
@@ -552,9 +533,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(
-        state.copyWith(hasWriteError: true, forcePendingFloorPlanArrowAnchorSymbolIdValue: true),
-      );
+      emitter(state.copyToArrowAddFailed());
     }
   }
 
@@ -566,7 +545,7 @@ class OcptShotListFloorPlanCanvasBloc
     OcptShotListFloorPlanArrowAnchorCancelledEvent event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
-    emitter(state.copyWith(forcePendingFloorPlanArrowAnchorSymbolIdValue: true));
+    emitter(state.copyWithArrowAnchorCleared());
   }
 
   /// Selects arrow `event.arrowId`, or clears the selection when it is null. A view preference;
@@ -576,13 +555,7 @@ class OcptShotListFloorPlanCanvasBloc
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
     final arrowId = event.arrowId;
-    emitter(
-      state.copyWith(
-        selectedFloorPlanArrowId: arrowId,
-        forceSelectedFloorPlanArrowIdValue: arrowId == null,
-        forceSelectedFloorPlanSymbolIdValue: arrowId != null,
-      ),
-    );
+    emitter(state.copyWithSelectedArrow(arrowId: arrowId));
   }
 
   /// Bends arrow `event.arrowId` through `event.ctrlXM`/`event.ctrlYM`, or straightens it back out
@@ -612,7 +585,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -662,12 +635,7 @@ class OcptShotListFloorPlanCanvasBloc
       if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
         return;
       }
-      emitter(
-        state.copyWith(
-          selectedFloorPlanSymbolId: symbolId,
-          forceSelectedFloorPlanArrowIdValue: true,
-        ),
-      );
+      emitter(state.copyWithDuplicatedSymbol(symbolId: symbolId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to duplicate symbol ${event.symbolId} of project "
@@ -675,7 +643,7 @@ class OcptShotListFloorPlanCanvasBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -685,7 +653,7 @@ class OcptShotListFloorPlanCanvasBloc
     OcptShotListFloorPlanCharacterNamePromptDismissedEvent event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
-    emitter(state.copyWith(forcePendingCharacterNamePromptSymbolIdValue: true));
+    emitter(state.copyWithCharacterNamePromptDismissed());
   }
 
   /// Dismisses the transient write error currently shown.
@@ -693,6 +661,6 @@ class OcptShotListFloorPlanCanvasBloc
     OcptShotListFloorPlanCanvasWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanCanvasState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 }

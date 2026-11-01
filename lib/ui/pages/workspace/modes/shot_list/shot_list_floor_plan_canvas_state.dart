@@ -126,6 +126,100 @@ class OcptShotListFloorPlanCanvasState extends BlocStateForMixin<OcptShotListFlo
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
+  /// Copies this state with the selection, the arrow anchor and the scope decision pruned.
+  ///
+  /// The symbol selection goes when [isSymbolCleared] or [isSymbolGone], the arrow selection when
+  /// any of the four selection flags is set (the arrow goes with the symbol: the two are never
+  /// selected together), the anchor when [isAnchorCleared] and the decision when [isDecisionCleared].
+  OcptShotListFloorPlanCanvasState copyWithPrunedSelection({
+    required bool isSymbolCleared,
+    required bool isArrowCleared,
+    required bool isSymbolGone,
+    required bool isArrowGone,
+    required bool isAnchorCleared,
+    required bool isDecisionCleared,
+  }) => copyWith(
+    forceSelectedFloorPlanSymbolIdValue: isSymbolCleared || isSymbolGone,
+    forceSelectedFloorPlanArrowIdValue:
+        isArrowCleared || isSymbolCleared || isSymbolGone || isArrowGone,
+    forcePendingFloorPlanArrowAnchorSymbolIdValue: isAnchorCleared,
+    forcePendingFloorPlanScopeDecisionValue: isDecisionCleared,
+  );
+
+  /// Copies this state with [tool] active; leaving the arrow tool drops its pending anchor.
+  OcptShotListFloorPlanCanvasState copyWithActiveTool({required OcptFloorPlanTool tool}) =>
+      copyWith(
+        floorPlanActiveTool: tool,
+        forcePendingFloorPlanArrowAnchorSymbolIdValue: tool != OcptFloorPlanTool.arrow,
+      );
+
+  /// Copies this state with the freshly placed [symbolId] selected, and asking for a character
+  /// name when [isCharacter].
+  OcptShotListFloorPlanCanvasState copyWithPlacedSymbol({
+    required String symbolId,
+    required bool isCharacter,
+  }) => copyWith(
+    selectedFloorPlanSymbolId: symbolId,
+    forceSelectedFloorPlanArrowIdValue: true,
+    pendingCharacterNamePromptSymbolId: isCharacter ? symbolId : null,
+    forcePendingCharacterNamePromptSymbolIdValue: !isCharacter,
+  );
+
+  /// Copies this state with [symbolId] selected, or no selection when it is null; selecting a
+  /// symbol clears the arrow selection.
+  OcptShotListFloorPlanCanvasState copyWithSelectedSymbol({required String? symbolId}) => copyWith(
+    selectedFloorPlanSymbolId: symbolId,
+    forceSelectedFloorPlanSymbolIdValue: symbolId == null,
+    forceSelectedFloorPlanArrowIdValue: symbolId != null,
+  );
+
+  /// Copies this state with [decision] waiting for the user's choice of scope.
+  OcptShotListFloorPlanCanvasState copyWithScopeDecision({
+    required OcptFloorPlanScopeDecision decision,
+  }) => copyWith(pendingFloorPlanScopeDecision: decision);
+
+  /// Copies this state with the scope decision dropped.
+  OcptShotListFloorPlanCanvasState copyWithScopeDecisionDismissed() =>
+      copyWith(forcePendingFloorPlanScopeDecisionValue: true);
+
+  /// Copies this state with the write error raised and the scope decision dropped.
+  OcptShotListFloorPlanCanvasState copyToScopeDecisionFailed() =>
+      copyWith(hasWriteError: true, forcePendingFloorPlanScopeDecisionValue: true);
+
+  /// Copies this state with [symbolId] as the first end of the arrow being drawn.
+  OcptShotListFloorPlanCanvasState copyWithArrowAnchor({required String symbolId}) =>
+      copyWith(pendingFloorPlanArrowAnchorSymbolId: symbolId);
+
+  /// Copies this state with no arrow being drawn.
+  OcptShotListFloorPlanCanvasState copyWithArrowAnchorCleared() =>
+      copyWith(forcePendingFloorPlanArrowAnchorSymbolIdValue: true);
+
+  /// Copies this state with the write error raised and no arrow being drawn.
+  OcptShotListFloorPlanCanvasState copyToArrowAddFailed() =>
+      copyWith(hasWriteError: true, forcePendingFloorPlanArrowAnchorSymbolIdValue: true);
+
+  /// Copies this state with arrow [arrowId] selected, or no selection when it is null; selecting
+  /// an arrow clears the symbol selection.
+  OcptShotListFloorPlanCanvasState copyWithSelectedArrow({required String? arrowId}) => copyWith(
+    selectedFloorPlanArrowId: arrowId,
+    forceSelectedFloorPlanArrowIdValue: arrowId == null,
+    forceSelectedFloorPlanSymbolIdValue: arrowId != null,
+  );
+
+  /// Copies this state with the duplicate [symbolId] selected and no arrow selected.
+  OcptShotListFloorPlanCanvasState copyWithDuplicatedSymbol({required String symbolId}) =>
+      copyWith(selectedFloorPlanSymbolId: symbolId, forceSelectedFloorPlanArrowIdValue: true);
+
+  /// Copies this state with the character name prompt dismissed.
+  OcptShotListFloorPlanCanvasState copyWithCharacterNamePromptDismissed() =>
+      copyWith(forcePendingCharacterNamePromptSymbolIdValue: true);
+
+  /// Copies this state with the write error raised.
+  OcptShotListFloorPlanCanvasState copyToWriteFailed() => copyWith(hasWriteError: true);
+
+  /// Copies this state with the write error dismissed.
+  OcptShotListFloorPlanCanvasState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [
