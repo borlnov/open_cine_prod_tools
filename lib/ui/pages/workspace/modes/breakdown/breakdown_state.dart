@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_search_candidate.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_breakdown_suggestions.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_target_kind.dart';
@@ -37,10 +36,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// Selecting a target or a scene, hiding a legend key, switching [centreView] and typing into
 /// [searchQuery] all write nothing to the project database. What is typed into the inspector's
-/// fields and not yet written lives in `OcptBreakdownInspectorState`. [pendingTagAnchor] and
-/// [pendingTagRange] are likewise ephemeral and write nothing on their own: the range interaction
-/// they drive only touches the database once the popover it opens answers with a link or an element
-/// creation.
+/// fields and not yet written lives in `OcptBreakdownInspectorState`, and the range the script view
+/// is tagging in `OcptBreakdownTaggingState`.
 class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     with
         MixinOcptProjectVersionsState<OcptBreakdownState>,
@@ -128,21 +125,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// [OcptBreakdownRightDockTab.inspector], since that hand-off — landing on the target's own sheet
   /// without a second gesture — is the whole point of the selection.
   final OcptBreakdownRightDockTab lastRightDockTab;
-
-  /// The first word clicked of a range not yet closed, or null while none is open — the script
-  /// view's own cue to mark that word as pending. Cleared the moment the range closes (successfully
-  /// or by falling into another scene, which simply replaces it) or is cancelled outright.
-  final OcptBreakdownPendingTagAnchor? pendingTagAnchor;
-
-  /// A range just closed by a second click, awaiting the popover's own answer, or null while none
-  /// is — the script view's cue to anchor `OcptBreakdownTagPopover` under the word that closed it.
-  final OcptBreakdownPendingTagRange? pendingTagRange;
-
-  /// Whether the last tag write — the popover's own link or element creation, or a suggestion
-  /// accepted from the target inspector's own "Suggested occurrences" section — was refused: the
-  /// overlap, or a preview database that slipped through. A transient notice tells the user rather
-  /// than the writer silently doing nothing. Reset the moment it has been shown once.
-  final bool hasTagWriteError;
 
   /// The left (scene) dock's width, as a fraction of the mode's content row width.
   ///
@@ -356,9 +338,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.isListPanelVisible,
     required this.rightDockTab,
     required this.lastRightDockTab,
-    required this.pendingTagAnchor,
-    required this.pendingTagRange,
-    required this.hasTagWriteError,
     required this.leftDockFraction,
     required this.rightDockFraction,
     required this.reloadEpoch,
@@ -391,9 +370,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       isListPanelVisible = true,
       rightDockTab = null,
       lastRightDockTab = OcptBreakdownRightDockTab.inspector,
-      pendingTagAnchor = null,
-      pendingTagRange = null,
-      hasTagWriteError = false,
       leftDockFraction = OcptWorkspaceDock.leftDefaultFraction,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       reloadEpoch = 0,
@@ -412,13 +388,11 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no force flag. [selectedSceneId], [selectedTargetRef], [rightDockTab],
-  /// [pendingTagAnchor] and [pendingTagRange] all legitimately go back to null while the mode is
-  /// alive (a fresh load, a selection dropped, the dock closed, an anchor replaced or a range
-  /// resolved), so each has its own force flag instead. [hiddenLegendKeys] is replaced wholesale
+  /// so it needs no force flag. [selectedSceneId], [selectedTargetRef] and [rightDockTab] all
+  /// legitimately go back to null while the mode is alive (a fresh load, a selection dropped, the
+  /// dock closed), so each has its own force flag instead. [hiddenLegendKeys] is replaced wholesale
   /// rather than merged — the caller (the bloc's own legend handlers) always computes the full next
-  /// set. [searchQuery] needs no force flag either:
-  /// an empty string is already a perfectly valid value for it (the field cleared), so
+  /// set. [searchQuery] needs no force flag either: an empty string is already a perfectly valid value for it (the field cleared), so
   /// `searchQuery: ""` is passed like any other value rather than through a `clear…` flag.
   ///
   /// [selectedTargetSuggestions] is the one field this recomputes rather than carries over, and it
@@ -450,11 +424,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     OcptBreakdownRightDockTab? rightDockTab,
     bool forceRightDockTabValue = false,
     OcptBreakdownRightDockTab? lastRightDockTab,
-    OcptBreakdownPendingTagAnchor? pendingTagAnchor,
-    bool forcePendingTagAnchorValue = false,
-    OcptBreakdownPendingTagRange? pendingTagRange,
-    bool forcePendingTagRangeValue = false,
-    bool? hasTagWriteError,
     double? leftDockFraction,
     double? rightDockFraction,
     int? reloadEpoch,
@@ -508,10 +477,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       isListPanelVisible: isListPanelVisible ?? this.isListPanelVisible,
       rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
       lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
-      pendingTagAnchor:
-          pendingTagAnchor ?? (forcePendingTagAnchorValue ? null : this.pendingTagAnchor),
-      pendingTagRange: pendingTagRange ?? (forcePendingTagRangeValue ? null : this.pendingTagRange),
-      hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
       leftDockFraction: leftDockFraction ?? this.leftDockFraction,
       rightDockFraction: rightDockFraction ?? this.rightDockFraction,
       reloadEpoch:
@@ -609,9 +574,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     isListPanelVisible,
     rightDockTab,
     lastRightDockTab,
-    pendingTagAnchor,
-    pendingTagRange,
-    hasTagWriteError,
     leftDockFraction,
     rightDockFraction,
     reloadEpoch,

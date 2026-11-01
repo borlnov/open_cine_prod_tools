@@ -8,13 +8,15 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_state.dart';
 
 /// What the breakdown mode's view blocs ask the screen for, wrapped around the mode: the outcome
-/// of an export as a SnackBar.
+/// of an export and the refusal of a tag write, each as a SnackBar.
 ///
-/// It is dismissed by dispatching the bloc's own dismissal event as soon as it has been shown, so a
-/// later emission never raises it twice. The mode bloc's own effects (the dock fractions, the tag
-/// write error, the version and package notices) stay with the mode, which owns the dock layout
+/// Each is dismissed by dispatching the bloc's own dismissal event as soon as it has been shown, so
+/// a later emission never raises it twice. The mode bloc's own effects (the dock fractions, the
+/// version and package notices) stay with the mode, which owns the dock layout
 /// controller and the workspace bloc they feed.
 class OcptBreakdownViewEffects extends StatelessWidget {
   /// The mode, which the listener wraps.
@@ -24,11 +26,17 @@ class OcptBreakdownViewEffects extends StatelessWidget {
   const OcptBreakdownViewEffects({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) =>
+  Widget build(BuildContext context) => MultiBlocListener(
+    listeners: [
       BlocListener<OcptBreakdownExportBloc, OcptBreakdownExportState>(
         listener: _onExportStateChanged,
-        child: child,
-      );
+      ),
+      BlocListener<OcptBreakdownTaggingBloc, OcptBreakdownTaggingState>(
+        listener: _onTaggingStateChanged,
+      ),
+    ],
+    child: child,
+  );
 
   /// Shows the outcome of an export as a SnackBar, then dismisses it.
   void _onExportStateChanged(BuildContext context, OcptBreakdownExportState state) {
@@ -41,6 +49,18 @@ class OcptBreakdownViewEffects extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
     context.read<OcptBreakdownExportBloc>().add(const OcptBreakdownIoNoticeDismissedEvent());
+  }
+
+  /// Shows the refusal of a tag write as a SnackBar, then dismisses it.
+  void _onTaggingStateChanged(BuildContext context, OcptBreakdownTaggingState state) {
+    if (!state.hasTagWriteError) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(Tr.of(context).breakdownTagWriteError)));
+    context.read<OcptBreakdownTaggingBloc>().add(const OcptBreakdownTagWriteErrorDismissedEvent());
   }
 
   /// Maps [notice] to its localized, user-facing message, mirroring

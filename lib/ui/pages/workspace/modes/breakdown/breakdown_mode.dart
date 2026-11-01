@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_inspector_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_tagging_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_recap_table.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_right_dock.dart';
@@ -120,6 +121,10 @@ class OcptBreakdownMode extends StatelessWidget {
         lazy: false,
         create: (context) =>
             OcptBreakdownInspectorBloc(modeBloc: context.read<OcptBreakdownBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptBreakdownTaggingBloc(modeBloc: context.read<OcptBreakdownBloc>()),
       ),
     ],
     child: const OcptBreakdownViewEffects(child: _BreakdownView()),
@@ -515,6 +520,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
   /// therefore no popover ever has a range to show.
   Widget _buildScriptView(BuildContext context, OcptBreakdownState state) {
     final bloc = context.read<OcptBreakdownBloc>();
+    final taggingBloc = context.read<OcptBreakdownTaggingBloc>();
+    final taggingState = context.watch<OcptBreakdownTaggingBloc>().state;
     final isReadOnly = state.isPreviewingVersion;
 
     return OcptBreakdownScriptView(
@@ -528,7 +535,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       hiddenLegendKeys: state.hiddenLegendKeys,
       selectedTargetRef: state.selectedTargetRef,
       locations: [for (final location in state.locations) (location.id, location.name)],
-      onPopoverSetCreationRequested: (locationId, name) => bloc.add(
+      onPopoverSetCreationRequested: (locationId, name) => taggingBloc.add(
         OcptBreakdownPopoverSetCreationRequestedEvent(locationId: locationId, name: name),
       ),
       onTargetSelected: (targetKind, targetId, sceneId) => bloc.add(
@@ -540,22 +547,22 @@ class _BreakdownViewState extends State<_BreakdownView> {
       ),
       onWordClicked: isReadOnly
           ? null
-          : (sceneId, wordStartOffset, wordEndOffset) => bloc.add(
+          : (sceneId, wordStartOffset, wordEndOffset) => taggingBloc.add(
               OcptBreakdownWordClickedEvent(
                 sceneId: sceneId,
                 wordStartOffset: wordStartOffset,
                 wordEndOffset: wordEndOffset,
               ),
             ),
-      pendingTagAnchor: state.pendingTagAnchor,
-      pendingTagRange: state.pendingTagRange,
+      pendingTagAnchor: taggingState.pendingTagAnchor,
+      pendingTagRange: taggingState.pendingTagRange,
       candidates: state.searchCandidates,
-      onSelectionCancelled: () => bloc.add(const OcptBreakdownTagRangeCancelledEvent()),
-      onPopoverCancelled: () => bloc.add(const OcptBreakdownTagRangeCancelledEvent()),
-      onPopoverTargetLinked: (targetKind, targetId) => bloc.add(
+      onSelectionCancelled: () => taggingBloc.add(const OcptBreakdownTagRangeCancelledEvent()),
+      onPopoverCancelled: () => taggingBloc.add(const OcptBreakdownTagRangeCancelledEvent()),
+      onPopoverTargetLinked: (targetKind, targetId) => taggingBloc.add(
         OcptBreakdownPopoverTargetLinkedEvent(targetKind: targetKind, targetId: targetId),
       ),
-      onPopoverElementCreationRequested: (category, name) => bloc.add(
+      onPopoverElementCreationRequested: (category, name) => taggingBloc.add(
         OcptBreakdownPopoverElementCreationRequestedEvent(category: category, name: name),
       ),
       onOpenInResourcesRequested: () => context.read<OcptWorkspaceBloc>().add(
@@ -660,6 +667,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
 
     final bloc = context.read<OcptBreakdownBloc>();
     final inspectorBloc = context.read<OcptBreakdownInspectorBloc>();
+    final taggingBloc = context.read<OcptBreakdownTaggingBloc>();
     final element = state.selectedElement;
     final isReadOnly = state.isPreviewingVersion;
 
@@ -740,7 +748,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
       suggestions: state.selectedTargetSuggestions,
       onSuggestionAccepted: isReadOnly
           ? null
-          : (suggestion) => bloc.add(
+          : (suggestion) => taggingBloc.add(
               OcptBreakdownSuggestionAcceptedEvent(
                 targetKind: suggestion.targetKind,
                 targetId: suggestion.targetId,
@@ -920,13 +928,6 @@ class _BreakdownViewState extends State<_BreakdownView> {
       leftFraction: state.leftDockFraction,
       rightFraction: state.rightDockFraction,
     );
-
-    if (state.hasTagWriteError) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(Tr.of(context).breakdownTagWriteError)));
-      context.read<OcptBreakdownBloc>().add(const OcptBreakdownTagWriteErrorDismissedEvent());
-    }
 
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {

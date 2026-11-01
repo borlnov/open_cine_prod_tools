@@ -96,35 +96,6 @@ void main() {
     );
   }
 
-  /// Writes a one-scene screenplay, an element tagged in it, and returns the scene and element
-  /// ids the rest of a test writes against.
-  Future<({String sceneId, String elementId})> writeTaggedElement() async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(
-      project.database.ocptScenesTable,
-    )).get()).single.id;
-
-    final elementId = await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "Desk lamp",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
-
-    await projectsManager.breakdownService.createTag(
-      database: project.database,
-      sceneId: sceneId,
-      startOffset: 2,
-      endOffset: 6,
-      taggedText: "lamp",
-      targetKind: OcptBreakdownTargetKind.element,
-      targetId: elementId!,
-    );
-
-    return (sceneId: sceneId, elementId: elementId);
-  }
-
   /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a
   /// manager of its own (already holding an open project), for the one that needs to observe it.
   /// The export manager is a real one no test asks to export, so no test ever reaches a native save
@@ -276,14 +247,34 @@ void main() {
         OcptBreakdownSelectionCause.targetCleared,
       );
       expect(
-        await causeOf(
-          OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-        ),
+        await causeOf(OcptBreakdownAnchorSceneSelectedEvent(sceneId: sceneId)),
         OcptBreakdownSelectionCause.anchorScene,
       );
 
       await bloc.close();
     });
+
+    test(
+      "an anchor opened in a scene that is gone drops the scene selection, unlike a click",
+      () async {
+        await writeScreenplay("INT. HOUSE - DAY\n\nAction one.\n");
+        final bloc = buildBloc();
+        final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+        bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: loaded.scenes.single.id));
+        final selected = await waitForState(bloc, (state) => state.selectedSceneId != null);
+
+        bloc.add(const OcptBreakdownAnchorSceneSelectedEvent(sceneId: "not-a-scene"));
+        final dropped = await waitForState(
+          bloc,
+          (state) => state.selectionEpoch > selected.selectionEpoch,
+        );
+
+        expect(dropped.selectedSceneId, isNull);
+        expect(dropped.selectionCause, OcptBreakdownSelectionCause.anchorScene);
+
+        await bloc.close();
+      },
+    );
 
     test("leaving the script moves the selection epoch, a search on the recap does not", () async {
       final bloc = buildBloc();
@@ -762,33 +753,6 @@ void main() {
     await bloc.close();
   });
 
-  test("switching the centre view clears a pending anchor and range", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-    );
-    await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    bloc.add(const OcptBreakdownCentreViewSelectedEvent(view: OcptBreakdownCentreView.recap));
-    final state = await waitForState(
-      bloc,
-      (state) => state.centreView == OcptBreakdownCentreView.recap,
-    );
-
-    expect(state.pendingTagAnchor, isNull);
-    expect(state.pendingTagRange, isNull);
-
-    await bloc.close();
-  });
-
   test("switching back to the script view leaves the search query untouched", () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
@@ -849,30 +813,6 @@ void main() {
     final state = await waitForState(bloc, (state) => state.searchQuery == "");
 
     expect(state.centreView, OcptBreakdownCentreView.recap);
-
-    await bloc.close();
-  });
-
-  test("typing a query from the script view also clears a pending anchor and range", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    final withAnchor = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    expect(withAnchor.pendingTagAnchor, isNotNull);
-
-    bloc.add(const OcptBreakdownSearchQueryChangedEvent(query: "lamp"));
-    final state = await waitForState(
-      bloc,
-      (state) => state.centreView == OcptBreakdownCentreView.recap,
-    );
-
-    expect(state.pendingTagAnchor, isNull);
-    expect(state.pendingTagRange, isNull);
 
     await bloc.close();
   });
@@ -983,473 +923,6 @@ void main() {
     final state = await waitForState(bloc, (state) => state.selectedTargetRef == null);
 
     expect(state.selectedTargetRef, isNull);
-
-    await bloc.close();
-  });
-
-  test("a click with no pending anchor opens one and selects its scene", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    final state = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-
-    expect(state.pendingTagAnchor, (sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24));
-    expect(state.selectedSceneId, sceneId);
-    expect(state.pendingTagRange, isNull);
-
-    await bloc.close();
-  });
-
-  test(
-    "a click in another scene replaces the anchor rather than closing a range across two",
-    () async {
-      await writeScreenplay(
-        "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n",
-      );
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.scenes.length == 2);
-      final houseSceneId = loaded.scenes[0].id;
-      final gardenSceneId = loaded.scenes[1].id;
-
-      bloc.add(
-        OcptBreakdownWordClickedEvent(
-          sceneId: houseSceneId,
-          wordStartOffset: 20,
-          wordEndOffset: 24,
-        ),
-      );
-      await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: gardenSceneId, wordStartOffset: 0, wordEndOffset: 6),
-      );
-      final state = await waitForState(
-        bloc,
-        (state) => state.pendingTagAnchor?.sceneId == gardenSceneId,
-      );
-
-      expect(state.pendingTagAnchor, (
-        sceneId: gardenSceneId,
-        wordStartOffset: 0,
-        wordEndOffset: 6,
-      ));
-      expect(state.selectedSceneId, gardenSceneId);
-      expect(state.pendingTagRange, isNull);
-
-      await bloc.close();
-    },
-  );
-
-  test(
-    "two clicks in the same scene close the range on the right passage, opening the popover",
-    () async {
-      await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-      final sceneId = loaded.scenes.single.id;
-
-      // "lamp" (20, 24) then "desk." (37, 42): the range closes on "lamp sits on the desk", the
-      // full stop the last word is written against left out of it.
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-      );
-      await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-      );
-      final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-      expect(state.pendingTagAnchor, isNull);
-      expect(state.pendingTagRange, (
-        sceneId: sceneId,
-        startOffset: 20,
-        endOffset: 41,
-        taggedText: "lamp sits on the desk",
-        closingWordStartOffset: 37,
-        closingWordEndOffset: 42,
-      ));
-
-      await bloc.close();
-    },
-  );
-
-  test(
-    "a second click closing the range backwards yields the same order-insensitive range",
-    () async {
-      await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-      final bloc = buildBloc();
-      final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-      final sceneId = loaded.scenes.single.id;
-
-      // "desk." (37, 42) first, then "lamp" (20, 24): same merged range as clicking forwards.
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-      );
-      await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-      );
-      final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-      expect(state.pendingTagRange?.startOffset, 20);
-      expect(state.pendingTagRange?.endOffset, 41);
-      expect(state.pendingTagRange?.taggedText, "lamp sits on the desk");
-      // The popover still anchors under the word the second click actually landed on.
-      expect(state.pendingTagRange?.closingWordStartOffset, 20);
-
-      await bloc.close();
-    },
-  );
-
-  test("a range closed on a word written against punctuation leaves it out", () async {
-    await writeScreenplay('INT. HOUSE - DAY\n\nA lamp sits on the "desk", waiting.\n');
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    // The same word clicked twice: `"desk",` (37, 44) is tagged as `desk` (38, 42) alone.
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 44),
-    );
-    final state = await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    expect(state.pendingTagRange?.startOffset, 38);
-    expect(state.pendingTagRange?.endOffset, 42);
-    expect(state.pendingTagRange?.taggedText, "desk");
-
-    await bloc.close();
-  });
-
-  test(
-    "an overlapping second click is refused, keeping the anchor and opening no popover",
-    () async {
-      await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-      final project = projectsManager.currentProject!;
-      final sceneId = (await (project.database.select(
-        project.database.ocptScenesTable,
-      )).get()).single.id;
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      // A live tag over "lamp" (20, 24) already exists.
-      await projectsManager.breakdownService.createTag(
-        database: project.database,
-        sceneId: sceneId,
-        startOffset: 20,
-        endOffset: 24,
-        taggedText: "lamp",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId!,
-      );
-
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-      // "A" (18, 19) as the anchor, then "sits" (25, 29): the merged range [18, 29) crosses the
-      // existing tag over "lamp" (20, 24).
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 18, wordEndOffset: 19),
-      );
-      final withAnchor = await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-      expect(withAnchor.pendingTagAnchor?.wordStartOffset, 18);
-
-      bloc.add(
-        OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 25, wordEndOffset: 29),
-      );
-      // Nothing to wait for since the refusal changes nothing; give the event a moment to process.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      expect(bloc.state.pendingTagAnchor, withAnchor.pendingTagAnchor);
-      expect(bloc.state.pendingTagRange, isNull);
-      expect(bloc.state.taggedTargetCount, 1);
-
-      await bloc.close();
-    },
-  );
-
-  test("cancelling the range clears the pending range and the anchor alike", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-    );
-    await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    bloc.add(const OcptBreakdownTagRangeCancelledEvent());
-    final state = await waitForState(bloc, (state) => state.pendingTagRange == null);
-
-    expect(state.pendingTagAnchor, isNull);
-    expect(state.pendingTagRange, isNull);
-
-    await bloc.close();
-  });
-
-  test("linking the closed range to an existing element writes the tag and selects it", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final project = projectsManager.currentProject!;
-    final sceneId = (await (project.database.select(
-      project.database.ocptScenesTable,
-    )).get()).single.id;
-    final elementId = await projectsManager.elementsService.createElement(
-      database: project.database,
-      name: "Desk lamp",
-      category: OcptElementCategory.prop,
-      sourceKind: OcptElementSourceKind.owned,
-    );
-    expect(elementId, isNotNull);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    bloc.add(
-      OcptBreakdownPopoverTargetLinkedEvent(
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId!,
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-    expect(state.pendingTagAnchor, isNull);
-    expect(state.pendingTagRange, isNull);
-    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, elementId));
-    expect(state.selectedSceneId, sceneId);
-    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
-
-    await bloc.close();
-  });
-
-  test("picking a category chip creates the element, tags the range with it and selects the new "
-      "element", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 37, wordEndOffset: 42),
-    );
-    await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    bloc.add(
-      const OcptBreakdownPopoverElementCreationRequestedEvent(
-        category: OcptElementCategory.prop,
-        name: "Desk lamp, 1960s",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-    expect(state.pendingTagAnchor, isNull);
-    expect(state.pendingTagRange, isNull);
-    expect(state.targets.single.name, "Desk lamp, 1960s");
-    expect(state.targets.single.category, OcptElementCategory.prop);
-    expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, state.targets.single.id));
-    expect(state.rightDockTab, OcptBreakdownRightDockTab.inspector);
-
-    await bloc.close();
-  });
-
-  test("an element created with a cleared field name falls back to the tagged passage", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagAnchor != null);
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    await waitForState(bloc, (state) => state.pendingTagRange != null);
-
-    bloc.add(
-      const OcptBreakdownPopoverElementCreationRequestedEvent(
-        category: OcptElementCategory.prop,
-        name: "   ",
-      ),
-    );
-    final state = await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-    expect(state.targets.single.name, "lamp");
-
-    await bloc.close();
-  });
-
-  test("none of the range interaction happens while a version is previewed", () async {
-    await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
-    final bloc = buildBloc();
-    final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    final sceneId = loaded.scenes.single.id;
-
-    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Base", note: ""));
-    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
-    final versionId = withVersion.projectVersions.single.id;
-
-    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
-    await waitForState(bloc, (state) => state.previewedVersionId != null);
-
-    bloc.add(
-      OcptBreakdownWordClickedEvent(sceneId: sceneId, wordStartOffset: 20, wordEndOffset: 24),
-    );
-    // Nothing to wait for since nothing should change; give the event a moment to process.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-
-    expect(bloc.state.pendingTagAnchor, isNull);
-    expect(bloc.state.pendingTagRange, isNull);
-    expect(bloc.state.taggedTargetCount, 0);
-
-    await bloc.close();
-  });
-
-  test(
-    "accepting a suggested occurrence tags it, reloads the snapshot and leaves the selection",
-    () async {
-      await writeScreenplay(
-        "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n\n"
-        "INT. OFFICE - DAY\n\nHe switches the desk lamp on.\n",
-      );
-      final project = projectsManager.currentProject!;
-      final sceneRows = (await (project.database.select(project.database.ocptScenesTable)).get())
-        ..sort((a, b) => a.position.compareTo(b.position));
-      final sceneA = sceneRows[0];
-      final sceneB = sceneRows[1];
-
-      final elementId = await projectsManager.elementsService.createElement(
-        database: project.database,
-        name: "Desk lamp",
-        category: OcptElementCategory.prop,
-        sourceKind: OcptElementSourceKind.owned,
-      );
-      expect(elementId, isNotNull);
-
-      // The scene's own text slice is [charStart, charEnd) of the whole screenplay, exactly what
-      // `ocptBreakdownSuggestionsOf` itself reads — offsets computed against a hand-typed literal
-      // would drift from the parser's own real ones (the heading's own length, in particular).
-      final screenplayText = await projectsManager.screenplayService.loadScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
-      final sceneAText = screenplayText.substring(sceneA.charStart, sceneA.charEnd);
-      final taggedStart = sceneAText.indexOf("lamp");
-      final tagId = await projectsManager.breakdownService.createTag(
-        database: project.database,
-        sceneId: sceneA.id,
-        startOffset: taggedStart,
-        endOffset: taggedStart + "lamp".length,
-        taggedText: "lamp",
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: elementId!,
-      );
-      expect(tagId, isNotNull);
-
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-      bloc.add(
-        OcptBreakdownTargetSelectedEvent(
-          targetKind: OcptBreakdownTargetKind.element,
-          targetId: elementId,
-          sceneId: sceneA.id,
-        ),
-      );
-      final selected = await waitForState(bloc, (state) => state.selectedTargetRef != null);
-      expect(selected.selectedTargetRef, (OcptBreakdownTargetKind.element, elementId));
-      expect(selected.selectedSceneId, sceneA.id);
-
-      // The other occurrence of "lamp" (inside "desk lamp") of scene-b is offered, not applied.
-      final suggestion = selected.selectedTargetSuggestions.single;
-      expect(suggestion.sceneId, sceneB.id);
-      expect(suggestion.text, "lamp");
-
-      bloc.add(
-        OcptBreakdownSuggestionAcceptedEvent(
-          targetKind: suggestion.targetKind,
-          targetId: suggestion.targetId,
-          sceneId: suggestion.sceneId,
-          startOffset: suggestion.startOffset,
-          endOffset: suggestion.endOffset,
-          taggedText: suggestion.text,
-        ),
-      );
-      final state = await waitForState(
-        bloc,
-        (state) =>
-            state.targets.any((target) => target.id == elementId && target.occurrenceCount == 2),
-      );
-
-      // Accepting the suggestion writes the tag (the second occurrence now counts) without
-      // bouncing the user off the row they were working through.
-      expect(state.selectedTargetRef, (OcptBreakdownTargetKind.element, elementId));
-      expect(state.selectedSceneId, sceneA.id);
-      expect(state.selectedTargetSuggestions, isEmpty);
-
-      await bloc.close();
-    },
-  );
-
-  test("accepting a suggestion is refused while a version is previewed", () async {
-    final tagged = await writeTaggedElement();
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => state.taggedTargetCount == 1);
-
-    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Base", note: ""));
-    final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
-    final versionId = withVersion.projectVersions.single.id;
-
-    bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
-    await waitForState(bloc, (state) => state.previewedVersionId != null);
-
-    bloc.add(
-      OcptBreakdownSuggestionAcceptedEvent(
-        targetKind: OcptBreakdownTargetKind.element,
-        targetId: tagged.elementId,
-        sceneId: tagged.sceneId,
-        startOffset: 10,
-        endOffset: 14,
-        taggedText: "desk",
-      ),
-    );
-    // Nothing to wait for since nothing should change; give the event a moment to process.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-
-    expect(bloc.state.taggedTargetCount, 1);
 
     await bloc.close();
   });

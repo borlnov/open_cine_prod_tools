@@ -99,3 +99,22 @@ class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownSelectionEvent {
   @override
   List<Object?> get props => [...super.props, sceneId];
 }
+
+/// Selects the scene a first click of the script opened a tag anchor in, dispatched by
+/// `OcptBreakdownTaggingBloc` rather than by a widget.
+///
+/// A tag belongs to one scene, so an anchor opened in another scene selects it. Unlike
+/// [OcptBreakdownSceneSelectedEvent], a scene that no longer exists in the current snapshot drops
+/// the scene selection instead of being ignored; the selected target and the right dock are left
+/// alone. The tagging bloc waits for it before it records the anchor.
+class OcptBreakdownAnchorSceneSelectedEvent extends OcptBreakdownSelectionEvent {
+  /// The id of the scene the anchor opened in.
+  final String sceneId;
+
+  /// Class constructor
+  const OcptBreakdownAnchorSceneSelectedEvent({required this.sceneId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, sceneId];
+}
