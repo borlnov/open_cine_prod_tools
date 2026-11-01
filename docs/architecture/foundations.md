@@ -452,6 +452,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `PlatformManager.isMobile`, rebuilds the theme in the tree with the `.sp`/`.w`/`.r` scalers
   (`buildOcptThemeModel(sp: (v) => v.sp, w: (v) => v.w, r: (v) => v.r)`); desktop keeps the bloc
   state's own theme model — the global `ocptTheme` — and never calls a scaler at all.
+  Every file that imports `ocpt_theme.dart` does so `as ocpt_theme` and prefixes what it takes from
+  it (`ocpt_theme.ocptRadiusSmall`), so a call site says where a theme constant comes from.
 
 - The app's first width-breakpoint seam lives in `lib/models/rules/ocpt_responsive.dart`, deliberately
   kept apart from the platform-keyed scaling above: `ocptCompactWidthBreakpoint` (816 px — below it
