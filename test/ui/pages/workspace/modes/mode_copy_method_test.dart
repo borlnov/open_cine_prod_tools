@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// This reads the source of the blocs of every converted mode, and of the shared blocs those modes
 /// build on, and fails on a call to either generic copy. It is a source scan: a call hidden behind
 /// another name is not seen.
-const _modeFolders = <String>["shot_list", "schedule"];
+const _modeFolders = <String>["shot_list", "schedule", "resources"];
 
 /// The shared blocs every mode builds on.
 const _sharedFolder = "lib/ui/pages/workspace/blocs";
