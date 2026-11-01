@@ -176,15 +176,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
 
     const mode = OcptWorkspaceMode.screenplay;
     final episodes = await _loadEpisodes();
-    emit(
-      state.copyWith(
-        isLoading: false,
-        mode: mode,
-        episodes: episodes,
-        selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
-        forceSelectedEpisodeIdValue: episodes.isEmpty,
-      ),
-    );
+    emit(state.copyToLoaded(mode: mode, episodes: episodes));
 
     // Re-host first: a *fresh* host start's own self-seed has already started the sync session (and
     // presence) against this machine's hosted relay, so the ordinary paired-project start is
@@ -312,11 +304,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
           : (episodes.isEmpty ? null : episodes.first.id);
 
       emitter(
-        state.copyWith(
-          episodes: episodes,
-          selectedEpisodeId: selectedEpisodeId,
-          forceSelectedEpisodeIdValue: selectedEpisodeId == null,
-        ),
+        state.copyWithReloadedEpisodes(episodes: episodes, selectedEpisodeId: selectedEpisodeId),
       );
     } catch (error, stackTrace) {
       _logger.w(
@@ -335,7 +323,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     OcptWorkspaceEpisodeSelectedEvent event,
     Emitter<OcptWorkspaceState> emitter,
   ) async {
-    emitter(state.copyWith(selectedEpisodeId: event.episodeId));
+    emitter(state.copyWithSelectedEpisode(selectedEpisodeId: event.episodeId));
   }
 
   /// The open project's live episodes, in `sortKey` order, or empty while no project is open.
@@ -367,11 +355,10 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     Emitter<OcptWorkspaceState> emitter,
   ) async {
     emitter(
-      state.copyWith(
+      state.copyWithMode(
         mode: event.mode,
         revealRequest: event.revealRequest,
-        forceRevealRequestValue: event.revealRequest == null,
-        selectedEpisodeId: event.episodeId,
+        episodeId: event.episodeId,
       ),
     );
     _syncManager?.updatePresenceMode(event.mode);
@@ -384,7 +371,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
   Future<void> _onRevealRequestConsumed(
     OcptWorkspaceRevealRequestConsumedEvent event,
     Emitter<OcptWorkspaceState> emitter,
-  ) async => emitter(state.copyWith(forceRevealRequestValue: true));
+  ) async => emitter(state.copyWithRevealRequestConsumed());
 
   /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

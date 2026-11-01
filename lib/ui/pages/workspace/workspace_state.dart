@@ -79,6 +79,50 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
         selectedEpisodeId ?? (forceSelectedEpisodeIdValue ? null : this.selectedEpisodeId),
   );
 
+  /// Copies this state as loaded in [mode] with the project's [episodes], the first one selected
+  /// (none when there is none).
+  OcptWorkspaceState copyToLoaded({
+    required OcptWorkspaceMode mode,
+    required List<OcptEpisode> episodes,
+  }) => copyWith(
+    isLoading: false,
+    mode: mode,
+    episodes: episodes,
+    selectedEpisodeId: episodes.isEmpty ? null : episodes.first.id,
+    forceSelectedEpisodeIdValue: episodes.isEmpty,
+  );
+
+  /// Copies this state with the project's [episodes] read again and [selectedEpisodeId] kept or
+  /// moved to a live one, null when there is none.
+  OcptWorkspaceState copyWithReloadedEpisodes({
+    required List<OcptEpisode> episodes,
+    required String? selectedEpisodeId,
+  }) => copyWith(
+    episodes: episodes,
+    selectedEpisodeId: selectedEpisodeId,
+    forceSelectedEpisodeIdValue: selectedEpisodeId == null,
+  );
+
+  /// Copies this state with the episode picked from the toolbar selected.
+  OcptWorkspaceState copyWithSelectedEpisode({required String selectedEpisodeId}) =>
+      copyWith(selectedEpisodeId: selectedEpisodeId);
+
+  /// Copies this state switched to [mode], with the [revealRequest] to hand to it and, when given,
+  /// the [episodeId] it opens on.
+  OcptWorkspaceState copyWithMode({
+    required OcptWorkspaceMode mode,
+    required OcptWorkspaceRevealRequest? revealRequest,
+    required String? episodeId,
+  }) => copyWith(
+    mode: mode,
+    revealRequest: revealRequest,
+    forceRevealRequestValue: revealRequest == null,
+    selectedEpisodeId: episodeId,
+  );
+
+  /// Copies this state with the reveal request cleared.
+  OcptWorkspaceState copyWithRevealRequestConsumed() => copyWith(forceRevealRequestValue: true);
+
   /// Object properties
   @override
   List<Object?> get props => [
