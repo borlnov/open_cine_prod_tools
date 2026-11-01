@@ -40,10 +40,13 @@ import 'package:script_import_kit/src/emitter/script_title_page.dart';
 /// meant, rather than an all-caps line of dialogue quietly becoming a
 /// character cue.
 class ScriptFountainEmitter {
+  /// The serializer writing the styled runs of a line as marked-up text.
   static const FountainInlineSerializer _inlineSerializer = FountainInlineSerializer();
 
+  /// The writer laying a line out as Fountain source.
   static const FountainLineWriter _lineWriter = FountainLineWriter();
 
+  /// The writer folding the title page entries into the Fountain source.
   static const FountainTitlePageWriter _titlePageWriter = FountainTitlePageWriter();
 
   /// Matches a line a Fountain parser would read as the first key of a

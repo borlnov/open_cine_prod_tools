@@ -16,16 +16,19 @@ class SpellToken {
   /// The token's span in the text it was found in, in UTF-16 code units.
   final SpellRange range;
 
+  /// Hash [text] and [range].
   @override
   int get hashCode => Object.hash(text, range);
 
   /// Creates a [SpellToken].
   const SpellToken(this.text, this.range);
 
+  /// Compare by [text] and [range].
   @override
   bool operator ==(Object other) =>
       other is SpellToken && other.text == text && other.range == range;
 
+  /// Describe this [SpellToken] for debugging and logging.
   @override
   String toString() => 'SpellToken($text, $range)';
 }

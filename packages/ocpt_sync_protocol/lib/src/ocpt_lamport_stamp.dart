@@ -39,9 +39,11 @@ class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp>
   /// [compareTo] returning a strictly positive value.
   bool wins(OcptLamportStamp other) => compareTo(other) > 0;
 
+  /// Describe this [OcptLamportStamp] for debugging and logging.
   @override
   String toString() => 'OcptLamportStamp(version: $version, deviceId: $deviceId)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [version, deviceId];
 }

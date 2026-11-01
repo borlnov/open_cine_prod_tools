@@ -18,6 +18,7 @@ class OcptSyncMalformedDataError implements Exception {
   /// with the decoded JSON.
   const OcptSyncMalformedDataError(this.reason);
 
+  /// Describe this [OcptSyncMalformedDataError] for debugging and logging.
   @override
   String toString() => 'OcptSyncMalformedDataError: $reason';
 }

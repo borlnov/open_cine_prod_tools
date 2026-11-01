@@ -58,9 +58,11 @@ class FountainTitlePage extends Equatable {
     return null;
   }
 
+  /// Describe this [FountainTitlePage] for debugging and logging.
   @override
   String toString() => 'FountainTitlePage($entries)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [entries];
 }

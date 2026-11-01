@@ -81,6 +81,7 @@ class FountainSceneStatistics extends Equatable {
     );
   }
 
+  /// Describe this [FountainSceneStatistics] for debugging and logging.
   @override
   String toString() =>
       'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
@@ -145,6 +146,7 @@ class FountainSceneStatistics extends Equatable {
     return (sceneLineCount * 8 / metrics.linesPerPage).round();
   }
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [speakingCharacters, wordCount, pageEighths];
 }

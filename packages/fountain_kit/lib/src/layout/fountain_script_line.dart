@@ -107,11 +107,13 @@ class FountainScriptLine extends Equatable {
     this.isSynthetic = false,
   });
 
+  /// Describe this [FountainScriptLine] for debugging and logging.
   @override
   String toString() =>
       'FountainScriptLine($lineType, "$plainText", '
       'indent: ${leftIndentInches}in)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     runs,

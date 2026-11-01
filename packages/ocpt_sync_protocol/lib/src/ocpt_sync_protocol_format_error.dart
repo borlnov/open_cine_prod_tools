@@ -29,6 +29,7 @@ class OcptSyncUnsupportedFormatError implements Exception {
     required this.knownUpTo,
   });
 
+  /// Describe this [OcptSyncUnsupportedFormatError] for debugging and logging.
   @override
   String toString() =>
       'OcptSyncUnsupportedFormatError: $subject is written in format $foundFormat, but this '

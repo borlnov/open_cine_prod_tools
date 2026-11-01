@@ -42,15 +42,18 @@ class OcptSequenceNumber extends Equatable implements Comparable<OcptSequenceNum
   /// True when this position comes after or at [other] in the same log.
   bool operator >=(OcptSequenceNumber other) => value >= other.value;
 
+  /// Compare by [value].
   @override
   int compareTo(OcptSequenceNumber other) => value.compareTo(other.value);
 
   /// The plain integer this sequence number is written as on the wire.
   int toJson() => value;
 
+  /// Describe this [OcptSequenceNumber] for debugging and logging.
   @override
   String toString() => 'OcptSequenceNumber($value)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [value];
 }

@@ -86,11 +86,22 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// persisted, reset by a restart) — it is the cheapest guard against a brute-force or DoS attempt,
 /// not a security boundary on its own.
 class OcptRelayServer {
+  /// The `X-Ocpt-Enrolment-Secret` HTTP header.
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+
+  /// The prefix of the value of an `Authorization` header carrying a bearer token.
   static const _bearerPrefix = 'Bearer ';
+
+  /// The query parameter `since`.
   static const _sinceParam = 'since';
+
+  /// The JSON key of `sequence`.
   static const _sequenceKey = 'sequence';
+
+  /// The JSON key of `descriptor`.
   static const _descriptorKey = 'descriptor';
+
+  /// The JSON key of `bytes`.
   static const _bytesKey = 'bytes';
 
   /// The opaque frame sent to every `events` subscriber of a project on new work. Its content is
@@ -117,6 +128,7 @@ class OcptRelayServer {
   /// Flutter-free package reads or writes to on its own.
   final void Function(String message)? onEvent;
 
+  /// The throttle over failed authentications.
   final _AuthRateLimiter _rateLimiter;
 
   /// The sockets currently subscribed to each project's `events` route, so a write can be
@@ -157,6 +169,9 @@ class OcptRelayServer {
          window: authFailureWindow,
        );
 
+  /// Handle `POST /projects/<projectId>/changesets`: authenticate, with the right to create the
+  /// project,
+  /// append the envelope sent as body and answer with its sequence number.
   Future<shelf.Response> _postChangesets(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: true);
@@ -187,6 +202,9 @@ class OcptRelayServer {
     return _jsonResponse(200, {_sequenceKey: sequence.value});
   }
 
+  /// Handle `GET /projects/<projectId>/changesets`: authenticate and answer with the changesets
+  /// after the
+  /// `since` cursor.
   Future<shelf.Response> _getChangesets(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -209,6 +227,9 @@ class OcptRelayServer {
     return _jsonResponse(200, [for (final changeset in stored) changeset.toJson()]);
   }
 
+  /// Handle `POST /projects/<projectId>/snapshot`: authenticate, decode the descriptor and the
+  /// bytes sent
+  /// as body, store them and tell the subscribers there is new work.
   Future<shelf.Response> _postSnapshot(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -242,6 +263,9 @@ class OcptRelayServer {
     return shelf.Response(204);
   }
 
+  /// Handle `GET /projects/<projectId>/snapshot`: authenticate and answer with the latest snapshot,
+  /// or
+  /// with a 404 when there is none.
   Future<shelf.Response> _getSnapshot(shelf.Request request) async {
     final projectId = request.params['projectId']!;
     final rejection = _authenticate(request, projectId: projectId, allowCreate: false);
@@ -434,12 +458,15 @@ class OcptRelayServer {
   /// stores or compares against.
   String _hashToken(String token) => sha256.convert(utf8.encode(token)).toString();
 
+  /// Build a response with [statusCode] and [body] encoded as JSON.
   shelf.Response _jsonResponse(int statusCode, Object body) => shelf.Response(
     statusCode,
     body: jsonEncode(body),
     headers: {'content-type': 'application/json'},
   );
 
+  /// Build a JSON response with [statusCode] carrying an [OcptSyncError] made of [code] and
+  /// [message].
   shelf.Response _errorResponse(int statusCode, OcptSyncErrorCode code, String message) =>
       _jsonResponse(statusCode, OcptSyncError(code: code, message: message).toJson());
 
@@ -484,10 +511,16 @@ class OcptRelayServer {
 /// cheapest guard against a brute-force or denial-of-service attempt, not a security boundary of
 /// its own.
 class _AuthRateLimiter {
+  /// How many failures a source may make within [window] before it is blocked.
   final int maxFailures;
+
+  /// How long a source's failures are counted before the count starts again.
   final Duration window;
+
+  /// The current failure window of each source.
   final Map<String, _FailureWindow> _failuresBySource;
 
+  /// Class constructor
   _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
 
   /// True when [source] has already failed authentication [maxFailures] times or more within the
@@ -522,8 +555,12 @@ class _AuthRateLimiter {
 
 /// One source's failure count within its current window, as tracked by [_AuthRateLimiter].
 class _FailureWindow {
+  /// When the window opened, at the first failure.
   final DateTime windowStart;
+
+  /// How many failures happened since the window opened.
   int count;
 
+  /// Class constructor
   _FailureWindow({required this.windowStart, required this.count});
 }

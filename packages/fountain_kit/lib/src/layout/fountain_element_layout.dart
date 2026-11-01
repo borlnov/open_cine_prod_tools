@@ -53,12 +53,14 @@ class FountainElementLayout extends Equatable {
     required this.alignment,
   });
 
+  /// Describe this [FountainElementLayout] for debugging and logging.
   @override
   String toString() =>
       'FountainElementLayout(indent: ${leftIndentInches}in/'
       '$leftIndentColumns cols, width: ${maxWidthInches}in/'
       '$maxWidthColumns cols, $alignment)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     leftIndentInches,

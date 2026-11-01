@@ -24,8 +24,10 @@ import 'package:sqlite3/sqlite3.dart';
 /// that project's log, atomically with the snapshot write — see [uploadSnapshot] for why that is
 /// safe for a replica that has not read that far yet.
 class OcptRelayStore {
+  /// The path that opens a private in-memory database instead of a file.
   static const _inMemoryPath = ':memory:';
 
+  /// The database holding the projects, their changesets and their snapshots.
   final Database _db;
 
   /// Opens (creating if absent) the database at [path], and creates the schema below if it is not
@@ -241,6 +243,7 @@ class OcptRelayStore {
   OcptSnapshotDescriptor _decodeSnapshotDescriptor(Uint8List bytes) =>
       OcptSnapshotDescriptor.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 
+  /// Create the tables of the store when they are not there yet.
   void _createSchemaIfAbsent() {
     _db.execute('''
       CREATE TABLE IF NOT EXISTS projects (

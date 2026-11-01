@@ -31,6 +31,7 @@ class FountainInlineSerializer {
   /// [FountainInlineParser]'s own matching order.
   static const List<String> _markerTokens = ['***', '**', '*', '_'];
 
+  /// The parser used to check that a written line reads back as the same runs.
   static const FountainInlineParser _parser = FountainInlineParser();
 
   /// Creates a [FountainInlineSerializer].

@@ -24,6 +24,7 @@ class ScriptImportException implements Exception {
   /// Creates a [ScriptImportException].
   const ScriptImportException(this.failure, {this.details});
 
+  /// Describe this [ScriptImportException] for debugging and logging.
   @override
   String toString() {
     final suffix = details == null ? '' : ': $details';

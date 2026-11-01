@@ -21,6 +21,7 @@ class SpellRange {
   /// The offset one past the last UTF-16 code unit covered by this range.
   final int end;
 
+  /// Hash [start] and [end].
   @override
   int get hashCode => Object.hash(start, end);
 
@@ -29,9 +30,11 @@ class SpellRange {
     : assert(start >= 0, 'start must not be negative'),
       assert(end >= start, 'end must not precede start');
 
+  /// Compare by [start] and [end].
   @override
   bool operator ==(Object other) => other is SpellRange && other.start == start && other.end == end;
 
+  /// Describe this [SpellRange] for debugging and logging.
   @override
   String toString() => 'SpellRange($start, $end)';
 }

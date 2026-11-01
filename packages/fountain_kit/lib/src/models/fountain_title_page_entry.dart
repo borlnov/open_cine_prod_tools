@@ -40,9 +40,11 @@ class FountainTitlePageEntry extends Equatable {
     required this.sourceRange,
   });
 
+  /// Describe this [FountainTitlePageEntry] for debugging and logging.
   @override
   String toString() => 'FountainTitlePageEntry($key: $values)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [key, values];
 }

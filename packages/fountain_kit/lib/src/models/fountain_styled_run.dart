@@ -76,6 +76,7 @@ class FountainStyledRun extends Equatable {
     this.sourceRange,
   });
 
+  /// Describe this [FountainStyledRun] for debugging and logging.
   @override
   String toString() {
     final flags = [
@@ -88,6 +89,7 @@ class FountainStyledRun extends Equatable {
     return 'FountainStyledRun($style, "$text")';
   }
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text, isBold, isItalic, isUnderline, isNote];
 }

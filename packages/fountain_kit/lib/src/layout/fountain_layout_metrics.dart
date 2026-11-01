@@ -241,6 +241,7 @@ class FountainLayoutMetrics extends Equatable {
     );
   }
 
+  /// Describe this [FountainLayoutMetrics] for debugging and logging.
   @override
   String toString() =>
       'FountainLayoutMetrics(${pageWidthInches}in x '
@@ -265,6 +266,7 @@ class FountainLayoutMetrics extends Equatable {
     alignment: alignment,
   );
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     pageWidthInches,

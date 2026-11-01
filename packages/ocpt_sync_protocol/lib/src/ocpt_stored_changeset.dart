@@ -16,7 +16,10 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// where to resume a "read since" call — and, per ADR 0010, never something a merge reads to
 /// decide a winner.
 class OcptStoredChangeset extends Equatable {
+  /// The JSON key of `sequenceNumber`.
   static const _sequenceNumberKey = 'sequenceNumber';
+
+  /// The JSON key of `envelope`.
   static const _envelopeKey = 'envelope';
 
   /// The position a relay assigned this changeset in its own log.
@@ -46,9 +49,11 @@ class OcptStoredChangeset extends Equatable {
     _envelopeKey: envelope.toJson(),
   };
 
+  /// Describe this [OcptStoredChangeset] for debugging and logging.
   @override
   String toString() => 'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [sequenceNumber, envelope];
 }

@@ -51,9 +51,11 @@ class FountainSceneHeading extends FountainBlock {
     this.sceneNumber,
   });
 
+  /// Describe this [FountainSceneHeading] for debugging and logging.
   @override
   String toString() => 'FountainSceneHeading($headingText)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [rawText, headingText, forcedMarker, sceneNumber];
 }
@@ -75,9 +77,11 @@ class FountainActionBlock extends FountainBlock {
     required this.forced,
   });
 
+  /// Describe this [FountainActionBlock] for debugging and logging.
   @override
   String toString() => 'FountainActionBlock(${lines.length} lines)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lines, forced];
 }
@@ -110,12 +114,14 @@ class FountainCharacter extends FountainBlock {
     this.extension,
   });
 
+  /// Describe this [FountainCharacter] for debugging and logging.
   @override
   String toString() {
     final suffix = extension == null ? '' : ' ($extension)';
     return 'FountainCharacter($name$suffix)';
   }
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [name, extension, isDualDialogue];
 }
@@ -129,9 +135,11 @@ class FountainParenthetical extends FountainBlock {
   /// Creates a [FountainParenthetical].
   const FountainParenthetical({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainParenthetical] for debugging and logging.
   @override
   String toString() => 'FountainParenthetical($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -146,9 +154,11 @@ class FountainDialogueLine extends FountainBlock {
   /// Creates a [FountainDialogueLine].
   const FountainDialogueLine({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainDialogueLine] for debugging and logging.
   @override
   String toString() => 'FountainDialogueLine($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -186,9 +196,11 @@ class FountainDialogueGroup extends FountainBlock {
     required this.isDualDialogue,
   });
 
+  /// Describe this [FountainDialogueGroup] for debugging and logging.
   @override
   String toString() => 'FountainDialogueGroup(${character.name}, ${children.length} lines)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [character, children, isDualDialogue];
 }
@@ -205,9 +217,11 @@ class FountainTransition extends FountainBlock {
   /// Creates a [FountainTransition].
   const FountainTransition({required super.sourceRange, required this.text, required this.forced});
 
+  /// Describe this [FountainTransition] for debugging and logging.
   @override
   String toString() => 'FountainTransition($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text, forced];
 }
@@ -221,9 +235,11 @@ class FountainLyrics extends FountainBlock {
   /// Creates a [FountainLyrics] block.
   const FountainLyrics({required super.sourceRange, required this.lines});
 
+  /// Describe this [FountainLyrics] for debugging and logging.
   @override
   String toString() => 'FountainLyrics(${lines.length} lines)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lines];
 }
@@ -236,9 +252,11 @@ class FountainCenteredText extends FountainBlock {
   /// Creates a [FountainCenteredText] block.
   const FountainCenteredText({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainCenteredText] for debugging and logging.
   @override
   String toString() => 'FountainCenteredText($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -256,9 +274,11 @@ class FountainSection extends FountainBlock {
   /// Creates a [FountainSection].
   const FountainSection({required super.sourceRange, required this.level, required this.text});
 
+  /// Describe this [FountainSection] for debugging and logging.
   @override
   String toString() => 'FountainSection(level $level, $text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [level, text];
 }
@@ -272,9 +292,11 @@ class FountainSynopsis extends FountainBlock {
   /// Creates a [FountainSynopsis].
   const FountainSynopsis({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainSynopsis] for debugging and logging.
   @override
   String toString() => 'FountainSynopsis($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -290,9 +312,11 @@ class FountainNoteBlock extends FountainBlock {
   /// Creates a [FountainNoteBlock].
   const FountainNoteBlock({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainNoteBlock] for debugging and logging.
   @override
   String toString() => 'FountainNoteBlock($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -306,9 +330,11 @@ class FountainBoneyard extends FountainBlock {
   /// Creates a [FountainBoneyard] block.
   const FountainBoneyard({required super.sourceRange, required this.text});
 
+  /// Describe this [FountainBoneyard] for debugging and logging.
   @override
   String toString() => 'FountainBoneyard($text)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text];
 }
@@ -318,9 +344,11 @@ class FountainPageBreak extends FountainBlock {
   /// Creates a [FountainPageBreak].
   const FountainPageBreak({required super.sourceRange});
 
+  /// Describe this [FountainPageBreak] for debugging and logging.
   @override
   String toString() => 'FountainPageBreak()';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [];
 }

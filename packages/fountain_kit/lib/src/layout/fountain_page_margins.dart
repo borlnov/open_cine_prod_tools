@@ -58,11 +58,13 @@ class FountainPageMargins extends Equatable {
     bottomInches: bottomInches ?? this.bottomInches,
   );
 
+  /// Describe this [FountainPageMargins] for debugging and logging.
   @override
   String toString() =>
       'FountainPageMargins(left: ${leftInches}in, right: ${rightInches}in, '
       'top: ${topInches}in, bottom: ${bottomInches}in)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [leftInches, rightInches, topInches, bottomInches];
 }

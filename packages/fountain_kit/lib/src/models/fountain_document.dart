@@ -26,11 +26,13 @@ class FountainDocument extends Equatable {
   /// Creates a [FountainDocument].
   const FountainDocument({required this.titlePage, required this.blocks, required this.sourceText});
 
+  /// Describe this [FountainDocument] for debugging and logging.
   @override
   String toString() =>
       'FountainDocument(${blocks.length} blocks, '
       'titlePage: ${titlePage != null})';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [titlePage, blocks, sourceText];
 }

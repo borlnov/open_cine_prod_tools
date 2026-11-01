@@ -49,11 +49,13 @@ class FountainSourceRange extends Equatable {
     endOffset: endOffset > other.endOffset ? endOffset : other.endOffset,
   );
 
+  /// Describe this [FountainSourceRange] for debugging and logging.
   @override
   String toString() =>
       'FountainSourceRange(lines $startLine-$endLine, '
       'offsets $startOffset-$endOffset)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [startLine, endLine, startOffset, endOffset];
 }

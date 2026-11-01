@@ -15,9 +15,11 @@ class FountainScriptPage extends Equatable {
   /// Creates a [FountainScriptPage].
   const FountainScriptPage({required this.lines});
 
+  /// Describe this [FountainScriptPage] for debugging and logging.
   @override
   String toString() => 'FountainScriptPage(${lines.length} lines)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lines];
 }

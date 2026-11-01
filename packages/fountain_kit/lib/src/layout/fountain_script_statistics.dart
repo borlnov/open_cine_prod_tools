@@ -87,12 +87,14 @@ class FountainScriptStatistics extends Equatable {
     );
   }
 
+  /// Describe this [FountainScriptStatistics] for debugging and logging.
   @override
   String toString() =>
       'FountainScriptStatistics($pageCount pages, $sceneCount scenes, '
       '$speakingCharacterCount characters, $wordCount words, '
       '$signCount signs)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pageCount, sceneCount, speakingCharacterCount, wordCount, signCount];
 }

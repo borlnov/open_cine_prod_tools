@@ -19,11 +19,22 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 /// never imports app code, per this package's own domain-blindness (`OcptRelayStore`'s own doc
 /// comment applies here too — this class never looks inside an envelope's payload).
 class OcptRelayUpstreamClient {
+  /// The `Authorization` HTTP header.
   static const _authorizationHeader = 'Authorization';
+
+  /// The `X-Ocpt-Enrolment-Secret` HTTP header.
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+
+  /// The `content-type` HTTP header.
   static const _contentTypeHeader = 'content-type';
+
+  /// The content type of a JSON request body.
   static const _contentTypeJson = 'application/json';
+
+  /// The query parameter `since`.
   static const _sinceParam = 'since';
+
+  /// The JSON key of `sequence`.
   static const _sequenceKey = 'sequence';
 
   /// The upstream relay this client talks to, e.g. `https://relay.example.org/`.
@@ -32,6 +43,7 @@ class OcptRelayUpstreamClient {
   /// The bearer token authenticating every request this client makes against the upstream.
   final String token;
 
+  /// The HTTP client every request goes through.
   final http.Client _httpClient;
 
   /// Creates a client talking to the upstream relay at [baseUri], authenticating every request
@@ -106,6 +118,7 @@ class OcptRelayUpstreamClient {
     return baseUri.replace(path: '$basePath/projects/$projectId/changesets');
   }
 
+  /// Get the headers that authenticate a request with the bearer token.
   Map<String, String> _authHeaders() => {_authorizationHeader: 'Bearer $token'};
 
   /// Throws a [StateError] describing [action], [response]'s status code and its body when

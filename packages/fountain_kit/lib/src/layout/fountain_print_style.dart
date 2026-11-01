@@ -69,12 +69,14 @@ class FountainPrintStyle extends Equatable {
     FountainLineType.action => plain,
   };
 
+  /// Describe this [FountainPrintStyle] for debugging and logging.
   @override
   String toString() {
     final flags = [if (isBold) 'bold', if (isItalic) 'italic', if (isUppercase) 'uppercase'];
     return 'FountainPrintStyle(${flags.isEmpty ? 'plain' : flags.join('+')})';
   }
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [isBold, isItalic, isUppercase];
 }

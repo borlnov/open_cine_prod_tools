@@ -18,7 +18,10 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// [OcptSyncMalformedDataError], which describe *this build's own decoding failures* and are
 /// thrown, never carried as data.
 class OcptSyncError extends Equatable {
+  /// The JSON key of `code`.
   static const _codeKey = 'code';
+
+  /// The JSON key of `message`.
   static const _messageKey = 'message';
 
   /// Which kind of failure this is, for a caller to branch on.
@@ -56,9 +59,11 @@ class OcptSyncError extends Equatable {
   /// Serialises this error to the JSON object a relay reports it as.
   Map<String, dynamic> toJson() => {_codeKey: code.name, _messageKey: message};
 
+  /// Describe this [OcptSyncError] for debugging and logging.
   @override
   String toString() => 'OcptSyncError(code: $code, message: $message)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [code, message];
 }

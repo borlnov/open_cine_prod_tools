@@ -23,10 +23,19 @@ class OcptSnapshotDescriptor extends Equatable {
   /// schema version.
   static const currentSnapshotFormat = 1;
 
+  /// The JSON key of `snapshotId`.
   static const _snapshotIdKey = 'snapshotId';
+
+  /// The JSON key of `sequenceUpTo`.
   static const _sequenceUpToKey = 'sequenceUpTo';
+
+  /// The JSON key of `byteLength`.
   static const _byteLengthKey = 'byteLength';
+
+  /// The JSON key of `contentDigest`.
   static const _contentDigestKey = 'contentDigest';
+
+  /// The JSON key of `snapshotFormat`.
   static const _snapshotFormatKey = 'snapshotFormat';
 
   /// The UUID identifying this snapshot.
@@ -92,11 +101,13 @@ class OcptSnapshotDescriptor extends Equatable {
     _snapshotFormatKey: snapshotFormat,
   };
 
+  /// Describe this [OcptSnapshotDescriptor] for debugging and logging.
   @override
   String toString() =>
       'OcptSnapshotDescriptor(snapshotId: $snapshotId, sequenceUpTo: $sequenceUpTo, '
       'byteLength: $byteLength, contentDigest: $contentDigest, snapshotFormat: $snapshotFormat)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [snapshotId, sequenceUpTo, byteLength, contentDigest, snapshotFormat];
 }

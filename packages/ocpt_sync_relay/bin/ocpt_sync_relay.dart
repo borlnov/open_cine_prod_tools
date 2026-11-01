@@ -34,6 +34,9 @@ const _addressEnvVar = 'OCPT_RELAY_ADDRESS';
 /// The bind address used when [_addressEnvVar] is not set.
 const _defaultAddress = '0.0.0.0';
 
+/// Serve the relay, or run the `reconcile` subcommand when it is the first argument.
+///
+/// Stops the server and closes the store on `SIGINT`, and on `SIGTERM` where the platform has it.
 Future<void> main(List<String> arguments) async {
   if (arguments.isNotEmpty && arguments.first == _reconcileSubcommand) {
     try {

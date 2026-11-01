@@ -28,11 +28,22 @@ class OcptChangesetEnvelope extends Equatable {
   /// half-reading it.
   static const currentProtocolFormat = 1;
 
+  /// The JSON key of `changesetId`.
   static const _changesetIdKey = 'changesetId';
+
+  /// The JSON key of `originDeviceId`.
   static const _originDeviceIdKey = 'originDeviceId';
+
+  /// The JSON key of `lamport`.
   static const _lamportKey = 'lamport';
+
+  /// The JSON key of `createdAt`.
   static const _createdAtKey = 'createdAt';
+
+  /// The JSON key of `payload`.
   static const _payloadKey = 'payload';
+
+  /// The JSON key of `protocolFormat`.
   static const _protocolFormatKey = 'protocolFormat';
 
   /// The UUID identifying this changeset, minted once by the device that created it and stable
@@ -113,12 +124,14 @@ class OcptChangesetEnvelope extends Equatable {
     _protocolFormatKey: protocolFormat,
   };
 
+  /// Describe this [OcptChangesetEnvelope] for debugging and logging.
   @override
   String toString() =>
       'OcptChangesetEnvelope(changesetId: $changesetId, originDeviceId: $originDeviceId, '
       'lamport: $lamport, createdAt: $createdAt, payload: ${payload.length} bytes, '
       'protocolFormat: $protocolFormat)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     changesetId,

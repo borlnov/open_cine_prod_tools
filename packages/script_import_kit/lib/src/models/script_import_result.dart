@@ -22,9 +22,11 @@ class ScriptImportResult extends Equatable {
   /// Creates a [ScriptImportResult].
   const ScriptImportResult({required this.format, required this.fountainText});
 
+  /// Describe this [ScriptImportResult] for debugging and logging.
   @override
   String toString() => 'ScriptImportResult(${format.name}, ${fountainText.length} chars)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, fountainText];
 }

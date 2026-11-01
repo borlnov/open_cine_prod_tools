@@ -15,9 +15,11 @@ class FountainScriptLayout extends Equatable {
   /// Creates a [FountainScriptLayout].
   const FountainScriptLayout({required this.pages});
 
+  /// Describe this [FountainScriptLayout] for debugging and logging.
   @override
   String toString() => 'FountainScriptLayout(${pages.length} pages)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pages];
 }
