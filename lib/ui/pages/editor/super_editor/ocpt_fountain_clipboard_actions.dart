@@ -5,8 +5,9 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Ctrl+C / Cmd+C: copies the current selection to the system clipboard as plain Fountain source

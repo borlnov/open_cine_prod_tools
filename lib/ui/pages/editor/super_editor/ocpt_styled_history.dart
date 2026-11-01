@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_history_policy.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_settle_merge_policy.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// The undo and redo handling of a styled editor: the grouping policy its editors run on, and the

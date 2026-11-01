@@ -3,15 +3,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_change_node_metadata_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_node_text_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_selection_clip.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
 
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_decode_result.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_encode_result.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart'
     show ocptFountainNoteAttribution;
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_line_mapping.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
     show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
 
@@ -49,133 +56,6 @@ const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 /// absorbed the same way by [OcptWysiwygCodec.sceneNumberRequests]. Rendering the number (styled
 /// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
 const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
-
-/// The result of [OcptWysiwygCodec.decode]: everything a caller needs to display a freshly decoded
-/// document and later serialize it back to Fountain text.
-class OcptWysiwygDecodeResult {
-  /// Creates an [OcptWysiwygDecodeResult].
-  const OcptWysiwygDecodeResult({
-    required this.document,
-    required this.mapping,
-    required this.trailingBlankLines,
-    this.titlePageNodeCount = 0,
-    this.titlePagePrefixLength = 0,
-  });
-
-  /// The freshly built document: one `ParagraphNode` per non-blank source line, preceded by
-  /// [titlePageNodeCount] title-page field nodes when [OcptWysiwygCodec.decodeWithTitlePage] built
-  /// this result (always 0 for plain [OcptWysiwygCodec.decode]).
-  final MutableDocument document;
-
-  /// The node-index ↔ source-line mapping for the text [document] was decoded from, scoped to the
-  /// **body** text only: a node index into [mapping] is [document]'s own node index minus
-  /// [titlePageNodeCount], and a source line/char offset is [document]'s own source text minus its
-  /// leading [titlePagePrefixLength] characters (see those fields' own doc comments).
-  final OcptWysiwygLineMapping mapping;
-
-  /// The number of blank source lines after the last non-blank line: they have nowhere to attach
-  /// as [ocptBlankLinesBeforeMetadataKey] metadata on a following node, so a caller that wants
-  /// byte-stable round trips must pass this straight back into [OcptWysiwygCodec.encode].
-  final int trailingBlankLines;
-
-  /// The number of leading nodes of [document] that are title-page field nodes (see
-  /// [OcptWysiwygCodec.isTitlePageNode]), always 0 for a plain [OcptWysiwygCodec.decode] result. A
-  /// caller
-  /// translating one of [document]'s own node indices into a [mapping] node index must subtract
-  /// this first.
-  final int titlePageNodeCount;
-
-  /// The number of leading characters of the full source text
-  /// [OcptWysiwygCodec.decodeWithTitlePage] was given that the title page (and the blank line
-  /// separating it from the body) consumed, always 0 for a plain [OcptWysiwygCodec.decode] result.
-  /// A caller translating a character offset of the full source text into a [mapping] char offset
-  /// must subtract this first.
-  final int titlePagePrefixLength;
-}
-
-/// The result of [OcptWysiwygCodec.encode]: the serialized Fountain source text, plus a mapping
-/// freshly built for that exact text (the inverse of [OcptWysiwygDecodeResult]).
-class OcptWysiwygEncodeResult {
-  /// Creates an [OcptWysiwygEncodeResult].
-  const OcptWysiwygEncodeResult({
-    required this.text,
-    required this.mapping,
-    this.titlePageNodeCount = 0,
-    this.titlePagePrefixLength = 0,
-  });
-
-  /// The full Fountain source text serialized from the document.
-  final String text;
-
-  /// The node-index ↔ source-line mapping for [text], scoped to the **body** text only: see
-  /// [OcptWysiwygDecodeResult.mapping]'s own doc comment, which this mirrors exactly.
-  final OcptWysiwygLineMapping mapping;
-
-  /// See [OcptWysiwygDecodeResult.titlePageNodeCount]; always 0 for a plain
-  /// [OcptWysiwygCodec.encode] result.
-  final int titlePageNodeCount;
-
-  /// See [OcptWysiwygDecodeResult.titlePagePrefixLength]; always 0 for a plain
-  /// [OcptWysiwygCodec.encode] result.
-  final int titlePagePrefixLength;
-}
-
-/// The node-index ↔ source-line mapping produced by both [OcptWysiwygCodec.decode] and
-/// [OcptWysiwygCodec.encode], letting the styled editor report caret lines and resolve scene-panel
-/// jump requests without the old model's "node index == line index" invariant, now that blank
-/// source lines are folded into node metadata instead of being their own node.
-class OcptWysiwygLineMapping {
-  /// Builds the mapping for [sourceText], given, in node order, each node's (already resolved, in
-  /// the case of [OcptWysiwygCodec.encode]'s dialogue-group override) blank-line-before count, and
-  /// the number of blank lines trailing the last node.
-  OcptWysiwygLineMapping._build({
-    required String sourceText,
-    required List<int> blankLinesBeforeByNode,
-    required int trailingBlankLines,
-  }) : _sourceText = sourceText {
-    var line = 0;
-    for (var nodeIndex = 0; nodeIndex < blankLinesBeforeByNode.length; nodeIndex++) {
-      for (var blank = 0; blank < blankLinesBeforeByNode[nodeIndex]; blank++) {
-        _nodeIndexByLine.add(nodeIndex);
-        line++;
-      }
-      _lineByNodeIndex.add(line);
-      _nodeIndexByLine.add(nodeIndex);
-      line++;
-    }
-
-    final lastNodeIndex = blankLinesBeforeByNode.isEmpty ? 0 : blankLinesBeforeByNode.length - 1;
-    for (var blank = 0; blank < trailingBlankLines; blank++) {
-      _nodeIndexByLine.add(lastNodeIndex);
-    }
-  }
-
-  /// The text [nodeIndexOfCharOffset] resolves a character offset against.
-  final String _sourceText;
-
-  /// The 0-based source line of each node, indexed by node index.
-  final List<int> _lineByNodeIndex = [];
-
-  /// The node index owning each 0-based source line (a blank line's entry points at the node
-  /// following it), indexed by line number.
-  final List<int> _nodeIndexByLine = [];
-
-  /// The 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
-  /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.
-  int lineOfNodeIndex(int nodeIndex) =>
-      _lineByNodeIndex[nodeIndex.clamp(0, _lineByNodeIndex.length - 1)];
-
-  /// The 0-based node index owning the source line containing character offset [charOffset] of
-  /// this mapping's own source text, clamped to a valid line (out-of-range clamps to the text's
-  /// length, i.e. the last line, the same convention the old `lineIndexForCharOffset` used). A
-  /// blank line's offset snaps to the node immediately following it (or, if it's a trailing blank
-  /// line with no following node, to the last node).
-  int nodeIndexOfCharOffset(int charOffset) {
-    final clampedOffset = charOffset.clamp(0, _sourceText.length);
-    final line = "\n".allMatches(_sourceText.substring(0, clampedOffset)).length;
-    return _nodeIndexByLine[line.clamp(0, _nodeIndexByLine.length - 1)];
-  }
-}
 
 /// Converts between Fountain source text and the super_editor `MutableDocument` backing the
 /// styled block editor, on the invariant the whole styled editing mode is built around: **one
@@ -283,7 +163,7 @@ class OcptWysiwygCodec {
       // `clear()` has already run, so the document is left permanently empty rather than merely
       // un-undone.
       document: MutableDocument(nodes: List<DocumentNode>.of(nodes)),
-      mapping: OcptWysiwygLineMapping._build(
+      mapping: OcptWysiwygLineMapping.build(
         sourceText: text,
         blankLinesBeforeByNode: blankLinesBeforeByNode,
         trailingBlankLines: trailingBlankLines,
@@ -504,7 +384,7 @@ class OcptWysiwygCodec {
     final text = outputLines.join("\n");
     return OcptWysiwygEncodeResult(
       text: text,
-      mapping: OcptWysiwygLineMapping._build(
+      mapping: OcptWysiwygLineMapping.build(
         sourceText: text,
         blankLinesBeforeByNode: blankLinesBeforeByNode,
         trailingBlankLines: trailingBlankLines,
