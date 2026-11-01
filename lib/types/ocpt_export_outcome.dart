@@ -37,7 +37,7 @@ final class OcptExportSaved extends OcptExportOutcome with Equatable {
   /// Class constructor
   const OcptExportSaved(this.path);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [path];
 }
@@ -47,7 +47,7 @@ final class OcptExportShared extends OcptExportOutcome with Equatable {
   /// Class constructor
   const OcptExportShared();
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -58,7 +58,7 @@ final class OcptExportFailed extends OcptExportOutcome with Equatable {
   /// Class constructor
   const OcptExportFailed();
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }

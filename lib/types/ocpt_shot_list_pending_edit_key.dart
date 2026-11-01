@@ -32,7 +32,7 @@ class OcptShotListSetNameEditKey extends OcptShotListPendingEditKey {
   /// Class constructor
   const OcptShotListSetNameEditKey({required this.setId});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [setId];
 }
@@ -49,7 +49,7 @@ class OcptShotListShotFieldEditKey extends OcptShotListPendingEditKey {
   /// Class constructor
   const OcptShotListShotFieldEditKey({required this.shotId, required this.field});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [shotId, field];
 }
@@ -62,7 +62,7 @@ class OcptShotListPanelCommentEditKey extends OcptShotListPendingEditKey {
   /// Class constructor
   const OcptShotListPanelCommentEditKey({required this.panelId});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [panelId];
 }
@@ -76,7 +76,7 @@ class OcptShotListAnnotationTextEditKey extends OcptShotListPendingEditKey {
   /// Class constructor
   const OcptShotListAnnotationTextEditKey({required this.annotationId});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [annotationId];
 }
@@ -90,7 +90,7 @@ class OcptShotListSymbolLabelEditKey extends OcptShotListPendingEditKey {
   /// Class constructor
   const OcptShotListSymbolLabelEditKey({required this.symbolId});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [symbolId];
 }

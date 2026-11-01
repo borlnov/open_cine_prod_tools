@@ -40,7 +40,7 @@ class OcptFloorPlanPaletteDragPayload extends Equatable {
     this.label,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [tool, setElementShape, sceneScope, label];
 }

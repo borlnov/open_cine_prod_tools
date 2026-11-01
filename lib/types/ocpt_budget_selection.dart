@@ -31,7 +31,7 @@ final class OcptBudgetPosteSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetPosteSelection(this.posteId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [posteId];
 }
@@ -45,7 +45,7 @@ final class OcptBudgetLineSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetLineSelection(this.lineId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lineId];
 }
@@ -59,7 +59,7 @@ final class OcptBudgetCommitmentSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetCommitmentSelection(this.commitmentId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [commitmentId];
 }
@@ -73,7 +73,7 @@ final class OcptBudgetEntrySelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetEntrySelection(this.entryId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [entryId];
 }
@@ -87,7 +87,7 @@ final class OcptBudgetResourceSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetResourceSelection(this.resourceId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [resourceId];
 }
@@ -100,7 +100,7 @@ final class OcptBudgetRevenueSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetRevenueSelection(this.revenueId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [revenueId];
 }
@@ -115,7 +115,7 @@ final class OcptBudgetReceiptSelection extends OcptBudgetSelection {
   /// Class constructor
   const OcptBudgetReceiptSelection(this.receiptId);
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [receiptId];
 }
