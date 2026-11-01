@@ -104,7 +104,7 @@ class OcptBreakdownExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBreakdownIoNotice(
             kind: OcptBreakdownIoNoticeKind.sheetsExportSucceeded,
             path: outcome.savedPath,
@@ -120,7 +120,7 @@ class OcptBreakdownExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.sheetsExportFailed),
         ),
       );
@@ -163,7 +163,7 @@ class OcptBreakdownExportBloc
       if (outcome is OcptExportFailed) {
         // The manager already logged why the workbook could not be built.
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
           ),
         );
@@ -171,7 +171,7 @@ class OcptBreakdownExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBreakdownIoNotice(
             kind: OcptBreakdownIoNoticeKind.xlsxExportSucceeded,
             path: outcome.savedPath,
@@ -187,7 +187,7 @@ class OcptBreakdownExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBreakdownIoNotice(kind: OcptBreakdownIoNoticeKind.xlsxExportFailed),
         ),
       );
@@ -199,6 +199,6 @@ class OcptBreakdownExportBloc
     OcptBreakdownIoNoticeDismissedEvent event,
     Emitter<OcptBreakdownExportState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }

@@ -31,6 +31,13 @@ class OcptBreakdownExportState extends BlocStateForMixin<OcptBreakdownExportStat
     bool forceIoNoticeValue = false,
   }) => OcptBreakdownExportState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
+  /// Copies this state with [ioNotice] as the outcome of the last export.
+  OcptBreakdownExportState copyWithIoNotice({required OcptBreakdownIoNotice ioNotice}) =>
+      copyWith(ioNotice: ioNotice);
+
+  /// Copies this state with the export notice dismissed.
+  OcptBreakdownExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, ioNotice];
