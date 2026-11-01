@@ -495,48 +495,88 @@ class _OcptDashboardAlertsCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            for (final alert in alerts) _buildRow(context, tr, alert),
+            for (final alert in alerts)
+              _OcptDashboardAlert(
+                alert: alert,
+                posteLabelById: posteLabelById,
+                currencyCode: currencyCode,
+                onPosteOpened: onPosteOpened,
+                onCashAlertActionRequested: onCashAlertActionRequested,
+              ),
           ],
         ),
       ),
     );
   }
+}
 
-  /// One alert's own row, switching over [alert]'s own subclass exhaustively — a poste over its
-  /// quote names it through [posteLabelById] (falling back to `tr.budgetPosteUnnamed`, exactly as
-  /// the retired poste-by-poste list once did, for a poste that carries no label of its own), the
-  /// cash projection going negative words its own undated reading differently from a recorded date,
-  /// per [OcptBudgetCashProjectionNegativeAlert]'s own doc comment.
-  Widget _buildRow(BuildContext context, Tr tr, OcptBudgetAlert alert) => switch (alert) {
-    OcptBudgetPosteOverQuoteAlert() => _OcptDashboardAlertRow(
-      badge: tr.budgetDashboardOverrunBadge,
-      color: Theme.of(context).colorScheme.error,
-      message: tr.budgetDashboardPosteOverQuoteAlertMessage(
-        _posteLabelOf(tr, alert.posteId),
-        ocptBudgetAmountLabel(alert.paidCents + alert.committedCents, currencyCode),
-        ocptBudgetAmountLabel(alert.quotedAmountCents, currencyCode),
-        ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
+/// One alert's own row, switching over [alert]'s own subclass exhaustively — a poste over its
+/// quote names it through [posteLabelById] (falling back to `tr.budgetPosteUnnamed`, exactly as
+/// the retired poste-by-poste list once did, for a poste that carries no label of its own), the
+/// cash projection going negative words its own undated reading differently from a recorded date,
+/// per [OcptBudgetCashProjectionNegativeAlert]'s own doc comment.
+class _OcptDashboardAlert extends StatelessWidget {
+  /// The alert this row draws.
+  final OcptBudgetAlert alert;
+
+  /// Every live poste's own label, keyed by its id, so an over-quote alert can name its poste.
+  final Map<String, String> posteLabelById;
+
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// Called with a poste's id when its own over-quote row is clicked.
+  final ValueChanged<String> onPosteOpened;
+
+  /// Called when the cash-projection row is clicked.
+  final VoidCallback onCashAlertActionRequested;
+
+  /// Class constructor
+  const _OcptDashboardAlert({
+    required this.alert,
+    required this.posteLabelById,
+    required this.currencyCode,
+    required this.onPosteOpened,
+    required this.onCashAlertActionRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    // Read into a local so that each case below promotes it to its own subclass.
+    final alert = this.alert;
+
+    return switch (alert) {
+      OcptBudgetPosteOverQuoteAlert() => _OcptDashboardAlertRow(
+        badge: tr.budgetDashboardOverrunBadge,
+        color: Theme.of(context).colorScheme.error,
+        message: tr.budgetDashboardPosteOverQuoteAlertMessage(
+          _posteLabelOf(tr, alert.posteId),
+          ocptBudgetAmountLabel(alert.paidCents + alert.committedCents, currencyCode),
+          ocptBudgetAmountLabel(alert.quotedAmountCents, currencyCode),
+          ocptBudgetAmountLabel(alert.varianceCents, currencyCode),
+        ),
+        amount: ocptBudgetAmountLabel(-alert.varianceCents, currencyCode),
+        onTap: () => onPosteOpened(alert.posteId),
       ),
-      amount: ocptBudgetAmountLabel(-alert.varianceCents, currencyCode),
-      onTap: () => onPosteOpened(alert.posteId),
-    ),
-    OcptBudgetCashProjectionNegativeAlert() => _OcptDashboardAlertRow(
-      badge: tr.budgetDashboardCashAlertBadge,
-      color: ocptWarningColor(context),
-      message: alert.dueDate == null
-          ? tr.budgetDashboardCashNegativeAlertMessageUndated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            )
-          : tr.budgetDashboardCashNegativeAlertMessageDated(
-              ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
-              DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(alert.dueDate!),
-              ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
-            ),
-      amount: ocptBudgetAmountLabel(alert.balanceAfterCents, currencyCode),
-      onTap: onCashAlertActionRequested,
-    ),
-  };
+      OcptBudgetCashProjectionNegativeAlert() => _OcptDashboardAlertRow(
+        badge: tr.budgetDashboardCashAlertBadge,
+        color: ocptWarningColor(context),
+        message: alert.dueDate == null
+            ? tr.budgetDashboardCashNegativeAlertMessageUndated(
+                ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
+                ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
+              )
+            : tr.budgetDashboardCashNegativeAlertMessageDated(
+                ocptBudgetAmountLabel(alert.balanceCents, currencyCode),
+                DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(alert.dueDate!),
+                ocptBudgetAmountLabel(alert.fallingDueCents, currencyCode),
+              ),
+        amount: ocptBudgetAmountLabel(alert.balanceAfterCents, currencyCode),
+        onTap: onCashAlertActionRequested,
+      ),
+    };
+  }
 
   /// [posteId]'s own label out of [posteLabelById], or `tr.budgetPosteUnnamed` while it is empty —
   /// never absent, since an alert's own poste always comes straight out of the very dashboard that
