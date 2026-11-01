@@ -181,7 +181,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     );
   }
 
-  /// The live tag of [scene] covering [word], or null if none does.
+  /// Get the live tag of [scene] covering [word], or null if none does.
   ///
   /// Tags never overlap, so at most one can ever cover a given word.
   OcptBreakdownTag? _tagCovering(OcptScriptWord word) {
@@ -193,7 +193,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     return null;
   }
 
-  /// Whether [word] is the very word [pendingTagAnchor] names in this scene.
+  /// Tell whether [word] is the very word [pendingTagAnchor] names in this scene.
   bool _isPendingAnchor(OcptScriptWord word) {
     final anchor = pendingTagAnchor;
     return anchor != null &&
@@ -202,7 +202,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
         anchor.wordEndOffset == word.endOffset;
   }
 
-  /// Whether [word] is the exact word [pendingTagRange] closed on — where
+  /// Tell whether [word] is the exact word [pendingTagRange] closed on — where
   /// [OcptBreakdownTagPopoverAnchor] mounts the popover.
   bool _isPopoverAnchorWord(OcptScriptWord word) {
     final range = pendingTagRange;
@@ -212,7 +212,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
         range.closingWordEndOffset == word.endOffset;
   }
 
-  /// Whether closing a range between [pendingTagAnchor] and [word] would overlap a live tag of
+  /// Tell whether closing a range between [pendingTagAnchor] and [word] would overlap a live tag of
   /// [scene] — computed cheaply, straight over the scene's own (typically short) tag list, exactly
   /// as `OcptBreakdownBloc._onWordClicked` itself refuses the same overlap. False while no anchor
   /// is open in this scene, or for a word already covered by a live tag: a tagged word is never
@@ -233,18 +233,21 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     return scene.tags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
 
-  /// Whether the highlight span starting at scene-relative [spanStart] starts inside [word] — i.e.
+  /// Tell whether the highlight span starting at scene-relative [spanStart] starts inside [word] —
+  /// i.e.
   /// [word] is the first word the span covers, whose leading affix the box then trims.
   bool _spanStartsIn(OcptScriptWord word, int spanStart) =>
       spanStart >= word.startOffset && spanStart < word.endOffset;
 
-  /// Whether the highlight span ending at scene-relative [spanEnd] ends inside [word] — i.e. [word]
+  /// Tell whether the highlight span ending at scene-relative [spanEnd] ends inside [word] — i.e.
+  /// [word]
   /// is the last word the span covers, whose trailing affix (punctuation and the whitespace up to
   /// the next word) the box then trims.
   bool _spanEndsIn(OcptScriptWord word, int spanEnd) =>
       spanEnd > word.startOffset && spanEnd <= word.endOffset;
 
-  /// How [word] is painted: the tagged rules `OcptBreakdownScriptView`'s own doc comment describes,
+  /// Tell how [word] is painted: the tagged rules `OcptBreakdownScriptView`'s own doc comment
+  /// describes,
   /// then — for a plain word — the pending anchor's own distinct mark, then a word of the range
   /// whose popover is open, then the greyed-out mark of a word blocked by an anchor, and plain
   /// otherwise.
@@ -300,7 +303,8 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     return _OcptBreakdownWordPaint.plain;
   }
 
-  /// [word]'s own click callback: its tag's target through [onTargetSelected] when one resolves —
+  /// Get [word]'s own click callback: its tag's target through [onTargetSelected] when one resolves
+  /// —
   /// selecting it, and (per `OcptBreakdownBloc._onTargetSelected`) the scene the click happened in,
   /// so the left dock and the sheet stay in step — never null, since selecting writes nothing. A
   /// hidden legend key never changes this: hiding a category withholds its paint, not its click.
@@ -324,7 +328,8 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     return () => onWordClicked(scene.id, word.startOffset, word.endOffset);
   }
 
-  /// The widget rendered for [word] at its [runs]/[printStyle]/[baseStyle]: the plain click target,
+  /// Build the widget rendered for [word] at its [runs]/[printStyle]/[baseStyle]: the plain click
+  /// target,
   /// or — for the one word [_isPopoverAnchorWord] names — that same target anchoring
   /// [OcptBreakdownTagPopover] under it through [OcptBreakdownTagPopoverAnchor].
   Widget _wordWidgetAt(
@@ -362,7 +367,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
   }
 }
 
-/// The screenplay layout box a line of [type] is typeset in, mirroring
+/// Get the screenplay layout box a line of [type] is typeset in, mirroring
 /// `OcptShotCoverageDialog`'s own `_elementLayout` getter.
 FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
     switch (type) {
@@ -380,7 +385,7 @@ FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetr
       FountainLineType.blank => metrics.action,
     };
 
-/// The horizontal alignment [element] is typeset with.
+/// Get the horizontal alignment [element] is typeset with.
 TextAlign _textAlignOf(FountainElementLayout element) => switch (element.alignment) {
   FountainLayoutAlignment.center => TextAlign.center,
   FountainLayoutAlignment.right => TextAlign.right,
@@ -432,7 +437,8 @@ class _OcptBreakdownWordPaint {
   /// in. An interior word trims neither end, so its whole-word wash still bridges to its neighbour.
   final bool trimTrailingAffix;
 
-  /// Whether this word wears the transient accent — the pending anchor or a word of the pending
+  /// Tell whether this word wears the transient accent — the pending anchor or a word of the
+  /// pending
   /// range — rather than a category wash or nothing.
   bool get isAccent => isPendingAnchor || isPendingRange;
 
@@ -589,7 +595,8 @@ class _OcptBreakdownWord extends StatelessWidget {
     return Tooltip(message: tooltip, child: content);
   }
 
-  /// [runs] split into the leading affix, the word core, and the trailing affix the highlight box
+  /// Get [runs] split into the leading affix, the word core, and the trailing affix the highlight
+  /// box
   /// leaves outside itself — or null when there is nothing to trim (neither end asked for, no affix
   /// there, or the word holds no letter or digit to trim down to), in which case the caller wraps
   /// the whole word.
@@ -620,7 +627,7 @@ class _OcptBreakdownWord extends StatelessWidget {
     );
   }
 
-  /// [runs] restricted to the displayed characters in `[start, end)`, splitting any run that
+  /// Get [runs] restricted to the displayed characters in `[start, end)`, splitting any run that
   /// straddles a boundary and keeping each surviving piece's own emphasis.
   List<OcptFountainDisplayRun> _sliceRuns(int start, int end) {
     final slice = <OcptFountainDisplayRun>[];

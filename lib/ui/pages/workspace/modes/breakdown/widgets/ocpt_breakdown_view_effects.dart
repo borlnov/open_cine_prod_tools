@@ -39,7 +39,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
     child: child,
   );
 
-  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  /// Show the outcome of an export as a SnackBar, then dismiss it.
   void _onExportStateChanged(BuildContext context, OcptBreakdownExportState state) {
     final ioNotice = state.ioNotice;
     if (ioNotice == null) {
@@ -52,7 +52,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
     context.read<OcptBreakdownExportBloc>().add(const OcptBreakdownIoNoticeDismissedEvent());
   }
 
-  /// Shows the refusal of a tag write as a SnackBar, then dismisses it.
+  /// Show the refusal of a tag write as a SnackBar, then dismiss it.
   void _onTaggingStateChanged(BuildContext context, OcptBreakdownTaggingState state) {
     if (!state.hasTagWriteError) {
       return;
@@ -64,7 +64,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
     context.read<OcptBreakdownTaggingBloc>().add(const OcptBreakdownTagWriteErrorDismissedEvent());
   }
 
-  /// Maps [notice] to its localized, user-facing message, mirroring
+  /// Map [notice] to its localized, user-facing message, mirroring
   /// `OcptResourcesViewEffects._ioNoticeMessage`, [OcptBreakdownIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptBreakdownIoNotice notice) {
     final tr = Tr.of(context);

@@ -50,7 +50,7 @@ const double _ocptRecapMutedDotDiameter = 4;
 /// The opacity a muted dot's own colour is drawn at.
 const double _ocptRecapMutedDotAlpha = 0.35;
 
-/// The room the vertical scroll bar's own thumb takes at the right edge of the rows, in logical
+/// Get the room the vertical scroll bar's own thumb takes at the right edge of the rows, in logical
 /// pixels — read off the ambient [ScrollbarThemeData] rather than repeated here, so the gutter
 /// follows `ocpt_theme.dart`'s own scroll bar rather than drifting from it.
 ///
@@ -228,7 +228,7 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     );
   }
 
-  /// Whether [target] matches [searchQuery], resolving its notes/sub-category/owner off
+  /// Tell whether [target] matches [searchQuery], resolving its notes/sub-category/owner off
   /// [elementById]/[personById] first — see `ocptBreakdownRecapRowMatches`'s own doc comment for
   /// why a role or a set simply never passes those three.
   bool _matches(
@@ -433,7 +433,7 @@ class _RecapGroupSection extends StatelessWidget {
     );
   }
 
-  /// [target]'s own owner, resolved off [elementById]/[personById], or null while [target] is a
+  /// Get [target]'s own owner, resolved off [elementById]/[personById], or null while [target] is a
   /// role/a set or its element carries none.
   OcptPerson? _ownerOf(OcptBreakdownTarget target) {
     final ownerPersonId = elementById[target.id]?.ownerPersonId;

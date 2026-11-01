@@ -25,7 +25,7 @@ const double _ocptBreakdownTagPopoverPreferredHeight = 260;
 /// usable height rather than collapsing to a sliver.
 const double _ocptBreakdownTagPopoverMinHeight = 160;
 
-/// Anchors [popover] to [child] using an [OverlayPortal] and a [LayerLink]/
+/// Anchor [popover] to [child] using an [OverlayPortal] and a [LayerLink]/
 /// [CompositedTransformFollower] pair, so the popover paints into the app's own [Overlay] — above
 /// the script sheet's `SingleChildScrollView`, which would otherwise clip it — rather than being
 /// measured by hand.
@@ -124,7 +124,7 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     ),
   );
 
-  /// Where the popover is drawn: under the word while the overlay leaves
+  /// Tell where the popover is drawn: under the word while the overlay leaves
   /// [_ocptBreakdownTagPopoverPreferredHeight] under it, above it while the room there is both
   /// short of that and worse than what is left above, and capped either way to the room that side
   /// actually has.
@@ -163,7 +163,7 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     );
   }
 
-  /// Rebuilds the overlay child so [_placementIn] is measured again, the word having moved.
+  /// Rebuild the overlay child so [_placementIn] is measured again, the word having moved.
   void _handleGeometryChanged() {
     if (mounted) {
       setState(() {});

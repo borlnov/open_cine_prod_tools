@@ -303,7 +303,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     );
   }
 
-  /// [target]'s live occurrences, resolved out of [scenes] in scene order — each scene's own
+  /// Get [target]'s live occurrences, resolved out of [scenes] in scene order — each scene's own
   /// [OcptBreakdownScene.tags] already ordered by start offset, the order the passages are read in.
   List<_OcptBreakdownOccurrence> _occurrencesOf() => [
     for (final scene in scenes)
@@ -680,7 +680,8 @@ class _SuggestedOccurrences extends StatelessWidget {
     );
   }
 
-  /// The scene of [scenes] whose id is [sceneId], or null while none is — a suggestion's own scene
+  /// Get the scene of [scenes] whose id is [sceneId], or null while none is — a suggestion's own
+  /// scene
   /// having disappeared from a snapshot rebuilt underneath.
   OcptBreakdownScene? _sceneById(String sceneId) {
     for (final scene in scenes) {

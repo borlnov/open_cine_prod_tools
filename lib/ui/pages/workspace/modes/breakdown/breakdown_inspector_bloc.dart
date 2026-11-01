@@ -116,7 +116,7 @@ class OcptBreakdownInspectorBloc
     on<OcptBreakdownFlaggedTagRemovedEvent>(_onFlaggedTagRemoved);
   }
 
-  /// Drops the edits the mode's fresh read makes meaningless.
+  /// Drop the edits the mode's fresh read makes meaningless.
   ///
   /// When the mode read everything again (`OcptBreakdownSelectionCause.load`: entry, a version
   /// preview or a restore) every pending edit goes, whichever row it was typed into: the database
@@ -144,7 +144,7 @@ class OcptBreakdownInspectorBloc
     }
   }
 
-  /// Writes every pending element field edit, scene notes edit and set rename immediately: cancels
+  /// Write every pending element field edit, scene notes edit and set rename immediately: cancels
   /// the debounce timer (a no-op if it already fired or there was none), writes each one through
   /// `OcptElementsService.updateElement`/`OcptBreakdownService.updateSceneBreakdown`/
   /// `OcptLocationsService.updateSet`, has the mode read the snapshot again so every derived
@@ -229,7 +229,7 @@ class OcptBreakdownInspectorBloc
     return true;
   }
 
-  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
+  /// Write every pending edit directly to the database, bypassing the debounce timer, the bloc's
   /// own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flusher this bloc registered):
@@ -296,14 +296,14 @@ class OcptBreakdownInspectorBloc
     }
   }
 
-  /// Whether [inspectorState] holds a typed edit of any of the three kinds.
+  /// Tell whether [inspectorState] holds a typed edit of any of the three kinds.
   bool _hasPendingEdits(OcptBreakdownInspectorState inspectorState) =>
       inspectorState.pendingElementFieldEdits.isNotEmpty ||
       inspectorState.pendingSceneNotesEdits.isNotEmpty ||
       inspectorState.pendingSetNameEdits.isNotEmpty;
 
-  /// Writes the selected scene's new breakdown status immediately — a single pick, not typing, so
-  /// it rides no debounce — then has the mode read the snapshot again: a scene's status feeds the
+  /// Write the selected scene's new breakdown status immediately — a single pick, not typing, so it
+  /// rides no debounce — then have the mode read the snapshot again: a scene's status feeds the
   /// left dock's own rows, the scene inspector's chips and the snapshot's `doneSceneCount`, all of
   /// which must be read back from the database rather than patched in place, exactly as an
   /// element's status or category change already is.
@@ -325,8 +325,8 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately through the very
-  /// service the resources mode writes that link with, then has the mode read the snapshot again —
+  /// Say scene `event.sceneId` is shot in set `event.setId`, written immediately through the very
+  /// service the resources mode writes that link with, then have the mode read the snapshot again —
   /// the sets a scene is shot in are read off `OcptSet.sceneIds`, so the row has to come back from
   /// the database.
   ///
@@ -350,8 +350,8 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Creates a set named `event.name` — inside `event.locationId`, or inside a location minted
-  /// along with it when that is null — and says scene `event.sceneId` is shot in it, in one write
+  /// Create a set named `event.name` — inside `event.locationId`, or inside a location minted along
+  /// with it when that is null — and say scene `event.sceneId` is shot in it, in one write
   /// (`OcptLocationsService.createSetLinkedToScene`), dispatched by the scene inspector's own
   /// `Create a set…` control.
   ///
@@ -379,7 +379,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Says scene `event.sceneId` is no longer shot in set `event.setId`, the mirror of
+  /// Say scene `event.sceneId` is no longer shot in set `event.setId`, the mirror of
   /// [_onSceneSetLinked]. Leaves every tag pointing at that set untouched, for the reason
   /// `OcptBreakdownService.deleteTag` gives from the other side.
   Future<void> _onSceneSetUnlinked(
@@ -400,7 +400,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Records the raw text just typed into scene `event.sceneId`'s own breakdown notes as a pending
+  /// Record the raw text just typed into scene `event.sceneId`'s own breakdown notes as a pending
   /// edit, visible immediately, and (re)starts the same field-edit debounce
   /// [_onElementFieldChanged] does — one debounce timer for the whole inspector.
   Future<void> _onSceneNotesChanged(
@@ -414,8 +414,8 @@ class OcptBreakdownInspectorBloc
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
 
-  /// Writes the selected element's new status immediately — a single pick, not typing, so it rides
-  /// no debounce — then has the mode read the snapshot again so the script view's colours, the
+  /// Write the selected element's new status immediately — a single pick, not typing, so it rides
+  /// no debounce — then have the mode read the snapshot again so the script view's colours, the
   /// legend, the scene panel and the status bar all follow it exactly as they follow a category
   /// change.
   Future<void> _onElementStatusChanged(
@@ -436,7 +436,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Writes the selected element's new category immediately, then has the mode read the snapshot
+  /// Write the selected element's new category immediately, then have the mode read the snapshot
   /// again for the same reason [_onElementStatusChanged] does — a category change moves the
   /// element's own colour, so every surface painting it must be redrawn from the database rather
   /// than patched in place.
@@ -458,7 +458,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Records the raw text just typed into `event.field` of element `event.elementId` as a pending
+  /// Record the raw text just typed into `event.field` of element `event.elementId` as a pending
   /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onElementFieldChanged(
     OcptBreakdownElementFieldChangedEvent event,
@@ -471,7 +471,7 @@ class OcptBreakdownInspectorBloc
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
 
-  /// Records the raw text just typed into the title of set `event.setId` as a pending rename,
+  /// Record the raw text just typed into the title of set `event.setId` as a pending rename,
   /// visible immediately, and (re)starts the same field-edit debounce [_onElementFieldChanged]
   /// does.
   Future<void> _onSetNameChanged(
@@ -485,7 +485,7 @@ class OcptBreakdownInspectorBloc
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
 
-  /// Writes every pending edit once the field-edit debounce elapses with no further typing.
+  /// Write every pending edit once the field-edit debounce elapses with no further typing.
   Future<void> _onFieldEditFlushRequested(
     OcptBreakdownFieldEditFlushRequestedEvent event,
     Emitter<OcptBreakdownInspectorState> emitter,
@@ -493,7 +493,7 @@ class OcptBreakdownInspectorBloc
     await onFlushRequested(emitter);
   }
 
-  /// Writes every entry of [elementFields] through `OcptElementsService.updateElement`, translating
+  /// Write every entry of [elementFields] through `OcptElementsService.updateElement`, translating
   /// each (only `name`, `subCategory`, `quantity` and `notes` ever land here — the target
   /// inspector's other fields are single picks written immediately by their own event, see this
   /// bloc's own doc comment) into the matching named argument, then every entry of [sceneNotes]
@@ -562,7 +562,7 @@ class OcptBreakdownInspectorBloc
     }
   }
 
-  /// Writes the selected element's new owner immediately — a pick, not typing — then has the mode
+  /// Write the selected element's new owner immediately — a pick, not typing — then have the mode
   /// read the snapshot again so the inspector shows the newly named person.
   Future<void> _onElementOwnerChanged(
     OcptBreakdownElementOwnerChangedEvent event,
@@ -582,7 +582,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Writes the selected element's new who-brings-it immediately, mirroring
+  /// Write the selected element's new who-brings-it immediately, mirroring
   /// [_onElementOwnerChanged].
   Future<void> _onElementBringerChanged(
     OcptBreakdownElementBringerChangedEvent event,
@@ -602,7 +602,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Removes the selected target's tags from the selected scene for good — every live tag of
+  /// Remove the selected target's tags from the selected scene for good — every live tag of
   /// `OcptBreakdownState.selectedTarget` within `OcptBreakdownState.selectedScene`, tombstoned one
   /// by one through `OcptBreakdownService.deleteTag`, which never removes the `scene_elements`/
   /// `scene_sets` link a tag once ensured — see that method's own doc comment: the resources mode
@@ -635,8 +635,9 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Clears tag `event.tagId`'s own `needsCheck` flag through
-  /// `OcptBreakdownService.clearTagNeedsCheck`, then has the mode read the snapshot again: the flag
+  /// Clear tag `event.tagId`'s own `needsCheck` flag through
+  /// `OcptBreakdownService.clearTagNeedsCheck`, then have the mode read the snapshot again: the
+  /// flag
   /// feeds the scene panel's own warning mark and the status bar's "to check" counter, both of which
   /// must be read back from the database rather than patched in place.
   ///
@@ -655,7 +656,7 @@ class OcptBreakdownInspectorBloc
     await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
   }
 
-  /// Removes tag `event.tagId` for good through `OcptBreakdownService.deleteTag`, then has the mode
+  /// Remove tag `event.tagId` for good through `OcptBreakdownService.deleteTag`, then have the mode
   /// read the snapshot again, mirroring [_onTagNeedsCheckCleared] in every respect but the write it
   /// performs.
   ///

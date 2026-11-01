@@ -14,7 +14,7 @@ sealed class OcptBreakdownExportEvent extends OcptBreakdownEvent {
   const OcptBreakdownExportEvent();
 }
 
-/// Requests exporting one breakdown sheet per scene as a PDF, dispatched by the mode's `⋮` menu
+/// Request exporting one breakdown sheet per scene as a PDF, dispatched by the mode's `⋮` menu
 /// once its own options dialog has resolved.
 ///
 /// [options] is what that dialog returned — the page format and margins the document is typeset
@@ -66,7 +66,7 @@ class OcptBreakdownSheetsExportRequestedEvent extends OcptBreakdownExportEvent {
   ];
 }
 
-/// Requests exporting the whole breakdown as a two-sheet XLSX workbook, dispatched by the mode's
+/// Request exporting the whole breakdown as a two-sheet XLSX workbook, dispatched by the mode's
 /// export panel — this document takes no options dialog, so this event goes straight from the
 /// panel's own card to the bloc.
 ///
@@ -104,7 +104,7 @@ class OcptBreakdownXlsxExportRequestedEvent extends OcptBreakdownExportEvent {
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
 
-/// Dismisses the transient export notice currently shown, if any.
+/// Dismiss the transient export notice currently shown, if any.
 class OcptBreakdownIoNoticeDismissedEvent extends OcptBreakdownExportEvent {
   /// Class constructor
   const OcptBreakdownIoNoticeDismissedEvent();

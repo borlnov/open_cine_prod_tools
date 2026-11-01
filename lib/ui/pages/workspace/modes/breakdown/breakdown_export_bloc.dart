@@ -63,7 +63,7 @@ class OcptBreakdownExportBloc
     on<OcptBreakdownIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports one breakdown sheet per scene, as a PDF.
+  /// Export one breakdown sheet per scene, as a PDF.
   ///
   /// Writes every pending edit first — that also re-reads the snapshot, so a sheet holds the name or
   /// the note the user typed seconds ago — then hands what the mode's state now carries to
@@ -126,7 +126,7 @@ class OcptBreakdownExportBloc
     }
   }
 
-  /// Exports the whole breakdown as a two-sheet XLSX workbook.
+  /// Export the whole breakdown as a two-sheet XLSX workbook.
   ///
   /// Built exactly as [_onSheetsExportRequested] is: write every pending edit, then hand what the
   /// mode's state now carries to [OcptExportManager.exportBreakdownXlsx]. There is no options
@@ -192,7 +192,7 @@ class OcptBreakdownExportBloc
     }
   }
 
-  /// Clears the transient export notice currently shown, if any.
+  /// Clear the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptBreakdownIoNoticeDismissedEvent event,
     Emitter<OcptBreakdownExportState> emitter,

@@ -206,7 +206,8 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     skipTraversal: true,
   );
 
-  /// Whether a first click has opened a selection that no second click has closed yet — the one
+  /// Tell whether a first click has opened a selection that no second click has closed yet — the
+  /// one
   /// state in which `Escape` and a click away from a word abandon it (once the range is closed the
   /// popover owns those gestures instead).
   bool get _hasOpenSelection => widget.pendingTagAnchor != null && widget.pendingTagRange == null;
@@ -330,7 +331,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     );
   }
 
-  /// Focuses [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
+  /// Focus [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
   /// reaches it — deferred a frame because the node is not yet attached to the tree during the
   /// build that opens the selection.
   void _grabKeyboardFocusAfterFrame() {
@@ -341,7 +342,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     });
   }
 
-  /// Abandons an open selection on `Escape`, letting every other key (and every `Escape` while no
+  /// Abandon an open selection on `Escape`, letting every other key (and every `Escape` while no
   /// selection is open) fall through untouched.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent &&
@@ -353,7 +354,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     return KeyEventResult.ignored;
   }
 
-  /// [scene]'s own slice of the screenplay text, clamped to its bounds: the load that read the
+  /// Get [scene]'s own slice of the screenplay text, clamped to its bounds: the load that read the
   /// scenes and the one that read the text are the same snapshot read, so the offsets always fit,
   /// but a scene sliced this way is never worth a `RangeError` over.
   String _sceneTextOf(OcptBreakdownScene scene) {
@@ -513,7 +514,8 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     );
   }
 
-  /// Whether [layout]'s block at [index] is followed by a blank source line — the only place the
+  /// Tell whether [layout]'s block at [index] is followed by a blank source line — the only place
+  /// the
   /// sheet leaves a vertical gap, mirroring `OcptShotCoverageDialog`'s own block spacing.
   bool _isFollowedByBlankLine(OcptScriptWordLayout layout, int index) =>
       index + 1 < layout.blocks.length &&

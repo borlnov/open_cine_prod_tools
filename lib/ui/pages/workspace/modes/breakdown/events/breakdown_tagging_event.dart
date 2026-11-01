@@ -12,7 +12,7 @@ sealed class OcptBreakdownTaggingEvent extends OcptBreakdownEvent {
   const OcptBreakdownTaggingEvent();
 }
 
-/// Records a click on a word of the script view that overlaps no live tag, or one whose tag's
+/// Record a click on a word of the script view that overlaps no live tag, or one whose tag's
 /// target has been dropped from the snapshot, dispatched by `OcptBreakdownScriptView`.
 ///
 /// Drives the range interaction: with no pending anchor, or one in another scene, this word becomes
@@ -42,7 +42,7 @@ class OcptBreakdownWordClickedEvent extends OcptBreakdownTaggingEvent {
   List<Object?> get props => [...super.props, sceneId, wordStartOffset, wordEndOffset];
 }
 
-/// Clears the pending anchor and the closed range alike, dispatched by the tag popover's own ×
+/// Clear the pending anchor and the closed range alike, dispatched by the tag popover's own ×
 /// close button, by `Escape` while it is focused, or by a tap outside it — the user changed their
 /// mind about the passage itself, not just about where to send it.
 class OcptBreakdownTagRangeCancelledEvent extends OcptBreakdownTaggingEvent {
@@ -50,7 +50,7 @@ class OcptBreakdownTagRangeCancelledEvent extends OcptBreakdownTaggingEvent {
   const OcptBreakdownTagRangeCancelledEvent();
 }
 
-/// Links `OcptBreakdownState.pendingTagRange`'s own passage to the existing
+/// Link `OcptBreakdownState.pendingTagRange`'s own passage to the existing
 /// [targetKind]/[targetId], dispatched by a click on one of the tag popover's own match rows.
 class OcptBreakdownPopoverTargetLinkedEvent extends OcptBreakdownTaggingEvent {
   /// The kind of the target the passage is linked to.
@@ -67,7 +67,7 @@ class OcptBreakdownPopoverTargetLinkedEvent extends OcptBreakdownTaggingEvent {
   List<Object?> get props => [...super.props, targetKind, targetId];
 }
 
-/// Creates a new element of [category] named [name] and tags `OcptBreakdownState.pendingTagRange`'s
+/// Create a new element of [category] named [name] and tag `OcptBreakdownState.pendingTagRange`'s
 /// own passage with it, in one write, dispatched by a click on one of the tag popover's own
 /// category chips.
 class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownTaggingEvent {
@@ -89,8 +89,8 @@ class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownTag
   List<Object?> get props => [...super.props, category, name];
 }
 
-/// Creates a new set named [name], inside location [locationId] or inside one minted along with it
-/// when that is null, and tags `OcptBreakdownState.pendingTagRange`'s own passage with it, in one
+/// Create a new set named [name], inside location [locationId] or inside one minted along with it
+/// when that is null, and tag `OcptBreakdownState.pendingTagRange`'s own passage with it, in one
 /// write — dispatched by the tag popover's own `Create a set` control.
 ///
 /// The sibling of [OcptBreakdownPopoverElementCreationRequestedEvent], for the second and last
@@ -116,14 +116,14 @@ class OcptBreakdownPopoverSetCreationRequestedEvent extends OcptBreakdownTagging
   List<Object?> get props => [...super.props, locationId, name];
 }
 
-/// Dismisses the transient notice that the last tag write — the popover's own link or element
+/// Dismiss the transient notice that the last tag write — the popover's own link or element
 /// creation, or a suggestion accepted from the target inspector — was refused.
 class OcptBreakdownTagWriteErrorDismissedEvent extends OcptBreakdownTaggingEvent {
   /// Class constructor
   const OcptBreakdownTagWriteErrorDismissedEvent();
 }
 
-/// Tags one of the selected target's own suggested occurrences (`OcptBreakdownSuggestion`),
+/// Tag one of the selected target's own suggested occurrences (`OcptBreakdownSuggestion`),
 /// dispatched by a click on the add control of one of `OcptBreakdownTargetInspector`'s own
 /// "Suggested occurrences" rows — the writer's second route onto
 /// `OcptBreakdownService.createTag`, [OcptBreakdownPopoverTargetLinkedEvent] being the first, and

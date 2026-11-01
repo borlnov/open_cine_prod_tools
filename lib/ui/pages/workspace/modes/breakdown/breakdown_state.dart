@@ -190,28 +190,28 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   @override
   final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
-  /// Every scene of [snapshot], in source order (empty while nothing is loaded).
+  /// Get every scene of [snapshot], in source order (empty while nothing is loaded).
   List<OcptBreakdownScene> get scenes => snapshot?.scenes ?? const [];
 
-  /// Every tagged target of [snapshot] (empty while nothing is loaded).
+  /// Get every tagged target of [snapshot] (empty while nothing is loaded).
   List<OcptBreakdownTarget> get targets => snapshot?.targets ?? const [];
 
-  /// `snapshot.taggedTargetCount`, the status bar's first counter.
+  /// Get `snapshot.taggedTargetCount`, the status bar's first counter.
   int get taggedTargetCount => snapshot?.taggedTargetCount ?? 0;
 
-  /// `snapshot.usedCategoryCount`, the status bar's second counter.
+  /// Get `snapshot.usedCategoryCount`, the status bar's second counter.
   int get usedCategoryCount => snapshot?.usedCategoryCount ?? 0;
 
-  /// `snapshot.toFindCount`, the status bar's trailing counter.
+  /// Get `snapshot.toFindCount`, the status bar's trailing counter.
   int get toFindCount => snapshot?.toFindCount ?? 0;
 
-  /// `snapshot.doneSceneCount`, the header's own progress label and bar.
+  /// Get `snapshot.doneSceneCount`, the header's own progress label and bar.
   int get doneSceneCount => snapshot?.doneSceneCount ?? 0;
 
-  /// `snapshot.needsCheckTagCount`, the status bar's own "N to check" counter.
+  /// Get `snapshot.needsCheckTagCount`, the status bar's own "N to check" counter.
   int get needsCheckTagCount => snapshot?.needsCheckTagCount ?? 0;
 
-  /// The scene [selectedSceneId] identifies, or null if none is selected (or the selected one
+  /// Get the scene [selectedSceneId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot]).
   OcptBreakdownScene? get selectedScene {
     final selectedSceneId = this.selectedSceneId;
@@ -228,7 +228,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return null;
   }
 
-  /// The target [selectedTargetRef] identifies, or null if none is selected (or the selected one
+  /// Get the target [selectedTargetRef] identifies, or null if none is selected (or the selected
+  /// one
   /// disappeared from a freshly loaded [snapshot]) — the script view's tagged words and the right
   /// dock's target inspector both read this rather than [selectedTargetRef] itself.
   OcptBreakdownTarget? get selectedTarget {
@@ -247,46 +248,51 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return null;
   }
 
-  /// The whole `elements` catalogue of [snapshot] (empty while nothing is loaded).
+  /// Get the whole `elements` catalogue of [snapshot] (empty while nothing is loaded).
   List<OcptElement> get elements => snapshot?.elements ?? const [];
 
-  /// The whole address book of [snapshot] (empty while nothing is loaded), offered by the target
+  /// Get the whole address book of [snapshot] (empty while nothing is loaded), offered by the
+  /// target
   /// inspector's owner and who-brings-it pickers.
   List<OcptPerson> get people => snapshot?.people ?? const [];
 
-  /// The whole cast of [snapshot] (empty while nothing is loaded), one of the three raw catalogues
+  /// Get the whole cast of [snapshot] (empty while nothing is loaded), one of the three raw
+  /// catalogues
   /// [searchCandidates] flattens for the tag popover.
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
-  /// Every orphaned-role alert found in [roles] (ADR 0030, decision 4) — what the mode-level
+  /// Get every orphaned-role alert found in [roles] (ADR 0030, decision 4) — what the mode-level
   /// compact banner is built from. No service work of its own: [roles] is already loaded for
   /// [searchCandidates].
   List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
 
-  /// Every name-collision alert found in [roles] (ADR 0030, decision 2), sorted stably — the
+  /// Get every name-collision alert found in [roles] (ADR 0030, decision 2), sorted stably — the
   /// compact banner's other half, mirroring `OcptResourcesState.roleCollisionAlerts`.
   List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
 
-  /// The whole set catalogue of [snapshot] (empty while nothing is loaded), the sibling of [roles].
+  /// Get the whole set catalogue of [snapshot] (empty while nothing is loaded), the sibling of
+  /// [roles].
   List<OcptSet> get sets => snapshot?.sets ?? const [];
 
-  /// The whole location catalogue of [snapshot] (empty while nothing is loaded) — what
+  /// Get the whole location catalogue of [snapshot] (empty while nothing is loaded) — what
   /// `ocptSceneSetSuggestionOf` reads to answer what a scene's heading suggests, and what the tag
   /// popover offers as the places a set it creates may go into.
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
 
-  /// The name of every live location of [snapshot], keyed by id — what names the place each of
+  /// Get the name of every live location of [snapshot], keyed by id — what names the place each of
   /// [sets] belongs to (`ocptBreakdownSetLabel`). Empty while nothing is loaded.
   Map<String, String> get locationNameById => snapshot?.locationNameById ?? const {};
 
-  /// The candidates the tag popover searches, built once from [snapshot] — empty while nothing is
+  /// Get the candidates the tag popover searches, built once from [snapshot] — empty while nothing
+  /// is
   /// loaded, exactly as every other snapshot-derived getter here.
   List<OcptBreakdownSearchCandidate> get searchCandidates {
     final snapshot = this.snapshot;
     return snapshot == null ? const [] : ocptBreakdownSearchCandidatesOf(snapshot);
   }
 
-  /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,
+  /// Get the raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is
+  /// null,
   /// names something other than an element, or — like [selectedTarget] itself — has disappeared
   /// from a freshly loaded [snapshot]. What the target inspector's Status, Category and Details
   /// sections read: [selectedTarget] itself deliberately carries only the two fields the script
@@ -554,15 +560,15 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Copies this state with the catalogue [snapshot] read again, which moves the reload epoch.
+  /// Copy this state with the catalogue [snapshot] read again, which moves the reload epoch.
   OcptBreakdownState copyWithReloadedSnapshot({required OcptBreakdownSnapshot? snapshot}) =>
       copyWith(snapshot: snapshot);
 
-  /// Copies this state with the page [pageSetup] read again, which moves the reload epoch.
+  /// Copy this state with the page [pageSetup] read again, which moves the reload epoch.
   OcptBreakdownState copyWithReloadedPageSetup({required OcptPageSetup pageSetup}) =>
       copyWith(pageSetup: pageSetup);
 
-  /// Copies this state as loaded when no project is open: the dock preferences restored, no
+  /// Copy this state as loaded when no project is open: the dock preferences restored, no
   /// version previewed and the selection moved with the cause
   /// [OcptBreakdownSelectionCause.load].
   OcptBreakdownState copyToLoadedWithoutProject({
@@ -579,7 +585,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectionCause: OcptBreakdownSelectionCause.load,
   );
 
-  /// Copies this state as loaded from the open project: the data read replaced, the scene and the
+  /// Copy this state as loaded from the open project: the data read replaced, the scene and the
   /// target selections cleared and the selection moved with the cause
   /// [OcptBreakdownSelectionCause.load].
   ///
@@ -610,14 +616,14 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectionCause: OcptBreakdownSelectionCause.load,
   );
 
-  /// Copies this state with the scene [sceneId] selected.
+  /// Copy this state with the scene [sceneId] selected.
   OcptBreakdownState copyWithSelectedScene({required String sceneId}) => copyWith(
     selectedSceneId: sceneId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBreakdownSelectionCause.scene,
   );
 
-  /// Copies this state with the scene [sceneId] selected from its heading: the target selection
+  /// Copy this state with the scene [sceneId] selected from its heading: the target selection
   /// cleared and the inspector shown, remembered as the last right dock tab.
   OcptBreakdownState copyWithSelectedSceneHeading({required String sceneId}) => copyWith(
     selectedSceneId: sceneId,
@@ -628,7 +634,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectionCause: OcptBreakdownSelectionCause.sceneHeading,
   );
 
-  /// Copies this state with the target [targetId] of [targetKind] selected and the inspector shown,
+  /// Copy this state with the target [targetId] of [targetKind] selected and the inspector shown,
   /// remembered as the last right dock tab.
   ///
   /// The scene [sceneId] is selected too when it [sceneExists], and the scene selection cleared
@@ -648,7 +654,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectionCause: OcptBreakdownSelectionCause.target,
   );
 
-  /// Copies this state with the scene [sceneId] selected when it [sceneExists], and the scene
+  /// Copy this state with the scene [sceneId] selected when it [sceneExists], and the scene
   /// selection cleared otherwise, as the scene a target is anchored to.
   OcptBreakdownState copyWithAnchoredScene({required String sceneId, required bool sceneExists}) =>
       copyWith(
@@ -658,18 +664,18 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
         selectionCause: OcptBreakdownSelectionCause.anchorScene,
       );
 
-  /// Copies this state with the target selection cleared.
+  /// Copy this state with the target selection cleared.
   OcptBreakdownState copyWithTargetSelectionCleared() => copyWith(
     forceSelectedTargetRefValue: true,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBreakdownSelectionCause.targetCleared,
   );
 
-  /// Copies this state with the list panel hidden when it was shown, and shown when it was hidden.
+  /// Copy this state with the list panel hidden when it was shown, and shown when it was hidden.
   OcptBreakdownState copyWithToggledListPanel() =>
       copyWith(isListPanelVisible: !isListPanelVisible);
 
-  /// Copies this state with the right dock tab [tab] shown and remembered, or the dock closed when
+  /// Copy this state with the right dock tab [tab] shown and remembered, or the dock closed when
   /// [isAlreadyActive].
   OcptBreakdownState copyWithToggledRightDockTab({
     required OcptBreakdownRightDockTab tab,
@@ -680,25 +686,25 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     lastRightDockTab: tab,
   );
 
-  /// Copies this state with the right dock closed.
+  /// Copy this state with the right dock closed.
   OcptBreakdownState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
 
-  /// Copies this state with the right dock reopened on the last tab it showed.
+  /// Copy this state with the right dock reopened on the last tab it showed.
   OcptBreakdownState copyWithRightDockReopened() => copyWith(rightDockTab: lastRightDockTab);
 
-  /// Copies this state with the dock fractions [left] and [right], each one kept when null.
+  /// Copy this state with the dock fractions [left] and [right], each one kept when null.
   OcptBreakdownState copyWithDockFractions({required double? left, required double? right}) =>
       copyWith(leftDockFraction: left, rightDockFraction: right);
 
-  /// Copies this state with [hiddenLegendKeys] as the legend entries hidden.
+  /// Copy this state with [hiddenLegendKeys] as the legend entries hidden.
   OcptBreakdownState copyWithHiddenLegendKeys({
     required Set<OcptBreakdownLegendKey> hiddenLegendKeys,
   }) => copyWith(hiddenLegendKeys: hiddenLegendKeys);
 
-  /// Copies this state with every legend entry shown.
+  /// Copy this state with every legend entry shown.
   OcptBreakdownState copyWithAllLegendKeysShown() => copyWith(hiddenLegendKeys: const {});
 
-  /// Copies this state with [view] as the centre view, moving the selection with the cause
+  /// Copy this state with [view] as the centre view, moving the selection with the cause
   /// [OcptBreakdownSelectionCause.centreView].
   OcptBreakdownState copyWithCentreView({required OcptBreakdownCentreView view}) => copyWith(
     centreView: view,
@@ -706,7 +712,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     selectionCause: OcptBreakdownSelectionCause.centreView,
   );
 
-  /// Copies this state with the search query [query].
+  /// Copy this state with the search query [query].
   ///
   /// The centre switches to the recap, moving the selection with the cause
   /// [OcptBreakdownSelectionCause.centreView], when [switchesToRecap].
@@ -718,7 +724,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
         selectionCause: switchesToRecap ? OcptBreakdownSelectionCause.centreView : null,
       );
 
-  /// [selectedTarget]'s own suggested occurrences, computed from scratch by [copyWith] whenever one
+  /// Get [selectedTarget]'s own suggested occurrences, computed from scratch by [copyWith] whenever
+  /// one
   /// of the three things it derives from changes, and carried over unchanged otherwise.
   ///
   /// Empty while no target is selected — a passage is only ever suggested *for* something, and the

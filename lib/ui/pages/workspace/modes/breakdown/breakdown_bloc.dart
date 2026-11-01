@@ -212,7 +212,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownOccurrenceSelectedEvent>(_onOccurrenceSelected);
   }
 
-  /// Writes every pending edit of the views directly to the database, without touching [state].
+  /// Write every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`: `deactivate()` runs before `dispose()` for every
   /// removal from the tree (a mode switch swaps this whole subtree out, and so does the workspace's
@@ -221,7 +221,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
   Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
-  /// Writes whatever target field edit, scene notes edit or set rename is still sitting in the
+  /// Write whatever target field edit, scene notes edit or set rename is still sitting in the
   /// inspector's field-edit debounce, so a preview about to swap the database can't send it into
   /// the previewed version instead.
   ///
@@ -304,20 +304,20 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _load(emit);
   }
 
-  /// Persists the `Inspector` tab as the last right dock tab ahead of a selection of a target that
+  /// Persist the `Inspector` tab as the last right dock tab ahead of a selection of a target that
   /// will land the user on it, for a caller that reads the snapshot again before it makes that
   /// selection: the store is awaited here, so nothing is left to wait for between the read and the
   /// selection, and the state they emit is not split by it.
   Future<void> persistInspectorAsLastRightDockTab() =>
       _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
 
-  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// Get the screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
   String _screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
-  /// Loads the persisted dock fractions and the current project's whole breakdown read.
+  /// Load the persisted dock fractions and the current project's whole breakdown read.
   ///
   /// The workspace route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stops loading
@@ -379,13 +379,13 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     });
   }
 
-  /// Reads the selected episode's current Fountain source text, kept in
+  /// Read the selected episode's current Fountain source text, kept in
   /// `OcptBreakdownState.screenplayText` for the script view to slice scene by scene.
   Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
       .screenplayService
       .loadScreenplayText(database: project.database, screenplayId: _screenplayIdOf(project));
 
-  /// Reads the page setup the script view is typeset with: the open project's own page format,
+  /// Read the page setup the script view is typeset with: the open project's own page format,
   /// paired with the app-wide margins preference, exactly as `OcptShotListBloc`'s own scenario
   /// coverage dialog pairs them.
   ///
@@ -399,8 +399,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Reads the whole breakdown of the selected episode's screenplay, joining
-  /// [_breakdownService]'s scenes and tags with [_elementsService]/[_roleIndexService]/
+  /// Read the whole breakdown of the selected episode's screenplay, joining [_breakdownService]'s
+  /// scenes and tag with [_elementsService]/[_roleIndexService]/
   /// [_locationsService]/[_peopleService]'s four catalogues into one [OcptBreakdownSnapshot].
   ///
   /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
@@ -440,7 +440,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Leaves the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
     OcptBreakdownBackRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -449,7 +449,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     _routerManager.pop();
   }
 
-  /// Re-reads the page setup after the project settings page changed something.
+  /// Re-read the page setup after the project settings page changed something.
   ///
   /// Nothing in the snapshot itself depends on the page format, but reloading it here too is what
   /// keeps this mode from being the one place a change made on the project settings page is
@@ -469,7 +469,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     });
   }
 
-  /// Selects scene `event.sceneId`, touching neither the selected target nor the right dock — the
+  /// Select scene `event.sceneId`, touching neither the selected target nor the right dock — the
   /// left dock's own list, and the target inspector's occurrence jump, both mean only this much.
   /// [_onSceneHeadingSelected] is the louder sibling the script view's headings use.
   ///
@@ -491,7 +491,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithSelectedScene(sceneId: event.sceneId));
   }
 
-  /// Selects scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
+  /// Select scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
   /// one of the script view's heading rows.
   ///
   /// Everything [_onSceneSelected] does, plus the two things that make the sheet actually appear:
@@ -517,7 +517,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithSelectedSceneHeading(sceneId: event.sceneId));
   }
 
-  /// Selects the scene of one of the selected target's occurrences, dispatched by a row of
+  /// Select the scene of one of the selected target's occurrences, dispatched by a row of
   /// `OcptBreakdownTargetInspector`'s own occurrences section.
   ///
   /// Delegates straight to [_onSceneSelected]: an occurrence's click means the same thing a scene
@@ -529,7 +529,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) => _onSceneSelected(OcptBreakdownSceneSelectedEvent(sceneId: event.sceneId), emitter);
 
-  /// Toggles the left (scene) dock's visibility.
+  /// Toggle the left (scene) dock's visibility.
   Future<void> _onLeftPanelToggled(
     OcptBreakdownLeftPanelToggledEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -537,8 +537,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithToggledListPanel());
   }
 
-  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
-  /// or switches to it) and records it as the tab the toolbar's toggle reopens the dock on.
+  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
+  /// switches to it) and record it as the tab the toolbar's toggle reopens the dock on.
   ///
   /// Flushes any pending field edit first — the inspector tab this may be leaving is the
   /// one place they are shown — mirroring `OcptShotListBloc._onRightDockTabSelected`. Opening the
@@ -561,7 +561,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptBreakdownState.lastRightDockTab], and that reopening is the moment the working-copy
   /// card needs a fresh read for whenever it lands on `Versions`.
   Future<void> _onRightDockToggled(
@@ -580,7 +580,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     }
   }
 
-  /// Closes the right dock via its own × close button.
+  /// Close the right dock via its own × close button.
   Future<void> _onRightDockClosed(
     OcptBreakdownRightDockClosedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -588,7 +588,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  /// Persist [tab] as the mode's last right dock tab, unless it already is.
   Future<void> _persistLastRightDockTab(OcptBreakdownRightDockTab tab) async {
     if (state.lastRightDockTab == tab || _storedLastRightDockTab == tab) {
       return;
@@ -598,7 +598,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     _storedLastRightDockTab = tab;
   }
 
-  /// Applies and persists whichever dock fraction the ended drag gesture reports.
+  /// Apply and persist whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(
     OcptBreakdownDockFractionsChangedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -616,7 +616,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
-  /// Restores both dock fractions to their defaults, persisting them.
+  /// Restore both dock fractions to their defaults, persisting them.
   Future<void> _onDockLayoutReset(
     OcptBreakdownDockLayoutResetEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -634,7 +634,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Toggles whether `event.key` is hidden from the script view's own highlighting.
+  /// Toggle whether `event.key` is hidden from the script view's own highlighting.
   Future<void> _onLegendEntryToggled(
     OcptBreakdownLegendEntryToggledEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -647,7 +647,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithHiddenLegendKeys(hiddenLegendKeys: hiddenLegendKeys));
   }
 
-  /// Reveals every legend key currently hidden from the script view's own highlighting.
+  /// Reveal every legend key currently hidden from the script view's own highlighting.
   Future<void> _onLegendShowAllRequested(
     OcptBreakdownLegendShowAllRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
@@ -655,7 +655,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithAllLegendKeysShown());
   }
 
-  /// Selects which of the two views (script or recap) the centre shows, dispatched by the header's
+  /// Select which of the two views (script or recap) the centre shows, dispatched by the header's
   /// own `Script`/`Recap` switch.
   ///
   /// Moves the selection epoch with the `centreView` cause, which has `OcptBreakdownTaggingBloc`
@@ -668,7 +668,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithCentreView(view: event.view));
   }
 
-  /// Records the header's own search field text as typed.
+  /// Record the header's own search field text as typed.
   ///
   /// The moment `event.query` turns non-empty while the script view is active, switches the centre
   /// to the recap in the same emitted state — carrying the just-typed text into the view that
@@ -685,9 +685,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithSearchQuery(query: event.query, switchesToRecap: switchesToRecap));
   }
 
-  /// Selects target `event.targetKind`/`event.targetId`, and the scene the click happened in — so
+  /// Select target `event.targetKind`/`event.targetId`, and the scene the click happened in — so
   /// the left dock and the sheet stay in step, exactly as a click on a scene panel row already does
-  /// on its own — and opens the right dock on the `Inspector` tab: a closed dock opens there, one
+  /// on its own — and open the right dock on the `Inspector` tab: a closed dock opens there, one
   /// already showing `Versions` switches, so a tagged word's click always lands the user on its
   /// sheet without a second gesture. Mirrors [_onSceneSelected]'s own defensive check: a scene id
   /// no longer in the current snapshot (a stale click on a sheet rebuilt underneath) is ignored for
@@ -714,7 +714,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
   }
 
-  /// Selects the scene a first click of the script opened a tag anchor in, dispatched by
+  /// Select the scene a first click of the script opened a tag anchor in, dispatched by
   /// `OcptBreakdownTaggingBloc`: a tag belongs to one scene, so an anchor spanning two would mean
   /// nothing.
   ///
@@ -731,7 +731,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     emitter(state.copyWithAnchoredScene(sceneId: event.sceneId, sceneExists: sceneExists));
   }
 
-  /// Clears the currently selected target. Flushes any pending field edit first, and drops
+  /// Clear the currently selected target. Flushes any pending field edit first, and drops
   /// whatever tag-removal confirmation was showing, exactly as [_onSceneSelected] does.
   Future<void> _onTargetSelectionCleared(
     OcptBreakdownTargetSelectionClearedEvent event,

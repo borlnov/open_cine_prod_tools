@@ -241,7 +241,7 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
     );
   }
 
-  /// Blanks the field and reports the empty query.
+  /// Blank the field and report the empty query.
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");

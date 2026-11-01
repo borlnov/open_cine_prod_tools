@@ -14,7 +14,7 @@ sealed class OcptBreakdownInspectorEvent extends OcptBreakdownEvent {
   const OcptBreakdownInspectorEvent();
 }
 
-/// Writes a new breakdown status onto scene [sceneId] immediately, dispatched by a click on one of
+/// Write a new breakdown status onto scene [sceneId] immediately, dispatched by a click on one of
 /// `OcptBreakdownSceneInspector`'s own status chips.
 class OcptBreakdownSceneStatusChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the scene whose breakdown status changed.
@@ -31,7 +31,7 @@ class OcptBreakdownSceneStatusChangedEvent extends OcptBreakdownInspectorEvent {
   List<Object?> get props => [...super.props, sceneId, status];
 }
 
-/// Records the raw text just typed into scene [sceneId]'s own breakdown notes field as a pending
+/// Record the raw text just typed into scene [sceneId]'s own breakdown notes field as a pending
 /// edit, dispatched on every keystroke into `OcptBreakdownSceneInspector`'s notes field — rides the
 /// same field-edit debounce as `OcptBreakdownElementFieldChangedEvent`.
 class OcptBreakdownSceneNotesChangedEvent extends OcptBreakdownInspectorEvent {
@@ -49,7 +49,7 @@ class OcptBreakdownSceneNotesChangedEvent extends OcptBreakdownInspectorEvent {
   List<Object?> get props => [...super.props, sceneId, rawValue];
 }
 
-/// Writes a new status onto element [elementId] immediately, dispatched by a click on one of
+/// Write a new status onto element [elementId] immediately, dispatched by a click on one of
 /// `OcptBreakdownTargetInspector`'s status chips.
 class OcptBreakdownElementStatusChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the element whose status changed.
@@ -66,7 +66,7 @@ class OcptBreakdownElementStatusChangedEvent extends OcptBreakdownInspectorEvent
   List<Object?> get props => [...super.props, elementId, status];
 }
 
-/// Writes a new category onto element [elementId] immediately, dispatched by a click on one of
+/// Write a new category onto element [elementId] immediately, dispatched by a click on one of
 /// `OcptBreakdownTargetInspector`'s category chips.
 class OcptBreakdownElementCategoryChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the element whose category changed.
@@ -83,7 +83,7 @@ class OcptBreakdownElementCategoryChangedEvent extends OcptBreakdownInspectorEve
   List<Object?> get props => [...super.props, elementId, category];
 }
 
-/// Records the raw text just typed into [field] of element [elementId] as a pending edit,
+/// Record the raw text just typed into [field] of element [elementId] as a pending edit,
 /// dispatched on every keystroke into one of `OcptBreakdownTargetInspector`'s Details fields.
 class OcptBreakdownElementFieldChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the element being edited.
@@ -118,7 +118,7 @@ class OcptBreakdownFieldEditFlushRequestedEvent extends OcptBreakdownInspectorEv
   const OcptBreakdownFieldEditFlushRequestedEvent();
 }
 
-/// Writes a new owner onto element [elementId] immediately, dispatched by
+/// Write a new owner onto element [elementId] immediately, dispatched by
 /// `OcptBreakdownTargetInspector`'s own owner picker.
 class OcptBreakdownElementOwnerChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the element whose owner changed.
@@ -135,7 +135,7 @@ class OcptBreakdownElementOwnerChangedEvent extends OcptBreakdownInspectorEvent 
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Writes a new who-brings-it onto element [elementId] immediately, dispatched by
+/// Write a new who-brings-it onto element [elementId] immediately, dispatched by
 /// `OcptBreakdownTargetInspector`'s own who-brings-it picker.
 class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownInspectorEvent {
   /// The id of the element whose who-brings-it changed.
@@ -152,7 +152,7 @@ class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownInspectorEven
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Says scene [sceneId] is shot in set [setId], dispatched by the scene inspector's own sets
+/// Say scene [sceneId] is shot in set [setId], dispatched by the scene inspector's own sets
 /// picker.
 ///
 /// **Not** a tagging: no passage of the script is involved, no tag is created, and nothing is
@@ -174,7 +174,7 @@ class OcptBreakdownSceneSetLinkedEvent extends OcptBreakdownInspectorEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
-/// Renames set [setId] to [rawValue], dispatched on every keystroke of the target inspector's own
+/// Rename set [setId] to [rawValue], dispatched on every keystroke of the target inspector's own
 /// title while a set is selected.
 ///
 /// The set sibling of [OcptBreakdownElementFieldChangedEvent], and it rides the very same debounce:
@@ -195,8 +195,8 @@ class OcptBreakdownSetNameChangedEvent extends OcptBreakdownInspectorEvent {
   List<Object?> get props => [...super.props, setId, rawValue];
 }
 
-/// Creates a set named [name] inside location [locationId] — or inside a location minted along with
-/// it when that is null — and says scene [sceneId] is shot in it, dispatched by the scene
+/// Create a set named [name] inside location [locationId] — or inside a location minted along with
+/// it when that is null — and say scene [sceneId] is shot in it, dispatched by the scene
 /// inspector's own `Create a set…` control.
 ///
 /// The sibling of `OcptBreakdownPopoverSetCreationRequestedEvent` for the sheet rather than the
@@ -224,7 +224,7 @@ class OcptBreakdownSceneSetCreationRequestedEvent extends OcptBreakdownInspector
   List<Object?> get props => [...super.props, sceneId, locationId, name];
 }
 
-/// Says scene [sceneId] is no longer shot in set [setId], dispatched by one of the scene
+/// Say scene [sceneId] is no longer shot in set [setId], dispatched by one of the scene
 /// inspector's own set chips being dismissed.
 ///
 /// Drops the `scene_sets` link alone and **leaves every tag pointing at that set exactly where it
@@ -245,7 +245,7 @@ class OcptBreakdownSceneSetUnlinkedEvent extends OcptBreakdownInspectorEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
-/// Removes the selected target's tags from the selected scene for good, dispatched by the mode once
+/// Remove the selected target's tags from the selected scene for good, dispatched by the mode once
 /// its `OcptConfirmDialog` — opened by `OcptBreakdownTargetInspector`'s own `Remove from the
 /// breakdown` action — has already been answered.
 class OcptBreakdownTagRemovalConfirmedEvent extends OcptBreakdownInspectorEvent {
@@ -253,7 +253,7 @@ class OcptBreakdownTagRemovalConfirmedEvent extends OcptBreakdownInspectorEvent 
   const OcptBreakdownTagRemovalConfirmedEvent();
 }
 
-/// Clears `needsCheck` on tag [tagId], dispatched by `OcptBreakdownSceneInspector`'s own "to check"
+/// Clear `needsCheck` on tag [tagId], dispatched by `OcptBreakdownSceneInspector`'s own "to check"
 /// alert's `Mark as checked` action.
 ///
 /// A single pick, not typing, so it is written immediately and rides no field-edit debounce, and
@@ -271,7 +271,7 @@ class OcptBreakdownTagNeedsCheckClearedEvent extends OcptBreakdownInspectorEvent
   List<Object?> get props => [...super.props, tagId];
 }
 
-/// Removes tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check"
+/// Remove tag [tagId] for good, dispatched by `OcptBreakdownSceneInspector`'s own "to check"
 /// alert's `Remove` action.
 ///
 /// Mirrors [OcptBreakdownTagNeedsCheckClearedEvent] in every respect but the write it performs:

@@ -66,7 +66,8 @@ class OcptBreakdownCentre extends StatelessWidget {
     );
   }
 
-  /// The compact role alert banner, or null while the whole cast is in order or a project version
+  /// Build the compact role alert banner, or null while the whole cast is in order or a project
+  /// version
   /// is being previewed read-only.
   Widget? _bannerOf(OcptBreakdownState state) {
     final orphanedAlerts = state.orphanedRoleAlerts;

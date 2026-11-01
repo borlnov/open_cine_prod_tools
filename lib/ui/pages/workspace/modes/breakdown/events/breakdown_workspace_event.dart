@@ -13,13 +13,13 @@ sealed class OcptBreakdownWorkspaceEvent extends OcptBreakdownEvent {
   const OcptBreakdownWorkspaceEvent();
 }
 
-/// Requests leaving the workspace: closes the current project and navigates back to the home page.
+/// Request leaving the workspace: closes the current project and navigates back to the home page.
 class OcptBreakdownBackRequestedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownBackRequestedEvent();
 }
 
-/// Reports that the project settings page was closed after changing something.
+/// Report that the project settings page was closed after changing something.
 ///
 /// Re-reads the page setup the script view is typeset with: nothing in the snapshot itself depends
 /// on the page format, but reloading it here too is what keeps this mode from being the one place a
@@ -30,13 +30,13 @@ class OcptBreakdownProjectSettingsChangedEvent extends OcptBreakdownWorkspaceEve
   const OcptBreakdownProjectSettingsChangedEvent();
 }
 
-/// Toggles the left (scene) dock's visibility.
+/// Toggle the left (scene) dock's visibility.
 class OcptBreakdownLeftPanelToggledEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownLeftPanelToggledEvent();
 }
 
-/// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens or
+/// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
 /// switches to it).
 class OcptBreakdownRightDockTabSelectedEvent extends OcptBreakdownWorkspaceEvent {
   /// The tab to select.
@@ -50,20 +50,20 @@ class OcptBreakdownRightDockTabSelectedEvent extends OcptBreakdownWorkspaceEvent
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
+/// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
 /// its single tab.
 class OcptBreakdownRightDockToggledEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownRightDockToggledEvent();
 }
 
-/// Closes the right dock via its own × close button.
+/// Close the right dock via its own × close button.
 class OcptBreakdownRightDockClosedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownRightDockClosedEvent();
 }
 
-/// Applies and persists whichever dock fraction the ended drag gesture reports.
+/// Apply and persist whichever dock fraction the ended drag gesture reports.
 ///
 /// Only one of [left]/[right] is ever non-null per event, mirroring how the shell's own
 /// `onDockFractionsChanged` callback is shaped.
@@ -82,13 +82,13 @@ class OcptBreakdownDockFractionsChangedEvent extends OcptBreakdownWorkspaceEvent
   List<Object?> get props => [...super.props, left, right];
 }
 
-/// Restores both dock fractions to their defaults, persisting them.
+/// Restore both dock fractions to their defaults, persisting them.
 class OcptBreakdownDockLayoutResetEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownDockLayoutResetEvent();
 }
 
-/// Toggles whether legend key [key] is hidden from the script view's own highlighting, dispatched
+/// Toggle whether legend key [key] is hidden from the script view's own highlighting, dispatched
 /// by a row of `OcptBreakdownCategoryLegend`.
 ///
 /// A reading aid for the pass in progress alone: the hidden set this event grows or shrinks is
@@ -105,14 +105,14 @@ class OcptBreakdownLegendEntryToggledEvent extends OcptBreakdownWorkspaceEvent {
   List<Object?> get props => [...super.props, key];
 }
 
-/// Reveals every legend key currently hidden from the script view's own highlighting, dispatched by
+/// Reveal every legend key currently hidden from the script view's own highlighting, dispatched by
 /// `OcptBreakdownCategoryLegend`'s own `Show all` action.
 class OcptBreakdownLegendShowAllRequestedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownLegendShowAllRequestedEvent();
 }
 
-/// Selects which of the two views (script or recap) the mode's centre shows, dispatched by the
+/// Select which of the two views (script or recap) the mode's centre shows, dispatched by the
 /// header's own `Script`/`Recap` switch.
 ///
 /// Clears any pending tag anchor and pending range: the popover a range interaction might be
@@ -130,7 +130,7 @@ class OcptBreakdownCentreViewSelectedEvent extends OcptBreakdownWorkspaceEvent {
   List<Object?> get props => [...super.props, view];
 }
 
-/// Records the header's own search field text as typed, dispatched on every keystroke.
+/// Record the header's own search field text as typed, dispatched on every keystroke.
 ///
 /// The moment [query] turns non-empty while the script view is active, the bloc switches the
 /// centre to the recap in the same emitted state — carrying the just-typed text into the view that

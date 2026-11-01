@@ -78,7 +78,7 @@ class OcptBreakdownTaggingBloc
     on<OcptBreakdownSuggestionAcceptedEvent>(_onSuggestionAccepted);
   }
 
-  /// Drops what the mode's selection move leaves without a script to belong to.
+  /// Drop what the mode's selection move leaves without a script to belong to.
   ///
   /// `OcptBreakdownSelectionCause.load` (entry, a version preview or a restore) drops the anchor,
   /// the range and the notice; `OcptBreakdownSelectionCause.centreView` (the centre leaving the
@@ -111,7 +111,7 @@ class OcptBreakdownTaggingBloc
     }
   }
 
-  /// Records a click on a plain word of the script view — one that overlaps no live tag, or one
+  /// Record a click on a plain word of the script view — one that overlaps no live tag, or one
   /// whose tag's target has been dropped from the snapshot — driving the range interaction:
   ///
   /// - **no pending anchor, or one belonging to another scene**: this word becomes the (new)
@@ -218,7 +218,7 @@ class OcptBreakdownTaggingBloc
     );
   }
 
-  /// Clears the pending anchor and the closed range alike, dispatched by the popover's own × close
+  /// Clear the pending anchor and the closed range alike, dispatched by the popover's own × close
   /// button, `Escape`, or a tap outside it: the user changed their mind about the passage, not just
   /// about where it should go.
   Future<void> _onTagRangeCancelled(
@@ -228,7 +228,7 @@ class OcptBreakdownTaggingBloc
     emitter(state.copyWithTagInteractionReset());
   }
 
-  /// Links [OcptBreakdownTaggingState.pendingTagRange]'s own passage to the existing
+  /// Link [OcptBreakdownTaggingState.pendingTagRange]'s own passage to the existing
   /// `event.targetKind`/`event.targetId`, dispatched by a click on one of the popover's own match
   /// rows.
   ///
@@ -274,7 +274,7 @@ class OcptBreakdownTaggingBloc
     );
   }
 
-  /// Creates a new `event.category` element named `event.name` and tags
+  /// Create a new `event.category` element named `event.name` and tag
   /// [OcptBreakdownTaggingState.pendingTagRange]'s own passage with it, in one write
   /// (`OcptBreakdownService.createElementAndTag`), dispatched by a click on one of the popover's
   /// own category chips.
@@ -321,8 +321,8 @@ class OcptBreakdownTaggingBloc
     );
   }
 
-  /// Creates a new set named `event.name` — inside `event.locationId`, or inside a location minted
-  /// along with it when that is null — and tags [OcptBreakdownTaggingState.pendingTagRange]'s own
+  /// Create a new set named `event.name` — inside `event.locationId`, or inside a location minted
+  /// along with it when that is null — and tag [OcptBreakdownTaggingState.pendingTagRange]'s own
   /// passage with it, in one write (`OcptBreakdownService.createSetAndTag`), dispatched by the
   /// popover's own `Create a set` control.
   ///
@@ -364,7 +364,7 @@ class OcptBreakdownTaggingBloc
     );
   }
 
-  /// Ends the popover's interaction once its tag is written: has the mode read the snapshot again,
+  /// End the popover's interaction once its tag is written: has the mode read the snapshot again,
   /// then select the target of the tag in the scene of [range] on the `Inspector` tab, and only then
   /// closes the popover and clears the anchor.
   ///
@@ -395,7 +395,7 @@ class OcptBreakdownTaggingBloc
     emitter(state.copyWithTagInteractionReset());
   }
 
-  /// Tags one of the selected target's own suggested occurrences, dispatched by a click on the add
+  /// Tag one of the selected target's own suggested occurrences, dispatched by a click on the add
   /// control of one of `OcptBreakdownTargetInspector`'s own "Suggested occurrences" rows — the
   /// writer's second route onto `OcptBreakdownService.createTag`, [_onPopoverTargetLinked] being
   /// the first, and it mirrors that handler in every respect but two: the range comes from
@@ -441,7 +441,7 @@ class OcptBreakdownTaggingBloc
     emitter(state.copyWithTagWriteErrorCleared());
   }
 
-  /// Dismisses the transient notice that the last tag write — the popover's own link or element
+  /// Dismiss the transient notice that the last tag write — the popover's own link or element
   /// creation, or a suggestion accepted from the target inspector — was refused.
   Future<void> _onTagWriteErrorDismissed(
     OcptBreakdownTagWriteErrorDismissedEvent event,

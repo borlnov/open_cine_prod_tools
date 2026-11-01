@@ -39,7 +39,7 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
   @override
   State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
 
-  /// Shows the dialog and returns the [OcptBreakdownSheetsExportOptions] the user applied, or null
+  /// Show the dialog and return the [OcptBreakdownSheetsExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptBreakdownSheetsExportOptions?> show(
     BuildContext context, {
@@ -129,13 +129,13 @@ class _OcptBreakdownSheetsExportDialogState extends State<OcptBreakdownSheetsExp
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptBreakdownSheetsExportOptions].
+  /// Pop the dialog returning the resulting [OcptBreakdownSheetsExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

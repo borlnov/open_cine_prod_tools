@@ -11,7 +11,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_run_style.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_fountain_line_display.dart';
 
-/// [block]'s printed words, flattened into one run of spans: every Fountain marker hidden, every
+/// Get [block]'s printed words, flattened into one run of spans: every Fountain marker hidden,
+/// every
 /// inline emphasis applied on top of [base]. Used for the heading row alone, which stays row-level
 /// clickable rather than word-level — every other block renders through
 /// `OcptBreakdownScriptBlock`'s per-word widget instead, one per word, so a tag can hang its own

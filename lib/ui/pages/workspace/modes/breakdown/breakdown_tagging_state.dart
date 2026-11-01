@@ -34,13 +34,13 @@ class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingSt
     required this.hasTagWriteError,
   });
 
-  /// Builds the state of a bloc that has no range open.
+  /// Build the state of a bloc that has no range open.
   const OcptBreakdownTaggingState.init()
     : pendingTagAnchor = null,
       pendingTagRange = null,
       hasTagWriteError = false;
 
-  /// Copies this state, replacing what is given. [pendingTagAnchor] and [pendingTagRange] go back to
+  /// Copy this state, replacing what is given. [pendingTagAnchor] and [pendingTagRange] go back to
   /// null only through their force flags, since a null argument means "keep".
   @override
   OcptBreakdownTaggingState copyWith({
@@ -56,7 +56,7 @@ class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingSt
     hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
   );
 
-  /// Copies this state with the pending anchor and the closed range dropped and the tag write error
+  /// Copy this state with the pending anchor and the closed range dropped and the tag write error
   /// cleared: the interaction starts over.
   OcptBreakdownTaggingState copyWithTagInteractionReset() => copyWith(
     forcePendingTagAnchorValue: true,
@@ -64,28 +64,28 @@ class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingSt
     hasTagWriteError: false,
   );
 
-  /// Copies this state with the pending anchor and the closed range dropped.
+  /// Copy this state with the pending anchor and the closed range dropped.
   OcptBreakdownTaggingState copyWithPendingTagCleared() =>
       copyWith(forcePendingTagAnchorValue: true, forcePendingTagRangeValue: true);
 
-  /// Copies this state with [anchor] as the first word clicked of a range not yet closed.
+  /// Copy this state with [anchor] as the first word clicked of a range not yet closed.
   OcptBreakdownTaggingState copyWithPendingTagAnchor({
     required OcptBreakdownPendingTagAnchor anchor,
   }) => copyWith(pendingTagAnchor: anchor);
 
-  /// Copies this state with the pending anchor dropped.
+  /// Copy this state with the pending anchor dropped.
   OcptBreakdownTaggingState copyWithPendingTagAnchorCleared() =>
       copyWith(forcePendingTagAnchorValue: true);
 
-  /// Copies this state with [range] as the range just closed, the pending anchor dropped and the
+  /// Copy this state with [range] as the range just closed, the pending anchor dropped and the
   /// tag write error cleared.
   OcptBreakdownTaggingState copyWithClosedTagRange({required OcptBreakdownPendingTagRange range}) =>
       copyWith(forcePendingTagAnchorValue: true, pendingTagRange: range, hasTagWriteError: false);
 
-  /// Copies this state with a tag write error flagged.
+  /// Copy this state with a tag write error flagged.
   OcptBreakdownTaggingState copyWithTagWriteError() => copyWith(hasTagWriteError: true);
 
-  /// Copies this state with the tag write error cleared.
+  /// Copy this state with the tag write error cleared.
   OcptBreakdownTaggingState copyWithTagWriteErrorCleared() => copyWith(hasTagWriteError: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

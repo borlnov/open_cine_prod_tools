@@ -20,10 +20,10 @@ class OcptBreakdownExportState extends BlocStateForMixin<OcptBreakdownExportStat
   /// Class constructor
   const OcptBreakdownExportState({required this.ioNotice});
 
-  /// Builds the state of a bloc that has exported nothing yet.
+  /// Build the state of a bloc that has exported nothing yet.
   const OcptBreakdownExportState.init() : ioNotice = null;
 
-  /// Copies this state, replacing what is given. [ioNotice] goes back to null only through
+  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
   /// [forceIoNoticeValue], since a null argument means "keep".
   @override
   OcptBreakdownExportState copyWith({
@@ -31,11 +31,11 @@ class OcptBreakdownExportState extends BlocStateForMixin<OcptBreakdownExportStat
     bool forceIoNoticeValue = false,
   }) => OcptBreakdownExportState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
-  /// Copies this state with [ioNotice] as the outcome of the last export.
+  /// Copy this state with [ioNotice] as the outcome of the last export.
   OcptBreakdownExportState copyWithIoNotice({required OcptBreakdownIoNotice ioNotice}) =>
       copyWith(ioNotice: ioNotice);
 
-  /// Copies this state with the export notice dismissed.
+  /// Copy this state with the export notice dismissed.
   OcptBreakdownExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

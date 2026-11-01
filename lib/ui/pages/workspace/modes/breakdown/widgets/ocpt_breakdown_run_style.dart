@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 
-/// Applies a run's own inline emphasis on top of [base], mirroring `OcptShotCoverageDialog`'s own
+/// Apply a run's own inline emphasis on top of [base], mirroring `OcptShotCoverageDialog`'s own
 /// `_styleOf`.
 TextStyle ocptBreakdownRunStyleOf(FountainInlineStyle style, TextStyle base) => switch (style) {
   FountainInlineStyle.italic => base.copyWith(fontStyle: FontStyle.italic),

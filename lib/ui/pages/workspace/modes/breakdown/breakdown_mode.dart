@@ -83,7 +83,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// switch, the search field and a recap row's click only ever read, so nothing here withholds
 /// anything from a previewed version — see their own doc comments.
 class OcptBreakdownMode extends StatelessWidget {
-  /// Creates the breakdown mode.
+  /// Create the breakdown mode.
   const OcptBreakdownMode({super.key});
 
   /// Build the breakdown mode as a [MultiBlocProvider].
@@ -218,7 +218,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     },
   );
 
-  /// Builds the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the
+  /// Build the mode's `⋮` overflow menu entries: resetting the panel layout, alone — the
   /// breakdown sheets export moved to the toolbar's own `Export` button and its panel (see
   /// [_requestExport]), and this is the only entry the breakdown mode has left to offer. A `⋮`
   /// holding one entry is thin, but honest: moving it somewhere else is a separate question this
@@ -230,7 +230,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     ),
   ];
 
-  /// Builds the two entries the toolbar's `Export` button offers: the breakdown sheets and the
+  /// Build the two entries the toolbar's `Export` button offers: the breakdown sheets and the
   /// breakdown workbook, both unavailable while the screenplay holds no scene at all — there would
   /// be nothing to print a sheet for, or a row to write into a workbook.
   List<OcptWorkspaceExportEntry<OcptBreakdownExportDocument>> _exportEntriesOf(
@@ -258,7 +258,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     ];
   }
 
-  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// Open the export panel, then dispatch the picked document's own export request: the
   /// breakdown sheets go through [_requestSheetsExport], which opens their own options dialog
   /// first, while the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no
   /// options dialog at all.
@@ -295,7 +295,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     }
   }
 
-  /// Shows the breakdown sheets export options dialog, then dispatches the export request if the
+  /// Show the breakdown sheets export options dialog, then dispatch the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized
   /// string the exported document and the native save dialog carry.
   Future<void> _requestSheetsExport(
@@ -324,7 +324,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Dispatches the breakdown workbook export request straight away — resolving here every
+  /// Dispatch the breakdown workbook export request straight away — resolving here every
   /// localized string the exported document and the native save dialog carry, exactly as
   /// [_requestSheetsExport] does, but with no options dialog first: the workbook takes none.
   void _requestXlsxExport(BuildContext context, Rect? shareAnchor) {
@@ -340,7 +340,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// Get the selected episode's own tag (`ep. 2`), or null while the open project holds one episode
+  /// or
   /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
   /// exactly as every other localized export payload already is.
   String? _episodeExportTag(BuildContext context) {
@@ -352,8 +353,8 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Asks [OcptConfirmDialog] whether the selected target's tags really are to leave the selected
-  /// scene, then dispatches the removal if the user answered `Remove`.
+  /// Ask [OcptConfirmDialog] whether the selected target's tags really are to leave the selected
+  /// scene, then dispatch the removal if the user answered `Remove`.
   ///
   /// A dialog rather than an inline yes/no, the way `OcptShotListMode._handleDeleteRequested` and
   /// `OcptResourcesMode._handleDeleteRequested` already ask their own question: removing a tag
@@ -379,7 +380,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     inspectorBloc.add(const OcptBreakdownTagRemovalConfirmedEvent());
   }
 
-  /// Opens the project settings page, then reloads the mode's own read if the user changed
+  /// Open the project settings page, then reload the mode's own read if the user changed
   /// anything there.
   ///
   /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
@@ -399,7 +400,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  /// Show the version creation dialog, then dispatch the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
     final bloc = context.read<OcptBreakdownBloc>();
     final fields = await OcptProjectVersionCreateDialog.show(context);
@@ -410,7 +411,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, and the transient version
+  /// Apply bloc-driven effects onto the page: the live dock fractions, and the transient version
   /// notice SnackBar.
   void _onStateChanged(BuildContext context, OcptBreakdownState state) {
     // Pushes the bloc's persisted fractions (the initial load, or "Reset panel layout") onto the
@@ -450,7 +451,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     }
   }
 
-  /// Dispatches the project package export, resolving here — the last place with a
+  /// Dispatch the project package export, resolving here — the last place with a
   /// [BuildContext] — the label the native save dialog carries.
   ///
   /// What happens next depends on what the project references: everything being there, the save
@@ -464,7 +465,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can

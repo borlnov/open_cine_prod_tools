@@ -234,7 +234,7 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     );
   }
 
-  /// Recomputes the results against the field's current text.
+  /// Recompute the results against the field's current text.
   void _onQueryChanged() {
     setState(() {
       _results = ocptBreakdownSearchCatalogues(
@@ -244,7 +244,7 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     });
   }
 
-  /// The name a creation would use: the field's own trimmed text, falling back to the untouched
+  /// Get the name a creation would use: the field's own trimmed text, falling back to the untouched
   /// passage when the user cleared it — a click on a category chip must never create a nameless
   /// element.
   String _nameFromField() {

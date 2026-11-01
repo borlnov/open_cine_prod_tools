@@ -11,7 +11,7 @@ sealed class OcptBreakdownSelectionEvent extends OcptBreakdownEvent {
   const OcptBreakdownSelectionEvent();
 }
 
-/// Selects scene [sceneId], dispatched by a row of `OcptBreakdownScenePanel` — the left dock's own
+/// Select scene [sceneId], dispatched by a row of `OcptBreakdownScenePanel` — the left dock's own
 /// list, which selects a scene without touching the right dock.
 ///
 /// A scene id that no longer exists in the current snapshot (a stale click on a list rebuilt
@@ -28,7 +28,7 @@ class OcptBreakdownSceneSelectedEvent extends OcptBreakdownSelectionEvent {
   List<Object?> get props => [...super.props, sceneId];
 }
 
-/// Selects scene [sceneId] **and shows its own breakdown sheet**, dispatched by a click on one of
+/// Select scene [sceneId] **and shows its own breakdown sheet**, dispatched by a click on one of
 /// `OcptBreakdownScriptView`'s own heading rows.
 ///
 /// The centre views' own convention, which [OcptBreakdownTargetSelectedEvent] already follows for a
@@ -50,7 +50,7 @@ class OcptBreakdownSceneHeadingSelectedEvent extends OcptBreakdownSelectionEvent
   List<Object?> get props => [...super.props, sceneId];
 }
 
-/// Selects target [targetKind]/[targetId] in the inspector, dispatched by a click on one of its
+/// Select target [targetKind]/[targetId] in the inspector, dispatched by a click on one of its
 /// tagged words in `OcptBreakdownScriptView` — [sceneId] is the scene that click happened in, which
 /// this event also selects, so the left dock and the sheet stay in step. Opens the right dock on
 /// the `Inspector` tab.
@@ -79,14 +79,14 @@ class OcptBreakdownTargetSelectedEvent extends OcptBreakdownSelectionEvent {
   List<Object?> get props => [...super.props, targetKind, targetId, sceneId];
 }
 
-/// Clears the currently selected target, dispatched by `OcptBreakdownTargetInspector`'s own
+/// Clear the currently selected target, dispatched by `OcptBreakdownTargetInspector`'s own
 /// "back to the scene" affordance.
 class OcptBreakdownTargetSelectionClearedEvent extends OcptBreakdownSelectionEvent {
   /// Class constructor
   const OcptBreakdownTargetSelectionClearedEvent();
 }
 
-/// Selects the scene of one of the selected target's occurrences, dispatched by a row of
+/// Select the scene of one of the selected target's occurrences, dispatched by a row of
 /// `OcptBreakdownTargetInspector`'s own occurrences section.
 class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownSelectionEvent {
   /// The id of the occurrence's own scene.
@@ -100,7 +100,7 @@ class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownSelectionEvent {
   List<Object?> get props => [...super.props, sceneId];
 }
 
-/// Selects the scene a first click of the script opened a tag anchor in, dispatched by
+/// Select the scene a first click of the script opened a tag anchor in, dispatched by
 /// `OcptBreakdownTaggingBloc` rather than by a widget.
 ///
 /// A tag belongs to one scene, so an anchor opened in another scene selects it. Unlike

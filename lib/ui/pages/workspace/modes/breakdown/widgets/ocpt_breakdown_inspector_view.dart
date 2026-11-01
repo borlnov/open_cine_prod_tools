@@ -137,7 +137,7 @@ class _SceneInspector extends StatelessWidget {
     );
   }
 
-  /// The default name the `+ Set` popover's own name field opens with, for the scene sheet of a
+  /// Get the default name the `+ Set` popover's own name field opens with, for the scene sheet of a
   /// scene headed [heading]: the place that heading names (`ocptSceneHeadingPlaceOf` — its
   /// interior/exterior prefix and its time of day dropped), falling back to the whole heading when
   /// there is nothing left of it. The user may edit it before creating; only the starting text is
@@ -277,7 +277,8 @@ class _TargetInspector extends StatelessWidget {
     );
   }
 
-  /// Where the resources mode should land when `Open in Resources` is clicked on [target]'s own
+  /// Tell where the resources mode should land when `Open in Resources` is clicked on [target]'s
+  /// own
   /// sheet: the tab that holds it, with its record already selected.
   ///
   /// A **set** has no sheet of its own — it lives in the sets card of the location that holds it —
@@ -299,7 +300,7 @@ class _TargetInspector extends StatelessWidget {
     ),
   };
 
-  /// The id of the location holding the set [setId] names, or null while no set of
+  /// Get the id of the location holding the set [setId] names, or null while no set of
   /// [OcptBreakdownState.sets] has that id.
   String? _locationIdOfSet(String setId) {
     for (final set in state.sets) {
@@ -311,7 +312,7 @@ class _TargetInspector extends StatelessWidget {
     return null;
   }
 
-  /// The person named by [personId] among [people], or null while [personId] is null or names
+  /// Get the person named by [personId] among [people], or null while [personId] is null or names
   /// nobody in [people].
   OcptPerson? _personById(List<OcptPerson> people, String? personId) {
     if (personId == null) {
@@ -327,7 +328,8 @@ class _TargetInspector extends StatelessWidget {
     return null;
   }
 
-  /// [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and `notes`
+  /// Get [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and
+  /// `notes`
   /// are ever asked for, the target inspector's other fields being single picks rather than typed
   /// text.
   String _storedElementFieldValue(OcptElement element, OcptElementField field) => switch (field) {
