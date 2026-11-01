@@ -4,29 +4,19 @@
 
 import 'dart:async';
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
-import 'package:open_cine_prod_tools/models/ocpt_workspace_export_entry.dart';
-import 'package:open_cine_prod_tools/models/ocpt_workspace_export_pick.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
-import 'package:open_cine_prod_tools/types/ocpt_editor_export_document.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
-import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
@@ -34,43 +24,32 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dar
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_dialog_flows.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_raw_scroller.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_sync.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_export_pdf_options_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_find_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_centre.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_dock_tab_toggle.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_controls.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_format_overflow_menu.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_inspector_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_metadata_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_page_setup_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_time_segment.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_mode_toggle.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_read_only_banner.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_right_dock_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_scene_panel.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_title_page_dialog.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_toolbar_menu_item_label.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_read_only_banner.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_version_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shortcut_labels.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_export_tag.dart';
-import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The screenplay editor: either the styled block editor or the raw Fountain source in the center
 /// (depending on the persisted `OcptEditorMode`, forced to the styled editor on a phone — see
@@ -219,48 +198,12 @@ class _EditorViewState extends State<_EditorView> {
   /// The id of the last [OcptEditorJumpRequest] applied, to apply each request exactly once.
   int? _lastAppliedJumpRequestId;
 
-  /// The `(query, isCaseSensitive, isWholeWord, text)` combination [_textController]'s matches
-  /// were last computed from and reported to the bloc, in raw mode.
-  ///
-  /// Reset to null whenever raw mode's search sync is skipped (styled mode is active, a version is
-  /// being previewed, or the bar is closed), so the next time it applies again always recomputes
-  /// and re-reports rather than trusting a coincidental match against stale state from before the
-  /// gap — see [_syncRawSearch]'s own doc comment.
-  ({String query, bool isCaseSensitive, bool isWholeWord, String text})?
-  _lastReportedRawSearchInputs;
-
-  /// The `(query, isCaseSensitive, isWholeWord, currentMatchIndex)` combination the raw
-  /// controller's selection/scroll were last navigated to.
-  ///
-  /// Deliberately excludes the source text itself: recomputing matches after every keystroke made
-  /// *inside* the raw editor must not keep yanking the caret back to "the current match" while the
-  /// user is simply typing somewhere else. It's still included as part of [_syncRawSearch]'s own
-  /// reset-on-gap behaviour, alongside [_lastReportedRawSearchInputs].
-  ({String query, bool isCaseSensitive, bool isWholeWord, int? currentMatchIndex})?
-  _lastNavigatedRawSearchTarget;
-
-  /// The `(query, isCaseSensitive, isWholeWord, currentMatchIndex)` combination
-  /// [_styledEditorController] was last handed a navigation for, the styled mode's own counterpart
-  /// to [_lastNavigatedRawSearchTarget] — the styled editor's own delegate is what recomputes and
-  /// re-highlights matches reactively on every keystroke made *inside* the document (it alone has
-  /// live access to each node's current text), so this dedup only needs to gate genuine navigation
-  /// (opening the bar, Next/Previous, a query/option change, a replace's own follow-up selection),
-  /// exactly like [_lastNavigatedRawSearchTarget] gates raw mode's.
-  ({String query, bool isCaseSensitive, bool isWholeWord, int? currentMatchIndex})?
-  _lastNavigatedStyledSearchTarget;
-
-  /// The [OcptStyledEditorController.searchMatchCount] last reported to the bloc, so
-  /// [_onStyledEditorControllerChanged] only dispatches [OcptEditorSearchMatchesReportedEvent] on
-  /// a genuine change — the controller notifies its listeners for other reasons too (a block-type
-  /// or inline-style read-state refresh), which must never be mistaken for a fresh match count.
-  int? _lastReportedStyledSearchMatchCount;
-
   /// The `OcptStyledEditorController.spellCheckTextsByNodeId` last reported to the bloc, so
   /// [_onStyledEditorControllerChanged] only dispatches
   /// `OcptEditorStyledSpellCheckTextsReportedEvent` on a genuine change — the controller notifies
   /// its listeners for reasons that have nothing to do with spell-checking either (a block-type or
   /// history read-state refresh, or the search match count), the same reason
-  /// [_lastReportedStyledSearchMatchCount] exists for the search count.
+  /// `OcptEditorSearchSync` exists for the search count.
   Map<String, String> _lastReportedStyledSpellCheckTexts = const {};
 
   /// What [_styledEditorController] last answered about its own history, so
@@ -276,6 +219,21 @@ class _EditorViewState extends State<_EditorView> {
   /// loaded text programmatically to [_textController] (so it doesn't loop back into the bloc
   /// as a user edit).
   bool _isApplyingProgrammaticChange = false;
+
+  /// Moves the raw field's caret and scroll for a scene jump or the match the find bar is on.
+  late final OcptEditorRawScroller _rawScroller = OcptEditorRawScroller(
+    textController: _textController,
+    editorScrollController: _editorScrollController,
+    editorFocusNode: _editorFocusNode,
+  );
+
+  /// Applies the find/replace bar onto the live editing surface and carries out its replacements.
+  late final OcptEditorSearchSync _searchSync = OcptEditorSearchSync(
+    textController: _textController,
+    styledEditorController: _styledEditorController,
+    liveMode: _liveMode,
+    navigateToMatch: _rawScroller.navigateToMatch,
+  );
 
   @override
   void initState() {
@@ -309,7 +267,7 @@ class _EditorViewState extends State<_EditorView> {
   /// separately been folded down for (`OcptWorkspaceShell`) but a merely-compact one has not.
   ///
   /// Read straight off [MediaQuery] rather than a value captured once by a `LayoutBuilder` in
-  /// [build]: [_syncRawSearch] and its siblings run from the `BlocConsumer`'s `listener`, which
+  /// [build]: the search and spell-check syncs run from the `BlocConsumer`'s `listener`, which
   /// fires independently of (and sometimes before) a rebuild, so they need a getter that always
   /// answers with the window's current width rather than a stale build-time snapshot.
   bool get _isPhoneWidth => ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
@@ -371,8 +329,11 @@ class _EditorViewState extends State<_EditorView> {
                   _syncSpellCheck(context.read<OcptEditorBloc>().state, spellState),
             ),
             BlocListener<OcptEditorSearchBloc, OcptEditorSearchState>(
-              listener: (context, search) =>
-                  _syncSearch(context.read<OcptEditorBloc>().state, search),
+              listener: (context, search) => _searchSync.sync(
+                context.read<OcptEditorBloc>().state,
+                search,
+                context.read<OcptEditorSearchBloc>(),
+              ),
             ),
             BlocListener<OcptEditorIoBloc, OcptEditorIoState>(listener: _onIoStateChanged),
           ],
@@ -402,14 +363,48 @@ class _EditorViewState extends State<_EditorView> {
                 // has nothing there that may be written.
                 onAddEpisodeRequested: isReadOnly
                     ? null
-                    : () => _requestProjectSettings(
+                    : () => OcptEditorDialogFlows.projectSettings(
                         context,
                         reveal: OcptProjectSettingsReveal.episodes,
                       ),
-                toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
+                // A version being previewed leaves the whole group out: the format controls write,
+                // and the two remaining ones are about an editing mode that isn't shown at all then
+                // (the centre is the formatted preview whichever mode is active, and the dock's
+                // preview tab doesn't exist). Every dock tab stays reachable from the dock's own tab
+                // row. Below the compact breakpoint the format controls fold into the overflow
+                // menu: the fixed-width inline row has no room left beside everything else the
+                // toolbar already carries there. Both widgets read and write the very same
+                // controller, so this is never a second flow, only how it is presented. The preview
+                // and syntax selectors are raw-mode only: the styled mode has no preview tab at all.
+                toolbarActions: isReadOnly
+                    ? const []
+                    : [
+                        if (_isCompactWidth)
+                          OcptEditorFormatOverflowMenu(controller: _styledEditorController)
+                        else
+                          OcptEditorFormatControls(controller: _styledEditorController),
+                        if (isRawMode) ...[
+                          OcptEditorDockTabToggle(
+                            tab: OcptEditorRightDockTab.preview,
+                            isActive: state.rightDockTab == OcptEditorRightDockTab.preview,
+                            activeIcon: Icons.article,
+                            inactiveIcon: Icons.article_outlined,
+                            tooltip: Tr.of(context).editorTogglePreviewTooltip,
+                          ),
+                          OcptEditorDockTabToggle(
+                            tab: OcptEditorRightDockTab.syntax,
+                            isActive: state.rightDockTab == OcptEditorRightDockTab.syntax,
+                            activeIcon: Icons.help,
+                            inactiveIcon: Icons.help_outline,
+                            tooltip: Tr.of(context).editorToggleSyntaxGuideTooltip,
+                          ),
+                        ],
+                        OcptEditorModeToggle(mode: state.mode, onPressed: _toggleMode),
+                      ],
                 modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
-                onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
-                overflowEntries: _buildOverflowEntries(context, state),
+                onExportRequested: (anchor) =>
+                    unawaited(OcptEditorDialogFlows.export(context, anchor)),
+                overflowEntries: _overflowEntriesOf(context, state),
                 isLeftDockOpen: state.isScenePanelVisible,
                 onToggleLeftDock: () =>
                     context.read<OcptEditorBloc>().add(const OcptEditorScenePanelToggledEvent()),
@@ -422,12 +417,42 @@ class _EditorViewState extends State<_EditorView> {
                 isSaving: state.isSaving,
                 onProjectSettingsRequested: isReadOnly
                     ? null
-                    : () => _requestProjectSettings(context),
-                banner: _buildReadOnlyBanner(context, state),
-                leftPanel: _buildScenePanel(context, state),
-                rightPanel: _buildRightDock(context, state),
-                centre: _buildCentre(context, state, isRawMode: isRawMode),
-                statusBar: _buildStatusBar(context, state),
+                    : () => OcptEditorDialogFlows.projectSettings(context),
+                banner: state.previewedVersion == null
+                    ? null
+                    : OcptEditorReadOnlyBanner(version: state.previewedVersion!),
+                leftPanel: state.isScenePanelVisible
+                    ? OcptEditorScenePanel(
+                        scenes: state.scenes,
+                        currentLine: state.currentLine,
+                        onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
+                          OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
+                        ),
+                      )
+                    : null,
+                rightPanel: state.rightDockTab == null
+                    ? null
+                    : OcptEditorRightDockView(
+                        state: state,
+                        liveMode: _liveMode(state),
+                        onEditTitlePage: isReadOnly
+                            ? null
+                            : () => OcptEditorDialogFlows.titlePage(context),
+                      ),
+                centre: OcptEditorCentre(
+                  state: state,
+                  isRawMode: isRawMode,
+                  isPageSimulationLive: _isPageSimulationLive(state),
+                  isCompact: _isCompactWidth,
+                  isPhoneWidth: _isPhoneWidth,
+                  textController: _textController,
+                  scrollController: _editorScrollController,
+                  focusNode: _editorFocusNode,
+                  undoController: _undoHistoryController,
+                  styledController: _styledEditorController,
+                  searchSync: _searchSync,
+                ),
+                statusBar: OcptEditorStatusBar(lastSavedAt: state.lastSavedAt),
                 dockLayoutController: _dockLayoutController,
                 onDockFractionsChanged: (fractions) => context.read<OcptEditorBloc>().add(
                   OcptEditorDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
@@ -439,117 +464,6 @@ class _EditorViewState extends State<_EditorView> {
       ),
     ),
   );
-
-  /// Builds the band naming the version being previewed, the shell's `banner`, or null while the
-  /// working copy is on screen.
-  ///
-  /// Null too — the banner is simply not drawn — in the narrow window where the previewed version
-  /// isn't in the list the panel was drawn from any more: the refresh ending every version handler
-  /// resolves it on its own, and a band that named nothing would say less than no band at all.
-  Widget? _buildReadOnlyBanner(BuildContext context, OcptEditorState state) {
-    final previewedVersion = state.previewedVersion;
-    if (previewedVersion == null) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-
-    return OcptWorkspaceReadOnlyBanner(
-      version: previewedVersion,
-      // `Start from this version` is a plain restore of the version being previewed:
-      // `OcptProjectsManager.restoreProjectVersion` leaves the preview on its own before writing
-      // anything, so the handler needs nothing beyond the same event a version's own card
-      // dispatches.
-      onForkRequested: () => context.read<OcptEditorBloc>().add(
-        OcptProjectVersionRestoreConfirmedEvent(
-          versionId: previewedVersion.id,
-          safetyVersionName: tr.projectVersionRestoreSafetyName(previewedVersion.name),
-        ),
-      ),
-      onExitPreview: () =>
-          context.read<OcptEditorBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
-    );
-  }
-
-  /// Builds the screenplay's own toolbar controls, right-aligned before the chrome the shell
-  /// builds itself (the mode label, the dock toggles, the save action and the overflow menu): the
-  /// block-type/format controls (rendered only while attached to a live styled editor), the right
-  /// dock's preview and syntax tab selectors, and the styled/raw mode toggle.
-  ///
-  /// Both tab selectors are raw-mode only: the styled mode has no preview tab at all, and its own
-  /// layout leaves the syntax guide reachable through the dock's tab row alone, which keeps the
-  /// toolbar from carrying a shortcut to a tab the mode barely uses.
-  ///
-  /// Below [ocptCompactWidthBreakpoint] ([_isCompactWidth]) the format controls fold into
-  /// [OcptEditorFormatOverflowMenu]'s own `⋮` button instead of [OcptEditorFormatControls]'s inline
-  /// dropdown and three toggle buttons: the fixed-width inline row has no room left beside
-  /// everything else the toolbar already carries there once the window drops under
-  /// [ocptCompactWidthBreakpoint] (a phone included — the styled editor is exactly what a phone
-  /// always shows, [_liveMode]), and a writer still has every one of these choices either way
-  /// (a phone additionally offers `OcptEditorContextMenu`'s own block-type submenu, or simply
-  /// typing the Fountain markup). Both widgets read and write the very same
-  /// [_styledEditorController], so this is never a second flow, only how it is presented.
-  ///
-  /// A version being previewed leaves the whole group out: the format controls write, and the two
-  /// remaining ones are about an editing mode that isn't shown at all then (the centre is the
-  /// formatted preview whichever mode is active, and the dock's preview tab doesn't exist — see
-  /// [OcptEditorState.isPreviewTabAvailable]). Every dock tab stays reachable from the dock's own
-  /// tab row.
-  List<Widget> _buildToolbarActions(
-    BuildContext context,
-    OcptEditorState state, {
-    required bool isRawMode,
-  }) {
-    final tr = Tr.of(context);
-
-    if (state.isPreviewingVersion) {
-      return const [];
-    }
-
-    return [
-      if (_isCompactWidth)
-        OcptEditorFormatOverflowMenu(controller: _styledEditorController)
-      else
-        OcptEditorFormatControls(controller: _styledEditorController),
-      if (isRawMode) ...[
-        IconButton(
-          icon: Icon(
-            state.rightDockTab == OcptEditorRightDockTab.preview
-                ? Icons.article
-                : Icons.article_outlined,
-            size: 20,
-          ),
-          tooltip: tr.editorTogglePreviewTooltip,
-          isSelected: state.rightDockTab == OcptEditorRightDockTab.preview,
-          onPressed: () => context.read<OcptEditorBloc>().add(
-            const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.preview),
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            state.rightDockTab == OcptEditorRightDockTab.syntax ? Icons.help : Icons.help_outline,
-            size: 20,
-          ),
-          tooltip: tr.editorToggleSyntaxGuideTooltip,
-          isSelected: state.rightDockTab == OcptEditorRightDockTab.syntax,
-          onPressed: () => context.read<OcptEditorBloc>().add(
-            const OcptEditorRightDockTabSelectedEvent(tab: OcptEditorRightDockTab.syntax),
-          ),
-        ),
-      ],
-      // Reads the persisted `state.mode` rather than [_liveMode]: this toggle is the user's own
-      // desktop preference, left untouched by a phone width forcing the
-      // styled editor onto the screen — it keeps stating (and toggling) what will apply once the
-      // window widens back out, not what happens to be rendered right this moment.
-      IconButton(
-        icon: Icon(state.mode == OcptEditorMode.styled ? Icons.code : Icons.style, size: 20),
-        tooltip: state.mode == OcptEditorMode.styled
-            ? tr.editorSwitchToRawModeTooltip
-            : tr.editorSwitchToStyledModeTooltip,
-        onPressed: _toggleMode,
-      ),
-    ];
-  }
 
   /// Builds the screenplay's `⋮` overflow menu entries: undo and redo, import and replace, find,
   /// find and replace, the page-simulation and scene-numbers toggles, page setup, title page, and
@@ -569,12 +483,12 @@ class _EditorViewState extends State<_EditorView> {
   /// [OcptToolbarMenuItemLabel]; every other entry here has none to state and stays a plain [Text].
   ///
   /// The two exports moved to the toolbar's own `Export` button and its panel (see
-  /// [_requestExport]) — this menu keeps everything else. While a version is being previewed, the
+  /// `OcptEditorDialogFlows.export`) — this menu keeps everything else. While a version is being previewed, the
   /// entries that rewrite the screenplay — import and replace, find and replace, page setup, title
   /// page — are left out, and so is plain find: the centre is then the read-only preview, which
   /// carries no bar to open. The rest stays: the page-simulation, scene-numbers, spell-check and
   /// panel-layout entries are app-wide display preferences that never touch a project.
-  List<PopupMenuEntry<void>> _buildOverflowEntries(BuildContext context, OcptEditorState state) {
+  List<PopupMenuEntry<void>> _overflowEntriesOf(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;
 
@@ -599,7 +513,7 @@ class _EditorViewState extends State<_EditorView> {
             ),
           ),
         PopupMenuItem<void>(
-          onTap: () => _requestImportAndReplace(context),
+          onTap: () => OcptEditorDialogFlows.importAndReplace(context),
           child: Text(tr.editorImportAndReplaceAction),
         ),
         PopupMenuItem<void>(
@@ -639,11 +553,11 @@ class _EditorViewState extends State<_EditorView> {
       ),
       if (!isReadOnly) ...[
         PopupMenuItem<void>(
-          onTap: () => _requestPageSetup(context),
+          onTap: () => OcptEditorDialogFlows.pageSetup(context),
           child: Text(tr.editorPageSetupAction),
         ),
         PopupMenuItem<void>(
-          onTap: () => _requestTitlePage(context),
+          onTap: () => OcptEditorDialogFlows.titlePage(context),
           child: Text(tr.editorTitlePageAction),
         ),
       ],
@@ -652,286 +566,6 @@ class _EditorViewState extends State<_EditorView> {
         child: Text(tr.editorResetPanelLayoutAction),
       ),
     ];
-  }
-
-  /// Builds the scene panel, the shell's `leftPanel`, or null while it's hidden.
-  Widget? _buildScenePanel(BuildContext context, OcptEditorState state) => state.isScenePanelVisible
-      ? OcptEditorScenePanel(
-          scenes: state.scenes,
-          currentLine: state.currentLine,
-          onSceneSelected: (charOffset) => context.read<OcptEditorBloc>().add(
-            OcptEditorSceneJumpRequestedEvent(charOffset: charOffset),
-          ),
-        )
-      : null;
-
-  /// Builds the editor itself (raw source field or styled block editor), the shell's `centre`, or
-  /// the read-only formatted preview while a project version is being previewed.
-  ///
-  /// That substitution is deliberate: the preview renders the version exactly as it
-  /// would print, and reusing it costs nothing, whereas making the styled editor read-only would
-  /// mean a second super_editor rendering path (`SuperReader`, its own stylesheet, its own
-  /// title-page components) to maintain forever. It applies in both editing modes, since neither of
-  /// them may be typed into.
-  ///
-  /// [isRawMode] is already [_liveMode]'s answer by the time it reaches here (see [build]), so on a
-  /// phone the raw source field is never the one built here even when [OcptEditorState.mode] itself
-  /// still says raw — the styled editor is, with page simulation forced off
-  /// ([_isPageSimulationLive]) and [OcptStyledScreenplayEditor.isCompact] set whenever the window
-  /// is merely compact (a tablet too, not only a phone — see [_isCompactWidth]), which is the phone
-  /// default: raw source and this same read-only preview (its own version-preview branch above)
-  /// have no room to be usable there either.
-  Widget _buildCentre(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
-    if (state.isPreviewingVersion) {
-      return OcptEditorPreview(
-        document: state.document,
-        pageSetup: state.pageSetup,
-        currentLine: state.currentLine,
-        isPageSimulationEnabled: state.isPageSimulationEnabled,
-      );
-    }
-
-    final editingSurface = isRawMode
-        ? OcptEditorSourceField(
-            controller: _textController,
-            scrollController: _editorScrollController,
-            focusNode: _editorFocusNode,
-            undoController: _undoHistoryController,
-          )
-        : OcptStyledScreenplayEditor(
-            text: state.text,
-            pageSetup: state.pageSetup,
-            isPageSimulationEnabled: _isPageSimulationLive(state),
-            isCompact: _isCompactWidth,
-            usesPaperColorsWhileFluid: _isPhoneWidth,
-            areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
-            isSpellCheckVisible: state.isSpellCheckVisible,
-            onTextChanged: (text) =>
-                context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
-            onCaretLineChanged: (line) =>
-                context.read<OcptEditorBloc>().add(OcptEditorCaretMovedEvent(line: line)),
-            jumpRequest: state.jumpRequest,
-            styledController: _styledEditorController,
-            onSpellingSuggestionsRequested: (word) =>
-                context.read<OcptEditorSpellCheckBloc>().spellingSuggestionsFor(word),
-            onWordIgnored: (word) => context.read<OcptEditorSpellCheckBloc>().add(
-              OcptEditorWordIgnoredEvent(word: word),
-            ),
-            onWordLearned: (word) => context.read<OcptEditorSpellCheckBloc>().add(
-              OcptEditorWordLearnedEvent(word: word),
-            ),
-          );
-
-    // The find/replace bar is a *slot* that is always there — an empty box while it is closed —
-    // rather than a child that comes and goes. A collection-`if` would move `editingSurface`
-    // between two different positions in this column every time the bar opened or closed, and a
-    // widget that changes position in the element tree is remounted whole rather than rebuilt: a
-    // fresh `OcptStyledScreenplayEditor` state re-decodes the document, loses the caret, and
-    // re-applies the pending scene-jump request — whose own `requestFocus()` then took the keyboard
-    // focus straight back from the find field the bar had just opened, so the query being typed
-    // landed in the screenplay instead of in the search.
-    return Column(
-      children: [
-        _buildFindBar(context, isRawMode: isRawMode),
-        Expanded(child: editingSurface),
-      ],
-    );
-  }
-
-  /// Builds the find/replace bar, the first row of [_buildCentre]'s column, or the empty box that
-  /// holds its place while the bar is closed — see [_buildCentre] on why that slot is never
-  /// removed.
-  Widget _buildFindBar(BuildContext context, {required bool isRawMode}) =>
-      BlocBuilder<OcptEditorSearchBloc, OcptEditorSearchState>(
-        builder: (context, search) => _buildOpenFindBar(context, search, isRawMode: isRawMode),
-      );
-
-  /// Builds the find/replace bar for [search], or the empty box while it is closed.
-  Widget _buildOpenFindBar(
-    BuildContext context,
-    OcptEditorSearchState search, {
-    required bool isRawMode,
-  }) {
-    if (!search.isOpen) {
-      return const SizedBox.shrink();
-    }
-
-    return OcptEditorFindBar(
-      query: search.query,
-      replacement: search.replacement,
-      isCaseSensitive: search.isCaseSensitive,
-      isWholeWord: search.isWholeWord,
-      isReplaceRowOpen: search.isReplaceRowOpen,
-      matchCount: search.matchCount,
-      currentMatchIndex: search.currentMatchIndex,
-      focusRequestId: search.focusRequestId,
-      onQueryChanged: (query) =>
-          context.read<OcptEditorSearchBloc>().add(OcptEditorSearchQueryChangedEvent(query: query)),
-      onReplacementChanged: (replacement) => context.read<OcptEditorSearchBloc>().add(
-        OcptEditorSearchReplacementChangedEvent(replacement: replacement),
-      ),
-      onCaseSensitivityToggled: () => context.read<OcptEditorSearchBloc>().add(
-        const OcptEditorSearchCaseSensitivityToggledEvent(),
-      ),
-      onWholeWordToggled: () =>
-          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchWholeWordToggledEvent()),
-      onNextRequested: () =>
-          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchNextRequestedEvent()),
-      onPreviousRequested: () =>
-          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchPreviousRequestedEvent()),
-      onReplaceRowToggled: () =>
-          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchReplaceRowToggledEvent()),
-      // Raw mode acts straight on `_textController`; styled mode goes through
-      // `OcptStyledEditorController`, the styled editor's own bridge — either way the button
-      // stays enabled the moment there's at least one match (`OcptEditorFindBar` itself gates
-      // that on `matchCount`), which the repository rule admits no second, mode-specific path.
-      onReplaceRequested: () =>
-          isRawMode ? _requestRawReplace(search) : _requestStyledReplace(search),
-      onReplaceAllRequested: () => unawaited(
-        isRawMode
-            ? _requestRawReplaceAll(context, search)
-            : _requestStyledReplaceAll(context, search),
-      ),
-      onCloseRequested: () =>
-          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchClosedEvent()),
-    );
-  }
-
-  /// Builds the tabbed right dock (formatted preview, raw mode only; the Fountain syntax guide,
-  /// the scene inspector, the read-only metadata panel and the project versions, all four in both
-  /// modes), the shell's `rightPanel`, or null while the dock is closed.
-  ///
-  /// The preview tab is gated on [_liveMode] rather than [OcptEditorState.mode]: on a phone the
-  /// centre already is the formatted styled editor (see [_buildCentre]), the same reason
-  /// [OcptEditorState.isPreviewTabAvailable]'s own doc comment gives for leaving it out of styled
-  /// mode, so it would be redundant chrome even while the persisted preference is raw.
-  Widget? _buildRightDock(BuildContext context, OcptEditorState state) {
-    final rightDockTab = state.rightDockTab;
-    if (rightDockTab == null) {
-      return null;
-    }
-
-    final isPreviewTabAvailable = OcptEditorState.isPreviewTabAvailableFor(
-      mode: _liveMode(state),
-      isReadOnly: state.isPreviewingVersion,
-    );
-    final previewChild = isPreviewTabAvailable && rightDockTab == OcptEditorRightDockTab.preview
-        ? OcptEditorPreview(
-            document: state.document,
-            pageSetup: state.pageSetup,
-            currentLine: state.currentLine,
-            isPageSimulationEnabled: state.isPageSimulationEnabled,
-          )
-        : null;
-
-    final currentSceneIndex = state.currentSceneIndex;
-
-    return OcptEditorRightDock(
-      activeTab: rightDockTab,
-      isPreviewTabAvailable: isPreviewTabAvailable,
-      previewChild: previewChild,
-      inspectorChild: BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
-        builder: (context, statistics) => OcptEditorInspectorPanel(
-          scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
-          sceneOrdinal: currentSceneIndex == null ? null : currentSceneIndex + 1,
-          statistics: statistics.sceneStatistics,
-        ),
-      ),
-      metadataChild: BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
-        builder: (context, statistics) => OcptEditorMetadataPanel(
-          titlePage: state.document?.titlePage,
-          statistics: statistics.statistics,
-          onEditTitlePage: state.isPreviewingVersion ? null : () => _requestTitlePage(context),
-        ),
-      ),
-      versionsChild: _buildVersionsPanel(context, state),
-      onTabSelected: (tab) =>
-          context.read<OcptEditorBloc>().add(OcptEditorRightDockTabSelectedEvent(tab: tab)),
-      onClose: () => context.read<OcptEditorBloc>().add(const OcptEditorRightDockClosedEvent()),
-    );
-  }
-
-  /// Builds the right dock's `Versions` tab: the working copy's own card and the project's named
-  /// versions, the same panel every production mode's dock hosts, wired to the events
-  /// `MixinOcptProjectVersionsBloc` handles.
-  Widget _buildVersionsPanel(BuildContext context, OcptEditorState state) =>
-      OcptProjectVersionsPanel(
-        versions: state.projectVersions,
-        previewedVersionId: state.previewedVersionId,
-        workingCopy: state.workingCopy,
-        versionPendingDeletionId: state.versionPendingDeletionId,
-        versionPendingRestoreId: state.versionPendingRestoreId,
-        versionPendingRenameId: state.versionPendingRenameId,
-        onCreateRequested: () => _requestVersionCreation(context),
-        onPreviewRequested: (versionId) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionPreviewRequestedEvent(versionId: versionId),
-        ),
-        onPreviewExitRequested: () =>
-            context.read<OcptEditorBloc>().add(const OcptProjectVersionPreviewExitRequestedEvent()),
-        onRestoreRequested: (versionId) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionRestoreRequestedEvent(versionId: versionId),
-        ),
-        onRestoreCancelled: () =>
-            context.read<OcptEditorBloc>().add(const OcptProjectVersionRestoreCancelledEvent()),
-        onRestoreConfirmed: (version) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionRestoreConfirmedEvent(
-            versionId: version.id,
-            safetyVersionName: Tr.of(context).projectVersionRestoreSafetyName(version.name),
-          ),
-        ),
-        onDeleteRequested: (versionId) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionDeletionRequestedEvent(versionId: versionId),
-        ),
-        onDeleteCancelled: () =>
-            context.read<OcptEditorBloc>().add(const OcptProjectVersionDeletionCancelledEvent()),
-        onDeleteConfirmed: (versionId) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionDeletionConfirmedEvent(versionId: versionId),
-        ),
-        onRenameRequested: (versionId) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionRenameRequestedEvent(versionId: versionId),
-        ),
-        onRenameCancelled: () =>
-            context.read<OcptEditorBloc>().add(const OcptProjectVersionRenameCancelledEvent()),
-        onRenameConfirmed: (versionId, name, note) => context.read<OcptEditorBloc>().add(
-          OcptProjectVersionRenameConfirmedEvent(versionId: versionId, name: name, note: note),
-        ),
-      );
-
-  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
-  Future<void> _requestVersionCreation(BuildContext context) async {
-    final bloc = context.read<OcptEditorBloc>();
-    final fields = await OcptProjectVersionCreateDialog.show(context);
-    if (fields == null) {
-      return;
-    }
-
-    bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
-  }
-
-  /// Builds the shell's `statusBar`: the screenplay's own ordered counters (pages, scenes,
-  /// characters, words, signs — the first three never dropped) plus the self-refreshing
-  /// last-saved segment.
-  Widget _buildStatusBar(BuildContext context, OcptEditorState modeState) {
-    final tr = Tr.of(context);
-
-    return BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
-      builder: (context, state) {
-        final statistics = state.statistics;
-
-        return OcptWorkspaceStatusBar(
-          counters: [
-            tr.editorStatsPages(statistics.pageCount),
-            tr.editorStatsScenes(statistics.sceneCount),
-            tr.editorStatsCharacters(statistics.speakingCharacterCount),
-            tr.editorStatsWords(statistics.wordCount),
-            tr.editorStatsSigns(statistics.signCount),
-          ],
-          nonDroppableCount: 3,
-          trailingText: OcptEditorSavedTimeSegment.textFor(context, modeState.lastSavedAt),
-          trailing: OcptEditorSavedTimeSegment(lastSavedAt: modeState.lastSavedAt),
-        );
-      },
-    );
   }
 
   /// Sends the manual save request (toolbar button or Ctrl+S).
@@ -1003,13 +637,6 @@ class _EditorViewState extends State<_EditorView> {
     setState(() {});
   }
 
-  /// Applies the find/replace bar's state onto the live editing surface, see [_syncRawSearch] and
-  /// [_syncStyledSearch].
-  void _syncSearch(OcptEditorState state, OcptEditorSearchState search) {
-    _syncRawSearch(state, search);
-    _syncStyledSearch(state, search);
-  }
-
   /// Opens the find/replace bar (Ctrl+F, Ctrl+H, or the `⋮` menu's `Find…` / `Find and replace…`
   /// entries).
   ///
@@ -1021,84 +648,13 @@ class _EditorViewState extends State<_EditorView> {
     if (context.read<OcptEditorBloc>().state.isPreviewingVersion) {
       return;
     }
-    context.read<OcptEditorSearchBloc>().add(
-      OcptEditorSearchOpenedEvent(withReplaceRow: withReplaceRow),
-    );
+    final searchBloc = context.read<OcptEditorSearchBloc>();
+    searchBloc.add(OcptEditorSearchOpenedEvent(withReplaceRow: withReplaceRow));
   }
 
   /// Closes the find/replace bar (Escape).
   void _requestCloseSearch() {
     context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchClosedEvent());
-  }
-
-  /// The current find/replace query, built from [search], reused by every raw-mode search
-  /// operation ([_syncRawSearch], [_requestRawReplace], [_requestRawReplaceAll]) so none of them
-  /// can drift from what the bar itself last reported.
-  OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorSearchState search) => OcptEditorSearchQuery(
-    query: search.query,
-    isCaseSensitive: search.isCaseSensitive,
-    isWholeWord: search.isWholeWord,
-  );
-
-  /// Recomputes [_textController]'s matches from its own live text whenever the find/replace bar
-  /// is open in raw mode, paints them through [_textController]'s own
-  /// [OcptEditorSearchTextController.updateMatches], reports the count to the bloc, and navigates
-  /// the selection/scroll to the current match when the navigation target actually changed.
-  ///
-  /// Two separate signatures gate the two side effects this performs, both reset to null whenever
-  /// the sync is skipped (see [_lastReportedRawSearchInputs]/[_lastNavigatedRawSearchTarget]'s own
-  /// doc comments):
-  ///
-  /// - [_lastReportedRawSearchInputs] includes the live text, so the report re-runs on every edit
-  ///   (a match's own count must track what's actually on screen);
-  /// - [_lastNavigatedRawSearchTarget] deliberately does not, so typing inside the raw editor while
-  ///   the bar is open never yanks the caret back to "the current match" on every keystroke — only
-  ///   an actual navigation (opening the bar, Next/Previous, a query/option change, the current
-  ///   match's own index moving because the match count changed) does.
-  void _syncRawSearch(OcptEditorState state, OcptEditorSearchState search) {
-    if (_liveMode(state) != OcptEditorMode.raw || state.isPreviewingVersion) {
-      _lastReportedRawSearchInputs = null;
-      _lastNavigatedRawSearchTarget = null;
-      return;
-    }
-
-    if (!search.isOpen) {
-      _textController.updateMatches(const [], null);
-      _lastReportedRawSearchInputs = null;
-      _lastNavigatedRawSearchTarget = null;
-      return;
-    }
-
-    final text = _textController.text;
-    final matches = _rawSearchQueryOf(search).matchesIn(text);
-    _textController.updateMatches(matches, search.currentMatchIndex);
-
-    final reportedInputs = (
-      query: search.query,
-      isCaseSensitive: search.isCaseSensitive,
-      isWholeWord: search.isWholeWord,
-      text: text,
-    );
-    if (reportedInputs != _lastReportedRawSearchInputs) {
-      _lastReportedRawSearchInputs = reportedInputs;
-      context.read<OcptEditorSearchBloc>().add(
-        OcptEditorSearchMatchesReportedEvent(matchCount: matches.length),
-      );
-    }
-
-    final navigationTarget = (
-      query: search.query,
-      isCaseSensitive: search.isCaseSensitive,
-      isWholeWord: search.isWholeWord,
-      currentMatchIndex: search.currentMatchIndex,
-    );
-    if (navigationTarget != _lastNavigatedRawSearchTarget) {
-      _lastNavigatedRawSearchTarget = navigationTarget;
-      final currentIndex = search.currentMatchIndex;
-      if (currentIndex != null && currentIndex < matches.length) {
-        _navigateToMatch(matches[currentIndex]);
-      }
-    }
   }
 
   /// Pushes both sets of spell-check ranges onto the live editing surface, see
@@ -1112,7 +668,7 @@ class _EditorViewState extends State<_EditorView> {
   /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the rule
   /// that each editing surface paints what it shows.
   ///
-  /// Guarded exactly the way [_syncRawSearch] opens (raw mode, not previewing a version): the
+  /// Guarded exactly the way the raw search sync opens (raw mode, not previewing a version): the
   /// styled mode is a later slice that addresses each node by id instead, and there is no editing
   /// surface at all under a read-only preview to underline anything in. Both cases clear the
   /// controller's ranges rather than leaving a raw field the user can no longer see holding a stale
@@ -1145,152 +701,12 @@ class _EditorViewState extends State<_EditorView> {
     _styledEditorController.updateSpellCheckRanges(spellState.styledSpellCheckRanges);
   }
 
-  /// Places the raw controller's selection on [match] and scrolls it into view exactly as
-  /// [_applyJumpRequest] does ([_scrollRawEditorTo]) — deliberately does not focus
-  /// [_editorFocusNode]: the find field must keep the keyboard focus while the user types a query
-  /// or presses Next/Previous.
-  void _navigateToMatch(OcptTextMatch match) {
-    _textController.selection = TextSelection(baseOffset: match.start, extentOffset: match.end);
-    _scrollRawEditorTo(match.start);
-  }
-
-  /// Replaces the current match in raw mode with the replacement field's text, then selects
-  /// whichever match now starts at or after the end of what was just written — never simply the
-  /// match that ends up at the same index, which a replacement that itself still matches the query
-  /// (`MARIE` → `MARIE-JEANNE`, the scenario that puts replace in scope)
-  /// would land back inside, turning every further `Replace` press into
-  /// `MARIE-JEANNE-JEANNE-JEANNE…` forever — see `OcptEditorSearchCurrentMatchSelectedEvent`'s own
-  /// doc comment. Wraps to the first remaining match when none starts after the edit; dispatches
-  /// nothing at all when none remain, since [_syncRawSearch]'s own reactive report already clears
-  /// the index to null the moment it sees the match count drop to 0.
-  ///
-  /// The replacement itself is an ordinary text edit, applied straight onto [_textController]: the
-  /// resulting [OcptEditorTextChangedEvent] flows through the existing reclassify/autosave
-  /// debounces with no special case, and [_syncRawSearch] is what turns the edit into a fresh
-  /// [OcptEditorSearchMatchesReportedEvent] on its own.
-  void _requestRawReplace(OcptEditorSearchState search) {
-    final currentIndex = search.currentMatchIndex;
-    if (currentIndex == null) {
-      return;
-    }
-
-    final text = _textController.text;
-    final query = _rawSearchQueryOf(search);
-    final matches = query.matchesIn(text);
-    if (currentIndex >= matches.length) {
-      return;
-    }
-
-    final match = matches[currentIndex];
-    final replacement = search.replacement;
-    final newText = text.replaceRange(match.start, match.end, replacement);
-    final writtenEnd = match.start + replacement.length;
-
-    _textController.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: writtenEnd),
-    );
-
-    final newMatches = query.matchesIn(newText);
-    if (newMatches.isEmpty) {
-      return;
-    }
-    final nextIndex = newMatches.indexWhere((candidate) => candidate.start >= writtenEnd);
-    context.read<OcptEditorSearchBloc>().add(
-      OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex == -1 ? 0 : nextIndex),
-    );
-  }
-
-  /// Replaces every match in raw mode with the replacement field's text, behind
-  /// [OcptConfirmDialog] naming how many matches will be replaced (the repository rule: an
-  /// irreversible action is always confirmed by a dialog, never an inline yes/no).
-  Future<void> _requestRawReplaceAll(BuildContext context, OcptEditorSearchState search) async {
-    final text = _textController.text;
-    final matches = _rawSearchQueryOf(search).matchesIn(text);
-    if (matches.isEmpty) {
-      return;
-    }
-
-    final tr = Tr.of(context);
-    final confirmed = await OcptConfirmDialog.show(
-      context,
-      title: tr.editorReplaceAllConfirmTitle,
-      message: tr.editorReplaceAllConfirmMessage(matches.length),
-      cancelLabel: tr.editorReplaceAllConfirmCancelAction,
-      confirmLabel: tr.editorReplaceAllConfirmAction,
-    );
-    if (confirmed != true) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    final replacement = search.replacement;
-    final buffer = StringBuffer();
-    var cursor = 0;
-    for (final match in matches) {
-      buffer
-        ..write(text.substring(cursor, match.start))
-        ..write(replacement);
-      cursor = match.end;
-    }
-    buffer.write(text.substring(cursor));
-
-    _textController.value = TextEditingValue(
-      text: buffer.toString(),
-      selection: const TextSelection.collapsed(offset: 0),
-    );
-  }
-
-  /// Recomputes and applies the styled mode's own half of the find/replace bar's wiring
-  /// (`OcptStyledEditorController.updateSearch`), the counterpart to [_syncRawSearch].
-  ///
-  /// Unlike [_syncRawSearch], this has nothing to *report*: the styled editor's own delegate
-  /// recomputes matches reactively from the live document on every keystroke made inside it (only
-  /// it has access to each node's current text) and reports the count itself, through
-  /// [_onStyledEditorControllerChanged]. This method's only job is *navigation* — placing the
-  /// selection on the current match and scrolling it into view — which it only forwards when
-  /// [_lastNavigatedStyledSearchTarget] shows the navigation target actually changed, exactly like
-  /// [_syncRawSearch] gates [_navigateToMatch] the same way (so typing elsewhere in the styled
-  /// document never yanks the caret back onto "the current match" on every keystroke either).
-  void _syncStyledSearch(OcptEditorState state, OcptEditorSearchState search) {
-    final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled;
-    if (!isStyledSurfaceLive || state.isPreviewingVersion || !search.isOpen) {
-      if (_lastNavigatedStyledSearchTarget != null) {
-        _lastNavigatedStyledSearchTarget = null;
-        _lastReportedStyledSearchMatchCount = null;
-        _styledEditorController.updateSearch(query: null, currentMatchIndex: null);
-      }
-      return;
-    }
-
-    final navigationTarget = (
-      query: search.query,
-      isCaseSensitive: search.isCaseSensitive,
-      isWholeWord: search.isWholeWord,
-      currentMatchIndex: search.currentMatchIndex,
-    );
-    if (navigationTarget == _lastNavigatedStyledSearchTarget) {
-      return;
-    }
-    _lastNavigatedStyledSearchTarget = navigationTarget;
-    _styledEditorController.updateSearch(
-      query: OcptEditorSearchQuery(
-        query: search.query,
-        isCaseSensitive: search.isCaseSensitive,
-        isWholeWord: search.isWholeWord,
-      ),
-      currentMatchIndex: search.currentMatchIndex,
-    );
-  }
-
   /// Rebuilds the `⋮` menu's entries when the styled editor gained or lost something to undo or
   /// redo, reports [_styledEditorController]'s own checkable spell-check texts to the bloc whenever
   /// the styled editing surface is actually the live one, then reports its search match count too
   /// — each exactly once per genuine change: the controller notifies its listeners for several
   /// unrelated reasons (a block-type or inline-style read-state refresh, either of the other two),
-  /// and [_lastReportedStyledSpellCheckTexts]/[_lastReportedStyledSearchMatchCount] are what keep
+  /// and [_lastReportedStyledSpellCheckTexts] are what keep
   /// those from being mistaken for a fresh report of their own kind.
   ///
   /// Spell-check reporting is gated on the styled surface actually being live (styled mode, not
@@ -1326,252 +742,9 @@ class _EditorViewState extends State<_EditorView> {
       }
     }
 
-    final search = context.read<OcptEditorSearchBloc>();
-    if (!isStyledSurfaceLive || !search.state.isOpen) {
-      return;
-    }
-
-    final matchCount = _styledEditorController.searchMatchCount;
-    if (matchCount == _lastReportedStyledSearchMatchCount) {
-      return;
-    }
-    _lastReportedStyledSearchMatchCount = matchCount;
-    search.add(OcptEditorSearchMatchesReportedEvent(matchCount: matchCount));
-  }
-
-  /// Replaces the current match in styled mode (`OcptStyledEditorController.replaceCurrentMatch`),
-  /// then dispatches [OcptEditorSearchCurrentMatchSelectedEvent] with the index it returns — see
-  /// that controller method's own doc comment for why this can't simply keep the previous index,
-  /// the same reason [_requestRawReplace] computes its own `nextIndex` by hand. A no-op (dispatches
-  /// nothing) when the controller reports there's nothing left to select.
-  void _requestStyledReplace(OcptEditorSearchState search) {
-    final nextIndex = _styledEditorController.replaceCurrentMatch(search.replacement);
-    if (nextIndex == null) {
-      return;
-    }
-    context.read<OcptEditorSearchBloc>().add(
-      OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex),
-    );
-  }
-
-  /// Replaces every match in styled mode with the replacement field's text, behind
-  /// [OcptConfirmDialog] naming how many matches will be replaced — the same repository rule
-  /// [_requestRawReplaceAll] follows, reusing the exact same dialog copy so a replace-all reads
-  /// identically whichever editing mode triggered it.
-  Future<void> _requestStyledReplaceAll(BuildContext context, OcptEditorSearchState search) async {
-    final matchCount = _styledEditorController.searchMatchCount;
-    if (matchCount == 0) {
-      return;
-    }
-
-    final tr = Tr.of(context);
-    final confirmed = await OcptConfirmDialog.show(
-      context,
-      title: tr.editorReplaceAllConfirmTitle,
-      message: tr.editorReplaceAllConfirmMessage(matchCount),
-      cancelLabel: tr.editorReplaceAllConfirmCancelAction,
-      confirmLabel: tr.editorReplaceAllConfirmAction,
-    );
-    if (confirmed != true) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    _styledEditorController.replaceAllMatches(search.replacement);
-  }
-
-  /// Shows the import confirmation dialog, then dispatches the import request if the user
-  /// confirmed the replacement.
-  Future<void> _requestImportAndReplace(BuildContext context) async {
-    final bloc = context.read<OcptEditorIoBloc>();
-    final tr = Tr.of(context);
-    final confirmed = await OcptConfirmDialog.show(
-      context,
-      title: tr.editorImportConfirmTitle,
-      message: tr.editorImportConfirmMessage,
-      cancelLabel: tr.editorImportConfirmCancelAction,
-      confirmLabel: tr.editorImportConfirmReplaceAction,
-      isDestructive: false,
-    );
-    if (confirmed != true) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptEditorImportRequestedEvent(fileTypeLabel: Tr.of(context).editorImportFileTypeLabel),
-    );
-  }
-
-  /// Shows the page setup dialog, then dispatches the new page setup if the user applied it.
-  Future<void> _requestPageSetup(BuildContext context) async {
-    final bloc = context.read<OcptEditorBloc>();
-    final setup = await OcptEditorPageSetupDialog.show(context, current: bloc.state.pageSetup);
-    if (setup == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(OcptEditorPageSetupChangedEvent(pageSetup: setup));
-  }
-
-  /// Opens the project settings page, then reloads the page format (and repaginates) if the user
-  /// changed anything there.
-  ///
-  /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
-  /// card can add or delete one, which the workspace bloc otherwise only learns about from
-  /// `OcptProjectsManager.currentProjectStream`, an event the episode CRUD does not fire.
-  ///
-  /// [reveal] names the card the page opens on, for the toolbar's `Add an episode…` button which
-  /// promised one; the toolbar's plain settings action passes none and lands at the top.
-  Future<void> _requestProjectSettings(
-    BuildContext context, {
-    OcptProjectSettingsReveal? reveal,
-  }) async {
-    final bloc = context.read<OcptEditorBloc>();
-    final spellCheckBloc = context.read<OcptEditorSpellCheckBloc>();
-    final workspaceBloc = context.read<OcptWorkspaceBloc>();
-    final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
-      OcptRoute.projectSettings,
-      extra: reveal,
-    );
-    if (hasChanged != true) {
-      return;
-    }
-
-    bloc.add(const OcptEditorProjectSettingsChangedEvent());
-    spellCheckBloc.add(const OcptEditorSpellCheckDictionaryRefreshRequestedEvent());
-    workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
-  }
-
-  /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
-  /// source and the typeset PDF. Both are always available — see `OcptEditorExportDocument`'s own
-  /// doc comment.
-  List<OcptWorkspaceExportEntry<OcptEditorExportDocument>> _buildExportEntries(
-    BuildContext context,
-  ) {
-    final tr = Tr.of(context);
-
-    return [
-      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
-        value: OcptEditorExportDocument.fountain,
-        title: tr.editorExportFountainTitle,
-        description: tr.editorExportFountainDescription,
-        formatLabel: ".fountain",
-      ),
-      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
-        value: OcptEditorExportDocument.pdf,
-        title: tr.editorExportPdfTitle,
-        description: tr.editorExportPdfDescription,
-        formatLabel: "PDF",
-      ),
-    ];
-  }
-
-  /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
-  /// export event directly (it opens no options dialog of its own), or [_requestExportPdf], which
-  /// opens the PDF export options dialog exactly as it always has.
-  Future<void> _requestExport(BuildContext context, Rect? shareAnchor) async {
-    final tr = Tr.of(context);
-    final picked = await OcptWorkspaceExportDialog.show<OcptEditorExportDocument>(
-      context,
-      title: tr.editorExportPanelTitle,
-      message: tr.editorExportPanelMessage,
-      entries: _buildExportEntries(context),
-      isPreviewingVersion: context.read<OcptEditorBloc>().state.isPreviewingVersion,
-    );
-    if (picked == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    switch (picked) {
-      case OcptWorkspaceExportDocumentPick<OcptEditorExportDocument>(:final document):
-        switch (document) {
-          case OcptEditorExportDocument.fountain:
-            context.read<OcptEditorIoBloc>().add(
-              OcptEditorExportRequestedEvent(
-                fileTypeLabel: tr.editorImportFileTypeLabel,
-                episodeTag: _episodeExportTag(context),
-                shareAnchor: shareAnchor,
-              ),
-            );
-          case OcptEditorExportDocument.pdf:
-            await _requestExportPdf(context, shareAnchor);
-        }
-      case OcptWorkspaceExportProjectPackagePick<OcptEditorExportDocument>():
-        _requestProjectPackageExport(context);
-    }
-  }
-
-  /// Shows the PDF export options dialog, then dispatches the export request if the user applied
-  /// it.
-  Future<void> _requestExportPdf(BuildContext context, Rect? shareAnchor) async {
-    final bloc = context.read<OcptEditorIoBloc>();
-    final options = await OcptEditorExportPdfOptionsDialog.show(
-      context,
-      current: context.read<OcptEditorBloc>().state.pageSetup,
-    );
-    if (options == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptEditorExportPdfRequestedEvent(
-        options: options,
-        fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
-        episodeTag: _episodeExportTag(context),
-        shareAnchor: shareAnchor,
-      ),
-    );
-  }
-
-  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
-  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
-  /// exactly as every other localized export payload already is.
-  String? _episodeExportTag(BuildContext context) {
-    final workspaceState = context.read<OcptWorkspaceBloc>().state;
-    return ocptWorkspaceEpisodeExportTagOf(
-      context: context,
-      episodes: workspaceState.episodes,
-      selectedEpisodeId: workspaceState.selectedEpisodeId,
-    );
-  }
-
-  /// Shows the title page dialog, then dispatches the edited fields if the user applied them.
-  Future<void> _requestTitlePage(BuildContext context) async {
-    final bloc = context.read<OcptEditorBloc>();
-    final fields = await OcptEditorTitlePageDialog.show(
-      context,
-      current: bloc.state.document?.titlePage,
-    );
-    if (fields == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptEditorTitlePageChangedEvent(
-        title: fields.title,
-        credit: fields.credit,
-        author: fields.author,
-        draftDate: fields.draftDate,
-        contact: fields.contact,
-        source: fields.source,
-      ),
+    _searchSync.reportStyledMatchCount(
+      isStyledSurfaceLive: isStyledSurfaceLive,
+      searchBloc: context.read<OcptEditorSearchBloc>(),
     );
   }
 
@@ -1645,11 +818,15 @@ class _EditorViewState extends State<_EditorView> {
       final jumpRequest = state.jumpRequest;
       if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
         _lastAppliedJumpRequestId = jumpRequest.id;
-        _applyJumpRequest(jumpRequest.charOffset);
+        _rawScroller.applyJumpRequest(jumpRequest.charOffset);
       }
     }
 
-    _syncSearch(state, context.read<OcptEditorSearchBloc>().state);
+    _searchSync.sync(
+      state,
+      context.read<OcptEditorSearchBloc>().state,
+      context.read<OcptEditorSearchBloc>(),
+    );
     _syncSpellCheck(state, context.read<OcptEditorSpellCheckBloc>().state);
 
     if (state.hasSaveError) {
@@ -1672,7 +849,7 @@ class _EditorViewState extends State<_EditorView> {
     final packagePendingExport = state.projectPackagePendingExport;
     if (packagePendingExport != null) {
       context.read<OcptEditorBloc>().add(const OcptProjectPackageMissingFilesAskDismissedEvent());
-      unawaited(_askAboutMissingPackagedFiles(context, packagePendingExport));
+      unawaited(OcptEditorDialogFlows.askAboutMissingPackagedFiles(context, packagePendingExport));
     }
 
     final packageNotice = state.projectPackageNotice;
@@ -1692,136 +869,10 @@ class _EditorViewState extends State<_EditorView> {
     if (ioNotice != null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+        ..showSnackBar(
+          SnackBar(content: Text(OcptEditorDialogFlows.ioNoticeMessage(context, ioNotice))),
+        );
       context.read<OcptEditorIoBloc>().add(const OcptEditorIoNoticeDismissedEvent());
     }
-  }
-
-  /// Dispatches the project package export, resolving here — the last place with a
-  /// [BuildContext] — the label the native save dialog carries.
-  ///
-  /// What happens next depends on what the project references: everything being there, the save
-  /// dialog opens straight away; anything missing, the bloc asks back through its own state and
-  /// [_askAboutMissingPackagedFiles] is what puts that question on screen.
-  void _requestProjectPackageExport(BuildContext context) {
-    context.read<OcptEditorBloc>().add(
-      OcptProjectPackageExportRequestedEvent(
-        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
-      ),
-    );
-  }
-
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
-  /// the export if the user said to go on.
-  ///
-  /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can
-  /// read the project file the pre-flight scanned. The question is cleared from that state the
-  /// moment this opens, so a later emission never stacks a second dialog behind this one.
-  Future<void> _askAboutMissingPackagedFiles(
-    BuildContext context,
-    OcptProjectPackagePreflight preflight,
-  ) async {
-    final bloc = context.read<OcptEditorBloc>();
-    final confirmed = await ocptAskAboutMissingPackagedFiles(context, preflight);
-    if (confirmed != true) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptProjectPackageExportConfirmedEvent(
-        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
-      ),
-    );
-  }
-
-  /// Maps [notice] to its localized, user-facing message.
-  ///
-  /// A succeeded export kind degrades to the generic "shared" message on mobile
-  /// ([OcptEditorIoNotice.wasShared]): there is no path to name, the export having been handed to
-  /// the OS share sheet rather than written to a location the user picked.
-  String _ioNoticeMessage(BuildContext context, OcptEditorIoNotice notice) {
-    final tr = Tr.of(context);
-
-    return switch (notice.kind) {
-      OcptEditorIoNoticeKind.exportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.editorExportSuccessMessage(notice.path ?? ""),
-      OcptEditorIoNoticeKind.exportFailed => tr.editorExportError,
-      OcptEditorIoNoticeKind.importSucceeded => tr.editorImportSuccessMessage,
-      OcptEditorIoNoticeKind.importFailed => tr.editorImportError,
-      OcptEditorIoNoticeKind.importUnreadable => tr.editorImportUnreadableError,
-      OcptEditorIoNoticeKind.pdfExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
-      OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
-    };
-  }
-
-  /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into view
-  /// ([_scrollRawEditorTo]), and lets the controller listener report the caret move to the bloc.
-  void _applyJumpRequest(int charOffset) {
-    final text = _textController.text;
-    final clampedOffset = charOffset > text.length ? text.length : charOffset;
-
-    _textController.selection = TextSelection.collapsed(offset: clampedOffset);
-    _editorFocusNode.requestFocus();
-    _scrollRawEditorTo(clampedOffset);
-  }
-
-  /// Scrolls the raw editor so the line holding [offset] sits a third of the way down its viewport.
-  ///
-  /// The line's position is **measured** off the field's own laid-out text
-  /// ([_rawCaretContentTop]) rather than counted in newlines: an action or dialogue paragraph wraps
-  /// over several visual lines, and a newline count drifts further from the truth with every one
-  /// of them the target sits past. Landing the caret well inside the viewport also leaves the
-  /// field's own caret-reveal scroll, which runs after a selection change, nothing to correct. The
-  /// newline estimate remains only as the fallback for a field not laid out yet.
-  void _scrollRawEditorTo(int offset) {
-    if (!_editorScrollController.hasClients) {
-      return;
-    }
-
-    final position = _editorScrollController.position;
-    final lineTop = _rawCaretContentTop(offset) ?? _estimatedRawLineTop(offset);
-    final target = (lineTop - position.viewportDimension / 3).clamp(0.0, position.maxScrollExtent);
-    _editorScrollController.jumpTo(target);
-  }
-
-  /// The top of the caret at [offset] in the raw field's own scrollable content, read off the
-  /// field's `RenderEditable` — or null while the field is not built or laid out.
-  ///
-  /// [_editorFocusNode] is attached inside the field's own `EditableText`, which is how the
-  /// `EditableTextState` (and through it the render object) is reached without a key of its own.
-  /// `getLocalRectForCaret` answers in the render object's own coordinates, already shifted by the
-  /// current scroll offset, so that offset is added back.
-  double? _rawCaretContentTop(int offset) {
-    final editableText = _editorFocusNode.context?.findAncestorStateOfType<EditableTextState>();
-    if (editableText == null || !editableText.mounted) {
-      return null;
-    }
-
-    final renderEditable = editableText.renderEditable;
-    if (!renderEditable.hasSize) {
-      return null;
-    }
-
-    final caretRect = renderEditable.getLocalRectForCaret(TextPosition(offset: offset));
-    return caretRect.top + _editorScrollController.offset;
-  }
-
-  /// The top of the line holding [offset], estimated from its newline count and the field's fixed
-  /// line height: exact for unwrapped lines only — [_rawCaretContentTop]'s fallback.
-  double _estimatedRawLineTop(int offset) {
-    final text = _textController.text;
-    final clampedOffset = offset > text.length ? text.length : offset;
-    final line = "\n".allMatches(text.substring(0, clampedOffset)).length;
-    const lineHeight = OcptEditorSourceField.fontSize * OcptEditorSourceField.lineHeightFactor;
-
-    return line * lineHeight;
   }
 }

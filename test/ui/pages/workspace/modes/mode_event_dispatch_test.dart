@@ -21,7 +21,12 @@ const _modes = <String, String>{
   "resources": "OcptResourcesBloc",
   "breakdown": "OcptBreakdownBloc",
   "budget": "OcptBudgetBloc",
+  "editor": "OcptEditorBloc",
 };
+
+/// Where a mode's source lives, for the one that is not under `lib/ui/pages/workspace/modes/`: the
+/// screenplay editor is a production mode too, but a page of its own.
+const _modeFolders = <String, String>{"editor": "/pages/editor/"};
 
 /// The names a dispatch goes through, as a method call.
 final _dispatchCall = RegExp(
@@ -161,7 +166,7 @@ void main() {
       var checked = 0;
 
       for (final entry in sources.entries) {
-        if (!entry.key.contains("/modes/$mode/")) {
+        if (!entry.key.contains(_modeFolders[mode] ?? "/modes/$mode/")) {
           continue;
         }
         final text = entry.value;
