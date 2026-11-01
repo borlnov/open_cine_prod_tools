@@ -10,14 +10,6 @@ sealed class OcptRepointingEvent extends BlocEventForMixin {
   const OcptRepointingEvent();
 }
 
-/// Requests loading the current project's own display name.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptRepointingLoadRequestedEvent extends OcptRepointingEvent {
-  /// Class constructor
-  const OcptRepointingLoadRequestedEvent();
-}
-
 /// Reports that the "Switch relay" action was pressed, or a scanned relay enrolment QR was
 /// resolved, with the relay address and the enrolment secret either typed into the ① Configure
 /// form or read off the QR.

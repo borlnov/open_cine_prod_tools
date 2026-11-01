@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -23,7 +24,8 @@ import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_state.dart';
 /// only manager method this screen calls beyond reading the current project's own `sync_pairings`
 /// row for the `projectId` that method needs — exactly as `OcptSharingBloc` reads that same single
 /// row for the very same reason.
-class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
+class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
+    with MixinAsyncInitBloc<OcptRepointingState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "repointing_bloc";
 
@@ -47,9 +49,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       super(const OcptRepointingState.init()) {
-    add(const OcptRepointingLoadRequestedEvent());
-  }
+       super(const OcptRepointingState.init());
 
   /// The current project's writable file — a re-point moves the project **file**'s own pairing and
   /// ongoing sync session, never a read-only preview's (`OcptOpenProjectModel.fileDatabase`'s own
@@ -61,18 +61,20 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState> {
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptRepointingLoadRequestedEvent>(_onLoadRequested);
     on<OcptRepointingRequestedEvent>(_onRepointRequested);
     on<OcptRepointingErrorDismissedEvent>(_onErrorDismissed);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Loads the current project's own display name — the page always opens on ① Configure, so
   /// there is nothing else to read.
-  Future<void> _onLoadRequested(
-    OcptRepointingLoadRequestedEvent event,
-    Emitter<OcptRepointingState> emitter,
-  ) async {
-    emitter(state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name));
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptRepointingState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
+    emit(state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name));
   }
 
   /// Re-points the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
