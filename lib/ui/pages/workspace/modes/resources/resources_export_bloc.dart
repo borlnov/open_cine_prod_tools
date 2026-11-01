@@ -95,7 +95,7 @@ class OcptResourcesExportBloc
       if (outcome is OcptExportFailed) {
         // The manager already logged why the workbook could not be built.
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
           ),
         );
@@ -103,7 +103,7 @@ class OcptResourcesExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptResourcesIoNotice(
             kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
             path: outcome.savedPath,
@@ -119,7 +119,7 @@ class OcptResourcesExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
         ),
       );
@@ -160,7 +160,7 @@ class OcptResourcesExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptResourcesIoNotice(
             kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
             path: outcome.savedPath,
@@ -176,7 +176,7 @@ class OcptResourcesExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptResourcesIoNotice(
             kind: OcptResourcesIoNoticeKind.contactListExportFailed,
           ),
@@ -190,6 +190,6 @@ class OcptResourcesExportBloc
     OcptResourcesIoNoticeDismissedEvent event,
     Emitter<OcptResourcesExportState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }
