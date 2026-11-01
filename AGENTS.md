@@ -194,16 +194,16 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
 - BLoC: the ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
   **production mode owns a mode bloc and one bloc per view** (ADR 0034; the shot list, the
-  schedule and the resources are split, the other modes follow). A *view* is a surface with
-  its own selection or its own writes: a central view, a dock tab, a group of the inspector, the
-  export panel, a function that cuts across views; a rendering of the same data with neither has no
-  bloc. The mode bloc holds the mode's data, its shared selection, its chrome and the two project
-  mixins (`MixinOcptModeBloc`); a view bloc (`AbsOcptViewBloc`) takes it as a constructor
-  dependency, reads its state, reacts to its `reloadEpoch`/`selectionEpoch`, writes through a
-  service then `await modeBloc.reload(…)`, and registers a flusher for what it holds in a debounce.
-  A view bloc never references a sibling and the mode bloc never references a view bloc. The
-  workspace shell is a stateless slot widget and knows nothing about a mode's content. The recipe
-  and the rules are in `docs/architecture/foundations.md`.
+  schedule, the resources and the breakdown are split, the other modes follow). A *view* is a
+  surface with its own selection or its own writes: a central view, a dock tab, a group of the
+  inspector, the export panel, a function that cuts across views; a rendering of the same data with
+  neither has no bloc. The mode bloc holds the mode's data, its shared selection, its chrome and
+  the two project mixins (`MixinOcptModeBloc`); a view bloc (`AbsOcptViewBloc`) takes it as a
+  constructor dependency, reads its state, reacts to its `reloadEpoch`/`selectionEpoch`, writes
+  through a service then `await modeBloc.reload(…)`, and registers a flusher for what it holds in a
+  debounce. A view bloc never references a sibling and the mode bloc never references a view bloc.
+  The workspace shell is a stateless slot widget and knows nothing about a mode's content. The
+  recipe and the rules are in `docs/architecture/foundations.md`.
 - **No service ever deletes a synchronised row** (ADR 0010): every synchronised table carries
   `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out. The two
   local tables — `project_versions` and `local_erasures` — are the only exceptions.

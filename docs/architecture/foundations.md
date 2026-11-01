@@ -78,8 +78,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   view, a dock tab, a group of the inspector, the export panel, a function that cuts across views.
   A rendering of the same data with neither (a recap, a read-only table) has no bloc, and a mode
   whose surfaces are cut by function rather than by central view follows the same definition. The
-  shot list is the reference (`shot-list.md`); the schedule and the resources are split the same way
-  (`schedule.md`, `resources.md`), and the other modes still own a single bloc until they are.
+  shot list is the reference (`shot-list.md`); the schedule, the resources and the breakdown are split
+  the same way (`schedule.md`, `resources.md`, `breakdown.md`), and the other modes still own a
+  single bloc until they are.
   - **The mode bloc** (`OcptShotListBloc`, mixing in `MixinOcptModeBloc<State, Scope>` beside the
     two project mixins) owns **all the data** — every snapshot, the title, the page setup, the
     catalogues — and loads it; the **shared selection** (the chain a sequence, a shot and a set
@@ -201,8 +202,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   reordering the enum is safe. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
   `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
-  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list and the
-  schedule are) —
+  is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list, the schedule,
+  the resources and the breakdown are) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
   bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
   rendering the shared "coming in a future version" empty state) has a single, obvious place to be
