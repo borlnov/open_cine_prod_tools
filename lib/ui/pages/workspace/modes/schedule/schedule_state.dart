@@ -43,6 +43,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_state_copies.dart';
 export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_unplaced_group.dart';
 
 /// The state of `OcptScheduleBloc`.

@@ -34,7 +34,6 @@ import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -227,13 +226,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return false;
     }
 
-    emitter(
-      state.copyWith(
-        forceSelectedShotIdValue: true,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptScheduleSelectionCause.shotCleared,
-      ),
-    );
+    emitter(state.copyWithShotCleared());
     return true;
   }
 
@@ -290,17 +283,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             !(snapshot.blocksByDayId[selectedDayId] ?? const []).any(
               (block) => block.id == selectedBlockId,
             ));
-    final isSelectionDropped = isDayDropped || isBlockDropped;
 
     emitter(
-      state.copyWith(
+      state.copyWithReloadedSchedule(
         snapshot: snapshot,
         shotListSnapshots: shotLists?.shotLists,
         episodes: shotLists?.episodes,
-        forceSelectedDayIdValue: isDayDropped,
-        forceSelectedBlockIdValue: isBlockDropped,
-        selectionEpoch: isSelectionDropped ? state.selectionEpoch + 1 : null,
-        selectionCause: isSelectionDropped ? OcptScheduleSelectionCause.dropped : null,
+        isDayDropped: isDayDropped,
+        isBlockDropped: isBlockDropped,
       ),
     );
 
@@ -349,18 +339,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoadedWithoutProject(
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           firstWeekday: firstWeekday,
-          forcePreviewedVersionIdValue: true,
-          forceSelectedDayIdValue: true,
-          forceSelectedBlockIdValue: true,
-          forceSelectedShotIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptScheduleSelectionCause.load,
         ),
       );
       return;
@@ -385,11 +368,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       final defaultDay = _defaultSelectedDayOf(snapshot.days);
 
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoaded(
           title: project.name,
-          previewedVersionId: previewedVersion?.id,
-          forcePreviewedVersionIdValue: previewedVersion == null,
+          previewedVersion: previewedVersion,
           snapshot: snapshot,
           shotListSnapshots: shotLists.shotLists,
           episodes: shotLists.episodes,
@@ -400,18 +381,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           roleCandidates: roleCandidates,
           pageSetup: pageSetup,
           minimumRestMinutes: minimumRestMinutes,
-          forceMinimumRestMinutesValue: minimumRestMinutes == null,
           agendaAnchorDate: defaultDay?.date ?? DateTime.now(),
-          selectedDayId: defaultDay?.id,
-          forceSelectedDayIdValue: defaultDay == null,
-          forceSelectedBlockIdValue: true,
-          forceSelectedShotIdValue: true,
+          defaultDayId: defaultDay?.id,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
           firstWeekday: firstWeekday,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptScheduleSelectionCause.load,
         ),
       );
     });
@@ -535,7 +510,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleLeftPanelToggledEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(isListPanelVisible: !state.isListPanelVisible));
+    emitter(state.copyWithListPanelToggled());
   }
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
@@ -550,13 +525,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
-    emitter(
-      state.copyWith(
-        rightDockTab: isAlreadyActive ? null : event.tab,
-        forceRightDockTabValue: isAlreadyActive,
-        lastRightDockTab: event.tab,
-      ),
-    );
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
 
     if (!isAlreadyActive && event.tab == OcptScheduleRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -570,11 +539,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     Emitter<OcptScheduleState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(forceRightDockTabValue: true));
+      emitter(state.copyWithRightDockClosed());
       return;
     }
 
-    emitter(state.copyWith(rightDockTab: state.lastRightDockTab));
+    emitter(state.copyWithRightDockReopened());
 
     if (state.lastRightDockTab == OcptScheduleRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -586,7 +555,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleRightDockClosedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(forceRightDockTabValue: true));
+    emitter(state.copyWithRightDockClosed());
   }
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
@@ -604,7 +573,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       await _propertiesManager.scheduleRightDockFraction.store(right);
     }
 
-    emitter(state.copyWith(leftDockFraction: left, rightDockFraction: right));
+    emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
   /// Restores both dock fractions to their defaults, persisting them.
@@ -618,9 +587,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
 
     emitter(
-      state.copyWith(
-        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
-        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
+      state.copyWithDockFractions(
+        left: OcptWorkspaceDock.leftDefaultFraction,
+        right: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
   }
@@ -646,15 +615,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedDayId: event.dayId,
-        forceSelectedBlockIdValue: true,
-        forceSelectedShotIdValue: true,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptScheduleSelectionCause.day,
-      ),
-    );
+    emitter(state.copyWithSelectedDay(dayId: event.dayId));
   }
 
   /// Selects block [OcptScheduleBlockSelectedEvent.blockId] and its own day, opening the right dock
@@ -668,17 +629,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedDayId: event.dayId,
-        selectedBlockId: event.blockId,
-        forceSelectedShotIdValue: true,
-        rightDockTab: OcptScheduleRightDockTab.inspector,
-        lastRightDockTab: OcptScheduleRightDockTab.inspector,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptScheduleSelectionCause.block,
-      ),
-    );
+    emitter(state.copyWithSelectedBlock(dayId: event.dayId, blockId: event.blockId));
   }
 
   /// Selects shot [OcptScheduleShotSelectedEvent.shotId], opening the right dock on the `Inspector`
@@ -692,16 +643,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedShotId: event.shotId,
-        forceSelectedBlockIdValue: true,
-        rightDockTab: OcptScheduleRightDockTab.inspector,
-        lastRightDockTab: OcptScheduleRightDockTab.inspector,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptScheduleSelectionCause.shot,
-      ),
-    );
+    emitter(state.copyWithSelectedShot(shotId: event.shotId));
   }
 
   /// Switches the centre between the agenda and the day view.
@@ -709,7 +651,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleCentreViewSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(centreView: event.view));
+    emitter(state.copyWithCentreView(view: event.view));
   }
 
   /// Switches the agenda's own presentation.
@@ -717,7 +659,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleAgendaModeSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(agendaMode: event.mode));
+    emitter(state.copyWithAgendaMode(mode: event.mode));
   }
 
   /// Switches what fact the agenda tints a day with.
@@ -725,7 +667,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleAgendaColorModeSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(agendaColorMode: event.mode));
+    emitter(state.copyWithAgendaColorMode(mode: event.mode));
   }
 
   /// Pages the week/month agenda to a new anchor date.
@@ -733,7 +675,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleAgendaAnchorDateChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    emitter(state.copyWith(agendaAnchorDate: event.date));
+    emitter(state.copyWithAgendaAnchorDate(date: event.date));
   }
 
   /// Creates a new shooting day and selects it.
@@ -750,14 +692,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     await _applyScheduleSnapshot(emitter);
     if (dayId != null) {
-      emitter(
-        state.copyWith(
-          selectedDayId: dayId,
-          forceSelectedBlockIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptScheduleSelectionCause.dayAdded,
-        ),
-      );
+      emitter(state.copyWithAddedDay(dayId: dayId));
     }
   }
 
@@ -815,14 +750,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
 
     await _applyScheduleSnapshot(emitter);
     if (newDayId != null) {
-      emitter(
-        state.copyWith(
-          selectedDayId: newDayId,
-          forceSelectedBlockIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptScheduleSelectionCause.dayAdded,
-        ),
-      );
+      emitter(state.copyWithAddedDay(dayId: newDayId));
     }
   }
 
