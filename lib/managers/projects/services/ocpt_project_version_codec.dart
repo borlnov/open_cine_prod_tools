@@ -7,22 +7,19 @@ import 'dart:convert';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:crypto/crypto.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_budget_json.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_json_keys.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_json_production_keys.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_json_reader.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_payload_json.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_resources_json.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_schedule_json.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_version_shot_list_json.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
 /// The single place that knows the shape of `project_versions.payload`: it turns an
 /// [OcptProjectVersionPayload] into the JSON text stored in a version's row, and back.
@@ -268,12 +265,12 @@ class OcptProjectVersionCodec extends AbsOcptService {
   /// Format 3 is the first to actually need an upgrade step: it drops `characterName` from
   /// `shot_characters` in favour of `roleId`
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), a reshape rather than an
-  /// addition, so a pre-3 payload's `shotCharacters` rows cannot be read as format 3's shape at
-  /// all — [_payloadFromJson] drops them outright for `payloadFormat < 3` rather than remapping
-  /// their names to roles, deliberately (see this class's own doc comment and the ADR): a version
-  /// captured before the reshape restores with every plan except its shot list's cast. Every other
-  /// upgrade so far has been additive-only, so an older payload already decodes through the very
-  /// same nullable readers a current one does, with nothing to branch on here.
+  /// addition, so a pre-3 payload's `shotCharacters` rows cannot be read as format 3's shape at all
+  /// — `OcptVersionPayloadJson.fromJson` drops them outright for `payloadFormat < 3` rather than
+  /// remapping their names to roles, deliberately (see this class's own doc comment and the ADR): a
+  /// version captured before the reshape restores with every plan except its shot list's cast.
+  /// Every other upgrade so far has been additive-only, so an older payload already decodes through
+  /// the very same nullable readers a current one does, with nothing to branch on here.
   ///
   /// Never throws: every failure comes back as an [OcptProjectVersionPayloadStatus], because the
   /// caller of a decode is always about to tell the user why a version can't be opened.
@@ -305,7 +302,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
         );
       }
 
-      final payload = _payloadFromJson(decoded, payloadFormat: payloadFormat);
+      final payload = OcptVersionPayloadJson.fromJson(decoded, payloadFormat: payloadFormat);
       if (OcptVersionJsonReader.firstReadFailure != null) {
         return _malformed(null);
       }
@@ -682,9 +679,10 @@ class OcptProjectVersionCodec extends AbsOcptService {
   }
 
   /// [rows], sorted by [primaryKeyOf] and each turned into a JSON map (through the same
-  /// `OcptVersionShotListJson.screenplayToJson`-shaped serializer [encode] itself uses, so an enum column comes out as
-  /// the plain string `jsonEncode` can write rather than the `TypeConverter`'s own Dart value)
-  /// whose keys are themselves sorted — the two orderings [contentDigest] needs to be canonical.
+  /// `OcptVersionShotListJson.screenplayToJson`-shaped serializer [encode] itself uses, so an enum
+  /// column comes out as the plain string `jsonEncode` can write rather than the `TypeConverter`'s
+  /// own Dart value) whose keys are themselves sorted — the two orderings [contentDigest] needs to
+  /// be canonical.
   static List<Map<String, dynamic>> _canonicalRows<D>(
     List<D> rows, {
     required String Function(D row) primaryKeyOf,
@@ -693,381 +691,5 @@ class OcptProjectVersionCodec extends AbsOcptService {
     final sortedRows = [...rows]..sort((a, b) => primaryKeyOf(a).compareTo(primaryKeyOf(b)));
 
     return [for (final row in sortedRows) SplayTreeMap<String, dynamic>.of(toJson(row))];
-  }
-
-  /// Builds the payload described by [json], written at [payloadFormat].
-  ///
-  /// [payloadFormat] drives two branches. For `payloadFormat < 3`, `shotCharacters` is read as
-  /// empty rather than through [OcptVersionShotListJson.shotCharacterFromJson] — a pre-3 payload's rows are shaped around
-  /// the retired `characterName` column, not `roleId`, and cannot be parsed as format 3's shape at
-  /// all (`decode`'s own doc comment). For `payloadFormat < 4`, the five storyboard and floor plan
-  /// lists are read as empty rather than through [OcptVersionJsonReader.readRows]: unlike every other field, whose absent
-  /// keys already fall back to the nullable defaults [OcptVersionJsonReader.readNullableString] and its siblings return,
-  /// [OcptVersionJsonReader.readRows] itself fails on a missing key (it reads a required list, not an optional scalar), so
-  /// a pre-4 payload — which never wrote these five keys at all — needs this one explicit default
-  /// rather than reading through unguarded, exactly as `shotCharacters` does one format earlier.
-  /// Every other field is read the same way whatever [payloadFormat] says.
-  static OcptProjectVersionPayload _payloadFromJson(
-    Map<String, dynamic> json, {
-    required int payloadFormat,
-  }) {
-    final projectSettings = OcptVersionJsonReader.readObject(
-      json,
-      OcptVersionJsonKeys.projectSettingsKey,
-    );
-    final pageMargins = OcptVersionJsonReader.readObject(json, OcptVersionJsonKeys.pageMarginsKey);
-
-    return OcptProjectVersionPayload(
-      screenplays: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.screenplaysKey))
-          OcptVersionShotListJson.screenplayFromJson(row),
-      ],
-      scenes: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.scenesKey))
-          OcptVersionShotListJson.sceneFromJson(row),
-      ],
-      shots: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.shotsKey))
-          OcptVersionShotListJson.shotFromJson(row),
-      ],
-      shotCharacters: payloadFormat < 3
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonKeys.shotCharactersKey,
-              ))
-                OcptVersionShotListJson.shotCharacterFromJson(row),
-            ],
-      shotCoverages: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shotCoveragesKey,
-        ))
-          OcptVersionShotListJson.shotCoverageFromJson(row),
-      ],
-      people: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.peopleKey))
-          OcptVersionResourcesJson.personFromJson(row),
-      ],
-      personPositions: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.personPositionsKey,
-        ))
-          OcptVersionResourcesJson.personPositionFromJson(row),
-      ],
-      personSkills: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.personSkillsKey))
-          OcptVersionResourcesJson.personSkillFromJson(row),
-      ],
-      personUnavailabilities: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.personUnavailabilitiesKey,
-        ))
-          OcptVersionResourcesJson.personUnavailabilityFromJson(row),
-      ],
-      roles: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.rolesKey))
-          OcptVersionResourcesJson.roleFromJson(row),
-      ],
-      roleEpisodes: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.roleEpisodesKey))
-          OcptVersionResourcesJson.roleEpisodeFromJson(row),
-      ],
-      locations: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.locationsKey))
-          OcptVersionResourcesJson.locationFromJson(row),
-      ],
-      locationAvailabilities: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.locationAvailabilitiesKey,
-        ))
-          OcptVersionResourcesJson.locationAvailabilityFromJson(row),
-      ],
-      sets: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.setsKey))
-          OcptVersionResourcesJson.setFromJson(row),
-      ],
-      sceneSets: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.sceneSetsKey))
-          OcptVersionResourcesJson.sceneSetFromJson(row),
-      ],
-      elements: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.elementsKey))
-          OcptVersionResourcesJson.elementFromJson(row),
-      ],
-      sceneElements: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.sceneElementsKey,
-        ))
-          OcptVersionResourcesJson.sceneElementFromJson(row),
-      ],
-      roleElements: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.roleElementsKey))
-          OcptVersionResourcesJson.roleElementFromJson(row),
-      ],
-      roleCandidates: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.roleCandidatesKey,
-        ))
-          OcptVersionResourcesJson.roleCandidateFromJson(row),
-      ],
-      assets: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.assetsKey))
-          OcptVersionResourcesJson.assetFromJson(row),
-      ],
-      breakdownTags: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.breakdownTagsKey,
-        ))
-          OcptVersionScheduleJson.breakdownTagFromJson(row),
-      ],
-      sceneBreakdowns: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.sceneBreakdownsKey,
-        ))
-          OcptVersionScheduleJson.sceneBreakdownFromJson(row),
-      ],
-      shootingDays: [
-        for (final row in OcptVersionJsonReader.readRows(json, OcptVersionJsonKeys.shootingDaysKey))
-          OcptVersionScheduleJson.shootingDayFromJson(row),
-      ],
-      shootingSlots: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingSlotsKey,
-        ))
-          OcptVersionScheduleJson.shootingSlotFromJson(row),
-      ],
-      shootingSlotCrew: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingSlotCrewKey,
-        ))
-          OcptVersionScheduleJson.shootingSlotCrewFromJson(row),
-      ],
-      shootingSlotCast: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingSlotCastKey,
-        ))
-          OcptVersionScheduleJson.shootingSlotCastFromJson(row),
-      ],
-      shootingDayBlocks: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingDayBlocksKey,
-        ))
-          OcptVersionScheduleJson.shootingDayBlockFromJson(row),
-      ],
-      shootingSlotGuests: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingSlotGuestsKey,
-        ))
-          OcptVersionScheduleJson.shootingSlotGuestFromJson(row),
-      ],
-      shootingBlockCandidates: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingBlockCandidatesKey,
-        ))
-          OcptVersionScheduleJson.shootingBlockCandidateFromJson(row),
-      ],
-      shootingDayEvents: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.shootingDayEventsKey,
-        ))
-          OcptVersionScheduleJson.shootingDayEventFromJson(row),
-      ],
-      projectDictionaryWords: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.projectDictionaryWordsKey,
-        ))
-          OcptVersionResourcesJson.projectDictionaryWordFromJson(row),
-      ],
-      budgetPostes: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetPostesKey,
-        ))
-          OcptVersionBudgetJson.budgetPosteFromJson(row),
-      ],
-      budgetLines: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetLinesKey,
-        ))
-          OcptVersionBudgetJson.budgetLineFromJson(row),
-      ],
-      budgetEntries: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetEntriesKey,
-        ))
-          OcptVersionBudgetJson.budgetEntryFromJson(row),
-      ],
-      budgetCommitments: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetCommitmentsKey,
-        ))
-          OcptVersionBudgetJson.budgetCommitmentFromJson(row),
-      ],
-      budgetResources: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetResourcesKey,
-        ))
-          OcptVersionBudgetJson.budgetResourceFromJson(row),
-      ],
-      budgetMileageRates: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetMileageRatesKey,
-        ))
-          OcptVersionBudgetJson.budgetMileageRateFromJson(row),
-      ],
-      budgetRevenues: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetRevenuesKey,
-        ))
-          OcptVersionBudgetJson.budgetRevenueFromJson(row),
-      ],
-      budgetShares: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetSharesKey,
-        ))
-          OcptVersionBudgetJson.budgetShareFromJson(row),
-      ],
-      budgetAllowances: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonProductionKeys.budgetAllowancesKey,
-        ))
-          OcptVersionBudgetJson.budgetAllowanceFromJson(row),
-      ],
-      storyboardPanels: payloadFormat < 4
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonProductionKeys.storyboardPanelsKey,
-              ))
-                OcptVersionShotListJson.storyboardPanelFromJson(row),
-            ],
-      storyboardAnnotations: payloadFormat < 4
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonProductionKeys.storyboardAnnotationsKey,
-              ))
-                OcptVersionShotListJson.storyboardAnnotationFromJson(row),
-            ],
-      floorPlanSets: payloadFormat < 4
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonProductionKeys.floorPlanSetsKey,
-              ))
-                OcptVersionShotListJson.floorPlanSetFromJson(row),
-            ],
-      floorPlanSymbols: payloadFormat < 4
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonProductionKeys.floorPlanSymbolsKey,
-              ))
-                OcptVersionShotListJson.floorPlanSymbolFromJson(row),
-            ],
-      floorPlanArrows: payloadFormat < 4
-          ? const []
-          : [
-              for (final row in OcptVersionJsonReader.readRows(
-                json,
-                OcptVersionJsonProductionKeys.floorPlanArrowsKey,
-              ))
-                OcptVersionShotListJson.floorPlanArrowFromJson(row),
-            ],
-      rowFieldVersions: [
-        for (final row in OcptVersionJsonReader.readRows(
-          json,
-          OcptVersionJsonKeys.rowFieldVersionsKey,
-        ))
-          OcptVersionResourcesJson.rowFieldVersionFromJson(row),
-      ],
-      pageSetup: OcptPageSetup(
-        format: OcptVersionJsonReader.readEnum(
-          projectSettings,
-          OcptVersionJsonProductionKeys.pageFormatKey,
-          OcptPageFormat.values.asNameMap(),
-        ),
-        margins: FountainPageMargins(
-          leftInches: OcptVersionJsonReader.readDouble(
-            pageMargins,
-            OcptVersionJsonProductionKeys.marginLeftKey,
-          ),
-          rightInches: OcptVersionJsonReader.readDouble(
-            pageMargins,
-            OcptVersionJsonProductionKeys.marginRightKey,
-          ),
-          topInches: OcptVersionJsonReader.readDouble(
-            pageMargins,
-            OcptVersionJsonProductionKeys.marginTopKey,
-          ),
-          bottomInches: OcptVersionJsonReader.readDouble(
-            pageMargins,
-            OcptVersionJsonProductionKeys.marginBottomKey,
-          ),
-        ),
-      ),
-      settingsJson: OcptVersionJsonReader.readNullableString(
-        projectSettings,
-        OcptVersionJsonProductionKeys.settingsJsonKey,
-      ),
-      currencyCode: OcptVersionJsonReader.readNullableString(
-        projectSettings,
-        OcptVersionJsonProductionKeys.currencyCodeKey,
-      ),
-      minimumRestMinutes: OcptVersionJsonReader.readNullableInt(
-        projectSettings,
-        OcptVersionJsonProductionKeys.minimumRestMinutesKey,
-      ),
-      screenplayLanguage: OcptVersionJsonReader.readNullableEnum(
-        projectSettings,
-        OcptVersionJsonProductionKeys.screenplayLanguageKey,
-        OcptScreenplayLanguage.values.asNameMap(),
-      ),
-      defaultVatRateBasisPoints: OcptVersionJsonReader.readNullableInt(
-        projectSettings,
-        OcptVersionJsonProductionKeys.defaultVatRateBasisPointsKey,
-      ),
-      mealPriceCents: OcptVersionJsonReader.readNullableInt(
-        projectSettings,
-        OcptVersionJsonProductionKeys.mealPriceCentsKey,
-      ),
-      snackPriceCents: OcptVersionJsonReader.readNullableInt(
-        projectSettings,
-        OcptVersionJsonProductionKeys.snackPriceCentsKey,
-      ),
-      isBudgetSimplified: OcptVersionJsonReader.readNullableBool(
-        projectSettings,
-        OcptVersionJsonProductionKeys.isBudgetSimplifiedKey,
-      ),
-    );
   }
 }
