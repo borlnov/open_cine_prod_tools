@@ -167,6 +167,10 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     for (final group in matchingByKey.values) {
       group.sort((a, b) => a.name.compareTo(b.name));
     }
+    final sections = [
+      for (final entry in ocptBreakdownLegendEntriesOf(targets))
+        if (matchingByKey[entry.key] case final groupTargets?) (entry, groupTargets),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -196,22 +200,23 @@ class OcptBreakdownRecapTable extends StatelessWidget {
                   scrollbarGutter: scrollbarGutter,
                 ),
                 Expanded(
-                  child: ListView(
+                  child: ListView.builder(
                     padding: EdgeInsets.only(right: scrollbarGutter),
-                    children: [
-                      for (final entry in ocptBreakdownLegendEntriesOf(targets))
-                        if (matchingByKey[entry.key] case final groupTargets?)
-                          _RecapGroupSection(
-                            entry: entry,
-                            targets: groupTargets,
-                            elementById: elementById,
-                            personById: personById,
-                            scenes: scenes,
-                            elementWidth: elementWidth,
-                            selectedTargetRef: selectedTargetRef,
-                            onTargetSelected: onTargetSelected,
-                          ),
-                    ],
+                    itemCount: sections.length,
+                    itemBuilder: (context, index) {
+                      final (entry, groupTargets) = sections[index];
+
+                      return _RecapGroupSection(
+                        entry: entry,
+                        targets: groupTargets,
+                        elementById: elementById,
+                        personById: personById,
+                        scenes: scenes,
+                        elementWidth: elementWidth,
+                        selectedTargetRef: selectedTargetRef,
+                        onTargetSelected: onTargetSelected,
+                      );
+                    },
                   ),
                 ),
               ],

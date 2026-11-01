@@ -316,6 +316,7 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final optionList = options.toList();
 
     return Align(
       alignment: Alignment.topLeft,
@@ -325,20 +326,22 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
         borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 280, maxHeight: 220),
-          child: ListView(
+          child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 6),
             shrinkWrap: true,
-            children: [
-              for (final option in options)
-                InkWell(
-                  onTap: () => onSelected(option),
-                  mouseCursor: ocpt_theme.ocptClickableCursor,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(option, style: theme.textTheme.bodySmall),
-                  ),
+            itemCount: optionList.length,
+            itemBuilder: (context, index) {
+              final option = optionList[index];
+
+              return InkWell(
+                onTap: () => onSelected(option),
+                mouseCursor: ocpt_theme.ocptClickableCursor,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text(option, style: theme.textTheme.bodySmall),
                 ),
-            ],
+              );
+            },
           ),
         ),
       ),

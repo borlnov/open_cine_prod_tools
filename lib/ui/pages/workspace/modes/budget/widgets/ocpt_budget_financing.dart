@@ -238,7 +238,10 @@ class OcptBudgetFinancing extends StatelessWidget {
                               icon: Icons.savings_outlined,
                               message: tr.budgetFinancingEmptyHint,
                             )
-                          : ListView(children: [for (final row in rows) _rowOf(row)]),
+                          : ListView.builder(
+                              itemCount: rows.length,
+                              itemBuilder: (context, index) => _rowOf(rows[index]),
+                            ),
                     ),
                     if (!isEmpty)
                       OcptBudgetFinancingTotalRow(

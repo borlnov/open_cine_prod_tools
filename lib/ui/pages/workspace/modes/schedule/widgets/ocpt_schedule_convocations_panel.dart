@@ -89,34 +89,43 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
       return _OcptScheduleConvocationsHint(message: tr.scheduleConvocationsNoConvocationHint);
     }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        for (final (convocation, title) in mainRows)
-          _OcptScheduleConvocationCard(title: title, convocation: convocation, slotById: slotById),
-        if (candidateRows.isNotEmpty) ...[
-          if (mainRows.isNotEmpty) const SizedBox(height: 8),
-          _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsCandidatesSectionTitle),
-          const SizedBox(height: 8),
-          for (final (convocation, title) in candidateRows)
-            _OcptScheduleConvocationCard(
-              title: title,
-              convocation: convocation,
-              slotById: slotById,
-            ),
-        ],
-        if (guestRows.isNotEmpty) ...[
-          if (mainRows.isNotEmpty || candidateRows.isNotEmpty) const SizedBox(height: 8),
-          _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsGuestsSectionTitle),
-          const SizedBox(height: 8),
-          for (final (convocation, title) in guestRows)
-            _OcptScheduleConvocationCard(
-              title: title,
-              convocation: convocation,
-              slotById: slotById,
-            ),
-        ],
+    // One builder per item, so the list constructs only the cards in view.
+    final items = <Widget Function()>[
+      for (final (convocation, title) in mainRows)
+        () => _OcptScheduleConvocationCard(
+          title: title,
+          convocation: convocation,
+          slotById: slotById,
+        ),
+      if (candidateRows.isNotEmpty) ...[
+        if (mainRows.isNotEmpty) () => const SizedBox(height: 8),
+        () =>
+            _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsCandidatesSectionTitle),
+        () => const SizedBox(height: 8),
+        for (final (convocation, title) in candidateRows)
+          () => _OcptScheduleConvocationCard(
+            title: title,
+            convocation: convocation,
+            slotById: slotById,
+          ),
       ],
+      if (guestRows.isNotEmpty) ...[
+        if (mainRows.isNotEmpty || candidateRows.isNotEmpty) () => const SizedBox(height: 8),
+        () => _OcptScheduleConvocationsHeading(title: tr.scheduleConvocationsGuestsSectionTitle),
+        () => const SizedBox(height: 8),
+        for (final (convocation, title) in guestRows)
+          () => _OcptScheduleConvocationCard(
+            title: title,
+            convocation: convocation,
+            slotById: slotById,
+          ),
+      ],
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) => items[index](),
     );
   }
 

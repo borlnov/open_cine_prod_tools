@@ -92,29 +92,37 @@ class OcptElementsList extends StatelessWidget {
 
     final theme = Theme.of(context);
 
-    return ListView(
-      children: [
-        for (final category in OcptElementCategory.values)
-          if (_elementsOf(filtered, category) case final categoryElements
-              when categoryElements.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                ocptElementCategoryLabel(tr, category).toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.6,
-                ),
-              ),
+    // The headings and the elements flattened into one list, each item a category (its heading) or
+    // an element (its row), so the list builds only the rows in view.
+    final items = <Object>[
+      for (final category in OcptElementCategory.values)
+        if (_elementsOf(filtered, category) case final categoryElements
+            when categoryElements.isNotEmpty) ...[
+          category,
+          ...categoryElements,
+        ],
+    ];
+
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) => switch (items[index]) {
+        final OcptElementCategory category => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(
+            ocptElementCategoryLabel(tr, category).toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              letterSpacing: 0.6,
             ),
-            for (final element in categoryElements)
-              _OcptElementEntry(
-                element: element,
-                isSelected: element.id == selectedElementId,
-                onTap: () => onElementSelected(element.id),
-              ),
-          ],
-      ],
+          ),
+        ),
+        final OcptElement element => _OcptElementEntry(
+          element: element,
+          isSelected: element.id == selectedElementId,
+          onTap: () => onElementSelected(element.id),
+        ),
+        _ => const SizedBox.shrink(),
+      },
     );
   }
 

@@ -159,7 +159,10 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
                               const OcptBudgetRegieAllowanceHeaderRow(),
                               const Divider(height: 1),
                               Expanded(
-                                child: ListView(children: [for (final row in rows) _rowOf(row)]),
+                                child: ListView.builder(
+                                  itemCount: rows.length,
+                                  itemBuilder: (context, index) => _rowOf(rows[index]),
+                                ),
                               ),
                               const Divider(height: 1),
                               OcptBudgetRegieAllowanceTotalRow(
