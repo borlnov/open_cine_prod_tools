@@ -56,6 +56,38 @@ class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingSt
     hasTagWriteError: hasTagWriteError ?? this.hasTagWriteError,
   );
 
+  /// Copies this state with the pending anchor and the closed range dropped and the tag write error
+  /// cleared: the interaction starts over.
+  OcptBreakdownTaggingState copyWithTagInteractionReset() => copyWith(
+    forcePendingTagAnchorValue: true,
+    forcePendingTagRangeValue: true,
+    hasTagWriteError: false,
+  );
+
+  /// Copies this state with the pending anchor and the closed range dropped.
+  OcptBreakdownTaggingState copyWithPendingTagCleared() =>
+      copyWith(forcePendingTagAnchorValue: true, forcePendingTagRangeValue: true);
+
+  /// Copies this state with [anchor] as the first word clicked of a range not yet closed.
+  OcptBreakdownTaggingState copyWithPendingTagAnchor({
+    required OcptBreakdownPendingTagAnchor anchor,
+  }) => copyWith(pendingTagAnchor: anchor);
+
+  /// Copies this state with the pending anchor dropped.
+  OcptBreakdownTaggingState copyWithPendingTagAnchorCleared() =>
+      copyWith(forcePendingTagAnchorValue: true);
+
+  /// Copies this state with [range] as the range just closed, the pending anchor dropped and the
+  /// tag write error cleared.
+  OcptBreakdownTaggingState copyWithClosedTagRange({required OcptBreakdownPendingTagRange range}) =>
+      copyWith(forcePendingTagAnchorValue: true, pendingTagRange: range, hasTagWriteError: false);
+
+  /// Copies this state with a tag write error flagged.
+  OcptBreakdownTaggingState copyWithTagWriteError() => copyWith(hasTagWriteError: true);
+
+  /// Copies this state with the tag write error cleared.
+  OcptBreakdownTaggingState copyWithTagWriteErrorCleared() => copyWith(hasTagWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingTagAnchor, pendingTagRange, hasTagWriteError];

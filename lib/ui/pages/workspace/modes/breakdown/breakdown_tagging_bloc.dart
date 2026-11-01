@@ -98,15 +98,9 @@ class OcptBreakdownTaggingBloc
 
     switch (event.modeState.selectionCause) {
       case OcptBreakdownSelectionCause.load:
-        emitter(
-          state.copyWith(
-            forcePendingTagAnchorValue: true,
-            forcePendingTagRangeValue: true,
-            hasTagWriteError: false,
-          ),
-        );
+        emitter(state.copyWithTagInteractionReset());
       case OcptBreakdownSelectionCause.centreView:
-        emitter(state.copyWith(forcePendingTagAnchorValue: true, forcePendingTagRangeValue: true));
+        emitter(state.copyWithPendingTagCleared());
       case OcptBreakdownSelectionCause.none ||
           OcptBreakdownSelectionCause.scene ||
           OcptBreakdownSelectionCause.sceneHeading ||
@@ -161,8 +155,8 @@ class OcptBreakdownTaggingBloc
       await addToModeAndWait(OcptBreakdownAnchorSceneSelectedEvent(sceneId: event.sceneId));
 
       emitter(
-        state.copyWith(
-          pendingTagAnchor: (
+        state.copyWithPendingTagAnchor(
+          anchor: (
             sceneId: event.sceneId,
             wordStartOffset: event.wordStartOffset,
             wordEndOffset: event.wordEndOffset,
@@ -181,7 +175,7 @@ class OcptBreakdownTaggingBloc
     }
     if (scene == null) {
       // Stale click: the anchor's own scene disappeared from a snapshot rebuilt underneath.
-      emitter(state.copyWith(forcePendingTagAnchorValue: true));
+      emitter(state.copyWithPendingTagAnchorCleared());
       return;
     }
 
@@ -211,9 +205,8 @@ class OcptBreakdownTaggingBloc
 
     await modeBloc.flushAllPendingWrites();
     emitter(
-      state.copyWith(
-        forcePendingTagAnchorValue: true,
-        pendingTagRange: (
+      state.copyWithClosedTagRange(
+        range: (
           sceneId: event.sceneId,
           startOffset: tagged.startOffset,
           endOffset: tagged.endOffset,
@@ -221,7 +214,6 @@ class OcptBreakdownTaggingBloc
           closingWordStartOffset: event.wordStartOffset,
           closingWordEndOffset: event.wordEndOffset,
         ),
-        hasTagWriteError: false,
       ),
     );
   }
@@ -233,13 +225,7 @@ class OcptBreakdownTaggingBloc
     OcptBreakdownTagRangeCancelledEvent event,
     Emitter<OcptBreakdownTaggingState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        forcePendingTagAnchorValue: true,
-        forcePendingTagRangeValue: true,
-        hasTagWriteError: false,
-      ),
-    );
+    emitter(state.copyWithTagInteractionReset());
   }
 
   /// Links [OcptBreakdownTaggingState.pendingTagRange]'s own passage to the existing
@@ -276,7 +262,7 @@ class OcptBreakdownTaggingBloc
     );
 
     if (tagId == null) {
-      emitter(state.copyWith(hasTagWriteError: true));
+      emitter(state.copyWithTagWriteError());
       return;
     }
 
@@ -323,7 +309,7 @@ class OcptBreakdownTaggingBloc
     );
 
     if (result == null) {
-      emitter(state.copyWith(hasTagWriteError: true));
+      emitter(state.copyWithTagWriteError());
       return;
     }
 
@@ -366,7 +352,7 @@ class OcptBreakdownTaggingBloc
     );
 
     if (result == null) {
-      emitter(state.copyWith(hasTagWriteError: true));
+      emitter(state.copyWithTagWriteError());
       return;
     }
 
@@ -406,13 +392,7 @@ class OcptBreakdownTaggingBloc
       ),
     );
 
-    emitter(
-      state.copyWith(
-        forcePendingTagAnchorValue: true,
-        forcePendingTagRangeValue: true,
-        hasTagWriteError: false,
-      ),
-    );
+    emitter(state.copyWithTagInteractionReset());
   }
 
   /// Tags one of the selected target's own suggested occurrences, dispatched by a click on the add
@@ -450,7 +430,7 @@ class OcptBreakdownTaggingBloc
     );
 
     if (tagId == null) {
-      emitter(state.copyWith(hasTagWriteError: true));
+      emitter(state.copyWithTagWriteError());
       return;
     }
 
@@ -458,7 +438,7 @@ class OcptBreakdownTaggingBloc
       return;
     }
 
-    emitter(state.copyWith(hasTagWriteError: false));
+    emitter(state.copyWithTagWriteErrorCleared());
   }
 
   /// Dismisses the transient notice that the last tag write — the popover's own link or element
@@ -467,6 +447,6 @@ class OcptBreakdownTaggingBloc
     OcptBreakdownTagWriteErrorDismissedEvent event,
     Emitter<OcptBreakdownTaggingState> emitter,
   ) async {
-    emitter(state.copyWith(hasTagWriteError: false));
+    emitter(state.copyWithTagWriteErrorCleared());
   }
 }
