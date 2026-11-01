@@ -176,11 +176,9 @@ class OcptShotListStoryboardBloc
 
     final isCleared = isSelectionCleared || isPanelGone;
     emitter(
-      state.copyWith(
+      state.copyWithPrunedPanels(
         pendingFieldEdits: pending.length == state.pendingFieldEdits.length ? null : pending,
-        forceSelectedPanelIdValue: isCleared,
-        forceActiveAnnotationToolValue: isCleared,
-        forceSelectedAnnotationIdValue: isCleared,
+        isCleared: isCleared,
       ),
     );
   }
@@ -193,13 +191,7 @@ class OcptShotListStoryboardBloc
     OcptShotListPanelSelectedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        selectedPanelId: event.panelId,
-        forceActiveAnnotationToolValue: true,
-        forceSelectedAnnotationIdValue: true,
-      ),
-    );
+    emitter(state.copyWithSelectedPanel(panelId: event.panelId));
   }
 
   /// Sets the board's common panel height, a view preference held for the session alone.
@@ -207,7 +199,7 @@ class OcptShotListStoryboardBloc
     OcptShotListPanelSizeChangedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
   ) async {
-    emitter(state.copyWith(boardPanelSize: event.size));
+    emitter(state.copyWithBoardPanelSize(size: event.size));
   }
 
   /// Picks a frame through the native "open" dialog, filtered to JPEG and PNG
@@ -245,13 +237,7 @@ class OcptShotListStoryboardBloc
       if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
         return;
       }
-      emitter(
-        state.copyWith(
-          selectedPanelId: panelId,
-          forceActiveAnnotationToolValue: true,
-          forceSelectedAnnotationIdValue: true,
-        ),
-      );
+      emitter(state.copyWithSelectedPanel(panelId: panelId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a storyboard frame onto shot ${event.shotId} "
@@ -259,7 +245,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -294,7 +280,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -348,7 +334,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -405,13 +391,11 @@ class OcptShotListStoryboardBloc
         return;
       }
       emitter(
-        state.copyWith(
+        state.copyWithDeletedPanelEdits(
           // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
           pendingFieldEdits: Map.of(state.pendingFieldEdits)
             ..removeWhere((key, _) => isOfPanel(key)),
-          forceSelectedPanelIdValue: wasSelected,
-          forceActiveAnnotationToolValue: wasSelected,
-          forceSelectedAnnotationIdValue: wasSelected,
+          wasSelected: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -421,7 +405,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -435,9 +419,7 @@ class OcptShotListStoryboardBloc
     Emitter<OcptShotListStoryboardState> emitter,
   ) async {
     final tool = event.tool;
-    emitter(
-      state.copyWith(activeAnnotationTool: tool, forceActiveAnnotationToolValue: tool == null),
-    );
+    emitter(state.copyWithActiveAnnotationTool(tool: tool));
   }
 
   /// Adds a mark of `event.kind` to panel `event.panelId` at the normalised tail/head just dragged
@@ -469,7 +451,7 @@ class OcptShotListStoryboardBloc
       if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
         return;
       }
-      emitter(state.copyWith(selectedAnnotationId: annotationId));
+      emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to draw a ${event.kind} mark onto panel ${event.panelId} "
@@ -477,7 +459,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -508,7 +490,7 @@ class OcptShotListStoryboardBloc
       if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
         return;
       }
-      emitter(state.copyWith(selectedAnnotationId: annotationId));
+      emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a label onto panel ${event.panelId} of project "
@@ -516,7 +498,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -526,7 +508,7 @@ class OcptShotListStoryboardBloc
     OcptShotListAnnotationSelectedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
   ) async {
-    emitter(state.copyWith(selectedAnnotationId: event.annotationId));
+    emitter(state.copyWithSelectedAnnotation(annotationId: event.annotationId));
   }
 
   /// Records the raw text just typed into mark `event.annotationId`'s own text as a pending edit,
@@ -567,11 +549,11 @@ class OcptShotListStoryboardBloc
         return;
       }
       emitter(
-        state.copyWith(
+        state.copyWithDeletedAnnotationEdits(
           // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
           pendingFieldEdits: Map.of(state.pendingFieldEdits)
             ..removeWhere((key, _) => isOfAnnotation(key)),
-          forceSelectedAnnotationIdValue: wasSelected,
+          wasSelected: wasSelected,
         ),
       );
     } catch (error, stackTrace) {
@@ -581,7 +563,7 @@ class OcptShotListStoryboardBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -590,7 +572,7 @@ class OcptShotListStoryboardBloc
     OcptShotListStoryboardWriteErrorDismissedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 
   /// Records [rawValue] as the pending edit of [key], visible immediately, and (re)starts the
@@ -603,7 +585,7 @@ class OcptShotListStoryboardBloc
   }) {
     final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
       ..[key] = rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptShotListStoryboardFieldEditFlushRequestedEvent());
   }
@@ -641,7 +623,7 @@ class OcptShotListStoryboardBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -649,7 +631,7 @@ class OcptShotListStoryboardBloc
       await _writeAllPendingEdits(project: project, pending: pending);
       await modeBloc.reload({OcptShotListReloadScope.storyboard});
       emitter(
-        state.copyWith(
+        state.copyWithFlushedFieldEdits(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,
@@ -664,8 +646,7 @@ class OcptShotListStoryboardBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
-          hasWriteError: true,
+        state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,

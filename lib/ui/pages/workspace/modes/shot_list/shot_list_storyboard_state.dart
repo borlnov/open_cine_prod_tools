@@ -116,6 +116,92 @@ class OcptShotListStoryboardState extends BlocStateForMixin<OcptShotListStoryboa
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
+  /// Copies this state with [pendingFieldEdits] as what is still pending once the panels that are
+  /// gone lost theirs, and the panel selection, the annotation tool and the annotation selection
+  /// dropped when [isCleared].
+  ///
+  /// A null [pendingFieldEdits] keeps the current edits.
+  OcptShotListStoryboardState copyWithPrunedPanels({
+    required Map<OcptShotListPendingEditKey, String>? pendingFieldEdits,
+    required bool isCleared,
+  }) => copyWith(
+    pendingFieldEdits: pendingFieldEdits,
+    forceSelectedPanelIdValue: isCleared,
+    forceActiveAnnotationToolValue: isCleared,
+    forceSelectedAnnotationIdValue: isCleared,
+  );
+
+  /// Copies this state with panel [panelId] selected, the annotation tool and the annotation
+  /// selection dropped.
+  ///
+  /// A null [panelId] keeps the current panel selection.
+  OcptShotListStoryboardState copyWithSelectedPanel({required String? panelId}) => copyWith(
+    selectedPanelId: panelId,
+    forceActiveAnnotationToolValue: true,
+    forceSelectedAnnotationIdValue: true,
+  );
+
+  /// Copies this state with [size] as the board's common panel height.
+  OcptShotListStoryboardState copyWithBoardPanelSize({required OcptStoryboardPanelSize size}) =>
+      copyWith(boardPanelSize: size);
+
+  /// Copies this state after a panel was deleted: [pendingFieldEdits] is what is still pending,
+  /// and the panel selection, the annotation tool and the annotation selection are dropped when
+  /// [wasSelected].
+  OcptShotListStoryboardState copyWithDeletedPanelEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+    required bool wasSelected,
+  }) => copyWith(
+    pendingFieldEdits: pendingFieldEdits,
+    forceSelectedPanelIdValue: wasSelected,
+    forceActiveAnnotationToolValue: wasSelected,
+    forceSelectedAnnotationIdValue: wasSelected,
+  );
+
+  /// Copies this state with [tool] as the active annotation tool, or none when it is null.
+  OcptShotListStoryboardState copyWithActiveAnnotationTool({
+    required OcptStoryboardAnnotationTool? tool,
+  }) => copyWith(activeAnnotationTool: tool, forceActiveAnnotationToolValue: tool == null);
+
+  /// Copies this state with annotation [annotationId] selected.
+  ///
+  /// A null [annotationId] keeps the current annotation selection.
+  OcptShotListStoryboardState copyWithSelectedAnnotation({required String? annotationId}) =>
+      copyWith(selectedAnnotationId: annotationId);
+
+  /// Copies this state after an annotation was deleted: [pendingFieldEdits] is what is still
+  /// pending, and the annotation selection is dropped when [wasSelected].
+  OcptShotListStoryboardState copyWithDeletedAnnotationEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+    required bool wasSelected,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits, forceSelectedAnnotationIdValue: wasSelected);
+
+  /// Copies this state with [pendingFieldEdits] as the comments and texts waiting in the debounce,
+  /// a keystroke later.
+  OcptShotListStoryboardState copyWithTypedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with no field edit left pending.
+  OcptShotListStoryboardState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  OcptShotListStoryboardState copyWithFlushedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// flush left pending.
+  OcptShotListStoryboardState copyToFlushFailed({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the write error raised.
+  OcptShotListStoryboardState copyToWriteFailed() => copyWith(hasWriteError: true);
+
+  /// Copies this state with the write error dismissed.
+  OcptShotListStoryboardState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [
