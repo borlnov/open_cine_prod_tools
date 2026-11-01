@@ -19,8 +19,14 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
   /// Turns an offset into a line.
   final int Function(int offset) lineOf;
 
+  /// How many loops around the node being visited belong to the block.
+  var _loopDepth = 0;
+
   /// How many loops or switches around the node being visited belong to the block.
   var _jumpTargetDepth = 0;
+
+  /// The labels the block declares itself: a jump to one of them stays inside the block.
+  final _ownLabels = <String>{};
 
   /// Class constructor
   _ExitFinder({required this.lineOf});
@@ -32,43 +38,59 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
   void visitFunctionDeclaration(FunctionDeclaration node) {}
 
   @override
+  void visitLabeledStatement(LabeledStatement node) {
+    for (final label in node.labels) {
+      _ownLabels.add(label.label.name);
+    }
+    super.visitLabeledStatement(node);
+  }
+
+  @override
   void visitReturnStatement(ReturnStatement node) {
     exits.add(lineOf(node.offset));
   }
 
   @override
   void visitBreakStatement(BreakStatement node) {
-    if (_jumpTargetDepth == 0) {
+    final label = node.label?.name;
+    if (label != null ? !_ownLabels.contains(label) : _jumpTargetDepth == 0) {
       exits.add(lineOf(node.offset));
     }
   }
 
   @override
   void visitContinueStatement(ContinueStatement node) {
-    if (_jumpTargetDepth == 0) {
+    final label = node.label?.name;
+    if (label != null ? !_ownLabels.contains(label) : _loopDepth == 0) {
       exits.add(lineOf(node.offset));
     }
   }
 
   @override
   void visitForStatement(ForStatement node) {
+    _loopDepth++;
     _jumpTargetDepth++;
     super.visitForStatement(node);
     _jumpTargetDepth--;
+    _loopDepth--;
   }
 
   @override
   void visitWhileStatement(WhileStatement node) {
+    _loopDepth++;
     _jumpTargetDepth++;
     super.visitWhileStatement(node);
     _jumpTargetDepth--;
+    _loopDepth--;
   }
 
   @override
   void visitDoStatement(DoStatement node) {
+    _loopDepth++;
     _jumpTargetDepth++;
     super.visitDoStatement(node);
     _jumpTargetDepth--;
+    _loopDepth--;
   }
 
   @override

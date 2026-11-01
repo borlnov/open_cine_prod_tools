@@ -12,6 +12,9 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
+import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
@@ -202,6 +205,24 @@ void main() {
   });
 
   test("props that cannot be read leave the sequence with none", () async {
+    final database = projectsManager.currentProject!.database;
+    final sequence = mode.state.selectedSequence! as OcptSceneShotSequence;
+    final elementId = (await projectsManager.elementsService.createElement(
+      database: database,
+      name: "Candles",
+      category: OcptElementCategory.prop,
+      sourceKind: OcptElementSourceKind.owned,
+    ))!;
+    await projectsManager.elementsService.addSceneElement(
+      database: database,
+      sceneId: sequence.sceneId,
+      elementId: elementId,
+    );
+    sets.add(
+      OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: mode.state.selectedSequenceId),
+    );
+    await waitUntil(() => sets.state.propsOfSelectedSequence.isNotEmpty);
+
     await projectsManager.currentProject!.database.customStatement(
       "ALTER TABLE scene_elements RENAME TO scene_elements_gone",
     );
