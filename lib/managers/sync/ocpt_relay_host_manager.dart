@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -199,7 +200,11 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
        _propertiesManager = propertiesManager,
        _bindAddress = bindAddress ?? InternetAddress.anyIPv4,
        _lanAddressResolver = lanAddressResolver ?? _defaultLanAddress,
-       _storeFactory = storeFactory ?? OcptRelayStore.new;
+       _storeFactory = storeFactory ?? OcptRelayStore.new,
+       _state = ValueKeeperWithStream<OcptRelayHostState>(
+         value: const OcptRelayHostStopped(),
+         emitUnchangedValue: true,
+       );
 
   final PlatformManager _platformManager;
 
@@ -240,9 +245,13 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// comment for why this is a seam rather than a direct call.
   final OcptRelayStoreFactory _storeFactory;
 
-  OcptRelayHostState _state = const OcptRelayHostStopped();
-  final StreamController<OcptRelayHostState> _controller =
-      StreamController<OcptRelayHostState>.broadcast();
+  /// The current host state and the stream of its changes. It emits even a state equal to the
+  /// previous one: every move this manager makes is reported.
+  final ValueKeeperWithStream<OcptRelayHostState> _state;
+
+  /// Whether [disposeLifeCycle] has closed [_state]: a state set afterwards is dropped, since the
+  /// keeper's closed stream would throw on it.
+  bool _isDisposed = false;
 
   OcptRelayStore? _store;
   HttpServer? _httpServer;
@@ -250,11 +259,11 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
   /// This manager's current host state. [stateStream] never replays it to a new listener — read
   /// this first to seed a fresh subscriber, exactly as this class's own doc comment says.
-  OcptRelayHostState get state => _state;
+  OcptRelayHostState get state => _state.value;
 
   /// Emits every host state this manager moves through from the moment a listener subscribes
   /// onward — never its current value at subscription time (see [state]).
-  Stream<OcptRelayHostState> get stateStream => _controller.stream;
+  Stream<OcptRelayHostState> get stateStream => _state.valueStream;
 
   /// The id of the project currently being hosted, or null when nothing is.
   String? get hostedProjectId => _hostedProjectId;
@@ -565,7 +574,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     // back to a project that is already being hosted would call [startHosting] again, which tears
     // the relay down and rebinds it on a fresh port — stranding every peer already connected to the
     // old one (`docs/architecture/sync.md`).
-    if (_state is OcptRelayHostOnline && _hostedProjectId == projectId) {
+    if (_state.value is OcptRelayHostOnline && _hostedProjectId == projectId) {
       return;
     }
 
@@ -600,9 +609,8 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   }
 
   void _setState(OcptRelayHostState state) {
-    _state = state;
-    if (!_controller.isClosed) {
-      _controller.add(state);
+    if (!_isDisposed) {
+      _state.value = state;
     }
   }
 
@@ -637,8 +645,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   @override
   Future<void> disposeLifeCycle() async {
     await stopHosting();
-    if (!_controller.isClosed) {
-      await _controller.close();
+    if (!_isDisposed) {
+      _isDisposed = true;
+      await _state.disposeLifeCycle();
     }
 
     return super.disposeLifeCycle();

@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:async';
-
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -51,17 +50,29 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// The logger every recorded entry is forwarded to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
 
-  final List<OcptDiagnosticsEntry> _entries = [];
-  final StreamController<List<OcptDiagnosticsEntry>> _controller =
-      StreamController<List<OcptDiagnosticsEntry>>.broadcast();
+  /// The buffer and its change stream. It holds an unmodifiable snapshot that is replaced on every
+  /// change, and emits even when the snapshot compares equal to the previous one (lists compare by
+  /// identity, so a replacement never does, but a cleared buffer cleared again must still emit).
+  final ValueKeeperWithStream<List<OcptDiagnosticsEntry>> _entries;
+
+  /// Whether [disposeLifeCycle] has closed the stream: an entry recorded afterwards still reaches
+  /// the logger, but neither the buffer nor the stream.
+  bool _isDisposed = false;
+
+  /// Builds a manager with an empty buffer.
+  OcptDiagnosticsManager()
+    : _entries = ValueKeeperWithStream<List<OcptDiagnosticsEntry>>(
+        value: List.unmodifiable(<OcptDiagnosticsEntry>[]),
+        emitUnchangedValue: true,
+      );
 
   /// Every entry recorded so far, oldest first, capped at [ocptDiagnosticsBufferCap] — an
   /// unmodifiable view, so a caller can never mutate this manager's own buffer directly.
-  List<OcptDiagnosticsEntry> get entries => List.unmodifiable(_entries);
+  List<OcptDiagnosticsEntry> get entries => _entries.value;
 
   /// Emits the full, oldest-first entry list every time it changes ([record]/[clear]) — never its
   /// current value at subscription time (see this class's own doc comment).
-  Stream<List<OcptDiagnosticsEntry>> get entriesStream => _controller.stream;
+  Stream<List<OcptDiagnosticsEntry>> get entriesStream => _entries.valueStream;
 
   /// Appends one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
   /// exceeded, and broadcasts the updated list on [entriesStream].
@@ -86,18 +97,19 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     String? logMessage,
     bool isRoutine = false,
   }) {
-    _entries.add(
+    final updated = [
+      ..._entries.value,
       OcptDiagnosticsEntry(
         time: DateTime.now(),
         category: category,
         level: level,
         message: message,
       ),
-    );
-    if (_entries.length > ocptDiagnosticsBufferCap) {
-      _entries.removeAt(0);
+    ];
+    if (updated.length > ocptDiagnosticsBufferCap) {
+      updated.removeAt(0);
     }
-    _emit();
+    _store(updated);
 
     _forwardToLogger(
       category: category,
@@ -132,14 +144,17 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// Empties the buffer and broadcasts the (now empty) list on [entriesStream] — what
   /// `OcptDiagnosticsLogList`'s own "clear" button calls.
   void clear() {
-    _entries.clear();
-    _emit();
+    _store([]);
   }
 
-  void _emit() {
-    if (!_controller.isClosed) {
-      _controller.add(entries);
+  /// Replaces the buffer by [updated] and broadcasts it, unless this manager is disposed.
+  void _store(List<OcptDiagnosticsEntry> updated) {
+    if (_isDisposed) {
+      // The keeper's stream is closed, and writing to it would throw.
+      return;
     }
+
+    _entries.value = List.unmodifiable(updated);
   }
 
   /// Records [message] against [category]/[level] through the registered [OcptDiagnosticsManager]
@@ -176,8 +191,9 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override
   Future<void> disposeLifeCycle() async {
-    if (!_controller.isClosed) {
-      await _controller.close();
+    if (!_isDisposed) {
+      _isDisposed = true;
+      await _entries.disposeLifeCycle();
     }
 
     return super.disposeLifeCycle();

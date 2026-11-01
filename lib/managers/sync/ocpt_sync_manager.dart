@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_life_cycle/act_life_cycle.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
@@ -151,6 +152,11 @@ class OcptSyncManager extends AbsWithLifeCycle {
     required OcptSnapshotService? snapshotService,
     required OcptPairingService? pairingService,
   }) : _logger = logger,
+       _syncStatus = ValueKeeperWithStream<OcptSyncStatus?>(value: null, emitUnchangedValue: true),
+       _presenceRoster = ValueKeeperWithStream<OcptPresenceRoster?>(
+         value: null,
+         emitUnchangedValue: true,
+       ),
        changesetService =
            changesetService ??
            OcptChangesetService(
@@ -201,20 +207,21 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
   /// the new session's status onto it (seeded with the current one), and [stopSyncSession] closes
   /// it out with a null.
-  final StreamController<OcptSyncStatus?> _syncStatusController =
-      StreamController<OcptSyncStatus?>.broadcast();
+  ///
+  /// It emits every value it is given, even one equal to the previous: a session reporting the
+  /// same status again is still reported.
+  final ValueKeeperWithStream<OcptSyncStatus?> _syncStatus;
 
   /// The subscription piping the running session's [OcptSyncSession.statusStream] onto
-  /// [_syncStatusController], cancelled when the session stops.
+  /// [_syncStatus], cancelled when the session stops.
   StreamSubscription<OcptSyncStatus>? _sessionStatusForwarder;
 
   /// Emits this manager's presence roster across the whole session lifecycle — the presence
-  /// counterpart of [_syncStatusController], for the same reason.
-  final StreamController<OcptPresenceRoster?> _presenceRosterController =
-      StreamController<OcptPresenceRoster?>.broadcast();
+  /// counterpart of [_syncStatus], for the same reason.
+  final ValueKeeperWithStream<OcptPresenceRoster?> _presenceRoster;
 
   /// The subscription piping the running presence service's [OcptPresenceService.rosterStream] onto
-  /// [_presenceRosterController], cancelled when the service stops.
+  /// [_presenceRoster], cancelled when the service stops.
   StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
 
   /// Opens the relay transport [pairing] describes, for [projectId].
@@ -649,9 +656,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
     }
     // Pipe the new session's status onto the manager-level stream, seeded with the current one, so
     // an indicator built before this session started still learns about it — see
-    // [_syncStatusController].
-    _sessionStatusForwarder = session.statusStream.listen(_syncStatusController.add);
-    _syncStatusController.add(session.status);
+    // [_syncStatus].
+    _sessionStatusForwarder = session.statusStream.listen((status) => _syncStatus.value = status);
+    _syncStatus.value = session.status;
 
     final presenceService = OcptPresenceService(
       logger: _logger.createSubLogger(subCategory: 'presence'),
@@ -664,8 +671,10 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
     await presenceService.initLifeCycle();
     await presenceService.start();
-    _presenceRosterForwarder = presenceService.rosterStream.listen(_presenceRosterController.add);
-    _presenceRosterController.add(presenceService.roster);
+    _presenceRosterForwarder = presenceService.rosterStream.listen(
+      (roster) => _presenceRoster.value = roster,
+    );
+    _presenceRoster.value = presenceService.roster;
 
     _logger.i("A sync session started for project $projectId");
   }
@@ -725,8 +734,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await presenceService?.disposeLifeCycle();
 
     if (hadSession) {
-      _syncStatusController.add(null);
-      _presenceRosterController.add(null);
+      _syncStatus.value = null;
+      _presenceRoster.value = null;
       _logger.i("The sync session stopped");
     }
   }
@@ -756,7 +765,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// truth as sessions start and stop underneath it. This is what the workspace's own status
   /// indicator listens to, since its session starts only *after* the workspace has already been
   /// built.
-  Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatusController.stream;
+  Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatus.valueStream;
 
   // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
   // https://github.com/borlnov/open_cine_prod_tools/issues/116
@@ -775,7 +784,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The presence roster across the whole session lifecycle — the presence counterpart of
   /// [syncStatusChanges], and what the workspace's own presence indicator listens to for the same
   /// reason. Seed a fresh subscriber with [presenceRoster].
-  Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRosterController.stream;
+  Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRoster.valueStream;
 
   /// Tells the running presence service this replica's own [mode] just changed, so it reaches
   /// every peer on the very next heartbeat rather than waiting for the current one to age. Does
@@ -787,8 +796,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   Future<void> disposeLifeCycle() async {
     _logger.i("The sync manager is being disposed");
     await stopSyncSession();
-    await _syncStatusController.close();
-    await _presenceRosterController.close();
+    await _syncStatus.disposeLifeCycle();
+    await _presenceRoster.disposeLifeCycle();
     await _pairingService?.disposeLifeCycle();
     await snapshotService.disposeLifeCycle();
     await changesetService.disposeLifeCycle();
