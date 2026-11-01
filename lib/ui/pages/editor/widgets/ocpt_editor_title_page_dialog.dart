@@ -25,6 +25,8 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorTitlePageDialog({required this.current, super.key});
 
+  /// Create the [_OcptEditorTitlePageDialogState] holding the state of the editor title page
+  /// dialog.
   @override
   State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
 
@@ -69,6 +71,7 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
   /// The controller of the Source field.
   final _sourceController = TextEditingController();
 
+  /// Fill the title page fields from the entries of the title page the dialog opened with.
   @override
   void initState() {
     super.initState();
@@ -82,6 +85,7 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     _sourceController.text = current?.entry('Source')?.joinedValue ?? '';
   }
 
+  /// Build the editor title page dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -148,6 +152,8 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     ));
   }
 
+  /// Dispose [_titleController], [_creditController], [_authorController], [_draftDateController],
+  /// [_contactController] and [_sourceController].
   @override
   void dispose() {
     _titleController.dispose();

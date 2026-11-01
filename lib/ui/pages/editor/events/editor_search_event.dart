@@ -24,7 +24,7 @@ class OcptEditorSearchOpenedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchOpenedEvent({required this.withReplaceRow});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, withReplaceRow];
 }
@@ -55,7 +55,7 @@ class OcptEditorSearchQueryChangedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchQueryChangedEvent({required this.query});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, query];
 }
@@ -68,7 +68,7 @@ class OcptEditorSearchReplacementChangedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchReplacementChangedEvent({required this.replacement});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, replacement];
 }
@@ -98,7 +98,7 @@ class OcptEditorSearchMatchesReportedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchMatchesReportedEvent({required this.matchCount});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, matchCount];
 }
@@ -136,7 +136,7 @@ class OcptEditorSearchCurrentMatchSelectedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchCurrentMatchSelectedEvent({required this.index});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, index];
 }

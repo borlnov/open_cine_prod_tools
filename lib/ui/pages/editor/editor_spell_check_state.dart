@@ -75,7 +75,7 @@ class OcptEditorSpellCheckState extends BlocStateForMixin<OcptEditorSpellCheckSt
   OcptEditorSpellCheckState copyWithStyledRanges({required Map<String, List<SpellRange>> ranges}) =>
       copyWith(styledSpellCheckRanges: ranges);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, rawSpellCheckRanges, styledSpellCheckRanges];
 }

@@ -52,6 +52,7 @@ final class OcptWysiwygTitlePage {
     endOffset: 0,
   );
 
+  /// Private constructor: this class only exposes static members.
   const OcptWysiwygTitlePage._();
 
   /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per

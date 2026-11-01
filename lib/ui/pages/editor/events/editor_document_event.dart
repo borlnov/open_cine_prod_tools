@@ -20,7 +20,7 @@ class OcptEditorTextChangedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorTextChangedEvent({required this.text});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, text];
 }
@@ -46,7 +46,7 @@ class OcptEditorSaveRequestedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorSaveRequestedEvent({required this.isManual});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, isManual];
 }
@@ -61,7 +61,7 @@ class OcptEditorCaretMovedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorCaretMovedEvent({required this.line});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, line];
 }
@@ -77,7 +77,7 @@ class OcptEditorSceneJumpRequestedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorSceneJumpRequestedEvent({required this.charOffset});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, charOffset];
 }
@@ -142,7 +142,7 @@ class OcptEditorTitlePageChangedEvent extends OcptEditorDocumentEvent {
     required this.source,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, title, credit, author, draftDate, contact, source];
 }
@@ -168,7 +168,7 @@ class OcptEditorImportedTextAppliedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorImportedTextAppliedEvent({required this.text});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, text];
 }

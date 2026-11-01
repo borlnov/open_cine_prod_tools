@@ -62,6 +62,7 @@ class OcptPageSheetsPainter extends CustomPainter {
     required this.scrollOffset,
   });
 
+  /// Paint one white rounded sheet per page, shifted by the scroll offset, with its page number.
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.white;
@@ -87,6 +88,9 @@ class OcptPageSheetsPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// Repaint when [oldDelegate] differs in the page count, the sheet geometry, the number style or
+  /// the
+  /// scroll offset.
   @override
   bool shouldRepaint(covariant OcptPageSheetsPainter oldDelegate) =>
       oldDelegate.pageCount != pageCount ||

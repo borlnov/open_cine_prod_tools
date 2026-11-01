@@ -71,6 +71,7 @@ class OcptEditorPage extends StatelessWidget {
   /// Creates the editor page.
   const OcptEditorPage({super.key});
 
+  /// Build the editor page as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -142,6 +143,7 @@ class _EditorView extends StatefulWidget {
   /// Class constructor
   const _EditorView();
 
+  /// Create the [_EditorViewState] holding the state of the editor view.
   @override
   State<_EditorView> createState() => _EditorViewState();
 }
@@ -258,6 +260,9 @@ class _EditorViewState extends State<_EditorView> {
   /// room than a phone, but still not the width a real screenplay page wants.
   bool get _isCompactWidth => ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
 
+  /// Register [_onTextControllerChanged] as a listener of [_textController] and
+  /// [_onStyledEditorControllerChanged] as a listener of [_styledEditorController] and
+  /// [_onRawHistoryChanged] as a listener of [_undoHistoryController].
   @override
   void initState() {
     super.initState();
@@ -266,6 +271,7 @@ class _EditorViewState extends State<_EditorView> {
     _undoHistoryController.addListener(_onRawHistoryChanged);
   }
 
+  /// Build the editor view as a [Shortcuts].
   @override
   Widget build(BuildContext context) => Shortcuts(
     shortcuts: const {
@@ -869,6 +875,10 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
+  /// Dispose [_textController], [_editorScrollController] and [_editorFocusNode], detach
+  /// [_onRawHistoryChanged] from [_undoHistoryController], dispose [_undoHistoryController], detach
+  /// [_onStyledEditorControllerChanged] from [_styledEditorController], then dispose
+  /// [_styledEditorController] and [_dockLayoutController].
   @override
   void dispose() {
     _textController.dispose();

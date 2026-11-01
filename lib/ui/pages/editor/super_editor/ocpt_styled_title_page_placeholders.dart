@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 
 /// The placeholders a styled editor shows on its empty title-page fields.
 final class OcptStyledTitlePagePlaceholders {
+  /// Private constructor: this class only exposes static members.
   const OcptStyledTitlePagePlaceholders._();
 
   /// The placeholder text shown on an empty title-page field, keyed by

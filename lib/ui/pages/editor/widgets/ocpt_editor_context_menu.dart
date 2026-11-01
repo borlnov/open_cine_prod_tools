@@ -98,6 +98,7 @@ class OcptEditorContextMenu extends StatelessWidget {
     required this.child,
   });
 
+  /// Build the editor context menu as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

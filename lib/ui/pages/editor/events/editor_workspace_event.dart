@@ -34,7 +34,7 @@ class OcptEditorRightDockTabSelectedEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -75,7 +75,7 @@ class OcptEditorDockFractionsChangedEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorDockFractionsChangedEvent({this.left, this.right});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, left, right];
 }
@@ -138,7 +138,7 @@ class OcptEditorPageSetupChangedEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorPageSetupChangedEvent({required this.pageSetup});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, pageSetup];
 }

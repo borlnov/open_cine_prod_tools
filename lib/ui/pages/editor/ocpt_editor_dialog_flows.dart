@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// every localized word here — the last place with a [BuildContext] — and hands the blocs plain
 /// events. An irreversible action is always confirmed through `OcptConfirmDialog`.
 class OcptEditorDialogFlows {
+  /// Private constructor: this class only exposes static members.
   OcptEditorDialogFlows._();
 
   /// Shows the import confirmation dialog, then dispatches the import request if the user

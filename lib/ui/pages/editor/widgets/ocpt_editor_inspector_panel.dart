@@ -39,6 +39,7 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     required this.statistics,
   });
 
+  /// Build the editor inspector panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

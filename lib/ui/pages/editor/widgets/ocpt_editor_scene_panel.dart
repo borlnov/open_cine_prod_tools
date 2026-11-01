@@ -35,6 +35,7 @@ class OcptEditorScenePanel extends StatelessWidget {
     required this.onSceneSelected,
   });
 
+  /// Build the editor scene panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -102,6 +103,7 @@ class _SceneEntry extends StatelessWidget {
   /// Class constructor
   const _SceneEntry({required this.scene, required this.isCurrent, required this.onTap});
 
+  /// Build the scene entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

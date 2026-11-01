@@ -689,7 +689,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
       mode == OcptEditorMode.raw && !isReadOnly;
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

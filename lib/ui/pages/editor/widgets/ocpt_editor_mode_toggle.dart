@@ -22,6 +22,7 @@ class OcptEditorModeToggle extends StatelessWidget {
   /// Class constructor
   const OcptEditorModeToggle({required this.mode, required this.onPressed, super.key});
 
+  /// Build the editor mode toggle as an [IconButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

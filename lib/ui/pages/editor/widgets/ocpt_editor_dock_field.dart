@@ -18,6 +18,7 @@ class OcptEditorDockField extends StatelessWidget {
   /// Class constructor
   const OcptEditorDockField({super.key, required this.label, required this.value});
 
+  /// Build the editor dock field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

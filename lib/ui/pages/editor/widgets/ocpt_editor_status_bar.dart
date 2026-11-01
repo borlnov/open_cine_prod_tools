@@ -21,6 +21,7 @@ class OcptEditorStatusBar extends StatelessWidget {
   /// Class constructor
   const OcptEditorStatusBar({required this.lastSavedAt, super.key});
 
+  /// Build the editor status bar as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

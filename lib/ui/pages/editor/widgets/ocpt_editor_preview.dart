@@ -59,6 +59,7 @@ class OcptEditorPreview extends StatefulWidget {
     required this.isPageSimulationEnabled,
   });
 
+  /// Create the [_OcptEditorPreviewState] holding the state of the editor preview.
   @override
   State<OcptEditorPreview> createState() => _OcptEditorPreviewState();
 }
@@ -100,6 +101,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// The layout metrics matching the project's page setup.
   FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
 
+  /// Scroll the preview to the current line after the frame when the line or the document changes.
   @override
   void didUpdateWidget(OcptEditorPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -108,6 +110,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
   }
 
+  /// Build the editor preview as a [ColoredBox].
   @override
   Widget build(BuildContext context) {
     final layout = OcptEditorPreviewLayout(metrics: _metrics);
@@ -409,6 +412,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     return candidate;
   }
 
+  /// Dispose [_scrollController].
   @override
   void dispose() {
     _scrollController.dispose();

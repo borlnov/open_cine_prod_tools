@@ -39,6 +39,7 @@ class OcptStyledScaledToFit extends StatelessWidget {
     required this.page,
   });
 
+  /// Build the styled scaled to fit as a [FittedBox].
   @override
   Widget build(BuildContext context) {
     final sizedPage = SizedBox(width: pageWidth, child: page);

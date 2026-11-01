@@ -72,7 +72,7 @@ class OcptEditorStatisticsState extends BlocStateForMixin<OcptEditorStatisticsSt
     required FountainScriptStatistics statistics,
   }) => copyWith(statistics: statistics);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, statistics, sceneStatistics];
 }

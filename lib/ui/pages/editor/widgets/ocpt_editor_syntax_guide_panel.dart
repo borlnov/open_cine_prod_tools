@@ -20,6 +20,7 @@ class OcptEditorSyntaxGuidePanel extends StatelessWidget {
   /// Class constructor
   const OcptEditorSyntaxGuidePanel({super.key});
 
+  /// Build the editor syntax guide panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,6 +71,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
   /// Class constructor
   const _OcptSyntaxGuideEntry({required this.entry, required this.tr, required this.theme});
 
+  /// Build the syntax guide entry as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 16),

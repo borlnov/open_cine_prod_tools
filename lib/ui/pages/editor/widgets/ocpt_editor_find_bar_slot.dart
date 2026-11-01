@@ -38,6 +38,7 @@ class OcptEditorFindBarSlot extends StatelessWidget {
     super.key,
   });
 
+  /// Build the editor find bar slot as a [BlocBuilder].
   @override
   Widget build(BuildContext context) => BlocBuilder<OcptEditorSearchBloc, OcptEditorSearchState>(
     builder: (context, search) {

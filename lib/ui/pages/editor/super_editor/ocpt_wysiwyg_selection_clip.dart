@@ -7,6 +7,7 @@ import 'package:super_editor/super_editor.dart';
 /// Clips a document selection to the paragraph nodes it spans, for the clipboard export of
 /// `OcptWysiwygCodec.encodeSelectionToFountain`.
 final class OcptWysiwygSelectionClip {
+  /// Private constructor: this class only exposes static members.
   const OcptWysiwygSelectionClip._();
 
   /// The [ParagraphNode]s [selection] spans in [document], in document order, with the first and

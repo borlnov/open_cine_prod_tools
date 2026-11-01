@@ -145,7 +145,7 @@ class OcptEditorSearchState extends BlocStateForMixin<OcptEditorSearchState> {
   OcptEditorSearchState copyWithCurrentMatch({required int currentMatchIndex}) =>
       copyWith(currentMatchIndex: currentMatchIndex);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

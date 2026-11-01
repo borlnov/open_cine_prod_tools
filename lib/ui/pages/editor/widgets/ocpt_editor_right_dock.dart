@@ -61,6 +61,7 @@ class OcptEditorRightDock extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the editor right dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -148,6 +149,7 @@ class _OcptRightDockTabLabel extends StatelessWidget {
   /// Class constructor
   const _OcptRightDockTabLabel({required this.label, required this.isActive, required this.onTap});
 
+  /// Build the right dock tab label as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

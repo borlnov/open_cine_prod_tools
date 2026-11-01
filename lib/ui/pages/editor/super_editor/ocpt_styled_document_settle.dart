@@ -9,6 +9,7 @@ import 'package:super_editor/super_editor.dart';
 /// Settles a styled editor's document after an edit, the pass its text sync and its flush both
 /// need before the text can safely be encoded.
 final class OcptStyledDocumentSettle {
+  /// Private constructor: this class only exposes static members.
   const OcptStyledDocumentSettle._();
 
   /// Brings every node of [document] (executed through [editor]) to the same settled state

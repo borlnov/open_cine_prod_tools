@@ -50,6 +50,7 @@ class OcptEditorMetadataPanel extends StatelessWidget {
     required this.onEditTitlePage,
   });
 
+  /// Build the editor metadata panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

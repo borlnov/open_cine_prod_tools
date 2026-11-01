@@ -14,6 +14,7 @@ const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainN
 /// Converts between Fountain styled runs and super_editor attributed text, the inline half of
 /// `OcptWysiwygCodec`.
 final class OcptWysiwygInlineRuns {
+  /// Private constructor: this class only exposes static members.
   const OcptWysiwygInlineRuns._();
 
   /// Converts [runs] into an `AttributedText`, applying [boldAttribution], [italicsAttribution],

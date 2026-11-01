@@ -38,7 +38,7 @@ class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorSpellCheckEvent 
     required this.ranges,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, generation, checkedText, ranges];
 }
@@ -59,7 +59,7 @@ class OcptEditorStyledSpellCheckTextsReportedEvent extends OcptEditorSpellCheckE
   /// Class constructor
   const OcptEditorStyledSpellCheckTextsReportedEvent({required this.textsByNodeId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, textsByNodeId];
 }
@@ -90,7 +90,7 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorSpellCheck
     required this.ranges,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, generation, ranges];
 }
@@ -111,7 +111,7 @@ class OcptEditorWordIgnoredEvent extends OcptEditorSpellCheckEvent {
   /// Class constructor
   const OcptEditorWordIgnoredEvent({required this.word});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, word];
 }
@@ -131,7 +131,7 @@ class OcptEditorWordLearnedEvent extends OcptEditorSpellCheckEvent {
   /// Class constructor
   const OcptEditorWordLearnedEvent({required this.word});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, word];
 }

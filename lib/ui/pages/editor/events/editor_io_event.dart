@@ -38,7 +38,7 @@ class OcptEditorExportRequestedEvent extends OcptEditorIoEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel, episodeTag, shareAnchor];
 }
@@ -71,7 +71,7 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorIoEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag, shareAnchor];
 }
@@ -87,7 +87,7 @@ class OcptEditorImportRequestedEvent extends OcptEditorIoEvent {
   /// Class constructor
   const OcptEditorImportRequestedEvent({required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, fileTypeLabel];
 }

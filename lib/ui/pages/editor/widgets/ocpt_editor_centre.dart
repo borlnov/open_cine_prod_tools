@@ -97,6 +97,7 @@ class OcptEditorCentre extends StatelessWidget {
     super.key,
   });
 
+  /// Build the editor centre as a [Column].
   @override
   Widget build(BuildContext context) {
     if (state.isPreviewingVersion) {

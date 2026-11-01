@@ -30,6 +30,7 @@ class OcptStyledFluidSurface extends StatelessWidget {
     required this.editor,
   });
 
+  /// Build the styled fluid surface as a [Scrollbar].
   @override
   Widget build(BuildContext context) => Scrollbar(
     controller: scrollController,

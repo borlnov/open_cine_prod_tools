@@ -114,6 +114,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   }) : _rowShiftByNodeId = {},
        _placeholderFieldKeyByNodeId = {};
 
+  /// Create the view model of a title-page paragraph, and remember the row shift of the fields that
+  /// need one and the nodes that start a field, whose placeholder is shown.
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {
     if (node is! ParagraphNode || !OcptWysiwygCodec.isTitlePageNode(node)) {
@@ -144,6 +146,9 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
     return super.createViewModel(document, node);
   }
 
+  /// Create the paragraph component of a title-page field, showing the placeholder behind it while
+  /// it
+  /// is empty and shifting it up by its remembered row shift.
   @override
   Widget? createComponent(
     SingleColumnDocumentComponentContext componentContext,

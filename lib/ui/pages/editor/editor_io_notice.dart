@@ -25,7 +25,7 @@ class OcptEditorIoNotice extends Equatable {
   /// Class constructor
   const OcptEditorIoNotice({required this.kind, this.path, this.wasShared = false});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, path, wasShared];
 }

@@ -36,6 +36,7 @@ class OcptEditorDockTabToggle extends StatelessWidget {
     super.key,
   });
 
+  /// Build the editor dock tab toggle as an [IconButton].
   @override
   Widget build(BuildContext context) => IconButton(
     icon: Icon(isActive ? activeIcon : inactiveIcon, size: 20),

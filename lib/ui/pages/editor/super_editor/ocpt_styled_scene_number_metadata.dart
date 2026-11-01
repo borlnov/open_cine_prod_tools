@@ -9,6 +9,7 @@ import 'package:super_editor/super_editor.dart';
 
 /// Reads the scene numbers a styled editor's gutter shows off its document's node metadata.
 final class OcptStyledSceneNumberMetadata {
+  /// Private constructor: this class only exposes static members.
   const OcptStyledSceneNumberMetadata._();
 
   /// The scene number to show next to every scene-heading node currently in [document], keyed

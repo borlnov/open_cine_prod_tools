@@ -104,6 +104,7 @@ class OcptEditorFindBar extends StatefulWidget {
     required this.onCloseRequested,
   });
 
+  /// Create the [_OcptEditorFindBarState] holding the state of the editor find bar.
   @override
   State<OcptEditorFindBar> createState() => _OcptEditorFindBarState();
 }
@@ -132,12 +133,15 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
   /// The last [OcptEditorFindBar.focusRequestId] applied, so a request is only applied once.
   int? _lastAppliedFocusRequestId;
 
+  /// Move the focus to the find field when a new focus request arrived.
   @override
   void initState() {
     super.initState();
     _applyFocusRequestIfNeeded();
   }
 
+  /// Mirror the query and replacement of the widget into their fields, then apply any focus
+  /// request.
   @override
   void didUpdateWidget(covariant OcptEditorFindBar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -151,6 +155,7 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
     _applyFocusRequestIfNeeded();
   }
 
+  /// Build the editor find bar as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -294,6 +299,7 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
     });
   }
 
+  /// Dispose [_findController], [_replaceController] and [_findFocusNode].
   @override
   void dispose() {
     _findController.dispose();
@@ -329,6 +335,7 @@ class _OcptSearchOptionToggle extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the search option toggle as an [IconButton].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

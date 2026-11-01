@@ -26,6 +26,7 @@ class OcptEditorFormatOverflowMenu extends StatelessWidget {
   /// Class constructor
   const OcptEditorFormatOverflowMenu({super.key, required this.controller});
 
+  /// Build the editor format overflow menu as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,

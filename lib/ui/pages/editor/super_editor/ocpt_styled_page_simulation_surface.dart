@@ -45,6 +45,7 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
     required this.editor,
   });
 
+  /// Build the styled page simulation surface as a [Scrollbar].
   @override
   Widget build(BuildContext context) {
     // Page simulation: the document is centered at the physical page width, with a themed

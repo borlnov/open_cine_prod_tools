@@ -24,6 +24,8 @@ class OcptEditorPageSetupDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorPageSetupDialog({required this.current, super.key});
 
+  /// Create the [_OcptEditorPageSetupDialogState] holding the state of the editor page setup
+  /// dialog.
   @override
   State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
 
@@ -56,6 +58,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
   /// The controller of the bottom margin text field.
   final _bottomController = TextEditingController();
 
+  /// Fill the format and the four margin fields from the page setup the dialog opened with.
   @override
   void initState() {
     super.initState();
@@ -67,6 +70,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     _bottomController.text = margins.bottomInches.toString();
   }
 
+  /// Build the editor page setup dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -300,6 +304,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     globalGetIt().get<OcptRouterManager>().pop<OcptPageSetup>(setup);
   }
 
+  /// Dispose [_leftController], [_rightController], [_topController] and [_bottomController].
   @override
   void dispose() {
     _leftController.dispose();

@@ -29,6 +29,7 @@ class OcptEditorBlockTypeDropdown extends StatelessWidget {
     required this.onTypeSelected,
   });
 
+  /// Build the editor block type dropdown as a [Focus].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

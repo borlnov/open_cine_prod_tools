@@ -26,6 +26,8 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorExportPdfOptionsDialog({required this.current, super.key});
 
+  /// Create the [_OcptEditorExportPdfOptionsDialogState] holding the state of the editor export PDF
+  /// options dialog.
   @override
   State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();
 
@@ -51,12 +53,14 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
   /// Whether a title page will be included in the exported PDF.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the editor export PDF options dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

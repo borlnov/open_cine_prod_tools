@@ -57,7 +57,7 @@ class OcptEditorSearchQuery extends Equatable {
     isWholeWord: isWholeWord,
   );
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [query, isCaseSensitive, isWholeWord];
 }

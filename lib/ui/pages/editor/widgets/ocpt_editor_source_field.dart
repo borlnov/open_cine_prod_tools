@@ -47,6 +47,7 @@ class OcptEditorSourceField extends StatelessWidget {
     required this.undoController,
   });
 
+  /// Build the editor source field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,

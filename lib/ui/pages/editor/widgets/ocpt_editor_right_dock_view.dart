@@ -43,6 +43,7 @@ class OcptEditorRightDockView extends StatelessWidget {
     super.key,
   });
 
+  /// Build the editor right dock view as an [OcptEditorRightDock].
   @override
   Widget build(BuildContext context) {
     final rightDockTab = state.rightDockTab!;

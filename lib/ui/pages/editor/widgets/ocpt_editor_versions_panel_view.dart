@@ -21,6 +21,7 @@ class OcptEditorVersionsPanelView extends StatelessWidget {
   /// Class constructor
   const OcptEditorVersionsPanelView({required this.state, super.key});
 
+  /// Build the editor versions panel view as an [OcptProjectVersionsPanel].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptEditorBloc>();

@@ -20,7 +20,7 @@ class OcptEditorJumpRequest extends Equatable {
   /// Class constructor
   const OcptEditorJumpRequest({required this.charOffset, required this.id});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [charOffset, id];
 }

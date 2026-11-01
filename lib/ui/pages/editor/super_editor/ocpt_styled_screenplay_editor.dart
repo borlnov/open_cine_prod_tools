@@ -169,6 +169,8 @@ class OcptStyledScreenplayEditor extends StatefulWidget {
     this.onWordLearned,
   });
 
+  /// Create the [_OcptStyledScreenplayEditorState] holding the state of the styled screenplay
+  /// editor.
   @override
   State<OcptStyledScreenplayEditor> createState() => _OcptStyledScreenplayEditorState();
 }
@@ -360,6 +362,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   @override
   bool get canRedo => _history.canRedo;
 
+  /// Build the editor from the screenplay text, number the scenes, paginate, attach to the
+  /// controller and report the first read state and spell-check texts.
   @override
   void initState() {
     super.initState();
@@ -372,6 +376,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _maybeApplyPendingJumpRequest();
   }
 
+  /// Rebuild the editor when the text or the page simulation changes, repaginate when the page
+  /// setup
+  /// changes, and move the controller attachment when the controller changes.
   @override
   void didUpdateWidget(covariant OcptStyledScreenplayEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -436,6 +443,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _maybeApplyPendingJumpRequest();
   }
 
+  /// Flush the pending text sync before the editor leaves the tree.
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (including the
@@ -447,6 +455,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     super.deactivate();
   }
 
+  /// Build the styled screenplay editor as an [OcptEditorContextMenu].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -976,6 +985,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
+  /// Detach from the controller, stop the sync timer, then dispose the editor, [_focusNode] and
+  /// [_pageScrollController].
   @override
   void dispose() {
     widget.styledController?.detach(this);

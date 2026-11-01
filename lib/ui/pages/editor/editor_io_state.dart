@@ -29,7 +29,7 @@ class OcptEditorIoState extends BlocStateForMixin<OcptEditorIoState> {
   /// Copies this state with the shown notice cleared.
   OcptEditorIoState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, ioNotice];
 }

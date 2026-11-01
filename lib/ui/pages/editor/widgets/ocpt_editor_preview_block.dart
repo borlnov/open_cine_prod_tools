@@ -67,6 +67,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// Class constructor
   const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
 
+  /// Build the editor preview block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final content = switch (block) {

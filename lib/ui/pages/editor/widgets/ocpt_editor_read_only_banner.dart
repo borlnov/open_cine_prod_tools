@@ -23,6 +23,7 @@ class OcptEditorReadOnlyBanner extends StatelessWidget {
   /// Class constructor
   const OcptEditorReadOnlyBanner({required this.version, super.key});
 
+  /// Build the editor read only banner as an [OcptWorkspaceReadOnlyBanner].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
