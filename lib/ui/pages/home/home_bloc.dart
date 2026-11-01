@@ -184,7 +184,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
           OcptHomeRecentProjectEntry(project: project, exists: false),
     ];
 
-    emitter(state.copyWith(recentProjects: entries));
+    emitter(state.copyWithRecentProjects(recentProjects: entries));
   }
 
   /// Navigates to [route] (the workspace or the Partager screen, both reached with a project
@@ -218,7 +218,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeCreateProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
+    emitter(state.copyWithBusy());
 
     final filePath = await _resolveNewProjectFilePath(
       name: event.name,
@@ -226,18 +226,18 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
     if (filePath == null) {
       // The user cancelled the desktop save-file dialog.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
     final result = await _projectsManager.createProject(name: event.name, filePath: filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
     await _refreshRecentProjects(emitter);
-    emitter(state.copyWith(isBusy: false));
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
@@ -275,7 +275,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeOpenProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
+    emitter(state.copyWithBusy());
 
     var filePath = event.filePath;
     if (filePath == null) {
@@ -288,7 +288,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       if (!selection.status.isSuccess || selectedFile == null) {
         // The user cancelled the dialog, or the selection failed; the latter is a soft failure
         // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-        emitter(state.copyWith(isBusy: false));
+        emitter(state.copyWithIdle());
         return;
       }
 
@@ -304,12 +304,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       allowMigration: event.allowMigration,
     );
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
     await _refreshRecentProjects(emitter);
-    emitter(state.copyWith(isBusy: false));
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
@@ -325,16 +325,16 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeShareProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(isBusy: true, forceErrorValue: true));
+    emitter(state.copyWithBusy());
 
     final result = await _projectsManager.openProject(filePath: event.filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
     await _refreshRecentProjects(emitter);
-    emitter(state.copyWith(isBusy: false));
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.sharing, emitter);
   }
 
@@ -364,7 +364,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       case OcptProjectFileVerdict.older:
       case OcptProjectFileVerdict.newer:
       case OcptProjectFileVerdict.foreignDevBuild:
-        emitter(state.copyWith(isBusy: false, pendingFileCompatibility: compatibility));
+        emitter(state.copyWithPendingFileCompatibility(compatibility: compatibility));
         return true;
       case OcptProjectFileVerdict.current:
       case OcptProjectFileVerdict.unreadable:
@@ -377,7 +377,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeFileCompatibilityStatedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(forcePendingFileCompatibilityValue: true));
+    emitter(state.copyWithFileCompatibilityStated());
   }
 
   /// Removes a recent project from the list and refreshes it.
@@ -394,7 +394,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(forceErrorValue: true));
+    emitter(state.copyWithErrorDismissed());
   }
 
   /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
@@ -418,9 +418,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportScreenplayRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(
-      state.copyWith(isBusy: true, forceErrorValue: true, forceScreenplayImportErrorValue: true),
-    );
+    emitter(state.copyWithScreenplayImportStarted());
 
     final read = await _exportManager.pickAndReadScreenplay(
       fileTypeLabel: event.screenplayFileTypeLabel,
@@ -431,8 +429,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       // already reported the latter. A file that could not be read as a screenplay is the one
       // outcome worth stating.
       emitter(
-        state.copyWith(
-          isBusy: false,
+        state.copyWithScreenplayImportRead(
           screenplayImportError: read.status == OcptScreenplayImportStatus.cancelled
               ? null
               : read.status,
@@ -461,7 +458,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       );
       if (pickedPath == null) {
         // The user cancelled the desktop save-file dialog.
-        emitter(state.copyWith(isBusy: false));
+        emitter(state.copyWithIdle());
         return;
       }
       filePath = pickedPath;
@@ -470,7 +467,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     final result = await _projectsManager.createProject(name: projectName, filePath: filePath);
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(isBusy: false, error: result.status));
+      emitter(state.copyWithFailure(error: result.status));
       return;
     }
 
@@ -489,12 +486,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(isBusy: false, error: OcptProjectStatus.ioError));
+      emitter(state.copyWithFailure(error: OcptProjectStatus.ioError));
       return;
     }
 
     await _refreshRecentProjects(emitter);
-    emitter(state.copyWith(isBusy: false));
+    emitter(state.copyWithIdle());
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
@@ -510,13 +507,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeImportProjectPackageRequestedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        isBusy: true,
-        forceErrorValue: true,
-        forceProjectPackageImportErrorValue: true,
-      ),
-    );
+    emitter(state.copyWithProjectPackageImportStarted());
 
     final selection = await _fileSelectorManager.openSelector(
       allowedExtensions: [ocptPackageFileExtension],
@@ -527,7 +518,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     if (!selection.status.isSuccess || selectedFile == null) {
       // The user cancelled the dialog, or the selection failed; the latter is a soft failure
       // deliberately not surfaced as an error, since the OS dialog itself already reported it.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
@@ -536,7 +527,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
     if (parentDirectoryPath == null) {
       // The user cancelled the folder picker.
-      emitter(state.copyWith(isBusy: false));
+      emitter(state.copyWithIdle());
       return;
     }
 
@@ -547,11 +538,11 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
 
     final report = result.value;
     if (!result.status.isSuccess || report == null) {
-      emitter(state.copyWith(isBusy: false, projectPackageImportError: result.status));
+      emitter(state.copyWithProjectPackageImportFailed(projectPackageImportError: result.status));
       return;
     }
 
-    emitter(state.copyWith(isBusy: false, projectPackageImportReport: report));
+    emitter(state.copyWithProjectPackageImported(projectPackageImportReport: report));
   }
 
   /// Clears the transient project package import error currently shown, if any.
@@ -559,7 +550,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeProjectPackageImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(forceProjectPackageImportErrorValue: true));
+    emitter(state.copyWithProjectPackageImportErrorDismissed());
   }
 
   /// Clears the project package import report the page has just read, if any.
@@ -567,7 +558,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeProjectPackageImportReportDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(forceProjectPackageImportReportValue: true));
+    emitter(state.copyWithProjectPackageImportReportDismissed());
   }
 
   /// Clears the transient screenplay import error currently shown, if any.
@@ -575,6 +566,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptHomeScreenplayImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
   ) async {
-    emitter(state.copyWith(forceScreenplayImportErrorValue: true));
+    emitter(state.copyWithScreenplayImportErrorDismissed());
   }
 }
