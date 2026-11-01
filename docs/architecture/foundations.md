@@ -588,9 +588,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   format-3 shapes are pinned in the codec test. Format 4 (0.3.0, the storyboard and floor plan
   tables, `shot-list.md`) is additive again, and decodes an older payload with its five lists empty.
   It is **a hand-written mirror of the schema**, and a new synchronised table has to be added to all
-  three of it, `contentDigest` and `_applyPayload`: leave it out of the payload and a restore
-  rewinds half the project, out of the digest and the working copy claims not to have drifted, out
-  of `_applyPayload` and it is never written back. Counters shown on a card
+  three of it, `contentDigest` and `OcptProjectVersionsRestoreOps.applyPayload`: leave it out of
+  the payload and a restore rewinds half the project, out of the digest and the working copy claims
+  not to have drifted, out of `applyPayload` and it is never written back. Counters shown on a card
   (`OcptProjectVersionSummary`) are measured once, at creation.
   The codec also owns `contentDigest`, the SHA-256 of a payload's canonical *content* — rows sorted
   by primary key and each row's JSON keys sorted, `row_field_versions` and the page margins left

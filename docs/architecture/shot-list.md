@@ -347,7 +347,8 @@ Resources set carries across its three scopes, and the mode's two newest documen
   `floor_plan_symbols` and `floor_plan_arrows` — are schema v4 (`foundations.md`, ADR 0029), created
   additively by `ocpt_migration_v4.dart`, and travel in payload format 4, added to
   `OcptProjectVersionCodec`'s `encode`/`decode`/`contentDigest` and to both of
-  `OcptProjectVersionsService`'s hand-written table lists: `_capturePayload`/`_applyPayload` (a
+  `OcptProjectVersionsService`'s hand-written table lists:
+  `OcptProjectVersionsPayloadOps.capturePayload`/`OcptProjectVersionsRestoreOps.applyPayload` (a
   restore rewriting the same database) **and** `hydratePreview` (a preview hydrating a fresh
   in-memory one) — the second being the one a table can be added to and still pass every capture and
   codec test, its omission only ever showing up as a table silently empty in a **previewed**

@@ -212,7 +212,8 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
   writes exactly one row. The legacy `position` column is never renumbered and nothing reads it.
 - A schema number is allocated **at merge time, not at branch time** (ADR 0007), and a new
   synchronised table has to reach `OcptProjectVersionCodec`'s payload, its `contentDigest` and its
-  `_applyPayload` together.
+  `OcptProjectVersionsRestoreOps.applyPayload` together (its `hydratePreview` sits in the same
+  file).
 - **An irreversible action is always confirmed by `OcptConfirmDialog`**, opened by the page or the
   mode: a widget only ever asks, through a nullable `on…Requested` callback.
 - Under a **read-only preview**, an affordance that writes is **withheld, not disabled** — widgets

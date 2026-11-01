@@ -363,7 +363,7 @@ are all here, and this file is the whole record of them.
 - The pre-stable migration ladder was squashed (ADR 0029, `docs/RELEASING.md`): every table and
   column this mode ever added now sits in the single, frozen **schema v1** that `onCreate` builds in
   one pass, and `OcptProjectVersionCodec` captures every one of them, in all three of its required
-  places — the payload, `contentDigest` and `_applyPayload` — at the single **payload format 1**.
+  places — the payload, `contentDigest` and `applyPayload` — at the single **payload format 1**.
   There is no per-table upgrade step left to narrate and no "restoring a version sealed before this
   table existed" case to reason about: every version a project file holds is at v1 and carries every
   table below, so what follows is what the schema *is*, not how it got there.
