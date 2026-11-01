@@ -89,10 +89,9 @@ class OcptEditorStatisticsBloc
 
     final sceneStatistics = _sceneStatisticsOf(modeState);
     emitter(
-      state.copyWith(
+      state.copyWithRecomputedStatistics(
         statistics: FountainScriptStatistics.of(document, modeState.pageSetup.toMetrics()),
         sceneStatistics: sceneStatistics,
-        forceSceneStatisticsValue: sceneStatistics == null,
       ),
     );
   }
@@ -126,12 +125,7 @@ class OcptEditorStatisticsBloc
     }
 
     final sceneStatistics = _sceneStatisticsOf(modeBloc.state);
-    emitter(
-      state.copyWith(
-        sceneStatistics: sceneStatistics,
-        forceSceneStatisticsValue: sceneStatistics == null,
-      ),
-    );
+    emitter(state.copyWithCaretScene(sceneStatistics: sceneStatistics));
   }
 
   /// Recomputes statistics from the mode's current document and page setup, once the statistics
@@ -147,7 +141,7 @@ class OcptEditorStatisticsBloc
     }
 
     emitter(
-      state.copyWith(
+      state.copyWithScriptStatistics(
         statistics: FountainScriptStatistics.of(document, modeState.pageSetup.toMetrics()),
       ),
     );
