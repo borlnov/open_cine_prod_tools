@@ -176,7 +176,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   the whole editing surface here — belongs to the same `TapRegion` group as the menu, so a
   `Listener` above the gesture detector watches for the primary button and closes it, observing the
   click rather than competing for it. Nothing is withheld for a read-only preview: the styled editor
-  is not mounted under one at all, `editor_page.dart` substituting the read-only preview for both
+  is not mounted under one at all, `OcptEditorCentre` substituting the read-only preview for both
   editing modes.
 
 - Scene numbers: a heading's `#N#` is a first-class WYSIWYG field
@@ -268,6 +268,48 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   count one visual line further short; the count remains only as the fallback for a field not laid
   out yet.
 
+- **The screenplay mode is one mode bloc and four function blocs** (ADR 0034;
+  `lib/ui/pages/workspace/blocs/` holds the machinery, `foundations.md` the recipe). Styled and raw
+  are two renderings of one text, not two views, so the cut is by function, and each satellite
+  extends `AbsOcptViewBloc` and is built with the mode (`OcptEditorPage`'s `MultiBlocProvider`,
+  `lazy: false`):
+  - `OcptEditorBloc`, the mode bloc, owns **the text, which is the source of truth**: the typed text
+    and its dirty flag, the parse, autosave and save (a failed save raises the transient error once,
+    keeps the text dirty, and the next save works), the parsed document, the caret line, the title
+    page, the docks, the editing mode, the page setup and the two display switches the other blocs
+    read (`isSpellCheckVisible`, `screenplayLanguage`). It mixes in `MixinOcptModeBloc`:
+    `flushAllPendingWrites` saves a dirty text tagged `manual`, answers true whatever happened (a
+    failed save is shown by the mode and the action behind the flush goes ahead on the stored text,
+    as it always did), and `flushPendingProjectWrites` is the same call. `reloadEpoch` moves on a
+    whole load, on a text replaced by an action (an import, a title page rewrite) and on a page
+    setup change, with `reloadCause` saying which; `selectionEpoch` moves on a scene jump request.
+    Typing moves neither.
+  - `OcptEditorSpellCheckBloc` owns the underlines of both surfaces, the two caches and their keys
+    (`OcptEditorSpellCheckCaches`, mutable on purpose, carried by every copy of the state and left
+    out of its `props`: a cache is filled by the very answer that emits the ranges, so comparing it
+    would make a state differ from itself), the learned words and the suggestions. It reads the
+    document, the mode, the two switches and the preview flag off the mode's state when it runs.
+    A whole load drops the caches and every underline and pushes the project's learned words; a
+    new document or raw becoming the mounted mode requests a raw pass; a switch or language change
+    drives the dictionary. Opening straight in styled mode underlines nothing until the first
+    edit, and opening the styled editor renumbers the headings and autosaves: both are pinned.
+  - `OcptEditorSearchBloc` owns `OcptEditorSearchState`, which is why a search survives a mode
+    switch. It reads nothing of the mode: each surface counts what it shows and reports the count.
+  - `OcptEditorIoBloc` owns the notice of the `.fountain` and PDF exports and of the import. An
+    export asks the mode to save a dirty text tagged `export` first (`addToModeAndWait`), then
+    reads the text the mode holds. An import has the mode save the typed text first, so the
+    snapshot of the replaced screenplay holds it, writes the imported text, and has the mode show
+    it (`OcptEditorImportedTextAppliedEvent`, which moves `reloadEpoch` with `textReplaced`).
+  - `OcptEditorStatisticsBloc` owns the counters. A new document refreshes the scene's counters
+    and restarts its own 500 ms debounce, after the parse debounce that produced it; a reload of
+    any cause recomputes both at once; the caret changing scene refreshes the scene's counters.
+  The page watches only what it shows: the find bar slot rebuilds on the search state, the status
+  bar and the two dock panels on the counters, so a keystroke rebuilds what it rebuilt before and
+  no more, and the editing surfaces' controllers and the caret are never recreated. The page's
+  controller wiring is split the same way: `OcptEditorSearchSync` (what each surface highlights
+  and replaces), `OcptEditorRawScroller` (a jump or a match in the raw field) and
+  `OcptEditorDialogFlows` (every dialog the page opens, `OcptConfirmDialog` included).
+
 - Find and replace: one search, over **the episode the workspace has selected**, in both editing
   modes. `Ctrl+F` opens the bar on find, `Ctrl+H` on replace, `Escape` closes it — page-level
   `Shortcuts` in `editor_page.dart`, beside `Ctrl+S`/`Ctrl+Shift+M`, none of the three claimed by
@@ -278,7 +320,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   `OcptEditorFindBar`
   (`lib/ui/pages/editor/widgets/`) is a docked band at the top of the **centre column only**, two
   stacked rows whose replace row folds behind a chevron, the match-case and whole-word toggles
-  living inside the find field itself. The search *state* is `OcptEditorSearchState`, in the bloc,
+  living inside the find field itself. The search *state* is `OcptEditorSearchState`, in `OcptEditorSearchBloc`,
   which is what makes it survive a raw ⇄ styled toggle; the bar and both surfaces only ever report
   into it.
 - **Each mode matches what it shows**, and the counter says so: raw mode searches the Fountain
@@ -409,7 +451,8 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   field, duration is derived at the call site on the one-page-per-minute convention).
   `OcptEditorMetadataPanel` shows the title-page fields and the script-wide statistics, read-only,
   with an "Edit…" button opening the existing title-page dialog through `OcptRouterManager`. Both
-  are recomputed on the editor's existing 150 ms parse debounce, never per keystroke.
+  are recomputed on the editor's existing 150 ms parse debounce, never per keystroke (the
+  statistics bloc, after the mode's parse).
 
 - The Fountain syntax guide (`OcptEditorSyntaxGuidePanel`) renders the `const`
   `ocptFountainSyntaxEntries` table (`lib/models/ocpt_fountain_syntax_entry.dart`, one entry per
