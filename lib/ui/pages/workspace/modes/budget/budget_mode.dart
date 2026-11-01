@@ -55,6 +55,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_even
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_export_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_financing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_sharing_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
@@ -140,6 +141,10 @@ class OcptBudgetMode extends StatelessWidget {
         BlocProvider(
           lazy: false,
           create: (context) => OcptBudgetSharingBloc(modeBloc: context.read<OcptBudgetBloc>()),
+        ),
+        BlocProvider(
+          lazy: false,
+          create: (context) => OcptBudgetFinancingBloc(modeBloc: context.read<OcptBudgetBloc>()),
         ),
       ],
       child: const OcptBudgetViewEffects(child: _BudgetView()),
@@ -707,6 +712,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetNewOutcome outcome,
   ) {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
+    final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final sharingBloc = context.read<OcptBudgetSharingBloc>();
 
     switch (outcome) {
@@ -731,11 +737,11 @@ class _BudgetViewState extends State<_BudgetView> {
       case OcptBudgetNewCommitmentOutcome(:final fields, :final lineId):
         bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
       case OcptBudgetNewResourceOutcome(:final fields):
-        bloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
+        financingBloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
       case OcptBudgetNewRevenueOutcome(:final fields):
         sharingBloc.add(OcptBudgetRevenueCreationConfirmedEvent(fields: fields));
       case OcptBudgetNewAllowanceOutcome(:final fields):
-        bloc.add(OcptBudgetAllowanceCreationConfirmedEvent(fields: fields));
+        financingBloc.add(OcptBudgetAllowanceCreationConfirmedEvent(fields: fields));
       case OcptBudgetNewShareOutcome(:final fields):
         sharingBloc.add(OcptBudgetShareCreationConfirmedEvent(fields: fields));
     }
@@ -1435,7 +1441,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetResource resource,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final fields = await OcptBudgetResourceDialog.show(
       context,
       existing: resource,
@@ -1453,13 +1459,15 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetResourceUpdateConfirmedEvent(resourceId: resource.id, fields: fields));
+    financingBloc.add(
+      OcptBudgetResourceUpdateConfirmedEvent(resourceId: resource.id, fields: fields),
+    );
   }
 
   /// Asks `OcptConfirmDialog` whether financing resource [resourceId] really is to be deleted, then
   /// dispatches the deletion if the user answered `Delete`.
   Future<void> _handleResourceDeletionRequested(BuildContext context, String resourceId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1476,7 +1484,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
+    financingBloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
   }
 
   /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordFinancingReceipt],
@@ -1713,7 +1721,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Asks `OcptConfirmDialog` whether defrayal [allowanceId] really is to be deleted, then
   /// dispatches the deletion if the user answered `Delete`.
   Future<void> _handleAllowanceDeletionRequested(BuildContext context, String allowanceId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1730,7 +1738,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetAllowanceDeletionConfirmedEvent(allowanceId: allowanceId));
+    financingBloc.add(OcptBudgetAllowanceDeletionConfirmedEvent(allowanceId: allowanceId));
   }
 
   /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.reimbursePerson],
@@ -1780,7 +1788,7 @@ class _BudgetViewState extends State<_BudgetView> {
   ///
   /// A plan that would change nothing says so and asks nothing: there is no decision to take.
   Future<void> _handleProvisionRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
     final posteId = state.provisionPosteId;
     final poste = state.postes.where((row) => row.id == posteId).firstOrNull;
@@ -1819,7 +1827,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetProvisionConfirmedEvent(posteId: posteId, entries: entries));
+    financingBloc.add(OcptBudgetProvisionConfirmedEvent(posteId: posteId, entries: entries));
   }
 
   /// Builds the revenue sharing view.
