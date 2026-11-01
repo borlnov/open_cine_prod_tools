@@ -17,7 +17,8 @@ const double _codeBadgeMinWidth = 40;
 /// The separator between the two halves of a row's own muted second line.
 const String _secondLineSeparator = " · ";
 
-/// The subset of [elements] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [elements] matching [query], through [ocptResourcesSearchMatches] against
+/// every
 /// field a row shows or that names the element: its name, its code, its sub-category, and the
 /// localized category and tracking status.
 ///
@@ -32,7 +33,7 @@ List<OcptElement> ocptFilteredElementsOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, element))) element,
 ];
 
-/// Every field of [element] a search query may match against, see [ocptFilteredElementsOf].
+/// Get every field of [element] a search query may match against, see [ocptFilteredElementsOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptElement element) => [
   element.name,
   element.code,
@@ -127,7 +128,8 @@ class OcptElementsList extends StatelessWidget {
     );
   }
 
-  /// The elements of [category] among [elements] (the already-filtered list), in the catalogue's
+  /// Get the elements of [category] among [elements] (the already-filtered list), in the
+  /// catalogue's
   /// own order. A category holding none of them — every one of its elements filtered out, or
   /// simply having none to begin with — drops its heading too, since [elements] is what decides
   /// which headings are worth drawing at all.
@@ -225,7 +227,8 @@ class _OcptElementEntry extends StatelessWidget {
     );
   }
 
-  /// The row's muted second line: the production's own sub-category when it gave one, then how many
+  /// Get the row's muted second line: the production's own sub-category when it gave one, then how
+  /// many
   /// of the element are needed and where it comes from.
   ///
   /// The empty halves are dropped rather than shown as a placeholder — a leading separator would

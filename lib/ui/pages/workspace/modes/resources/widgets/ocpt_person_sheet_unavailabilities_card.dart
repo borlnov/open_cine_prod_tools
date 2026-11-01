@@ -146,7 +146,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker, reporting the pick to [onAdded] as one full day; does nothing
+  /// Open the platform date picker, reporting the pick to [onAdded] as one full day; does nothing
   /// if it is dismissed with no pick.
   Future<void> _handleAddRequested(
     BuildContext context,
@@ -341,21 +341,21 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     );
   }
 
-  /// Flushes a pending reason edit the moment the field loses focus.
+  /// Flush a pending reason edit the moment the field loses focus.
   void _flushOnFocusLost() {
     if (!_reasonFocusNode.hasFocus) {
       _flushIfDirty();
     }
   }
 
-  /// Records that the reason field changed and (re)starts the debounce.
+  /// Record that the reason field changed and (re)starts the debounce.
   void _onReasonChanged(String text) {
     _isDirty = true;
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's current fields, if a local reason edit is actually waiting.
+  /// Report the row's current fields, if a local reason edit is actually waiting.
   void _flushIfDirty() {
     _debounce?.cancel();
     if (!_isDirty) {
@@ -365,7 +365,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     _report();
   }
 
-  /// Reports the row's current fields, whatever the debounce was doing: what every discrete change
+  /// Report the row's current fields, whatever the debounce was doing: what every discrete change
   /// (a date, the slot, a window bound) calls, so it never waits out the reason's own debounce.
   void _report() {
     _debounce?.cancel();
@@ -380,7 +380,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     );
   }
 
-  /// Picks a new first or last date for this range, written immediately.
+  /// Pick a new first or last date for this range, written immediately.
   ///
   /// The two ends are kept in order rather than the pick refused: moving the start past the end
   /// drags the end with it, and picking an end before the start pulls the start back — a date
@@ -413,7 +413,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     _report();
   }
 
-  /// Sets this unavailability's slot, written immediately.
+  /// Set this unavailability's slot, written immediately.
   ///
   /// Switching to [OcptDayPartSlot.custom] seeds a plausible working-day window when the
   /// row has none yet; switching away from it drops the window, since the three other slots say
@@ -436,7 +436,7 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     _report();
   }
 
-  /// Picks one bound of the custom window, written immediately. The end is pushed to the start
+  /// Pick one bound of the custom window, written immediately. The end is pushed to the start
   /// when a pick would invert them, for the same reason [_pickDate] keeps the two dates in order.
   Future<void> _pickTime({required bool isStart}) async {
     final currentMinute =

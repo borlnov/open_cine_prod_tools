@@ -117,7 +117,7 @@ class OcptResourcesElementsBloc
     on<OcptResourcesElementPhotoClearedEvent>(_onElementPhotoCleared);
   }
 
-  /// Drops the edits this bloc holds when the mode says writing them failed somewhere (see
+  /// Drop the edits this bloc holds when the mode says writing them failed somewhere (see
   /// `OcptResourcesPendingEditsLostEvent`): the fields fall back to the stored values.
   ///
   /// Nothing else is scoped to the selection or to the data here: a pending edit survives the user
@@ -139,7 +139,7 @@ class OcptResourcesElementsBloc
     emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one through `OcptElementsService.updateElement`, then
   /// has the mode read the catalogue again so every derived aggregate reflects what the database
   /// now says, and only then forgets what it wrote, so what a field shows never falls back to a
@@ -211,7 +211,7 @@ class OcptResourcesElementsBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// Write every pending field edit directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -253,8 +253,8 @@ class OcptResourcesElementsBloc
     }
   }
 
-  /// Creates a new, blank element of `event.category` at the end of the catalogue, reads the
-  /// catalogue again and selects the new element so it can be named straight away.
+  /// Create a new, blank element of `event.category` at the end of the catalogue, read the
+  /// catalogue again and select the new element so it can be named straight away.
   ///
   /// Unlike a person or a location, it is given no colour of its own: an element is told apart in a
   /// list by the category heading it sits under and by its code, and the palette is what a person,
@@ -301,7 +301,7 @@ class OcptResourcesElementsBloc
     }
   }
 
-  /// Deletes element `event.elementId`, clearing the selection when it was the selected one, and
+  /// Delete element `event.elementId`, clearing the selection when it was the selected one, and
   /// dropping any pending field edit that still targeted it.
   Future<void> _onElementDeletionRequested(
     OcptResourcesElementDeletionRequestedEvent event,
@@ -342,12 +342,13 @@ class OcptResourcesElementsBloc
     }
   }
 
-  /// The pending element field edits of this bloc without those that target element [elementId].
+  /// Get the pending element field edits of this bloc without those that target element
+  /// [elementId].
   Map<(String, OcptElementField), String> _pendingWithoutElement(String elementId) =>
       Map<(String, OcptElementField), String>.of(state.pendingElementFieldEdits)
         ..removeWhere((key, _) => key.$1 == elementId);
 
-  /// Records the raw text just typed into `event.field` of element `event.elementId` as a pending
+  /// Record the raw text just typed into `event.field` of element `event.elementId` as a pending
   /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onElementFieldChanged(
     OcptResourcesElementFieldChangedEvent event,
@@ -360,7 +361,7 @@ class OcptResourcesElementsBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesElementsFieldEditFlushRequestedEvent());
   }
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptResourcesElementsFieldEditFlushRequestedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -368,7 +369,7 @@ class OcptResourcesElementsBloc
     await onFlushRequested(emitter);
   }
 
-  /// Tells the mode that writing the typed edits failed, which raises its write error and makes
+  /// Tell the mode that writing the typed edits failed, which raises its write error and makes
   /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
   /// other views with nothing left for them to write.
   ///
@@ -378,7 +379,7 @@ class OcptResourcesElementsBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Writes a discrete change to the elements catalogue through [action] and has the mode read the
+  /// Write a discrete change to the elements catalogue through [action] and have the mode read the
   /// catalogue again, so every derived aggregate (the roles an element concerns, the status bar's
   /// counts) reflects what the database now says. A no-op while no project is open; a failure
   /// raises the mode's write error.
@@ -405,7 +406,7 @@ class OcptResourcesElementsBloc
     }
   }
 
-  /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
+  /// Show the native "open" dialog and return the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
   ///
   /// **The file itself is never read here** (see
@@ -433,7 +434,7 @@ class OcptResourcesElementsBloc
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Sets element `event.elementId`'s category, written immediately.
+  /// Set element `event.elementId`'s category, written immediately.
   Future<void> _onElementCategoryChanged(
     OcptResourcesElementCategoryChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -448,7 +449,7 @@ class OcptResourcesElementsBloc
     );
   }
 
-  /// Sets where element `event.elementId` comes from, written immediately.
+  /// Set where element `event.elementId` comes from, written immediately.
   Future<void> _onElementSourceKindChanged(
     OcptResourcesElementSourceKindChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -461,7 +462,7 @@ class OcptResourcesElementsBloc
     ),
   );
 
-  /// Sets who owns element `event.elementId`, written immediately.
+  /// Set who owns element `event.elementId`, written immediately.
   Future<void> _onElementOwnerChanged(
     OcptResourcesElementOwnerChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -474,7 +475,7 @@ class OcptResourcesElementsBloc
     ),
   );
 
-  /// Sets who brings element `event.elementId` to set, written immediately.
+  /// Set who brings element `event.elementId` to set, written immediately.
   Future<void> _onElementBringerChanged(
     OcptResourcesElementBringerChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -487,7 +488,7 @@ class OcptResourcesElementsBloc
     ),
   );
 
-  /// Ticks or unticks one of element `event.elementId`'s three tracking flags, written immediately.
+  /// Tick or untick one of element `event.elementId`'s three tracking flags, written immediately.
   Future<void> _onElementTrackingFlagChanged(
     OcptResourcesElementTrackingFlagChangedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -512,7 +513,7 @@ class OcptResourcesElementsBloc
     },
   );
 
-  /// Says element `event.elementId` is needed in scene `event.sceneId`, written immediately.
+  /// Say element `event.elementId` is needed in scene `event.sceneId`, written immediately.
   Future<void> _onSceneAssignedToElement(
     OcptResourcesSceneAssignedToElementEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -527,7 +528,7 @@ class OcptResourcesElementsBloc
     },
   );
 
-  /// Updates the quantity and the notes of the scene ↔ element link `event.id`, written
+  /// Update the quantity and the notes of the scene ↔ element link `event.id`, written
   /// immediately.
   Future<void> _onSceneElementUpdated(
     OcptResourcesSceneElementUpdatedEvent event,
@@ -542,7 +543,7 @@ class OcptResourcesElementsBloc
     ),
   );
 
-  /// Removes the scene ↔ element link `event.id`, written immediately.
+  /// Remove the scene ↔ element link `event.id`, written immediately.
   Future<void> _onSceneElementRemoved(
     OcptResourcesSceneElementRemovedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -552,7 +553,7 @@ class OcptResourcesElementsBloc
         _elementsService.removeSceneElement(database: project.database, id: event.id),
   );
 
-  /// Links role `event.roleId` to element `event.elementId`, written immediately.
+  /// Link role `event.roleId` to element `event.elementId`, written immediately.
   Future<void> _onElementLinkedToRole(
     OcptResourcesElementLinkedToRoleEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -567,7 +568,7 @@ class OcptResourcesElementsBloc
     },
   );
 
-  /// Updates the notes of the role ↔ element link `event.id`, written immediately.
+  /// Update the notes of the role ↔ element link `event.id`, written immediately.
   Future<void> _onRoleElementUpdated(
     OcptResourcesRoleElementUpdatedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -580,7 +581,7 @@ class OcptResourcesElementsBloc
     ),
   );
 
-  /// Removes the role ↔ element link `event.id`, written immediately.
+  /// Remove the role ↔ element link `event.id`, written immediately.
   Future<void> _onRoleElementRemoved(
     OcptResourcesRoleElementRemovedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -590,7 +591,7 @@ class OcptResourcesElementsBloc
         _elementsService.removeRoleElement(database: project.database, id: event.id),
   );
 
-  /// Asks for element `event.elementId`'s photo through the native picker and references the file
+  /// Ask for element `event.elementId`'s photo through the native picker and reference the file
   /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
   Future<void> _onElementPhotoPickRequested(
     OcptResourcesElementPhotoPickRequestedEvent event,
@@ -616,7 +617,7 @@ class OcptResourcesElementsBloc
     );
   }
 
-  /// Drops element `event.elementId`'s reference to its photo, written immediately.
+  /// Drop element `event.elementId`'s reference to its photo, written immediately.
   Future<void> _onElementPhotoCleared(
     OcptResourcesElementPhotoClearedEvent event,
     Emitter<OcptResourcesElementsState> emitter,
@@ -626,7 +627,7 @@ class OcptResourcesElementsBloc
         _elementsService.clearElementPhoto(database: project.database, elementId: event.elementId),
   );
 
-  /// Writes every entry of [pending] through [_writeElementField].
+  /// Write every entry of [pending] through [_writeElementField].
   Future<void> _writeAllPendingElementFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptElementField), String> pending,
@@ -642,7 +643,7 @@ class OcptResourcesElementsBloc
     }
   }
 
-  /// Writes a single element field edit through `OcptElementsService.updateElement`, translating
+  /// Write a single element field edit through `OcptElementsService.updateElement`, translating
   /// [field] into the matching named argument (see `OcptElementField`'s own doc comment for the
   /// mapping).
   ///

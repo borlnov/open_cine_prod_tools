@@ -27,7 +27,7 @@ const _episodeNumbersSeparator = ", ";
 /// The radius of a row's avatar.
 const double _avatarRadius = 13;
 
-/// The subset of [roles] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [roles] matching [query], through [ocptResourcesSearchMatches] against every
 /// field a row shows or that names the role: its own name, the name it had before it was orphaned
 /// (still worth finding by), the cast member's display name and the localized role kind.
 ///
@@ -47,7 +47,7 @@ List<OcptRole> ocptFilteredRolesOf({
       role,
 ];
 
-/// The person [personId] names, or null when it is null or names nobody in [people] (a stale
+/// Get the person [personId] names, or null when it is null or names nobody in [people] (a stale
 /// reference from a snapshot rebuilt underneath). Shared by [ocptFilteredRolesOf] and
 /// [OcptRolesList]'s own build method.
 OcptPerson? _personOf(List<OcptPerson> people, String? personId) {
@@ -64,7 +64,7 @@ OcptPerson? _personOf(List<OcptPerson> people, String? personId) {
   return null;
 }
 
-/// Every field of [role] a search query may match against, see [ocptFilteredRolesOf].
+/// Get every field of [role] a search query may match against, see [ocptFilteredRolesOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptRole role, OcptPerson? castMember) => [
   role.name,
   role.orphanedName ?? "",
@@ -173,7 +173,7 @@ class OcptRolesList extends StatelessWidget {
   }
 }
 
-/// The printed numbers of the episodes [role] is named in, in the episodes' own order (see
+/// Get the printed numbers of the episodes [role] is named in, in the episodes' own order (see
 /// [OcptRole.episodeIds]'s own doc comment), or empty while [episodes] holds one episode or none
 /// (a single-episode project names no episode anywhere) or [role] names none of [episodes] — a
 /// stale id from a snapshot rebuilt underneath is silently dropped rather than shown as a number

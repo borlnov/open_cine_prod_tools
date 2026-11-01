@@ -106,7 +106,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     );
   }
 
-  /// What [status] dates, or null when it dates nothing: the label of the date field, and the
+  /// Get what [status] dates, or null when it dates nothing: the label of the date field, and the
   /// answer to whether that field is shown at all.
   String? _dateLabelOf(Tr tr, OcptImageRightsStatus status) => switch (status) {
     OcptImageRightsStatus.notApplicable || OcptImageRightsStatus.toGenerate => null,
@@ -174,7 +174,7 @@ class _OcptImageRightsStatusBadge extends StatelessWidget {
     );
   }
 
-  /// The colour [status] is tinted with: muted for [OcptImageRightsStatus.notApplicable], the
+  /// Get the colour [status] is tinted with: muted for [OcptImageRightsStatus.notApplicable], the
   /// workspace's warning colour while a release still has to be drafted, the accent while it is
   /// drafted and awaiting a signature, and the "already shot" green once it is signed.
   Color _colorFor(BuildContext context, OcptImageRightsStatus status) {

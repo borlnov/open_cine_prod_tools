@@ -120,7 +120,7 @@ class OcptResourcesPeopleBloc
     on<OcptResourcesImageRightsDocumentClearedEvent>(_onImageRightsDocumentCleared);
   }
 
-  /// Drops the edits this bloc holds when the mode says writing them failed somewhere (see
+  /// Drop the edits this bloc holds when the mode says writing them failed somewhere (see
   /// `OcptResourcesPendingEditsLostEvent`): the fields fall back to the stored values.
   ///
   /// Nothing else is scoped to the selection or to the data here: a pending edit survives the user
@@ -142,7 +142,7 @@ class OcptResourcesPeopleBloc
     emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one through `OcptPeopleService.updatePerson`, then has
   /// the mode read the catalogue again so every derived aggregate reflects what the database now
   /// says, and only then forgets what it wrote, so what a field shows never falls back to a stale
@@ -214,7 +214,7 @@ class OcptResourcesPeopleBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// Write every pending field edit directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -256,8 +256,8 @@ class OcptResourcesPeopleBloc
     }
   }
 
-  /// Creates a new, blank person at the end of the address book, reads the catalogue again and
-  /// selects the new person.
+  /// Create a new, blank person at the end of the address book, read the catalogue again and select
+  /// the new person.
   ///
   /// The freshly created person is immediately given an avatar colour derived from their rank in
   /// the address book — `peopleCount` read *before* the insert, so the first person is 0, the second
@@ -310,7 +310,7 @@ class OcptResourcesPeopleBloc
     }
   }
 
-  /// Erases person `event.personId`, clearing the selection when it was the selected person, and
+  /// Erase person `event.personId`, clearing the selection when it was the selected person, and
   /// dropping any pending field edit that still targeted it (the person it would have written to
   /// no longer holds any personal data).
   Future<void> _onPersonDeletionRequested(
@@ -347,12 +347,12 @@ class OcptResourcesPeopleBloc
     }
   }
 
-  /// The pending field edits of this bloc without those that target person [personId].
+  /// Get the pending field edits of this bloc without those that target person [personId].
   Map<(String, OcptPersonField), String> _pendingWithoutPerson(String personId) =>
       Map<(String, OcptPersonField), String>.of(state.pendingFieldEdits)
         ..removeWhere((key, _) => key.$1 == personId);
 
-  /// Records the raw text just typed into `event.field` of person `event.personId` as a pending
+  /// Record the raw text just typed into `event.field` of person `event.personId` as a pending
   /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onPersonFieldChanged(
     OcptResourcesPersonFieldChangedEvent event,
@@ -365,7 +365,7 @@ class OcptResourcesPeopleBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesPeopleFieldEditFlushRequestedEvent());
   }
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptResourcesPeopleFieldEditFlushRequestedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -373,7 +373,7 @@ class OcptResourcesPeopleBloc
     await onFlushRequested(emitter);
   }
 
-  /// Tells the mode that writing the typed edits failed, which raises its write error and makes
+  /// Tell the mode that writing the typed edits failed, which raises its write error and makes
   /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
   /// other views with nothing left for them to write.
   ///
@@ -383,7 +383,7 @@ class OcptResourcesPeopleBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Writes a discrete change to the address book through [action] and has the mode read the
+  /// Write a discrete change to the address book through [action] and have the mode read the
   /// catalogue again, so every derived aggregate (a person's positions summary, the status bar's
   /// counts) reflects what the database now says. A no-op while no project is open; a failure
   /// raises the mode's write error.
@@ -410,7 +410,7 @@ class OcptResourcesPeopleBloc
     }
   }
 
-  /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
+  /// Show the native "open" dialog and return the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
   ///
   /// **The file itself is never read here** (see
@@ -438,7 +438,7 @@ class OcptResourcesPeopleBloc
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Sets person `event.personId`'s avatar colour index, written immediately.
+  /// Set person `event.personId`'s avatar colour index, written immediately.
   Future<void> _onPersonColorChanged(
     OcptResourcesPersonColorChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -451,7 +451,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Sets person `event.personId`'s date of birth, written immediately.
+  /// Set person `event.personId`'s date of birth, written immediately.
   Future<void> _onPersonBirthDateChanged(
     OcptResourcesPersonBirthDateChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -464,7 +464,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Sets whether person `event.personId` can travel to set on their own, written immediately.
+  /// Set whether person `event.personId` can travel to set on their own, written immediately.
   Future<void> _onPersonTransportAutonomyChanged(
     OcptResourcesPersonTransportAutonomyChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -477,7 +477,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Sets person `event.personId`'s image rights status, written immediately.
+  /// Set person `event.personId`'s image rights status, written immediately.
   Future<void> _onPersonImageRightsStatusChanged(
     OcptResourcesPersonImageRightsStatusChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -490,7 +490,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Sets the date person `event.personId`'s image rights status last changed, written
+  /// Set the date person `event.personId`'s image rights status last changed, written
   /// immediately.
   Future<void> _onPersonImageRightsDateChanged(
     OcptResourcesPersonImageRightsDateChangedEvent event,
@@ -504,7 +504,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Sets person `event.personId`'s mileage rate, written immediately.
+  /// Set person `event.personId`'s mileage rate, written immediately.
   Future<void> _onPersonMileageRateChanged(
     OcptResourcesPersonMileageRateChangedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -517,7 +517,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Adds a crew position assignment to person `event.personId`, written immediately.
+  /// Add a crew position assignment to person `event.personId`, written immediately.
   Future<void> _onPositionAdded(
     OcptResourcesPositionAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -533,7 +533,7 @@ class OcptResourcesPeopleBloc
     },
   );
 
-  /// Updates position assignment `event.id`, written immediately.
+  /// Update position assignment `event.id`, written immediately.
   Future<void> _onPositionUpdated(
     OcptResourcesPositionUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -547,7 +547,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Removes position assignment `event.id`, written immediately.
+  /// Remove position assignment `event.id`, written immediately.
   Future<void> _onPositionRemoved(
     OcptResourcesPositionRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -556,7 +556,7 @@ class OcptResourcesPeopleBloc
     action: (project) => _peopleService.removePosition(database: project.database, id: event.id),
   );
 
-  /// Adds a skill to person `event.personId`, written immediately.
+  /// Add a skill to person `event.personId`, written immediately.
   Future<void> _onSkillAdded(
     OcptResourcesSkillAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -571,7 +571,7 @@ class OcptResourcesPeopleBloc
     },
   );
 
-  /// Updates skill `event.id`'s label, written immediately.
+  /// Update skill `event.id`'s label, written immediately.
   Future<void> _onSkillUpdated(
     OcptResourcesSkillUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -581,7 +581,7 @@ class OcptResourcesPeopleBloc
         _peopleService.updateSkill(database: project.database, id: event.id, label: event.label),
   );
 
-  /// Removes skill `event.id`, written immediately.
+  /// Remove skill `event.id`, written immediately.
   Future<void> _onSkillRemoved(
     OcptResourcesSkillRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -590,7 +590,7 @@ class OcptResourcesPeopleBloc
     action: (project) => _peopleService.removeSkill(database: project.database, id: event.id),
   );
 
-  /// Adds an unavailability to person `event.personId`, written immediately.
+  /// Add an unavailability to person `event.personId`, written immediately.
   Future<void> _onUnavailabilityAdded(
     OcptResourcesUnavailabilityAddedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -610,7 +610,7 @@ class OcptResourcesPeopleBloc
     },
   );
 
-  /// Updates unavailability `event.id`, written immediately.
+  /// Update unavailability `event.id`, written immediately.
   Future<void> _onUnavailabilityUpdated(
     OcptResourcesUnavailabilityUpdatedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -628,7 +628,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Removes unavailability `event.id`, written immediately.
+  /// Remove unavailability `event.id`, written immediately.
   Future<void> _onUnavailabilityRemoved(
     OcptResourcesUnavailabilityRemovedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -638,7 +638,7 @@ class OcptResourcesPeopleBloc
         _peopleService.removeUnavailability(database: project.database, id: event.id),
   );
 
-  /// Asks for person `event.personId`'s photo through the native picker and references the file
+  /// Ask for person `event.personId`'s photo through the native picker and reference the file
   /// picked, written immediately. A cancelled dialog leaves the photo already referenced alone.
   Future<void> _onPersonPhotoPickRequested(
     OcptResourcesPersonPhotoPickRequestedEvent event,
@@ -664,7 +664,7 @@ class OcptResourcesPeopleBloc
     );
   }
 
-  /// Drops person `event.personId`'s reference to their photo, written immediately.
+  /// Drop person `event.personId`'s reference to their photo, written immediately.
   Future<void> _onPersonPhotoCleared(
     OcptResourcesPersonPhotoClearedEvent event,
     Emitter<OcptResourcesPeopleState> emitter,
@@ -674,8 +674,8 @@ class OcptResourcesPeopleBloc
         _peopleService.clearPersonPhoto(database: project.database, personId: event.personId),
   );
 
-  /// Asks for person `event.personId`'s signed image rights release through the native picker and
-  /// references the file picked, written immediately. A cancelled dialog leaves the document
+  /// Ask for person `event.personId`'s signed image rights release through the native picker and
+  /// reference the file picked, written immediately. A cancelled dialog leaves the document
   /// already referenced alone, and neither outcome touches `imageRightsStatus`.
   Future<void> _onImageRightsDocumentPickRequested(
     OcptResourcesImageRightsDocumentPickRequestedEvent event,
@@ -701,7 +701,7 @@ class OcptResourcesPeopleBloc
     );
   }
 
-  /// Drops person `event.personId`'s reference to their signed image rights release, written
+  /// Drop person `event.personId`'s reference to their signed image rights release, written
   /// immediately.
   Future<void> _onImageRightsDocumentCleared(
     OcptResourcesImageRightsDocumentClearedEvent event,
@@ -714,7 +714,7 @@ class OcptResourcesPeopleBloc
     ),
   );
 
-  /// Writes every entry of [pending] through [_writeField].
+  /// Write every entry of [pending] through [_writeField].
   Future<void> _writeAllPendingFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptPersonField), String> pending,
@@ -730,7 +730,7 @@ class OcptResourcesPeopleBloc
     }
   }
 
-  /// Writes a single field edit through `OcptPeopleService.updatePerson`, translating [field] into
+  /// Write a single field edit through `OcptPeopleService.updatePerson`, translating [field] into
   /// the matching named argument (see `OcptPersonField`'s own doc comment for the mapping).
   Future<void> _writeField({
     required OcptProjectDatabase database,

@@ -80,7 +80,7 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
     );
   }
 
-  /// Blanks the field and reports the empty query, without closing the search itself.
+  /// Blank the field and report the empty query, without closing the search itself.
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");

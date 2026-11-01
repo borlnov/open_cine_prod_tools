@@ -14,7 +14,7 @@ sealed class OcptResourcesRolesEvent extends OcptResourcesEvent {
   const OcptResourcesRolesEvent();
 }
 
-/// Requests adding a hand-added role of [kind] at the end of the cast, then selecting it: the
+/// Request adding a hand-added role of [kind] at the end of the cast, then selecting it: the
 /// left dock's `+ Add a role` action, offering `silent` and `extra` (never `speaking`, which only
 /// `OcptRoleIndexService.reconcile` ever creates).
 class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesRolesEvent {
@@ -29,7 +29,7 @@ class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, kind];
 }
 
-/// Records the raw text just typed into [field] of role [roleId], dispatched by the role sheet on
+/// Record the raw text just typed into [field] of role [roleId], dispatched by the role sheet on
 /// every keystroke.
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`: the
@@ -58,7 +58,7 @@ class OcptResourcesRoleFieldChangedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId, field, rawValue];
 }
 
-/// Casts person [personId] to role [roleId] (or uncasts it, when [personId] is null), written
+/// Cast person [personId] to role [roleId] (or uncasts it, when [personId] is null), written
 /// immediately: picking a cast member from a menu is a single discrete action, not typing.
 class OcptResourcesRoleCastChangedEvent extends OcptResourcesRolesEvent {
   /// The id of the role being cast.
@@ -75,7 +75,7 @@ class OcptResourcesRoleCastChangedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId, personId];
 }
 
-/// Sets role [roleId]'s kind to [kind], written immediately: picking a kind from a menu is a
+/// Set role [roleId]'s kind to [kind], written immediately: picking a kind from a menu is a
 /// single discrete action, not typing.
 class OcptResourcesRoleKindChangedEvent extends OcptResourcesRolesEvent {
   /// The id of the role whose kind changed.
@@ -92,7 +92,7 @@ class OcptResourcesRoleKindChangedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId, kind];
 }
 
-/// Sets the exact episodes role [roleId] is named in to [episodeIds], written immediately —
+/// Set the exact episodes role [roleId] is named in to [episodeIds], written immediately —
 /// `OcptRoleSheetEpisodesCard`'s own chips, the one place in the app a `role_episodes` row is
 /// written by a gesture rather than by `OcptRoleIndexService.reconcile`
 /// (`docs/adr/0019-one-project-several-episodes.md` §4.3). Only ever dispatched for a hand-added
@@ -112,7 +112,7 @@ class OcptResourcesRoleEpisodesChangedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId, episodeIds];
 }
 
-/// Requests deleting role [roleId], dispatched once `OcptResourcesDeleteConfirmDialog` has already
+/// Request deleting role [roleId], dispatched once `OcptResourcesDeleteConfirmDialog` has already
 /// confirmed it — or straight from the removed-role banner, which is that question itself.
 /// Tombstones the role,
 /// clears the selection when it was the selected role, and drops any pending field edit that
@@ -144,7 +144,7 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
+/// Request merging role [sourceRoleId] into role [targetRoleId], dispatched once the shared role
 /// alert banner's merge affordance — either variant — has already been confirmed through
 /// `OcptConfirmDialog`, by the mode.
 ///
@@ -168,7 +168,7 @@ class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
 
-/// Records that person [personId] is a candidate for role [roleId], appended after that role's
+/// Record that person [personId] is a candidate for role [roleId], appended after that role's
 /// other candidates, written immediately: `OcptResourcesPersonPicker`'s own pick, dispatched by the
 /// candidates card's `Candidate` action.
 class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesRolesEvent {
@@ -186,7 +186,7 @@ class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesRolesEvent {
   List<Object?> get props => [...super.props, roleId, personId];
 }
 
-/// Sets candidacy [candidateId]'s status to [status], written immediately.
+/// Set candidacy [candidateId]'s status to [status], written immediately.
 ///
 /// **The single event behind every status gesture the candidates card offers**, `Retain` and
 /// `Drop` included: retaining a candidate is this event with
@@ -212,7 +212,7 @@ class OcptResourcesRoleCandidateStatusChangedEvent extends OcptResourcesRolesEve
   List<Object?> get props => [...super.props, candidateId, status];
 }
 
-/// Sets candidacy [candidateId]'s audition date to [auditionedOn] (or clears it, when null),
+/// Set candidacy [candidateId]'s audition date to [auditionedOn] (or clears it, when null),
 /// written immediately: picking a date is a single discrete action, not typing.
 class OcptResourcesRoleCandidateAuditionDateChangedEvent extends OcptResourcesRolesEvent {
   /// The id of the candidacy whose audition date changed.
@@ -232,7 +232,7 @@ class OcptResourcesRoleCandidateAuditionDateChangedEvent extends OcptResourcesRo
   List<Object?> get props => [...super.props, candidateId, auditionedOn];
 }
 
-/// Records the raw text just typed into [field] of candidacy [candidateId], dispatched by the
+/// Record the raw text just typed into [field] of candidacy [candidateId], dispatched by the
 /// candidates card on every keystroke.
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesRoleFieldChangedEvent`: the typed
@@ -261,7 +261,7 @@ class OcptResourcesRoleCandidateFieldChangedEvent extends OcptResourcesRolesEven
   List<Object?> get props => [...super.props, candidateId, field, rawValue];
 }
 
-/// Requests removing candidacy [candidateId], dispatched once `OcptResourcesDeleteConfirmDialog`
+/// Request removing candidacy [candidateId], dispatched once `OcptResourcesDeleteConfirmDialog`
 /// (or its own confirm dialog, opened by the mode) has already confirmed it. Drops any pending
 /// field edit that still targeted it.
 ///

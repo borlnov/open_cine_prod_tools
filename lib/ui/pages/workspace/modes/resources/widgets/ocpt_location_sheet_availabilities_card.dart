@@ -165,7 +165,7 @@ class OcptLocationSheetAvailabilitiesCard extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker, reporting the pick to [onAdded] as one whole day covering
+  /// Open the platform date picker, reporting the pick to [onAdded] as one whole day covering
   /// every weekday; does nothing if it is dismissed with no pick.
   Future<void> _handleAddRequested(
     BuildContext context,
@@ -382,21 +382,21 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     );
   }
 
-  /// Flushes a pending note edit the moment the field loses focus.
+  /// Flush a pending note edit the moment the field loses focus.
   void _flushOnFocusLost() {
     if (!_noteFocusNode.hasFocus) {
       _flushIfDirty();
     }
   }
 
-  /// Records that the note field changed and (re)starts the debounce.
+  /// Record that the note field changed and (re)starts the debounce.
   void _onNoteChanged(String text) {
     _isDirty = true;
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's current fields, if a local note edit is actually waiting.
+  /// Report the row's current fields, if a local note edit is actually waiting.
   void _flushIfDirty() {
     _debounce?.cancel();
     if (!_isDirty) {
@@ -406,7 +406,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
-  /// Reports the row's current fields, whatever the debounce was doing: what every discrete change
+  /// Report the row's current fields, whatever the debounce was doing: what every discrete change
   /// (a date, a weekday, the slot, a bound, the kind) calls, so it never waits out the note's own
   /// debounce.
   void _report() {
@@ -424,7 +424,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     );
   }
 
-  /// Picks a new first or last date for this range, written immediately.
+  /// Pick a new first or last date for this range, written immediately.
   ///
   /// The two ends are kept in order rather than the pick refused: moving the start past the end
   /// drags the end with it, and picking an end before the start pulls the start back — a date
@@ -457,7 +457,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
-  /// Adds [weekday] to the covered days, or takes it out, written immediately.
+  /// Add [weekday] to the covered days, or take it out, written immediately.
   ///
   /// Clearing the last covered day does nothing at all (see [ocptWeekdayMaskToggled]): a window
   /// covering no day of the week says nothing, and the way to drop it is the row's own remove
@@ -472,7 +472,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
-  /// Sets this window's slot, written immediately.
+  /// Set this window's slot, written immediately.
   ///
   /// Switching to [OcptDayPartSlot.custom] seeds a plausible working-day window when the row has
   /// none yet; switching away from it drops the window, since the three other slots say everything
@@ -495,7 +495,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
-  /// Sets whether this window is free or conditional, written immediately.
+  /// Set whether this window is free or conditional, written immediately.
   void _setKind(OcptLocationAvailabilityKind kind) {
     if (kind == _kind) {
       return;
@@ -505,7 +505,7 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
-  /// Picks one bound of the custom window, written immediately. The end is pushed to the start when
+  /// Pick one bound of the custom window, written immediately. The end is pushed to the start when
   /// a pick would invert them, for the same reason [_pickDate] keeps the two dates in order.
   Future<void> _pickTime({required bool isStart}) async {
     final currentMinute =

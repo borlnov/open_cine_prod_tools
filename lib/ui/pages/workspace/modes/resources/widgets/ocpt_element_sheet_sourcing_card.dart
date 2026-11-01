@@ -122,7 +122,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     );
   }
 
-  /// One text field of the card, labelled [label] and writing [field].
+  /// Build one text field of the card, labelled [label] and writing [field].
   Widget _field(
     OcptElementField field,
     String label, {
@@ -141,7 +141,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the cost [value], or null when there is nothing to say about it.
+  /// Describe what is wrong with the cost [value], or null when there is nothing to say about it.
   ///
   /// A **remark, never a gate** (the rule the email field already follows and the coordinates
   /// repeat): the value is written either way — as no cost at

@@ -59,7 +59,7 @@ class OcptPersonSheetMaxPresenceCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the typed [value], or null when there is nothing to say about it.
+  /// Describe what is wrong with the typed [value], or null when there is nothing to say about it.
   ///
   /// A **remark, never a gate**, exactly as `OcptElementSheetSourcingCard._costErrorOf` is for the
   /// cost field: the value is written either way, since a maximum nobody finished typing is not the

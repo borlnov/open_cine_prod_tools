@@ -71,7 +71,7 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
   /// null while it may not be used. **Only asks** — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onCandidateRemoveRequested;
 
-  /// [candidates], the retained one (if any) pinned first, every other one keeping its own
+  /// Get [candidates], the retained one (if any) pinned first, every other one keeping its own
   /// `sortKey` order.
   List<OcptRoleCandidate> get _orderedCandidates => [
     for (final candidate in candidates)
@@ -131,13 +131,14 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
     );
   }
 
-  /// How a person reads in the picker: their display name, or the shared placeholder for somebody
+  /// Tell how a person reads in the picker: their display name, or the shared placeholder for
+  /// somebody
   /// whose name has not been typed in yet.
   static String _personLabel(Tr tr, OcptPerson person) =>
       person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
 }
 
-/// The colour a status pill wears, in three families: the accent for
+/// Get the colour a status pill wears, in three families: the accent for
 /// [OcptRoleCandidateStatus.retained]; a warmer read for the two lists a candidate is *kept* on
 /// ([OcptRoleCandidateStatus.toMeet] before being seen, [OcptRoleCandidateStatus.shortlisted]
 /// after); the error colour for the three ways a candidacy stops (`notRetained`, `declined`,

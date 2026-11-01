@@ -28,10 +28,10 @@ class OcptResourcesPeopleState extends BlocStateForMixin<OcptResourcesPeopleStat
     required this.lastLostEditsEpoch,
   });
 
-  /// Builds the state of a bloc that holds no pending edit.
+  /// Build the state of a bloc that holds no pending edit.
   const OcptResourcesPeopleState.init({this.lastLostEditsEpoch = 0}) : pendingFieldEdits = const {};
 
-  /// Copies this state, replacing [pendingFieldEdits] when given — always replaced wholesale, the
+  /// Copy this state, replacing [pendingFieldEdits] when given — always replaced wholesale, the
   /// caller computing the full next map.
   @override
   OcptResourcesPeopleState copyWith({
@@ -42,27 +42,27 @@ class OcptResourcesPeopleState extends BlocStateForMixin<OcptResourcesPeopleStat
     lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
-  /// Copies this state with every pending field edit dropped.
+  /// Copy this state with every pending field edit dropped.
   OcptResourcesPeopleState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as the edits sitting in the debounce, a person's
+  /// Copy this state with [pendingFieldEdits] as the edits sitting in the debounce, a person's
   /// field having just been typed into.
   OcptResourcesPeopleState copyWithFieldEditTyped({
     required Map<(String, OcptPersonField), String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as the edits left once the pending ones were
+  /// Copy this state with [pendingFieldEdits] as the edits left once the pending ones were
   /// written.
   OcptResourcesPeopleState copyWithFieldEditsWritten({
     required Map<(String, OcptPersonField), String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as the edits left once a person was erased.
+  /// Copy this state with [pendingFieldEdits] as the edits left once a person was erased.
   OcptResourcesPeopleState copyWithPersonErased({
     required Map<(String, OcptPersonField), String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// Copy this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
   /// reacted to, the mode having said that writing them failed somewhere.
   OcptResourcesPeopleState copyWithFieldEditsLost({required int lostEditsEpoch}) =>
       copyWith(pendingFieldEdits: const {}, lastLostEditsEpoch: lostEditsEpoch);

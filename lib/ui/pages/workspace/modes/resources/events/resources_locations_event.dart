@@ -15,14 +15,14 @@ sealed class OcptResourcesLocationsEvent extends OcptResourcesEvent {
   const OcptResourcesLocationsEvent();
 }
 
-/// Requests creating a new, blank location at the end of the list, then selecting it: the left
+/// Request creating a new, blank location at the end of the list, then selecting it: the left
 /// dock's `+ Add a location` action.
 class OcptResourcesLocationCreationRequestedEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesLocationCreationRequestedEvent();
 }
 
-/// Requests deleting location [locationId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// Request deleting location [locationId], dispatched once `OcptResourcesDeleteConfirmDialog` has
 /// already confirmed it. Clears the selection when it was the selected location, and drops any
 /// pending field edit that still targeted it or one of its sets.
 class OcptResourcesLocationDeletionRequestedEvent extends OcptResourcesLocationsEvent {
@@ -37,7 +37,7 @@ class OcptResourcesLocationDeletionRequestedEvent extends OcptResourcesLocations
   List<Object?> get props => [...super.props, locationId];
 }
 
-/// Records the raw text just typed into [field] of location [locationId], dispatched by the
+/// Record the raw text just typed into [field] of location [locationId], dispatched by the
 /// location sheet on every keystroke.
 ///
 /// Rides the same field-edit autosave debounce as `OcptResourcesPersonFieldChangedEvent`.
@@ -63,7 +63,7 @@ class OcptResourcesLocationFieldChangedEvent extends OcptResourcesLocationsEvent
   List<Object?> get props => [...super.props, locationId, field, rawValue];
 }
 
-/// Sets location [locationId]'s colour to `ocptCoveragePalette[colorIndex]`, written immediately:
+/// Set location [locationId]'s colour to `ocptCoveragePalette[colorIndex]`, written immediately:
 /// picking a swatch is a single discrete action, not typing.
 class OcptResourcesLocationColorChangedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location whose colour changed.
@@ -83,7 +83,7 @@ class OcptResourcesLocationColorChangedEvent extends OcptResourcesLocationsEvent
   List<Object?> get props => [...super.props, locationId, colorIndex];
 }
 
-/// Sets location [locationId]'s filming permit status to [status], written immediately.
+/// Set location [locationId]'s filming permit status to [status], written immediately.
 class OcptResourcesLocationPermitStatusChangedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location whose permit status changed.
   final String locationId;
@@ -102,7 +102,7 @@ class OcptResourcesLocationPermitStatusChangedEvent extends OcptResourcesLocatio
   List<Object?> get props => [...super.props, locationId, status];
 }
 
-/// Sets the date location [locationId]'s permit status last changed to [date] (or clears it, when
+/// Set the date location [locationId]'s permit status last changed to [date] (or clears it, when
 /// null), written immediately.
 class OcptResourcesLocationPermitDateChangedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location whose permit date changed.
@@ -119,7 +119,7 @@ class OcptResourcesLocationPermitDateChangedEvent extends OcptResourcesLocations
   List<Object?> get props => [...super.props, locationId, date];
 }
 
-/// Sets who to contact about location [locationId] to person [personId] (or clears it, when null),
+/// Set who to contact about location [locationId] to person [personId] (or clears it, when null),
 /// written immediately: picking a person from a menu is a single discrete action, not typing.
 class OcptResourcesLocationContactChangedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location whose contact changed.
@@ -139,7 +139,7 @@ class OcptResourcesLocationContactChangedEvent extends OcptResourcesLocationsEve
   List<Object?> get props => [...super.props, locationId, personId];
 }
 
-/// Adds a new, blank set at the end of location [locationId]'s sets, written immediately.
+/// Add a new, blank set at the end of location [locationId]'s sets, written immediately.
 class OcptResourcesSetAddedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location the set is added to.
   final String locationId;
@@ -152,7 +152,7 @@ class OcptResourcesSetAddedEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, locationId];
 }
 
-/// Records the raw text just typed into [field] of set [setId], dispatched by the location sheet's
+/// Record the raw text just typed into [field] of set [setId], dispatched by the location sheet's
 /// sets card on every keystroke. Rides the same debounce as every other typed field of the mode.
 class OcptResourcesSetFieldChangedEvent extends OcptResourcesLocationsEvent {
   /// The id of the set whose field was edited.
@@ -176,7 +176,7 @@ class OcptResourcesSetFieldChangedEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, setId, field, rawValue];
 }
 
-/// Removes set [setId] and the scene links onto it, written immediately.
+/// Remove set [setId] and the scene links onto it, written immediately.
 class OcptResourcesSetRemovedEvent extends OcptResourcesLocationsEvent {
   /// The id of the set to remove.
   final String setId;
@@ -189,7 +189,7 @@ class OcptResourcesSetRemovedEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Moves set [setId] to location [locationId], written immediately.
+/// Move set [setId] to location [locationId], written immediately.
 ///
 /// The set leaves the sheet it was being edited on — that is what a move is — taking its code, its
 /// notes and its scenes with it (`OcptLocationsService.moveSetToLocation`).
@@ -208,7 +208,7 @@ class OcptResourcesSetLocationChangedEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, setId, locationId];
 }
 
-/// Says scene [sceneId] is shot in set [setId], written immediately.
+/// Say scene [sceneId] is shot in set [setId], written immediately.
 ///
 /// A scene may be shot in several sets, so this **adds** to whatever sets it already has (see
 /// `OcptLocationsService.assignSceneToSet`) rather than moving it — a mis-assignment is repaired by
@@ -228,7 +228,7 @@ class OcptResourcesSceneAssignedToSetEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
-/// Says scene [sceneId] is no longer shot in set [setId], leaving the other sets it is shot in
+/// Say scene [sceneId] is no longer shot in set [setId], leaving the other sets it is shot in
 /// alone, written immediately.
 class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesLocationsEvent {
   /// The id of the scene being unassigned.
@@ -245,7 +245,7 @@ class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesLocationsEvent 
   List<Object?> get props => [...super.props, sceneId, setId];
 }
 
-/// Requests referencing a scouting photo for location [locationId]: opens the native file picker
+/// Request referencing a scouting photo for location [locationId]: opens the native file picker
 /// and, if a file is picked, stores its path.
 ///
 /// [fileTypeLabel] is the localized label the native dialog names its type filter with, travelling
@@ -268,7 +268,7 @@ class OcptResourcesLocationPhotoAddRequestedEvent extends OcptResourcesLocations
   List<Object?> get props => [...super.props, locationId, fileTypeLabel];
 }
 
-/// Requests referencing location [locationId]'s filming permit document, replacing whichever one it
+/// Request referencing location [locationId]'s filming permit document, replacing whichever one it
 /// referenced before. See [OcptResourcesLocationPhotoAddRequestedEvent] for [fileTypeLabel].
 class OcptResourcesPermitDocumentPickRequestedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location the document is referenced for.
@@ -288,7 +288,7 @@ class OcptResourcesPermitDocumentPickRequestedEvent extends OcptResourcesLocatio
   List<Object?> get props => [...super.props, locationId, fileTypeLabel];
 }
 
-/// Drops location [locationId]'s reference to its permit document. The file itself is never
+/// Drop location [locationId]'s reference to its permit document. The file itself is never
 /// touched.
 class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesLocationsEvent {
   /// The id of the location whose permit document reference is dropped.
@@ -302,7 +302,7 @@ class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesLocationsEven
   List<Object?> get props => [...super.props, locationId];
 }
 
-/// Sets the date asset [assetId]'s document — a filming permit, so far the only document this
+/// Set the date asset [assetId]'s document — a filming permit, so far the only document this
 /// dates — becomes valid to [date] (or clears it, when null), written immediately: picking a date
 /// is a single discrete action, not typing.
 ///
@@ -326,7 +326,7 @@ class OcptResourcesAssetValidFromChangedEvent extends OcptResourcesLocationsEven
   List<Object?> get props => [...super.props, assetId, date];
 }
 
-/// Sets the date asset [assetId]'s document stops being valid to [date] (or clears it, when null),
+/// Set the date asset [assetId]'s document stops being valid to [date] (or clears it, when null),
 /// written immediately. See [OcptResourcesAssetValidFromChangedEvent] for why this is its own
 /// event rather than a shared, discriminated one.
 class OcptResourcesAssetValidUntilChangedEvent extends OcptResourcesLocationsEvent {
@@ -344,7 +344,7 @@ class OcptResourcesAssetValidUntilChangedEvent extends OcptResourcesLocationsEve
   List<Object?> get props => [...super.props, assetId, date];
 }
 
-/// Drops the asset reference [assetId] — a scouting photo. The file itself is never touched.
+/// Drop the asset reference [assetId] — a scouting photo. The file itself is never touched.
 class OcptResourcesAssetRemovedEvent extends OcptResourcesLocationsEvent {
   /// The id of the asset reference to drop.
   final String assetId;
@@ -357,7 +357,7 @@ class OcptResourcesAssetRemovedEvent extends OcptResourcesLocationsEvent {
   List<Object?> get props => [...super.props, assetId];
 }
 
-/// Adds an availability window to location [locationId], written immediately.
+/// Add an availability window to location [locationId], written immediately.
 ///
 /// The window a location sheet mints is one whole day, every weekday, free of any condition: every
 /// other answer is then given on the row it creates, where it is read beside the others.
@@ -420,7 +420,7 @@ class OcptResourcesLocationAvailabilityAddedEvent extends OcptResourcesLocations
   ];
 }
 
-/// Updates availability window [id]'s fields, written immediately, replacing all of them at once.
+/// Update availability window [id]'s fields, written immediately, replacing all of them at once.
 class OcptResourcesLocationAvailabilityUpdatedEvent extends OcptResourcesLocationsEvent {
   /// The id of the window to update.
   final String id;
@@ -480,7 +480,7 @@ class OcptResourcesLocationAvailabilityUpdatedEvent extends OcptResourcesLocatio
   ];
 }
 
-/// Removes availability window [id], written immediately.
+/// Remove availability window [id], written immediately.
 class OcptResourcesLocationAvailabilityRemovedEvent extends OcptResourcesLocationsEvent {
   /// The id of the window to remove.
   final String id;

@@ -214,13 +214,13 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
 
-  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// Get the screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
   String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
-  /// Writes whatever field edit is still sitting in the field-edit debounce, so a preview about to
+  /// Write whatever field edit is still sitting in the field-edit debounce, so a preview about to
   /// swap the database can't send it into the previewed version instead.
   @protected
   @override
@@ -297,7 +297,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     await _load(emit);
   }
 
-  /// Writes every pending edit of the views directly to the database, without touching [state].
+  /// Write every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptShotListBloc.flushPendingFieldEdits`:
   /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -307,7 +307,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// [defaultFieldEditDebounce] worth of typing isn't lost.
   Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
-  /// Loads the persisted dock fractions and the current project's whole resources catalogue.
+  /// Load the persisted dock fractions and the current project's whole resources catalogue.
   ///
   /// The workspace route is guarded by the router manager, so a project is normally always open
   /// here; if none is (e.g. the bloc is built directly in a test), the state simply stops loading
@@ -378,7 +378,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     });
   }
 
-  /// [loaded] with [revealRequest]'s own tab active and its record selected, or [loaded] untouched
+  /// Get [loaded] with [revealRequest]'s own tab active and its record selected, or [loaded]
+  /// untouched
   /// while there is no request — the ordinary case.
   ///
   /// Applied to the loaded state rather than emitted after it: the load clears all four selections,
@@ -424,7 +425,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     };
   }
 
-  /// Reads the page setup the contact list export dialog is pre-filled with: the open project's own
+  /// Read the page setup the contact list export dialog is pre-filled with: the open project's own
   /// page format, paired with the app-wide margins preference, exactly as `OcptBreakdownBloc`'s own
   /// `_loadPageSetup` pairs them.
   ///
@@ -438,7 +439,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Reads the whole resources catalogue of [project], joining the four services' own reads into
+  /// Read the whole resources catalogue of [project], joining the four services' own reads into
   /// one [OcptResourcesSnapshot].
   ///
   /// The scenes are numbered with their episode's own prefix: this bloc reads the project's live
@@ -474,7 +475,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Leaves the workspace: flushes any pending field edit, closes the current project, and
+  /// Leave the workspace: flushes any pending field edit, closes the current project, and
   /// navigates back to the home page.
   Future<void> _onBackRequested(
     OcptResourcesBackRequestedEvent event,
@@ -485,7 +486,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     _routerManager.pop();
   }
 
-  /// Re-reads the project's currency and reloads the resources snapshot after the project
+  /// Re-read the project's currency and reload the resources snapshot after the project
   /// settings page changed something.
   ///
   /// The currency is what the element sheet's cost field and the exported workbook's cost column
@@ -516,7 +517,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     });
   }
 
-  /// Selects tab `event.tab`, clearing every selected record when it actually changes tab.
+  /// Select tab `event.tab`, clearing every selected record when it actually changes tab.
   ///
   /// Also clears [OcptResourcesState.searchQuery] when it actually changes tab, but leaves the
   /// search field open (`isSearchVisible` untouched): each tab searches its own kind of record —
@@ -536,7 +537,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithSelectedTab(tab: event.tab, isSameTab: isSameTab));
   }
 
-  /// Selects person `event.personId`.
+  /// Select person `event.personId`.
   ///
   /// Writes every pending edit first, so switching people right after typing never loses it.
   /// A person id that no longer exists in the current snapshot (a stale click on a list rebuilt
@@ -555,7 +556,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithSelectedPerson(personId: event.personId));
   }
 
-  /// Selects role `event.roleId`, and switches to the roles tab.
+  /// Select role `event.roleId`, and switch to the roles tab.
   ///
   /// Writes every pending edit first, so switching roles right after typing never loses it. A role
   /// id that no longer exists in the current snapshot (a stale click on a list rebuilt underneath)
@@ -585,7 +586,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Opens person `event.personId`'s sheet from the role sheet's `↗` affordance: flushes any
+  /// Open person `event.personId`'s sheet from the role sheet's `↗` affordance: flushes any
   /// pending field edit, then switches the left dock to [OcptResourcesTab.people] and selects
   /// `event.personId`, in one state.
   ///
@@ -601,7 +602,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithOpenedPersonSheet(personId: event.personId));
   }
 
-  /// Selects location `event.locationId`.
+  /// Select location `event.locationId`.
   ///
   /// Flushes any pending field edit first, so switching locations right after typing never loses
   /// it. A location id that no longer exists in the current snapshot (a stale click on a list
@@ -620,8 +621,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithSelectedLocation(locationId: event.locationId));
   }
 
-  /// Resolves set `event.setId`'s own first linked sequence, in screenplay order
-  /// (`OcptLocationsService.firstLinkedSceneOf`), and sets it as the pending cross-mode reveal the
+  /// Resolve set `event.setId`'s own first linked sequence, in screenplay order
+  /// (`OcptLocationsService.firstLinkedSceneOf`), and set it as the pending cross-mode reveal the
   /// mode's own listener reads next — the sets card's own `Open in shot list` action. A no-op
   /// while the set carries no live link at all
   /// (defensive only: the card never offers the action then).
@@ -660,7 +661,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
   }
 
-  /// Clears [OcptResourcesState.pendingShotListReveal] once the mode has dispatched the cross-mode
+  /// Clear [OcptResourcesState.pendingShotListReveal] once the mode has dispatched the cross-mode
   /// switch it named.
   Future<void> _onShotListRevealDismissed(
     OcptResourcesShotListRevealDismissedEvent event,
@@ -669,7 +670,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithShotListRevealDismissed());
   }
 
-  /// Selects element `event.elementId`.
+  /// Select element `event.elementId`.
   ///
   /// Flushes any pending field edit first, so switching elements right after typing never loses it.
   /// An element id that no longer exists in the current snapshot (a stale click on a list rebuilt
@@ -688,7 +689,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithSelectedElement(elementId: event.elementId));
   }
 
-  /// Switches to the roles tab and selects role `event.roleId`, the element sheet's
+  /// Switch to the roles tab and select role `event.roleId`, the element sheet's
   /// `Roles concerned` chips being the one way in.
   ///
   /// [_onPersonSheetOpenRequested]'s sibling, down to the reason it emits one state rather than
@@ -703,7 +704,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithOpenedRoleSheet(roleId: event.roleId));
   }
 
-  /// Toggles the left (list) dock's visibility.
+  /// Toggle the left (list) dock's visibility.
   Future<void> _onLeftPanelToggled(
     OcptResourcesLeftPanelToggledEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -711,7 +712,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithToggledListPanel());
   }
 
-  /// Toggles whether the search field is shown.
+  /// Toggle whether the search field is shown.
   ///
   /// Opening it forces the left dock open too (`isListPanelVisible: true` regardless of what it
   /// already was) — a field in a hidden dock would be a toggle that visibly does nothing — while
@@ -725,7 +726,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithToggledSearch());
   }
 
-  /// Records the search field's current text.
+  /// Record the search field's current text.
   ///
   /// This needs no debounce, unlike a sheet field's typed value (see
   /// `OcptResourcesSearchQueryChangedEvent`'s own doc comment): it writes nothing to the project
@@ -737,7 +738,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithSearchQuery(query: event.query));
   }
 
-  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
+  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it).
   ///
   /// Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
@@ -756,7 +757,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on its single tab, and that reopening is one of the two moments the working-copy card needs a
   /// fresh read for.
   Future<void> _onRightDockToggled(
@@ -772,7 +773,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     add(const OcptProjectWorkingCopyRefreshRequestedEvent());
   }
 
-  /// Closes the right dock via its own × close button.
+  /// Close the right dock via its own × close button.
   Future<void> _onRightDockClosed(
     OcptResourcesRightDockClosedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -780,7 +781,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Applies and persists whichever dock fraction the ended drag gesture reports.
+  /// Apply and persist whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(
     OcptResourcesDockFractionsChangedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -798,7 +799,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
-  /// Restores both dock fractions to their defaults, persisting them.
+  /// Restore both dock fractions to their defaults, persisting them.
   Future<void> _onDockLayoutReset(
     OcptResourcesDockLayoutResetEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -816,7 +817,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
   }
 
-  /// Raises the transient write error a view bloc reported.
+  /// Raise the transient write error a view bloc reported.
   Future<void> _onWriteFailed(
     OcptResourcesWriteFailedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -824,7 +825,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithWriteError());
   }
 
-  /// Raises the transient write error and tells every view bloc to drop the edits it holds, since
+  /// Raise the transient write error and tell every view bloc to drop the edits it holds, since
   /// writing them failed. The reload epoch moves with the lost edits epoch because it is what makes
   /// a view bloc look at the mode's state: nothing is read again.
   Future<void> _onPendingEditsLost(
@@ -834,7 +835,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithPendingEditsLost());
   }
 
-  /// Selects the record a view bloc has just created, in the list of `event.tab`, without switching
+  /// Select the record a view bloc has just created, in the list of `event.tab`, without switching
   /// tab nor writing what is pending: the view did so, and has read the catalogue again.
   Future<void> _onRecordCreated(
     OcptResourcesRecordCreatedEvent event,
@@ -843,7 +844,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithCreatedRecord(tab: event.tab, recordId: event.recordId));
   }
 
-  /// Clears the selection of `event.tab`'s list when it is the record a view bloc has just deleted.
+  /// Clear the selection of `event.tab`'s list when it is the record a view bloc has just deleted.
   Future<void> _onRecordDropped(
     OcptResourcesRecordDroppedEvent event,
     Emitter<OcptResourcesState> emitter,
@@ -863,7 +864,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     emitter(state.copyWithDroppedRecord(tab: event.tab));
   }
 
-  /// Dismisses the transient write error currently shown.
+  /// Dismiss the transient write error currently shown.
   Future<void> _onWriteErrorDismissed(
     OcptResourcesWriteErrorDismissedEvent event,
     Emitter<OcptResourcesState> emitter,

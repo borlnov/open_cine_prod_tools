@@ -62,7 +62,7 @@ class OcptResourcesExportBloc
     on<OcptResourcesIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports the whole resources catalogue to a four-sheet XLSX workbook.
+  /// Export the whole resources catalogue to a four-sheet XLSX workbook.
   ///
   /// Writes every pending edit first — that also re-reads the snapshot, so the workbook holds the
   /// value the user typed seconds ago rather than the one the database held before it — then hands
@@ -126,7 +126,7 @@ class OcptResourcesExportBloc
     }
   }
 
-  /// Exports the crew and the cast to a standalone contact list PDF.
+  /// Export the crew and the cast to a standalone contact list PDF.
   ///
   /// Writes every pending edit first, exactly as [_onXlsxExportRequested] does, then hands what the
   /// mode's state now carries and [event]'s own options to [OcptExportManager.exportContactList].
@@ -183,7 +183,7 @@ class OcptResourcesExportBloc
     }
   }
 
-  /// Clears the transient export notice currently shown, if any.
+  /// Clear the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptResourcesIoNoticeDismissedEvent event,
     Emitter<OcptResourcesExportState> emitter,

@@ -126,7 +126,7 @@ class OcptResourcesElementSheetView extends StatelessWidget {
     );
   }
 
-  /// [element]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// Get [element]'s current value for [field]: a pending edit still sitting in the bloc's debounce
   /// takes priority over the element's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors `OcptResourcesPersonSheetView`'s own lookup.
   ///

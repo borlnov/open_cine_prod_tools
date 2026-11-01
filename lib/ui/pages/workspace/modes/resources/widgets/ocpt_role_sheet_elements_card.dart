@@ -55,7 +55,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
   /// Called with a link's id when its remove control is clicked, or null while it may not be used.
   final ValueChanged<String>? onLinkRemoved;
 
-  /// The elements this role is linked to, paired with the id of the link saying so, in the
+  /// Get the elements this role is linked to, paired with the id of the link saying so, in the
   /// catalogue's own order.
   ///
   /// A role never holds two live links onto one element (`OcptElementsService.addRoleElement`
@@ -118,7 +118,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
     );
   }
 
-  /// The entries of [linked] whose element belongs to [category], in the order they came in.
+  /// Get the entries of [linked] whose element belongs to [category], in the order they came in.
   List<(OcptElement, String)> _ofCategory(
     List<(OcptElement, String)> linked,
     OcptElementCategory category,
@@ -127,11 +127,11 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
       if (entry.$1.category == category) entry,
   ];
 
-  /// The note link [linkId] carries on [element].
+  /// Get the note link [linkId] carries on [element].
   String _notesOf(OcptElement element, String linkId) =>
       element.roleLinks.firstWhere((link) => link.id == linkId).notes;
 
-  /// How an element reads in this card and its picker: its name, prefixed by the code the app
+  /// Tell how an element reads in this card and its picker: its name, prefixed by the code the app
   /// minted for it when it has one.
   static String _elementLabel(OcptElement element) =>
       element.code.isEmpty ? element.name : "${element.code} · ${element.name}";
@@ -257,21 +257,21 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
     );
   }
 
-  /// Flushes a pending edit the moment the row loses focus.
+  /// Flush a pending edit the moment the row loses focus.
   void _flushOnFocusLost() {
     if (!_focusNode.hasFocus) {
       _flushIfDirty();
     }
   }
 
-  /// Records that the note changed and (re)starts the debounce.
+  /// Record that the note changed and (re)starts the debounce.
   void _onFieldChanged(String text) {
     _isDirty = true;
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's current note, if a local edit is actually waiting.
+  /// Report the row's current note, if a local edit is actually waiting.
   void _flushIfDirty() {
     _debounce?.cancel();
     if (!_isDirty) {

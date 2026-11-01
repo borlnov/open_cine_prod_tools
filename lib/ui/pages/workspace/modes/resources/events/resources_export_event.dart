@@ -14,7 +14,7 @@ sealed class OcptResourcesExportEvent extends OcptResourcesEvent {
   const OcptResourcesExportEvent();
 }
 
-/// Requests exporting the whole resources catalogue to a four-sheet XLSX workbook, dispatched by
+/// Request exporting the whole resources catalogue to a four-sheet XLSX workbook, dispatched by
 /// the mode's `⋮` menu.
 ///
 /// Both localized payloads are resolved by the widget dispatching this, since the bloc has no
@@ -47,7 +47,7 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesExportEvent {
   List<Object?> get props => [...super.props, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting the crew and the cast to a standalone contact list PDF, dispatched once the
+/// Request exporting the crew and the cast to a standalone contact list PDF, dispatched once the
 /// export panel's own options dialog has resolved.
 ///
 /// [options] is what that dialog returned — the page format and margins the document is typeset
@@ -84,7 +84,7 @@ class OcptResourcesContactListExportRequestedEvent extends OcptResourcesExportEv
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Dismisses the transient export notice currently shown, if any.
+/// Dismiss the transient export notice currently shown, if any.
 class OcptResourcesIoNoticeDismissedEvent extends OcptResourcesExportEvent {
   /// Class constructor
   const OcptResourcesIoNoticeDismissedEvent();

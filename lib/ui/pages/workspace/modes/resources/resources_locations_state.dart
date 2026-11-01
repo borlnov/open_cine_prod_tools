@@ -36,12 +36,12 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     required this.lastLostEditsEpoch,
   });
 
-  /// Builds the state of a bloc that holds no pending edit.
+  /// Build the state of a bloc that holds no pending edit.
   const OcptResourcesLocationsState.init({this.lastLostEditsEpoch = 0})
     : pendingLocationFieldEdits = const {},
       pendingSetFieldEdits = const {};
 
-  /// Copies this state, replacing what is given — each map always replaced wholesale, the caller
+  /// Copy this state, replacing what is given — each map always replaced wholesale, the caller
   /// computing the full next map.
   @override
   OcptResourcesLocationsState copyWith({
@@ -54,23 +54,23 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
-  /// Copies this state with every pending field edit dropped, of the locations and of their sets.
+  /// Copy this state with every pending field edit dropped, of the locations and of their sets.
   OcptResourcesLocationsState copyWithFieldEditsCleared() =>
       copyWith(pendingLocationFieldEdits: const {}, pendingSetFieldEdits: const {});
 
-  /// Copies this state with [pendingLocationFieldEdits] as the edits sitting in the debounce, a
+  /// Copy this state with [pendingLocationFieldEdits] as the edits sitting in the debounce, a
   /// location's field having just been typed into.
   OcptResourcesLocationsState copyWithLocationFieldEditTyped({
     required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
   }) => copyWith(pendingLocationFieldEdits: pendingLocationFieldEdits);
 
-  /// Copies this state with [pendingSetFieldEdits] as the edits sitting in the debounce, a set's
+  /// Copy this state with [pendingSetFieldEdits] as the edits sitting in the debounce, a set's
   /// field having just been typed into.
   OcptResourcesLocationsState copyWithSetFieldEditTyped({
     required Map<(String, OcptSetField), String> pendingSetFieldEdits,
   }) => copyWith(pendingSetFieldEdits: pendingSetFieldEdits);
 
-  /// Copies this state with the edits left once the pending ones were written, each map replaced.
+  /// Copy this state with the edits left once the pending ones were written, each map replaced.
   OcptResourcesLocationsState copyWithFieldEditsWritten({
     required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
     required Map<(String, OcptSetField), String> pendingSetFieldEdits,
@@ -79,7 +79,7 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     pendingSetFieldEdits: pendingSetFieldEdits,
   );
 
-  /// Copies this state with the edits left once a location was deleted, each map replaced.
+  /// Copy this state with the edits left once a location was deleted, each map replaced.
   OcptResourcesLocationsState copyWithLocationDeleted({
     required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
     required Map<(String, OcptSetField), String> pendingSetFieldEdits,
@@ -88,12 +88,12 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     pendingSetFieldEdits: pendingSetFieldEdits,
   );
 
-  /// Copies this state with [pendingSetFieldEdits] as the edits left once a set was removed.
+  /// Copy this state with [pendingSetFieldEdits] as the edits left once a set was removed.
   OcptResourcesLocationsState copyWithSetRemoved({
     required Map<(String, OcptSetField), String> pendingSetFieldEdits,
   }) => copyWith(pendingSetFieldEdits: pendingSetFieldEdits);
 
-  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// Copy this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
   /// reacted to, the mode having said that writing them failed somewhere.
   OcptResourcesLocationsState copyWithFieldEditsLost({required int lostEditsEpoch}) => copyWith(
     pendingLocationFieldEdits: const {},

@@ -131,7 +131,8 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the typed commute distance [value], or null when there is nothing to say
+  /// Describe what is wrong with the typed commute distance [value], or null when there is nothing
+  /// to say
   /// about it.
   ///
   /// A **remark, never a gate**, exactly as `OcptPersonSheetMaxPresenceCard._errorTextOf` is for
@@ -145,7 +146,8 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     return tr.resourcesCommuteDistanceFormatError;
   }
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;
@@ -260,7 +262,7 @@ class _OcptMileageRatePicker extends StatelessWidget {
   }
 }
 
-/// Builds one option of the control.
+/// Build one option of the control.
 class _Option extends StatelessWidget {
   /// The widget this one belongs to.
   final _OcptTransportAutonomyControl control;

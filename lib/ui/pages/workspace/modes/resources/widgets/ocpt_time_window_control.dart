@@ -57,7 +57,7 @@ class OcptTimeWindowControl extends StatelessWidget {
     ],
   );
 
-  /// [minute], counted from midnight, as the platform's own time of day.
+  /// Get [minute], counted from midnight, as the platform's own time of day.
   String _formatMinute(BuildContext context, int minute) => MaterialLocalizations.of(
     context,
   ).formatTimeOfDay(TimeOfDay(hour: minute ~/ 60, minute: minute % 60));

@@ -161,7 +161,8 @@ class OcptRoleSheet extends StatelessWidget {
   /// only ever reachable for a hand-added role, see [OcptRoleSheetEpisodesCard]'s own doc comment.
   final ValueChanged<Set<String>> onEpisodesChanged;
 
-  /// Whether deleting this role would actually remove it, which is what decides that the delete
+  /// Tell whether deleting this role would actually remove it, which is what decides that the
+  /// delete
   /// action exists at all.
   ///
   /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
@@ -185,7 +186,7 @@ class OcptRoleSheet extends StatelessWidget {
       role.orphanedName != null ||
       ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
 
-  /// Whether the sheet shows its own `Delete this role` action at the bottom.
+  /// Tell whether the sheet shows its own `Delete this role` action at the bottom.
   ///
   /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
   /// variant already offers that very answer, paired with the other one — keeping it as a silent
@@ -322,7 +323,7 @@ class OcptRoleSheet extends StatelessWidget {
   }
 }
 
-/// Builds the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
+/// Build the cast member picker: the shared [OcptResourcesPersonPicker] over the whole address
 /// book, withheld (a plain badge, no menu) while the sheet may not be written to.
 ///
 /// It offers no `↗` of its own: the header's cast member line already is the jump to their sheet,
@@ -348,7 +349,7 @@ class _CastPicker extends StatelessWidget {
   }
 }
 
-/// Builds the casting card: the cast member picker, and the muted line naming the other roles
+/// Build the casting card: the cast member picker, and the muted line naming the other roles
 /// that same person holds — a read-only remark, the way to reach one of them being the cast list
 /// of the left dock.
 class _CastingCard extends StatelessWidget {

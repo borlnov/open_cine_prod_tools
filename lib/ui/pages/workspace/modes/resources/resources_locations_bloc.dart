@@ -134,7 +134,7 @@ class OcptResourcesLocationsBloc
     on<OcptResourcesLocationAvailabilityRemovedEvent>(_onLocationAvailabilityRemoved);
   }
 
-  /// Drops the edits this bloc holds when the mode says writing them failed somewhere (see
+  /// Drop the edits this bloc holds when the mode says writing them failed somewhere (see
   /// `OcptResourcesPendingEditsLostEvent`): the fields fall back to the stored values.
   ///
   /// Nothing else is scoped to the selection or to the data here: a pending edit survives the user
@@ -156,7 +156,7 @@ class OcptResourcesLocationsBloc
     emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each location field through
   /// `OcptLocationsService.updateLocation` and each set field through
   /// `OcptLocationsService.updateSet`, then has the mode read the catalogue again so every derived
@@ -238,7 +238,7 @@ class OcptResourcesLocationsBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// Write every pending field edit directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -285,7 +285,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Creates a new, blank location at the end of the list, reads the catalogue again and selects
+  /// Create a new, blank location at the end of the list, read the catalogue again and select
   /// it.
   ///
   /// It is given a colour derived from its rank — `locationCount` read *before* the insert — for
@@ -339,7 +339,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Deletes location `event.locationId`, clearing the selection when it was the selected one, and
+  /// Delete location `event.locationId`, clearing the selection when it was the selected one, and
   /// dropping any pending field edit that still targeted it or one of its sets — the rows those
   /// edits would have written to are gone.
   Future<void> _onLocationDeletionRequested(
@@ -391,18 +391,19 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// The pending location field edits of this bloc without those that target location
+  /// Get the pending location field edits of this bloc without those that target location
   /// [locationId].
   Map<(String, OcptLocationField), String> _pendingLocationsWithout(String locationId) =>
       Map<(String, OcptLocationField), String>.of(state.pendingLocationFieldEdits)
         ..removeWhere((key, _) => key.$1 == locationId);
 
-  /// The pending set field edits of this bloc without those that target one of the sets [setIds].
+  /// Get the pending set field edits of this bloc without those that target one of the sets
+  /// [setIds].
   Map<(String, OcptSetField), String> _pendingSetsWithout(Set<String> setIds) =>
       Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
         ..removeWhere((key, _) => setIds.contains(key.$1));
 
-  /// Records the raw text just typed into `event.field` of location `event.locationId` as a pending
+  /// Record the raw text just typed into `event.field` of location `event.locationId` as a pending
   /// edit, visible immediately, and (re)starts the field-edit debounce that eventually writes it.
   Future<void> _onLocationFieldChanged(
     OcptResourcesLocationFieldChangedEvent event,
@@ -415,7 +416,7 @@ class OcptResourcesLocationsBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesLocationsFieldEditFlushRequestedEvent());
   }
 
-  /// Records the raw text just typed into `event.field` of set `event.setId` as a pending edit,
+  /// Record the raw text just typed into `event.field` of set `event.setId` as a pending edit,
   /// visible immediately, and (re)starts the same field-edit debounce [_onLocationFieldChanged]
   /// does.
   Future<void> _onSetFieldChanged(
@@ -429,7 +430,7 @@ class OcptResourcesLocationsBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesLocationsFieldEditFlushRequestedEvent());
   }
 
-  /// Removes set `event.setId`, written immediately, dropping any pending edit that still targeted
+  /// Remove set `event.setId`, written immediately, dropping any pending edit that still targeted
   /// it first: the edit is forgotten at once, before the write, and the debounce goes on for
   /// whatever else is typed.
   Future<void> _onSetRemoved(
@@ -450,7 +451,7 @@ class OcptResourcesLocationsBloc
     );
   }
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptResourcesLocationsFieldEditFlushRequestedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -458,7 +459,7 @@ class OcptResourcesLocationsBloc
     await onFlushRequested(emitter);
   }
 
-  /// Tells the mode that writing the typed edits failed, which raises its write error and makes
+  /// Tell the mode that writing the typed edits failed, which raises its write error and makes
   /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
   /// other views with nothing left for them to write.
   ///
@@ -468,7 +469,7 @@ class OcptResourcesLocationsBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Writes a discrete change to the locations through [action] and has the mode read the
+  /// Write a discrete change to the locations through [action] and have the mode read the
   /// catalogue again, so every derived aggregate (the sets card's lines, the status bar) reflects
   /// what the database now says. A no-op while no project is open; a failure raises the mode's
   /// write error.
@@ -495,7 +496,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Shows the native "open" dialog and returns the path of the file picked, or null when the user
+  /// Show the native "open" dialog and return the path of the file picked, or null when the user
   /// cancelled it, when it failed, or when the platform gave a file with no path at all.
   ///
   /// **The file itself is never read here** (see
@@ -523,7 +524,7 @@ class OcptResourcesLocationsBloc
     return file.path.isEmpty ? null : file.path;
   }
 
-  /// Sets location `event.locationId`'s colour index, written immediately.
+  /// Set location `event.locationId`'s colour index, written immediately.
   Future<void> _onLocationColorChanged(
     OcptResourcesLocationColorChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -536,7 +537,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Sets location `event.locationId`'s filming permit status, written immediately.
+  /// Set location `event.locationId`'s filming permit status, written immediately.
   Future<void> _onLocationPermitStatusChanged(
     OcptResourcesLocationPermitStatusChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -549,7 +550,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Sets the date location `event.locationId`'s permit status last changed, written immediately.
+  /// Set the date location `event.locationId`'s permit status last changed, written immediately.
   Future<void> _onLocationPermitDateChanged(
     OcptResourcesLocationPermitDateChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -562,7 +563,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Sets who to contact about location `event.locationId`, written immediately.
+  /// Set who to contact about location `event.locationId`, written immediately.
   Future<void> _onLocationContactChanged(
     OcptResourcesLocationContactChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -575,7 +576,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Adds a new, blank set at the end of location `event.locationId`'s sets, written immediately.
+  /// Add a new, blank set at the end of location `event.locationId`'s sets, written immediately.
   Future<void> _onSetAdded(
     OcptResourcesSetAddedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -590,7 +591,7 @@ class OcptResourcesLocationsBloc
     },
   );
 
-  /// Moves set `event.setId` to location `event.locationId`, written immediately. The set leaves
+  /// Move set `event.setId` to location `event.locationId`, written immediately. The set leaves
   /// the sheet currently shown, which is what the reloaded snapshot then says.
   Future<void> _onSetLocationChanged(
     OcptResourcesSetLocationChangedEvent event,
@@ -604,7 +605,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Says scene `event.sceneId` is shot in set `event.setId`, written immediately.
+  /// Say scene `event.sceneId` is shot in set `event.setId`, written immediately.
   Future<void> _onSceneAssignedToSet(
     OcptResourcesSceneAssignedToSetEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -619,7 +620,7 @@ class OcptResourcesLocationsBloc
     },
   );
 
-  /// Says scene `event.sceneId` is no longer shot in set `event.setId`, written immediately.
+  /// Say scene `event.sceneId` is no longer shot in set `event.setId`, written immediately.
   Future<void> _onSceneRemovedFromSet(
     OcptResourcesSceneRemovedFromSetEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -632,7 +633,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Asks for a scouting photo through the native picker and references the file picked, written
+  /// Ask for a scouting photo through the native picker and reference the file picked, written
   /// immediately. A cancelled dialog changes nothing at all.
   Future<void> _onLocationPhotoAddRequested(
     OcptResourcesLocationPhotoAddRequestedEvent event,
@@ -658,7 +659,7 @@ class OcptResourcesLocationsBloc
     );
   }
 
-  /// Asks for the filming permit document through the native picker and references the file picked,
+  /// Ask for the filming permit document through the native picker and reference the file picked,
   /// written immediately. A cancelled dialog leaves the document already referenced alone.
   Future<void> _onPermitDocumentPickRequested(
     OcptResourcesPermitDocumentPickRequestedEvent event,
@@ -684,7 +685,7 @@ class OcptResourcesLocationsBloc
     );
   }
 
-  /// Drops location `event.locationId`'s reference to its permit document, written immediately.
+  /// Drop location `event.locationId`'s reference to its permit document, written immediately.
   Future<void> _onPermitDocumentCleared(
     OcptResourcesPermitDocumentClearedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -696,7 +697,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Sets asset `event.assetId`'s "valid from" date, written immediately.
+  /// Set asset `event.assetId`'s "valid from" date, written immediately.
   Future<void> _onAssetValidFromChanged(
     OcptResourcesAssetValidFromChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -709,7 +710,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Sets asset `event.assetId`'s "valid until" date, written immediately.
+  /// Set asset `event.assetId`'s "valid until" date, written immediately.
   Future<void> _onAssetValidUntilChanged(
     OcptResourcesAssetValidUntilChangedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -722,7 +723,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Drops the asset reference `event.assetId`, written immediately.
+  /// Drop the asset reference `event.assetId`, written immediately.
   Future<void> _onAssetRemoved(
     OcptResourcesAssetRemovedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -732,7 +733,7 @@ class OcptResourcesLocationsBloc
         _assetsService.removeAsset(database: project.database, assetId: event.assetId),
   );
 
-  /// Adds an availability window to location `event.locationId`, written immediately.
+  /// Add an availability window to location `event.locationId`, written immediately.
   Future<void> _onLocationAvailabilityAdded(
     OcptResourcesLocationAvailabilityAddedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -754,7 +755,7 @@ class OcptResourcesLocationsBloc
     },
   );
 
-  /// Updates availability window `event.id`, written immediately.
+  /// Update availability window `event.id`, written immediately.
   Future<void> _onLocationAvailabilityUpdated(
     OcptResourcesLocationAvailabilityUpdatedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -774,7 +775,7 @@ class OcptResourcesLocationsBloc
     ),
   );
 
-  /// Removes availability window `event.id`, written immediately.
+  /// Remove availability window `event.id`, written immediately.
   Future<void> _onLocationAvailabilityRemoved(
     OcptResourcesLocationAvailabilityRemovedEvent event,
     Emitter<OcptResourcesLocationsState> emitter,
@@ -784,7 +785,7 @@ class OcptResourcesLocationsBloc
         _locationsService.removeAvailability(database: project.database, id: event.id),
   );
 
-  /// Writes every entry of [pending] through [_writeLocationField].
+  /// Write every entry of [pending] through [_writeLocationField].
   Future<void> _writeAllPendingLocationFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptLocationField), String> pending,
@@ -800,7 +801,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Writes a single location field edit through `OcptLocationsService.updateLocation`, translating
+  /// Write a single location field edit through `OcptLocationsService.updateLocation`, translating
   /// [field] into the matching named argument (see `OcptLocationField`'s own doc comment for the
   /// mapping).
   ///
@@ -913,7 +914,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Writes every entry of [pending] through [_writeSetField].
+  /// Write every entry of [pending] through [_writeSetField].
   Future<void> _writeAllPendingSetFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptSetField), String> pending,
@@ -924,7 +925,7 @@ class OcptResourcesLocationsBloc
     }
   }
 
-  /// Writes a single set field edit through `OcptLocationsService.updateSet`, translating [field]
+  /// Write a single set field edit through `OcptLocationsService.updateSet`, translating [field]
   /// into the matching named argument (see `OcptSetField`'s own doc comment for the mapping).
   Future<void> _writeSetField({
     required OcptProjectDatabase database,

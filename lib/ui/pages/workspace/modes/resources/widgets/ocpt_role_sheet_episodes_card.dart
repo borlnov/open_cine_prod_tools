@@ -67,7 +67,7 @@ class OcptRoleSheetEpisodesCard extends StatelessWidget {
     );
   }
 
-  /// [selectedEpisodeIds] with [episodeId] added (while [isSelected]) or removed.
+  /// Get [selectedEpisodeIds] with [episodeId] added (while [isSelected]) or removed.
   Set<String> _toggled(String episodeId, bool isSelected) => isSelected
       ? {...selectedEpisodeIds, episodeId}
       : {

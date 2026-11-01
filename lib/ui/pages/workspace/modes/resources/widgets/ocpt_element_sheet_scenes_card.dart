@@ -289,21 +289,21 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
     );
   }
 
-  /// Flushes a pending edit the moment the row loses focus.
+  /// Flush a pending edit the moment the row loses focus.
   void _flushOnFocusLost() {
     if (!_focusNode.hasFocus) {
       _flushIfDirty();
     }
   }
 
-  /// Records that one of the two fields changed and (re)starts the debounce.
+  /// Record that one of the two fields changed and (re)starts the debounce.
   void _onFieldChanged(String text) {
     _isDirty = true;
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's current fields, if a local edit is actually waiting.
+  /// Report the row's current fields, if a local edit is actually waiting.
   void _flushIfDirty() {
     _debounce?.cancel();
     if (!_isDirty) {

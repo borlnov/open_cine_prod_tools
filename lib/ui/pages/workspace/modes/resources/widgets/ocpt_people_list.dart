@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_list_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
-/// The subset of [people] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [people] matching [query], through [ocptResourcesSearchMatches] against every
 /// field a row shows or that names the person: the display name, every position (its localized
 /// label, or the free custom one when it has no catalogue id), the email, the phone and the city.
 ///
@@ -26,7 +26,7 @@ List<OcptPerson> ocptFilteredPeopleOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, person))) person,
 ];
 
-/// Every field of [person] a search query may match against, see [ocptFilteredPeopleOf].
+/// Get every field of [person] a search query may match against, see [ocptFilteredPeopleOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptPerson person) => [
   person.displayName,
   for (final position in person.positions)
@@ -162,7 +162,7 @@ class _OcptPersonEntry extends StatelessWidget {
     );
   }
 
-  /// [person]'s positions, localized and joined, or empty when they hold none — the row's own
+  /// Get [person]'s positions, localized and joined, or empty when they hold none — the row's own
   /// "postes" summary line.
   String _positionsSummary(Tr tr) => person.positions
       .map(

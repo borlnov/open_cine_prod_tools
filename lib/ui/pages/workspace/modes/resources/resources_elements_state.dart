@@ -26,11 +26,11 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
     required this.lastLostEditsEpoch,
   });
 
-  /// Builds the state of a bloc that holds no pending edit.
+  /// Build the state of a bloc that holds no pending edit.
   const OcptResourcesElementsState.init({this.lastLostEditsEpoch = 0})
     : pendingElementFieldEdits = const {};
 
-  /// Copies this state, replacing [pendingElementFieldEdits] when given — always replaced
+  /// Copy this state, replacing [pendingElementFieldEdits] when given — always replaced
   /// wholesale, the caller computing the full next map.
   @override
   OcptResourcesElementsState copyWith({
@@ -41,29 +41,29 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
     lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
-  /// Copies this state with every pending field edit dropped.
+  /// Copy this state with every pending field edit dropped.
   OcptResourcesElementsState copyWithFieldEditsCleared() =>
       copyWith(pendingElementFieldEdits: const {});
 
-  /// Copies this state with [pendingElementFieldEdits] as the edits sitting in the debounce, an
+  /// Copy this state with [pendingElementFieldEdits] as the edits sitting in the debounce, an
   /// element's field having just been typed into.
   OcptResourcesElementsState copyWithFieldEditTyped({
     required Map<(String, OcptElementField), String> pendingElementFieldEdits,
   }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
 
-  /// Copies this state with [pendingElementFieldEdits] as the edits left once the pending ones
+  /// Copy this state with [pendingElementFieldEdits] as the edits left once the pending ones
   /// were written.
   OcptResourcesElementsState copyWithFieldEditsWritten({
     required Map<(String, OcptElementField), String> pendingElementFieldEdits,
   }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
 
-  /// Copies this state with [pendingElementFieldEdits] as the edits left once an element was
+  /// Copy this state with [pendingElementFieldEdits] as the edits left once an element was
   /// deleted.
   OcptResourcesElementsState copyWithElementDeleted({
     required Map<(String, OcptElementField), String> pendingElementFieldEdits,
   }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
 
-  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// Copy this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
   /// reacted to, the mode having said that writing them failed somewhere.
   OcptResourcesElementsState copyWithFieldEditsLost({required int lostEditsEpoch}) =>
       copyWith(pendingElementFieldEdits: const {}, lastLostEditsEpoch: lostEditsEpoch);

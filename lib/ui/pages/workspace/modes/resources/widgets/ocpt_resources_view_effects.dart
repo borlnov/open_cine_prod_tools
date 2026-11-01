@@ -31,7 +31,7 @@ class OcptResourcesViewEffects extends StatelessWidget {
         child: child,
       );
 
-  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  /// Show the outcome of an export as a SnackBar, then dismiss it.
   void _onExportStateChanged(BuildContext context, OcptResourcesExportState state) {
     final ioNotice = state.ioNotice;
     if (ioNotice == null) {
@@ -44,7 +44,7 @@ class OcptResourcesViewEffects extends StatelessWidget {
     context.read<OcptResourcesExportBloc>().add(const OcptResourcesIoNoticeDismissedEvent());
   }
 
-  /// Maps [notice] to its localized, user-facing message, mirroring
+  /// Map [notice] to its localized, user-facing message, mirroring
   /// `OcptShotListViewEffects._ioNoticeMessage`, [OcptResourcesIoNotice.wasShared] included.
   String _ioNoticeMessage(BuildContext context, OcptResourcesIoNotice notice) {
     final tr = Tr.of(context);

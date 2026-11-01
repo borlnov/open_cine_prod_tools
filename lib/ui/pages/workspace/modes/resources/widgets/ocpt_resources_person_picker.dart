@@ -115,7 +115,8 @@ class OcptResourcesPersonPicker extends StatelessWidget {
     );
   }
 
-  /// How [person] reads on the badge and in the menu: their display name, or the shared placeholder
+  /// Tell how [person] reads on the badge and in the menu: their display name, or the shared
+  /// placeholder
   /// for somebody whose name has not been typed in yet.
   String _nameOf(Tr tr, OcptPerson person) =>
       person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;

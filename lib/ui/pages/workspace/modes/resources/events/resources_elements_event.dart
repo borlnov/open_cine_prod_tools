@@ -14,7 +14,7 @@ sealed class OcptResourcesElementsEvent extends OcptResourcesEvent {
   const OcptResourcesElementsEvent();
 }
 
-/// Requests referencing element [elementId]'s photo, replacing whichever one it referenced before.
+/// Request referencing element [elementId]'s photo, replacing whichever one it referenced before.
 /// See `OcptResourcesLocationPhotoAddRequestedEvent` for [fileTypeLabel].
 class OcptResourcesElementPhotoPickRequestedEvent extends OcptResourcesElementsEvent {
   /// The id of the element the photo is referenced for.
@@ -34,7 +34,7 @@ class OcptResourcesElementPhotoPickRequestedEvent extends OcptResourcesElementsE
   List<Object?> get props => [...super.props, elementId, fileTypeLabel];
 }
 
-/// Drops element [elementId]'s reference to its photo. The file itself is never touched.
+/// Drop element [elementId]'s reference to its photo. The file itself is never touched.
 class OcptResourcesElementPhotoClearedEvent extends OcptResourcesElementsEvent {
   /// The id of the element whose photo reference is dropped.
   final String elementId;
@@ -47,7 +47,7 @@ class OcptResourcesElementPhotoClearedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, elementId];
 }
 
-/// Requests creating a new, blank element at the end of the catalogue, then selecting it: the left
+/// Request creating a new, blank element at the end of the catalogue, then selecting it: the left
 /// dock's `+ Add an element` action.
 ///
 /// It carries the category the new element lands in, which the action asks for up front: an element
@@ -66,7 +66,7 @@ class OcptResourcesElementCreationRequestedEvent extends OcptResourcesElementsEv
   List<Object?> get props => [...super.props, category];
 }
 
-/// Requests deleting element [elementId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// Request deleting element [elementId], dispatched once `OcptResourcesDeleteConfirmDialog` has
 /// already confirmed it. Clears the selection when [elementId] was the selected element, and drops
 /// any pending field edit that still targeted it.
 class OcptResourcesElementDeletionRequestedEvent extends OcptResourcesElementsEvent {
@@ -81,7 +81,7 @@ class OcptResourcesElementDeletionRequestedEvent extends OcptResourcesElementsEv
   List<Object?> get props => [...super.props, elementId];
 }
 
-/// Records the raw text just typed into [field] of element [elementId], written once the field-edit
+/// Record the raw text just typed into [field] of element [elementId], written once the field-edit
 /// debounce elapses.
 class OcptResourcesElementFieldChangedEvent extends OcptResourcesElementsEvent {
   /// The id of the element being edited.
@@ -105,7 +105,7 @@ class OcptResourcesElementFieldChangedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, elementId, field, rawValue];
 }
 
-/// Sets element [elementId]'s category, written immediately.
+/// Set element [elementId]'s category, written immediately.
 class OcptResourcesElementCategoryChangedEvent extends OcptResourcesElementsEvent {
   /// The id of the element whose category changes.
   final String elementId;
@@ -121,7 +121,7 @@ class OcptResourcesElementCategoryChangedEvent extends OcptResourcesElementsEven
   List<Object?> get props => [...super.props, elementId, category];
 }
 
-/// Sets where element [elementId] comes from, written immediately.
+/// Set where element [elementId] comes from, written immediately.
 class OcptResourcesElementSourceKindChangedEvent extends OcptResourcesElementsEvent {
   /// The id of the element whose provenance changes.
   final String elementId;
@@ -140,7 +140,7 @@ class OcptResourcesElementSourceKindChangedEvent extends OcptResourcesElementsEv
   List<Object?> get props => [...super.props, elementId, sourceKind];
 }
 
-/// Sets who owns element [elementId] (or clears it), written immediately.
+/// Set who owns element [elementId] (or clears it), written immediately.
 class OcptResourcesElementOwnerChangedEvent extends OcptResourcesElementsEvent {
   /// The id of the element whose owner changes.
   final String elementId;
@@ -157,7 +157,7 @@ class OcptResourcesElementOwnerChangedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Sets who brings element [elementId] to set (or clears it), written immediately.
+/// Set who brings element [elementId] to set (or clears it), written immediately.
 class OcptResourcesElementBringerChangedEvent extends OcptResourcesElementsEvent {
   /// The id of the element whose bringer changes.
   final String elementId;
@@ -173,7 +173,7 @@ class OcptResourcesElementBringerChangedEvent extends OcptResourcesElementsEvent
   List<Object?> get props => [...super.props, elementId, personId];
 }
 
-/// Sets one of element [elementId]'s three tracking flags, written immediately.
+/// Set one of element [elementId]'s three tracking flags, written immediately.
 ///
 /// One event for the three of them rather than three events differing only in their name: they are
 /// the same gesture on the same card, and `OcptElementTrackingFlag` is what says which box was
@@ -200,7 +200,7 @@ class OcptResourcesElementTrackingFlagChangedEvent extends OcptResourcesElements
   List<Object?> get props => [...super.props, elementId, flag, value];
 }
 
-/// Says element [elementId] is needed in scene [sceneId], written immediately.
+/// Say element [elementId] is needed in scene [sceneId], written immediately.
 class OcptResourcesSceneAssignedToElementEvent extends OcptResourcesElementsEvent {
   /// The id of the scene needing the element.
   final String sceneId;
@@ -216,7 +216,7 @@ class OcptResourcesSceneAssignedToElementEvent extends OcptResourcesElementsEven
   List<Object?> get props => [...super.props, sceneId, elementId];
 }
 
-/// Updates the quantity and the notes of the scene ↔ element link [id], written immediately.
+/// Update the quantity and the notes of the scene ↔ element link [id], written immediately.
 ///
 /// Carries both fields at once because the row that reports it holds both: it debounces its own
 /// typing locally and reports the whole link, exactly as an unavailability's row does.
@@ -242,7 +242,7 @@ class OcptResourcesSceneElementUpdatedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, id, quantity, notes];
 }
 
-/// Removes the scene ↔ element link [id], written immediately.
+/// Remove the scene ↔ element link [id], written immediately.
 class OcptResourcesSceneElementRemovedEvent extends OcptResourcesElementsEvent {
   /// The id of the link to remove.
   final String id;
@@ -255,7 +255,7 @@ class OcptResourcesSceneElementRemovedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, id];
 }
 
-/// Links role [roleId] to element [elementId], written immediately.
+/// Link role [roleId] to element [elementId], written immediately.
 ///
 /// Dispatched by the role sheet's things card. The write is `OcptElementsService`'s, not
 /// `OcptRoleIndexService`'s: the row is a link onto an element, and one service owns both halves of
@@ -275,7 +275,7 @@ class OcptResourcesElementLinkedToRoleEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, roleId, elementId];
 }
 
-/// Updates the notes of the role ↔ element link [id], written immediately.
+/// Update the notes of the role ↔ element link [id], written immediately.
 ///
 /// Carries the whole note rather than a keystroke: the row that reports it debounces its own typing
 /// locally, exactly as the scenes card's own row does.
@@ -294,7 +294,7 @@ class OcptResourcesRoleElementUpdatedEvent extends OcptResourcesElementsEvent {
   List<Object?> get props => [...super.props, id, notes];
 }
 
-/// Removes the role ↔ element link [id], written immediately.
+/// Remove the role ↔ element link [id], written immediately.
 ///
 /// The **element itself is untouched**: it stays in the catalogue, and so does every other link
 /// onto it. This says only that this role no longer wears, carries or is made up with it.

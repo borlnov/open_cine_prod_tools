@@ -171,7 +171,7 @@ class OcptResourcesPersonSheetView extends StatelessWidget {
     );
   }
 
-  /// [person]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// Get [person]'s current value for [field]: a pending edit still sitting in the bloc's debounce
   /// takes priority over the person's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors `OcptShotListMode._fieldValueOf`.
   String _fieldValueOf(OcptResourcesPeopleState state, OcptPerson person, OcptPersonField field) {

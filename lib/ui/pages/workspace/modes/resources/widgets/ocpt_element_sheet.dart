@@ -125,7 +125,7 @@ class OcptElementSheet extends StatelessWidget {
   /// [onPersonSheetOpenRequested], which is handed over unconditionally for the same reason.
   final ValueChanged<String> onRoleSheetOpenRequested;
 
-  /// The roles wearing, carrying or made up with this element, in the order its links came in —
+  /// Get the roles wearing, carrying or made up with this element, in the order its links came in —
   /// the cast's own. A link naming a role the cast no longer holds is left out by
   /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
   List<OcptRole> get _rolesConcerned {

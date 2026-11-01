@@ -144,7 +144,8 @@ class OcptResourcesRoleSheetView extends StatelessWidget {
     );
   }
 
-  /// The other roles [castMember] holds beside [role], in display order, or empty while [role] is
+  /// Get the other roles [castMember] holds beside [role], in display order, or empty while [role]
+  /// is
   /// uncast or its cast member holds only this one.
   List<OcptRole> _otherRolesOf(OcptRole role, OcptPerson? castMember) {
     if (castMember == null) {
@@ -157,7 +158,8 @@ class OcptResourcesRoleSheetView extends StatelessWidget {
     ];
   }
 
-  /// [role]'s current value for [field]: a pending edit still sitting in the bloc's debounce takes
+  /// Get [role]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// takes
   /// priority over the role's own stored value, so typing is never overwritten by an unrelated
   /// reload. Mirrors `OcptResourcesPersonSheetView`'s own lookup.
   String _roleFieldValueOf(OcptResourcesRolesState state, OcptRole role, OcptRoleField field) {
@@ -172,7 +174,8 @@ class OcptResourcesRoleSheetView extends StatelessWidget {
     };
   }
 
-  /// Candidacy [candidateId]'s current note: a pending edit still sitting in the bloc's debounce
+  /// Get candidacy [candidateId]'s current note: a pending edit still sitting in the bloc's
+  /// debounce
   /// takes priority over the candidacy's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors [_roleFieldValueOf], one level down — a candidacy rather than a
   /// role.

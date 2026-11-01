@@ -134,7 +134,7 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     );
   }
 
-  /// One text field of the card, labelled [label] and writing [field].
+  /// Build one text field of the card, labelled [label] and writing [field].
   Widget _field(
     BuildContext context,
     OcptLocationField field,
@@ -152,7 +152,8 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     );
   }
 
-  /// What is wrong with the coordinate [value], or null when there is nothing to say about it.
+  /// Describe what is wrong with the coordinate [value], or null when there is nothing to say about
+  /// it.
   ///
   /// A **remark, never a gate** (the rule the email field already follows): the value is written
   /// either way — as no coordinate at all, since a location half-way through being pinned is not at

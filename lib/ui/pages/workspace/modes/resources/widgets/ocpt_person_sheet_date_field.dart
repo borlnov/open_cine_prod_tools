@@ -82,7 +82,7 @@ class OcptPersonSheetDateField extends StatelessWidget {
     );
   }
 
-  /// Opens the platform date picker seeded with [value] (or today, while unset), reporting the
+  /// Open the platform date picker seeded with [value] (or today, while unset), reporting the
   /// pick to [onChanged]. Does nothing when the picker is dismissed with no pick.
   Future<void> _pickDate(BuildContext context, ValueChanged<DateTime?> onChanged) async {
     final now = DateTime.now();

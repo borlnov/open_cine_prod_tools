@@ -37,12 +37,12 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
     required this.lastLostEditsEpoch,
   });
 
-  /// Builds the state of a bloc that holds no pending edit.
+  /// Build the state of a bloc that holds no pending edit.
   const OcptResourcesRolesState.init({this.lastLostEditsEpoch = 0})
     : pendingRoleFieldEdits = const {},
       pendingCandidateFieldEdits = const {};
 
-  /// Copies this state, replacing what is given — each map always replaced wholesale, the caller
+  /// Copy this state, replacing what is given — each map always replaced wholesale, the caller
   /// computing the full next map.
   @override
   OcptResourcesRolesState copyWith({
@@ -55,23 +55,23 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
     lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
-  /// Copies this state with every pending field edit dropped, of the roles and of their candidates.
+  /// Copy this state with every pending field edit dropped, of the roles and of their candidates.
   OcptResourcesRolesState copyWithFieldEditsCleared() =>
       copyWith(pendingRoleFieldEdits: const {}, pendingCandidateFieldEdits: const {});
 
-  /// Copies this state with [pendingRoleFieldEdits] as the edits sitting in the debounce, a role's
+  /// Copy this state with [pendingRoleFieldEdits] as the edits sitting in the debounce, a role's
   /// field having just been typed into.
   OcptResourcesRolesState copyWithRoleFieldEditTyped({
     required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
   }) => copyWith(pendingRoleFieldEdits: pendingRoleFieldEdits);
 
-  /// Copies this state with [pendingCandidateFieldEdits] as the edits sitting in the debounce, a
+  /// Copy this state with [pendingCandidateFieldEdits] as the edits sitting in the debounce, a
   /// candidacy's field having just been typed into.
   OcptResourcesRolesState copyWithCandidateFieldEditTyped({
     required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
   }) => copyWith(pendingCandidateFieldEdits: pendingCandidateFieldEdits);
 
-  /// Copies this state with the edits left once the pending ones were written, each map replaced.
+  /// Copy this state with the edits left once the pending ones were written, each map replaced.
   OcptResourcesRolesState copyWithFieldEditsWritten({
     required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
     required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
@@ -80,18 +80,18 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
     pendingCandidateFieldEdits: pendingCandidateFieldEdits,
   );
 
-  /// Copies this state with [pendingRoleFieldEdits] as the edits left once a role was deleted.
+  /// Copy this state with [pendingRoleFieldEdits] as the edits left once a role was deleted.
   OcptResourcesRolesState copyWithRoleDeleted({
     required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
   }) => copyWith(pendingRoleFieldEdits: pendingRoleFieldEdits);
 
-  /// Copies this state with [pendingCandidateFieldEdits] as the edits left once a candidacy was
+  /// Copy this state with [pendingCandidateFieldEdits] as the edits left once a candidacy was
   /// removed.
   OcptResourcesRolesState copyWithCandidateRemoved({
     required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
   }) => copyWith(pendingCandidateFieldEdits: pendingCandidateFieldEdits);
 
-  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// Copy this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
   /// reacted to, the mode having said that writing them failed somewhere.
   OcptResourcesRolesState copyWithFieldEditsLost({required int lostEditsEpoch}) => copyWith(
     pendingRoleFieldEdits: const {},

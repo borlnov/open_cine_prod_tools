@@ -83,7 +83,8 @@ class OcptLocationSheetHeader extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` the name field is given: the one reporting to [onFieldChanged], or null while
+  /// Get the `onChanged` the name field is given: the one reporting to [onFieldChanged], or null
+  /// while
   /// the sheet may not be written to, which is what makes the field read its value out instead of
   /// accepting a new one.
   ValueChanged<String>? _onNameChangedOrNull() {

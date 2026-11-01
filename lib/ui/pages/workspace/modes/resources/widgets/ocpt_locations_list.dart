@@ -20,7 +20,8 @@ const double _colorBarHeight = 28;
 /// The separator between a location's city and its set count, on a row's own muted second line.
 const String _secondLineSeparator = " · ";
 
-/// The subset of [locations] matching [query], through [ocptResourcesSearchMatches] against every
+/// Get the subset of [locations] matching [query], through [ocptResourcesSearchMatches] against
+/// every
 /// field a row shows or that names the location: its name, its city, each of its sets' codes and
 /// names, and the localized permit status.
 ///
@@ -35,7 +36,7 @@ List<OcptLocation> ocptFilteredLocationsOf({
     if (ocptResourcesSearchMatches(query: query, fields: _searchFieldsOf(tr, location))) location,
 ];
 
-/// Every field of [location] a search query may match against, see [ocptFilteredLocationsOf].
+/// Get every field of [location] a search query may match against, see [ocptFilteredLocationsOf].
 Iterable<String> _searchFieldsOf(Tr tr, OcptLocation location) => [
   location.name,
   location.city,
@@ -180,7 +181,8 @@ class _OcptLocationEntry extends StatelessWidget {
     );
   }
 
-  /// The row's muted second line: the city and the number of sets, or the set count alone while the
+  /// Get the row's muted second line: the city and the number of sets, or the set count alone while
+  /// the
   /// city is still empty — a leading separator would read as a missing word.
   String _secondLineOf(Tr tr) {
     final setsLabel = tr.resourcesLocationSetCount(location.sets.length);

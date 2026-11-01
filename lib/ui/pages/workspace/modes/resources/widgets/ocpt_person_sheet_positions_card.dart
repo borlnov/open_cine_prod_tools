@@ -237,7 +237,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     );
   }
 
-  /// Flushes a pending edit the moment the label field loses focus, so a click elsewhere in the
+  /// Flush a pending edit the moment the label field loses focus, so a click elsewhere in the
   /// sheet never silently drops it.
   void _flushOnFocusLost() {
     if (!_labelFocusNode.hasFocus) {
@@ -245,7 +245,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     }
   }
 
-  /// Records that the label field now holds a free label (typing always leaves the catalogue,
+  /// Record that the label field now holds a free label (typing always leaves the catalogue,
   /// even if a catalogue entry was picked moments ago) and (re)starts the debounce.
   void _onLabelChanged(String text) {
     _positionId = "";
@@ -253,13 +253,13 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     _restartDebounce();
   }
 
-  /// (Re)starts the local debounce, cancelling whatever was still running.
+  /// (Re)start the local debounce, cancelling whatever was still running.
   void _restartDebounce() {
     _debounce?.cancel();
     _debounce = Timer(_localFieldDebounce, _flushIfDirty);
   }
 
-  /// Reports the row's two current fields, if a local edit is actually waiting; a no-op otherwise,
+  /// Report the row's two current fields, if a local edit is actually waiting; a no-op otherwise,
   /// so a focus change with nothing typed never triggers a redundant write.
   void _flushIfDirty() {
     _debounce?.cancel();
@@ -273,7 +273,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     );
   }
 
-  /// Picks catalogue position [positionId] from the row's menu: written immediately, since picking
+  /// Pick catalogue position [positionId] from the row's menu: written immediately, since picking
   /// an entry is a single discrete action rather than typing.
   void _pickCatalogPosition(String positionId) {
     _debounce?.cancel();
@@ -285,7 +285,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     widget.onUpdated?.call(positionId: positionId, customLabel: "");
   }
 
-  /// Switches this row to a free label, keeping whatever text the label field already shows:
+  /// Switch this row to a free label, keeping whatever text the label field already shows:
   /// written immediately, since picking the menu's "Custom label…" entry is itself a single
   /// discrete action.
   void _pickCustomLabel() {
@@ -295,7 +295,7 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     widget.onUpdated?.call(positionId: "", customLabel: _labelController.text);
   }
 
-  /// Opens the shared [OcptCrewPositionPickerDialog] over the whole catalogue, with its "Custom
+  /// Open the shared [OcptCrewPositionPickerDialog] over the whole catalogue, with its "Custom
   /// label…" entry offered: a catalogue pick calls [_pickCatalogPosition], the custom entry calls
   /// [_pickCustomLabel]. A dismissed dialog (or one closed once this state no longer `mounted`
   /// holds) leaves the row untouched.

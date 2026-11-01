@@ -169,7 +169,7 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     );
   }
 
-  /// Rebuilds so the error message appears the moment the field loses the focus, and disappears
+  /// Rebuild so the error message appears the moment the field loses the focus, and disappears
   /// again the moment it regains it.
   void _onFocusChanged() {
     if (widget.errorTextOf != null) {
@@ -177,7 +177,8 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     }
   }
 
-  /// The message to show under the field right now: what [OcptResourcesSheetField.errorTextOf] says
+  /// Get the message to show under the field right now: what [OcptResourcesSheetField.errorTextOf]
+  /// says
   /// about the current value, or null while the field has the focus or is never checked.
   String? _resolveErrorText() {
     final errorTextOf = widget.errorTextOf;

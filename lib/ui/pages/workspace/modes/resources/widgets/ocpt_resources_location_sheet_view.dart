@@ -198,14 +198,14 @@ class OcptResourcesLocationSheetView extends StatelessWidget {
     );
   }
 
-  /// Every location of the project other than [locationId], `(id, name)`, in the order the list
+  /// Get every location of the project other than [locationId], `(id, name)`, in the order the list
   /// panel shows them — the destinations the sets card's own move control offers.
   List<(String, String)> _otherLocationsOf(OcptResourcesState state, String locationId) => [
     for (final location in state.locations)
       if (location.id != locationId) (location.id, location.name),
   ];
 
-  /// The ids of every scene already shot in a set, of this location or of another.
+  /// Get the ids of every scene already shot in a set, of this location or of another.
   ///
   /// Read across the **whole** project rather than the selected location alone: a scene may be shot
   /// in several sets, so this does not say what picking one would do — it says which scenes are
@@ -216,7 +216,7 @@ class OcptResourcesLocationSheetView extends StatelessWidget {
       for (final set in location.sets) ...set.sceneIds,
   };
 
-  /// The set each still-unplaced scene is suggested for, keyed by scene id.
+  /// Get the set each still-unplaced scene is suggested for, keyed by scene id.
   ///
   /// Computed once per build rather than per scene and per set: the suggestion is a property of a
   /// scene's heading against the whole project, not of the set that happens to be drawing it.
@@ -267,7 +267,8 @@ class OcptResourcesLocationSheetView extends StatelessWidget {
     return "";
   }
 
-  /// [location]'s current value for [field]: a pending edit still sitting in the bloc's debounce
+  /// Get [location]'s current value for [field]: a pending edit still sitting in the bloc's
+  /// debounce
   /// takes priority over the location's own stored value, so typing is never overwritten by an
   /// unrelated reload. Mirrors `OcptResourcesPersonSheetView`'s own lookup.
   ///

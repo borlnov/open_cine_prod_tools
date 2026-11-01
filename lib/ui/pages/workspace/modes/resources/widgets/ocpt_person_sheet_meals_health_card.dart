@@ -88,7 +88,8 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;
@@ -171,13 +172,13 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
     );
   }
 
-  /// Shows the inline add field and gives it the focus.
+  /// Show the inline add field and give it the focus.
   void _startAdding() {
     setState(() => _isAdding = true);
     WidgetsBinding.instance.addPostFrameCallback((_) => _addFocusNode.requestFocus());
   }
 
-  /// Submits whatever the add field currently holds, if not blank, then hides it again.
+  /// Submit whatever the add field currently holds, if not blank, then hide it again.
   void _submit() {
     final label = _addController.text.trim();
     if (label.isNotEmpty) {

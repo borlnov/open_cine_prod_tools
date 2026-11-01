@@ -37,7 +37,7 @@ class OcptContactListExportDialog extends StatefulWidget {
   @override
   State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
 
-  /// Shows the dialog and returns the [OcptContactListExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptContactListExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptContactListExportOptions?> show(
     BuildContext context, {
@@ -100,13 +100,13 @@ class _OcptContactListExportDialogState extends State<OcptContactListExportDialo
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptContactListExportOptions].
+  /// Pop the dialog returning the resulting [OcptContactListExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

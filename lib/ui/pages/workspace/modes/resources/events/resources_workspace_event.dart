@@ -12,20 +12,20 @@ sealed class OcptResourcesWorkspaceEvent extends OcptResourcesEvent {
   const OcptResourcesWorkspaceEvent();
 }
 
-/// Requests leaving the workspace: flushes any pending field edit, closes the current project, and
+/// Request leaving the workspace: flushes any pending field edit, closes the current project, and
 /// navigates back to the home page.
 class OcptResourcesBackRequestedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesBackRequestedEvent();
 }
 
-/// Reports that the project settings page was closed after changing something.
+/// Report that the project settings page was closed after changing something.
 class OcptResourcesProjectSettingsChangedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesProjectSettingsChangedEvent();
 }
 
-/// Selects the left dock's tab [tab], dispatched by `OcptResourcesTabBar`.
+/// Select the left dock's tab [tab], dispatched by `OcptResourcesTabBar`.
 ///
 /// Clears the selected person, role and location when [tab] actually differs from the one already
 /// active: a tab switch shows a different list, none of whose rows the previous selection belonged
@@ -42,7 +42,7 @@ class OcptResourcesTabSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Selects the person [personId], dispatched by a row of `OcptPeopleList`.
+/// Select the person [personId], dispatched by a row of `OcptPeopleList`.
 class OcptResourcesPersonSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// The id of the person to select.
   final String personId;
@@ -55,7 +55,7 @@ class OcptResourcesPersonSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, personId];
 }
 
-/// Selects role [roleId], dispatched by a row of `OcptRolesList`: the centre then shows that
+/// Select role [roleId], dispatched by a row of `OcptRolesList`: the centre then shows that
 /// role's `OcptRoleSheet`.
 ///
 /// Selecting the already-selected role changes nothing, exactly as selecting a person twice does.
@@ -71,7 +71,7 @@ class OcptResourcesRoleSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Requests opening person [personId]'s sheet, dispatched by the role sheet's dedicated `↗`
+/// Request opening person [personId]'s sheet, dispatched by the role sheet's dedicated `↗`
 /// affordance in the cast-member cell (a plain row click only *selects* the role).
 ///
 /// Dispatched by the role sheet's cast member line and by the location sheet's contact line alike.
@@ -91,7 +91,7 @@ class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesWorkspaceE
   List<Object?> get props => [...super.props, personId];
 }
 
-/// Requests opening role [roleId]'s sheet, dispatched by the element sheet's `Roles concerned`
+/// Request opening role [roleId]'s sheet, dispatched by the element sheet's `Roles concerned`
 /// chips.
 ///
 /// [OcptResourcesPersonSheetOpenRequestedEvent]'s sibling and follows it exactly: it switches the
@@ -111,7 +111,7 @@ class OcptResourcesRoleSheetOpenRequestedEvent extends OcptResourcesWorkspaceEve
   List<Object?> get props => [...super.props, roleId];
 }
 
-/// Selects location [locationId], dispatched by a row of `OcptLocationsList`: the centre then shows
+/// Select location [locationId], dispatched by a row of `OcptLocationsList`: the centre then shows
 /// that location's `OcptLocationSheet`.
 class OcptResourcesLocationSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// The id of the location to select.
@@ -125,7 +125,7 @@ class OcptResourcesLocationSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, locationId];
 }
 
-/// Requests revealing set [setId]'s own floor plan in the shot list mode's floor plans view, on
+/// Request revealing set [setId]'s own floor plan in the shot list mode's floor plans view, on
 /// its first linked sequence in screenplay order — the sets
 /// card's own `Open in shot list` action.
 ///
@@ -147,7 +147,7 @@ class OcptResourcesOpenSetInShotListRequestedEvent extends OcptResourcesWorkspac
   List<Object?> get props => [...super.props, setId];
 }
 
-/// Reports that the mode has taken `OcptResourcesState.pendingShotListReveal` into account (it
+/// Report that the mode has taken `OcptResourcesState.pendingShotListReveal` into account (it
 /// dispatched the cross-mode switch it names), so it can be cleared and never re-dispatched on a
 /// later rebuild.
 class OcptResourcesShotListRevealDismissedEvent extends OcptResourcesWorkspaceEvent {
@@ -155,7 +155,7 @@ class OcptResourcesShotListRevealDismissedEvent extends OcptResourcesWorkspaceEv
   const OcptResourcesShotListRevealDismissedEvent();
 }
 
-/// Selects the element [elementId], dispatched by a row of `OcptElementsList`.
+/// Select the element [elementId], dispatched by a row of `OcptElementsList`.
 class OcptResourcesElementSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// The id of the element to select.
   final String elementId;
@@ -168,13 +168,13 @@ class OcptResourcesElementSelectedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, elementId];
 }
 
-/// Toggles the visibility of the left (list) dock.
+/// Toggle the visibility of the left (list) dock.
 class OcptResourcesLeftPanelToggledEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesLeftPanelToggledEvent();
 }
 
-/// Toggles whether the search field is shown, dispatched by the toolbar's search icon button.
+/// Toggle whether the search field is shown, dispatched by the toolbar's search icon button.
 ///
 /// Opening it also opens the left dock when it was closed — a field in a hidden dock would be a
 /// toggle that does nothing — and closing it clears whatever was typed, so a hidden field can
@@ -184,7 +184,7 @@ class OcptResourcesSearchToggledEvent extends OcptResourcesWorkspaceEvent {
   const OcptResourcesSearchToggledEvent();
 }
 
-/// Records the text currently sitting in the search field, dispatched by
+/// Record the text currently sitting in the search field, dispatched by
 /// `OcptResourcesSearchField` on every keystroke.
 ///
 /// Needs no debounce, unlike a sheet field's typed value: this writes nothing to the project
@@ -202,7 +202,7 @@ class OcptResourcesSearchQueryChangedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, query];
 }
 
-/// Selects a tab of the right dock, dispatched by the dock's own tab row. There being only one
+/// Select a tab of the right dock, dispatched by the dock's own tab row. There being only one
 /// tab, this either opens the dock on it or closes the dock, mirroring the shot list's own
 /// select-the-active-tab-again-to-close semantics.
 class OcptResourcesRightDockTabSelectedEvent extends OcptResourcesWorkspaceEvent {
@@ -217,20 +217,20 @@ class OcptResourcesRightDockTabSelectedEvent extends OcptResourcesWorkspaceEvent
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Toggles the right dock as a whole, dispatched by the workspace toolbar's right dock toggle: an
+/// Toggle the right dock as a whole, dispatched by the workspace toolbar's right dock toggle: an
 /// open dock closes, a closed one reopens on its single tab.
 class OcptResourcesRightDockToggledEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesRightDockToggledEvent();
 }
 
-/// Closes the right dock via its own × close button.
+/// Close the right dock via its own × close button.
 class OcptResourcesRightDockClosedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesRightDockClosedEvent();
 }
 
-/// Requests updating the mode's dock width fractions, persisting whichever of [left]/[right] is
+/// Request updating the mode's dock width fractions, persisting whichever of [left]/[right] is
 /// given.
 ///
 /// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame.
@@ -249,19 +249,19 @@ class OcptResourcesDockFractionsChangedEvent extends OcptResourcesWorkspaceEvent
   List<Object?> get props => [...super.props, left, right];
 }
 
-/// Requests restoring both dock fractions to their defaults ("Reset panel layout").
+/// Request restoring both dock fractions to their defaults ("Reset panel layout").
 class OcptResourcesDockLayoutResetEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesDockLayoutResetEvent();
 }
 
-/// Dismisses the transient write error currently shown, if any.
+/// Dismiss the transient write error currently shown, if any.
 class OcptResourcesWriteErrorDismissedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesWriteErrorDismissedEvent();
 }
 
-/// Reports that a view bloc's write to the project database failed: the transient write error is
+/// Report that a view bloc's write to the project database failed: the transient write error is
 /// shown.
 ///
 /// Dispatched by a view bloc, never by a widget. The mode owns the one write error flag every view
@@ -271,7 +271,7 @@ class OcptResourcesWriteFailedEvent extends OcptResourcesWorkspaceEvent {
   const OcptResourcesWriteFailedEvent();
 }
 
-/// Reports that writing the edits typed into the sheets failed: the transient write error is shown
+/// Report that writing the edits typed into the sheets failed: the transient write error is shown
 /// and **every** view drops what it still holds in its debounce, the field falling back to the
 /// value the database holds.
 ///
@@ -284,7 +284,7 @@ class OcptResourcesPendingEditsLostEvent extends OcptResourcesWorkspaceEvent {
   const OcptResourcesPendingEditsLostEvent();
 }
 
-/// Selects the record [recordId] a view bloc has just created, in the list of [tab], without
+/// Select the record [recordId] a view bloc has just created, in the list of [tab], without
 /// switching tab nor writing what is pending: the view already did, and has read the mode's data
 /// again so the record is in it.
 ///
@@ -304,7 +304,7 @@ class OcptResourcesRecordCreatedEvent extends OcptResourcesWorkspaceEvent {
   List<Object?> get props => [...super.props, tab, recordId];
 }
 
-/// Clears the selection of [tab]'s list if it is [recordId], the record a view bloc has just
+/// Clear the selection of [tab]'s list if it is [recordId], the record a view bloc has just
 /// deleted; another selection is left alone.
 ///
 /// Dispatched by a view bloc, never by a widget, and awaited by it.

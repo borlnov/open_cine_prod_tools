@@ -251,7 +251,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     );
   }
 
-  /// The roles tab header's own two counts, `N roles · M cast`: both read off the **filtered**
+  /// Get the roles tab header's own two counts, `N roles · M cast`: both read off the **filtered**
   /// list, so the header always reports what [OcptRolesList] shows under it, rather than the whole
   /// cast.
   String _rolesHeaderStats(Tr tr) {

@@ -13,14 +13,14 @@ sealed class OcptResourcesPeopleEvent extends OcptResourcesEvent {
   const OcptResourcesPeopleEvent();
 }
 
-/// Requests creating a new, blank person at the end of the address book, then selecting it: the
+/// Request creating a new, blank person at the end of the address book, then selecting it: the
 /// left dock's `+ Add a person` action.
 class OcptResourcesPersonCreationRequestedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesPersonCreationRequestedEvent();
 }
 
-/// Requests erasing person [personId], dispatched once `OcptResourcesDeleteConfirmDialog` has
+/// Request erasing person [personId], dispatched once `OcptResourcesDeleteConfirmDialog` has
 /// already confirmed it. Clears the selection when [personId] was the selected person, and drops
 /// any pending field edit that still targeted it.
 class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesPeopleEvent {
@@ -35,7 +35,7 @@ class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesPeopleEvent
   List<Object?> get props => [...super.props, personId];
 }
 
-/// Records the raw text just typed into [field] of person [personId], dispatched by the person
+/// Record the raw text just typed into [field] of person [personId], dispatched by the person
 /// sheet on every keystroke.
 ///
 /// The typed value becomes visible immediately as a pending edit in
@@ -64,7 +64,7 @@ class OcptResourcesPersonFieldChangedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, personId, field, rawValue];
 }
 
-/// Sets person [personId]'s avatar colour to `ocptCoveragePalette[colorIndex]`, written
+/// Set person [personId]'s avatar colour to `ocptCoveragePalette[colorIndex]`, written
 /// immediately: picking a swatch is a single discrete action, not typing.
 class OcptResourcesPersonColorChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose colour changed.
@@ -81,7 +81,7 @@ class OcptResourcesPersonColorChangedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, personId, colorIndex];
 }
 
-/// Sets person [personId]'s date of birth to [date] (or clears it, when null), written
+/// Set person [personId]'s date of birth to [date] (or clears it, when null), written
 /// immediately: picking a date is a single discrete action, not typing.
 class OcptResourcesPersonBirthDateChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose date of birth changed.
@@ -98,7 +98,7 @@ class OcptResourcesPersonBirthDateChangedEvent extends OcptResourcesPeopleEvent 
   List<Object?> get props => [...super.props, personId, date];
 }
 
-/// Sets whether person [personId] can travel to set on their own, written immediately: a tri-state
+/// Set whether person [personId] can travel to set on their own, written immediately: a tri-state
 /// toggle (unknown/yes/no) is a single discrete action, not typing.
 class OcptResourcesPersonTransportAutonomyChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose transport autonomy changed.
@@ -118,7 +118,7 @@ class OcptResourcesPersonTransportAutonomyChangedEvent extends OcptResourcesPeop
   List<Object?> get props => [...super.props, personId, isTransportAutonomous];
 }
 
-/// Sets person [personId]'s image rights status to [status], written immediately: picking a status
+/// Set person [personId]'s image rights status to [status], written immediately: picking a status
 /// is a single discrete action, not typing.
 class OcptResourcesPersonImageRightsStatusChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose image rights status changed.
@@ -138,7 +138,7 @@ class OcptResourcesPersonImageRightsStatusChangedEvent extends OcptResourcesPeop
   List<Object?> get props => [...super.props, personId, status];
 }
 
-/// Sets the date person [personId]'s image rights status last changed to [date] (or clears it,
+/// Set the date person [personId]'s image rights status last changed to [date] (or clears it,
 /// when null), written immediately: picking a date is a single discrete action, not typing.
 class OcptResourcesPersonImageRightsDateChangedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose image rights date changed.
@@ -158,7 +158,7 @@ class OcptResourcesPersonImageRightsDateChangedEvent extends OcptResourcesPeople
   List<Object?> get props => [...super.props, personId, date];
 }
 
-/// Sets person [personId]'s mileage rate to `budget_mileage_rates` row [mileageRateId] (or clears
+/// Set person [personId]'s mileage rate to `budget_mileage_rates` row [mileageRateId] (or clears
 /// it, when null), written immediately: picking a rate from the project's catalogue is a single
 /// discrete action, not typing.
 ///
@@ -183,7 +183,7 @@ class OcptResourcesPersonMileageRateChangedEvent extends OcptResourcesPeopleEven
   List<Object?> get props => [...super.props, personId, mileageRateId];
 }
 
-/// Adds a crew position assignment to person [personId], written immediately.
+/// Add a crew position assignment to person [personId], written immediately.
 class OcptResourcesPositionAddedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person the position is added to.
   final String personId;
@@ -208,7 +208,7 @@ class OcptResourcesPositionAddedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, personId, positionId, customLabel];
 }
 
-/// Updates position assignment [id]'s fields, written immediately, replacing both at once.
+/// Update position assignment [id]'s fields, written immediately, replacing both at once.
 class OcptResourcesPositionUpdatedEvent extends OcptResourcesPeopleEvent {
   /// The id of the position assignment to update.
   final String id;
@@ -231,7 +231,7 @@ class OcptResourcesPositionUpdatedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, id, positionId, customLabel];
 }
 
-/// Removes position assignment [id], written immediately.
+/// Remove position assignment [id], written immediately.
 class OcptResourcesPositionRemovedEvent extends OcptResourcesPeopleEvent {
   /// The id of the position assignment to remove.
   final String id;
@@ -244,7 +244,7 @@ class OcptResourcesPositionRemovedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, id];
 }
 
-/// Adds a skill to person [personId], written immediately.
+/// Add a skill to person [personId], written immediately.
 class OcptResourcesSkillAddedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person the skill is added to.
   final String personId;
@@ -260,7 +260,7 @@ class OcptResourcesSkillAddedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, personId, label];
 }
 
-/// Updates skill [id]'s label, written immediately.
+/// Update skill [id]'s label, written immediately.
 class OcptResourcesSkillUpdatedEvent extends OcptResourcesPeopleEvent {
   /// The id of the skill to update.
   final String id;
@@ -276,7 +276,7 @@ class OcptResourcesSkillUpdatedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, id, label];
 }
 
-/// Removes skill [id], written immediately.
+/// Remove skill [id], written immediately.
 class OcptResourcesSkillRemovedEvent extends OcptResourcesPeopleEvent {
   /// The id of the skill to remove.
   final String id;
@@ -289,7 +289,7 @@ class OcptResourcesSkillRemovedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, id];
 }
 
-/// Adds an unavailability to person [personId], written immediately.
+/// Add an unavailability to person [personId], written immediately.
 class OcptResourcesUnavailabilityAddedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person the unavailability is added to.
   final String personId;
@@ -339,7 +339,7 @@ class OcptResourcesUnavailabilityAddedEvent extends OcptResourcesPeopleEvent {
   ];
 }
 
-/// Updates unavailability [id]'s fields, written immediately, replacing all of them at once.
+/// Update unavailability [id]'s fields, written immediately, replacing all of them at once.
 class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesPeopleEvent {
   /// The id of the unavailability to update.
   final String id;
@@ -389,7 +389,7 @@ class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesPeopleEvent {
   ];
 }
 
-/// Removes unavailability [id], written immediately.
+/// Remove unavailability [id], written immediately.
 class OcptResourcesUnavailabilityRemovedEvent extends OcptResourcesPeopleEvent {
   /// The id of the unavailability to remove.
   final String id;
@@ -402,7 +402,7 @@ class OcptResourcesUnavailabilityRemovedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, id];
 }
 
-/// Requests referencing person [personId]'s photo, replacing whichever one they referenced before.
+/// Request referencing person [personId]'s photo, replacing whichever one they referenced before.
 /// See `OcptResourcesLocationPhotoAddRequestedEvent` for [fileTypeLabel].
 class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person the photo is referenced for.
@@ -422,7 +422,7 @@ class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesPeopleEven
   List<Object?> get props => [...super.props, personId, fileTypeLabel];
 }
 
-/// Drops person [personId]'s reference to their photo. The file itself is never touched.
+/// Drop person [personId]'s reference to their photo. The file itself is never touched.
 class OcptResourcesPersonPhotoClearedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose photo reference is dropped.
   final String personId;
@@ -435,7 +435,7 @@ class OcptResourcesPersonPhotoClearedEvent extends OcptResourcesPeopleEvent {
   List<Object?> get props => [...super.props, personId];
 }
 
-/// Requests referencing person [personId]'s signed image rights release, replacing whichever one
+/// Request referencing person [personId]'s signed image rights release, replacing whichever one
 /// they referenced before. See `OcptResourcesLocationPhotoAddRequestedEvent` for [fileTypeLabel].
 ///
 /// Writes the reference alone: `imageRightsStatus` stays whatever the sheet's own control says, a
@@ -458,7 +458,7 @@ class OcptResourcesImageRightsDocumentPickRequestedEvent extends OcptResourcesPe
   List<Object?> get props => [...super.props, personId, fileTypeLabel];
 }
 
-/// Drops person [personId]'s reference to their signed image rights release. Neither the file nor
+/// Drop person [personId]'s reference to their signed image rights release. Neither the file nor
 /// `imageRightsStatus` is touched.
 class OcptResourcesImageRightsDocumentClearedEvent extends OcptResourcesPeopleEvent {
   /// The id of the person whose image rights document reference is dropped.

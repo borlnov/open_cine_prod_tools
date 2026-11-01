@@ -13,23 +13,23 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resource
 /// The named copies of an `OcptResourcesState`: each one is a change the bloc makes, spelled out
 /// with every field the change affects.
 extension OcptResourcesStateCopiesExtension on OcptResourcesState {
-  /// Copies this state with the catalogue [snapshot] read again, which moves the reload epoch.
+  /// Copy this state with the catalogue [snapshot] read again, which moves the reload epoch.
   OcptResourcesState copyWithReloadedSnapshot({required OcptResourcesSnapshot? snapshot}) =>
       copyWith(snapshot: snapshot);
 
-  /// Copies this state with the currency and the catalogue of the project settings read again.
+  /// Copy this state with the currency and the catalogue of the project settings read again.
   OcptResourcesState copyWithReloadedProjectSettings({
     required OcptResourcesSnapshot snapshot,
     required String currencyCode,
   }) => copyWith(snapshot: snapshot, currencyCode: currencyCode);
 
-  /// Copies this state with a write error flagged.
+  /// Copy this state with a write error flagged.
   OcptResourcesState copyWithWriteError() => copyWith(hasWriteError: true);
 
-  /// Copies this state with the write error dismissed.
+  /// Copy this state with the write error dismissed.
   OcptResourcesState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Copies this state with the pending edits flagged as lost: a write error, and the reload epoch
+  /// Copy this state with the pending edits flagged as lost: a write error, and the reload epoch
   /// moved so the views read the catalogue again.
   OcptResourcesState copyWithPendingEditsLost() => copyWith(
     hasWriteError: true,
@@ -37,7 +37,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     reloadEpoch: reloadEpoch + 1,
   );
 
-  /// Copies this state as loaded when no project is open: the dock fractions restored, no version
+  /// Copy this state as loaded when no project is open: the dock fractions restored, no version
   /// previewed and the selection moved with the cause [OcptResourcesSelectionCause.load].
   OcptResourcesState copyToLoadedWithoutProject({
     required double leftDockFraction,
@@ -51,7 +51,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.load,
   );
 
-  /// Copies this state as loaded from the open project: the catalogue and everything read beside
+  /// Copy this state as loaded from the open project: the catalogue and everything read beside
   /// it replaced, the four selections cleared, the pending reveal request consumed and the
   /// selection moved with the cause [OcptResourcesSelectionCause.load].
   ///
@@ -87,27 +87,27 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.load,
   );
 
-  /// Copies this state with [tab] active, for a reveal request.
+  /// Copy this state with [tab] active, for a reveal request.
   OcptResourcesState copyWithRevealedTab({required OcptResourcesTab tab}) =>
       copyWith(activeTab: tab);
 
-  /// Copies this state with the person [personId] selected, for a reveal request.
+  /// Copy this state with the person [personId] selected, for a reveal request.
   OcptResourcesState copyWithRevealedPerson({required String personId}) =>
       copyWith(selectedPersonId: personId);
 
-  /// Copies this state with the role [roleId] selected, for a reveal request.
+  /// Copy this state with the role [roleId] selected, for a reveal request.
   OcptResourcesState copyWithRevealedRole({required String roleId}) =>
       copyWith(selectedRoleId: roleId);
 
-  /// Copies this state with the location [locationId] selected, for a reveal request.
+  /// Copy this state with the location [locationId] selected, for a reveal request.
   OcptResourcesState copyWithRevealedLocation({required String locationId}) =>
       copyWith(selectedLocationId: locationId);
 
-  /// Copies this state with the element [elementId] selected, for a reveal request.
+  /// Copy this state with the element [elementId] selected, for a reveal request.
   OcptResourcesState copyWithRevealedElement({required String elementId}) =>
       copyWith(selectedElementId: elementId);
 
-  /// Copies this state with [tab] active.
+  /// Copy this state with [tab] active.
   ///
   /// Landing on another tab than the current one, unless [isSameTab], clears the four selections
   /// and the search query, and moves the selection with the cause
@@ -126,14 +126,14 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: isSameTab ? null : OcptResourcesSelectionCause.tab,
   );
 
-  /// Copies this state with the person [personId] selected.
+  /// Copy this state with the person [personId] selected.
   OcptResourcesState copyWithSelectedPerson({required String personId}) => copyWith(
     selectedPersonId: personId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptResourcesSelectionCause.person,
   );
 
-  /// Copies this state with the role [roleId] selected, on the roles tab.
+  /// Copy this state with the role [roleId] selected, on the roles tab.
   ///
   /// The search query is cleared unless [isAlreadyOnRolesTab].
   OcptResourcesState copyWithSelectedRole({
@@ -147,21 +147,21 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.role,
   );
 
-  /// Copies this state with the location [locationId] selected.
+  /// Copy this state with the location [locationId] selected.
   OcptResourcesState copyWithSelectedLocation({required String locationId}) => copyWith(
     selectedLocationId: locationId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptResourcesSelectionCause.location,
   );
 
-  /// Copies this state with the element [elementId] selected.
+  /// Copy this state with the element [elementId] selected.
   OcptResourcesState copyWithSelectedElement({required String elementId}) => copyWith(
     selectedElementId: elementId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptResourcesSelectionCause.element,
   );
 
-  /// Copies this state with the sheet of the person [personId] open on the people tab, and the
+  /// Copy this state with the sheet of the person [personId] open on the people tab, and the
   /// other selections cleared.
   OcptResourcesState copyWithOpenedPersonSheet({required String personId}) => copyWith(
     activeTab: OcptResourcesTab.people,
@@ -173,7 +173,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.personSheetOpened,
   );
 
-  /// Copies this state with the sheet of the role [roleId] open on the roles tab, and the other
+  /// Copy this state with the sheet of the role [roleId] open on the roles tab, and the other
   /// selections cleared.
   OcptResourcesState copyWithOpenedRoleSheet({required String roleId}) => copyWith(
     activeTab: OcptResourcesTab.roles,
@@ -185,7 +185,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.roleSheetOpened,
   );
 
-  /// Copies this state with the record [recordId] of [tab] selected, as the record was just
+  /// Copy this state with the record [recordId] of [tab] selected, as the record was just
   /// created.
   OcptResourcesState copyWithCreatedRecord({
     required OcptResourcesTab tab,
@@ -201,7 +201,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
         selectionCause: OcptResourcesSelectionCause.created,
       );
 
-  /// Copies this state with the selection of [tab] cleared, as its selected record was dropped.
+  /// Copy this state with the selection of [tab] cleared, as its selected record was dropped.
   OcptResourcesState copyWithDroppedRecord({required OcptResourcesTab tab}) => copyWith(
     forceSelectedPersonIdValue: tab == OcptResourcesTab.people,
     forceSelectedRoleIdValue: tab == OcptResourcesTab.roles,
@@ -211,20 +211,20 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     selectionCause: OcptResourcesSelectionCause.dropped,
   );
 
-  /// Copies this state with a request to reveal [reveal] in the shot list pending.
+  /// Copy this state with a request to reveal [reveal] in the shot list pending.
   OcptResourcesState copyWithShotListReveal({
     required ({String episodeId, String sceneId, String setId}) reveal,
   }) => copyWith(pendingShotListReveal: reveal);
 
-  /// Copies this state with the pending shot list reveal dismissed.
+  /// Copy this state with the pending shot list reveal dismissed.
   OcptResourcesState copyWithShotListRevealDismissed() =>
       copyWith(forcePendingShotListRevealValue: true);
 
-  /// Copies this state with the list panel hidden when it was shown, and shown when it was hidden.
+  /// Copy this state with the list panel hidden when it was shown, and shown when it was hidden.
   OcptResourcesState copyWithToggledListPanel() =>
       copyWith(isListPanelVisible: !isListPanelVisible);
 
-  /// Copies this state with the search bar toggled.
+  /// Copy this state with the search bar toggled.
   ///
   /// Opening it shows the list panel, and closing it clears the search query.
   OcptResourcesState copyWithToggledSearch() {
@@ -236,10 +236,10 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     );
   }
 
-  /// Copies this state with the search query [query].
+  /// Copy this state with the search query [query].
   OcptResourcesState copyWithSearchQuery({required String query}) => copyWith(searchQuery: query);
 
-  /// Copies this state with the right dock tab [tab] shown, or the dock closed when
+  /// Copy this state with the right dock tab [tab] shown, or the dock closed when
   /// [isAlreadyActive].
   OcptResourcesState copyWithToggledRightDockTab({
     required OcptResourcesRightDockTab tab,
@@ -247,14 +247,14 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
   }) =>
       copyWith(rightDockTab: isAlreadyActive ? null : tab, forceRightDockTabValue: isAlreadyActive);
 
-  /// Copies this state with the versions tab of the right dock shown.
+  /// Copy this state with the versions tab of the right dock shown.
   OcptResourcesState copyWithVersionsDockOpened() =>
       copyWith(rightDockTab: OcptResourcesRightDockTab.versions);
 
-  /// Copies this state with the right dock closed.
+  /// Copy this state with the right dock closed.
   OcptResourcesState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
 
-  /// Copies this state with the dock fractions [left] and [right], each one kept when null.
+  /// Copy this state with the dock fractions [left] and [right], each one kept when null.
   OcptResourcesState copyWithDockFractions({required double? left, required double? right}) =>
       copyWith(leftDockFraction: left, rightDockFraction: right);
 }

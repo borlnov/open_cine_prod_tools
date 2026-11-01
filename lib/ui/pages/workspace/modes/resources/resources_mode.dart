@@ -73,7 +73,7 @@ class OcptResourcesMode extends StatelessWidget {
   /// event racing it would be applied before or after it depending on the day.
   final OcptResourcesRevealRequest? revealRequest;
 
-  /// Creates the resources mode.
+  /// Create the resources mode.
   const OcptResourcesMode({super.key, this.revealRequest});
 
   /// Build the resources mode as a [MultiBlocProvider].
@@ -257,7 +257,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     },
   );
 
-  /// Builds the two entries the toolbar's `Export` button offers: the resources workbook,
+  /// Build the two entries the toolbar's `Export` button offers: the resources workbook,
   /// unavailable while the whole catalogue is empty — there would be nothing in any of its four
   /// sheets but their header row — and the contact list, unavailable while nobody in the address
   /// book holds a position and no role is cast either — there would be no line to print.
@@ -288,7 +288,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     ];
   }
 
-  /// Opens the export panel, then dispatches the picked document's own export request: the
+  /// Open the export panel, then dispatch the picked document's own export request: the
   /// contact list opens its own options dialog first, through [_requestContactListExport], while
   /// the workbook goes straight from [_requestXlsxExport] to the bloc — it takes no options dialog
   /// at all.
@@ -325,7 +325,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
   }
 
-  /// Dispatches the XLSX export request, resolving here — the last place with a [BuildContext] —
+  /// Dispatch the XLSX export request, resolving here — the last place with a [BuildContext] —
   /// every localized string the four sheets and the native save dialog carry.
   void _requestXlsxExport(BuildContext context, OcptResourcesState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
@@ -339,8 +339,8 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Shows the contact list export options dialog — this document's own first, offering the page
-  /// format alone — then dispatches the export request if the user applied it, resolving here every
+  /// Show the contact list export options dialog — this document's own first, offering the page
+  /// format alone — then dispatch the export request if the user applied it, resolving here every
   /// localized string the exported document and the native save dialog carry.
   Future<void> _requestContactListExport(
     BuildContext context,
@@ -367,7 +367,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Opens the project settings page, then reloads the resources snapshot if the user changed
+  /// Open the project settings page, then reload the resources snapshot if the user changed
   /// anything there.
   ///
   /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
@@ -387,7 +387,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Asks [OcptConfirmDialog] the question [title] states, then dispatches [event] to [bloc] if the
+  /// Ask [OcptConfirmDialog] the question [title] states, then dispatch [event] to [bloc] if the
   /// user answered `Delete`.
   ///
   /// The four tabs share this one path, so a record is deleted the same way whichever it belongs
@@ -419,7 +419,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(event);
   }
 
-  /// Confirms and dispatches the deletion of the selected person of [state].
+  /// Confirm and dispatch the deletion of the selected person of [state].
   Future<void> _handlePersonDeleteRequested(BuildContext context, OcptResourcesState state) async {
     final selectedPerson = state.selectedPerson;
     if (selectedPerson == null) {
@@ -439,7 +439,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Confirms and dispatches the deletion of the selected role of [state].
+  /// Confirm and dispatch the deletion of the selected role of [state].
   Future<void> _handleRoleDeleteRequested(BuildContext context, OcptResourcesState state) async {
     final selectedRole = state.selectedRole;
     if (selectedRole == null) {
@@ -463,7 +463,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Confirms and dispatches the removal of the candidacy [candidateId] from its role.
+  /// Confirm and dispatch the removal of the candidacy [candidateId] from its role.
   Future<void> _handleCandidateRemoveRequested(BuildContext context, String candidateId) async {
     final tr = Tr.of(context);
 
@@ -476,7 +476,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Confirms and dispatches the deletion of the selected location of [state].
+  /// Confirm and dispatch the deletion of the selected location of [state].
   Future<void> _handleLocationDeleteRequested(
     BuildContext context,
     OcptResourcesState state,
@@ -497,7 +497,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Confirms and dispatches the deletion of the selected element of [state].
+  /// Confirm and dispatch the deletion of the selected element of [state].
   Future<void> _handleElementDeleteRequested(BuildContext context, OcptResourcesState state) async {
     final selectedElement = state.selectedElement;
     if (selectedElement == null) {
@@ -515,13 +515,13 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// The display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
+  /// Get the display name of role [roleId] among [state]'s whole cast, or [roleId] itself as a last
   /// resort — the role merge confirmation names both roles, and a role gone from the cast between
   /// the click and the dialog opening is the only way this fallback is ever seen.
   String _roleNameOf(OcptResourcesState state, String roleId) =>
       state.roles.firstWhereOrNull((role) => role.id == roleId)?.name ?? roleId;
 
-  /// Shows the merge confirmation dialog, naming both roles, then dispatches the merge if the user
+  /// Show the merge confirmation dialog, naming both roles, then dispatch the merge if the user
   /// confirmed it — the shared role alert banner's merge affordance, either variant.
   Future<void> _handleRoleMergeRequested(
     BuildContext context,
@@ -552,7 +552,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  /// Show the version creation dialog, then dispatch the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
     final bloc = context.read<OcptResourcesBloc>();
     final fields = await OcptProjectVersionCreateDialog.show(context);
@@ -563,7 +563,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     bloc.add(OcptProjectVersionCreationRequestedEvent(name: fields.name, note: fields.note));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, and the transient write
+  /// Apply bloc-driven effects onto the page: the live dock fractions, and the transient write
   /// error / version notice SnackBars.
   void _onStateChanged(BuildContext context, OcptResourcesState state) {
     // Pushes the bloc's persisted fractions (the initial load, or "Reset panel layout") onto the
@@ -625,7 +625,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
   }
 
-  /// Dispatches the project package export, resolving here — the last place with a
+  /// Dispatch the project package export, resolving here — the last place with a
   /// [BuildContext] — the label the native save dialog carries.
   ///
   /// What happens next depends on what the project references: everything being there, the save
@@ -639,7 +639,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can

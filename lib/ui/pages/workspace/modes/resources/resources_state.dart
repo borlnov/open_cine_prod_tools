@@ -212,10 +212,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   @override
   final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
-  /// Every person of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every person of [snapshot], in display order (empty while nothing is loaded).
   List<OcptPerson> get people => snapshot?.people ?? const [];
 
-  /// The person [selectedPersonId] identifies, or null if none is selected (or the selected one
+  /// Get the person [selectedPersonId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptPerson? get selectedPerson {
     final selectedPersonId = this.selectedPersonId;
@@ -232,10 +232,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every role of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every role of [snapshot], in display order (empty while nothing is loaded).
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
-  /// The role [selectedRoleId] identifies, or null if none is selected (or the selected one
+  /// Get the role [selectedRoleId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptRole? get selectedRole {
     final selectedRoleId = this.selectedRoleId;
@@ -252,7 +252,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// The removed-role alert of [selectedRole], or null while none is selected or the selected role
+  /// Get the removed-role alert of [selectedRole], or null while none is selected or the selected
+  /// role
   /// is still spoken in the screenplay.
   ///
   /// One alert at a time rather than every alert of the project: the banner reporting it lives
@@ -267,15 +268,16 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return OcptRemovedRoleAlert.of(selectedRole);
   }
 
-  /// Every orphaned-role alert found in the whole cast (ADR 0030, decision 4): what the mode-level
+  /// Get every orphaned-role alert found in the whole cast (ADR 0030, decision 4): what the
+  /// mode-level
   /// compact banner is built from, above [selectedRoleAlert]'s own "one at a time" reasoning — the
   /// compact banner reports the whole cast, not just the selected role's sheet.
   List<OcptRemovedRoleAlert> get orphanedRoleAlerts => OcptRemovedRoleAlert.buildAll(roles);
 
-  /// Every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
+  /// Get every name-collision alert found in the whole cast (ADR 0030, decision 2), sorted stably.
   List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
 
-  /// The collision alert naming [selectedRole] — either side of it — or null while none is
+  /// Get the collision alert naming [selectedRole] — either side of it — or null while none is
   /// selected or it collides with nothing. Mirrors [selectedRoleAlert]'s "one alert at a time"
   /// reasoning: the banner reporting it lives inside the sheet of one of the two roles it names.
   OcptRoleCollisionAlert? get selectedRoleCollisionAlert {
@@ -290,10 +292,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     );
   }
 
-  /// Every location of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every location of [snapshot], in display order (empty while nothing is loaded).
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
 
-  /// The location [selectedLocationId] identifies, or null if none is selected (or the selected one
+  /// Get the location [selectedLocationId] identifies, or null if none is selected (or the selected
+  /// one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptLocation? get selectedLocation {
     final selectedLocationId = this.selectedLocationId;
@@ -310,10 +313,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every element of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every element of [snapshot], in display order (empty while nothing is loaded).
   List<OcptElement> get elements => snapshot?.elements ?? const [];
 
-  /// The element [selectedElementId] identifies, or null if none is selected (or the selected one
+  /// Get the element [selectedElementId] identifies, or null if none is selected (or the selected
+  /// one
   /// disappeared from a freshly loaded [snapshot], e.g. it was just deleted).
   OcptElement? get selectedElement {
     final selectedElementId = this.selectedElementId;
@@ -330,24 +334,24 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// Every scene of the selected episode's screenplay, in source order (empty while nothing is
+  /// Get every scene of the selected episode's screenplay, in source order (empty while nothing is
   /// loaded): what a set's scenes are picked from, and what an element's own scenes are picked
   /// from.
   List<OcptSceneRef> get scenes => snapshot?.scenes ?? const [];
 
-  /// `snapshot.peopleCount`, the status bar's first counter.
+  /// Get `snapshot.peopleCount`, the status bar's first counter.
   int get peopleCount => snapshot?.peopleCount ?? 0;
 
-  /// `snapshot.roleCount`, the status bar's second counter.
+  /// Get `snapshot.roleCount`, the status bar's second counter.
   int get roleCount => snapshot?.roleCount ?? 0;
 
-  /// `snapshot.positionCount`, the status bar's third counter.
+  /// Get `snapshot.positionCount`, the status bar's third counter.
   int get positionCount => snapshot?.positionCount ?? 0;
 
-  /// `snapshot.locationCount`, the status bar's fourth counter.
+  /// Get `snapshot.locationCount`, the status bar's fourth counter.
   int get locationCount => snapshot?.locationCount ?? 0;
 
-  /// `snapshot.elementCount`, the status bar's fifth counter.
+  /// Get `snapshot.elementCount`, the status bar's fifth counter.
   int get elementCount => snapshot?.elementCount ?? 0;
 
   /// Class constructor
@@ -427,7 +431,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       projectPackageNotice = null,
       projectPackagePendingExportTarget = null;
 
-  /// The person [personId] names, or null when it is null or names nobody in the loaded address
+  /// Get the person [personId] names, or null when it is null or names nobody in the loaded address
   /// book (a stale reference from a snapshot rebuilt underneath).
   OcptPerson? personOf(String? personId) {
     if (personId == null) {
@@ -443,7 +447,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// The screenplay roles [alert]'s own orphaned role can be merged into: every live,
+  /// Get the screenplay roles [alert]'s own orphaned role can be merged into: every live,
   /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
   /// orphaned banner's `Merge with:` chips.
   List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
@@ -451,7 +455,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
   ];
 
-  /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
+  /// Get every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own
+  /// group, or
   /// the empty list while nothing is loaded or [roleId] has none.
   List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
       snapshot?.candidatesByRoleId[roleId] ?? const [];

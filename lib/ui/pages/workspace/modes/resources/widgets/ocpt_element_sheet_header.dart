@@ -216,7 +216,7 @@ class _Fields extends StatelessWidget {
     );
   }
 
-  /// One text field of the header, labelled [label] and writing [field].
+  /// Build one text field of the header, labelled [label] and writing [field].
   Widget _field(OcptElementField field, String label) => OcptResourcesSheetField(
     ownerId: element.id,
     label: label,
@@ -224,7 +224,7 @@ class _Fields extends StatelessWidget {
     onChanged: _onChangedOf(field),
   );
 
-  /// The `onChanged` [field] is given: the one reporting to [onFieldChanged], or null while the
+  /// Get the `onChanged` [field] is given: the one reporting to [onFieldChanged], or null while the
   /// sheet may not be written to, which is what makes the field read its value out instead.
   ValueChanged<String>? _onChangedOf(OcptElementField field) {
     final onFieldChanged = this.onFieldChanged;

@@ -100,7 +100,8 @@ class OcptRoleSheetHeader extends StatelessWidget {
     ],
   );
 
-  /// The `onChanged` the name field is given: the one reporting to [onFieldChanged], or null while
+  /// Get the `onChanged` the name field is given: the one reporting to [onFieldChanged], or null
+  /// while
   /// the sheet may not be written to, which is what makes the field read its value out instead of
   /// accepting a new one.
   ValueChanged<String>? _onNameChangedOrNull() {
@@ -112,7 +113,7 @@ class OcptRoleSheetHeader extends StatelessWidget {
   }
 }
 
-/// Builds the role's name: an editable title for a hand-added role, the name as plain text
+/// Build the role's name: an editable title for a hand-added role, the name as plain text
 /// followed by its explanatory note for a role owned by the screenplay — the note itself telling
 /// a cued role from an action-detected one apart, since only the note names the reason the
 /// field is withheld.
@@ -168,7 +169,7 @@ class _Name extends StatelessWidget {
   }
 }
 
-/// Builds the `N° {number}` badge: the role's rank in the cast, read-only — it is derived from
+/// Build the `N° {number}` badge: the role's rank in the cast, read-only — it is derived from
 /// the `sortKey` order, never stored (see `OcptRole.number`).
 class _NumberBadge extends StatelessWidget {
   /// The widget this one belongs to.
@@ -200,7 +201,7 @@ class _NumberBadge extends StatelessWidget {
   }
 }
 
-/// Builds the cast member line: their name and the `↗`, the whole line being what opens their own
+/// Build the cast member line: their name and the `↗`, the whole line being what opens their own
 /// sheet, or a muted italic "Not cast" — plain text, since there is no sheet to open then.
 ///
 /// The name and the arrow are one target rather than a label beside a 14 px icon button: the name
@@ -266,7 +267,7 @@ class _CastMemberLine extends StatelessWidget {
   }
 }
 
-/// Builds the kind picker: a badge doubling as a [PopupMenuButton] over every [OcptRoleKind],
+/// Build the kind picker: a badge doubling as a [PopupMenuButton] over every [OcptRoleKind],
 /// withheld (a plain badge, no menu) while the sheet may not be written to.
 class _KindPicker extends StatelessWidget {
   /// The widget this one belongs to.

@@ -82,7 +82,8 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
     );
   }
 
-  /// The `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or null
+  /// Get the `onChanged` a field of [field] is given: the one reporting to [onFieldChanged], or
+  /// null
   /// while the sheet may not be written to.
   ValueChanged<String>? _onFieldChangedOrNull(OcptPersonField field) {
     final onFieldChanged = this.onFieldChanged;

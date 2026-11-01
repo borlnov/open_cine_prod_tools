@@ -113,7 +113,7 @@ class OcptResourcesRolesBloc
     on<OcptResourcesRoleCandidateAuditionDateChangedEvent>(_onRoleCandidateAuditionDateChanged);
   }
 
-  /// Drops the edits this bloc holds when the mode says writing them failed somewhere (see
+  /// Drop the edits this bloc holds when the mode says writing them failed somewhere (see
   /// `OcptResourcesPendingEditsLostEvent`): the fields fall back to the stored values.
   ///
   /// Nothing else is scoped to the selection or to the data here: a pending edit survives the user
@@ -135,7 +135,7 @@ class OcptResourcesRolesBloc
     emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each role field through `OcptRoleIndexService.updateRole` and
   /// each candidacy field through `OcptRoleCandidatesService.updateCandidate`, then has the mode
   /// read the catalogue again so every derived aggregate reflects what the database now says, and
@@ -217,7 +217,7 @@ class OcptResourcesRolesBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// Write every pending field edit directly to the database, bypassing the debounce timer, the
   /// bloc's own event queue and its state.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -264,8 +264,8 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Adds a hand-added role of `event.kind` at the end of the cast, reads the catalogue again and
-  /// selects the new role so it can be named straight away.
+  /// Add a hand-added role of `event.kind` at the end of the cast, read the catalogue again and
+  /// select the new role so it can be named straight away.
   ///
   /// Writes whatever is pending first, so adding a role right after typing never loses it.
   Future<void> _onRoleCreationRequested(
@@ -308,7 +308,7 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Records the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
+  /// Record the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
   /// visible immediately, and (re)starts the field-edit debounce that eventually writes it: a role's
   /// and a candidacy's pending edits are always flushed together, by the very same timer.
   Future<void> _onRoleFieldChanged(
@@ -322,7 +322,7 @@ class OcptResourcesRolesBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesRolesFieldEditFlushRequestedEvent());
   }
 
-  /// Records the raw text just typed into `event.field` of candidacy `event.candidateId` as a
+  /// Record the raw text just typed into `event.field` of candidacy `event.candidateId` as a
   /// pending edit, visible immediately, and (re)starts the same field-edit debounce
   /// [_onRoleFieldChanged] does.
   Future<void> _onRoleCandidateFieldChanged(
@@ -337,7 +337,7 @@ class OcptResourcesRolesBloc
     restartDebounce(_fieldEditDebounce, const OcptResourcesRolesFieldEditFlushRequestedEvent());
   }
 
-  /// Deletes role `event.roleId`, clearing the selection when it was the selected role, and
+  /// Delete role `event.roleId`, clearing the selection when it was the selected role, and
   /// dropping any pending field edit of the role that still targeted it.
   Future<void> _onRoleDeletionRequested(
     OcptResourcesRoleDeletionRequestedEvent event,
@@ -373,12 +373,12 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// The pending role field edits of this bloc without those that target role [roleId].
+  /// Get the pending role field edits of this bloc without those that target role [roleId].
   Map<(String, OcptRoleField), String> _pendingWithoutRole(String roleId) =>
       Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
         ..removeWhere((key, _) => key.$1 == roleId);
 
-  /// Removes candidacy `event.candidateId`, dropping any pending field edit that still targeted
+  /// Remove candidacy `event.candidateId`, dropping any pending field edit that still targeted
   /// it. The confirmation dialog is the mode's, this only runs once it has already confirmed.
   Future<void> _onRoleCandidateRemoved(
     OcptResourcesRoleCandidateRemovedEvent event,
@@ -417,13 +417,13 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// The pending candidacy field edits of this bloc without those that target candidacy
+  /// Get the pending candidacy field edits of this bloc without those that target candidacy
   /// [candidateId].
   Map<(String, OcptRoleCandidateField), String> _pendingWithoutCandidate(String candidateId) =>
       Map<(String, OcptRoleCandidateField), String>.of(state.pendingCandidateFieldEdits)
         ..removeWhere((key, _) => key.$1 == candidateId);
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptResourcesRolesFieldEditFlushRequestedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
@@ -431,7 +431,7 @@ class OcptResourcesRolesBloc
     await onFlushRequested(emitter);
   }
 
-  /// Tells the mode that writing the typed edits failed, which raises its write error and makes
+  /// Tell the mode that writing the typed edits failed, which raises its write error and makes
   /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
   /// other views with nothing left for them to write.
   ///
@@ -441,7 +441,7 @@ class OcptResourcesRolesBloc
     emitter(state.copyWithFieldEditsCleared());
   }
 
-  /// Writes a discrete change to the cast through [action] and has the mode read the catalogue
+  /// Write a discrete change to the cast through [action] and have the mode read the catalogue
   /// again, so every derived aggregate (the roles tab's pill and counts, the status bar) reflects
   /// what the database now says. A no-op while no project is open; a failure raises the mode's
   /// write error.
@@ -468,7 +468,7 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Casts `event.personId` to role `event.roleId` (or uncasts it, when null), written
+  /// Cast `event.personId` to role `event.roleId` (or uncasts it, when null), written
   /// immediately.
   Future<void> _onRoleCastChanged(
     OcptResourcesRoleCastChangedEvent event,
@@ -482,7 +482,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Sets role `event.roleId`'s kind, written immediately.
+  /// Set role `event.roleId`'s kind, written immediately.
   Future<void> _onRoleKindChanged(
     OcptResourcesRoleKindChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,
@@ -495,7 +495,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Sets role `event.roleId`'s episodes to `event.episodeIds`, written immediately — the sheet's
+  /// Set role `event.roleId`'s episodes to `event.episodeIds`, written immediately — the sheet's
   /// own gesture write, `OcptRoleIndexService.setRoleEpisodes` (gating this to a hand-added role is
   /// the sheet's job, not this handler's, exactly as `_onRoleFieldChanged` leaves a
   /// `isFromScreenplay` role's name to `OcptRoleIndexService.reconcile` to overwrite back).
@@ -511,7 +511,8 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// The removed-role banner's "keep it" action for role `event.roleId`, written immediately.
+  /// Handle the removed-role banner's "keep it" action for role `event.roleId`, written
+  /// immediately.
   Future<void> _onOrphanedRoleKept(
     OcptResourcesOrphanedRoleKeptEvent event,
     Emitter<OcptResourcesRolesState> emitter,
@@ -523,7 +524,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Merges role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
+  /// Merge role `event.sourceRoleId` into role `event.targetRoleId`, written immediately: the
   /// shared role alert banner's merge affordance — either variant — dispatched once the mode's own
   /// `OcptConfirmDialog` has already confirmed it.
   Future<void> _onRoleMergeRequested(
@@ -538,7 +539,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Records that person `event.personId` is a candidate for role `event.roleId`, written
+  /// Record that person `event.personId` is a candidate for role `event.roleId`, written
   /// immediately — the candidates card's own person picker.
   Future<void> _onRoleCandidateAdded(
     OcptResourcesRoleCandidateAddedEvent event,
@@ -554,7 +555,7 @@ class OcptResourcesRolesBloc
     },
   );
 
-  /// Sets candidacy `event.candidateId`'s status to `event.status`, written immediately.
+  /// Set candidacy `event.candidateId`'s status to `event.status`, written immediately.
   ///
   /// **The single event behind every status gesture the candidates card offers**, `Retain` and
   /// `Drop` included: retaining is `setStatus(retained)`, dropping is `setStatus(seen)`. The rule
@@ -573,7 +574,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Sets candidacy `event.candidateId`'s audition date to `event.auditionedOn`, written
+  /// Set candidacy `event.candidateId`'s audition date to `event.auditionedOn`, written
   /// immediately: picking a date is a single discrete action, not typing.
   Future<void> _onRoleCandidateAuditionDateChanged(
     OcptResourcesRoleCandidateAuditionDateChangedEvent event,
@@ -587,7 +588,7 @@ class OcptResourcesRolesBloc
     ),
   );
 
-  /// Writes every entry of [pending] through [_writeRoleField].
+  /// Write every entry of [pending] through [_writeRoleField].
   Future<void> _writeAllPendingRoleFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptRoleField), String> pending,
@@ -603,7 +604,7 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Writes a single role field edit through `OcptRoleIndexService.updateRole`, translating
+  /// Write a single role field edit through `OcptRoleIndexService.updateRole`, translating
   /// [field] into the matching named argument (see `OcptRoleField`'s own doc comment for the
   /// mapping).
   ///
@@ -632,7 +633,7 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Writes every entry of [pending] through [_writeCandidateField].
+  /// Write every entry of [pending] through [_writeCandidateField].
   Future<void> _writeAllPendingCandidateFields({
     required OcptProjectDatabase database,
     required Map<(String, OcptRoleCandidateField), String> pending,
@@ -648,7 +649,7 @@ class OcptResourcesRolesBloc
     }
   }
 
-  /// Writes a single candidacy field edit through `OcptRoleCandidatesService.updateCandidate`,
+  /// Write a single candidacy field edit through `OcptRoleCandidatesService.updateCandidate`,
   /// translating [field] into the matching named argument (see `OcptRoleCandidateField`'s own doc
   /// comment for the mapping — [OcptRoleCandidateField.notes] is its only entry).
   Future<void> _writeCandidateField({
