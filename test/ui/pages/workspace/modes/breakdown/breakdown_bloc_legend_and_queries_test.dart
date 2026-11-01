@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -113,7 +114,7 @@ void main() {
       await writeScreenplay("INT. HOUSE - DAY\n\nAction, no dialogue anymore.\n");
       // Forces a full reload: unlike the resources mode's own handler, this event's breakdown
       // sibling only re-reads the page setup, not the whole snapshot.
-      bloc.add(const OcptBreakdownLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       final orphaned = await waitForState(bloc, (state) => state.orphanedRoleAlerts.isNotEmpty);
 
       expect(orphaned.orphanedRoleAlerts, hasLength(1));
@@ -141,7 +142,7 @@ void main() {
           kind: OcptRoleKind.extra,
         );
 
-        bloc.add(const OcptBreakdownLoadRequestedEvent());
+        bloc.add(const AsyncInitEvent());
         final state = await waitForState(bloc, (state) => state.roleCollisionAlerts.isNotEmpty);
 
         expect(state.roleCollisionAlerts, hasLength(1));

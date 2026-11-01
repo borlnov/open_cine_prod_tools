@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -217,7 +218,7 @@ void main() {
       final sceneId = loaded.scenes.single.id;
       await closeRange(taggingBloc, sceneId);
 
-      bloc.add(const OcptBreakdownLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       final dropped = await waitForState(
         taggingBloc,
         (state) => state.pendingTagAnchor == null && state.pendingTagRange == null,

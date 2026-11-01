@@ -86,7 +86,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     with
         MixinOcptProjectVersionsBloc<OcptBreakdownState>,
         MixinOcptProjectPackageBloc<OcptBreakdownState>,
-        MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope> {
+        MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope>,
+        MixinAsyncInitBloc<OcptBreakdownState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "breakdown_bloc";
 
@@ -175,15 +176,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
        _peopleService =
            peopleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
-       super(OcptBreakdownState.init()) {
-    add(const OcptBreakdownLoadRequestedEvent());
-  }
+       super(OcptBreakdownState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptBreakdownLoadRequestedEvent>(_onLoadRequested);
     on<OcptBreakdownBackRequestedEvent>(_onBackRequested);
     on<OcptBreakdownProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptBreakdownSceneSelectedEvent>(_onSceneSelected);
@@ -297,8 +295,18 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptBreakdownState> emitter) =>
-      _onLoadRequested(const OcptBreakdownLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptBreakdownState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptBreakdownState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the persisted dock fractions and the current project's whole breakdown read.
   ///
@@ -316,10 +324,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// for, and any element field edit or scene notes edit still sitting in the debounce (the caller
   /// flushes it through [flushPendingProjectWrites] first whenever losing it here would matter; a
   /// bare page-format reload never reaches this method at all, see [_onProjectSettingsChanged]).
-  Future<void> _onLoadRequested(
-    OcptBreakdownLoadRequestedEvent event,
-    Emitter<OcptBreakdownState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptBreakdownState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.breakdownLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;

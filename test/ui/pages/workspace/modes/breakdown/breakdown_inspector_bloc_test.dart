@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -755,7 +756,7 @@ void main() {
             state.pendingSetNameEdits.isNotEmpty,
       );
 
-      bloc.add(const OcptBreakdownLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       await waitForState(
         inspectorBloc,
         (state) =>

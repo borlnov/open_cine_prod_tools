@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -26,7 +27,6 @@ import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdown_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/ocpt_breakdown_sheets_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
@@ -384,7 +384,7 @@ void main() {
         snapshotReason: OcptSnapshotReason.manual,
       );
       final shellContext = tester.element(find.byType(OcptWorkspaceShell));
-      BlocProvider.of<OcptBreakdownBloc>(shellContext).add(const OcptBreakdownLoadRequestedEvent());
+      BlocProvider.of<OcptBreakdownBloc>(shellContext).add(const AsyncInitEvent());
       await tester.pumpAndSettle();
 
       expect(find.text(tr.roleAlertCompactOrphanedLine("CLARA")), findsOneWidget);

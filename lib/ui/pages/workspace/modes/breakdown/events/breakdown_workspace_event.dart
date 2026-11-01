@@ -13,15 +13,6 @@ sealed class OcptBreakdownWorkspaceEvent extends OcptBreakdownEvent {
   const OcptBreakdownWorkspaceEvent();
 }
 
-/// Requests loading the current project's whole breakdown read: the screenplay text, the scenes
-/// with their tags, and the three catalogues resolved into targets.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptBreakdownLoadRequestedEvent extends OcptBreakdownWorkspaceEvent {
-  /// Class constructor
-  const OcptBreakdownLoadRequestedEvent();
-}
-
 /// Requests leaving the workspace: closes the current project and navigates back to the home page.
 class OcptBreakdownBackRequestedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
