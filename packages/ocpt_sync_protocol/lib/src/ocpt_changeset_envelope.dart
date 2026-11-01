@@ -73,7 +73,7 @@ class OcptChangesetEnvelope extends Equatable {
   /// The wire format this envelope declares itself to be written in.
   final int protocolFormat;
 
-  /// Creates an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
+  /// Create an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
   /// every envelope this build writes should carry; a caller decoding one off the wire uses
   /// [OcptChangesetEnvelope.fromJson] instead, which reads the format the envelope actually
   /// declares.
@@ -86,7 +86,7 @@ class OcptChangesetEnvelope extends Equatable {
     this.protocolFormat = currentProtocolFormat,
   });
 
-  /// Parses an envelope from the JSON object a relay stores or transmits it as.
+  /// Parse an envelope from the JSON object a relay stores or transmit it as.
   ///
   /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `protocolFormat` is newer than
   /// [currentProtocolFormat] — this build cannot know what such an envelope means and refuses to
@@ -114,7 +114,7 @@ class OcptChangesetEnvelope extends Equatable {
     );
   }
 
-  /// Serialises this envelope to the JSON object a relay stores or transmits it as.
+  /// Serialise this envelope to the JSON object a relay stores or transmit it as.
   Map<String, dynamic> toJson() => {
     _changesetIdKey: changesetId,
     _originDeviceIdKey: originDeviceId,

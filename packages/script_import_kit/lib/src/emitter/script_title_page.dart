@@ -46,7 +46,7 @@ class ScriptTitlePage {
   /// The work the screenplay was adapted from.
   final String? source;
 
-  /// Creates a [ScriptTitlePage].
+  /// Create a [ScriptTitlePage].
   const ScriptTitlePage({
     this.title,
     this.credit,
@@ -56,7 +56,7 @@ class ScriptTitlePage {
     this.source,
   });
 
-  /// Renders the fields that carry something as Fountain title page
+  /// Render the fields that carry something as Fountain title page
   /// entries, in the canonical order, ready for
   /// [FountainTitlePageWriter.apply].
   List<FountainTitlePageEntry> toEntries() => [
@@ -68,11 +68,11 @@ class ScriptTitlePage {
     ..._entry('Source', _lines(source)),
   ];
 
-  /// [value] as the single value line of an entry, or no line at all when
+  /// Get [value] as the single value line of an entry, or no line at all when
   /// the field was never filled in.
   List<String> _lines(String? value) => value == null ? const [] : [value];
 
-  /// One entry for [key], or nothing at all when [values] holds no line
+  /// Get one entry for [key], or nothing at all when [values] holds no line
   /// with any text on it.
   List<FountainTitlePageEntry> _entry(String key, List<String> values) {
     final kept = [

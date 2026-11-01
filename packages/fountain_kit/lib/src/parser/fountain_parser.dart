@@ -26,7 +26,7 @@ class _PendingTitleEntry {
   /// The global line number of the last value line accumulated so far.
   int endLine;
 
-  /// Creates a [_PendingTitleEntry] starting at [startLine].
+  /// Create a [_PendingTitleEntry] starting at [startLine].
   _PendingTitleEntry({required this.key, required this.startLine})
     : values = [],
       endLine = startLine;
@@ -50,7 +50,7 @@ class _ScrubbedSpan {
   /// (`false`).
   final bool isBoneyard;
 
-  /// Creates a [_ScrubbedSpan].
+  /// Create a [_ScrubbedSpan].
   const _ScrubbedSpan({
     required this.startOffset,
     required this.endOffset,
@@ -59,7 +59,7 @@ class _ScrubbedSpan {
   });
 }
 
-/// Parses Fountain screenplay source text into a [FountainDocument].
+/// Parse Fountain screenplay source text into a [FountainDocument].
 ///
 /// Parsing runs in clearly separated, side-effect-free passes:
 ///
@@ -88,10 +88,10 @@ class FountainParser {
   /// several lines.
   static final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
 
-  /// Creates a [FountainParser].
+  /// Create a [FountainParser].
   const FountainParser();
 
-  /// Parses [source] into a [FountainDocument].
+  /// Parse [source] into a [FountainDocument].
   FountainDocument parse(String source) {
     final normalized = source.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     final lineStartOffsets = _computeLineStartOffsets(normalized);
@@ -135,7 +135,7 @@ class FountainParser {
     );
   }
 
-  /// Returns, for every global line number of [source], the character
+  /// Return, for every global line number of [source], the character
   /// offset of that line's first character.
   List<int> _computeLineStartOffsets(String source) {
     final offsets = <int>[0];
@@ -147,7 +147,7 @@ class FountainParser {
     return offsets;
   }
 
-  /// Returns the global line number containing character offset [offset],
+  /// Return the global line number containing character offset [offset],
   /// given the document's [lineStartOffsets] table.
   int _lineForOffset(List<int> lineStartOffsets, int offset) {
     var line = 0;
@@ -161,7 +161,7 @@ class FountainParser {
     return line;
   }
 
-  /// Finds every match of [pattern] in [source] and returns it as a
+  /// Find every match of [pattern] in [source] and return it as a
   /// [_ScrubbedSpan].
   List<_ScrubbedSpan> _extractSpans(String source, RegExp pattern, {required bool isBoneyard}) {
     // Both `/* */` and `[[ ]]` markers are two characters long on each side.
@@ -179,7 +179,7 @@ class FountainParser {
         .toList(growable: false);
   }
 
-  /// Finds every `[[ ]]` note in [source] that occupies one or more whole
+  /// Find every `[[ ]]` note in [source] that occupies one or more whole
   /// lines by itself (i.e. nothing but whitespace shares its line(s)),
   /// which is what makes it a standalone [FountainNoteBlock] rather than an
   /// inline note span within another block (see `FountainInlineStyle.note`).
@@ -208,7 +208,7 @@ class FountainParser {
     return spans;
   }
 
-  /// Returns a copy of [source] with every character offset covered by
+  /// Return a copy of [source] with every character offset covered by
   /// [spans] replaced by a space (newlines are preserved), so that the
   /// text's line structure and every other character offset stay stable
   /// for later passes.
@@ -226,7 +226,7 @@ class FountainParser {
     return buffer.toString();
   }
 
-  /// Builds the top-level [FountainBlock] (a [FountainBoneyard] or
+  /// Build the top-level [FountainBlock] (a [FountainBoneyard] or
   /// [FountainNoteBlock]) for a pre-pass [span].
   FountainBlock _buildExtraBlock(_ScrubbedSpan span, List<int> lineStartOffsets) {
     final range = FountainSourceRange(
@@ -240,7 +240,7 @@ class FountainParser {
         : FountainNoteBlock(sourceRange: range, text: span.text);
   }
 
-  /// Merges two block lists, both already in ascending source-offset
+  /// Merge two block lists, both already in ascending source-offset
   /// order, into one list in ascending source-offset order.
   List<FountainBlock> _mergeByOffset(List<FountainBlock> first, List<FountainBlock> second) {
     final merged = <FountainBlock>[];
@@ -258,7 +258,7 @@ class FountainParser {
     return merged;
   }
 
-  /// Scans [lines] for a leading title page block and returns it together
+  /// Scan [lines] for a leading title page block and return it together
   /// with the global line number the document body starts at.
   ({FountainTitlePage? titlePage, int bodyStartLine}) _parseTitlePage(
     List<String> lines,

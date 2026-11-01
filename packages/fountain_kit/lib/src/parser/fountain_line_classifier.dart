@@ -28,10 +28,10 @@ class FountainLineClassifier {
   /// optionally followed by more text.
   static final RegExp _section = RegExp(r'^(#{1,6})\s*(.*)$');
 
-  /// Creates a [FountainLineClassifier].
+  /// Create a [FountainLineClassifier].
   const FountainLineClassifier();
 
-  /// Classifies every line of [lines] and returns one [FountainLineType]
+  /// Classify every line of [lines] and return one [FountainLineType]
   /// per line, in the same order.
   List<FountainLineType> classify(List<String> lines) {
     final types = List<FountainLineType>.filled(lines.length, FountainLineType.blank);
@@ -47,7 +47,7 @@ class FountainLineClassifier {
     return types;
   }
 
-  /// Determines the [FountainLineType] of [rawLine] given just enough
+  /// Determine the [FountainLineType] of [rawLine] given just enough
   /// surrounding context to reproduce every context-sensitive rule in
   /// [classify]: the [FountainLineType] of the line immediately before it
   /// ([previousType], `null` at the start of the document) and the raw text
@@ -134,14 +134,14 @@ class FountainLineClassifier {
     return FountainLineType.action;
   }
 
-  /// Whether [type] is a dialogue-block element that keeps the dialogue
+  /// Tell whether [type] is a dialogue-block element that keeps the dialogue
   /// block open for the line immediately after it.
   bool _continuesDialogue(FountainLineType? type) =>
       type == FountainLineType.character ||
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
 
-  /// Whether [trimmed] looks like an (unforced) character cue: all-caps
+  /// Tell whether [trimmed] looks like an (unforced) character cue: all-caps
   /// text, optionally with a parenthetical extension and/or a trailing `^`
   /// dual-dialogue marker.
   bool _isCharacterCandidate(String trimmed) {
@@ -152,16 +152,16 @@ class FountainLineClassifier {
     return _isAllCaps(candidate);
   }
 
-  /// Whether [trimmed] looks like an (unforced) transition: all-caps text
+  /// Tell whether [trimmed] looks like an (unforced) transition: all-caps text
   /// ending with `TO:`.
   bool _isTransitionCandidate(String trimmed) => trimmed.endsWith('TO:') && _isAllCaps(trimmed);
 
-  /// Whether [text] contains no lowercase letters and at least one cased
+  /// Tell whether [text] contains no lowercase letters and at least one cased
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
   bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
 
-  /// Whether [line] opens with the leading token of a scene heading (`INT`,
+  /// Tell whether [line] opens with the leading token of a scene heading (`INT`,
   /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes
   /// of the line itself.
   ///

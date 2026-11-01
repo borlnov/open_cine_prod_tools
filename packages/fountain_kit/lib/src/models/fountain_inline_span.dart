@@ -23,14 +23,14 @@ class FountainInlineSpan extends Equatable {
   /// parsed from (including its emphasis/note markers).
   final FountainSourceRange sourceRange;
 
-  /// Creates a [FountainInlineSpan].
+  /// Create a [FountainInlineSpan].
   const FountainInlineSpan({required this.text, required this.style, required this.sourceRange});
 
   /// Describe this [FountainInlineSpan] for debugging and logging.
   @override
   String toString() => 'FountainInlineSpan($style, ${_quote(text)})';
 
-  /// Wraps [value] in double quotes for use in [toString] output.
+  /// Wrap [value] in double quotes for use in [toString] output.
   static String _quote(String value) => '"$value"';
 
   /// List the fields that decide equality.

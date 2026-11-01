@@ -33,7 +33,7 @@ class HunspellAffixRuleIndex {
   /// the empty-`append` rules filed under the empty string key.
   final Map<String, List<HunspellAffixRule>> _prefixByHead;
 
-  /// Builds a [HunspellAffixRuleIndex] over [affixFile]'s rules.
+  /// Build a [HunspellAffixRuleIndex] over [affixFile]'s rules.
   HunspellAffixRuleIndex(HunspellAffixFile affixFile) : _suffixByTail = {}, _prefixByHead = {} {
     for (final rule in affixFile.suffixRules) {
       final key = rule.append.isEmpty ? '' : rule.append[rule.append.length - 1];
@@ -45,7 +45,7 @@ class HunspellAffixRuleIndex {
     }
   }
 
-  /// The suffix rules worth trying against [form]: those whose `append`
+  /// Get the suffix rules worth trying against [form]: those whose `append`
   /// ends in [form]'s last character, plus every empty-`append` rule.
   Iterable<HunspellAffixRule> suffixRulesFor(String form) sync* {
     final tailKey = form.isEmpty ? '' : form[form.length - 1];
@@ -55,7 +55,7 @@ class HunspellAffixRuleIndex {
     }
   }
 
-  /// The prefix rules worth trying against [form]: those whose `append`
+  /// Get the prefix rules worth trying against [form]: those whose `append`
   /// starts with [form]'s first character, plus every empty-`append` rule.
   Iterable<HunspellAffixRule> prefixRulesFor(String form) sync* {
     final headKey = form.isEmpty ? '' : form[0];

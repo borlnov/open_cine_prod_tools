@@ -11,7 +11,7 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_malformed_data_error.dart';
 /// Kept private to the package: a caller of `ocpt_sync_protocol` decodes a whole wire value
 /// through its `fromJson` constructor, never a single field through this class.
 abstract final class OcptSyncWireJson {
-  /// Reads the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not a string.
   static String string(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -21,7 +21,7 @@ abstract final class OcptSyncWireJson {
     return value;
   }
 
-  /// Reads the [int] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is missing
+  /// Read the [int] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is missing
   /// or not an integer.
   static int integer(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -31,7 +31,7 @@ abstract final class OcptSyncWireJson {
     return value;
   }
 
-  /// Reads the ISO 8601 [DateTime] at [key] in [json], throwing [OcptSyncMalformedDataError] when
+  /// Read the ISO 8601 [DateTime] at [key] in [json], throwing [OcptSyncMalformedDataError] when
   /// it is missing or not a valid timestamp.
   static DateTime dateTime(Map<String, dynamic> json, String key) {
     final raw = string(json, key);
@@ -39,7 +39,7 @@ abstract final class OcptSyncWireJson {
         (throw OcptSyncMalformedDataError("'$key' isn't an ISO 8601 timestamp"));
   }
 
-  /// Reads the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not an object.
   static Map<String, dynamic> object(Map<String, dynamic> json, String key) {
     final value = json[key];

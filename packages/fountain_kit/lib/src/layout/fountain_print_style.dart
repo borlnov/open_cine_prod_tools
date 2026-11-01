@@ -43,7 +43,7 @@ class FountainPrintStyle extends Equatable {
   /// casing it carries in the parsed model.
   final bool isUppercase;
 
-  /// Creates a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
+  /// Create a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
   /// bespoke combination is genuinely required.
   const FountainPrintStyle({this.isBold = false, this.isItalic = false, this.isUppercase = false});
 

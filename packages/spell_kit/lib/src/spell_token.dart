@@ -20,7 +20,7 @@ class SpellToken {
   @override
   int get hashCode => Object.hash(text, range);
 
-  /// Creates a [SpellToken].
+  /// Create a [SpellToken].
   const SpellToken(this.text, this.range);
 
   /// Compare by [text] and [range].

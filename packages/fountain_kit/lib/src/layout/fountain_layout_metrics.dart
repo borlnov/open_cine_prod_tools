@@ -119,15 +119,16 @@ class FountainLayoutMetrics extends Equatable {
   /// The layout box for lyrics.
   final FountainElementLayout lyrics;
 
-  /// The printable width of the page: `pageWidthInches - marginLeftInches -
+  /// Get the printable width of the page: `pageWidthInches - marginLeftInches - marginRightInches`.
   /// marginRightInches`.
   double get printableWidthInches => pageWidthInches - marginLeftInches - marginRightInches;
 
-  /// The printable height of the page: `pageHeightInches -
+  /// Get the printable height of the page:
+  /// `pageHeightInches - marginTopInches - marginBottomInches`.
   /// marginTopInches - marginBottomInches`.
   double get printableHeightInches => pageHeightInches - marginTopInches - marginBottomInches;
 
-  /// Creates a [FountainLayoutMetrics] with every measurement given
+  /// Create a [FountainLayoutMetrics] with every measurement given
   /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
   /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
   /// genuinely required.
@@ -151,14 +152,14 @@ class FountainLayoutMetrics extends Equatable {
     required this.lyrics,
   });
 
-  /// Builds the standard US Letter (8.5 by 11 inch) preset, with [margins]
+  /// Build the standard US Letter (8.5 by 11 inch) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   factory FountainLayoutMetrics.usLetter({
     FountainPageMargins margins = const FountainPageMargins.standard(),
   }) =>
       FountainLayoutMetrics._standard(pageWidthInches: 8.5, pageHeightInches: 11, margins: margins);
 
-  /// Builds the standard ISO A4 (210 by 297 mm) preset, with [margins]
+  /// Build the standard ISO A4 (210 by 297 mm) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   ///
   /// The page margins and element indents are kept identical, in inches, to
@@ -175,7 +176,7 @@ class FountainLayoutMetrics extends Equatable {
     margins: margins,
   );
 
-  /// Builds a [FountainLayoutMetrics] for a page of [pageWidthInches] by
+  /// Build a [FountainLayoutMetrics] for a page of [pageWidthInches] by
   /// [pageHeightInches], typeset with [margins] and the standard element
   /// indents and Courier 12 pitch documented on this class.
   factory FountainLayoutMetrics._standard({
@@ -247,7 +248,7 @@ class FountainLayoutMetrics extends Equatable {
       'FountainLayoutMetrics(${pageWidthInches}in x '
       '${pageHeightInches}in, $linesPerPage lines/page)';
 
-  /// Builds a [FountainElementLayout], deriving its character-column
+  /// Build a [FountainElementLayout], deriving its character-column
   /// measurements from its inch measurements at [_courierCharsPerInch].
   ///
   /// The indent is rounded (it names a column the text starts at, and the

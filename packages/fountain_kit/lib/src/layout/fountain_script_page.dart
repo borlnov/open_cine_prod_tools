@@ -12,7 +12,7 @@ class FountainScriptPage extends Equatable {
   /// This page's lines, top to bottom.
   final List<FountainScriptLine> lines;
 
-  /// Creates a [FountainScriptPage].
+  /// Create a [FountainScriptPage].
   const FountainScriptPage({required this.lines});
 
   /// Describe this [FountainScriptPage] for debugging and logging.

@@ -20,7 +20,7 @@ sealed class FountainBlock extends Equatable {
   /// The location, in the original source, that this block was parsed from.
   final FountainSourceRange sourceRange;
 
-  /// Creates a [FountainBlock].
+  /// Create a [FountainBlock].
   const FountainBlock({required this.sourceRange});
 }
 
@@ -42,7 +42,7 @@ class FountainSceneHeading extends FountainBlock {
   /// line (for example `4A` in `INT. HOUSE #4A#`), or `null` if none.
   final String? sceneNumber;
 
-  /// Creates a [FountainSceneHeading].
+  /// Create a [FountainSceneHeading].
   const FountainSceneHeading({
     required super.sourceRange,
     required this.rawText,
@@ -70,7 +70,7 @@ class FountainActionBlock extends FountainBlock {
   /// Whether this block was forced with a leading `!`.
   final bool forced;
 
-  /// Creates a [FountainActionBlock].
+  /// Create a [FountainActionBlock].
   const FountainActionBlock({
     required super.sourceRange,
     required this.lines,
@@ -106,7 +106,7 @@ class FountainCharacter extends FountainBlock {
   /// preceding it.
   final bool isDualDialogue;
 
-  /// Creates a [FountainCharacter].
+  /// Create a [FountainCharacter].
   const FountainCharacter({
     required super.sourceRange,
     required this.name,
@@ -132,7 +132,7 @@ class FountainParenthetical extends FountainBlock {
   /// The parenthetical's text, without its enclosing parentheses.
   final String text;
 
-  /// Creates a [FountainParenthetical].
+  /// Create a [FountainParenthetical].
   const FountainParenthetical({required super.sourceRange, required this.text});
 
   /// Describe this [FountainParenthetical] for debugging and logging.
@@ -151,7 +151,7 @@ class FountainDialogueLine extends FountainBlock {
   /// represented here as an empty string.
   final String text;
 
-  /// Creates a [FountainDialogueLine].
+  /// Create a [FountainDialogueLine].
   const FountainDialogueLine({required super.sourceRange, required this.text});
 
   /// Describe this [FountainDialogueLine] for debugging and logging.
@@ -188,7 +188,7 @@ class FountainDialogueGroup extends FountainBlock {
   /// it. Mirrors [FountainCharacter.isDualDialogue].
   final bool isDualDialogue;
 
-  /// Creates a [FountainDialogueGroup].
+  /// Create a [FountainDialogueGroup].
   const FountainDialogueGroup({
     required super.sourceRange,
     required this.character,
@@ -214,7 +214,7 @@ class FountainTransition extends FountainBlock {
   /// being recognized from its all-caps `...TO:` form.
   final bool forced;
 
-  /// Creates a [FountainTransition].
+  /// Create a [FountainTransition].
   const FountainTransition({required super.sourceRange, required this.text, required this.forced});
 
   /// Describe this [FountainTransition] for debugging and logging.
@@ -232,7 +232,7 @@ class FountainLyrics extends FountainBlock {
   /// already stripped from each line.
   final List<String> lines;
 
-  /// Creates a [FountainLyrics] block.
+  /// Create a [FountainLyrics] block.
   const FountainLyrics({required super.sourceRange, required this.lines});
 
   /// Describe this [FountainLyrics] for debugging and logging.
@@ -249,7 +249,7 @@ class FountainCenteredText extends FountainBlock {
   /// The centered text, without its enclosing `>`/`<` markers.
   final String text;
 
-  /// Creates a [FountainCenteredText] block.
+  /// Create a [FountainCenteredText] block.
   const FountainCenteredText({required super.sourceRange, required this.text});
 
   /// Describe this [FountainCenteredText] for debugging and logging.
@@ -271,7 +271,7 @@ class FountainSection extends FountainBlock {
   /// The section's heading text, without its leading `#` characters.
   final String text;
 
-  /// Creates a [FountainSection].
+  /// Create a [FountainSection].
   const FountainSection({required super.sourceRange, required this.level, required this.text});
 
   /// Describe this [FountainSection] for debugging and logging.
@@ -289,7 +289,7 @@ class FountainSynopsis extends FountainBlock {
   /// The synopsis text, without its leading `=`.
   final String text;
 
-  /// Creates a [FountainSynopsis].
+  /// Create a [FountainSynopsis].
   const FountainSynopsis({required super.sourceRange, required this.text});
 
   /// Describe this [FountainSynopsis] for debugging and logging.
@@ -309,7 +309,7 @@ class FountainNoteBlock extends FountainBlock {
   /// The note's text, without its enclosing `[[`/`]]` markers.
   final String text;
 
-  /// Creates a [FountainNoteBlock].
+  /// Create a [FountainNoteBlock].
   const FountainNoteBlock({required super.sourceRange, required this.text});
 
   /// Describe this [FountainNoteBlock] for debugging and logging.
@@ -327,7 +327,7 @@ class FountainBoneyard extends FountainBlock {
   /// The comment's text, without its enclosing `/*`/`*/` markers.
   final String text;
 
-  /// Creates a [FountainBoneyard] block.
+  /// Create a [FountainBoneyard] block.
   const FountainBoneyard({required super.sourceRange, required this.text});
 
   /// Describe this [FountainBoneyard] for debugging and logging.
@@ -341,7 +341,7 @@ class FountainBoneyard extends FountainBlock {
 
 /// A forced page break, written as a line of three or more `=` characters.
 class FountainPageBreak extends FountainBlock {
-  /// Creates a [FountainPageBreak].
+  /// Create a [FountainPageBreak].
   const FountainPageBreak({required super.sourceRange});
 
   /// Describe this [FountainPageBreak] for debugging and logging.

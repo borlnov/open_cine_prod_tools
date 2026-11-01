@@ -12,6 +12,6 @@ class HunspellCompoundRule {
   /// The pattern's elements, in the order they must be matched.
   final List<HunspellCompoundRuleElement> elements;
 
-  /// Creates a [HunspellCompoundRule].
+  /// Create a [HunspellCompoundRule].
   const HunspellCompoundRule(this.elements);
 }

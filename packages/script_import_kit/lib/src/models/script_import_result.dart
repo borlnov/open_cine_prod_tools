@@ -19,7 +19,7 @@ class ScriptImportResult extends Equatable {
   /// `FountainParser` or stored as a screenplay's text.
   final String fountainText;
 
-  /// Creates a [ScriptImportResult].
+  /// Create a [ScriptImportResult].
   const ScriptImportResult({required this.format, required this.fountainText});
 
   /// Describe this [ScriptImportResult] for debugging and logging.

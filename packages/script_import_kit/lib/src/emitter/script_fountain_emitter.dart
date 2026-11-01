@@ -6,7 +6,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:script_import_kit/src/emitter/script_line.dart';
 import 'package:script_import_kit/src/emitter/script_title_page.dart';
 
-/// Renders the typed lines a reader produced as Fountain source text.
+/// Render the typed lines a reader produced as Fountain source text.
 ///
 /// This is the one place in the package that knows the Fountain syntax, and
 /// it knows it only through `fountain_kit`: [FountainInlineSerializer] for
@@ -59,10 +59,10 @@ class ScriptFountainEmitter {
   /// would have that line swallowed as an empty title page entry and lost.
   static final RegExp _titlePageKey = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
 
-  /// Creates a [ScriptFountainEmitter].
+  /// Create a [ScriptFountainEmitter].
   const ScriptFountainEmitter();
 
-  /// Renders [lines], under [titlePage], as one Fountain source string.
+  /// Render [lines], under [titlePage], as one Fountain source string.
   ///
   /// The result ends with a newline whenever it holds anything at all, the
   /// way a `.fountain` file on disk does.
@@ -110,7 +110,7 @@ class ScriptFountainEmitter {
     return _titlePageWriter.apply(source: body, existingRange: null, entries: entries);
   }
 
-  /// The plain text [FountainLineWriter.writeLine] is handed for [line]:
+  /// Get the plain text [FountainLineWriter.writeLine] is handed for [line]:
   /// its runs serialized with their emphasis markup, plus the two tags the
   /// writer knows nothing about and the classifier tolerates — a scene
   /// heading's `#N#` number and a cue's dual-dialogue `^`.
@@ -131,7 +131,7 @@ class ScriptFountainEmitter {
     return text;
   }
 
-  /// Whether [rawText], written as the first line of a screenplay with no
+  /// Tell whether [rawText], written as the first line of a screenplay with no
   /// title page, would be read back as a title page entry rather than as
   /// the line it is.
   ///
@@ -146,14 +146,14 @@ class ScriptFountainEmitter {
   /// all.
   bool _looksLikeTitlePageKey(String rawText) => _titlePageKey.hasMatch(rawText);
 
-  /// How many blank source lines each of [lines] is preceded by: one, to
+  /// Count how many blank source lines each of [lines] is preceded by: one, to
   /// separate it from the block before, unless it continues that block.
   List<int> _blankLinesBefore(List<ScriptLine> lines) => [
     for (var index = 0; index < lines.length; index++)
       if (index == 0 || _continuesPreviousBlock(lines, index)) 0 else 1,
   ];
 
-  /// Whether the line at [index] belongs to the block the line before it
+  /// Tell whether the line at [index] belongs to the block the line before it
   /// opened: either because the source itself said so
   /// ([ScriptLine.continuesBlock]), or because it is the inside of a
   /// dialogue block, which a blank line would break apart.
@@ -168,7 +168,7 @@ class ScriptFountainEmitter {
     return isDialogueBody && _isDialogueBlockMember(lines[index - 1].type);
   }
 
-  /// Whether [type] is a line that keeps a dialogue block open for the line
+  /// Tell whether [type] is a line that keeps a dialogue block open for the line
   /// right after it, mirroring `FountainLineClassifier`'s own rule.
   bool _isDialogueBlockMember(FountainLineType type) =>
       type == FountainLineType.character ||

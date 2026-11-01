@@ -34,7 +34,7 @@ class HunspellAffixRule {
   /// (the header line's `Y`/`N`).
   final bool crossProduct;
 
-  /// Creates a [HunspellAffixRule].
+  /// Create a [HunspellAffixRule].
   const HunspellAffixRule({
     required this.flag,
     required this.strip,

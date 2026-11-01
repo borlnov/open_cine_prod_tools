@@ -31,10 +31,10 @@ class OcptSyncError extends Equatable {
   /// parsed.
   final String message;
 
-  /// Creates an error report pairing [code] with a human-readable [message].
+  /// Create an error report pairing [code] with a human-readable [message].
   const OcptSyncError({required this.code, required this.message});
 
-  /// Parses an error from the JSON object a relay reports it as.
+  /// Parse an error from the JSON object a relay reports it as.
   ///
   /// Throws [OcptSyncMalformedDataError] when [json]'s `code` is missing, not a string, or not
   /// one of [OcptSyncErrorCode]'s own names — an unrecognised code is itself malformed data here,
@@ -56,7 +56,7 @@ class OcptSyncError extends Equatable {
     return OcptSyncError(code: code, message: OcptSyncWireJson.string(json, _messageKey));
   }
 
-  /// Serialises this error to the JSON object a relay reports it as.
+  /// Serialise this error to the JSON object a relay reports it as.
   Map<String, dynamic> toJson() => {_codeKey: code.name, _messageKey: message};
 
   /// Describe this [OcptSyncError] for debugging and logging.

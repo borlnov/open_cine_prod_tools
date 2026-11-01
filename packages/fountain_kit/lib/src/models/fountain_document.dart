@@ -19,11 +19,11 @@ class FountainDocument extends Equatable {
   /// to offsets into this string.
   final String sourceText;
 
-  /// The scene headings in this document, in source order.
+  /// Get the scene headings in this document, in source order.
   List<FountainSceneHeading> get scenes =>
       blocks.whereType<FountainSceneHeading>().toList(growable: false);
 
-  /// Creates a [FountainDocument].
+  /// Create a [FountainDocument].
   const FountainDocument({required this.titlePage, required this.blocks, required this.sourceText});
 
   /// Describe this [FountainDocument] for debugging and logging.

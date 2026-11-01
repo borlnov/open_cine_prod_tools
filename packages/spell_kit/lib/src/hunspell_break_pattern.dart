@@ -18,7 +18,7 @@ class HunspellBreakPattern {
   /// `p$`), meaning a trailing occurrence of [text] may be stripped off.
   final bool anchoredEnd;
 
-  /// Creates a [HunspellBreakPattern].
+  /// Create a [HunspellBreakPattern].
   const HunspellBreakPattern({
     required this.text,
     required this.anchoredStart,

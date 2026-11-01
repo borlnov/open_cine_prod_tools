@@ -24,7 +24,7 @@ class FountainSourceRange extends Equatable {
   /// The character offset one past the last character covered by this range.
   final int endOffset;
 
-  /// Creates a [FountainSourceRange].
+  /// Create a [FountainSourceRange].
   ///
   /// [startLine] and [endLine] are 0-based and inclusive. [startOffset] is
   /// the character offset of the first character covered by this range;
@@ -41,7 +41,7 @@ class FountainSourceRange extends Equatable {
        assert(startOffset >= 0, 'startOffset must not be negative'),
        assert(endOffset >= startOffset, 'endOffset must not precede startOffset');
 
-  /// Returns a new range that covers both this range and [other].
+  /// Return a new range that covers both this range and [other].
   FountainSourceRange merge(FountainSourceRange other) => FountainSourceRange(
     startLine: startLine < other.startLine ? startLine : other.startLine,
     endLine: endLine > other.endLine ? endLine : other.endLine,

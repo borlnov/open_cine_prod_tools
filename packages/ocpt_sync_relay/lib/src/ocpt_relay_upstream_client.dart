@@ -46,13 +46,13 @@ class OcptRelayUpstreamClient {
   /// The HTTP client every request goes through.
   final http.Client _httpClient;
 
-  /// Creates a client talking to the upstream relay at [baseUri], authenticating every request
+  /// Create a client talking to the upstream relay at [baseUri], authenticating every request
   /// with [token]. [httpClient] defaults to a fresh [http.Client] — inject one in a test to avoid
   /// a real socket, or to reuse a client already open.
   OcptRelayUpstreamClient({required this.baseUri, required this.token, http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
-  /// Every changeset the upstream relay's log holds for [projectId] strictly after [cursor],
+  /// Get every changeset the upstream relay's log holds for [projectId] strictly after [cursor],
   /// oldest first — `GET <baseUri>/projects/<projectId>/changesets?since=<cursor.value>`.
   ///
   /// Throws [StateError] carrying the response's status and body when the upstream answers
@@ -76,7 +76,7 @@ class OcptRelayUpstreamClient {
     ];
   }
 
-  /// Appends [envelope] to the upstream relay's log for [projectId] and returns the sequence
+  /// Append [envelope] to the upstream relay's log for [projectId] and return the sequence
   /// number it was assigned there — `POST <baseUri>/projects/<projectId>/changesets`.
   ///
   /// [enrolmentSecret] is sent as `X-Ocpt-Enrolment-Secret` only when non-null, letting the
@@ -107,7 +107,7 @@ class OcptRelayUpstreamClient {
     return OcptSequenceNumber(json[_sequenceKey] as int);
   }
 
-  /// Builds `<baseUri>/projects/<projectId>/changesets`, joining paths explicitly rather than
+  /// Build `<baseUri>/projects/<projectId>/changesets`, joining paths explicitly rather than
   /// through [Uri.resolve] — which would silently drop [baseUri]'s last path segment when it does
   /// not already end in `/` — mirroring the app's `OcptRelayRemoteStorage._projectUri`.
   Uri _changesetsUri(String projectId) {
@@ -121,7 +121,7 @@ class OcptRelayUpstreamClient {
   /// Get the headers that authenticate a request with the bearer token.
   Map<String, String> _authHeaders() => {_authorizationHeader: 'Bearer $token'};
 
-  /// Throws a [StateError] describing [action], [response]'s status code and its body when
+  /// Throw a [StateError] describing [action], [response]'s status code and its body when
   /// [response] is not a `200`.
   void _throwIfFailed(http.Response response, {required String action}) {
     if (response.statusCode == 200) {
@@ -132,6 +132,6 @@ class OcptRelayUpstreamClient {
     );
   }
 
-  /// Closes the underlying [http.Client]. Call this once this client is no longer needed.
+  /// Close the underlying [http.Client]. Call this once this client is no longer needed.
   void close() => _httpClient.close();
 }

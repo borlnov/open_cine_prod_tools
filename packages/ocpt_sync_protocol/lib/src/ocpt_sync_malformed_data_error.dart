@@ -14,7 +14,7 @@ class OcptSyncMalformedDataError implements Exception {
   /// A short, human-readable description of what was wrong with the decoded JSON.
   final String reason;
 
-  /// Creates an error reporting [reason], a short, human-readable description of what was wrong
+  /// Create an error reporting [reason], a short, human-readable description of what was wrong
   /// with the decoded JSON.
   const OcptSyncMalformedDataError(this.reason);
 

@@ -38,7 +38,7 @@ class FountainSceneStatistics extends Equatable {
   /// presentation, not to this layout fact.
   final int pageEighths;
 
-  /// Creates a [FountainSceneStatistics] with every counter given
+  /// Create a [FountainSceneStatistics] with every counter given
   /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
   /// parsed document.
   const FountainSceneStatistics({
@@ -47,7 +47,7 @@ class FountainSceneStatistics extends Equatable {
     required this.pageEighths,
   });
 
-  /// Computes the statistics of the [sceneIndex]-th scene (0-based, in
+  /// Compute the statistics of the [sceneIndex]-th scene (0-based, in
   /// [FountainDocument.scenes] order) of [document] when laid out at
   /// [metrics].
   ///
@@ -87,7 +87,7 @@ class FountainSceneStatistics extends Equatable {
       'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
       '$pageEighths/8 pages)';
 
-  /// The top-level blocks of [document] belonging to its [sceneIndex]-th
+  /// Get the top-level blocks of [document] belonging to its [sceneIndex]-th
   /// scene: the scene heading itself, up to (but excluding) the next scene
   /// heading, or the end of [FountainDocument.blocks] for the last scene.
   static List<FountainBlock> _blocksOfScene(FountainDocument document, int sceneIndex) {
@@ -104,7 +104,7 @@ class FountainSceneStatistics extends Equatable {
     return blocks.sublist(start, end);
   }
 
-  /// Composes the whole of [document] at [metrics] and returns the
+  /// Compose the whole of [document] at [metrics] and return the
   /// [sceneIndex]-th scene's line count, rounded to the nearest eighth of
   /// [FountainLayoutMetrics.linesPerPage].
   ///

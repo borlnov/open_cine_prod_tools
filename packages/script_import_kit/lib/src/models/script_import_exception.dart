@@ -21,7 +21,7 @@ class ScriptImportException implements Exception {
   /// nothing to add to [failure] itself.
   final String? details;
 
-  /// Creates a [ScriptImportException].
+  /// Create a [ScriptImportException].
   const ScriptImportException(this.failure, {this.details});
 
   /// Describe this [ScriptImportException] for debugging and logging.

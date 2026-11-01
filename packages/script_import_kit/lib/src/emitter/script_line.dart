@@ -50,10 +50,10 @@ class ScriptLine {
   /// it belongs to, whatever this flag says.
   final bool continuesBlock;
 
-  /// The line's text with every run concatenated and no emphasis markup.
+  /// Get the line's text with every run concatenated and no emphasis markup.
   String get plainText => runs.map((run) => run.text).join();
 
-  /// Creates a [ScriptLine].
+  /// Create a [ScriptLine].
   const ScriptLine({
     required this.type,
     required this.runs,
@@ -62,7 +62,7 @@ class ScriptLine {
     this.continuesBlock = false,
   });
 
-  /// Creates a [ScriptLine] whose text carries no inline emphasis at all,
+  /// Create a [ScriptLine] whose text carries no inline emphasis at all,
   /// which is what most of a screenplay's lines are.
   ScriptLine.plain({
     required this.type,

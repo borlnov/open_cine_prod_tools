@@ -57,7 +57,7 @@ class OcptRelayBinding {
   /// secret, it carries no credential.
   final String dbPath;
 
-  /// Pairs [server] with the [store] backing it and the [port] it was resolved to listen on.
+  /// Pair [server] with the [store] backing it and the [port] it was resolved to listen on.
   const OcptRelayBinding({
     required this.server,
     required this.store,
@@ -66,7 +66,7 @@ class OcptRelayBinding {
   });
 }
 
-/// Reads [environment] (typically `Platform.environment`) and builds an [OcptRelayServer] and the
+/// Read [environment] (typically `Platform.environment`) and build an [OcptRelayServer] and the
 /// [OcptRelayStore] behind it together, so `bin/ocpt_sync_relay.dart` stays a thin loop around
 /// `shelf_io.serve` and this wiring itself stays covered by a test that never opens a socket.
 ///

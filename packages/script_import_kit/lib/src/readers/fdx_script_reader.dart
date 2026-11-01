@@ -15,7 +15,7 @@ import 'package:script_import_kit/src/script_styled_runs.dart';
 import 'package:script_import_kit/src/script_text_decoder.dart';
 import 'package:xml/xml.dart';
 
-/// Reads a Final Draft screenplay (`.fdx`) and converts it to Fountain.
+/// Read a Final Draft screenplay (`.fdx`) and convert it to Fountain.
 ///
 /// An `.fdx` is a single XML document: a `<FinalDraft>` root whose
 /// `<Content>` holds one `<Paragraph Type="…">` per line of screenplay,
@@ -53,10 +53,10 @@ class FdxScriptReader {
   /// Renders the lines this reader makes out of a document.
   final ScriptFountainEmitter emitter;
 
-  /// Creates a [FdxScriptReader].
+  /// Create a [FdxScriptReader].
   const FdxScriptReader({this.emitter = const ScriptFountainEmitter()});
 
-  /// Reads the Final Draft document held in [bytes] and returns its
+  /// Read the Final Draft document held in [bytes] and return its
   /// screenplay as Fountain source text.
   ///
   /// Throws a [ScriptImportException] when [bytes] hold no readable Final
@@ -94,7 +94,7 @@ class FdxScriptReader {
     return emitter.write(lines: lines, titlePage: _readTitlePage(root));
   }
 
-  /// Parses [xmlText] and returns its `<FinalDraft>` root element.
+  /// Parse [xmlText] and return its `<FinalDraft>` root element.
   XmlElement _parseRoot(String xmlText) {
     final XmlDocument document;
     try {
@@ -116,7 +116,7 @@ class FdxScriptReader {
     return root;
   }
 
-  /// Reads every line of screenplay out of the document's `<Content>`.
+  /// Read every line of screenplay out of the document's `<Content>`.
   ///
   /// Anything that is not a `<Paragraph>` is skipped, which is what leaves
   /// a `<ScriptNote>` of its own behind; a `<Paragraph>` wrapping a
@@ -149,7 +149,7 @@ class FdxScriptReader {
     return lines;
   }
 
-  /// Reads the two dialogue blocks a `<DualDialogue>` holds, marking the
+  /// Read the two dialogue blocks a `<DualDialogue>` holds, marking the
   /// second character cue as the one spoken simultaneously with the first.
   List<ScriptLine> _readDualDialogue(XmlElement group) {
     final lines = <ScriptLine>[];
@@ -167,7 +167,7 @@ class FdxScriptReader {
     return lines;
   }
 
-  /// Reads one `<Paragraph>` as a line of screenplay, or `null` when it
+  /// Read one `<Paragraph>` as a line of screenplay, or `null` when it
   /// carries no text at all (Final Draft's own way of writing a spacer).
   ScriptLine? _readParagraph(XmlElement paragraph, {bool isDualDialogue = false}) {
     final runs = _runsOf(paragraph);
@@ -183,7 +183,7 @@ class FdxScriptReader {
     );
   }
 
-  /// The [FountainLineType] a `<Paragraph>`'s `Type` attribute maps to.
+  /// Get the [FountainLineType] a `<Paragraph>`'s `Type` attribute maps to.
   FountainLineType _lineTypeOf(String? paragraphType) => switch (paragraphType?.trim()) {
     'Scene Heading' => FountainLineType.sceneHeading,
     'Character' => FountainLineType.character,
@@ -200,7 +200,7 @@ class FdxScriptReader {
     _ => FountainLineType.action,
   };
 
-  /// The styled runs of a `<Paragraph>`, one per direct `<Text>` child.
+  /// Get the styled runs of a `<Paragraph>`, one per direct `<Text>` child.
   ///
   /// Only direct children are read, which is what keeps the text of a
   /// `<ScriptNote>` nested inside the paragraph out of the line.
@@ -231,7 +231,7 @@ class FdxScriptReader {
     return trimStyledRunEdges(runs);
   }
 
-  /// The lower-cased style names a `<Text>`'s `Style` attribute lists
+  /// Get the lower-cased style names a `<Text>`'s `Style` attribute lists
   /// (`"Bold+Italic"`), or an empty set when it declares none.
   Set<String> _stylesOf(String? style) => {
     if (style != null)
@@ -239,7 +239,7 @@ class FdxScriptReader {
         if (name.trim().isNotEmpty) name.trim().toLowerCase(),
   };
 
-  /// Reads the document's `<TitlePage>` into the six fields Fountain writes.
+  /// Read the document's `<TitlePage>` into the six fields Fountain writes.
   ScriptTitlePage _readTitlePage(XmlElement root) {
     final titlePage = root.childElements.firstWhereOrNull(
       (element) => element.name.local == 'TitlePage',
@@ -258,11 +258,11 @@ class FdxScriptReader {
     return _titlePageFrom(lines);
   }
 
-  /// The whole text of a `<Paragraph>`, trimmed, with no styling.
+  /// Get the whole text of a `<Paragraph>`, trimmed, with no styling.
   String _plainTextOf(XmlElement paragraph) =>
       _runsOf(paragraph).map((run) => run.text).join().trim();
 
-  /// Sorts a title page's free-form [lines] into the six fields.
+  /// Sort a title page's free-form [lines] into the six fields.
   ///
   /// Final Draft's title page is a page of prose, not a set of named
   /// fields: it has to be read the way a person reads it. The title comes

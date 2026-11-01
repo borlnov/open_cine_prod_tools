@@ -6,7 +6,7 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:ocpt_sync_relay/src/ocpt_relay_store.dart';
 import 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';
 
-/// Reconciles one project's changeset log between a local [OcptRelayStore] (a set relay's own,
+/// Reconcile one project's changeset log between a local [OcptRelayStore] (a set relay's own,
 /// gathered offline over a shoot) and an upstream relay reached through [upstream] (typically the
 /// production's prep relay) — the whole of the set relay's evening reconciliation.
 ///
@@ -35,10 +35,10 @@ class OcptRelayReconciler {
   /// The upstream relay this reconciler pushes to and pulls from.
   final OcptRelayUpstreamClient upstream;
 
-  /// Creates a reconciler moving changesets between [store] (this relay's own) and [upstream].
+  /// Create a reconciler moving changesets between [store] (this relay's own) and [upstream].
   const OcptRelayReconciler({required this.store, required this.upstream});
 
-  /// Reconciles [projectId]'s changeset log with [upstream]: first push, then pull, then save the
+  /// Reconcile [projectId]'s changeset log with [upstream]: first push, then pull, then save the
   /// cursors this run advanced. [enrolmentSecret] is forwarded to every push
   /// (`OcptRelayUpstreamClient.appendChangeset`) so the upstream can create [projectId] on its own
   /// side the first time this project is ever pushed to it; pass null once it is known to already

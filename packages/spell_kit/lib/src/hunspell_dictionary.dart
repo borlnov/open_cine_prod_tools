@@ -24,10 +24,10 @@ class SpellDictionary {
   /// flag strings, so no flag either copy declared is lost.
   final Map<String, String> entries;
 
-  /// Creates a [SpellDictionary]. Prefer [SpellDictionary.parse].
+  /// Create a [SpellDictionary]. Prefer [SpellDictionary.parse].
   const SpellDictionary({required this.affixFile, required this.entries});
 
-  /// Parses [affix] and [dictionary] (the verbatim contents of a `.aff`
+  /// Parse [affix] and [dictionary] (the verbatim contents of a `.aff`
   /// file and its matching `.dic` file) into a [SpellDictionary].
   factory SpellDictionary.parse({required String affix, required String dictionary}) =>
       SpellDictionary(
@@ -36,7 +36,7 @@ class SpellDictionary {
       );
 }
 
-/// Parses the body of a `.dic` file into a word-to-flags map.
+/// Parse the body of a `.dic` file into a word-to-flags map.
 ///
 /// The first line is conventionally the entry count; it is skipped when it
 /// parses as an integer and otherwise tolerated as a missing header (in
@@ -71,11 +71,11 @@ class _DictionaryEntry {
   /// The raw, concatenated flag string (empty if the entry carried none).
   final String flags;
 
-  /// Creates a [_DictionaryEntry].
+  /// Create a [_DictionaryEntry].
   const _DictionaryEntry({required this.word, required this.flags});
 }
 
-/// Parses a single `.dic` token (morphological fields already stripped)
+/// Parse a single `.dic` token (morphological fields already stripped)
 /// into its word and flags, splitting on the first unescaped `/`.
 _DictionaryEntry _parseDictionaryLine(String token) {
   final word = StringBuffer();

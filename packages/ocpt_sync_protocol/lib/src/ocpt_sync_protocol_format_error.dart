@@ -20,7 +20,7 @@ class OcptSyncUnsupportedFormatError implements Exception {
   /// The highest format this build of the protocol can read.
   final int knownUpTo;
 
-  /// Creates an error reporting that [foundFormat] is newer than [knownUpTo], the highest format
+  /// Create an error reporting that [foundFormat] is newer than [knownUpTo], the highest format
   /// this build of `ocpt_sync_protocol` can read, for the wire shape named by [subject] (for
   /// example `"changeset envelope"` or `"snapshot descriptor"`).
   const OcptSyncUnsupportedFormatError({

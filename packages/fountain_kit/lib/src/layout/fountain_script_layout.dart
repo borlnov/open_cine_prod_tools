@@ -12,7 +12,7 @@ class FountainScriptLayout extends Equatable {
   /// The screenplay's pages, in reading order.
   final List<FountainScriptPage> pages;
 
-  /// Creates a [FountainScriptLayout].
+  /// Create a [FountainScriptLayout].
   const FountainScriptLayout({required this.pages});
 
   /// Describe this [FountainScriptLayout] for debugging and logging.

@@ -53,7 +53,7 @@ const _defaultLineLength = 80;
 /// `!` entries of its `globs` block so the two lists can be compared at a glance.
 const _excludedPrefixes = ["actlibs/", "build/", ".dart_tool/", "test/", "node_modules/"];
 
-/// Checks every markdown file of the repository and reports what the CI linter would reject.
+/// Check every markdown file of the repository and report what the CI linter would reject.
 Future<void> main() async {
   final files = await _markdownFiles();
 
@@ -81,7 +81,7 @@ Future<void> main() async {
   exitCode = 1;
 }
 
-/// Lists the markdown files to check: the ones git tracks plus the untracked ones it does not
+/// List the markdown files to check: the ones git tracks plus the untracked ones it does not
 /// ignore, minus [_excludedPrefixes].
 ///
 /// Asking git rather than walking the tree keeps the generated and vendored directories out for
@@ -113,7 +113,7 @@ Future<List<String>> _markdownFiles() async {
   return paths;
 }
 
-/// Reads the `line_length` of the `MD013` block of [_configPath], falling back to
+/// Read the `line_length` of the `MD013` block of [_configPath], falling back to
 /// [_defaultLineLength] when the file or the setting is missing.
 ///
 /// The block is read line by line rather than through a YAML parser: this script has no package
@@ -153,7 +153,7 @@ Future<int> _configuredLineLength() async {
   return _defaultLineLength;
 }
 
-/// Returns one message per rule violation found in the file at [path], empty when it is clean.
+/// Return one message per rule violation found in the file at [path], empty when it is clean.
 List<String> _checkFile(String path, {required int lineLength}) {
   final content = File(path).readAsStringSync();
   final lines = content.split("\n");
@@ -199,7 +199,7 @@ List<String> _checkFile(String path, {required int lineLength}) {
   return violations;
 }
 
-/// Whether [line] breaks MD013 as the project configures it.
+/// Tell whether [line] breaks MD013 as the project configures it.
 ///
 /// A line over [lineLength] is only a violation when it could be wrapped — markdownlint's own
 /// default with `strict` and `stern` both off — and table rows are exempt, the configuration

@@ -16,11 +16,11 @@ class _EmphasisMarker {
   /// The style a span wrapped in [token] is rendered with.
   final FountainInlineStyle style;
 
-  /// Creates an [_EmphasisMarker].
+  /// Create an [_EmphasisMarker].
   const _EmphasisMarker(this.token, this.style);
 }
 
-/// Parses inline emphasis (`*italic*`, `**bold**`, `***bold italic***`,
+/// Parse inline emphasis (`*italic*`, `**bold**`, `***bold italic***`,
 /// `_underline_`) and inline authoring notes (`[[note]]`) out of a single
 /// line of Fountain text.
 ///
@@ -60,10 +60,10 @@ class FountainInlineParser {
   /// usual markup meaning.
   static const String _escapable = r'*_\[]';
 
-  /// Creates a [FountainInlineParser].
+  /// Create a [FountainInlineParser].
   const FountainInlineParser();
 
-  /// Parses [text] into a sequence of [FountainInlineSpan]s.
+  /// Parse [text] into a sequence of [FountainInlineSpan]s.
   ///
   /// [line] is the 0-based source line [text] was taken from, and
   /// [startOffset] is the character offset, in the larger source document,
@@ -150,7 +150,7 @@ class FountainInlineParser {
     return spans;
   }
 
-  /// Parses [text] into a sequence of [FountainStyledRun]s, resolving one
+  /// Parse [text] into a sequence of [FountainStyledRun]s, resolving one
   /// level of nesting inside emphasis spans that [parse] leaves as a single
   /// token with its inner markers still literally in its text.
   ///
@@ -188,7 +188,7 @@ class FountainInlineParser {
     ).map((span) => _toStyledRun(span, isAnchored: isAnchored)).toList();
   }
 
-  /// Converts one top-level [FountainInlineSpan] into a [FountainStyledRun],
+  /// Convert one top-level [FountainInlineSpan] into a [FountainStyledRun],
   /// resolving one level of nesting as described on [parseRuns].
   ///
   /// [isAnchored] tells whether [span]'s own range points into a real source
@@ -233,7 +233,7 @@ class FountainInlineParser {
     }
   }
 
-  /// Narrows [range] by [markerLength] characters at each end, turning the
+  /// Narrow [range] by [markerLength] characters at each end, turning the
   /// range of a `**bold**` span into the range of the `bold` a
   /// [FountainStyledRun] actually renders. Returns `null` for a `null`
   /// [range]; the parse rules guarantee the range is always long enough for
@@ -248,10 +248,10 @@ class FountainInlineParser {
           endOffset: range.endOffset - markerLength,
         );
 
-  /// Checks whether [text] is fully wrapped in one of [candidates]; if so,
-  /// returns a [FountainStyledRun] combining that nested style with the
-  /// outer style already carried by [isBold]/[isItalic]/[isUnderline],
-  /// otherwise returns a run with only the outer style and [text] as-is.
+  /// Check whether [text] is fully wrapped in one of [candidates]; if so, return a
+  /// [FountainStyledRun] combining that nested style with the outer style already carried by
+  /// [isBold]/[isItalic]/[isUnderline], otherwise return a run with only the outer style and [text]
+  /// as-is.
   ///
   /// [range] is [text]'s own range, the outer marker already dropped from it;
   /// a resolved nesting narrows it further by the nested marker's own length,
@@ -290,7 +290,7 @@ class FountainInlineParser {
     );
   }
 
-  /// Returns the nested style, inner text and marker length if [text] is
+  /// Return the nested style, inner text and marker length if [text] is
   /// entirely wrapped in one marker from [candidates] (tried longest-first),
   /// using the same leftmost-closing-marker rule as [parse] itself so the
   /// two agree on what counts as a matched pair; returns `null` if [text] is
@@ -313,7 +313,7 @@ class FountainInlineParser {
     return null;
   }
 
-  /// Returns the first [_EmphasisMarker] whose token starts at [index] in
+  /// Return the first [_EmphasisMarker] whose token starts at [index] in
   /// [text], trying longer tokens first, or `null` if none matches.
   _EmphasisMarker? _matchEmphasis(String text, int index) {
     for (final marker in _markers) {
@@ -324,7 +324,7 @@ class FountainInlineParser {
     return null;
   }
 
-  /// Builds the [FountainSourceRange] for a span covering
+  /// Build the [FountainSourceRange] for a span covering
   /// `[localStart, localEnd)` of a line, given that line's own [line]
   /// number and [lineStartOffset] within the larger source document.
   FountainSourceRange _range(int line, int lineStartOffset, int localStart, int localEnd) =>

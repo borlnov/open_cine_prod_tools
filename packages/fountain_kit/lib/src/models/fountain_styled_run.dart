@@ -66,7 +66,7 @@ class FountainStyledRun extends Equatable {
   /// assume the two are the same scale.
   final FountainSourceRange? sourceRange;
 
-  /// Creates a [FountainStyledRun].
+  /// Create a [FountainStyledRun].
   const FountainStyledRun({
     required this.text,
     this.isBold = false,

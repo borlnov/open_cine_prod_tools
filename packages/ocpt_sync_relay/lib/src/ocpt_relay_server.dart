@@ -136,7 +136,8 @@ class OcptRelayServer {
   /// class's own doc comment) — a project with no subscriber has no entry here at all.
   final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject;
 
-  /// The assembled request handler for this relay's five routes: mount it under `shelf_io.serve`
+  /// Get the assembled request handler for this relay's five routes: mount it under
+  /// `shelf_io.serve`
   /// or any other shelf adapter that supports request hijacking, which the `events` route needs
   /// for its WebSocket upgrade.
   shelf.Handler get handler {
@@ -150,7 +151,7 @@ class OcptRelayServer {
     return router.call;
   }
 
-  /// Creates a relay server answering requests against [store], accepting [enrolmentSecret] as the
+  /// Create a relay server answering requests against [store], accepting [enrolmentSecret] as the
   /// only credential able to register a brand-new project.
   ///
   /// [maxAuthFailuresPerSource] and [authFailureWindow] configure the failed-authentication
@@ -292,7 +293,7 @@ class OcptRelayServer {
     });
   }
 
-  /// Upgrades [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
+  /// Upgrade [request] to the `events` WebSocket for `<projectId>`, behind the same bearer check
   /// every other route makes (`allowCreate: false` — a socket does not create a project). A
   /// rejected request never reaches the upgrade at all: [_authenticate] answers the ordinary HTTP
   /// status (`401`/`404`/`429`) instead, exactly as it would for any other route.
@@ -314,8 +315,8 @@ class OcptRelayServer {
     return upgrade(request);
   }
 
-  /// Adds [webSocket] to [projectId]'s subscriber set, rebroadcasts every frame it sends to that
-  /// project's other subscribers ([_rebroadcastToPeers]), and arranges for [_unsubscribe] to run
+  /// Add [webSocket] to [projectId]'s subscriber set, rebroadcast every frame it sends to that
+  /// project's other subscribers ([_rebroadcastToPeers]), and arrange for [_unsubscribe] to run
   /// the moment the connection closes, from either end.
   void _subscribe(String projectId, WebSocketChannel webSocket) {
     _eventSubscribersByProject.putIfAbsent(projectId, () => {}).add(webSocket);
@@ -328,7 +329,7 @@ class OcptRelayServer {
     );
   }
 
-  /// Removes [webSocket] from [projectId]'s subscriber set, dropping the set entirely once it is
+  /// Remove [webSocket] from [projectId]'s subscriber set, dropping the set entirely once it is
   /// left empty so a project nobody is watching leaves no trace in [_eventSubscribersByProject].
   void _unsubscribe(String projectId, WebSocketChannel webSocket) {
     final subscribers = _eventSubscribersByProject[projectId];
@@ -342,7 +343,7 @@ class OcptRelayServer {
     }
   }
 
-  /// Sends the opaque [_newWorkPing] frame to every socket currently subscribed to [projectId]'s
+  /// Send the opaque [_newWorkPing] frame to every socket currently subscribed to [projectId]'s
   /// `events` route — called once a changeset append or a snapshot upload for that project has
   /// actually landed in [store]. A project with no subscriber does nothing.
   void _notifyNewWork(String projectId) {
@@ -355,7 +356,7 @@ class OcptRelayServer {
     }
   }
 
-  /// Forwards [frame] — an opaque presence payload one replica sent over its own `events` socket —
+  /// Forward [frame] — an opaque presence payload one replica sent over its own `events` socket —
   /// to every *other* subscriber of [projectId], never back to [sender] and never to another
   /// project's subscribers. Distinct from [_notifyNewWork], which is relay-generated and goes to
   /// every subscriber including whichever socket triggered it: this method only ever moves a frame
@@ -378,7 +379,7 @@ class OcptRelayServer {
     }
   }
 
-  /// Authenticates [request] for [projectId], creating the project first when [allowCreate] is
+  /// Authenticate [request] for [projectId], creating the project first when [allowCreate] is
   /// true and every condition in this class's own doc comment is met. Returns null when the
   /// request may proceed, or the [shelf.Response] to send instead.
   shelf.Response? _authenticate(
@@ -429,7 +430,8 @@ class OcptRelayServer {
     return null;
   }
 
-  /// The bearer token [request] carries, or null when it carries none (a missing header, a header
+  /// Get the bearer token [request] carries, or null when it carries none (a missing header, a
+  /// header
   /// not shaped as `Bearer <token>`, or an empty token).
   String? _bearerToken(shelf.Request request) {
     final header = request.headers['authorization'];
@@ -441,7 +443,8 @@ class OcptRelayServer {
     return token.isEmpty ? null : token;
   }
 
-  /// A coarse "where did this request come from" key for the failed-authentication throttle: the
+  /// Get a coarse "where did this request come from" key for the failed-authentication throttle:
+  /// the
   /// remote address a real socket adapter (`shelf_io`) attaches to [request]'s context, falling
   /// back to a single shared key when nothing of the sort is present — as it is not when this
   /// handler is driven directly in a test, or behind an adapter that never sets it.
@@ -454,7 +457,7 @@ class OcptRelayServer {
     return 'unknown';
   }
 
-  /// The sha256 hex digest of [token] — the only form of a bearer token [OcptRelayStore] ever
+  /// Get the sha256 hex digest of [token] — the only form of a bearer token [OcptRelayStore] ever
   /// stores or compares against.
   String _hashToken(String token) => sha256.convert(utf8.encode(token)).toString();
 
@@ -470,7 +473,7 @@ class OcptRelayServer {
   shelf.Response _errorResponse(int statusCode, OcptSyncErrorCode code, String message) =>
       _jsonResponse(statusCode, OcptSyncError(code: code, message: message).toJson());
 
-  /// Decodes [body] as JSON, throwing [OcptSyncMalformedDataError] (never a raw [TypeError]) when
+  /// Decode [body] as JSON, throwing [OcptSyncMalformedDataError] (never a raw [TypeError]) when
   /// it parses to anything but a JSON object — mirrors what `ocpt_sync_protocol`'s own `fromJson`
   /// constructors do for a single field, one level up, for the request body as a whole.
   Map<String, dynamic> _decodeJsonObject(String body) {
@@ -482,7 +485,7 @@ class OcptRelayServer {
     return decoded;
   }
 
-  /// Reads the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the [String] at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not a string.
   String _requireString(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -493,7 +496,7 @@ class OcptRelayServer {
     return value;
   }
 
-  /// Reads the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
+  /// Read the JSON object at [key] in [json], throwing [OcptSyncMalformedDataError] when it is
   /// missing or not an object.
   Map<String, dynamic> _requireObject(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -523,7 +526,7 @@ class _AuthRateLimiter {
   /// Class constructor
   _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
 
-  /// True when [source] has already failed authentication [maxFailures] times or more within the
+  /// Tell whether [source] has already failed authentication [maxFailures] times or more within the
   /// current window, and every further request from it should be rejected without even looking at
   /// its credentials.
   bool isBlocked(String source) {
@@ -540,7 +543,7 @@ class _AuthRateLimiter {
     return record.count >= maxFailures;
   }
 
-  /// Records one failed authentication attempt from [source], starting a fresh window when none
+  /// Record one failed authentication attempt from [source], starting a fresh window when none
   /// is open yet or the previous one has expired.
   void recordFailure(String source) {
     final now = DateTime.now();

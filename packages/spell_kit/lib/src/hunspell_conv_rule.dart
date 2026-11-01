@@ -11,6 +11,6 @@ class HunspellConvRule {
   /// The replacement text.
   final String to;
 
-  /// Creates a [HunspellConvRule].
+  /// Create a [HunspellConvRule].
   const HunspellConvRule({required this.from, required this.to});
 }

@@ -16,10 +16,10 @@ class HunspellAffixCondition {
   /// unconditional (bare `.`) condition.
   final List<_HunspellConditionAtom>? _atoms;
 
-  /// Creates a [HunspellAffixCondition]. Prefer [HunspellAffixCondition.parse].
+  /// Create a [HunspellAffixCondition]. Prefer [HunspellAffixCondition.parse].
   const HunspellAffixCondition._(this._atoms);
 
-  /// Parses a hunspell condition string, for example `.`, `e` or
+  /// Parse a hunspell condition string, for example `.`, `e` or
   /// `[^aeiou]y`.
   factory HunspellAffixCondition.parse(String condition) {
     if (condition == '.') {
@@ -51,15 +51,15 @@ class HunspellAffixCondition {
     return HunspellAffixCondition._(atoms);
   }
 
-  /// Whether [stem] satisfies this condition when checked at its end (the
+  /// Tell whether [stem] satisfies this condition when checked at its end (the
   /// position a `SFX` rule's condition is defined to match).
   bool matchesEnd(String stem) => _matches(stem, fromEnd: true);
 
-  /// Whether [stem] satisfies this condition when checked at its start
+  /// Tell whether [stem] satisfies this condition when checked at its start
   /// (the position a `PFX` rule's condition is defined to match).
   bool matchesStart(String stem) => _matches(stem, fromEnd: false);
 
-  /// The shared implementation of [matchesEnd] and [matchesStart].
+  /// Run the shared implementation of [matchesEnd] and [matchesStart].
   bool _matches(String stem, {required bool fromEnd}) {
     final atoms = _atoms;
     if (atoms == null) {
@@ -91,21 +91,21 @@ class _HunspellConditionAtom {
   /// Whether [_members] is negated (a `[^...]` class).
   final bool _negated;
 
-  /// Creates an atom matching exactly [literal], or any character at all
+  /// Create an atom matching exactly [literal], or any character at all
   /// if [literal] is `.`.
   const _HunspellConditionAtom.literal(String literal)
     : _literal = literal,
       _members = null,
       _negated = false;
 
-  /// Creates an atom matching membership of [members] (or its complement,
+  /// Create an atom matching membership of [members] (or its complement,
   /// if [negated]).
   const _HunspellConditionAtom.charClass({required Set<String> members, required bool negated})
     : _literal = null,
       _members = members,
       _negated = negated;
 
-  /// Whether this atom matches the single character [char].
+  /// Tell whether this atom matches the single character [char].
   bool matches(String char) {
     final members = _members;
     if (members != null) {

@@ -29,11 +29,11 @@ class OcptStoredChangeset extends Equatable {
   /// describes.
   final OcptChangesetEnvelope envelope;
 
-  /// Creates a stored changeset pairing [sequenceNumber], the relay-assigned delivery position,
+  /// Create a stored changeset pairing [sequenceNumber], the relay-assigned delivery position,
   /// with [envelope], the changeset itself.
   const OcptStoredChangeset({required this.sequenceNumber, required this.envelope});
 
-  /// Parses a stored changeset from the JSON object a relay's "read since" route hands back.
+  /// Parse a stored changeset from the JSON object a relay's "read since" route hands back.
   ///
   /// Throws whatever [OcptChangesetEnvelope.fromJson] throws when the envelope it carries cannot
   /// be read, and `OcptSyncMalformedDataError` when the sequence number is missing or of the
@@ -43,7 +43,7 @@ class OcptStoredChangeset extends Equatable {
     envelope: OcptChangesetEnvelope.fromJson(OcptSyncWireJson.object(json, _envelopeKey)),
   );
 
-  /// Serialises this stored changeset to the JSON object a relay's "read since" route hands back.
+  /// Serialise this stored changeset to the JSON object a relay's "read since" route hands back.
   Map<String, dynamic> toJson() => {
     _sequenceNumberKey: sequenceNumber.toJson(),
     _envelopeKey: envelope.toJson(),

@@ -30,7 +30,7 @@ class OcptRelayStore {
   /// The database holding the projects, their changesets and their snapshots.
   final Database _db;
 
-  /// Opens (creating if absent) the database at [path], and creates the schema below if it is not
+  /// Open (creating if absent) the database at [path], and create the schema below if it is not
   /// already there. Pass the literal string `:memory:` to open a private, in-memory database — the
   /// form every test in this package uses.
   OcptRelayStore(String path)
@@ -38,7 +38,7 @@ class OcptRelayStore {
     _createSchemaIfAbsent();
   }
 
-  /// Registers a new project with [projectId], remembering only [tokenHash] — a fast hash of the
+  /// Register a new project with [projectId], remembering only [tokenHash] — a fast hash of the
   /// bearer token a caller presents on every later request, never the token itself.
   void createProject({required String projectId, required String tokenHash}) {
     _db.execute('INSERT INTO projects (projectId, tokenHash, createdAt) VALUES (?, ?, ?)', [
@@ -48,7 +48,7 @@ class OcptRelayStore {
     ]);
   }
 
-  /// The project registered under [projectId], or null when none has been created yet.
+  /// Get the project registered under [projectId], or null when none has been created yet.
   ({String projectId, String tokenHash, DateTime createdAt})? findProject(String projectId) {
     final rows = _db.select(
       'SELECT projectId, tokenHash, createdAt FROM projects WHERE projectId = ?',
@@ -67,9 +67,9 @@ class OcptRelayStore {
     );
   }
 
-  /// Appends [envelope] to [projectId]'s changeset log, assigning it the next sequence number in
+  /// Append [envelope] to [projectId]'s changeset log, assigning it the next sequence number in
   /// that project's own log — one past the highest sequence number already stored for it, or
-  /// [OcptSequenceNumber.zero]'s own `next()` when the log is still empty — and returns it.
+  /// [OcptSequenceNumber.zero]'s own `next()` when the log is still empty — and return it.
   ///
   /// Idempotent on [OcptChangesetEnvelope.changesetId]: when [projectId]'s log already holds an
   /// entry for that same `changesetId`, this returns the sequence it was already assigned, without
@@ -99,7 +99,7 @@ class OcptRelayStore {
     return sequence;
   }
 
-  /// Every changeset appended to [projectId]'s log strictly after [cursor], oldest first — the
+  /// Get every changeset appended to [projectId]'s log strictly after [cursor], oldest first — the
   /// same "tail of the log" contract the desktop folder transport's `readSince` keeps, so a
   /// replica behind either one converges the same way.
   List<OcptStoredChangeset> readSince(String projectId, OcptSequenceNumber cursor) {
@@ -118,7 +118,7 @@ class OcptRelayStore {
     ];
   }
 
-  /// Stores [bytes] under [descriptor]'s own `snapshotId` for [projectId] and marks it that
+  /// Store [bytes] under [descriptor]'s own `snapshotId` for [projectId] and mark it that
   /// project's latest — the one [fetchLatestSnapshot] returns — clearing the flag off whatever
   /// snapshot held it before, mirroring `OcptFolderRemoteStorage.uploadSnapshot`'s `LATEST` marker.
   ///
@@ -149,7 +149,8 @@ class OcptRelayStore {
     }
   }
 
-  /// [projectId]'s latest snapshot — its descriptor and its own bytes — or null when it has none
+  /// Get [projectId]'s latest snapshot — its descriptor and its own bytes — or null when it has
+  /// none
   /// yet, mirroring `OcptFolderRemoteStorage.fetchLatestSnapshot`.
   (OcptSnapshotDescriptor, Uint8List)? fetchLatestSnapshot(String projectId) {
     final rows = _db.select(
@@ -167,7 +168,7 @@ class OcptRelayStore {
     return (descriptor, bytes);
   }
 
-  /// The reconcile cursors this store holds for the upstream relay named by [upstream] and
+  /// Get the reconcile cursors this store holds for the upstream relay named by [upstream] and
   /// [projectId], or a pair of [OcptSequenceNumber.zero] when this relay has never reconciled that
   /// project against that upstream yet.
   ///
@@ -197,7 +198,7 @@ class OcptRelayStore {
     );
   }
 
-  /// Persists [push] and [pull] as the reconcile cursors for [upstream]/[projectId] — see
+  /// Persist [push] and [pull] as the reconcile cursors for [upstream]/[projectId] — see
   /// [reconcileCursors] for what each one means. Upserts: a first call for a given
   /// `(upstream, projectId)` pair inserts the row, and every later call overwrites it, so a caller
   /// never has to know in advance whether one already exists.
@@ -216,7 +217,8 @@ class OcptRelayStore {
     );
   }
 
-  /// The highest sequence number already stored for [projectId], or [OcptSequenceNumber.zero] when
+  /// Get the highest sequence number already stored for [projectId], or [OcptSequenceNumber.zero]
+  /// when
   /// its log holds nothing yet — so [append] always has a value to call `next()` on.
   OcptSequenceNumber _highestSequenceNumber(String projectId) {
     final rows = _db.select('SELECT MAX(sequence) AS highest FROM changesets WHERE projectId = ?', [
@@ -227,19 +229,19 @@ class OcptRelayStore {
     return highest == null ? OcptSequenceNumber.zero : OcptSequenceNumber(highest);
   }
 
-  /// The opaque bytes [envelope] is stored as: its own JSON, UTF-8 encoded.
+  /// Get the opaque bytes [envelope] is stored as: its own JSON, UTF-8 encoded.
   Uint8List _encodeEnvelope(OcptChangesetEnvelope envelope) =>
       Uint8List.fromList(utf8.encode(jsonEncode(envelope.toJson())));
 
-  /// The envelope stored as [bytes] by [_encodeEnvelope].
+  /// Get the envelope stored as [bytes] by [_encodeEnvelope].
   OcptChangesetEnvelope _decodeEnvelope(Uint8List bytes) =>
       OcptChangesetEnvelope.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 
-  /// The opaque bytes [descriptor] is stored as: its own JSON, UTF-8 encoded.
+  /// Get the opaque bytes [descriptor] is stored as: its own JSON, UTF-8 encoded.
   Uint8List _encodeSnapshotDescriptor(OcptSnapshotDescriptor descriptor) =>
       Uint8List.fromList(utf8.encode(jsonEncode(descriptor.toJson())));
 
-  /// The descriptor stored as [bytes] by [_encodeSnapshotDescriptor].
+  /// Get the descriptor stored as [bytes] by [_encodeSnapshotDescriptor].
   OcptSnapshotDescriptor _decodeSnapshotDescriptor(Uint8List bytes) =>
       OcptSnapshotDescriptor.fromJson(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
 
@@ -294,7 +296,7 @@ class OcptRelayStore {
     _migrateChangesetIdColumnIfAbsent();
   }
 
-  /// Adds the `changesetId` column to a `changesets` table created before this column existed —
+  /// Add the `changesetId` column to a `changesets` table created before this column existed —
   /// idempotent, so it is safe to call on every startup: a brand-new database already has the
   /// column from [_createSchemaIfAbsent]'s own `CREATE TABLE`, and this does nothing to it. A
   /// legacy database gets the column added, nullable, with every existing row backfilled to null —
@@ -311,7 +313,7 @@ class OcptRelayStore {
     }
   }
 
-  /// Closes the underlying database and releases its resources. Call this once this store is no
+  /// Close the underlying database and release its resources. Call this once this store is no
   /// longer needed; nothing in this class re-opens it afterwards.
   void close() => _db.dispose();
 }

@@ -55,7 +55,7 @@ class OcptSnapshotDescriptor extends Equatable {
   /// The wire format this descriptor declares itself to be written in.
   final int snapshotFormat;
 
-  /// Creates a descriptor. [snapshotFormat] defaults to [currentSnapshotFormat], which is what
+  /// Create a descriptor. [snapshotFormat] defaults to [currentSnapshotFormat], which is what
   /// every snapshot this build writes should carry; a caller decoding one off the wire uses
   /// [OcptSnapshotDescriptor.fromJson] instead, which reads the format the descriptor actually
   /// declares.
@@ -67,7 +67,7 @@ class OcptSnapshotDescriptor extends Equatable {
     this.snapshotFormat = currentSnapshotFormat,
   });
 
-  /// Parses a descriptor from the JSON object a relay stores or transmits it as.
+  /// Parse a descriptor from the JSON object a relay stores or transmit it as.
   ///
   /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `snapshotFormat` is newer than
   /// [currentSnapshotFormat], and [OcptSyncMalformedDataError] when a required field is missing
@@ -92,7 +92,7 @@ class OcptSnapshotDescriptor extends Equatable {
     );
   }
 
-  /// Serialises this descriptor to the JSON object a relay stores or transmits it as.
+  /// Serialise this descriptor to the JSON object a relay stores or transmit it as.
   Map<String, dynamic> toJson() => {
     _snapshotIdKey: snapshotId,
     _sequenceUpToKey: sequenceUpTo.toJson(),

@@ -5,7 +5,7 @@
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
-/// Writes a single display line of Fountain text back out as a raw source
+/// Write a single display line of Fountain text back out as a raw source
 /// line, deciding on the fly whether the line needs a forcing marker to
 /// (re-)classify as its intended [FountainLineType].
 ///
@@ -40,10 +40,10 @@ class FountainLineWriter {
   /// marker to (re-)classify as its intended type.
   final FountainLineClassifier classifier;
 
-  /// Creates a [FountainLineWriter].
+  /// Create a [FountainLineWriter].
   const FountainLineWriter({this.classifier = const FountainLineClassifier()});
 
-  /// Renders [text] as a raw Fountain source line of type [type].
+  /// Render [text] as a raw Fountain source line of type [type].
   ///
   /// [hadForcingMarker] should reflect whether the line this was decoded
   /// from originally carried an explicit forcing marker; when set, the
@@ -138,7 +138,7 @@ class FountainLineWriter {
     };
   }
 
-  /// Prepends [marker] to [text] unless [text] would already classify as
+  /// Prepend [marker] to [text] unless [text] would already classify as
   /// [type] on its own, in the given [previousType]/[nextRawLine] context,
   /// and [hadForcingMarker] is not set.
   String _writeWithPrefixMarker({

@@ -15,13 +15,13 @@ class FountainTitlePage extends Equatable {
   /// The location, in the original source, of the whole title page block.
   final FountainSourceRange sourceRange;
 
-  /// The `Title` entry's joined value, or `null` if absent.
+  /// Get the `Title` entry's joined value, or `null` if absent.
   String? get title => entry('Title')?.joinedValue;
 
-  /// The `Credit` entry's joined value, or `null` if absent.
+  /// Get the `Credit` entry's joined value, or `null` if absent.
   String? get credit => entry('Credit')?.joinedValue;
 
-  /// The `Author` (or `Authors`) entry's value lines, split on commas and
+  /// Get the `Author` (or `Authors`) entry's value lines, split on commas and
   /// the word "and", or an empty list if absent.
   List<String> get authors {
     final foundEntry = entry('Author') ?? entry('Authors');
@@ -35,19 +35,19 @@ class FountainTitlePage extends Equatable {
         .toList(growable: false);
   }
 
-  /// The `Source` entry's joined value, or `null` if absent.
+  /// Get the `Source` entry's joined value, or `null` if absent.
   String? get source => entry('Source')?.joinedValue;
 
-  /// The `Draft date` entry's joined value, or `null` if absent.
+  /// Get the `Draft date` entry's joined value, or `null` if absent.
   String? get draftDate => entry('Draft date')?.joinedValue;
 
-  /// The `Contact` entry's value lines, or an empty list if absent.
+  /// Get the `Contact` entry's value lines, or an empty list if absent.
   List<String> get contact => entry('Contact')?.values ?? const [];
 
-  /// Creates a [FountainTitlePage].
+  /// Create a [FountainTitlePage].
   const FountainTitlePage({required this.entries, required this.sourceRange});
 
-  /// Returns the first entry whose [FountainTitlePageEntry.key] matches
+  /// Return the first entry whose [FountainTitlePageEntry.key] matches
   /// [key] case-insensitively, or `null` if there is none.
   FountainTitlePageEntry? entry(String key) {
     for (final candidate in entries) {

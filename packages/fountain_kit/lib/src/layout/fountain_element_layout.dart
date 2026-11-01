@@ -44,7 +44,7 @@ class FountainElementLayout extends Equatable {
   /// How this element's text is aligned within its box.
   final FountainLayoutAlignment alignment;
 
-  /// Creates a [FountainElementLayout].
+  /// Create a [FountainElementLayout].
   const FountainElementLayout({
     required this.leftIndentInches,
     required this.leftIndentColumns,

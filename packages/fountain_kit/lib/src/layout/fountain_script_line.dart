@@ -67,11 +67,11 @@ class FountainScriptLine extends Equatable {
   /// synthetic line renders text that the source never contained.
   final bool isSynthetic;
 
-  /// This line's text with its inline styling discarded, i.e. the
+  /// Get this line's text with its inline styling discarded, i.e. the
   /// concatenation of every run's [FountainStyledRun.text] in order.
   String get plainText => runs.map((run) => run.text).join();
 
-  /// The span of source text this printed line was composed from, or `null`
+  /// Get the span of source text this printed line was composed from, or `null`
   /// when it has none: a blank spacer line, a preserved blank dialogue line,
   /// a synthetic line, or a line the composer could not anchor in the
   /// document's source text (see [FountainScriptComposer.compose]).
@@ -96,7 +96,7 @@ class FountainScriptLine extends Equatable {
     return result;
   }
 
-  /// Creates a [FountainScriptLine].
+  /// Create a [FountainScriptLine].
   const FountainScriptLine({
     required this.runs,
     required this.lineType,

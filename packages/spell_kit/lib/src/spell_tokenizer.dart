@@ -28,14 +28,14 @@ class SpellTokenizerOptions {
   /// Whether a token holding a digit is dropped rather than checked.
   final bool skipTokensWithDigits;
 
-  /// Creates [SpellTokenizerOptions].
+  /// Create [SpellTokenizerOptions].
   const SpellTokenizerOptions({
     this.extraWordCharacters = const {"'", '’', '-'},
     this.skipAllCapsTokens = true,
     this.skipTokensWithDigits = true,
   });
 
-  /// Builds [SpellTokenizerOptions] from an affix file's `WORDCHARS`,
+  /// Build [SpellTokenizerOptions] from an affix file's `WORDCHARS`,
   /// dropping `.` and every digit from it: a full stop ends a sentence far
   /// more often than it sits inside a word, and a token holding a digit is
   /// dropped by [skipTokensWithDigits] regardless of whether it is
@@ -66,7 +66,7 @@ final RegExp _chunkPattern = RegExp(r'\S+');
 /// a process ever uses is one or two.
 final Map<String, RegExp> _wordPatternCache = {};
 
-/// The word pattern for [extraWordCharacters], compiled once per distinct
+/// Get the word pattern for [extraWordCharacters], compiled once per distinct
 /// set.
 ///
 /// Digits are always part of a candidate token's body — not gated by
@@ -83,7 +83,7 @@ RegExp _wordPatternFor(Set<String> extraWordCharacters) {
   );
 }
 
-/// [character] written as a `\u{...}` escape, the form it is spliced into
+/// Get [character] written as a `\u{...}` escape, the form it is spliced into
 /// the character class [_wordPatternFor] builds in.
 ///
 /// `RegExp.escape` is not enough here, and getting this wrong is not a
@@ -98,7 +98,7 @@ RegExp _wordPatternFor(Set<String> extraWordCharacters) {
 String _characterClassEscape(String character) =>
     character.runes.map((rune) => '\\u{${rune.toRadixString(16)}}').join();
 
-/// Whether [chunk] reads as a URI, an email address or a file path, and so
+/// Tell whether [chunk] reads as a URI, an email address or a file path, and so
 /// should never be offered up as word tokens at all.
 bool _isNonWordChunk(String chunk) =>
     chunk.contains('@') ||
@@ -107,11 +107,11 @@ bool _isNonWordChunk(String chunk) =>
     chunk.contains('/') ||
     chunk.toLowerCase().startsWith('www.');
 
-/// Whether [text] contains no lowercase letter and at least one cased
+/// Tell whether [text] contains no lowercase letter and at least one cased
 /// letter (so a token of only digits or punctuation does not count).
 bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
 
-/// Finds every word-shaped token in [text].
+/// Find every word-shaped token in [text].
 ///
 /// Tokenizing runs in two stages: [text] is first split into
 /// whitespace-delimited chunks, and a chunk that reads as a URI, an email

@@ -25,7 +25,7 @@ class SpellRange {
   @override
   int get hashCode => Object.hash(start, end);
 
-  /// Creates a [SpellRange] covering `[start, end)`.
+  /// Create a [SpellRange] covering `[start, end)`.
   const SpellRange(this.start, this.end)
     : assert(start >= 0, 'start must not be negative'),
       assert(end >= start, 'end must not precede start');

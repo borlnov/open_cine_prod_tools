@@ -8,7 +8,7 @@ import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
 import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 
-/// Translates local line indices (into the body line array passed to
+/// Translate local line indices (into the body line array passed to
 /// [FountainBlockBuilder.build]) into [FountainSourceRange]s that point back
 /// into the full document source.
 ///
@@ -26,14 +26,14 @@ class _RangeCalculator {
   /// The global line number of `lines[0]`.
   final int bodyStartLine;
 
-  /// Creates a [_RangeCalculator].
+  /// Create a [_RangeCalculator].
   const _RangeCalculator({
     required this.lines,
     required this.lineStartOffsets,
     required this.bodyStartLine,
   });
 
-  /// Returns the [FountainSourceRange] covering local lines
+  /// Return the [FountainSourceRange] covering local lines
   /// `[localStart, localEnd]` (inclusive).
   FountainSourceRange rangeFor(int localStart, int localEnd) {
     final globalStart = bodyStartLine + localStart;
@@ -62,10 +62,10 @@ class FountainBlockBuilder {
   /// Matches a section heading's leading `#` run and its text.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
 
-  /// Creates a [FountainBlockBuilder].
+  /// Create a [FountainBlockBuilder].
   const FountainBlockBuilder();
 
-  /// Folds [lines] (already classified into [types], one-to-one) into an
+  /// Fold [lines] (already classified into [types], one-to-one) into an
   /// ordered list of top-level [FountainBlock]s.
   ///
   /// [lineStartOffsets] must hold, for every global line number of the full
@@ -139,7 +139,7 @@ class FountainBlockBuilder {
     return blocks;
   }
 
-  /// Returns the last local index (inclusive) of the contiguous run of
+  /// Return the last local index (inclusive) of the contiguous run of
   /// lines classified as [type] that starts at [start].
   int _consumeRun(List<FountainLineType> types, int start, FountainLineType type) {
     var end = start;
@@ -149,7 +149,7 @@ class FountainBlockBuilder {
     return end;
   }
 
-  /// Returns the last local index (inclusive) of a dialogue group starting
+  /// Return the last local index (inclusive) of a dialogue group starting
   /// with the character cue at [start]: every following line classified as
   /// [FountainLineType.parenthetical] or [FountainLineType.dialogue].
   int _consumeDialogueGroup(List<FountainLineType> types, int start) {
@@ -162,7 +162,7 @@ class FountainBlockBuilder {
     return end;
   }
 
-  /// Builds a [FountainSceneHeading] from its raw source line.
+  /// Build a [FountainSceneHeading] from its raw source line.
   FountainSceneHeading _buildSceneHeading(String rawLine, FountainSourceRange range) {
     final forced = rawLine.startsWith('.') && !rawLine.startsWith('..');
     var work = rawLine.trim();
@@ -184,7 +184,7 @@ class FountainBlockBuilder {
     );
   }
 
-  /// Builds a [FountainActionBlock] from its raw source lines.
+  /// Build a [FountainActionBlock] from its raw source lines.
   FountainActionBlock _buildAction(List<String> rawLines, FountainSourceRange range) {
     final forced = rawLines.first.startsWith('!');
     final content = List<String>.of(rawLines);
@@ -194,7 +194,7 @@ class FountainBlockBuilder {
     return FountainActionBlock(sourceRange: range, lines: content, forced: forced);
   }
 
-  /// Builds a [FountainCharacter] from its raw source line.
+  /// Build a [FountainCharacter] from its raw source line.
   FountainCharacter _buildCharacter(String rawLine, FountainSourceRange range) {
     final cue = parseFountainCharacterCue(rawLine);
     return FountainCharacter(
@@ -205,7 +205,7 @@ class FountainBlockBuilder {
     );
   }
 
-  /// Builds a [FountainDialogueGroup] spanning local lines
+  /// Build a [FountainDialogueGroup] spanning local lines
   /// `[start, end]`, where `lines[start]` is the character cue.
   FountainDialogueGroup _buildDialogueGroup(
     List<String> lines,
@@ -241,7 +241,7 @@ class FountainBlockBuilder {
     );
   }
 
-  /// Builds a [FountainTransition] from its raw source line.
+  /// Build a [FountainTransition] from its raw source line.
   FountainTransition _buildTransition(String rawLine, FountainSourceRange range) {
     final trimmed = rawLine.trim();
     final forced = trimmed.startsWith('>');
@@ -249,7 +249,7 @@ class FountainBlockBuilder {
     return FountainTransition(sourceRange: range, text: text, forced: forced);
   }
 
-  /// Builds a [FountainLyrics] block from its raw source lines.
+  /// Build a [FountainLyrics] block from its raw source lines.
   FountainLyrics _buildLyrics(List<String> rawLines, FountainSourceRange range) {
     final content = rawLines
         .map((rawLine) => rawLine.startsWith('~') ? rawLine.substring(1) : rawLine)
@@ -257,14 +257,14 @@ class FountainBlockBuilder {
     return FountainLyrics(sourceRange: range, lines: content);
   }
 
-  /// Builds a [FountainCenteredText] block from its raw source line.
+  /// Build a [FountainCenteredText] block from its raw source line.
   FountainCenteredText _buildCenteredText(String rawLine, FountainSourceRange range) {
     final trimmed = rawLine.trim();
     final inner = trimmed.substring(1, trimmed.length - 1).trim();
     return FountainCenteredText(sourceRange: range, text: inner);
   }
 
-  /// Builds a [FountainSection] from its raw source line.
+  /// Build a [FountainSection] from its raw source line.
   FountainSection _buildSection(String rawLine, FountainSourceRange range) {
     final match = _sectionPattern.firstMatch(rawLine.trim())!;
     return FountainSection(
@@ -274,7 +274,7 @@ class FountainBlockBuilder {
     );
   }
 
-  /// Builds a [FountainSynopsis] from its raw source line.
+  /// Build a [FountainSynopsis] from its raw source line.
   FountainSynopsis _buildSynopsis(String rawLine, FountainSourceRange range) {
     final text = rawLine.trim().replaceFirst(RegExp(r'^=+\s?'), '');
     return FountainSynopsis(sourceRange: range, text: text);

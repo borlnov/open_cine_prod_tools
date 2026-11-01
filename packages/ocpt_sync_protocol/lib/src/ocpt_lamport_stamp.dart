@@ -20,11 +20,11 @@ class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp>
   /// The device that made the write this stamp describes.
   final String deviceId;
 
-  /// Creates a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
+  /// Create a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
   /// moment of the write it describes.
   const OcptLamportStamp({required this.version, required this.deviceId});
 
-  /// Orders this stamp against [other]: a higher [version] sorts after a lower one, and two equal
+  /// Order this stamp against [other]: a higher [version] sorts after a lower one, and two equal
   /// versions are ordered by comparing [deviceId] lexicographically.
   @override
   int compareTo(OcptLamportStamp other) {
@@ -35,7 +35,7 @@ class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp>
     return deviceId.compareTo(other.deviceId);
   }
 
-  /// True when this stamp is the one a merge keeps over [other], per the ADR 0010 ordering:
+  /// Tell whether this stamp is the one a merge keeps over [other], per the ADR 0010 ordering:
   /// [compareTo] returning a strictly positive value.
   bool wins(OcptLamportStamp other) => compareTo(other) > 0;
 

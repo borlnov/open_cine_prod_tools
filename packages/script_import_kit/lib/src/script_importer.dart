@@ -11,7 +11,7 @@ import 'package:script_import_kit/src/models/script_import_result.dart';
 import 'package:script_import_kit/src/readers/celtx_script_reader.dart';
 import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 
-/// Reads a foreign screenplay file and converts it to Fountain.
+/// Read a foreign screenplay file and convert it to Fountain.
 ///
 /// The one door into this package: it picks the reader a file's extension
 /// names and hands back the screenplay as Fountain source text. A file it
@@ -29,13 +29,13 @@ class ScriptImporter {
   /// The reader used for a Celtx project.
   final CeltxScriptReader celtxReader;
 
-  /// Creates a [ScriptImporter].
+  /// Create a [ScriptImporter].
   const ScriptImporter({
     this.finalDraftReader = const FdxScriptReader(),
     this.celtxReader = const CeltxScriptReader(),
   });
 
-  /// Reads the screenplay held in [bytes], picking the reader from
+  /// Read the screenplay held in [bytes], picking the reader from
   /// [fileName]'s extension.
   ///
   /// [fileName] is only ever read for its extension: nothing here touches
@@ -61,7 +61,7 @@ class ScriptImporter {
     };
   }
 
-  /// [fileName]'s extension, lower-cased and without its dot, or an empty
+  /// Get [fileName]'s extension, lower-cased and without its dot, or an empty
   /// string when the name carries none.
   String _extensionOf(String fileName) {
     final dotIndex = fileName.lastIndexOf('.');

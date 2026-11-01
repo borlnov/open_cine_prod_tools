@@ -53,7 +53,7 @@ class FountainScriptStatistics extends Equatable {
   /// with [speakingCharacterCount]'s sense of the word.
   final int signCount;
 
-  /// Creates a [FountainScriptStatistics] with every counter given
+  /// Create a [FountainScriptStatistics] with every counter given
   /// explicitly. Prefer [FountainScriptStatistics.of] to compute one from a
   /// parsed document.
   const FountainScriptStatistics({
@@ -64,7 +64,7 @@ class FountainScriptStatistics extends Equatable {
     required this.signCount,
   });
 
-  /// Computes the statistics of [document] when laid out at [metrics].
+  /// Compute the statistics of [document] when laid out at [metrics].
   factory FountainScriptStatistics.of(FountainDocument document, FountainLayoutMetrics metrics) {
     var words = 0;
     var signs = 0;

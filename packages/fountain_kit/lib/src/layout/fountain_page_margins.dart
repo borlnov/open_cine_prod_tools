@@ -26,7 +26,7 @@ class FountainPageMargins extends Equatable {
   /// The bottom page margin, in inches.
   final double bottomInches;
 
-  /// Creates a [FountainPageMargins] with every margin given explicitly.
+  /// Create a [FountainPageMargins] with every margin given explicitly.
   /// Prefer [FountainPageMargins.standard] unless a non-standard margin set
   /// is genuinely required.
   const FountainPageMargins({

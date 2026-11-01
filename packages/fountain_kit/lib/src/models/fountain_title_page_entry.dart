@@ -29,11 +29,11 @@ class FountainTitlePageEntry extends Equatable {
   /// its value lines).
   final FountainSourceRange sourceRange;
 
-  /// The entry value lines joined with spaces, for callers that only care
+  /// Get the entry value lines joined with spaces, for callers that only care
   /// about a single-line representation.
   String get joinedValue => values.join(' ');
 
-  /// Creates a [FountainTitlePageEntry].
+  /// Create a [FountainTitlePageEntry].
   const FountainTitlePageEntry({
     required this.key,
     required this.values,

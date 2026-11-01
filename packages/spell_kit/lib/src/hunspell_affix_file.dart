@@ -107,7 +107,7 @@ class HunspellAffixFile {
   /// Every parsed `SFX` rule, across every flag.
   final List<HunspellAffixRule> suffixRules;
 
-  /// Creates a [HunspellAffixFile]. Prefer [HunspellAffixFile.parse].
+  /// Create a [HunspellAffixFile]. Prefer [HunspellAffixFile.parse].
   const HunspellAffixFile({
     required this.flagLong,
     required this.tryChars,
@@ -130,7 +130,7 @@ class HunspellAffixFile {
     required this.suffixRules,
   });
 
-  /// Parses [source] into a [HunspellAffixFile].
+  /// Parse [source] into a [HunspellAffixFile].
   ///
   /// `SET` and `KEY` are recognized and otherwise ignored: this engine
   /// never needs the input encoding (the caller always hands it a decoded
@@ -297,7 +297,7 @@ class HunspellAffixFile {
     );
   }
 
-  /// Whether [flags] (a dictionary entry's or a rule's raw, concatenated
+  /// Tell whether [flags] (a dictionary entry's or a rule's raw, concatenated
   /// flag string) contains [flag], striding one or two characters at a
   /// time depending on [flagLong].
   bool containsFlag(String flags, String? flag) {
@@ -329,7 +329,7 @@ class _PendingAffixBlock {
   /// How many more rule lines are expected before this block closes.
   int remaining;
 
-  /// Creates a [_PendingAffixBlock] for a just-read header line.
+  /// Create a [_PendingAffixBlock] for a just-read header line.
   _PendingAffixBlock({
     required this.kind,
     required this.flag,
@@ -347,11 +347,11 @@ class _PendingCountedBlock {
   /// Called with each data line's value (the keyword already stripped).
   final void Function(String line) onLine;
 
-  /// Creates a [_PendingCountedBlock] for a just-read header line.
+  /// Create a [_PendingCountedBlock] for a just-read header line.
   _PendingCountedBlock({required this.remaining, required this.onLine});
 }
 
-/// Returns the part of [line] after its first whitespace-delimited token
+/// Return the part of [line] after its first whitespace-delimited token
 /// (the keyword), trimmed.
 String _valueAfterKeyword(String line) {
   final spaceIndex = line.indexOf(RegExp(r'\s'));
@@ -375,7 +375,7 @@ class _ParsedAffixRuleLine {
   /// The raw (not yet compiled) condition text.
   final String condition;
 
-  /// Creates a [_ParsedAffixRuleLine].
+  /// Create a [_ParsedAffixRuleLine].
   const _ParsedAffixRuleLine({
     required this.strip,
     required this.append,
@@ -384,7 +384,7 @@ class _ParsedAffixRuleLine {
   });
 }
 
-/// Parses one `PFX`/`SFX` rule line's fields, given [line] with the block's
+/// Parse one `PFX`/`SFX` rule line's fields, given [line] with the block's
 /// `PFX`/`SFX` and flag tokens still on it (`PFX L' 0 l' .`). Trailing
 /// morphological fields, which neither bundled dictionary's affix file
 /// uses, are dropped along with everything past the condition token.
@@ -414,7 +414,7 @@ _ParsedAffixRuleLine _parseAffixRuleLine(String line) {
   );
 }
 
-/// Parses one `REP` data line (`from to`, `_` standing for a space and
+/// Parse one `REP` data line (`from to`, `_` standing for a space and
 /// `^`/`$` anchoring either end) into a [HunspellRepRule].
 HunspellRepRule _parseRepLine(String line) {
   final tokens = line.split(RegExp(r'\s+'));
@@ -436,14 +436,14 @@ HunspellRepRule _parseRepLine(String line) {
   );
 }
 
-/// Parses one `ICONV`/`OCONV` data line (`from to`) into a
+/// Parse one `ICONV`/`OCONV` data line (`from to`) into a
 /// [HunspellConvRule].
 HunspellConvRule _parseConvLine(String line) {
   final tokens = line.split(RegExp(r'\s+'));
   return HunspellConvRule(from: tokens[0], to: tokens.length > 1 ? tokens[1] : '');
 }
 
-/// Parses one `BREAK` data line into a [HunspellBreakPattern], splitting
+/// Parse one `BREAK` data line into a [HunspellBreakPattern], splitting
 /// off a leading `^` or trailing `$` anchor if present.
 HunspellBreakPattern _parseBreakPattern(String raw) {
   var text = raw;
@@ -458,7 +458,7 @@ HunspellBreakPattern _parseBreakPattern(String raw) {
   return HunspellBreakPattern(text: text, anchoredStart: anchoredStart, anchoredEnd: anchoredEnd);
 }
 
-/// Parses one `COMPOUNDRULE` pattern (for example `n*1t`) into a
+/// Parse one `COMPOUNDRULE` pattern (for example `n*1t`) into a
 /// [HunspellCompoundRule], reading each flag as one character, or as two
 /// (bare, or grouped in parentheses to disambiguate) when [flagLong] holds.
 HunspellCompoundRule _parseCompoundRule(String pattern, {required bool flagLong}) {

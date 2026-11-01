@@ -20,7 +20,7 @@ class HunspellRepRule {
   /// `from$`).
   final bool anchoredEnd;
 
-  /// Creates a [HunspellRepRule].
+  /// Create a [HunspellRepRule].
   const HunspellRepRule({
     required this.from,
     required this.to,

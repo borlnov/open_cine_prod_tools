@@ -5,7 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-/// Decodes [bytes] as the text of a screenplay document.
+/// Decode [bytes] as the text of a screenplay document.
 ///
 /// UTF-8 with malformed sequences replaced rather than thrown on (a file
 /// saved in a legacy single-byte encoding still opens, with the handful of

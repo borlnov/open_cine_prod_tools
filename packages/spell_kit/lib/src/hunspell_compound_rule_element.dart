@@ -14,6 +14,6 @@ class HunspellCompoundRuleElement {
   /// How many consecutive pieces this element accepts.
   final HunspellCompoundRuleQuantifier quantifier;
 
-  /// Creates a [HunspellCompoundRuleElement].
+  /// Create a [HunspellCompoundRuleElement].
   const HunspellCompoundRuleElement({required this.flag, required this.quantifier});
 }
