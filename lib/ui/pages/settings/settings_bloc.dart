@@ -81,7 +81,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
     await super.initAsyncBloc(emit: emit);
 
     final firstWeekday = await _propertiesManager.firstWeekday.load() ?? OcptFirstWeekday.monday;
-    emit(state.copyWith(firstWeekday: firstWeekday));
+    emit(state.copyWithFirstWeekday(firstWeekday: firstWeekday));
   }
 
   /// Stores the day a week starts on, then shows it.
@@ -93,6 +93,6 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
     Emitter<OcptSettingsState> emitter,
   ) async {
     await _propertiesManager.firstWeekday.store(event.firstWeekday);
-    emitter(state.copyWith(firstWeekday: event.firstWeekday));
+    emitter(state.copyWithFirstWeekday(firstWeekday: event.firstWeekday));
   }
 }
