@@ -29,7 +29,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
@@ -279,7 +278,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         }
       }
 
-      emitter(state.copyWith(snapshot: snapshot));
+      emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
       return true;
     } catch (error, stackTrace) {
       _logger.e(
@@ -338,14 +337,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoadedWithoutProject(
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
-          forcePreviewedVersionIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBreakdownSelectionCause.load,
         ),
       );
       return;
@@ -360,21 +355,15 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       final snapshot = await _loadSnapshot(project);
 
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoaded(
           title: project.name,
           previewedVersionId: previewedVersion?.id,
-          forcePreviewedVersionIdValue: previewedVersion == null,
           screenplayText: screenplayText,
           pageSetup: pageSetup,
           snapshot: snapshot,
-          forceSelectedSceneIdValue: true,
-          forceSelectedTargetRefValue: true,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBreakdownSelectionCause.load,
         ),
       );
     });
@@ -466,7 +455,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     await runSerially(() async {
       final pageSetup = await _loadPageSetup(project);
-      emitter(state.copyWith(pageSetup: pageSetup));
+      emitter(state.copyWithReloadedPageSetup(pageSetup: pageSetup));
     });
   }
 
@@ -489,13 +478,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedSceneId: event.sceneId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.scene,
-      ),
-    );
+    emitter(state.copyWithSelectedScene(sceneId: event.sceneId));
   }
 
   /// Selects scene `event.sceneId` **and shows its own breakdown sheet**, dispatched by a click on
@@ -521,16 +504,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
     await _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
 
-    emitter(
-      state.copyWith(
-        selectedSceneId: event.sceneId,
-        forceSelectedTargetRefValue: true,
-        rightDockTab: OcptBreakdownRightDockTab.inspector,
-        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.sceneHeading,
-      ),
-    );
+    emitter(state.copyWithSelectedSceneHeading(sceneId: event.sceneId));
   }
 
   /// Selects the scene of one of the selected target's occurrences, dispatched by a row of
@@ -550,7 +524,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownLeftPanelToggledEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(state.copyWith(isListPanelVisible: !state.isListPanelVisible));
+    emitter(state.copyWithToggledListPanel());
   }
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
@@ -570,13 +544,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
 
-    emitter(
-      state.copyWith(
-        rightDockTab: isAlreadyActive ? null : event.tab,
-        forceRightDockTabValue: isAlreadyActive,
-        lastRightDockTab: event.tab,
-      ),
-    );
+    emitter(state.copyWithToggledRightDockTab(tab: event.tab, isAlreadyActive: isAlreadyActive));
 
     if (!isAlreadyActive && event.tab == OcptBreakdownRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -591,11 +559,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(forceRightDockTabValue: true));
+      emitter(state.copyWithRightDockClosed());
       return;
     }
 
-    emitter(state.copyWith(rightDockTab: state.lastRightDockTab));
+    emitter(state.copyWithRightDockReopened());
 
     if (state.lastRightDockTab == OcptBreakdownRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -607,7 +575,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownRightDockClosedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(state.copyWith(forceRightDockTabValue: true));
+    emitter(state.copyWithRightDockClosed());
   }
 
   /// Persists [tab] as the mode's last right dock tab, unless it already is.
@@ -642,7 +610,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       await _propertiesManager.breakdownRightDockFraction.store(right);
     }
 
-    emitter(state.copyWith(leftDockFraction: left, rightDockFraction: right));
+    emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
   /// Restores both dock fractions to their defaults, persisting them.
@@ -656,9 +624,9 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     );
 
     emitter(
-      state.copyWith(
-        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
-        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
+      state.copyWithDockFractions(
+        left: OcptWorkspaceDock.leftDefaultFraction,
+        right: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
   }
@@ -673,7 +641,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
       hiddenLegendKeys.add(event.key);
     }
 
-    emitter(state.copyWith(hiddenLegendKeys: hiddenLegendKeys));
+    emitter(state.copyWithHiddenLegendKeys(hiddenLegendKeys: hiddenLegendKeys));
   }
 
   /// Reveals every legend key currently hidden from the script view's own highlighting.
@@ -681,7 +649,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownLegendShowAllRequestedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(state.copyWith(hiddenLegendKeys: const {}));
+    emitter(state.copyWithAllLegendKeysShown());
   }
 
   /// Selects which of the two views (script or recap) the centre shows, dispatched by the header's
@@ -694,13 +662,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptBreakdownCentreViewSelectedEvent event,
     Emitter<OcptBreakdownState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        centreView: event.view,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.centreView,
-      ),
-    );
+    emitter(state.copyWithCentreView(view: event.view));
   }
 
   /// Records the header's own search field text as typed.
@@ -717,14 +679,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final switchesToRecap =
         event.query.isNotEmpty && state.centreView == OcptBreakdownCentreView.script;
 
-    emitter(
-      state.copyWith(
-        searchQuery: event.query,
-        centreView: switchesToRecap ? OcptBreakdownCentreView.recap : state.centreView,
-        selectionEpoch: switchesToRecap ? state.selectionEpoch + 1 : null,
-        selectionCause: switchesToRecap ? OcptBreakdownSelectionCause.centreView : null,
-      ),
-    );
+    emitter(state.copyWithSearchQuery(query: event.query, switchesToRecap: switchesToRecap));
   }
 
   /// Selects target `event.targetKind`/`event.targetId`, and the scene the click happened in — so
@@ -747,14 +702,11 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
 
     emitter(
-      state.copyWith(
-        selectedTargetRef: (event.targetKind, event.targetId),
-        selectedSceneId: sceneExists ? event.sceneId : null,
-        forceSelectedSceneIdValue: !sceneExists,
-        rightDockTab: OcptBreakdownRightDockTab.inspector,
-        lastRightDockTab: OcptBreakdownRightDockTab.inspector,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.target,
+      state.copyWithSelectedTarget(
+        targetKind: event.targetKind,
+        targetId: event.targetId,
+        sceneId: event.sceneId,
+        sceneExists: sceneExists,
       ),
     );
   }
@@ -773,14 +725,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await runPendingWritesFlushers();
 
     final sceneExists = state.scenes.any((scene) => scene.id == event.sceneId);
-    emitter(
-      state.copyWith(
-        selectedSceneId: sceneExists ? event.sceneId : null,
-        forceSelectedSceneIdValue: !sceneExists,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.anchorScene,
-      ),
-    );
+    emitter(state.copyWithAnchoredScene(sceneId: event.sceneId, sceneExists: sceneExists));
   }
 
   /// Clears the currently selected target. Flushes any pending field edit first, and drops
@@ -790,12 +735,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     Emitter<OcptBreakdownState> emitter,
   ) async {
     await runPendingWritesFlushers();
-    emitter(
-      state.copyWith(
-        forceSelectedTargetRefValue: true,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptBreakdownSelectionCause.targetCleared,
-      ),
-    );
+    emitter(state.copyWithTargetSelectionCleared());
   }
 }

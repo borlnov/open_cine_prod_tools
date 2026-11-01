@@ -557,6 +557,170 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
+  /// Copies this state with the catalogue [snapshot] read again, which moves the reload epoch.
+  OcptBreakdownState copyWithReloadedSnapshot({required OcptBreakdownSnapshot? snapshot}) =>
+      copyWith(snapshot: snapshot);
+
+  /// Copies this state with the page [pageSetup] read again, which moves the reload epoch.
+  OcptBreakdownState copyWithReloadedPageSetup({required OcptPageSetup pageSetup}) =>
+      copyWith(pageSetup: pageSetup);
+
+  /// Copies this state as loaded when no project is open: the dock preferences restored, no
+  /// version previewed and the selection moved with the cause
+  /// [OcptBreakdownSelectionCause.load].
+  OcptBreakdownState copyToLoadedWithoutProject({
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptBreakdownRightDockTab lastRightDockTab,
+  }) => copyWith(
+    isLoading: false,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    lastRightDockTab: lastRightDockTab,
+    forcePreviewedVersionIdValue: true,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.load,
+  );
+
+  /// Copies this state as loaded from the open project: the data read replaced, the scene and the
+  /// target selections cleared and the selection moved with the cause
+  /// [OcptBreakdownSelectionCause.load].
+  ///
+  /// No version is previewed when [previewedVersionId] is null.
+  OcptBreakdownState copyToLoaded({
+    required String title,
+    required String? previewedVersionId,
+    required String screenplayText,
+    required OcptPageSetup pageSetup,
+    required OcptBreakdownSnapshot snapshot,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptBreakdownRightDockTab lastRightDockTab,
+  }) => copyWith(
+    isLoading: false,
+    title: title,
+    previewedVersionId: previewedVersionId,
+    forcePreviewedVersionIdValue: previewedVersionId == null,
+    screenplayText: screenplayText,
+    pageSetup: pageSetup,
+    snapshot: snapshot,
+    forceSelectedSceneIdValue: true,
+    forceSelectedTargetRefValue: true,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    lastRightDockTab: lastRightDockTab,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.load,
+  );
+
+  /// Copies this state with the scene [sceneId] selected.
+  OcptBreakdownState copyWithSelectedScene({required String sceneId}) => copyWith(
+    selectedSceneId: sceneId,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.scene,
+  );
+
+  /// Copies this state with the scene [sceneId] selected from its heading: the target selection
+  /// cleared and the inspector shown, remembered as the last right dock tab.
+  OcptBreakdownState copyWithSelectedSceneHeading({required String sceneId}) => copyWith(
+    selectedSceneId: sceneId,
+    forceSelectedTargetRefValue: true,
+    rightDockTab: OcptBreakdownRightDockTab.inspector,
+    lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.sceneHeading,
+  );
+
+  /// Copies this state with the target [targetId] of [targetKind] selected and the inspector shown,
+  /// remembered as the last right dock tab.
+  ///
+  /// The scene [sceneId] is selected too when it [sceneExists], and the scene selection cleared
+  /// otherwise.
+  OcptBreakdownState copyWithSelectedTarget({
+    required OcptBreakdownTargetKind targetKind,
+    required String targetId,
+    required String sceneId,
+    required bool sceneExists,
+  }) => copyWith(
+    selectedTargetRef: (targetKind, targetId),
+    selectedSceneId: sceneExists ? sceneId : null,
+    forceSelectedSceneIdValue: !sceneExists,
+    rightDockTab: OcptBreakdownRightDockTab.inspector,
+    lastRightDockTab: OcptBreakdownRightDockTab.inspector,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.target,
+  );
+
+  /// Copies this state with the scene [sceneId] selected when it [sceneExists], and the scene
+  /// selection cleared otherwise, as the scene a target is anchored to.
+  OcptBreakdownState copyWithAnchoredScene({required String sceneId, required bool sceneExists}) =>
+      copyWith(
+        selectedSceneId: sceneExists ? sceneId : null,
+        forceSelectedSceneIdValue: !sceneExists,
+        selectionEpoch: selectionEpoch + 1,
+        selectionCause: OcptBreakdownSelectionCause.anchorScene,
+      );
+
+  /// Copies this state with the target selection cleared.
+  OcptBreakdownState copyWithTargetSelectionCleared() => copyWith(
+    forceSelectedTargetRefValue: true,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.targetCleared,
+  );
+
+  /// Copies this state with the list panel hidden when it was shown, and shown when it was hidden.
+  OcptBreakdownState copyWithToggledListPanel() =>
+      copyWith(isListPanelVisible: !isListPanelVisible);
+
+  /// Copies this state with the right dock tab [tab] shown and remembered, or the dock closed when
+  /// [isAlreadyActive].
+  OcptBreakdownState copyWithToggledRightDockTab({
+    required OcptBreakdownRightDockTab tab,
+    required bool isAlreadyActive,
+  }) => copyWith(
+    rightDockTab: isAlreadyActive ? null : tab,
+    forceRightDockTabValue: isAlreadyActive,
+    lastRightDockTab: tab,
+  );
+
+  /// Copies this state with the right dock closed.
+  OcptBreakdownState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
+
+  /// Copies this state with the right dock reopened on the last tab it showed.
+  OcptBreakdownState copyWithRightDockReopened() => copyWith(rightDockTab: lastRightDockTab);
+
+  /// Copies this state with the dock fractions [left] and [right], each one kept when null.
+  OcptBreakdownState copyWithDockFractions({required double? left, required double? right}) =>
+      copyWith(leftDockFraction: left, rightDockFraction: right);
+
+  /// Copies this state with [hiddenLegendKeys] as the legend entries hidden.
+  OcptBreakdownState copyWithHiddenLegendKeys({
+    required Set<OcptBreakdownLegendKey> hiddenLegendKeys,
+  }) => copyWith(hiddenLegendKeys: hiddenLegendKeys);
+
+  /// Copies this state with every legend entry shown.
+  OcptBreakdownState copyWithAllLegendKeysShown() => copyWith(hiddenLegendKeys: const {});
+
+  /// Copies this state with [view] as the centre view, moving the selection with the cause
+  /// [OcptBreakdownSelectionCause.centreView].
+  OcptBreakdownState copyWithCentreView({required OcptBreakdownCentreView view}) => copyWith(
+    centreView: view,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptBreakdownSelectionCause.centreView,
+  );
+
+  /// Copies this state with the search query [query].
+  ///
+  /// The centre switches to the recap, moving the selection with the cause
+  /// [OcptBreakdownSelectionCause.centreView], when [switchesToRecap].
+  OcptBreakdownState copyWithSearchQuery({required String query, required bool switchesToRecap}) =>
+      copyWith(
+        searchQuery: query,
+        centreView: switchesToRecap ? OcptBreakdownCentreView.recap : centreView,
+        selectionEpoch: switchesToRecap ? selectionEpoch + 1 : null,
+        selectionCause: switchesToRecap ? OcptBreakdownSelectionCause.centreView : null,
+      );
+
   /// Object properties
   @override
   List<Object?> get props => [
