@@ -2,39 +2,20 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:async';
 import 'dart:io';
 
-import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
-import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_breakdown_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_candidates_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_scene_index_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_coverage_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
-import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -43,98 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
-
-/// The app language every projects manager built here is given, so a created project's own
-/// screenplay language never depends on the machine the tests run on.
-String _testAppLanguageCode() => "en";
-
-/// The fixed device id every stamping service built in this file uses.
-Future<String> _testDeviceId() async => "test-device";
-
-/// A screenplay service whose saves always fail, to exercise the bloc's save error path. Loads
-/// still go through the real implementation.
-class _FailingScreenplayService extends OcptScreenplayService {
-  /// Class constructor
-  const _FailingScreenplayService()
-    : super(
-        logger: const SilentLogger(),
-        sceneIndexService: const OcptSceneIndexService(logger: SilentLogger()),
-        shotListService: const OcptShotListService(
-          logger: SilentLogger(),
-          roleIndexService: OcptRoleIndexService(
-            logger: SilentLogger(),
-            elementsService: OcptElementsService(
-              logger: SilentLogger(),
-              assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-              deviceId: _testDeviceId,
-            ),
-            roleCandidatesService: OcptRoleCandidatesService(
-              logger: SilentLogger(),
-              deviceId: _testDeviceId,
-            ),
-            deviceId: _testDeviceId,
-          ),
-          storyboardService: OcptStoryboardService(
-            logger: SilentLogger(),
-            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-            deviceId: _testDeviceId,
-          ),
-          floorPlanService: OcptFloorPlanService(
-            logger: SilentLogger(),
-            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-            deviceId: _testDeviceId,
-          ),
-          deviceId: _testDeviceId,
-        ),
-        shotCoverageService: const OcptShotCoverageService(
-          logger: SilentLogger(),
-          deviceId: _testDeviceId,
-        ),
-        roleIndexService: const OcptRoleIndexService(
-          logger: SilentLogger(),
-          elementsService: OcptElementsService(
-            logger: SilentLogger(),
-            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-            deviceId: _testDeviceId,
-          ),
-          roleCandidatesService: OcptRoleCandidatesService(
-            logger: SilentLogger(),
-            deviceId: _testDeviceId,
-          ),
-          deviceId: _testDeviceId,
-        ),
-        breakdownService: const OcptBreakdownService(
-          logger: SilentLogger(),
-          elementsService: OcptElementsService(
-            logger: SilentLogger(),
-            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-            deviceId: _testDeviceId,
-          ),
-          locationsService: OcptLocationsService(
-            logger: SilentLogger(),
-            assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-            floorPlanService: OcptFloorPlanService(
-              logger: SilentLogger(),
-              assetsService: OcptAssetsService(logger: SilentLogger(), deviceId: _testDeviceId),
-              deviceId: _testDeviceId,
-            ),
-            deviceId: _testDeviceId,
-          ),
-          deviceId: _testDeviceId,
-        ),
-        scheduleService: const OcptScheduleService(logger: SilentLogger(), deviceId: _testDeviceId),
-        deviceId: _testDeviceId,
-      );
-
-  /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
-  @override
-  Future<void> saveScreenplayText({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-    required String fountainText,
-    required OcptSnapshotReason snapshotReason,
-  }) async => throw StateError("save intentionally failed for the test");
-}
+import 'editor_bloc_test_doubles.dart';
 
 /// A projects manager that counts how many times a working-copy capture actually reads the whole
 /// project, so a dispatch that only *requests* one (rather than always performing it) can be told
@@ -142,7 +32,7 @@ class _FailingScreenplayService extends OcptScreenplayService {
 class _CountingProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
+    : super(propertiesManager: propertiesManager, appLanguageCode: testAppLanguageCode);
 
   /// How many times [captureWorkingCopyState] actually ran.
   int captureCount = 0;
@@ -154,38 +44,9 @@ class _CountingProjectsManager extends OcptProjectsManager {
   }
 }
 
-/// A router manager whose [pop] only records that it was called: these bloc tests don't build a
-/// real GoRouter for it to operate on.
-///
-/// [onPop] lets a test await the exact moment [pop] is called, rather than racing on an unrelated
-/// state emitted earlier in the same event handler (the emitted state and the handler's own
-/// completion are not ordered with respect to a stream listener in the test).
-class _RecordingRouterManager extends OcptRouterManager {
-  final _popCompleter = Completer<void>();
-
-  /// Whether [pop] was called.
-  bool get popped => _popCompleter.isCompleted;
-
-  /// Completes the moment [pop] is called.
-  Future<void> get onPop => _popCompleter.future;
-
-  /// Records the call instead of delegating to the (never initialized) GoRouter.
-  @override
-  void pop<Y extends Object?>([Y? result]) {
-    if (!_popCompleter.isCompleted) {
-      _popCompleter.complete();
-    }
-  }
-}
-
-/// An export manager that is never asked for anything: these tests do not export.
-class _InertExportManager extends OcptExportManager {
-  /// Class constructor
-  _InertExportManager() : super(fileSelectorManager: const FileSelectorManager());
-}
-
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
+
   // Scene headings start at line 0 and line 4; the two scenes are deliberately given different
   // word counts (6 and 7) so a test can tell "the first scene's stats" and "the second scene's
   // stats" apart just by comparing counts.
@@ -193,7 +54,9 @@ void main() {
       "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two here.\n";
 
   late OcptPropertiesManager propertiesManager;
+
   late OcptProjectsManager projectsManager;
+
   late Directory tempDir;
 
   setUpAll(() async {
@@ -210,7 +73,7 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp("ocpt_editor_bloc_test_");
     projectsManager = OcptProjectsManager(
       propertiesManager: propertiesManager,
-      appLanguageCode: _testAppLanguageCode,
+      appLanguageCode: testAppLanguageCode,
     );
     await projectsManager.initLifeCycle();
 
@@ -228,7 +91,7 @@ void main() {
 
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
   ///
-  /// [exportManager] defaults to an [_InertExportManager]: no test here exports. [overrideProjectsManager]
+  /// [exportManager] defaults to an [InertExportManager]: no test here exports. [overrideProjectsManager]
   /// lets a test swap in a manager of its own (already holding an open project), for the one that
   /// needs to observe its calls.
   OcptEditorBloc buildBloc({
@@ -240,9 +103,9 @@ void main() {
   }) => OcptEditorBloc(
     projectsManager: overrideProjectsManager ?? projectsManager,
     propertiesManager: propertiesManager,
-    routerManager: routerManager ?? _RecordingRouterManager(),
+    routerManager: routerManager ?? RecordingRouterManager(),
     screenplayService: screenplayService,
-    exportManager: exportManager ?? _InertExportManager(),
+    exportManager: exportManager ?? InertExportManager(),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
     selectedEpisodeId: selectedEpisodeId,
@@ -423,7 +286,7 @@ void main() {
   });
 
   test('a failed save keeps the text dirty and raises the transient save error', () async {
-    final bloc = buildBloc(screenplayService: const _FailingScreenplayService());
+    final bloc = buildBloc(screenplayService: const FailingScreenplayService());
     await waitForState(bloc, (state) => !state.isLoading);
 
     bloc.add(const OcptEditorTextChangedEvent(text: editedText));
@@ -869,379 +732,5 @@ void main() {
     expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
 
     await bloc.close();
-  });
-
-  test('loads the persisted dock fractions on entry', () async {
-    await propertiesManager.editorLeftDockFraction.store(0.25);
-    await propertiesManager.editorRightDockFraction.store(0.55);
-
-    final bloc = buildBloc();
-    final state = await waitForState(bloc, (state) => !state.isLoading);
-
-    expect(state.leftDockFraction, 0.25);
-    expect(state.rightDockFraction, 0.55);
-
-    await bloc.close();
-  });
-
-  test('a dock fractions changed event persists whichever side is given', () async {
-    await propertiesManager.editorLeftDockFraction.delete();
-    await propertiesManager.editorRightDockFraction.delete();
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorDockFractionsChangedEvent(left: 0.3));
-    final leftState = await waitForState(bloc, (state) => state.leftDockFraction == 0.3);
-    expect(leftState.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
-    expect(await propertiesManager.editorLeftDockFraction.load(), 0.3);
-    expect(await propertiesManager.editorRightDockFraction.load(), isNull);
-
-    bloc.add(const OcptEditorDockFractionsChangedEvent(right: 0.6));
-    final rightState = await waitForState(bloc, (state) => state.rightDockFraction == 0.6);
-    expect(rightState.leftDockFraction, 0.3);
-    expect(await propertiesManager.editorRightDockFraction.load(), 0.6);
-
-    await bloc.close();
-  });
-
-  test('the dock layout reset event restores and persists both defaults', () async {
-    await propertiesManager.editorLeftDockFraction.store(0.3);
-    await propertiesManager.editorRightDockFraction.store(0.6);
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorDockLayoutResetEvent());
-    final state = await waitForState(
-      bloc,
-      (state) => state.leftDockFraction == OcptWorkspaceDock.leftDefaultFraction,
-    );
-
-    expect(state.rightDockFraction, OcptWorkspaceDock.rightDefaultFraction);
-    expect(
-      await propertiesManager.editorLeftDockFraction.load(),
-      OcptWorkspaceDock.leftDefaultFraction,
-    );
-    expect(
-      await propertiesManager.editorRightDockFraction.load(),
-      OcptWorkspaceDock.rightDefaultFraction,
-    );
-
-    await bloc.close();
-  });
-
-  test('changing the page setup applies it live and persists format and margins', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    const newSetup = OcptPageSetup(
-      format: OcptPageFormat.a4,
-      margins: FountainPageMargins(
-        leftInches: 2,
-        rightInches: 0.5,
-        topInches: 0.75,
-        bottomInches: 0.75,
-      ),
-    );
-    bloc.add(const OcptEditorPageSetupChangedEvent(pageSetup: newSetup));
-
-    final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
-    expect(state.pageSetup, newSetup);
-    expect(await projectsManager.loadCurrentProjectPageFormat(), OcptPageFormat.a4);
-    expect(await propertiesManager.pageMargins.load(), newSetup.margins);
-
-    await bloc.close();
-  });
-
-  test('the project settings changed event is a no-op when the format did not change', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    final setupBefore = bloc.state.pageSetup;
-
-    bloc.add(const OcptEditorProjectSettingsChangedEvent());
-    // Nothing to wait for: assert the very next state (if any) still matches, after giving the
-    // handler's async work a chance to run.
-    await Future<void>.delayed(Duration.zero);
-
-    expect(bloc.state.pageSetup, setupBefore);
-
-    await bloc.close();
-  });
-
-  test('closing the bloc flushes the pending unsaved change', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    await waitForState(bloc, (state) => state.isDirty);
-
-    // Close well before the autosave debounce (60 ms) elapses: the close itself must save.
-    await bloc.close();
-
-    final project = projectsManager.currentProject!;
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    expect(storedText, editedText);
-  });
-
-  test('going back flushes the pending change, closes the project and pops the router', () async {
-    final routerManager = _RecordingRouterManager();
-    final bloc = buildBloc(routerManager: routerManager);
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    final projectPath = projectsManager.currentProject!.path;
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    await waitForState(bloc, (state) => state.isDirty);
-
-    // Go back well before the autosave debounce (60 ms) elapses: the back itself must save.
-    bloc.add(const OcptEditorBackRequestedEvent());
-    await routerManager.onPop.timeout(const Duration(seconds: 5));
-
-    expect(routerManager.popped, isTrue);
-    expect(projectsManager.currentProject, isNull);
-
-    // The close-flush must now be a no-op: the project is already closed, and closing the bloc
-    // must not try to save through the closed database.
-    await bloc.close();
-
-    // Reopen the project file to check the pending change was flushed before it was closed.
-    final reopened = await projectsManager.openProject(filePath: projectPath);
-    expect(reopened.status.isSuccess, isTrue);
-
-    final project = projectsManager.currentProject!;
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    expect(storedText, editedText);
-  });
-
-  test('adding title page fields to a screenplay with none inserts one, saves it "manual", and '
-      're-parses', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-
-    bloc.add(
-      const OcptEditorTitlePageChangedEvent(
-        title: 'My Screenplay',
-        credit: 'written by',
-        author: 'Jane Doe',
-        draftDate: '',
-        contact: '',
-        source: '',
-      ),
-    );
-
-    final state = await waitForState(bloc, (state) => state.document?.titlePage != null);
-    expect(state.document!.titlePage!.title, 'My Screenplay');
-    expect(state.document!.titlePage!.credit, 'written by');
-    expect(state.document!.titlePage!.authors, ['Jane Doe']);
-    expect(state.text, 'Title: My Screenplay\nCredit: written by\nAuthor: Jane Doe\n\n$editedText');
-    expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
-
-    final project = projectsManager.currentProject!;
-    final storedText = await projectsManager.screenplayService.loadScreenplayText(
-      database: project.database,
-      screenplayId: project.primaryScreenplayId,
-    );
-    expect(storedText, state.text);
-
-    final snapshots = await readSnapshots();
-    expect(snapshots.last.reason, OcptSnapshotReason.manual);
-
-    await bloc.close();
-  });
-
-  test("editing an existing title page's fields replaces it, leaving the body unchanged", () async {
-    const initialText = 'Title: Old\nCredit: written by\n\n$editedText';
-
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: initialText));
-    await waitForState(bloc, (state) => state.document?.titlePage != null);
-
-    bloc.add(
-      const OcptEditorTitlePageChangedEvent(
-        title: 'New Title',
-        credit: 'written by',
-        author: '',
-        draftDate: '',
-        contact: '',
-        source: '',
-      ),
-    );
-
-    final state = await waitForState(
-      bloc,
-      (state) => state.document?.titlePage?.title == 'New Title',
-    );
-    expect(state.text, 'Title: New Title\nCredit: written by\n\n$editedText');
-    expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
-
-    await bloc.close();
-  });
-
-  test(
-    'clearing every field on a screenplay with a title page removes it, leaving only the body',
-    () async {
-      const initialText = 'Title: Old\n\n$editedText';
-
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: initialText));
-      await waitForState(bloc, (state) => state.document?.titlePage != null);
-
-      bloc.add(
-        const OcptEditorTitlePageChangedEvent(
-          title: '',
-          credit: '',
-          author: '',
-          draftDate: '',
-          contact: '',
-          source: '',
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.document?.titlePage == null);
-      expect(state.text, editedText);
-      expect(state.scenes.single.headingText, 'INT. HOUSE - DAY');
-
-      await bloc.close();
-    },
-  );
-
-  group('epochs and the mode contract', () {
-    test('the load moves the reload epoch once and names itself as the cause', () async {
-      final bloc = buildBloc();
-      final state = await waitForState(bloc, (state) => !state.isLoading);
-
-      expect(state.reloadEpoch, 1);
-      expect(state.reloadCause, OcptEditorReloadCause.load);
-      expect(state.selectionEpoch, 0);
-
-      await bloc.close();
-    });
-
-    test('typing moves neither epoch', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      final state = await waitForState(bloc, (state) => state.document?.sourceText == editedText);
-
-      expect(state.reloadEpoch, 1);
-      expect(state.selectionEpoch, 0);
-
-      await bloc.close();
-    });
-
-    test('a scene jump request moves the selection epoch, the same scene twice too', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorSceneJumpRequestedEvent(charOffset: 4));
-      bloc.add(const OcptEditorSceneJumpRequestedEvent(charOffset: 4));
-      final state = await waitForState(bloc, (state) => state.selectionEpoch == 2);
-
-      expect(state.reloadEpoch, 1);
-
-      await bloc.close();
-    });
-
-    test('a page setup change moves the reload epoch with its own cause', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(
-        const OcptEditorPageSetupChangedEvent(
-          pageSetup: OcptPageSetup(
-            format: OcptPageFormat.a4,
-            margins: FountainPageMargins.standard(),
-          ),
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.reloadEpoch == 2);
-
-      expect(state.reloadCause, OcptEditorReloadCause.pageSetup);
-
-      await bloc.close();
-    });
-
-    test('a title page rewrite moves the reload epoch as a replaced text', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(
-        const OcptEditorTitlePageChangedEvent(
-          title: "My Movie",
-          credit: "",
-          author: "",
-          draftDate: "",
-          contact: "",
-          source: "",
-        ),
-      );
-      final state = await waitForState(bloc, (state) => state.reloadEpoch == 2);
-
-      expect(state.reloadCause, OcptEditorReloadCause.textReplaced);
-
-      await bloc.close();
-    });
-
-    test('flushAllPendingWrites saves a dirty text as manual and answers true', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      await waitForState(bloc, (state) => state.isDirty);
-
-      expect(await bloc.flushAllPendingWrites(), isTrue);
-
-      expect(bloc.state.isDirty, isFalse);
-      expect((await readSnapshots()).last.reason, OcptSnapshotReason.manual);
-
-      await bloc.close();
-    });
-
-    test('flushAllPendingWrites writes nothing when the text is clean', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      expect(await bloc.flushAllPendingWrites(), isTrue);
-      expect(await readSnapshots(), isEmpty);
-
-      await bloc.close();
-    });
-
-    test('a failing save still answers true and keeps the text dirty', () async {
-      final bloc = buildBloc(screenplayService: const _FailingScreenplayService());
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-      await waitForState(bloc, (state) => state.isDirty);
-
-      expect(await bloc.flushAllPendingWrites(), isTrue);
-      expect(bloc.state.isDirty, isTrue);
-      expect(bloc.state.hasSaveError, isTrue);
-
-      await bloc.close();
-    });
-
-    test('flushAllPendingWrites and reload answer at once on a closed bloc', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      await bloc.close();
-
-      expect(await bloc.flushAllPendingWrites(), isFalse);
-      expect(await bloc.reload({}), isFalse);
-    });
   });
 }
