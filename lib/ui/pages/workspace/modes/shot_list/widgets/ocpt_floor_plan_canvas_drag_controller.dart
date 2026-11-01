@@ -22,12 +22,25 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// every change, so a drag redraws the canvas alone. The `end…` methods clear the drag and hand the
 /// settled values back: what they mean (move, duplicate, resize…) is for the canvas to report.
 class OcptFloorPlanCanvasDragController extends ChangeNotifier {
+  /// The kind of symbol drag in progress, or null while none is.
   OcptFloorPlanSymbolDragKind? _dragKind;
+
+  /// Whether the symbol drag in progress duplicates the symbol instead of moving it.
   bool _isDuplicatingDrag;
+
+  /// The dragged symbol's live geometry, exposed through [liveOverride].
   OcptFloorPlanSymbolLiveOverride? _liveOverride;
+
+  /// The kind of underlay drag in progress, or null while none is.
   OcptFloorPlanUnderlayDragKind? _underlayDragKind;
+
+  /// The underlay's live frame, exposed through [liveUnderlayFrame].
   ({double xM, double yM, double widthM, double heightM})? _liveUnderlayFrame;
+
+  /// The id of the arrow whose handle is dragged, exposed through [draggedArrowId].
   String? _draggedArrowId;
+
+  /// The dragged arrow's live control point, exposed through [liveArrowCtrl].
   ({double xM, double yM})? _liveArrowCtrl;
 
   /// The dragged symbol's live geometry, updated every frame of the drag, or null while no symbol

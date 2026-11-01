@@ -45,6 +45,7 @@ class OcptShotListPlacementsView extends StatelessWidget {
     required this.onArrowDeleteRequested,
   });
 
+  /// Build the shot list placements view as an [OcptFloorPlanPlacementsGroup].
   @override
   Widget build(BuildContext context) {
     final selectedShot = state.selectedShot;

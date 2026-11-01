@@ -50,6 +50,7 @@ class OcptFloorPlanFocusStrip extends StatelessWidget {
     required this.onShotChipSelected,
   });
 
+  /// Build the floor plan focus strip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -122,6 +123,7 @@ class _ShotChip extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the shot chip.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -178,6 +180,7 @@ class _Chip extends StatelessWidget {
     this.trailing,
   });
 
+  /// Build the chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

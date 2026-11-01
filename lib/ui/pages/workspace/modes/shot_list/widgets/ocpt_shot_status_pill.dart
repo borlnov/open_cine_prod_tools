@@ -20,6 +20,7 @@ class OcptShotStatusPill extends StatelessWidget {
   /// Class constructor
   const OcptShotStatusPill({super.key, required this.status});
 
+  /// Build the shot status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

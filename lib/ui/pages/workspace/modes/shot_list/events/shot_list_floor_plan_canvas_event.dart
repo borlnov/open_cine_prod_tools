@@ -26,7 +26,7 @@ class OcptShotListFloorPlanToolSelectedEvent extends OcptShotListFloorPlanCanvas
   /// Class constructor
   const OcptShotListFloorPlanToolSelectedEvent({required this.tool});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tool];
 }
@@ -91,7 +91,7 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListFloorPlanCanvas
     this.label = "",
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -115,7 +115,7 @@ class OcptShotListFloorPlanSymbolSelectedEvent extends OcptShotListFloorPlanCanv
   /// Class constructor
   const OcptShotListFloorPlanSymbolSelectedEvent({required this.symbolId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId];
 }
@@ -140,7 +140,7 @@ class OcptShotListFloorPlanSymbolMovedEvent extends OcptShotListFloorPlanCanvasE
     required this.yM,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId, xM, yM];
 }
@@ -164,7 +164,7 @@ class OcptShotListFloorPlanSymbolResizedEvent extends OcptShotListFloorPlanCanva
     required this.heightM,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId, widthM, heightM];
 }
@@ -184,7 +184,7 @@ class OcptShotListFloorPlanSymbolRotatedEvent extends OcptShotListFloorPlanCanva
     required this.rotationDeg,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId, rotationDeg];
 }
@@ -240,7 +240,7 @@ class OcptShotListFloorPlanScopeDecisionRequestedEvent extends OcptShotListFloor
     this.rotationDeg,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -267,7 +267,7 @@ class OcptShotListFloorPlanScopeDecisionResolvedEvent extends OcptShotListFloorP
   /// Class constructor
   const OcptShotListFloorPlanScopeDecisionResolvedEvent({required this.choice});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, choice];
 }
@@ -288,7 +288,7 @@ class OcptShotListFloorPlanArrowSymbolTappedEvent extends OcptShotListFloorPlanC
   /// Class constructor
   const OcptShotListFloorPlanArrowSymbolTappedEvent({required this.symbolId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId];
 }
@@ -311,7 +311,7 @@ class OcptShotListFloorPlanArrowSelectedEvent extends OcptShotListFloorPlanCanva
   /// Class constructor
   const OcptShotListFloorPlanArrowSelectedEvent({required this.arrowId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, arrowId];
 }
@@ -338,7 +338,7 @@ class OcptShotListFloorPlanArrowCurveChangedEvent extends OcptShotListFloorPlanC
     required this.ctrlYM,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, arrowId, ctrlXM, ctrlYM];
 }
@@ -363,7 +363,7 @@ class OcptShotListFloorPlanSymbolDuplicatedEvent extends OcptShotListFloorPlanCa
   /// Class constructor
   const OcptShotListFloorPlanSymbolDuplicatedEvent({required this.symbolId, this.xM, this.yM});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, symbolId, xM, yM];
 }

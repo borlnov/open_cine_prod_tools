@@ -17,7 +17,7 @@ class OcptFloorPlanTraySequenceCamera extends Equatable {
   /// Class constructor
   const OcptFloorPlanTraySequenceCamera({required this.symbolId, required this.label});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [symbolId, label];
 }

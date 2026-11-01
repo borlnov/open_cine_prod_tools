@@ -110,6 +110,7 @@ class OcptStoryboardShotRow extends StatelessWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Build the storyboard shot row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

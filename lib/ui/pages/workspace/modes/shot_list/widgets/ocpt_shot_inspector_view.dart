@@ -41,6 +41,7 @@ class OcptShotInspectorView extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the shot inspector view as an [OcptShotInspectorPanel].
   @override
   Widget build(BuildContext context) {
     final inspectorBloc = context.read<OcptShotListInspectorBloc>();
@@ -164,6 +165,7 @@ class _CoverageDialogHost extends StatelessWidget {
   /// Class constructor
   const _CoverageDialogHost();
 
+  /// Build the coverage dialog host as an [OcptShotCoverageDialog].
   @override
   Widget build(BuildContext context) {
     final inspectorBloc = context.read<OcptShotListInspectorBloc>();

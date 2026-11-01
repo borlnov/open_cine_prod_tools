@@ -56,6 +56,7 @@ class OcptShotCoverageSummary extends StatelessWidget {
     required this.onClearAll,
   });
 
+  /// Build the shot coverage summary as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -150,6 +151,7 @@ class _OcptShotCoverageExtract extends StatelessWidget {
     required this.isModified,
   });
 
+  /// Build the shot coverage extract as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -224,6 +226,7 @@ class _OcptShotCoverageModifiedBadge extends StatelessWidget {
   /// Class constructor
   const _OcptShotCoverageModifiedBadge();
 
+  /// Build the shot coverage modified badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

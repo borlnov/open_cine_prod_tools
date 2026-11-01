@@ -70,10 +70,14 @@ class OcptStoryboardAnnotationOverlay extends StatefulWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Create the [_OcptStoryboardAnnotationOverlayState] holding the state of the storyboard
+  /// annotation overlay.
   @override
   State<OcptStoryboardAnnotationOverlay> createState() => _OcptStoryboardAnnotationOverlayState();
 }
 
+/// State of [OcptStoryboardAnnotationOverlay]: holds the start and current points of the drag in
+/// progress.
 class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotationOverlay> {
   /// The in-progress drag's own start point, in this widget's own local pixel space, or null while
   /// no drag is in progress.
@@ -82,6 +86,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
   /// The in-progress drag's own current point. See [_dragStart].
   Offset? _dragCurrent;
 
+  /// Drop the draft of an in-progress drag when the active tool changes.
   @override
   void didUpdateWidget(covariant OcptStoryboardAnnotationOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -94,6 +99,7 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
     }
   }
 
+  /// Build the storyboard annotation overlay as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

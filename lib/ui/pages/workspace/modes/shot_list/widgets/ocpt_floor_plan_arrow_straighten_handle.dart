@@ -37,6 +37,7 @@ class OcptFloorPlanArrowStraightenHandle extends StatelessWidget {
     required this.onStraightenRequested,
   });
 
+  /// Build the floor plan arrow straighten handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final handleScreen = ocptFloorPlanScreenPointOf(

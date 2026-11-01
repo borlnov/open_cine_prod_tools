@@ -66,6 +66,7 @@ class OcptFloorPlanSetGallery extends StatelessWidget {
     required this.onSetCreationRequested,
   });
 
+  /// Build the floor plan set gallery as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -144,6 +145,7 @@ class _OcptFloorPlanSetGalleryCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the floor plan set gallery card as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -225,6 +227,7 @@ class _Thumbnail extends StatelessWidget {
   /// Class constructor
   const _Thumbnail({required this.set, required this.symbols});
 
+  /// Build the thumbnail as a [CustomPaint].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -302,6 +305,7 @@ class _CreateSetButton extends StatelessWidget {
   /// Class constructor
   const _CreateSetButton({required this.locations, required this.onSetCreationRequested});
 
+  /// Build the create set button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

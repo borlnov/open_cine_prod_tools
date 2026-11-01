@@ -36,7 +36,7 @@ class OcptShotListShotFieldChangedEvent extends OcptShotListInspectorEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, field, rawValue];
 }
@@ -63,7 +63,7 @@ class OcptShotListShotDifficultyChangedEvent extends OcptShotListInspectorEvent 
     required this.value,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, axis, value];
 }
@@ -83,7 +83,7 @@ class OcptShotListShotCharacterToggledEvent extends OcptShotListInspectorEvent {
   /// Class constructor
   const OcptShotListShotCharacterToggledEvent({required this.shotId, required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, roleId];
 }
@@ -106,7 +106,7 @@ class OcptShotListCharacterAddRequestedEvent extends OcptShotListInspectorEvent 
   /// Class constructor
   const OcptShotListCharacterAddRequestedEvent({required this.shotId, required this.characterName});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, characterName];
 }
@@ -135,7 +135,7 @@ class OcptShotListCoverageWordClickedEvent extends OcptShotListInspectorEvent {
     required this.wordEndOffset,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, wordStartOffset, wordEndOffset];
 }
@@ -149,7 +149,7 @@ class OcptShotListCoverageClearRequestedEvent extends OcptShotListInspectorEvent
   /// Class constructor
   const OcptShotListCoverageClearRequestedEvent({required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId];
 }
@@ -180,7 +180,7 @@ class OcptShotListOrphanedRoleDeleteRequestedEvent extends OcptShotListInspector
   /// Class constructor
   const OcptShotListOrphanedRoleDeleteRequestedEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -195,7 +195,7 @@ class OcptShotListOrphanedRoleKeptEvent extends OcptShotListInspectorEvent {
   /// Class constructor
   const OcptShotListOrphanedRoleKeptEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -219,7 +219,7 @@ class OcptShotListRoleMergeRequestedEvent extends OcptShotListInspectorEvent {
     required this.targetRoleId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
@@ -234,7 +234,7 @@ class OcptShotListShotMarkedAsCheckedEvent extends OcptShotListInspectorEvent {
   /// Class constructor
   const OcptShotListShotMarkedAsCheckedEvent({required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId];
 }

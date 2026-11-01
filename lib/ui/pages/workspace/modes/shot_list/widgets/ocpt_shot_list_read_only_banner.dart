@@ -24,6 +24,7 @@ class OcptShotListReadOnlyBanner extends StatelessWidget {
   /// Class constructor
   const OcptShotListReadOnlyBanner({super.key, required this.previewedVersion});
 
+  /// Build the shot list read only banner as an [OcptWorkspaceReadOnlyBanner].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

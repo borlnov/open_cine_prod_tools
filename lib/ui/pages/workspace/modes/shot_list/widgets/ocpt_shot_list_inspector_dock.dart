@@ -62,6 +62,7 @@ class OcptShotListInspectorDock extends StatelessWidget {
     required this.onShotDeleteRequested,
   });
 
+  /// Build the shot list inspector dock as an [OcptShotListRightDock].
   @override
   Widget build(BuildContext context) {
     final rightDockTab = state.rightDockTab;

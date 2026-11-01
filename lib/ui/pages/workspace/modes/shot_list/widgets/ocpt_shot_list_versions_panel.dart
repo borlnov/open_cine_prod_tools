@@ -21,6 +21,7 @@ class OcptShotListVersionsPanel extends StatelessWidget {
   /// Class constructor
   const OcptShotListVersionsPanel({super.key, required this.state});
 
+  /// Build the shot list versions panel as an [OcptProjectVersionsPanel].
   @override
   Widget build(BuildContext context) => OcptProjectVersionsPanel(
     versions: state.projectVersions,

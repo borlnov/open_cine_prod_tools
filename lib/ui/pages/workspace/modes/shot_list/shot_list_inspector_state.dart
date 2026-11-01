@@ -119,7 +119,7 @@ class OcptShotListInspectorState extends BlocStateForMixin<OcptShotListInspector
   /// Copies this state with the write error dismissed.
   OcptShotListInspectorState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

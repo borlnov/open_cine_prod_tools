@@ -23,6 +23,7 @@ class OcptStoryboardPanelSizeMenu extends StatelessWidget {
   /// Class constructor
   const OcptStoryboardPanelSizeMenu({super.key, required this.value, required this.onChanged});
 
+  /// Build the storyboard panel size menu as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -24,6 +24,7 @@ class OcptFloorPlanUnderlayVisual extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanUnderlayVisual({super.key, required this.floorPlanSet, required this.rect});
 
+  /// Build the floor plan underlay visual as an [IgnorePointer].
   @override
   Widget build(BuildContext context) {
     final rotationDeg = floorPlanSet.underlayRotationDeg ?? 0;

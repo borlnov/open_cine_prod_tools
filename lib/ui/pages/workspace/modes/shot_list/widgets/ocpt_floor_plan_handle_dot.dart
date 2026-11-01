@@ -12,6 +12,7 @@ class OcptFloorPlanHandleDot extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanHandleDot({super.key, required this.color});
 
+  /// Build the floor plan handle dot as a [Center].
   @override
   Widget build(BuildContext context) => Center(
     child: Container(

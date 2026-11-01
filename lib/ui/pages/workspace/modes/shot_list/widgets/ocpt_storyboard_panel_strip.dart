@@ -121,6 +121,7 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Build the storyboard panel strip as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -230,6 +231,7 @@ class _ImportSlot extends StatelessWidget {
   /// Class constructor
   const _ImportSlot({required this.width, required this.label, required this.onTap});
 
+  /// Build the import slot as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

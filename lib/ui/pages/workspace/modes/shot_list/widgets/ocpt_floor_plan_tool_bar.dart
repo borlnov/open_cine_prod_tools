@@ -65,6 +65,7 @@ class OcptFloorPlanToolBar extends StatelessWidget {
     required this.onRecenterRequested,
   });
 
+  /// Build the floor plan tool bar as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -205,6 +206,7 @@ class _ToolButton extends StatelessWidget {
     required this.onToolSelected,
   });
 
+  /// Build the tool button as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -254,6 +256,7 @@ class _ZoomCluster extends StatelessWidget {
     required this.onRecenterRequested,
   });
 
+  /// Build the zoom cluster as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: viewportController,

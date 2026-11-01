@@ -44,6 +44,7 @@ class OcptFloorPlanSymbolDeleteHandle extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the floor plan symbol delete handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final geometry = ocptFloorPlanSymbolGeometryOf(symbol, liveOverride);

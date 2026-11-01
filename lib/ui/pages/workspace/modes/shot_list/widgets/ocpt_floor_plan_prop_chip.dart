@@ -31,7 +31,7 @@ class OcptFloorPlanPropChip extends Equatable {
     required this.quantity,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [elementId, name, quantity];
 }

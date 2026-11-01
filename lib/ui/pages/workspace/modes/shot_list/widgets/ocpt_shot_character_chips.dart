@@ -45,6 +45,7 @@ class OcptShotCharacterChips extends StatelessWidget {
     required this.onCharacterAdded,
   });
 
+  /// Build the shot character chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -89,6 +90,7 @@ class _OcptCharacterChip extends StatelessWidget {
   /// Class constructor
   const _OcptCharacterChip({required this.name, required this.isAttached, required this.onTap});
 
+  /// Build the character chip as a [FilterChip].
   @override
   Widget build(BuildContext context) => FilterChip(
     label: Text(name),
@@ -108,6 +110,7 @@ class _OcptAddCharacterChip extends StatefulWidget {
   /// Class constructor
   const _OcptAddCharacterChip({required this.onSubmitted});
 
+  /// Create the [_OcptAddCharacterChipState] holding the state of the add character chip.
   @override
   State<_OcptAddCharacterChip> createState() => _OcptAddCharacterChipState();
 }
@@ -124,6 +127,7 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
   /// The inline field's own text.
   final TextEditingController _controller = TextEditingController();
 
+  /// Build the add character chip as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     if (!_isEditing) {
@@ -163,6 +167,7 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
     });
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

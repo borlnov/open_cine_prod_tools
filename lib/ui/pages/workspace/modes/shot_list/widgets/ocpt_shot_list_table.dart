@@ -59,6 +59,7 @@ class OcptShotListTable extends StatelessWidget {
     required this.onShotSelected,
   });
 
+  /// Build the shot list table as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -150,6 +151,7 @@ class _HeaderRow extends StatelessWidget {
   /// Class constructor
   const _HeaderRow({required this.columns, required this.widths});
 
+  /// Build the header row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

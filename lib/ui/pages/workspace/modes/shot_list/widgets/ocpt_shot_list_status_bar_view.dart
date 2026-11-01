@@ -28,6 +28,7 @@ class OcptShotListStatusBarView extends StatelessWidget {
   /// Class constructor
   const OcptShotListStatusBarView({super.key, required this.state, required this.isCompact});
 
+  /// Build the shot list status bar view as an [OcptShotListStatusBar].
   @override
   Widget build(BuildContext context) {
     final storyboardState = context.watch<OcptShotListStoryboardBloc>().state;

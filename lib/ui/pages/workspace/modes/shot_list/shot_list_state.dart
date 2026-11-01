@@ -788,7 +788,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       roles != null ||
       pageSetup != null;
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

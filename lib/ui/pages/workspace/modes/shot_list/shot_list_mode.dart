@@ -78,6 +78,7 @@ class OcptShotListMode extends StatelessWidget {
   /// Creates the shot list mode.
   const OcptShotListMode({super.key, this.revealRequest});
 
+  /// Build the shot list mode as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -135,6 +136,7 @@ class _ShotListView extends StatefulWidget {
   /// Class constructor
   const _ShotListView({required this.hasRevealRequest});
 
+  /// Create the [_ShotListViewState] holding the state of the shot list view.
   @override
   State<_ShotListView> createState() => _ShotListViewState();
 }
@@ -150,6 +152,7 @@ class _ShotListViewState extends State<_ShotListView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// Tell the workspace that a reveal request was taken into account, so it applies only once.
   @override
   void initState() {
     super.initState();
@@ -164,6 +167,7 @@ class _ShotListViewState extends State<_ShotListView> {
     }
   }
 
+  /// Flush the pending field edits of the bloc before the view leaves the tree.
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -177,6 +181,7 @@ class _ShotListViewState extends State<_ShotListView> {
     super.deactivate();
   }
 
+  /// Build the shot list view as an [OcptShotListViewEffects].
   @override
   Widget build(BuildContext context) => OcptShotListViewEffects(
     child: BlocConsumer<OcptShotListBloc, OcptShotListState>(
@@ -969,6 +974,7 @@ class _ShotListViewState extends State<_ShotListView> {
     );
   }
 
+  /// Dispose [_dockLayoutController].
   @override
   void dispose() {
     _dockLayoutController.dispose();

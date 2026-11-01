@@ -37,6 +37,7 @@ class OcptShotMetadataPanel extends StatelessWidget {
     required this.placements,
   });
 
+  /// Build the shot metadata panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

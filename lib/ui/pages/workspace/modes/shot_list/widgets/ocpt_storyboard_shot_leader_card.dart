@@ -36,6 +36,7 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
   /// Class constructor
   const OcptStoryboardShotLeaderCard({super.key, required this.shot, required this.attachedRoles});
 
+  /// Build the storyboard shot leader card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

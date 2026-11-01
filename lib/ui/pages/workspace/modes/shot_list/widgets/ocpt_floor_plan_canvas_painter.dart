@@ -192,6 +192,7 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     required this.metricLineColor,
   });
 
+  /// Paint the metric lines, the arrows, the symbols, then the scale and the silhouette.
   @override
   void paint(Canvas canvas, Size size) {
     for (final line in metricLines) {
@@ -206,6 +207,9 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     _paintScaleAndSilhouette(canvas, size);
   }
 
+  /// Repaint when [oldDelegate] differs in the sheet, the viewport, the selection, the colours or
+  /// the
+  /// metric lines.
   @override
   bool shouldRepaint(covariant OcptFloorPlanCanvasPainter oldDelegate) =>
       oldDelegate.sheet != sheet ||

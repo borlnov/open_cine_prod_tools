@@ -98,6 +98,7 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     this.draftEnd,
   });
 
+  /// Paint each annotation, then the draft being drawn when there is one.
   @override
   void paint(Canvas canvas, Size size) {
     for (final annotation in annotations) {
@@ -133,6 +134,8 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
+  /// Repaint when [oldDelegate] differs in the annotations, the selection, the colours or the
+  /// draft.
   @override
   bool shouldRepaint(covariant OcptStoryboardAnnotationOverlayPainter oldDelegate) =>
       !_annotationsEqual(oldDelegate.annotations, annotations) ||

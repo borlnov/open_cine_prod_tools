@@ -47,6 +47,7 @@ class OcptShotListFloorPlanSetTabsView extends StatelessWidget {
     required this.onSetDeleteRequested,
   });
 
+  /// Build the shot list floor plan set tabs view as an [OcptFloorPlanSetTabs].
   @override
   Widget build(BuildContext context) {
     final sequence = this.sequence;

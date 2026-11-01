@@ -104,6 +104,7 @@ class OcptStoryboardPanelFrame extends StatelessWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Build the storyboard panel frame as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -230,6 +231,7 @@ class _RankBadge extends StatelessWidget {
   /// Class constructor
   const _RankBadge({required this.rank, required this.total});
 
+  /// Build the rank badge as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

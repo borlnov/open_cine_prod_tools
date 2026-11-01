@@ -53,6 +53,7 @@ class OcptFloorPlanSymbolRotateHandle extends StatelessWidget {
     required this.onDragEnded,
   });
 
+  /// Build the floor plan symbol rotate handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final geometry = ocptFloorPlanSymbolGeometryOf(symbol, liveOverride);

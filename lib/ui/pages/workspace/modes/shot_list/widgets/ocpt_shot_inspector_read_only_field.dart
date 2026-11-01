@@ -21,6 +21,7 @@ class OcptShotInspectorReadOnlyField extends StatelessWidget {
   /// Class constructor
   const OcptShotInspectorReadOnlyField({super.key, required this.label, required this.value});
 
+  /// Build the shot inspector read only field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

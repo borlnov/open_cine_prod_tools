@@ -40,6 +40,7 @@ class OcptShotListViewEffects extends StatelessWidget {
   /// Class constructor
   const OcptShotListViewEffects({super.key, required this.child});
 
+  /// Build the shot list view effects as a [MultiBlocListener].
   @override
   Widget build(BuildContext context) => MultiBlocListener(
     listeners: [

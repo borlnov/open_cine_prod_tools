@@ -21,6 +21,7 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanCopyBlockingDialog({super.key, required this.candidates});
 
+  /// Build the floor plan copy blocking dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

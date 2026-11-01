@@ -32,6 +32,8 @@ class OcptStoryboardExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptStoryboardExportDialog({required this.current, super.key});
 
+  /// Create the [_OcptStoryboardExportDialogState] holding the state of the storyboard export
+  /// dialog.
   @override
   State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
 
@@ -57,12 +59,14 @@ class _OcptStoryboardExportDialogState extends State<OcptStoryboardExportDialog>
   /// Whether the floor plan sheets are appended after each sequence.
   bool _includeFloorPlansAfterEachSequence = false;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the storyboard export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

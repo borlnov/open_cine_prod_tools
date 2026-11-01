@@ -33,6 +33,7 @@ class OcptFloorPlanUnderlayResizeHandle extends StatelessWidget {
     required this.onDragEnded,
   });
 
+  /// Build the floor plan underlay resize handle as a [Positioned].
   @override
   Widget build(BuildContext context) => Positioned(
     left: rect.right - ocptFloorPlanHandleHitSize / 2,

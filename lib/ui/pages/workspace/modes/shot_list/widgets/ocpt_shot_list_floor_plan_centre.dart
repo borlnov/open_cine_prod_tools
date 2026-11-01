@@ -66,6 +66,7 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     required this.onUnderlayClearRequested,
   });
 
+  /// Build the shot list floor plan centre as an [OcptFloorPlanView].
   @override
   Widget build(BuildContext context) {
     final sequence = this.sequence;
@@ -556,6 +557,7 @@ class _FloorPlanGallery extends StatelessWidget {
   /// Class constructor
   const _FloorPlanGallery({required this.state, required this.sequence});
 
+  /// Build the floor plan gallery as an [OcptFloorPlanSetGallery].
   @override
   Widget build(BuildContext context) {
     final setsBloc = context.read<OcptShotListFloorPlanSetsBloc>();

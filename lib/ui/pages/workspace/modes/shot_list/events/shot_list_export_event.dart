@@ -51,7 +51,7 @@ class OcptShotListXlsxExportRequestedEvent extends OcptShotListExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }
@@ -93,7 +93,7 @@ class OcptShotListScenarioCoverageExportRequestedEvent extends OcptShotListExpor
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -149,7 +149,7 @@ class OcptShotListStoryboardExportRequestedEvent extends OcptShotListExportEvent
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -195,7 +195,7 @@ class OcptShotListFloorPlansExportRequestedEvent extends OcptShotListExportEvent
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }

@@ -380,10 +380,12 @@ class OcptFloorPlanCanvas extends StatefulWidget {
     this.onScopeBubbleCancelRequested,
   });
 
+  /// Create the [_OcptFloorPlanCanvasState] holding the state of the floor plan canvas.
   @override
   State<OcptFloorPlanCanvas> createState() => _OcptFloorPlanCanvasState();
 }
 
+/// State of [OcptFloorPlanCanvas]: owns the drag controller and the wheel-zoom settle timer.
 class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// The live state of the symbol, underlay and arrow drags in progress.
   final OcptFloorPlanCanvasDragController _drag = OcptFloorPlanCanvasDragController();
@@ -397,12 +399,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// own `details.localPosition` is relative to that tiny handle's own hit box, not to the canvas.
   final GlobalKey _canvasStackKey = GlobalKey();
 
+  /// Register [_onDragChanged] as a listener of [_drag].
   @override
   void initState() {
     super.initState();
     _drag.addListener(_onDragChanged);
   }
 
+  /// Build the floor plan canvas as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -985,6 +989,7 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     onArrowCurveChanged(arrow.arrowId, live.xM, live.yM);
   }
 
+  /// Cancel [_wheelZoomSettleTimer], detach [_onDragChanged] from [_drag], then dispose [_drag].
   @override
   void dispose() {
     _wheelZoomSettleTimer?.cancel();

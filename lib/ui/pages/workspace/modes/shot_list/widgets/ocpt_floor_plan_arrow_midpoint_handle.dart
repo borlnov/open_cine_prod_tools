@@ -51,6 +51,7 @@ class OcptFloorPlanArrowMidpointHandle extends StatelessWidget {
     required this.onDragEnded,
   });
 
+  /// Build the floor plan arrow midpoint handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final live = liveCtrl;

@@ -69,6 +69,7 @@ class OcptShotListSequencePanel extends StatelessWidget {
     required this.onOrphanedShotDeleted,
   });
 
+  /// Build the shot list sequence panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,6 +158,7 @@ class _SequenceEntry extends StatelessWidget {
     required this.onOrphanedShotDeleted,
   });
 
+  /// Build the sequence entry as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -268,6 +270,7 @@ class _OrphanedHeadingEntry extends StatelessWidget {
   /// Class constructor
   const _OrphanedHeadingEntry({required this.heading});
 
+  /// Build the orphaned heading entry as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -311,6 +314,7 @@ class _ShotEntry extends StatelessWidget {
     required this.onDelete,
   });
 
+  /// Build the shot entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -111,6 +111,7 @@ class OcptStoryboardBoard extends StatelessWidget {
     required this.onAnnotationSelected,
   });
 
+  /// Build the storyboard board as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

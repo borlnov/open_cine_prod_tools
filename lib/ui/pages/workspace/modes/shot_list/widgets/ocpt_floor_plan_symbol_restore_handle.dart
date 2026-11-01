@@ -40,6 +40,7 @@ class OcptFloorPlanSymbolRestoreHandle extends StatelessWidget {
     required this.onRestoreRequested,
   });
 
+  /// Build the floor plan symbol restore handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final centre = ocptFloorPlanScreenPointOf(

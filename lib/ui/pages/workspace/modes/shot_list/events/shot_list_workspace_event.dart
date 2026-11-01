@@ -26,7 +26,7 @@ class OcptShotListSequenceSelectedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListSequenceSelectedEvent({required this.sequenceId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sequenceId];
 }
@@ -43,7 +43,7 @@ class OcptShotListShotSelectedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListShotSelectedEvent({required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId];
 }
@@ -67,7 +67,7 @@ class OcptShotListRightDockTabSelectedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -100,7 +100,7 @@ class OcptShotListDockFractionsChangedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListDockFractionsChangedEvent({this.left, this.right});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, left, right];
 }
@@ -119,7 +119,7 @@ class OcptShotListColumnToggledEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListColumnToggledEvent({required this.column});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, column];
 }
@@ -161,7 +161,7 @@ class OcptShotListCentreViewSelectedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListCentreViewSelectedEvent({required this.view});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, view];
 }
@@ -176,7 +176,7 @@ class OcptShotListSetSelectedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListSetSelectedEvent({required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId];
 }
@@ -192,7 +192,7 @@ class OcptShotListSetAddedEvent extends OcptShotListWorkspaceEvent {
   /// Class constructor
   const OcptShotListSetAddedEvent({required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId];
 }
@@ -222,7 +222,7 @@ class OcptShotListFloorPlanPlacementChangedEvent extends OcptShotListWorkspaceEv
   /// Class constructor
   const OcptShotListFloorPlanPlacementChangedEvent({required this.cause, required this.targetId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, cause, targetId];
 }

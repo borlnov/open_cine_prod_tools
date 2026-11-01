@@ -48,6 +48,8 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
     this.fieldHint,
   });
 
+  /// Create the [_OcptFloorPlanCharacterNamePickerDialogState] holding the state of the floor plan
+  /// character name picker dialog.
   @override
   State<OcptFloorPlanCharacterNamePickerDialog> createState() =>
       _OcptFloorPlanCharacterNamePickerDialogState();
@@ -70,12 +72,14 @@ class OcptFloorPlanCharacterNamePickerDialog extends StatefulWidget {
   );
 }
 
+/// State of [OcptFloorPlanCharacterNamePickerDialog]: owns the controller of the free-text field.
 class _OcptFloorPlanCharacterNamePickerDialogState
     extends State<OcptFloorPlanCharacterNamePickerDialog> {
   /// The free-text field's own controller, pre-filled from [OcptFloorPlanCharacterNamePickerDialog
   /// .initialValue].
   late final TextEditingController _controller = TextEditingController(text: widget.initialValue);
 
+  /// Build the floor plan character name picker dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -136,6 +140,7 @@ class _OcptFloorPlanCharacterNamePickerDialogState
   /// Pops the dialog with [value], trimmed.
   void _submit(String value) => globalGetIt().get<OcptRouterManager>().pop<String>(value.trim());
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

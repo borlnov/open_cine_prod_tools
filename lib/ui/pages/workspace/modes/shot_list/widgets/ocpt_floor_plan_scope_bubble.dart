@@ -65,6 +65,7 @@ class OcptFloorPlanScopeBubble extends StatelessWidget {
     required this.onCancelRequested,
   });
 
+  /// Build the floor plan scope bubble as a [Positioned].
   @override
   @override
   @override

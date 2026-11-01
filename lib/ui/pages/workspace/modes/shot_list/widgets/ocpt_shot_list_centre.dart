@@ -56,6 +56,7 @@ class OcptShotListCentre extends StatelessWidget {
     required this.child,
   });
 
+  /// Build the shot list centre as an [OcptWorkspaceFloatingAddButton].
   @override
   Widget build(BuildContext context) {
     final hasBanners = state.orphanedRoleAlerts.isNotEmpty || state.roleCollisionAlerts.isNotEmpty;
@@ -108,6 +109,7 @@ class _RoleAlertBanners extends StatelessWidget {
     required this.onRoleMergeRequested,
   });
 
+  /// Build the role alert banners as a [Column].
   @override
   Widget build(BuildContext context) {
     final inspectorBloc = context.read<OcptShotListInspectorBloc>();

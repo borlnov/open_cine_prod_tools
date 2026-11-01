@@ -101,6 +101,7 @@ class OcptStoryboardPanelsGroup extends StatelessWidget {
     required this.onAnnotationDeleteRequested,
   });
 
+  /// Build the storyboard panels group as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -210,6 +211,7 @@ class _AnnotationsSection extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the annotations section as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -313,6 +315,7 @@ class _AnnotationRow extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the annotation row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -447,6 +450,7 @@ class _PanelRow extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the panel row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

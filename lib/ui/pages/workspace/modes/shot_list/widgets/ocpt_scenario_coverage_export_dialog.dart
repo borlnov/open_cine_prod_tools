@@ -33,6 +33,8 @@ class OcptScenarioCoverageExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScenarioCoverageExportDialog({required this.current, super.key});
 
+  /// Create the [_OcptScenarioCoverageExportDialogState] holding the state of the scenario coverage
+  /// export dialog.
   @override
   State<OcptScenarioCoverageExportDialog> createState() => _OcptScenarioCoverageExportDialogState();
 
@@ -64,12 +66,14 @@ class _OcptScenarioCoverageExportDialogState extends State<OcptScenarioCoverageE
   /// Whether the coverage summary page will be included in the exported document.
   bool _includeSummaryPage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the scenario coverage export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

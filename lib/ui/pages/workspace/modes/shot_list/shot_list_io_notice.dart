@@ -54,7 +54,7 @@ class OcptShotListIoNotice extends Equatable {
   /// Class constructor
   const OcptShotListIoNotice({required this.kind, this.path, this.wasShared = false});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, path, wasShared];
 }

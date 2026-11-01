@@ -33,6 +33,7 @@ class OcptShotListSequenceDock extends StatelessWidget {
     required this.onOrphanedShotDeleteRequested,
   });
 
+  /// Build the shot list sequence dock as an [OcptShotListSequencePanel].
   @override
   Widget build(BuildContext context) => OcptShotListSequencePanel(
     sequences: state.sequences,

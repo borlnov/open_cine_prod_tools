@@ -200,6 +200,7 @@ class OcptFloorPlanPalette extends StatelessWidget {
     required this.onUnderlayClearRequested,
   });
 
+  /// Build the floor plan palette as a [Material].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -332,6 +333,7 @@ class _GroupTitle extends StatelessWidget {
   /// Class constructor
   const _GroupTitle({required this.title});
 
+  /// Build the group title as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -389,6 +391,7 @@ class _Entry extends StatelessWidget {
     this.sceneScope,
   });
 
+  /// Build the entry as a [Draggable].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -475,6 +478,7 @@ class _PropsChips extends StatelessWidget {
   /// Class constructor
   const _PropsChips({required this.palette});
 
+  /// Build the props chips as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
@@ -504,6 +508,7 @@ class _PropChip extends StatelessWidget {
   /// Class constructor
   const _PropChip({required this.palette, required this.chip});
 
+  /// Build the prop chip as a [Draggable].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -570,6 +575,7 @@ class _AddPropButton extends StatelessWidget {
   /// Class constructor
   const _AddPropButton({required this.palette});
 
+  /// Build the add prop button as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -609,6 +615,7 @@ class _CamerasRow extends StatelessWidget {
   /// Class constructor
   const _CamerasRow({required this.palette});
 
+  /// Build the cameras row as an [ExpansionTile].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -672,6 +679,7 @@ class _CameraRow extends StatelessWidget {
   /// Class constructor
   const _CameraRow({required this.palette, required this.camera});
 
+  /// Build the camera row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -708,6 +716,7 @@ class _OnionSkinBlock extends StatelessWidget {
   /// Class constructor
   const _OnionSkinBlock({required this.palette});
 
+  /// Build the onion skin block as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -771,6 +780,7 @@ class _ShowFieldOfViewToggle extends StatelessWidget {
   /// Class constructor
   const _ShowFieldOfViewToggle({required this.palette});
 
+  /// Build the show field of view toggle as a [CheckboxListTile].
   @override
   Widget build(BuildContext context) => CheckboxListTile(
     dense: true,
@@ -808,6 +818,7 @@ class _LayerRow extends StatelessWidget {
   /// Class constructor
   const _LayerRow({required this.palette, required this.layer, required this.label});
 
+  /// Build the layer row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -861,6 +872,7 @@ class _UnderlayRow extends StatelessWidget {
   /// Class constructor
   const _UnderlayRow({required this.palette});
 
+  /// Build the underlay row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -926,14 +938,18 @@ class _OcptFloorPlanMetricsToggleRow extends StatefulWidget {
     required this.onMetricsToggled,
   });
 
+  /// Create the [_OcptFloorPlanMetricsToggleRowState] holding the state of the floor plan metrics
+  /// toggle row.
   @override
   State<_OcptFloorPlanMetricsToggleRow> createState() => _OcptFloorPlanMetricsToggleRowState();
 }
 
 /// [_OcptFloorPlanMetricsToggleRow]'s own state: just whether the help paragraph is open.
 class _OcptFloorPlanMetricsToggleRowState extends State<_OcptFloorPlanMetricsToggleRow> {
+  /// Whether the help paragraph is showing.
   bool _isHelpOpen = false;
 
+  /// Build the floor plan metrics toggle row as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

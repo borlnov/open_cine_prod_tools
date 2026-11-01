@@ -30,7 +30,7 @@ class OcptShotListShotDeletionRequestedEvent extends OcptShotListShotEvent {
   /// Class constructor
   const OcptShotListShotDeletionRequestedEvent({required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId];
 }

@@ -49,6 +49,7 @@ class OcptShotDifficultyRating extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the shot difficulty rating as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -116,6 +117,7 @@ class _Dot extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the dot as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

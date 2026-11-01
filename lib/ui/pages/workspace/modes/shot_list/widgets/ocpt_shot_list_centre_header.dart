@@ -64,6 +64,7 @@ class OcptShotListCentreHeader extends StatelessWidget {
     required this.trailing,
   });
 
+  /// Build the shot list centre header as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -129,6 +130,7 @@ class _SequenceSummary extends StatelessWidget {
   /// Class constructor
   const _SequenceSummary({required this.sequence, required this.boardPanelCount});
 
+  /// Build the sequence summary as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

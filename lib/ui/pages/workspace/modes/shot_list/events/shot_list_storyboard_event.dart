@@ -22,7 +22,7 @@ class OcptShotListPanelSelectedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListPanelSelectedEvent({required this.panelId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId];
 }
@@ -36,7 +36,7 @@ class OcptShotListPanelSizeChangedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListPanelSizeChangedEvent({required this.size});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, size];
 }
@@ -58,7 +58,7 @@ class OcptShotListPanelImportRequestedEvent extends OcptShotListStoryboardEvent 
   /// Class constructor
   const OcptShotListPanelImportRequestedEvent({required this.shotId, required this.fileTypeLabel});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, fileTypeLabel];
 }
@@ -82,7 +82,7 @@ class OcptShotListPanelReplaceRequestedEvent extends OcptShotListStoryboardEvent
     required this.fileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId, fileTypeLabel];
 }
@@ -107,7 +107,7 @@ class OcptShotListPanelReorderedEvent extends OcptShotListStoryboardEvent {
     required this.newPosition,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, panelId, newPosition];
 }
@@ -128,7 +128,7 @@ class OcptShotListPanelCommentChangedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListPanelCommentChangedEvent({required this.panelId, required this.rawValue});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId, rawValue];
 }
@@ -142,7 +142,7 @@ class OcptShotListPanelDeletionRequestedEvent extends OcptShotListStoryboardEven
   /// Class constructor
   const OcptShotListPanelDeletionRequestedEvent({required this.panelId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId];
 }
@@ -158,7 +158,7 @@ class OcptShotListAnnotationToolSelectedEvent extends OcptShotListStoryboardEven
   /// Class constructor
   const OcptShotListAnnotationToolSelectedEvent({required this.tool});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tool];
 }
@@ -196,7 +196,7 @@ class OcptShotListAnnotationDrawnEvent extends OcptShotListStoryboardEvent {
     required this.y2,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId, kind, x1, y1, x2, y2];
 }
@@ -222,7 +222,7 @@ class OcptShotListAnnotationPlacedEvent extends OcptShotListStoryboardEvent {
     required this.y1,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, panelId, x1, y1];
 }
@@ -236,7 +236,7 @@ class OcptShotListAnnotationSelectedEvent extends OcptShotListStoryboardEvent {
   /// Class constructor
   const OcptShotListAnnotationSelectedEvent({required this.annotationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, annotationId];
 }
@@ -258,7 +258,7 @@ class OcptShotListAnnotationTextChangedEvent extends OcptShotListStoryboardEvent
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, annotationId, rawValue];
 }
@@ -272,7 +272,7 @@ class OcptShotListAnnotationDeletionRequestedEvent extends OcptShotListStoryboar
   /// Class constructor
   const OcptShotListAnnotationDeletionRequestedEvent({required this.annotationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, annotationId];
 }

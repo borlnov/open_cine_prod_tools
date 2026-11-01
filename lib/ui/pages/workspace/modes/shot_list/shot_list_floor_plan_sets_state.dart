@@ -281,7 +281,7 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
   /// Copies this state with the write error dismissed.
   OcptShotListFloorPlanSetsState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

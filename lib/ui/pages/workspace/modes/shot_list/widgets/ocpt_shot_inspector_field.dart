@@ -99,6 +99,7 @@ class OcptShotInspectorField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptShotInspectorFieldState] holding the state of the shot inspector field.
   @override
   State<OcptShotInspectorField> createState() => _OcptShotInspectorFieldState();
 }
@@ -118,6 +119,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
   /// is detected even when the two shots happen to share the same field value.
   late String _trackedShotId = widget.shotId;
 
+  /// Show the new value when the shot or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant OcptShotInspectorField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -128,6 +130,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     }
   }
 
+  /// Build the shot inspector field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,6 +160,7 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
     );
   }
 
+  /// Dispose [_controller] and [_focusNode].
   @override
   void dispose() {
     _controller.dispose();
@@ -188,6 +192,7 @@ class _OcptShotInspectorFieldInput extends StatelessWidget {
     required this.focusNode,
   });
 
+  /// Build the shot inspector field input as an [Align].
   @override
   Widget build(BuildContext context) {
     final fieldWidth = field.fieldWidth;
@@ -226,6 +231,7 @@ class _OcptShotInspectorFieldSuggesting extends StatelessWidget {
     required this.focusNode,
   });
 
+  /// Build the shot inspector field suggesting as a [RawAutocomplete].
   @override
   Widget build(BuildContext context) {
     final suggestions = field.suggestions;
@@ -281,6 +287,7 @@ class _OcptShotInspectorFieldText extends StatelessWidget {
     required this.focusNode,
   });
 
+  /// Build the shot inspector field text as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
@@ -313,6 +320,7 @@ class _OcptShotInspectorFieldOptions extends StatelessWidget {
   /// Class constructor
   const _OcptShotInspectorFieldOptions({required this.options, required this.onSelected});
 
+  /// Build the shot inspector field options as an [Align].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

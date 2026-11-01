@@ -77,6 +77,7 @@ class OcptFloorPlanSymbolHandles extends StatelessWidget {
     required this.onDragEnded,
   });
 
+  /// Build the floor plan symbol handles as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final liveOverride = drag.liveOverride;

@@ -36,6 +36,7 @@ class OcptStoryboardPanelsView extends StatelessWidget {
     required this.onAnnotationDeleteRequested,
   });
 
+  /// Build the storyboard panels view as an [OcptStoryboardPanelsGroup].
   @override
   Widget build(BuildContext context) {
     final storyboardBloc = context.read<OcptShotListStoryboardBloc>();

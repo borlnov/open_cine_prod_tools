@@ -114,6 +114,7 @@ class OcptFloorPlanSetTabs extends StatelessWidget {
     required this.onSetDeleteRequested,
   });
 
+  /// Build the floor plan set tabs as a [Row].
   @override
   Widget build(BuildContext context) {
     final addButton = _AddSetButton(tabs: this);
@@ -159,6 +160,7 @@ class _SetTab extends StatelessWidget {
   /// Class constructor
   const _SetTab({required this.tabs, required this.floorPlanSet});
 
+  /// Build the set tab as a [DragTarget].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -256,6 +258,7 @@ class _PlacedShotCountBadge extends StatelessWidget {
   /// Class constructor
   const _PlacedShotCountBadge({required this.count, required this.isSelected});
 
+  /// Build the placed shot count badge as a [Padding].
   @override
   Widget build(BuildContext context) {
     if (count <= 0) {
@@ -305,6 +308,7 @@ class _AddSetButton extends StatelessWidget {
   /// Class constructor
   const _AddSetButton({required this.tabs});
 
+  /// Build the add set button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -411,16 +415,19 @@ class _EditableTabName extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_EditableTabNameState] holding the state of the editable tab name.
   @override
   State<_EditableTabName> createState() => _EditableTabNameState();
 }
 
+/// State of [_EditableTabName]: owns the controller of the name field.
 class _EditableTabNameState extends State<_EditableTabName> {
   /// The field's own controller, seeded once from [_EditableTabName.value] and never re-seeded
   /// from a later prop change (a rebuild while the user is typing would otherwise fight the
   /// keystroke it is itself reporting).
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Build the editable tab name as an [IntrinsicWidth].
   @override
   Widget build(BuildContext context) => IntrinsicWidth(
     child: TextField(
@@ -437,6 +444,7 @@ class _EditableTabNameState extends State<_EditableTabName> {
     ),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

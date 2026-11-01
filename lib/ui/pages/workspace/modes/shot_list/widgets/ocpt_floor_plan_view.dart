@@ -371,10 +371,12 @@ class OcptFloorPlanView extends StatefulWidget {
     this.onScopeBubbleCancelRequested,
   });
 
+  /// Create the [_OcptFloorPlanViewState] holding the state of the floor plan view.
   @override
   State<OcptFloorPlanView> createState() => _OcptFloorPlanViewState();
 }
 
+/// State of [OcptFloorPlanView]: owns the viewport controller and the keyboard focus node.
 class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// The live zoom/pan source of truth for as long as this view stays mounted — see the class doc
   /// comment.
@@ -445,12 +447,15 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     return counts;
   }
 
+  /// Fit the plan to its content after the first frame.
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
   }
 
+  /// Sync the viewport with a persisted zoom that changed, and fit the plan again when the set
+  /// changes.
   @override
   void didUpdateWidget(covariant OcptFloorPlanView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -469,6 +474,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     }
   }
 
+  /// Build the floor plan view as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -753,6 +759,7 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     );
   }
 
+  /// Dispose [_viewportController] and [_keyboardFocusNode].
   @override
   void dispose() {
     _viewportController.dispose();

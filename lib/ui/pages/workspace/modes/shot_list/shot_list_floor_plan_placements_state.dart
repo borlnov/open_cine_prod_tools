@@ -81,7 +81,7 @@ class OcptShotListFloorPlanPlacementsState
   OcptShotListFloorPlanPlacementsState copyWithWriteErrorDismissed() =>
       copyWith(hasWriteError: false);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits, hasWriteError];
 }

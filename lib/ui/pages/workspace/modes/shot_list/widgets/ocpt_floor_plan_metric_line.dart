@@ -32,7 +32,7 @@ class OcptFloorPlanMetricLine extends Equatable {
     required this.label,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fromXM, fromYM, toXM, toYM, label];
 }

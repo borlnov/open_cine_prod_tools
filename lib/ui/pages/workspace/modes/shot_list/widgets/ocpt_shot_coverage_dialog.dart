@@ -101,6 +101,7 @@ class OcptShotCoverageDialog extends StatelessWidget {
     required this.onAnchorCancelled,
   });
 
+  /// Build the shot coverage dialog as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -284,6 +285,7 @@ class _OcptShotCoverageSheet extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Build the shot coverage sheet as a [Material].
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
@@ -391,6 +393,7 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
     required this.onWordTapped,
   });
 
+  /// Build the shot coverage sheet block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -526,6 +529,7 @@ class _OcptScriptWord extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the script word as a [MouseRegion].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

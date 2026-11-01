@@ -109,6 +109,7 @@ class OcptFloorPlanPlacementsGroup extends StatelessWidget {
     this.onRestoreOverrideRequested,
   });
 
+  /// Build the floor plan placements group as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -209,6 +210,7 @@ class _GroupHeader extends StatelessWidget {
   /// Class constructor
   const _GroupHeader({required this.title});
 
+  /// Build the group header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -232,6 +234,7 @@ class _SelectionSection extends StatelessWidget {
   /// Class constructor
   const _SelectionSection({required this.group});
 
+  /// Build the selection section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -339,6 +342,7 @@ class _CamerasSection extends StatelessWidget {
   /// Class constructor
   const _CamerasSection({required this.group});
 
+  /// Build the cameras section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -382,6 +386,7 @@ class _CameraRow extends StatelessWidget {
   /// Class constructor
   const _CameraRow({required this.group, required this.camera});
 
+  /// Build the camera row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -486,6 +491,7 @@ class _Section extends StatelessWidget {
     required this.labelOf,
   });
 
+  /// Build the section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -538,6 +544,7 @@ class _Row extends StatelessWidget {
   /// Class constructor
   const _Row({required this.label, this.color, required this.onDeleteRequested});
 
+  /// Build the row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

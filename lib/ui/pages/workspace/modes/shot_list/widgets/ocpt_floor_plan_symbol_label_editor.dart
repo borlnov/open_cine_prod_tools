@@ -55,6 +55,7 @@ class OcptFloorPlanSymbolLabelEditor extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the floor plan symbol label editor as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final centre = ocptFloorPlanScreenPointOf(
@@ -91,13 +92,17 @@ class _SymbolLabelField extends StatefulWidget {
   /// Class constructor
   const _SymbolLabelField({required this.symbolId, required this.value, required this.onChanged});
 
+  /// Create the [_SymbolLabelFieldState] holding the state of the symbol label field.
   @override
   State<_SymbolLabelField> createState() => _SymbolLabelFieldState();
 }
 
+/// State of [_SymbolLabelField]: owns the text controller of the label.
 class _SymbolLabelFieldState extends State<_SymbolLabelField> {
+  /// The controller of the label field, filled with the current label.
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new label when the symbol or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant _SymbolLabelField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -106,6 +111,7 @@ class _SymbolLabelFieldState extends State<_SymbolLabelField> {
     }
   }
 
+  /// Build the symbol label field as a [Material].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -131,6 +137,7 @@ class _SymbolLabelFieldState extends State<_SymbolLabelField> {
     );
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

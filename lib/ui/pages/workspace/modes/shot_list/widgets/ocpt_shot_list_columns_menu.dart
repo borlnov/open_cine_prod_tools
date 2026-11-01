@@ -33,6 +33,7 @@ class OcptShotListColumnsMenu extends StatelessWidget {
     required this.onColumnToggled,
   });
 
+  /// Build the shot list columns menu as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

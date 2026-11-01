@@ -73,6 +73,7 @@ class OcptShotListSequenceBody extends StatelessWidget {
     required this.onXlsxExportRequested,
   });
 
+  /// Build the shot list sequence body as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -171,6 +172,7 @@ class _TableTrailingControls extends StatelessWidget {
   /// Class constructor
   const _TableTrailingControls({required this.state, required this.onXlsxExportRequested});
 
+  /// Build the table trailing controls as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

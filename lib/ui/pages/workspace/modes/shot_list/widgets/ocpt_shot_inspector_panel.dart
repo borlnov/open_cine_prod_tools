@@ -146,6 +146,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the shot inspector panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -392,6 +393,7 @@ class _EstimatedDurationField extends StatelessWidget {
   /// Class constructor
   const _EstimatedDurationField({required this.shot, required this.value, required this.onChanged});
 
+  /// Build the estimated duration field as an [OcptShotInspectorField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -424,6 +426,7 @@ class _OcptShotNeedsCheckCallout extends StatelessWidget {
   /// Class constructor
   const _OcptShotNeedsCheckCallout({required this.reason, required this.onMarkAsChecked});
 
+  /// Build the shot needs check callout as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

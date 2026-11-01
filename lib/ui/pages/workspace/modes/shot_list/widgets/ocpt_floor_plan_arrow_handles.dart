@@ -48,6 +48,7 @@ class OcptFloorPlanArrowHandles extends StatelessWidget {
     required this.onStraightenRequested,
   });
 
+  /// Build the floor plan arrow handles as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final isDragged = drag.draggedArrowId == arrow.arrowId;

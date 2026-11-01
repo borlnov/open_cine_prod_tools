@@ -43,6 +43,7 @@ class OcptShotListStatusBar extends StatelessWidget {
     this.hint,
   });
 
+  /// Build the shot list status bar as an [OcptWorkspaceStatusBar].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -33,6 +33,7 @@ class OcptStoryboardView extends StatelessWidget {
     required this.onPanelDeleteRequested,
   });
 
+  /// Build the storyboard view as an [OcptStoryboardBoard].
   @override
   Widget build(BuildContext context) {
     final modeBloc = context.read<OcptShotListBloc>();

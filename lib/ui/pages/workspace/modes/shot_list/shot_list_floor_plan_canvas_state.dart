@@ -220,7 +220,7 @@ class OcptShotListFloorPlanCanvasState extends BlocStateForMixin<OcptShotListFlo
   /// Copies this state with the write error dismissed.
   OcptShotListFloorPlanCanvasState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

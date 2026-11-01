@@ -61,6 +61,7 @@ class OcptFloorPlanSymbolFovReachHandle extends StatelessWidget {
     required this.onDragEnded,
   });
 
+  /// Build the floor plan symbol fov reach handle as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final geometry = ocptFloorPlanSymbolGeometryOf(symbol, liveOverride);
