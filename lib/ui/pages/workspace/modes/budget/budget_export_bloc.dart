@@ -105,7 +105,7 @@ class OcptBudgetExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBudgetIoNotice(
             kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -121,7 +121,7 @@ class OcptBudgetExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
         ),
       );
@@ -162,7 +162,7 @@ class OcptBudgetExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBudgetIoNotice(
             kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -178,7 +178,7 @@ class OcptBudgetExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
         ),
       );
@@ -221,7 +221,7 @@ class OcptBudgetExportBloc
       if (outcome is OcptExportFailed) {
         // The manager already logged why the workbook could not be built.
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
           ),
         );
@@ -229,7 +229,7 @@ class OcptBudgetExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBudgetIoNotice(
             kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -245,7 +245,7 @@ class OcptBudgetExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
         ),
       );
@@ -286,7 +286,7 @@ class OcptBudgetExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptBudgetIoNotice(
             kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -302,7 +302,7 @@ class OcptBudgetExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
         ),
       );
@@ -314,6 +314,6 @@ class OcptBudgetExportBloc
     OcptBudgetIoNoticeDismissedEvent event,
     Emitter<OcptBudgetExportState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }
