@@ -9,14 +9,12 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
-import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -24,9 +22,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
@@ -44,57 +40,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
-
-/// The app language every projects manager built here is given, so a created project's own
-/// screenplay language never depends on the machine the tests run on.
-String _testAppLanguageCode() => "en";
-
-/// A router manager whose [pop] only records that it was called: these bloc tests don't build a
-/// real GoRouter for it to operate on.
-class _RecordingRouterManager extends OcptRouterManager {
-  final _popCompleter = Completer<void>();
-
-  /// Completes the moment [pop] is called.
-  Future<void> get onPop => _popCompleter.future;
-
-  /// Records the call instead of delegating to the (never initialized) GoRouter.
-  @override
-  void pop<Y extends Object?>([Y? result]) {
-    if (!_popCompleter.isCompleted) {
-      _popCompleter.complete();
-    }
-  }
-}
+import 'shot_list_storyboard_bloc_test_doubles.dart';
 
 /// The fixed device id every stamping test double in this file uses.
 Future<String> _testDeviceId() async => "test-device";
-
-/// A file selector manager answering the picker with a file of its own, so a test never opens a
-/// native dialog: [pickedPath] is what the user is pretending to pick, and null is a
-/// cancellation. Mirrors `OcptResourcesBloc`'s own test double,
-/// `resources_bloc_test.dart`'s `_StubFileSelectorManager`.
-class _StubFileSelectorManager extends FileSelectorManager {
-  /// The path the next pick answers with, or null to answer as a cancelled dialog does.
-  final String? pickedPath;
-
-  /// Class constructor
-  const _StubFileSelectorManager({required this.pickedPath});
-
-  /// Answers with [pickedPath] instead of opening the platform's own dialog.
-  @override
-  Future<ResultWithBoolStatus<XFile>> openSelector({
-    required List<String> allowedExtensions,
-    required String label,
-    bool strictOnExtensions = true,
-  }) async {
-    final pickedPath = this.pickedPath;
-    if (pickedPath == null) {
-      return const ResultWithBoolStatus(status: BoolResultStatus.error);
-    }
-
-    return ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
-  }
-}
 
 /// A storyboard service whose panel creation, reordering and comment writes always fail, to exercise
 /// the board's write error path.
@@ -230,7 +179,9 @@ void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
   late OcptPropertiesManager propertiesManager;
+
   late OcptProjectsManager projectsManager;
+
   late Directory tempDir;
 
   setUpAll(() async {
@@ -254,7 +205,7 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp("ocpt_shot_list_storyboard_bloc_test_");
     projectsManager = OcptProjectsManager(
       propertiesManager: propertiesManager,
-      appLanguageCode: _testAppLanguageCode,
+      appLanguageCode: testAppLanguageCode,
     );
     await projectsManager.initLifeCycle();
 
@@ -292,7 +243,7 @@ void main() {
     storyboardService: storyboardService,
     shotListService: shotListService,
     propertiesManager: propertiesManager,
-    routerManager: _RecordingRouterManager(),
+    routerManager: RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
   );
 
@@ -300,7 +251,7 @@ void main() {
   /// cancelled dialog unless the test says otherwise, so no test ever reaches a native one.
   OcptShotListStoryboardBloc buildBoard(
     OcptShotListBloc modeBloc, {
-    FileSelectorManager fileSelectorManager = const _StubFileSelectorManager(pickedPath: null),
+    FileSelectorManager fileSelectorManager = const StubFileSelectorManager(pickedPath: null),
     OcptStoryboardService? storyboardService,
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
   }) => OcptShotListStoryboardBloc(
@@ -368,7 +319,7 @@ void main() {
     final board = buildBoard(
       mode,
       storyboardService: storyboardService,
-      fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+      fileSelectorManager: const StubFileSelectorManager(pickedPath: "/frames/a.png"),
       fieldEditDebounce: fieldEditDebounce,
     );
     await waitForState(mode, (state) => !state.isLoading);
@@ -392,470 +343,6 @@ void main() {
     await board.close();
     await mode.close();
   }
-
-  test("importing a frame appends a panel to the shot and selects it", () async {
-    await writeScreenplay(twoSceneText);
-    final mode = buildBloc();
-    final board = buildBoard(
-      mode,
-      fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/shot.png"),
-    );
-    await waitForState(mode, (state) => !state.isLoading);
-    final shotId = await createShot(mode);
-
-    board.add(OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"));
-    await waitUntil(
-      () => mode.state.panelsOfShot(shotId).length == 1 && board.state.selectedPanelId != null,
-    );
-
-    final panel = mode.state.panelsOfShot(shotId).single;
-    expect(panel.imagePath, "/frames/shot.png");
-    expect(panel.comment, isEmpty);
-    expect(board.state.selectedPanelId, panel.id);
-
-    await closeAll(board, mode);
-  });
-
-  test("a cancelled import leaves the shot with no panel", () async {
-    await writeScreenplay(twoSceneText);
-    final mode = buildBloc();
-    final board = buildBoard(mode);
-    await waitForState(mode, (state) => !state.isLoading);
-    final shotId = await createShot(mode);
-
-    board.add(OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"));
-    // Nothing to wait for: a cancellation emits no state of its own.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-
-    expect(mode.state.panelsOfShot(shotId), isEmpty);
-
-    await closeAll(board, mode);
-  });
-
-  test("replacing a panel's image re-points it without changing its id", () async {
-    final mounted = await mountWithAPanel();
-    final mode = mounted.mode;
-
-    mounted.board.add(
-      OcptShotListPanelReplaceRequestedEvent(panelId: mounted.panelId, fileTypeLabel: "Images"),
-    );
-    // The stub always answers the very same path, so wait past the moment `addPanel`'s own
-    // event lands and assert the panel count never grows: only its image is re-pointed.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-
-    expect(mode.state.panelsOfShot(mounted.shotId).single.id, mounted.panelId);
-    expect(mode.state.panelsOfShot(mounted.shotId), hasLength(1));
-
-    await closeAll(mounted.board, mode);
-  });
-
-  test("reordering a panel moves it to the requested position, writing one row", () async {
-    final mounted = await mountWithAPanel();
-    final mode = mounted.mode;
-    final shotId = mounted.shotId;
-
-    for (var i = 1; i < 3; i++) {
-      mounted.board.add(
-        OcptShotListPanelImportRequestedEvent(shotId: shotId, fileTypeLabel: "Images"),
-      );
-      await waitUntil(() => mode.state.panelsOfShot(shotId).length == i + 1);
-    }
-
-    final panelIds = mode.state.panelsOfShot(shotId).map((panel) => panel.id).toList();
-
-    // Moves the first panel (index 0) to the last position (index 2).
-    mounted.board.add(
-      OcptShotListPanelReorderedEvent(shotId: shotId, panelId: panelIds[0], newPosition: 2),
-    );
-    await waitUntil(() => mode.state.panelsOfShot(shotId).first.id != panelIds[0]);
-
-    expect(mode.state.panelsOfShot(shotId).map((panel) => panel.id).toList(), [
-      panelIds[1],
-      panelIds[2],
-      panelIds[0],
-    ]);
-
-    await closeAll(mounted.board, mode);
-  });
-
-  test(
-    "a panel comment is visible as a pending value and writes once after the debounce",
-    () async {
-      final mounted = await mountWithAPanel();
-      final mode = mounted.mode;
-      final board = mounted.board;
-      final shotId = mounted.shotId;
-      final panelId = mounted.panelId;
-
-      board.add(OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Push in"));
-      await waitUntil(
-        () =>
-            board.state.pendingFieldEdits[OcptShotListPanelCommentEditKey(panelId: panelId)] ==
-            "Push in",
-      );
-      expect(mode.state.panelsOfShot(shotId).single.comment, isEmpty);
-
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(shotId).single.comment == "Push in" &&
-            board.state.pendingFieldEdits.isEmpty,
-      );
-      expect(board.state.pendingFieldEdits, isEmpty);
-
-      await closeAll(board, mode);
-    },
-  );
-
-  test("selecting another shot flushes a pending panel comment edit immediately", () async {
-    final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(seconds: 30));
-    final mode = mounted.mode;
-    final board = mounted.board;
-    final firstShotId = mounted.shotId;
-    final panelId = mounted.panelId;
-
-    mode.add(const OcptShotListShotCreationRequestedEvent());
-    await waitForState(mode, (state) => state.totalShotCount == 2);
-
-    board.add(OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Handheld"));
-    // Switches back to the shot that owns the panel just typed into — a genuine change of
-    // selection, unlike reselecting the second shot.
-    mode.add(OcptShotListShotSelectedEvent(shotId: firstShotId));
-
-    await waitUntil(
-      () =>
-          mode.state.panelsOfShot(firstShotId).single.comment == "Handheld" &&
-          board.state.pendingFieldEdits.isEmpty,
-    );
-    expect(board.state.pendingFieldEdits, isEmpty);
-
-    await closeAll(board, mode);
-  });
-
-  test("deleting a panel removes it and clears the selection", () async {
-    final mounted = await mountWithAPanel();
-    final mode = mounted.mode;
-    final board = mounted.board;
-
-    board.add(OcptShotListPanelSelectedEvent(panelId: mounted.panelId));
-    await waitUntil(() => board.state.selectedPanelId == mounted.panelId);
-
-    board.add(OcptShotListPanelDeletionRequestedEvent(panelId: mounted.panelId));
-    await waitUntil(
-      () => mode.state.panelsOfShot(mounted.shotId).isEmpty && board.state.selectedPanelId == null,
-    );
-    expect(board.state.selectedPanelId, isNull);
-
-    await closeAll(board, mode);
-  });
-
-  test("deleting the shot cascades its panels and drops its pending comment edit", () async {
-    final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(seconds: 30));
-    final mode = mounted.mode;
-    final board = mounted.board;
-    final shotId = mounted.shotId;
-    final panelId = mounted.panelId;
-
-    board.add(OcptShotListPanelCommentChangedEvent(panelId: panelId, rawValue: "Never written"));
-    await waitUntil(
-      () =>
-          board.state.pendingFieldEdits[OcptShotListPanelCommentEditKey(panelId: panelId)] ==
-          "Never written",
-    );
-
-    mode.add(OcptShotListShotDeletionRequestedEvent(shotId: shotId));
-    await waitUntil(() => mode.state.totalShotCount == 0 && board.state.pendingFieldEdits.isEmpty);
-
-    expect(board.state.pendingFieldEdits, isEmpty);
-    expect(mode.state.storyboardSnapshot?.panelsOfShot(shotId), isEmpty);
-
-    await closeAll(board, mode);
-  });
-
-  test("a captured panel is still there once its version is previewed, and once the preview "
-      "is left", () async {
-    // Dispatched to the very same, already-mounted blocs throughout — the path
-    // `MixinOcptProjectVersionsBloc` actually uses (the Versions panel's own card),
-    // mirroring `OcptResourcesBloc`'s own "a person created before the version is
-    // captured, so it belongs to it" test. `OcptShotListBloc.reloadFromProjectDatabase`
-    // is `_onLoadRequested`, which reads `_loadStoryboard` unconditionally, exactly as it
-    // reads `_loadSnapshot` for the shots themselves — the board follows the identical
-    // reload path a previewed version's shots already do.
-    final mounted = await mountWithAPanel();
-    final mode = mounted.mode;
-    final shotId = mounted.shotId;
-
-    mode.add(const OcptShotListCentreViewSelectedEvent(view: OcptShotListCentreView.board));
-
-    mode.add(const OcptProjectVersionCreationRequestedEvent(name: "With a panel", note: ""));
-    final withVersion = await waitForState(mode, (state) => state.projectVersions.isNotEmpty);
-    final versionId = withVersion.projectVersions.single.id;
-
-    mode.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
-    final previewing = await waitForState(mode, (state) => state.previewedVersionId != null);
-
-    expect(previewing.isPreviewingVersion, isTrue);
-    expect(previewing.centreView, OcptShotListCentreView.board);
-    final previewedPanels = previewing.panelsOfShot(shotId);
-    expect(previewedPanels, hasLength(1));
-    expect(previewedPanels.single.imagePath, "/frames/a.png");
-
-    mode.add(const OcptProjectVersionPreviewExitRequestedEvent());
-    final backToWorkingCopy = await waitForState(mode, (state) => state.previewedVersionId == null);
-
-    expect(backToWorkingCopy.panelsOfShot(shotId), hasLength(1));
-
-    await closeAll(mounted.board, mode);
-  });
-
-  group("annotations", () {
-    test("picking a tool sets it, and picking null again turns it off", () async {
-      final mounted = await mountWithAPanel();
-      final board = mounted.board;
-
-      board.add(
-        const OcptShotListAnnotationToolSelectedEvent(
-          tool: OcptStoryboardAnnotationTool.movementArrow,
-        ),
-      );
-      await waitUntil(
-        () => board.state.activeAnnotationTool == OcptStoryboardAnnotationTool.movementArrow,
-      );
-      expect(board.state.activeAnnotationTool, OcptStoryboardAnnotationTool.movementArrow);
-
-      board.add(const OcptShotListAnnotationToolSelectedEvent(tool: null));
-      await waitUntil(() => board.state.activeAnnotationTool == null);
-      expect(board.state.activeAnnotationTool, isNull);
-
-      await closeAll(board, mounted.mode);
-    });
-
-    test("drawing an arrow adds a mark of that kind, normalised, and selects it", () async {
-      final mounted = await mountWithAPanel();
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      board.add(
-        OcptShotListAnnotationDrawnEvent(
-          panelId: mounted.panelId,
-          kind: OcptStoryboardAnnotationKind.movementArrow,
-          x1: 0.2,
-          y1: 0.3,
-          x2: 0.8,
-          y2: 0.3,
-        ),
-      );
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).single.annotations.isNotEmpty &&
-            board.state.selectedAnnotationId != null,
-      );
-
-      final mark = mode.state.panelsOfShot(mounted.shotId).single.annotations.single;
-      expect(mark.kind, OcptStoryboardAnnotationKind.movementArrow);
-      expect(mark.x1, 0.2);
-      expect(mark.y1, 0.3);
-      expect(mark.x2, 0.8);
-      expect(mark.y2, 0.3);
-      expect(board.state.selectedAnnotationId, mark.id);
-
-      await closeAll(board, mode);
-    });
-
-    test(
-      "placing a label adds it and selects it, and its text writes once after the debounce",
-      () async {
-        final mounted = await mountWithAPanel();
-        final mode = mounted.mode;
-        final board = mounted.board;
-
-        board.add(OcptShotListAnnotationPlacedEvent(panelId: mounted.panelId, x1: 0.5, y1: 0.4));
-        await waitUntil(
-          () =>
-              mode.state.panelsOfShot(mounted.shotId).single.annotations.isNotEmpty &&
-              board.state.selectedAnnotationId != null,
-        );
-        final mark = mode.state.panelsOfShot(mounted.shotId).single.annotations.single;
-        expect(mark.kind, OcptStoryboardAnnotationKind.label);
-        expect(mark.x1, 0.5);
-        expect(mark.y1, 0.4);
-        expect(board.state.selectedAnnotationId, mark.id);
-
-        // "Opens its text inline for editing": the mark is already selected once placed, ready
-        // for the inspector's own text field to write into.
-        board.add(
-          OcptShotListAnnotationTextChangedEvent(annotationId: mark.id, rawValue: "Dolly in"),
-        );
-        await waitUntil(
-          () =>
-              board.state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(
-                annotationId: mark.id,
-              )] ==
-              "Dolly in",
-        );
-        expect(mode.state.panelsOfShot(mounted.shotId).single.annotations.single.text, isEmpty);
-
-        await waitUntil(
-          () =>
-              mode.state.panelsOfShot(mounted.shotId).single.annotations.single.text ==
-                  "Dolly in" &&
-              board.state.pendingFieldEdits.isEmpty,
-        );
-        expect(board.state.pendingFieldEdits, isEmpty);
-
-        await closeAll(board, mode);
-      },
-    );
-
-    test("selecting a mark records its id", () async {
-      final mounted = await mountWithAPanel();
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      board.add(
-        OcptShotListAnnotationDrawnEvent(
-          panelId: mounted.panelId,
-          kind: OcptStoryboardAnnotationKind.movementArrow,
-          x1: 0.1,
-          y1: 0.1,
-          x2: 0.3,
-          y2: 0.1,
-        ),
-      );
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).single.annotations.length == 1 &&
-            board.state.selectedAnnotationId != null,
-      );
-      final firstMarkId = board.state.selectedAnnotationId!;
-
-      // Drawing a second mark auto-selects it instead, moving selection away from the first.
-      board.add(
-        OcptShotListAnnotationDrawnEvent(
-          panelId: mounted.panelId,
-          kind: OcptStoryboardAnnotationKind.cameraMoveArrow,
-          x1: 0.5,
-          y1: 0.5,
-          x2: 0.7,
-          y2: 0.5,
-        ),
-      );
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).single.annotations.length == 2 &&
-            board.state.selectedAnnotationId != firstMarkId,
-      );
-      expect(board.state.selectedAnnotationId, isNot(firstMarkId));
-
-      board.add(OcptShotListAnnotationSelectedEvent(annotationId: firstMarkId));
-      await waitUntil(() => board.state.selectedAnnotationId == firstMarkId);
-      expect(board.state.selectedAnnotationId, firstMarkId);
-
-      await closeAll(board, mode);
-    });
-
-    test("deleting a mark removes it and clears its own selection", () async {
-      final mounted = await mountWithAPanel();
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      board.add(
-        OcptShotListAnnotationDrawnEvent(
-          panelId: mounted.panelId,
-          kind: OcptStoryboardAnnotationKind.movementArrow,
-          x1: 0.2,
-          y1: 0.2,
-          x2: 0.6,
-          y2: 0.2,
-        ),
-      );
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).single.annotations.isNotEmpty &&
-            board.state.selectedAnnotationId != null,
-      );
-      final markId = board.state.selectedAnnotationId!;
-
-      board.add(OcptShotListAnnotationDeletionRequestedEvent(annotationId: markId));
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).single.annotations.isEmpty &&
-            board.state.selectedAnnotationId == null,
-      );
-      expect(board.state.selectedAnnotationId, isNull);
-
-      await closeAll(board, mode);
-    });
-
-    test("deleting the panel cascades its marks and drops a pending mark-text edit", () async {
-      final mounted = await mountWithAPanel(fieldEditDebounce: const Duration(seconds: 30));
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      board.add(OcptShotListAnnotationPlacedEvent(panelId: mounted.panelId, x1: 0.5, y1: 0.5));
-      await waitUntil(() => mode.state.panelsOfShot(mounted.shotId).single.annotations.isNotEmpty);
-      final markId = mode.state.panelsOfShot(mounted.shotId).single.annotations.single.id;
-
-      board.add(
-        OcptShotListAnnotationTextChangedEvent(annotationId: markId, rawValue: "Never written"),
-      );
-      await waitUntil(
-        () =>
-            board.state.pendingFieldEdits[OcptShotListAnnotationTextEditKey(
-              annotationId: markId,
-            )] ==
-            "Never written",
-      );
-
-      board.add(OcptShotListPanelDeletionRequestedEvent(panelId: mounted.panelId));
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).isEmpty &&
-            board.state.pendingFieldEdits.isEmpty,
-      );
-      expect(board.state.pendingFieldEdits, isEmpty);
-
-      await closeAll(board, mode);
-    });
-
-    test("selecting a different panel clears the active tool and the mark selection", () async {
-      final mounted = await mountWithAPanel();
-      final mode = mounted.mode;
-      final board = mounted.board;
-
-      board.add(
-        OcptShotListAnnotationDrawnEvent(
-          panelId: mounted.panelId,
-          kind: OcptStoryboardAnnotationKind.movementArrow,
-          x1: 0.2,
-          y1: 0.2,
-          x2: 0.6,
-          y2: 0.2,
-        ),
-      );
-      await waitUntil(() => board.state.selectedAnnotationId != null);
-
-      board.add(
-        const OcptShotListAnnotationToolSelectedEvent(tool: OcptStoryboardAnnotationTool.label),
-      );
-      await waitUntil(() => board.state.activeAnnotationTool == OcptStoryboardAnnotationTool.label);
-
-      // Importing onto the very same shot appends and selects a second panel.
-      board.add(
-        OcptShotListPanelImportRequestedEvent(shotId: mounted.shotId, fileTypeLabel: "Images"),
-      );
-      await waitUntil(
-        () =>
-            mode.state.panelsOfShot(mounted.shotId).length == 2 &&
-            board.state.selectedPanelId != mounted.panelId,
-      );
-
-      expect(board.state.selectedPanelId, isNot(mounted.panelId));
-      expect(board.state.activeAnnotationTool, isNull);
-      expect(board.state.selectedAnnotationId, isNull);
-
-      await closeAll(board, mode);
-    });
-  });
 
   group("the bloc as a whole", () {
     /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
@@ -1018,7 +505,7 @@ void main() {
       final mode = buildBloc();
       final board = buildBoard(
         mode,
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        fileSelectorManager: const StubFileSelectorManager(pickedPath: "/frames/a.png"),
       );
       await waitForState(mode, (state) => !state.isLoading);
       final shotId = await createShot(mode);
@@ -1217,7 +704,7 @@ void main() {
       final mode = buildBloc();
       final board = buildBoard(
         mode,
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        fileSelectorManager: const StubFileSelectorManager(pickedPath: "/frames/a.png"),
       );
       await waitForState(mode, (state) => !state.isLoading);
       final shotId = await createShot(mode);
@@ -1232,7 +719,7 @@ void main() {
       final mode = buildBloc();
       final board = buildBoard(
         mode,
-        fileSelectorManager: const _StubFileSelectorManager(pickedPath: "/frames/a.png"),
+        fileSelectorManager: const StubFileSelectorManager(pickedPath: "/frames/a.png"),
         storyboardService: const _FailingStoryboardService(),
       );
       await waitForState(mode, (state) => !state.isLoading);

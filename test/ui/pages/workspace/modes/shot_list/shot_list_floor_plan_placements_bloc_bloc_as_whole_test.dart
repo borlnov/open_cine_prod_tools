@@ -11,16 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
-import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
-import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
@@ -35,16 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
-
-/// The app language every projects manager built here is given, so a created project's own
-/// screenplay language never depends on the machine the tests run on.
-String _testAppLanguageCode() => "en";
-
-/// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter.
-class _RecordingRouterManager extends OcptRouterManager {
-  @override
-  void pop<Y extends Object?>([Y? result]) {}
-}
+import 'shot_list_floor_plan_placements_bloc_test_doubles.dart';
 
 /// A floor plan service whose symbol updates and deletions always fail, to exercise the placements
 /// bloc's write error path.
@@ -111,7 +98,9 @@ void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 
   late OcptPropertiesManager propertiesManager;
+
   late OcptProjectsManager projectsManager;
+
   late Directory tempDir;
 
   /// The floor plan sets bloc [setsOf] built for each mode bloc of a test, closed in [tearDown].
@@ -147,7 +136,7 @@ void main() {
     );
     projectsManager = OcptProjectsManager(
       propertiesManager: propertiesManager,
-      appLanguageCode: _testAppLanguageCode,
+      appLanguageCode: testAppLanguageCode,
     );
     await projectsManager.initLifeCycle();
 
@@ -193,7 +182,7 @@ void main() {
   OcptShotListBloc buildBloc({OcptFloorPlanService? floorPlanService}) => OcptShotListBloc(
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
-    routerManager: _RecordingRouterManager(),
+    routerManager: RecordingRouterManager(),
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
     floorPlanService: floorPlanService,
   );
@@ -282,429 +271,6 @@ void main() {
     );
     return created.selectedShotId!;
   }
-
-  test("deleting a symbol removes it and clears its own selection", () async {
-    await writeScreenplay(twoSceneText);
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    final setId = await createCase(bloc);
-
-    canvasOf(bloc).add(
-      OcptShotListFloorPlanSymbolPlacedEvent(
-        setId: setId,
-        layer: OcptFloorPlanLayer.set,
-        shotId: null,
-        sceneId: null,
-        xM: 0,
-        yM: 0,
-      ),
-    );
-    await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-    final symbolId = await selectedSymbolIdOf(bloc);
-
-    placementsOf(bloc).add(OcptShotListFloorPlanSymbolDeletionRequestedEvent(symbolId: symbolId));
-    await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
-    await waitUntil(() => canvasOf(bloc).state.selectedFloorPlanSymbolId == null);
-    expect(canvasOf(bloc).state.selectedFloorPlanSymbolId, isNull);
-
-    await bloc.close();
-  });
-
-  test("editing a symbol's label debounces then writes", () async {
-    await writeScreenplay(twoSceneText);
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    final setId = await createCase(bloc);
-    final shotId = await createShot(bloc);
-
-    canvasOf(bloc).add(
-      OcptShotListFloorPlanSymbolPlacedEvent(
-        setId: setId,
-        layer: OcptFloorPlanLayer.characters,
-        shotId: shotId,
-        sceneId: null,
-        xM: 0,
-        yM: 0,
-      ),
-    );
-    final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-    final symbolId = placed.selectedSet!.symbols.single.id;
-
-    final placements = placementsOf(bloc);
-    placements.add(
-      OcptShotListFloorPlanSymbolLabelChangedEvent(symbolId: symbolId, rawValue: "SAM"),
-    );
-    await waitUntil(
-      () => placements.state.pendingFieldEdits.containsKey(
-        OcptShotListSymbolLabelEditKey(symbolId: symbolId),
-      ),
-    );
-    expect(bloc.state.selectedSet!.symbols.single.label, isEmpty);
-
-    await waitForState(bloc, (state) => state.selectedSet!.symbols.single.label == "SAM");
-    await waitUntil(() => placements.state.pendingFieldEdits.isEmpty);
-
-    await bloc.close();
-  });
-
-  test(
-    "changing a camera's field of view writes it (OcptShotListFloorPlanSymbolFovChangedEvent)",
-    () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-      final shotId = await createShot(bloc);
-
-      canvasOf(bloc).add(
-        OcptShotListFloorPlanSymbolPlacedEvent(
-          setId: setId,
-          layer: OcptFloorPlanLayer.cameras,
-          shotId: shotId,
-          sceneId: null,
-          xM: 0,
-          yM: 0,
-        ),
-      );
-      final placed = await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-      final symbolId = placed.selectedSet!.symbols.single.id;
-      expect(placed.selectedSet!.symbols.single.fovDeg, isNull);
-
-      placementsOf(
-        bloc,
-      ).add(OcptShotListFloorPlanSymbolFovChangedEvent(symbolId: symbolId, fovDeg: 35));
-      final changed = await waitForState(
-        bloc,
-        (state) => state.selectedSet!.symbols.single.fovDeg == 35,
-      );
-      expect(changed.selectedSet!.symbols.single.fovDeg, 35);
-
-      await bloc.close();
-    },
-  );
-
-  group("restore / hide / delete everywhere", () {
-    Future<String> linkSecondSequence(OcptShotListBloc bloc, String setId) async {
-      final secondSequenceId = bloc.state.sequences[1].id;
-      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
-      await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
-      final epoch = bloc.state.selectionEpoch;
-      setsOf(bloc).add(OcptShotListSetLinkRequestedEvent(setId: setId));
-      await waitForState(
-        bloc,
-        (state) => state.setsOfSelectedSequence.isNotEmpty && state.selectionEpoch > epoch,
-      );
-      return secondSequenceId;
-    }
-
-    test(
-      "restoring an override tombstones it, so the original reappears for that sequence",
-      () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        final setId = await createCase(bloc);
-        final firstSequenceId = bloc.state.selectedSequenceId!;
-
-        canvasOf(bloc).add(
-          OcptShotListFloorPlanSymbolPlacedEvent(
-            setId: setId,
-            layer: OcptFloorPlanLayer.set,
-            shotId: null,
-            sceneId: null,
-            xM: 0,
-            yM: 0,
-          ),
-        );
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-        final originalId = await selectedSymbolIdOf(bloc);
-
-        // Hiding it (with no override yet) is what creates the override end to end.
-        placementsOf(bloc).add(
-          OcptShotListFloorPlanSymbolHideRequestedEvent(
-            symbolId: originalId,
-            targetSceneId: firstSequenceId,
-          ),
-        );
-        final hidden = await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
-        final overrideId = hidden.selectedSet!.symbols
-            .firstWhere((symbol) => symbol.id != originalId)
-            .id;
-        expect(
-          hidden.selectedSet!.symbols.firstWhere((symbol) => symbol.id == overrideId).isHidden,
-          isTrue,
-        );
-
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolRestoreRequestedEvent(symbolId: overrideId));
-        final restored = await waitForState(
-          bloc,
-          (state) => state.selectedSet!.symbols.length == 1,
-        );
-
-        expect(restored.selectedSet!.symbols.single.id, originalId);
-
-        await bloc.close();
-      },
-    );
-
-    test("hiding a set-scope original with no override yet creates a hidden one, masking it for "
-        "the target sequence", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-      final firstSequenceId = bloc.state.selectedSequenceId!;
-      canvasOf(bloc).add(
-        OcptShotListFloorPlanSymbolPlacedEvent(
-          setId: setId,
-          layer: OcptFloorPlanLayer.set,
-          shotId: null,
-          sceneId: null,
-          xM: 0,
-          yM: 0,
-        ),
-      );
-      await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-      final originalId = await selectedSymbolIdOf(bloc);
-
-      placementsOf(bloc).add(
-        OcptShotListFloorPlanSymbolHideRequestedEvent(
-          symbolId: originalId,
-          targetSceneId: firstSequenceId,
-        ),
-      );
-      final hidden = await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
-
-      final override = hidden.selectedSet!.symbols.firstWhere((symbol) => symbol.id != originalId);
-      expect(override.overridesSymbolId, originalId);
-      expect(override.sceneId, firstSequenceId);
-      expect(override.isHidden, isTrue);
-
-      await bloc.close();
-    });
-
-    test("hiding a symbol that already has a visible override sets isHidden on it, without "
-        "creating a second one", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-      final firstSequenceId = bloc.state.selectedSequenceId!;
-      canvasOf(bloc).add(
-        OcptShotListFloorPlanSymbolPlacedEvent(
-          setId: setId,
-          layer: OcptFloorPlanLayer.set,
-          shotId: null,
-          sceneId: null,
-          xM: 0,
-          yM: 0,
-        ),
-      );
-      await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-      final originalId = await selectedSymbolIdOf(bloc);
-      final secondSequenceId = await linkSecondSequence(bloc, setId);
-      bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
-      await waitForState(bloc, (state) => state.selectedSequenceId == firstSequenceId);
-
-      // "Only sequence n" first, creating a **visible** override.
-      canvasOf(bloc).add(
-        OcptShotListFloorPlanScopeDecisionRequestedEvent(
-          symbolId: originalId,
-          setId: setId,
-          level: OcptFloorPlanOverrideLevel.sequence,
-          sequenceCount: 2,
-          xM: 3,
-          yM: 3,
-        ),
-      );
-      await waitUntil(() => canvasOf(bloc).state.pendingFloorPlanScopeDecision != null);
-      canvasOf(bloc).add(
-        const OcptShotListFloorPlanScopeDecisionResolvedEvent(
-          choice: OcptFloorPlanScopeChoice.only,
-        ),
-      );
-      final withVisibleOverride = await waitForState(
-        bloc,
-        (state) => state.selectedSet!.symbols.length == 2,
-      );
-      final overrideId = withVisibleOverride.selectedSet!.symbols
-          .firstWhere((symbol) => symbol.id != originalId)
-          .id;
-      expect(
-        withVisibleOverride.selectedSet!.symbols
-            .firstWhere((symbol) => symbol.id == overrideId)
-            .isHidden,
-        isFalse,
-      );
-
-      // Hiding it now must flip that very same row, not add a third one.
-      placementsOf(bloc).add(
-        OcptShotListFloorPlanSymbolHideRequestedEvent(
-          symbolId: originalId,
-          targetSceneId: firstSequenceId,
-        ),
-      );
-      final hidden = await waitForState(
-        bloc,
-        (state) =>
-            state.selectedSet!.symbols.firstWhere((symbol) => symbol.id == overrideId).isHidden,
-      );
-
-      expect(hidden.selectedSet!.symbols, hasLength(2));
-      expect(secondSequenceId, isNot(firstSequenceId));
-
-      await bloc.close();
-    });
-
-    test(
-      "delete everywhere tombstones the original and every override of it, in every sequence",
-      () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        final setId = await createCase(bloc);
-        final firstSequenceId = bloc.state.selectedSequenceId!;
-        canvasOf(bloc).add(
-          OcptShotListFloorPlanSymbolPlacedEvent(
-            setId: setId,
-            layer: OcptFloorPlanLayer.set,
-            shotId: null,
-            sceneId: null,
-            xM: 0,
-            yM: 0,
-          ),
-        );
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-        final originalId = await selectedSymbolIdOf(bloc);
-
-        final secondSequenceId = await linkSecondSequence(bloc, setId);
-        bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: firstSequenceId));
-        await waitForState(bloc, (state) => state.selectedSequenceId == firstSequenceId);
-
-        placementsOf(bloc).add(
-          OcptShotListFloorPlanSymbolHideRequestedEvent(
-            symbolId: originalId,
-            targetSceneId: firstSequenceId,
-          ),
-        );
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
-
-        bloc.add(OcptShotListSequenceSelectedEvent(sequenceId: secondSequenceId));
-        await waitForState(bloc, (state) => state.selectedSequenceId == secondSequenceId);
-        placementsOf(bloc).add(
-          OcptShotListFloorPlanSymbolHideRequestedEvent(
-            symbolId: originalId,
-            targetSceneId: secondSequenceId,
-          ),
-        );
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 3);
-
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: originalId));
-        final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
-
-        expect(deleted.selectedSet!.symbols, isEmpty);
-
-        await bloc.close();
-      },
-    );
-
-    test(
-      "delete everywhere resolves an override id to its own original before cascading",
-      () async {
-        await writeScreenplay(twoSceneText);
-        final bloc = buildBloc();
-        await waitForState(bloc, (state) => !state.isLoading);
-        final setId = await createCase(bloc);
-        final firstSequenceId = bloc.state.selectedSequenceId!;
-        canvasOf(bloc).add(
-          OcptShotListFloorPlanSymbolPlacedEvent(
-            setId: setId,
-            layer: OcptFloorPlanLayer.set,
-            shotId: null,
-            sceneId: null,
-            xM: 0,
-            yM: 0,
-          ),
-        );
-        await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-        final originalId = await selectedSymbolIdOf(bloc);
-
-        placementsOf(bloc).add(
-          OcptShotListFloorPlanSymbolHideRequestedEvent(
-            symbolId: originalId,
-            targetSceneId: firstSequenceId,
-          ),
-        );
-        final hidden = await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
-        final overrideId = hidden.selectedSet!.symbols
-            .firstWhere((symbol) => symbol.id != originalId)
-            .id;
-
-        placementsOf(
-          bloc,
-        ).add(OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent(symbolId: overrideId));
-        final deleted = await waitForState(bloc, (state) => state.selectedSet!.symbols.isEmpty);
-
-        expect(deleted.selectedSet!.symbols, isEmpty);
-
-        await bloc.close();
-      },
-    );
-
-    test("hiding a scene-scope symbol with no shot override yet creates a hidden one, masking "
-        "it for the target shot", () async {
-      await writeScreenplay(twoSceneText);
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final setId = await createCase(bloc);
-
-      // A plain scene-scope furniture item (no `overridesSymbolId` — never a sequence override).
-      canvasOf(bloc).add(
-        OcptShotListFloorPlanSymbolPlacedEvent(
-          setId: setId,
-          layer: OcptFloorPlanLayer.set,
-          shotId: null,
-          sceneId: bloc.state.selectedSequenceId,
-          xM: 0,
-          yM: 0,
-        ),
-      );
-      await waitForState(bloc, (state) => state.selectedSet!.symbols.isNotEmpty);
-      final symbolId = await selectedSymbolIdOf(bloc);
-
-      Future<String> createShot() async {
-        final previousShotId = bloc.state.selectedShotId;
-        bloc.add(const OcptShotListShotCreationRequestedEvent());
-        final created = await waitForState(
-          bloc,
-          (state) => state.selectedShotId != null && state.selectedShotId != previousShotId,
-        );
-        return created.selectedShotId!;
-      }
-
-      final firstShotId = await createShot();
-      await createShot();
-
-      placementsOf(bloc).add(
-        OcptShotListFloorPlanSymbolHideForShotRequestedEvent(
-          symbolId: symbolId,
-          targetShotId: firstShotId,
-        ),
-      );
-      final hidden = await waitForState(bloc, (state) => state.selectedSet!.symbols.length == 2);
-
-      final override = hidden.selectedSet!.symbols.firstWhere((symbol) => symbol.id != symbolId);
-      expect(override.overridesSymbolId, symbolId);
-      expect(override.shotId, firstShotId);
-      expect(override.isHidden, isTrue);
-
-      await bloc.close();
-    });
-  });
 
   /// Mounts the mode on [twoSceneText] with a set and a shot, and places one character symbol on
   /// the shot. Answers the mode and the ids.
