@@ -7,6 +7,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_intl/act_intl.dart';
 import 'package:act_intl_ui/act_intl_ui.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -23,7 +24,8 @@ import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
 class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
     with
         MixinSetWantedLocaleBloc<OcptSettingsState>,
-        MixinActThemesBloc<ActThemesManager, OcptSettingsState> {
+        MixinActThemesBloc<ActThemesManager, OcptSettingsState>,
+        MixinAsyncInitBloc<OcptSettingsState> {
   /// Creates the settings bloc, with an initial state carrying the preferences the [LocalesManager]
   /// and the [ActThemesManager] currently hold, so the page opens on the options actually in use.
   ///
@@ -35,7 +37,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
   ///
   /// The preferences this app persists itself, [OcptPropertiesManager] being a local-storage
   /// manager rather than an in-memory one, are read asynchronously instead — see
-  /// [OcptSettingsPreferencesLoadRequestedEvent].
+  /// [initAsyncBloc].
   ///
   /// [appVersion] lets tests inject a fixed version instead of resolving
   /// [OcptGlobalManager.packageInfo], whose value is only available once every manager is ready
@@ -58,9 +60,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
   }
 
   /// Private constructor taking the state the factory seeded from the managers.
-  OcptSettingsBloc._(super.initialState, this._propertiesManager) {
-    add(const OcptSettingsPreferencesLoadRequestedEvent());
-  }
+  OcptSettingsBloc._(super.initialState, this._propertiesManager);
 
   /// The manager the preferences this page owns are read from and written to.
   final OcptPropertiesManager _propertiesManager;
@@ -69,17 +69,19 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptSettingsPreferencesLoadRequestedEvent>(_onPreferencesLoadRequested);
     on<OcptSettingsFirstWeekdayChangedEvent>(_onFirstWeekdayChanged);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Reads the preferences [_propertiesManager] holds into the state.
-  Future<void> _onPreferencesLoadRequested(
-    OcptSettingsPreferencesLoadRequestedEvent event,
-    Emitter<OcptSettingsState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptSettingsState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final firstWeekday = await _propertiesManager.firstWeekday.load() ?? OcptFirstWeekday.monday;
-    emitter(state.copyWith(firstWeekday: firstWeekday));
+    emit(state.copyWith(firstWeekday: firstWeekday));
   }
 
   /// Stores the day a week starts on, then shows it.
