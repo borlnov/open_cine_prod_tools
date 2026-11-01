@@ -168,9 +168,7 @@ class OcptEditorSearchSync {
     );
     if (reportedInputs != _lastReportedRawSearchInputs) {
       _lastReportedRawSearchInputs = reportedInputs;
-      searchBloc.add(
-        OcptEditorSearchMatchesReportedEvent(matchCount: matches.length),
-      );
+      searchBloc.add(OcptEditorSearchMatchesReportedEvent(matchCount: matches.length));
     }
 
     final navigationTarget = (
@@ -329,9 +327,7 @@ class OcptEditorSearchSync {
     if (nextIndex == null) {
       return;
     }
-    searchBloc.add(
-      OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex),
-    );
+    searchBloc.add(OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex));
   }
 
   /// Replaces every match in styled mode with the replacement field's text, behind
