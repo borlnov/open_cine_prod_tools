@@ -173,25 +173,21 @@ class OcptResourcesPeopleBloc
     try {
       final rank = modeBloc.state.peopleCount;
       final personId = await _peopleService.createPerson(database: project.database);
-      if (personId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
+      // The write was refused (a version is being previewed read-only); the shell already
+      // withholds the button that dispatches this event, so this is only ever a race.
+      if (personId != null) {
+        await _peopleService.updatePerson(
+          database: project.database,
+          personId: personId,
+          colorIndex: Value(rank),
+        );
+
+        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+          await addToModeAndWait(
+            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
+          );
+        }
       }
-
-      await _peopleService.updatePerson(
-        database: project.database,
-        personId: personId,
-        colorIndex: Value(rank),
-      );
-
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
-      }
-
-      await addToModeAndWait(
-        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.people, recordId: personId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a person in project "
@@ -221,14 +217,14 @@ class OcptResourcesPeopleBloc
 
     try {
       await _peopleService.deletePerson(database: project.database, personId: event.personId);
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        emitter(
+          state.copyWithPersonErased(pendingFieldEdits: _pendingWithoutPerson(event.personId)),
+        );
+        await addToModeAndWait(
+          OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: event.personId),
+        );
       }
-
-      emitter(state.copyWithPersonErased(pendingFieldEdits: _pendingWithoutPerson(event.personId)));
-      await addToModeAndWait(
-        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: event.personId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to erase person ${event.personId} of project "
@@ -296,8 +292,10 @@ class OcptResourcesPeopleBloc
       return true;
     }
 
+    var isWritten = false;
     try {
       await _writeAllPendingFields(database: project.database, pending: pending);
+      isWritten = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
@@ -306,6 +304,9 @@ class OcptResourcesPeopleBloc
         stackTrace,
       );
       await _loseEdits(emitter);
+    }
+
+    if (!isWritten) {
       return true;
     }
 

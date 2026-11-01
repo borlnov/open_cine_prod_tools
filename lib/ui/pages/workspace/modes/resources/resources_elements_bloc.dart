@@ -170,19 +170,15 @@ class OcptResourcesElementsBloc
         category: event.category,
         sourceKind: OcptElementSourceKind.owned,
       );
-      if (elementId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
+      // The write was refused (a version is being previewed read-only); the shell already
+      // withholds the button that dispatches this event, so this is only ever a race.
+      if (elementId != null) {
+        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+          await addToModeAndWait(
+            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.elements, recordId: elementId),
+          );
+        }
       }
-
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
-      }
-
-      await addToModeAndWait(
-        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.elements, recordId: elementId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create an element in project "
@@ -211,18 +207,19 @@ class OcptResourcesElementsBloc
 
     try {
       await _elementsService.deleteElement(database: project.database, elementId: event.elementId);
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        emitter(
+          state.copyWithElementDeleted(
+            pendingElementFieldEdits: _pendingWithoutElement(event.elementId),
+          ),
+        );
+        await addToModeAndWait(
+          OcptResourcesRecordDroppedEvent(
+            tab: OcptResourcesTab.elements,
+            recordId: event.elementId,
+          ),
+        );
       }
-
-      emitter(
-        state.copyWithElementDeleted(
-          pendingElementFieldEdits: _pendingWithoutElement(event.elementId),
-        ),
-      );
-      await addToModeAndWait(
-        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.elements, recordId: event.elementId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete element ${event.elementId} of project "
@@ -290,8 +287,10 @@ class OcptResourcesElementsBloc
       return true;
     }
 
+    var isWritten = false;
     try {
       await _writeAllPendingElementFields(database: project.database, pending: pending);
+      isWritten = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
@@ -300,6 +299,9 @@ class OcptResourcesElementsBloc
         stackTrace,
       );
       await _loseEdits(emitter);
+    }
+
+    if (!isWritten) {
       return true;
     }
 

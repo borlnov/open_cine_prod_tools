@@ -87,30 +87,29 @@ class OcptResourcesExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        if (outcome is OcptExportFailed) {
+          // The manager already logged why the workbook could not be built.
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: const OcptResourcesIoNotice(
+                kind: OcptResourcesIoNoticeKind.xlsxExportFailed,
+              ),
+            ),
+          );
+        } else {
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: OcptResourcesIoNotice(
+                kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
+                path: outcome.savedPath,
+                wasShared: outcome.wasShared,
+              ),
+            ),
+          );
+        }
       }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: const OcptResourcesIoNotice(kind: OcptResourcesIoNoticeKind.xlsxExportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptResourcesIoNotice(
-            kind: OcptResourcesIoNoticeKind.xlsxExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the resources catalogue of project "
@@ -154,20 +153,18 @@ class OcptResourcesExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptResourcesIoNotice(
-            kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptResourcesIoNotice(
+              kind: OcptResourcesIoNoticeKind.contactListExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the contact list of project "

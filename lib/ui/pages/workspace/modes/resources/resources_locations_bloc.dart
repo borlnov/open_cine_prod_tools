@@ -187,25 +187,21 @@ class OcptResourcesLocationsBloc
         database: project.database,
         name: "",
       );
-      if (locationId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
+      // The write was refused (a version is being previewed read-only); the shell already
+      // withholds the button that dispatches this event, so this is only ever a race.
+      if (locationId != null) {
+        await _locationsService.updateLocation(
+          database: project.database,
+          locationId: locationId,
+          colorIndex: Value(rank),
+        );
+
+        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+          await addToModeAndWait(
+            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.locations, recordId: locationId),
+          );
+        }
       }
-
-      await _locationsService.updateLocation(
-        database: project.database,
-        locationId: locationId,
-        colorIndex: Value(rank),
-      );
-
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
-      }
-
-      await addToModeAndWait(
-        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.locations, recordId: locationId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a location in project "
@@ -244,22 +240,20 @@ class OcptResourcesLocationsBloc
         database: project.database,
         locationId: event.locationId,
       );
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        emitter(
+          state.copyWithLocationDeleted(
+            pendingLocationFieldEdits: _pendingLocationsWithout(event.locationId),
+            pendingSetFieldEdits: _pendingSetsWithout(setIds),
+          ),
+        );
+        await addToModeAndWait(
+          OcptResourcesRecordDroppedEvent(
+            tab: OcptResourcesTab.locations,
+            recordId: event.locationId,
+          ),
+        );
       }
-
-      emitter(
-        state.copyWithLocationDeleted(
-          pendingLocationFieldEdits: _pendingLocationsWithout(event.locationId),
-          pendingSetFieldEdits: _pendingSetsWithout(setIds),
-        ),
-      );
-      await addToModeAndWait(
-        OcptResourcesRecordDroppedEvent(
-          tab: OcptResourcesTab.locations,
-          recordId: event.locationId,
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete location ${event.locationId} of project "
@@ -370,12 +364,14 @@ class OcptResourcesLocationsBloc
       return true;
     }
 
+    var isWritten = false;
     try {
       await _writeAllPendingLocationFields(
         database: project.database,
         pending: pendingLocationEdits,
       );
       await _writeAllPendingSetFields(database: project.database, pending: pendingSetEdits);
+      isWritten = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
@@ -384,6 +380,9 @@ class OcptResourcesLocationsBloc
         stackTrace,
       );
       await _loseEdits(emitter);
+    }
+
+    if (!isWritten) {
       return true;
     }
 

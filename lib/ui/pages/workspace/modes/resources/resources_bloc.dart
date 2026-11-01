@@ -265,6 +265,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return false;
     }
 
+    var isReloaded = false;
     try {
       OcptResourcesSnapshot? snapshot;
 
@@ -278,7 +279,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
-      return true;
+      isReloaded = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -287,8 +288,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         stackTrace,
       );
       emitter(state.copyWithWriteError());
-      return false;
     }
+
+    return isReloaded;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -647,19 +649,17 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         database: project.database,
         setId: event.setId,
       );
-      if (firstLinkedScene == null) {
-        return;
-      }
-
-      emitter(
-        state.copyWithShotListReveal(
-          reveal: (
-            episodeId: firstLinkedScene.screenplayId,
-            sceneId: firstLinkedScene.sceneId,
-            setId: event.setId,
+      if (firstLinkedScene != null) {
+        emitter(
+          state.copyWithShotListReveal(
+            reveal: (
+              episodeId: firstLinkedScene.screenplayId,
+              sceneId: firstLinkedScene.sceneId,
+              setId: event.setId,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resolve set ${event.setId}'s own first linked "

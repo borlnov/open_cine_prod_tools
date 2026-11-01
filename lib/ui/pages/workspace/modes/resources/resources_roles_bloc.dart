@@ -162,19 +162,15 @@ class OcptResourcesRolesBloc
         name: "",
         kind: event.kind,
       );
-      if (roleId == null) {
-        // The write was refused (a version is being previewed read-only); the shell already
-        // withholds the button that dispatches this event, so this is only ever a race.
-        return;
+      // The write was refused (a version is being previewed read-only); the shell already
+      // withholds the button that dispatches this event, so this is only ever a race.
+      if (roleId != null) {
+        if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+          await addToModeAndWait(
+            OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.roles, recordId: roleId),
+          );
+        }
       }
-
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
-      }
-
-      await addToModeAndWait(
-        OcptResourcesRecordCreatedEvent(tab: OcptResourcesTab.roles, recordId: roleId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a role in project "
@@ -232,14 +228,14 @@ class OcptResourcesRolesBloc
 
     try {
       await _roleIndexService.deleteRole(database: project.database, roleId: event.roleId);
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        emitter(
+          state.copyWithRoleDeleted(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)),
+        );
+        await addToModeAndWait(
+          OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.roles, recordId: event.roleId),
+        );
       }
-
-      emitter(state.copyWithRoleDeleted(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)));
-      await addToModeAndWait(
-        OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.roles, recordId: event.roleId),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete role ${event.roleId} of project "
@@ -277,15 +273,13 @@ class OcptResourcesRolesBloc
         database: project.database,
         candidateId: event.candidateId,
       );
-      if (!await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
-        return;
+      if (await modeBloc.reload({OcptResourcesReloadScope.snapshot})) {
+        emitter(
+          state.copyWithCandidateRemoved(
+            pendingCandidateFieldEdits: _pendingWithoutCandidate(event.candidateId),
+          ),
+        );
       }
-
-      emitter(
-        state.copyWithCandidateRemoved(
-          pendingCandidateFieldEdits: _pendingWithoutCandidate(event.candidateId),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to remove candidacy ${event.candidateId} of project "
@@ -343,12 +337,14 @@ class OcptResourcesRolesBloc
       return true;
     }
 
+    var isWritten = false;
     try {
       await _writeAllPendingRoleFields(database: project.database, pending: pendingRoleEdits);
       await _writeAllPendingCandidateFields(
         database: project.database,
         pending: pendingCandidateEdits,
       );
+      isWritten = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to flush a pending resources field edit of project "
@@ -357,6 +353,9 @@ class OcptResourcesRolesBloc
         stackTrace,
       );
       await _loseEdits(emitter);
+    }
+
+    if (!isWritten) {
       return true;
     }
 
