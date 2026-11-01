@@ -250,7 +250,7 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
 /// above toggles into or out of it — a subsidy or a cash contribution offsets no poste, so the
 /// field is not merely disabled for them, it is not drawn at all
 /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment). It mirrors
-/// `OcptBudgetCommitmentFormBody._buildPosteField`'s own picker, but is validated the way this
+/// `OcptBudgetCommitmentFormBody`'s own poste picker, but is validated the way this
 /// body's own `Label` field already is — a plain [DropdownButtonFormField] validator — rather than
 /// through a separate missing-fields hint: `Amount` is the one field here that can be technically
 /// unreadable (its figure fails to parse), which is what forces the current draft to read null and
@@ -481,7 +481,15 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
             ),
             if (_groupKind == OcptBudgetResourceGroupKind.inKind) ...[
               const SizedBox(height: 12),
-              _buildPosteField(tr),
+              _OcptResourcePosteField(
+                postes: widget.postes,
+                isSimplified: widget.isSimplified,
+                value: _posteId,
+                onChanged: (value) {
+                  setState(() => _posteId = value);
+                  _report();
+                },
+              ),
             ],
             const SizedBox(height: 12),
             Text(
@@ -542,32 +550,6 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
       ),
     );
   }
-
-  /// The `Poste` field: a picker, drawn only while [_groupKind] is
-  /// [OcptBudgetResourceGroupKind.inKind] — the CNC poste this contribution offsets, required
-  /// through its own validator exactly as `Label` already is (see the class doc comment for why
-  /// this differs from `OcptBudgetCommitmentFormBody`'s own missing-fields hint). Mirrors that
-  /// body's own `_buildPosteField` otherwise, poste by poste and label by label.
-  Widget _buildPosteField(Tr tr) => DropdownButtonFormField<String>(
-    initialValue: _posteId,
-    decoration: InputDecoration(
-      labelText: tr.budgetResourceDialogPosteFieldLabel,
-      helperText: tr.budgetResourceDialogPosteFieldHelper,
-      helperMaxLines: 2,
-    ),
-    items: [
-      for (final poste in widget.postes)
-        DropdownMenuItem(
-          value: poste.id,
-          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
-        ),
-    ],
-    onChanged: (value) {
-      setState(() => _posteId = value);
-      _report();
-    },
-    validator: (value) => value == null ? tr.budgetResourceDialogPosteRequiredError : null,
-  );
 
   /// The `Amount` field's own label, worded for [_groupKind] — see the class doc comment: an
   /// in-kind contribution's figure is what it is *valued at*, never an amount to be received.
@@ -723,6 +705,56 @@ class _OcptResourceStatusPicker extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The resource form's own `Poste` field: a picker, drawn only while the group is
+/// [OcptBudgetResourceGroupKind.inKind] — the CNC poste this contribution offsets, required
+/// through its own validator exactly as `Label` already is (see the form body's class doc comment
+/// for why this differs from `OcptBudgetCommitmentFormBody`'s own missing-fields hint). Mirrors
+/// that body's own poste field otherwise, poste by poste and label by label.
+class _OcptResourcePosteField extends StatelessWidget {
+  /// The postes the picker offers.
+  final List<OcptBudgetPoste> postes;
+
+  /// Whether the simplified naming applies to the poste labels.
+  final bool isSimplified;
+
+  /// The picked poste id, or null while none is picked.
+  final String? value;
+
+  /// Called with the picked poste id.
+  final ValueChanged<String?> onChanged;
+
+  /// Class constructor
+  const _OcptResourcePosteField({
+    required this.postes,
+    required this.isSimplified,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: tr.budgetResourceDialogPosteFieldLabel,
+        helperText: tr.budgetResourceDialogPosteFieldHelper,
+        helperMaxLines: 2,
+      ),
+      items: [
+        for (final poste in postes)
+          DropdownMenuItem(
+            value: poste.id,
+            child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
+          ),
+      ],
+      onChanged: onChanged,
+      validator: (value) => value == null ? tr.budgetResourceDialogPosteRequiredError : null,
     );
   }
 }
