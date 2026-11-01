@@ -500,32 +500,36 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             sheet,
                           ),
                           onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
-                          child: CustomPaint(
-                            size: canvasSize,
-                            painter: OcptFloorPlanCanvasPainter(
-                              sheet: sheet,
-                              zoom: zoom,
-                              pan: pan,
-                              selectedSymbolId: widget.selectedSymbolId,
-                              arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
-                              liveOverride: _drag.liveOverride ?? pendingScopeLiveOverride,
-                              symbolBorderColor: theme.colorScheme.outline,
-                              selectionColor: theme.colorScheme.primary,
-                              arrowAnchorColor: theme.colorScheme.secondary,
-                              arrowColor: theme.colorScheme.onSurface,
-                              labelTextColor: theme.colorScheme.onSurface,
-                              scaleColor: theme.colorScheme.onSurfaceVariant,
-                              scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
-                                ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
-                              ),
-                              onionSkinOpacity: widget.onionSkinOpacity,
-                              metricLines: ocptFloorPlanMetricLinesOf(
+                          // Its own layer: the plan repaints on every pan, zoom and drag frame, and the
+                          // widgets stacked over it do not repaint with it.
+                          child: RepaintBoundary(
+                            child: CustomPaint(
+                              size: canvasSize,
+                              painter: OcptFloorPlanCanvasPainter(
                                 sheet: sheet,
-                                selected: selectedShape,
-                                isMetricsShown: widget.isMetricsShown,
-                                tr: tr,
+                                zoom: zoom,
+                                pan: pan,
+                                selectedSymbolId: widget.selectedSymbolId,
+                                arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
+                                liveOverride: _drag.liveOverride ?? pendingScopeLiveOverride,
+                                symbolBorderColor: theme.colorScheme.outline,
+                                selectionColor: theme.colorScheme.primary,
+                                arrowAnchorColor: theme.colorScheme.secondary,
+                                arrowColor: theme.colorScheme.onSurface,
+                                labelTextColor: theme.colorScheme.onSurface,
+                                scaleColor: theme.colorScheme.onSurfaceVariant,
+                                scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
+                                  ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
+                                ),
+                                onionSkinOpacity: widget.onionSkinOpacity,
+                                metricLines: ocptFloorPlanMetricLinesOf(
+                                  sheet: sheet,
+                                  selected: selectedShape,
+                                  isMetricsShown: widget.isMetricsShown,
+                                  tr: tr,
+                                ),
+                                metricLineColor: theme.colorScheme.tertiary,
                               ),
-                              metricLineColor: theme.colorScheme.tertiary,
                             ),
                           ),
                         ),

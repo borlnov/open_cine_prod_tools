@@ -105,24 +105,27 @@ class _OcptStoryboardAnnotationOverlayState extends State<OcptStoryboardAnnotati
         final dragStart = _dragStart;
         final dragCurrent = _dragCurrent;
 
-        final paint = CustomPaint(
-          size: size,
-          painter: OcptStoryboardAnnotationOverlayPainter(
-            annotations: widget.annotations,
-            selectedId: widget.selectedAnnotationId,
-            movementArrowColor: theme.colorScheme.primary,
-            cameraMoveArrowColor: theme.colorScheme.tertiary,
-            labelColor: theme.colorScheme.secondary,
-            selectedColor: theme.colorScheme.onSurface,
-            labelTextColor: theme.colorScheme.onSurface,
-            labelBackgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
-            draftKind: dragStart != null && dragCurrent != null ? activeTool?.kind : null,
-            draftStart: dragStart == null || size.isEmpty
-                ? null
-                : Offset(dragStart.dx / size.width, dragStart.dy / size.height),
-            draftEnd: dragCurrent == null || size.isEmpty
-                ? null
-                : Offset(dragCurrent.dx / size.width, dragCurrent.dy / size.height),
+        // Its own layer: a draft drawn under the pointer repaints this annotation layer only.
+        final paint = RepaintBoundary(
+          child: CustomPaint(
+            size: size,
+            painter: OcptStoryboardAnnotationOverlayPainter(
+              annotations: widget.annotations,
+              selectedId: widget.selectedAnnotationId,
+              movementArrowColor: theme.colorScheme.primary,
+              cameraMoveArrowColor: theme.colorScheme.tertiary,
+              labelColor: theme.colorScheme.secondary,
+              selectedColor: theme.colorScheme.onSurface,
+              labelTextColor: theme.colorScheme.onSurface,
+              labelBackgroundColor: theme.colorScheme.surface.withValues(alpha: 0.85),
+              draftKind: dragStart != null && dragCurrent != null ? activeTool?.kind : null,
+              draftStart: dragStart == null || size.isEmpty
+                  ? null
+                  : Offset(dragStart.dx / size.width, dragStart.dy / size.height),
+              draftEnd: dragCurrent == null || size.isEmpty
+                  ? null
+                  : Offset(dragCurrent.dx / size.width, dragCurrent.dy / size.height),
+            ),
           ),
         );
 
