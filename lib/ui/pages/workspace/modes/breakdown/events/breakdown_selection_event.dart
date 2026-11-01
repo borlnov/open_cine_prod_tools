@@ -23,7 +23,7 @@ class OcptBreakdownSceneSelectedEvent extends OcptBreakdownSelectionEvent {
   /// Class constructor
   const OcptBreakdownSceneSelectedEvent({required this.sceneId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId];
 }
@@ -45,7 +45,7 @@ class OcptBreakdownSceneHeadingSelectedEvent extends OcptBreakdownSelectionEvent
   /// Class constructor
   const OcptBreakdownSceneHeadingSelectedEvent({required this.sceneId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId];
 }
@@ -74,7 +74,7 @@ class OcptBreakdownTargetSelectedEvent extends OcptBreakdownSelectionEvent {
     required this.sceneId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, targetKind, targetId, sceneId];
 }
@@ -95,7 +95,7 @@ class OcptBreakdownOccurrenceSelectedEvent extends OcptBreakdownSelectionEvent {
   /// Class constructor
   const OcptBreakdownOccurrenceSelectedEvent({required this.sceneId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId];
 }
@@ -114,7 +114,7 @@ class OcptBreakdownAnchorSceneSelectedEvent extends OcptBreakdownSelectionEvent 
   /// Class constructor
   const OcptBreakdownAnchorSceneSelectedEvent({required this.sceneId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId];
 }

@@ -51,6 +51,7 @@ class OcptBreakdownCategoryLegend extends StatelessWidget {
     required this.onShowAllRequested,
   });
 
+  /// Build the breakdown category legend as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -116,6 +117,7 @@ class _OcptBreakdownLegendRow extends StatelessWidget {
   /// Class constructor
   const _OcptBreakdownLegendRow({required this.entry, required this.isHidden, required this.onTap});
 
+  /// Build the breakdown legend row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

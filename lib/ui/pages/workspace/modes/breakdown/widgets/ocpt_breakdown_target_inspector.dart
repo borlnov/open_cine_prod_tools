@@ -194,6 +194,7 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the breakdown target inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -338,6 +339,7 @@ class _Title extends StatelessWidget {
   /// Class constructor
   const _Title({required this.target, required this.nameValue, required this.onNameChanged});
 
+  /// Build the title as an [OcptResourcesSheetField].
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.titleSmall;
@@ -368,6 +370,7 @@ class _SectionTitle extends StatelessWidget {
   /// Class constructor
   const _SectionTitle({required this.title});
 
+  /// Build the section title as a [Text].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -390,6 +393,7 @@ class _StatusChips extends StatelessWidget {
   /// Class constructor
   const _StatusChips({required this.element, required this.onStatusChanged});
 
+  /// Build the status chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -422,6 +426,7 @@ class _CategoryGrid extends StatelessWidget {
   /// Class constructor
   const _CategoryGrid({required this.element, required this.onCategoryChanged});
 
+  /// Build the category grid as a [GridView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -493,6 +498,7 @@ class _Details extends StatelessWidget {
     required this.onBringerChanged,
   });
 
+  /// Build the details as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -560,6 +566,7 @@ class _Occurrences extends StatelessWidget {
   /// Class constructor
   const _Occurrences({required this.occurrences, required this.onOccurrenceSelected});
 
+  /// Build the occurrences as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -647,6 +654,7 @@ class _SuggestedOccurrences extends StatelessWidget {
     required this.onSuggestionAccepted,
   });
 
+  /// Build the suggested occurrences as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -713,6 +721,7 @@ class _SuggestedOccurrenceRow extends StatelessWidget {
     required this.onSuggestionAccepted,
   });
 
+  /// Build the suggested occurrence row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -796,6 +805,7 @@ class _OcptBreakdownCategoryChip extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the breakdown category chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

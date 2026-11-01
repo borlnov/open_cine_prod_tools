@@ -138,6 +138,7 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
     required this.onOpenInResourcesRequested,
   });
 
+  /// Build the breakdown script block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final element = _elementLayoutOf(block.type, previewLayout.metrics);
@@ -492,6 +493,7 @@ class _OcptBreakdownWord extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the breakdown word as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -666,6 +668,7 @@ class _TrimmedBox extends StatelessWidget {
     required this.groups,
   });
 
+  /// Build the trimmed box as a [Text].
   @override
   Widget build(BuildContext context) {
     TextSpan plainSpan(OcptFountainDisplayRun run) => TextSpan(

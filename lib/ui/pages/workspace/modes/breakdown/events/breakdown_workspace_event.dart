@@ -45,7 +45,7 @@ class OcptBreakdownRightDockTabSelectedEvent extends OcptBreakdownWorkspaceEvent
   /// Class constructor
   const OcptBreakdownRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -77,7 +77,7 @@ class OcptBreakdownDockFractionsChangedEvent extends OcptBreakdownWorkspaceEvent
   /// Class constructor
   const OcptBreakdownDockFractionsChangedEvent({required this.left, required this.right});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, left, right];
 }
@@ -100,7 +100,7 @@ class OcptBreakdownLegendEntryToggledEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownLegendEntryToggledEvent({required this.key});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, key];
 }
@@ -125,7 +125,7 @@ class OcptBreakdownCentreViewSelectedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownCentreViewSelectedEvent({required this.view});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, view];
 }
@@ -145,7 +145,7 @@ class OcptBreakdownSearchQueryChangedEvent extends OcptBreakdownWorkspaceEvent {
   /// Class constructor
   const OcptBreakdownSearchQueryChangedEvent({required this.query});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, query];
 }

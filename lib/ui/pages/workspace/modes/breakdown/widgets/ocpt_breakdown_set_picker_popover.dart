@@ -77,10 +77,14 @@ class OcptBreakdownSetPickerPopover extends StatefulWidget {
     required this.onSetCreationRequested,
   });
 
+  /// Create the [_OcptBreakdownSetPickerPopoverState] holding the state of the breakdown set picker
+  /// popover.
   @override
   State<OcptBreakdownSetPickerPopover> createState() => _OcptBreakdownSetPickerPopoverState();
 }
 
+/// State of [OcptBreakdownSetPickerPopover]: owns the overlay controller, the layer link and the
+/// name field's text controller.
 class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPopover> {
   /// Owns whether the overlay entry is currently inserted.
   final OverlayPortalController _controller = OverlayPortalController();
@@ -96,6 +100,7 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   /// The field's own focus, requested as soon as the popover appears.
   final FocusNode _fieldFocusNode = FocusNode();
 
+  /// Refill the name field with the new default name while the popover is closed.
   @override
   void didUpdateWidget(OcptBreakdownSetPickerPopover oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -104,6 +109,7 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
     }
   }
 
+  /// Build the breakdown set picker popover as a [CompositedTransformTarget].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -139,6 +145,7 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
     );
   }
 
+  /// Dispose [_textController] and [_fieldFocusNode].
   @override
   void dispose() {
     _textController.dispose();
@@ -202,6 +209,7 @@ class _OverlayChild extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the overlay child as a [Stack].
   @override
   Widget build(BuildContext context) => Stack(
     children: [
@@ -289,6 +297,7 @@ class _Panel extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the panel as a [Material].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -394,6 +403,7 @@ class _ExistingSets extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the existing sets as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -476,6 +486,7 @@ class _CreateSection extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the create section as a [Column].
   @override
   Widget build(BuildContext context) {
     if (name.isEmpty) {
@@ -526,6 +537,7 @@ class _Row extends StatelessWidget {
   /// Class constructor
   const _Row({required this.label, required this.onTap});
 
+  /// Build the row as an [InkWell].
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,

@@ -25,6 +25,7 @@ class OcptBreakdownViewEffects extends StatelessWidget {
   /// Class constructor
   const OcptBreakdownViewEffects({super.key, required this.child});
 
+  /// Build the breakdown view effects as a [MultiBlocListener].
   @override
   Widget build(BuildContext context) => MultiBlocListener(
     listeners: [

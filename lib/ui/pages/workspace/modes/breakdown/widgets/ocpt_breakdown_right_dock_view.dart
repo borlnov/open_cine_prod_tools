@@ -42,6 +42,7 @@ class OcptBreakdownRightDockView extends StatelessWidget {
     required this.onVersionCreationRequested,
   });
 
+  /// Build the breakdown right dock view as an [OcptBreakdownRightDock].
   @override
   Widget build(BuildContext context) => OcptBreakdownRightDock(
     activeTab: activeTab,

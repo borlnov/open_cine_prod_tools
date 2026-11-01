@@ -41,6 +41,7 @@ class OcptBreakdownStatusBar extends StatelessWidget {
     required this.needsCheckTagCount,
   });
 
+  /// Build the breakdown status bar as an [OcptWorkspaceStatusBar].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

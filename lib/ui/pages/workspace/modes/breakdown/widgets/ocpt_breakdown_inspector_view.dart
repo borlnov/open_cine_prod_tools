@@ -45,6 +45,7 @@ class OcptBreakdownInspectorView extends StatelessWidget {
     required this.onTagRemovalRequested,
   });
 
+  /// Build the breakdown inspector view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final target = state.selectedTarget;
@@ -73,6 +74,7 @@ class _SceneInspector extends StatelessWidget {
   /// Class constructor
   const _SceneInspector({required this.state, required this.inspectorState});
 
+  /// Build the scene inspector as an [OcptBreakdownSceneInspector].
   @override
   Widget build(BuildContext context) {
     final scene = state.selectedScene;
@@ -168,6 +170,7 @@ class _TargetInspector extends StatelessWidget {
     required this.onTagRemovalRequested,
   });
 
+  /// Build the target inspector as an [OcptBreakdownTargetInspector].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBreakdownBloc>();

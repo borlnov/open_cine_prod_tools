@@ -81,6 +81,7 @@ class OcptBreakdownScenePanel extends StatelessWidget {
     required this.onShowAllLegendKeysRequested,
   });
 
+  /// Build the breakdown scene panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -168,6 +169,7 @@ class _SceneEntry extends StatelessWidget {
     required this.onWarningTap,
   });
 
+  /// Build the scene entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -290,6 +292,7 @@ class _CategoryBar extends StatelessWidget {
   /// Class constructor
   const _CategoryBar({required this.bucket});
 
+  /// Build the category bar as a [Tooltip].
   @override
   Widget build(BuildContext context) => Tooltip(
     message: ocptBreakdownSceneBarBucketLabel(Tr.of(context), bucket),

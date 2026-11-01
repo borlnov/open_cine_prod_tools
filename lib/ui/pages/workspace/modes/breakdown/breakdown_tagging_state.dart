@@ -88,7 +88,7 @@ class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingSt
   /// Copies this state with the tag write error cleared.
   OcptBreakdownTaggingState copyWithTagWriteErrorCleared() => copyWith(hasTagWriteError: false);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, pendingTagAnchor, pendingTagRange, hasTagWriteError];
 }

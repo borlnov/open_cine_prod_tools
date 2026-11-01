@@ -26,7 +26,7 @@ class OcptBreakdownSceneStatusChangedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownSceneStatusChangedEvent({required this.sceneId, required this.status});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, status];
 }
@@ -44,7 +44,7 @@ class OcptBreakdownSceneNotesChangedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownSceneNotesChangedEvent({required this.sceneId, required this.rawValue});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, rawValue];
 }
@@ -61,7 +61,7 @@ class OcptBreakdownElementStatusChangedEvent extends OcptBreakdownInspectorEvent
   /// Class constructor
   const OcptBreakdownElementStatusChangedEvent({required this.elementId, required this.status});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId, status];
 }
@@ -78,7 +78,7 @@ class OcptBreakdownElementCategoryChangedEvent extends OcptBreakdownInspectorEve
   /// Class constructor
   const OcptBreakdownElementCategoryChangedEvent({required this.elementId, required this.category});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId, category];
 }
@@ -104,7 +104,7 @@ class OcptBreakdownElementFieldChangedEvent extends OcptBreakdownInspectorEvent 
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId, field, rawValue];
 }
@@ -130,7 +130,7 @@ class OcptBreakdownElementOwnerChangedEvent extends OcptBreakdownInspectorEvent 
   /// Class constructor
   const OcptBreakdownElementOwnerChangedEvent({required this.elementId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId, personId];
 }
@@ -147,7 +147,7 @@ class OcptBreakdownElementBringerChangedEvent extends OcptBreakdownInspectorEven
   /// Class constructor
   const OcptBreakdownElementBringerChangedEvent({required this.elementId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId, personId];
 }
@@ -169,7 +169,7 @@ class OcptBreakdownSceneSetLinkedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownSceneSetLinkedEvent({required this.sceneId, required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
 }
@@ -190,7 +190,7 @@ class OcptBreakdownSetNameChangedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownSetNameChangedEvent({required this.setId, required this.rawValue});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId, rawValue];
 }
@@ -219,7 +219,7 @@ class OcptBreakdownSceneSetCreationRequestedEvent extends OcptBreakdownInspector
     required this.name,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, locationId, name];
 }
@@ -240,7 +240,7 @@ class OcptBreakdownSceneSetUnlinkedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownSceneSetUnlinkedEvent({required this.sceneId, required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
 }
@@ -266,7 +266,7 @@ class OcptBreakdownTagNeedsCheckClearedEvent extends OcptBreakdownInspectorEvent
   /// Class constructor
   const OcptBreakdownTagNeedsCheckClearedEvent({required this.tagId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tagId];
 }
@@ -286,7 +286,7 @@ class OcptBreakdownFlaggedTagRemovedEvent extends OcptBreakdownInspectorEvent {
   /// Class constructor
   const OcptBreakdownFlaggedTagRemovedEvent({required this.tagId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tagId];
 }

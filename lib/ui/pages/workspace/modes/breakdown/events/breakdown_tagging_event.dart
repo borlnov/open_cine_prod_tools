@@ -37,7 +37,7 @@ class OcptBreakdownWordClickedEvent extends OcptBreakdownTaggingEvent {
     required this.wordEndOffset,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, wordStartOffset, wordEndOffset];
 }
@@ -62,7 +62,7 @@ class OcptBreakdownPopoverTargetLinkedEvent extends OcptBreakdownTaggingEvent {
   /// Class constructor
   const OcptBreakdownPopoverTargetLinkedEvent({required this.targetKind, required this.targetId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, targetKind, targetId];
 }
@@ -84,7 +84,7 @@ class OcptBreakdownPopoverElementCreationRequestedEvent extends OcptBreakdownTag
     required this.name,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, category, name];
 }
@@ -111,7 +111,7 @@ class OcptBreakdownPopoverSetCreationRequestedEvent extends OcptBreakdownTagging
     required this.name,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, name];
 }
@@ -158,7 +158,7 @@ class OcptBreakdownSuggestionAcceptedEvent extends OcptBreakdownTaggingEvent {
     required this.taggedText,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

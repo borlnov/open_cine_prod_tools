@@ -54,6 +54,8 @@ class OcptBreakdownTagPopoverAnchor extends StatefulWidget {
   /// Class constructor
   const OcptBreakdownTagPopoverAnchor({super.key, required this.child, required this.popover});
 
+  /// Create the [_OcptBreakdownTagPopoverAnchorState] holding the state of the breakdown tag
+  /// popover anchor.
   @override
   State<OcptBreakdownTagPopoverAnchor> createState() => _OcptBreakdownTagPopoverAnchorState();
 }
@@ -73,6 +75,7 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
   /// itself, it knows nothing of the edge it may be pushed past.
   ScrollPosition? _scrollPosition;
 
+  /// Show the popover right after the first frame, since it cannot be shown while the tree builds.
   @override
   void initState() {
     super.initState();
@@ -87,6 +90,8 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     });
   }
 
+  /// Follow the scroll position of the enclosing scrollable, so the popover is placed again when it
+  /// scrolls.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -99,6 +104,7 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     }
   }
 
+  /// Build the breakdown tag popover anchor as a [CompositedTransformTarget].
   @override
   Widget build(BuildContext context) => CompositedTransformTarget(
     link: _link,
@@ -164,6 +170,7 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     }
   }
 
+  /// Detach [_handleGeometryChanged] from [_scrollPosition].
   @override
   void dispose() {
     _scrollPosition?.removeListener(_handleGeometryChanged);
@@ -207,6 +214,7 @@ class _PopoverFollower extends StatelessWidget {
     required this.popover,
   });
 
+  /// Build the popover follower as a [CompositedTransformFollower].
   @override
   Widget build(BuildContext context) => CompositedTransformFollower(
     link: link,

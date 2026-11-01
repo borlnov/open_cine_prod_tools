@@ -34,6 +34,8 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBreakdownSheetsExportDialog({required this.current, super.key});
 
+  /// Create the [_OcptBreakdownSheetsExportDialogState] holding the state of the breakdown sheets
+  /// export dialog.
   @override
   State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
 
@@ -62,12 +64,14 @@ class _OcptBreakdownSheetsExportDialogState extends State<OcptBreakdownSheetsExp
   /// Whether each sheet closes on the list of what the scene still has to find.
   bool _includeToFindList = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the breakdown sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

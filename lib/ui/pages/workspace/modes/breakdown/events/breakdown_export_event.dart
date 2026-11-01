@@ -54,7 +54,7 @@ class OcptBreakdownSheetsExportRequestedEvent extends OcptBreakdownExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -99,7 +99,7 @@ class OcptBreakdownXlsxExportRequestedEvent extends OcptBreakdownExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel, episodeTag, shareAnchor];
 }

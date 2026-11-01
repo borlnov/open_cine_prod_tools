@@ -93,6 +93,7 @@ class OcptBreakdownTagPopover extends StatefulWidget {
     required this.onClose,
   });
 
+  /// Create the [_OcptBreakdownTagPopoverState] holding the state of the breakdown tag popover.
   @override
   State<OcptBreakdownTagPopover> createState() => _OcptBreakdownTagPopoverState();
 }
@@ -112,12 +113,14 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     candidates: widget.candidates,
   );
 
+  /// Register [_onQueryChanged] as a listener of [_controller].
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onQueryChanged);
   }
 
+  /// Build the breakdown tag popover as a [TapRegion].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -249,6 +252,7 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     return trimmed.isEmpty ? widget.taggedText : trimmed;
   }
 
+  /// Detach [_onQueryChanged] from [_controller], then dispose [_controller] and [_fieldFocusNode].
   @override
   void dispose() {
     _controller
@@ -270,6 +274,7 @@ class _Header extends StatelessWidget {
   /// Class constructor
   const _Header({required this.taggedText, required this.onClose});
 
+  /// Build the header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -314,6 +319,7 @@ class _Matches extends StatelessWidget {
   /// Class constructor
   const _Matches({required this.results, required this.onCandidateSelected});
 
+  /// Build the matches as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -358,6 +364,7 @@ class _Group extends StatelessWidget {
   /// Class constructor
   const _Group({required this.title, required this.candidates, required this.onCandidateSelected});
 
+  /// Build the group as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -391,6 +398,7 @@ class _MatchRow extends StatelessWidget {
   /// Class constructor
   const _MatchRow({required this.candidate, required this.onTap});
 
+  /// Build the match row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -449,6 +457,7 @@ class _CategoryGrid extends StatelessWidget {
   /// Class constructor
   const _CategoryGrid({required this.onCategorySelected, required this.nameFromField});
 
+  /// Build the category grid as a [GridView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -496,6 +505,7 @@ class _SetCreationControl extends StatelessWidget {
     required this.nameFromField,
   });
 
+  /// Build the set creation control as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -545,6 +555,7 @@ class _OcptBreakdownPopoverCategoryChip extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the breakdown popover category chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

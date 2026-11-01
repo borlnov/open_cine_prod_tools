@@ -86,6 +86,7 @@ class OcptBreakdownMode extends StatelessWidget {
   /// Creates the breakdown mode.
   const OcptBreakdownMode({super.key});
 
+  /// Build the breakdown mode as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -125,6 +126,7 @@ class _BreakdownView extends StatefulWidget {
   /// Class constructor
   const _BreakdownView();
 
+  /// Create the [_BreakdownViewState] holding the state of the breakdown view.
   @override
   State<_BreakdownView> createState() => _BreakdownViewState();
 }
@@ -140,6 +142,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// Flush the pending field edits of the bloc before the view leaves the tree.
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -152,6 +155,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     super.deactivate();
   }
 
+  /// Build the breakdown view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptBreakdownBloc, OcptBreakdownState>(
     listener: _onStateChanged,
@@ -486,6 +490,7 @@ class _BreakdownViewState extends State<_BreakdownView> {
     );
   }
 
+  /// Dispose [_dockLayoutController].
   @override
   void dispose() {
     _dockLayoutController.dispose();

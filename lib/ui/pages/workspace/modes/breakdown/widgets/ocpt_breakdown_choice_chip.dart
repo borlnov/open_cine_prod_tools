@@ -33,6 +33,7 @@ class OcptBreakdownChoiceChip extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the breakdown choice chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

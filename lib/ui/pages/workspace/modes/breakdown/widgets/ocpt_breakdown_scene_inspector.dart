@@ -150,6 +150,7 @@ class OcptBreakdownSceneInspector extends StatelessWidget {
     this.isReadOnly = false,
   });
 
+  /// Build the breakdown scene inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -305,6 +306,7 @@ class _StatusChips extends StatelessWidget {
   /// Class constructor
   const _StatusChips({required this.currentStatus, required this.onStatusChanged});
 
+  /// Build the status chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -372,6 +374,7 @@ class _SetsRow extends StatelessWidget {
     required this.onSetCreationRequested,
   });
 
+  /// Build the sets row as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -423,6 +426,7 @@ class _ToFindAlert extends StatelessWidget {
   /// Class constructor
   const _ToFindAlert({required this.toFindTargets});
 
+  /// Build the to find alert as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -490,6 +494,7 @@ class _ToCheckAlert extends StatelessWidget {
     required this.onFlaggedTagRemoved,
   });
 
+  /// Build the to check alert as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -561,6 +566,7 @@ class _NeedsCheckRow extends StatelessWidget {
     required this.onFlaggedTagRemoved,
   });
 
+  /// Build the needs check row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -621,6 +627,7 @@ class _EmptyHint extends StatelessWidget {
   /// Class constructor
   const _EmptyHint();
 
+  /// Build the empty hint as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -664,6 +671,7 @@ class _Group extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Build the group as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -760,6 +768,7 @@ class _StatTile extends StatelessWidget {
   /// Class constructor
   const _StatTile({required this.label, required this.value, this.color});
 
+  /// Build the stat tile as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -800,6 +809,7 @@ class _StatusPill extends StatelessWidget {
   /// Class constructor
   const _StatusPill({required this.status});
 
+  /// Build the status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

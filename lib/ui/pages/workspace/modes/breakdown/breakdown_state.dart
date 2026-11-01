@@ -739,7 +739,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     );
   }
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

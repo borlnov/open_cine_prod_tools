@@ -36,6 +36,7 @@ class OcptBreakdownCentre extends StatelessWidget {
   /// Class constructor
   const OcptBreakdownCentre({super.key, required this.state});
 
+  /// Build the breakdown centre as a [Column].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBreakdownBloc>();
@@ -93,6 +94,7 @@ class _RoleAlertBanner extends StatelessWidget {
   /// Class constructor
   const _RoleAlertBanner({required this.orphanedAlerts, required this.collisionAlerts});
 
+  /// Build the role alert banner as an [OcptRoleAlertCompactBanner].
   @override
   Widget build(BuildContext context) => OcptRoleAlertCompactBanner(
     orphanedAlerts: orphanedAlerts,
@@ -116,6 +118,7 @@ class _RecapCentre extends StatelessWidget {
   /// Class constructor
   const _RecapCentre({required this.state});
 
+  /// Build the recap centre as an [OcptBreakdownRecapTable].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBreakdownBloc>();
@@ -151,6 +154,7 @@ class _ScriptCentre extends StatelessWidget {
   /// Class constructor
   const _ScriptCentre({required this.state});
 
+  /// Build the script centre as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBreakdownBloc>();

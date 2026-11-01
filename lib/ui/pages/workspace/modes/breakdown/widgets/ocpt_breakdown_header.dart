@@ -85,6 +85,7 @@ class OcptBreakdownHeader extends StatelessWidget {
     required this.sceneCount,
   });
 
+  /// Build the breakdown header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -194,6 +195,7 @@ class _OcptBreakdownSearchField extends StatefulWidget {
   /// Class constructor
   const _OcptBreakdownSearchField({required this.query, required this.onChanged});
 
+  /// Create the [_OcptBreakdownSearchFieldState] holding the state of the breakdown search field.
   @override
   State<_OcptBreakdownSearchField> createState() => _OcptBreakdownSearchFieldState();
 }
@@ -205,6 +207,7 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.query);
 
+  /// Show the new query in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptBreakdownSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -214,6 +217,7 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
     }
   }
 
+  /// Build the breakdown search field as a [TextField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -243,6 +247,7 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
     widget.onChanged("");
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();
@@ -262,6 +267,7 @@ class _OcptBreakdownProgressBar extends StatelessWidget {
   /// Class constructor
   const _OcptBreakdownProgressBar({required this.done, required this.total});
 
+  /// Build the breakdown progress bar as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

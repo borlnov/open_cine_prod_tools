@@ -189,6 +189,7 @@ class OcptBreakdownScriptView extends StatefulWidget {
     required this.onSelectionCancelled,
   });
 
+  /// Create the [_OcptBreakdownScriptViewState] holding the state of the breakdown script view.
   @override
   State<OcptBreakdownScriptView> createState() => _OcptBreakdownScriptViewState();
 }
@@ -210,6 +211,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
   /// popover owns those gestures instead).
   bool get _hasOpenSelection => widget.pendingTagAnchor != null && widget.pendingTagRange == null;
 
+  /// Take the keyboard focus after the first frame when the view opens onto an open selection.
   @override
   void initState() {
     super.initState();
@@ -220,6 +222,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     }
   }
 
+  /// Take the keyboard focus after the frame when a selection has just opened.
   @override
   void didUpdateWidget(covariant OcptBreakdownScriptView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -230,6 +233,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     }
   }
 
+  /// Build the breakdown script view as a [Focus].
   @override
   Widget build(BuildContext context) {
     if (widget.scenes.isEmpty) {
@@ -358,6 +362,7 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     return widget.screenplayText.substring(start, end);
   }
 
+  /// Dispose [_keyboardFocusNode].
   @override
   void dispose() {
     _keyboardFocusNode.dispose();
@@ -456,6 +461,7 @@ class _OcptBreakdownSceneSheet extends StatelessWidget {
     required this.onOpenInResourcesRequested,
   });
 
+  /// Build the breakdown scene sheet as a [Padding].
   @override
   Widget build(BuildContext context) {
     final layout = OcptScriptWordLayout.of(sceneId: scene.id, sceneText: sceneText);

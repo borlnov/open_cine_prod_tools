@@ -24,6 +24,7 @@ class OcptBreakdownLeftDockView extends StatelessWidget {
   /// Class constructor
   const OcptBreakdownLeftDockView({super.key, required this.state});
 
+  /// Build the breakdown left dock view as an [OcptBreakdownScenePanel].
   @override
   Widget build(BuildContext context) => OcptBreakdownScenePanel(
     scenes: state.scenes,

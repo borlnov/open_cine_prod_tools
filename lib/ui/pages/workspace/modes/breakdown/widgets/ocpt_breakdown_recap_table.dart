@@ -134,6 +134,7 @@ class OcptBreakdownRecapTable extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Build the breakdown recap table as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -273,6 +274,7 @@ class _RecapHeaderRow extends StatelessWidget {
     required this.scrollbarGutter,
   });
 
+  /// Build the recap header row as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -379,6 +381,7 @@ class _RecapGroupSection extends StatelessWidget {
     required this.onTargetSelected,
   });
 
+  /// Build the recap group section as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -478,6 +481,7 @@ class _RecapRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the recap row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -578,6 +582,7 @@ class _RecapDot extends StatelessWidget {
   /// Class constructor
   const _RecapDot({super.key, required this.isTagged, required this.color});
 
+  /// Build the recap dot as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -607,6 +612,7 @@ class _RecapStatusPill extends StatelessWidget {
   /// Class constructor
   const _RecapStatusPill({required this.status});
 
+  /// Build the recap status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

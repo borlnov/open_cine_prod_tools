@@ -62,6 +62,7 @@ class OcptBreakdownSceneHeadingBlock extends StatelessWidget {
     required this.isFollowedByBlankLine,
   });
 
+  /// Build the breakdown scene heading block as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

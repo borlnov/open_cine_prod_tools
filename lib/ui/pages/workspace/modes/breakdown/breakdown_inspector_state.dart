@@ -103,7 +103,7 @@ class OcptBreakdownInspectorState extends BlocStateForMixin<OcptBreakdownInspect
     pendingSetNameEdits: pendingSetNameEdits,
   );
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
