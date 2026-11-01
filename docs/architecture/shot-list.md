@@ -204,18 +204,19 @@ Resources set carries across its three scopes, and the mode's two newest documen
 
 ## The floor plans
 
-- **A floor plan is the plan of a Resources set**, not of a sequence (ADR 0032). `floor_plan_sets.id`
-  **is `sets.id`** — no fresh id of its own — created lazily on the first symbol placed or underlay
-  imported (each writing method of `OcptFloorPlanService` ensures the row first): two replicas that
-  each draw the first mark on the very same set while offline converge onto **one** row through the
-  sync merge, which is exactly why the id is a pure function of the set's rather than a freshly
-  minted UUID. The sequence's own tabs — the sets shown in the centre header — are its **live
-  `scene_sets` links**, the very fact the breakdown mode's own sets row reads and writes
-  (`breakdown.md`): the two modes can never disagree
-  about which sets a sequence is shot in, and unlinking one there is what the shot list's own tab
-  close action offers back. A sequence with **no linked set** shows an empty-state gallery instead
-  of a canvas (`OcptFloorPlanSetGallery`): one card per live Resources set of the whole project, its
-  own thumbnail (the set's own set-scope symbols alone, drawn through the very same
+- **A floor plan is the plan of a Resources set**, not of a sequence (ADR 0032).
+  `floor_plan_sets.id` **is `sets.id`** — no fresh id of its own — created lazily on the first
+  symbol placed or underlay imported (each writing method of `OcptFloorPlanService` ensures the row
+  first, through `OcptFloorPlanRows.ensurePlan`, which its arrow and cascade operation classes
+  share): two replicas that each draw the first mark on the very same set while offline converge
+  onto **one** row through the sync merge, which is exactly why the id is a pure function of the
+  set's rather than a freshly minted UUID. The sequence's own tabs — the sets shown in the centre
+  header — are its **live `scene_sets` links**, the very fact the breakdown mode's own sets row
+  reads and writes (`breakdown.md`): the two modes can never disagree about which sets a sequence is
+  shot in, and unlinking one there is what the shot list's own tab close action offers back. A
+  sequence with **no linked set** shows an empty-state gallery instead of a canvas
+  (`OcptFloorPlanSetGallery`): one card per live Resources set of the whole project, its own
+  thumbnail (the set's own set-scope symbols alone, drawn through the very same
   `OcptFloorPlanCanvasPainter` the real canvas uses, fitted to the card — the underlay is left out,
   too costly to decode per card of a project-wide gallery), the heading's own suggested set starred
   and listed first (`ocptSceneSetSuggestionOf`, never applied on its own), a click linking it, and a
@@ -224,9 +225,9 @@ Resources set carries across its three scopes, and the mode's two newest documen
   (starred), `Link an existing set ▸` (grouped by location, only the sets not already linked),
   `Create a set ▸` (per existing location, then `New location…`), a divider, `Duplicate this set`
   and `Copy blocking from a shot…` — `OcptLocationsService.duplicateSetForScene` runs the first as
-  one atomic transaction (mint a sibling set in the same location, copy its set-scope symbols,
-  link it to the sequence), so no half-finished duplicate can be left behind. A tab's name is edited
-  in place while it is selected, writing the Resources set's own `name` straight through; its close
+  one atomic transaction (mint a sibling set in the same location, copy its set-scope symbols, link
+  it to the sequence), so no half-finished duplicate can be left behind. A tab's name is edited in
+  place while it is selected, writing the Resources set's own `name` straight through; its close
   action only **unlinks** the set from this sequence — the plan is kept, and the unlink dialog names
   how many cameras, characters and props of this sequence's own placements stop showing until it is
   linked again (`ocptFloorPlanUnlinkCountsOf`).

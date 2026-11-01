@@ -5,11 +5,14 @@
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_arrow_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_cascade_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_read_ops.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_rows.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_scope_decision.dart';
-import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
@@ -25,7 +28,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// **The plan belongs to the Resources set, not to a sequence** — `floor_plan_sets.id` **is**
 /// `sets.id` (see `OcptFloorPlanSetsTable`'s own doc comment), created lazily on the first write
-/// ([_ensurePlan]) rather than eagerly for every Resources set the project holds. A sequence's
+/// ([OcptFloorPlanRows.ensurePlan]) rather than eagerly for every Resources set the project holds. A sequence's
 /// floor-plan tabs are its live `scene_sets` links, which this service reads but never writes —
 /// that link is `OcptLocationsService`'s (`assignSceneToSet`/`removeSceneFromSet`), and this
 /// service has no reference to it at all: `OcptLocationsService` depends on this one instead (for
@@ -82,166 +85,26 @@ class OcptFloorPlanService extends AbsOcptService {
     return super.disposeLifeCycle();
   }
 
-  /// Loads every live Resources set linked (`scene_sets`) to a live scene of screenplay
-  /// [screenplayId], each carrying its resolved underlay path and its live symbols and arrows,
-  /// keyed by scene id — a sequence's floor-plan tabs are exactly its own live links, in the
-  /// Resources mode's own display order (`sets.sortKey`), and the very same [OcptFloorPlanSet] is
-  /// handed back under every scene it is linked to (`OcptFloorPlanSnapshot`'s own doc comment).
-  ///
-  /// A linked set with no `floor_plan_sets` row yet (nothing has been drawn on it) reads as an
-  /// empty plan rather than being skipped — [_ensurePlan] is what a first write mints the row
-  /// through, this read never does.
+  /// Forwards to [OcptFloorPlanReadOps.loadFloorPlans].
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
-    final sceneIds = await _liveSceneIdsOfScreenplay(
-      database: database,
-      screenplayId: screenplayId,
-    );
-    if (sceneIds.isEmpty) {
-      return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: const {});
-    }
+  }) => OcptFloorPlanReadOps.loadFloorPlans(database: database, screenplayId: screenplayId);
 
-    final sceneSetRows = await (database.select(
-      database.ocptSceneSetsTable,
-    )..where((table) => table.sceneId.isIn(sceneIds) & table.isDeleted.not())).get();
-    if (sceneSetRows.isEmpty) {
-      return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: const {});
-    }
-
-    final linkedSetIds = {for (final row in sceneSetRows) row.setId};
-
-    final resourceSetRows =
-        await (database.select(database.ocptSetsTable)
-              ..where((table) => table.id.isIn(linkedSetIds) & table.isDeleted.not())
-              ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-            .get();
-    final liveSetIds = resourceSetRows.map((row) => row.id).toSet();
-
-    final planRows = await (database.select(
-      database.ocptFloorPlanSetsTable,
-    )..where((table) => table.id.isIn(liveSetIds) & table.isDeleted.not())).get();
-    final planRowById = {for (final row in planRows) row.id: row};
-
-    final symbolRows = liveSetIds.isEmpty
-        ? const <OcptFloorPlanSymbolRow>[]
-        : await (database.select(
-            database.ocptFloorPlanSymbolsTable,
-          )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not())).get();
-
-    final arrowRows = liveSetIds.isEmpty
-        ? const <OcptFloorPlanArrowRow>[]
-        : await (database.select(
-            database.ocptFloorPlanArrowsTable,
-          )..where((table) => table.setId.isIn(liveSetIds) & table.isDeleted.not())).get();
-
-    final symbolsBySetId = <String, List<OcptFloorPlanSymbol>>{};
-    for (final row in symbolRows) {
-      symbolsBySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanSymbol.fromRow(row));
-    }
-
-    final arrowsBySetId = <String, List<OcptFloorPlanArrow>>{};
-    for (final row in arrowRows) {
-      arrowsBySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanArrow.fromRow(row));
-    }
-
-    final underlayAssetIds = {
-      for (final row in planRows)
-        if (row.underlayAssetId != null) row.underlayAssetId!,
-    };
-    final pathByAssetId = await _liveAssetPathsById(database: database, assetIds: underlayAssetIds);
-
-    final floorPlanSetById = <String, OcptFloorPlanSet>{
-      for (final resourceRow in resourceSetRows)
-        resourceRow.id: OcptFloorPlanSet.fromRows(
-          setRow: resourceRow,
-          planRow: planRowById[resourceRow.id],
-          underlayPath: switch (planRowById[resourceRow.id]?.underlayAssetId) {
-            final assetId? => pathByAssetId[assetId],
-            null => null,
-          },
-          symbols: symbolsBySetId[resourceRow.id] ?? const [],
-          arrows: arrowsBySetId[resourceRow.id] ?? const [],
-        ),
-    };
-
-    final linkedSetIdsBySceneId = <String, Set<String>>{};
-    for (final row in sceneSetRows) {
-      linkedSetIdsBySceneId.putIfAbsent(row.sceneId, () => {}).add(row.setId);
-    }
-
-    final setsBySceneId = <String, List<OcptFloorPlanSet>>{};
-    for (final sceneId in sceneIds) {
-      final linked = linkedSetIdsBySceneId[sceneId];
-      if (linked == null || linked.isEmpty) {
-        continue;
-      }
-
-      final tabs = [
-        for (final resourceRow in resourceSetRows)
-          if (linked.contains(resourceRow.id)) floorPlanSetById[resourceRow.id]!,
-      ];
-      if (tabs.isNotEmpty) {
-        setsBySceneId[sceneId] = tabs;
-      }
-    }
-
-    return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: setsBySceneId);
-  }
-
-  /// The **set-scope** symbols (`sceneId` and `shotId` both null) of every live Resources set of
-  /// [database], keyed by set id — a project-wide read, unlike [loadFloorPlans]'s own
-  /// per-screenplay one, used only to draw a lightweight thumbnail of a set's own décor, for the
-  /// empty-state gallery: no scene/shot-scope symbol, no
-  /// arrow, no underlay — a thumbnail draws the room's own shape, never what a sequence or a shot
-  /// staged on it.
+  /// Forwards to [OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId].
   Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsByProjectSetId({
     required OcptProjectDatabase database,
-  }) async {
-    final rows =
-        await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-              (table) => table.sceneId.isNull() & table.shotId.isNull() & table.isDeleted.not(),
-            ))
-            .get();
+  }) => OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId(database: database);
 
-    final bySetId = <String, List<OcptFloorPlanSymbol>>{};
-    for (final row in rows) {
-      bySetId.putIfAbsent(row.setId, () => []).add(OcptFloorPlanSymbol.fromRow(row));
-    }
-    return bySetId;
-  }
-
-  /// The ids of [setIds] that hold a live `floor_plan_sets` row — a plan that "exists" in the sense
-  /// the Resources location sheet's own set line reads: a
-  /// light read of ids alone, never a whole plan's worth of symbols and arrows, since the sheet
-  /// only ever needs to know whether one is there at all.
+  /// Forwards to [OcptFloorPlanReadOps.liveSetIdsWithPlan].
   Future<Set<String>> liveSetIdsWithPlan({
     required OcptProjectDatabase database,
     required Iterable<String> setIds,
-  }) async {
-    final ids = setIds.toSet();
-    if (ids.isEmpty) {
-      return const {};
-    }
-
-    final query = database.selectOnly(database.ocptFloorPlanSetsTable)
-      ..addColumns([database.ocptFloorPlanSetsTable.id])
-      ..where(
-        database.ocptFloorPlanSetsTable.id.isIn(ids) &
-            database.ocptFloorPlanSetsTable.isDeleted.not(),
-      );
-    final rows = await query.get();
-
-    return {
-      for (final row in rows)
-        if (row.read(database.ocptFloorPlanSetsTable.id) case final id?) id,
-    };
-  }
+  }) => OcptFloorPlanReadOps.liveSetIdsWithPlan(database: database, setIds: setIds);
 
   /// Sets Resources set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: creates the plan row if it doesn't exist yet
-  /// ([_ensurePlan]), tombstones its previous underlay `assets` row (if any) and mints a fresh one.
+  /// ([OcptFloorPlanRows.ensurePlan]), tombstones its previous underlay `assets` row (if any) and mints a fresh one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> setSetUnderlay({
@@ -260,9 +123,9 @@ class OcptFloorPlanService extends AbsOcptService {
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await _ensurePlan(database: database, setId: setId, stamps: stamps);
+      await OcptFloorPlanRows.ensurePlan(database: database, setId: setId, stamps: stamps);
 
-      final current = await _livePlanRowOrNull(database: database, setId: setId);
+      final current = await OcptFloorPlanRows.livePlanRowOrNull(database: database, setId: setId);
       if (current == null) {
         return;
       }
@@ -314,7 +177,7 @@ class OcptFloorPlanService extends AbsOcptService {
     }
 
     await database.transaction(() async {
-      final current = await _livePlanRowOrNull(database: database, setId: setId);
+      final current = await OcptFloorPlanRows.livePlanRowOrNull(database: database, setId: setId);
       if (current == null || current.underlayAssetId == null) {
         return;
       }
@@ -381,7 +244,7 @@ class OcptFloorPlanService extends AbsOcptService {
     );
 
     await database.transaction(() async {
-      final current = await _livePlanRowOrNull(database: database, setId: setId);
+      final current = await OcptFloorPlanRows.livePlanRowOrNull(database: database, setId: setId);
       if (current == null || current.underlayAssetId == null) {
         return;
       }
@@ -400,7 +263,7 @@ class OcptFloorPlanService extends AbsOcptService {
   }
 
   /// Places a new symbol of [layer] on Resources set [setId] — creating its plan row if it doesn't
-  /// exist yet ([_ensurePlan]) — appended after the set's current last symbol of that layer, and
+  /// exist yet ([OcptFloorPlanRows.ensurePlan]) — appended after the set's current last symbol of that layer, and
   /// returns its freshly generated id.
   ///
   /// **Enforces the scope invariant**: the scope [sceneId]/[shotId] derive
@@ -478,7 +341,7 @@ class OcptFloorPlanService extends AbsOcptService {
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await _ensurePlan(database: database, setId: setId, stamps: stamps);
+      await OcptFloorPlanRows.ensurePlan(database: database, setId: setId, stamps: stamps);
 
       if (overridesSymbolId != null) {
         // A scene-scope override targets a set-scope original; a shot-scope override targets a
@@ -486,7 +349,10 @@ class OcptFloorPlanService extends AbsOcptService {
         final expectedTargetScope = scope == OcptFloorPlanScope.shot
             ? OcptFloorPlanScope.scene
             : OcptFloorPlanScope.set;
-        final target = await _liveSymbolRowOrNull(database: database, symbolId: overridesSymbolId);
+        final target = await OcptFloorPlanRows.liveSymbolRowOrNull(
+          database: database,
+          symbolId: overridesSymbolId,
+        );
         final targetScope = target == null
             ? null
             : ocptFloorPlanScopeOf(sceneId: target.sceneId, shotId: target.shotId);
@@ -501,7 +367,10 @@ class OcptFloorPlanService extends AbsOcptService {
         }
 
         if (scope == OcptFloorPlanScope.shot) {
-          final shotRow = await _liveShotRowOrNull(database: database, shotId: shotId!);
+          final shotRow = await OcptFloorPlanRows.liveShotRowOrNull(
+            database: database,
+            shotId: shotId!,
+          );
           if (shotRow == null || shotRow.sceneId != target.sceneId) {
             throw ArgumentError(
               "shot $shotId must belong to the same sequence as the scene-scope symbol "
@@ -511,7 +380,7 @@ class OcptFloorPlanService extends AbsOcptService {
         }
       }
 
-      final existing = await _symbolRowsOfSetAndLayer(
+      final existing = await OcptFloorPlanRows.symbolRowsOfSetAndLayer(
         database: database,
         setId: setId,
         layer: layer,
@@ -598,7 +467,10 @@ class OcptFloorPlanService extends AbsOcptService {
     );
 
     await database.transaction(() async {
-      final current = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
+      final current = await OcptFloorPlanRows.liveSymbolRowOrNull(
+        database: database,
+        symbolId: symbolId,
+      );
       if (current == null) {
         return;
       }
@@ -644,7 +516,7 @@ class OcptFloorPlanService extends AbsOcptService {
         database.ocptFloorPlanSymbolsTable,
       )..where((table) => table.overridesSymbolId.equals(symbolId) & table.isDeleted.not())).get();
       for (final override in overrides) {
-        await _tombstoneArrowsTouchingSymbol(
+        await OcptFloorPlanRows.tombstoneArrowsTouchingSymbol(
           database: database,
           symbolId: override.id,
           stamps: stamps,
@@ -659,9 +531,16 @@ class OcptFloorPlanService extends AbsOcptService {
         );
       }
 
-      await _tombstoneArrowsTouchingSymbol(database: database, symbolId: symbolId, stamps: stamps);
+      await OcptFloorPlanRows.tombstoneArrowsTouchingSymbol(
+        database: database,
+        symbolId: symbolId,
+        stamps: stamps,
+      );
 
-      final current = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
+      final current = await OcptFloorPlanRows.liveSymbolRowOrNull(
+        database: database,
+        symbolId: symbolId,
+      );
       if (current != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -700,7 +579,10 @@ class OcptFloorPlanService extends AbsOcptService {
     }
 
     await database.transaction(() async {
-      final selected = await _liveSymbolRowOrNull(database: database, symbolId: symbolId);
+      final selected = await OcptFloorPlanRows.liveSymbolRowOrNull(
+        database: database,
+        symbolId: symbolId,
+      );
       if (selected == null) {
         return;
       }
@@ -714,7 +596,7 @@ class OcptFloorPlanService extends AbsOcptService {
               ))
               .get();
       for (final override in overrides) {
-        await _tombstoneArrowsTouchingSymbol(
+        await OcptFloorPlanRows.tombstoneArrowsTouchingSymbol(
           database: database,
           symbolId: override.id,
           stamps: stamps,
@@ -729,12 +611,15 @@ class OcptFloorPlanService extends AbsOcptService {
         );
       }
 
-      await _tombstoneArrowsTouchingSymbol(
+      await OcptFloorPlanRows.tombstoneArrowsTouchingSymbol(
         database: database,
         symbolId: originalId,
         stamps: stamps,
       );
-      final original = await _liveSymbolRowOrNull(database: database, symbolId: originalId);
+      final original = await OcptFloorPlanRows.liveSymbolRowOrNull(
+        database: database,
+        symbolId: originalId,
+      );
       if (original != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -750,12 +635,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Adds a new [kind] arrow on set [setId] — creating its plan row if it doesn't exist yet
-  /// ([_ensurePlan]) — belonging to shot [shotId] (always set — an arrow is always one shot's own
-  /// movement, `OcptFloorPlanArrowsTable`'s own doc comment), from [fromSymbolId] to [toSymbolId],
-  /// and returns its freshly generated id.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptFloorPlanArrowOps.addArrow].
   Future<String?> addArrow({
     required OcptProjectDatabase database,
     required String setId,
@@ -764,431 +644,96 @@ class OcptFloorPlanService extends AbsOcptService {
     required String fromSymbolId,
     required String toSymbolId,
     String label = '',
-  }) async {
-    if (database.refusesUserWrite("addArrow")) {
-      return null;
-    }
+  }) => OcptFloorPlanArrowOps.addArrow(
+    database: database,
+    setId: setId,
+    shotId: shotId,
+    kind: kind,
+    fromSymbolId: fromSymbolId,
+    toSymbolId: toSymbolId,
+    label: label,
+    deviceId: deviceId,
+  );
 
-    final id = const Uuid().v4();
-
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await _ensurePlan(database: database, setId: setId, stamps: stamps);
-
-      final row = OcptFloorPlanArrowRow(
-        id: id,
-        setId: setId,
-        shotId: shotId,
-        kind: kind,
-        fromSymbolId: fromSymbolId,
-        toSymbolId: toSymbolId,
-        label: label,
-        isDeleted: false,
-      );
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: id,
-        current: null,
-        next: row,
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-
-    return id;
-  }
-
-  /// Updates arrow [arrowId]'s label.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptFloorPlanArrowOps.setArrowLabel].
   Future<void> setArrowLabel({
     required OcptProjectDatabase database,
     required String arrowId,
     required String label,
-  }) async {
-    if (database.refusesUserWrite("setArrowLabel")) {
-      return;
-    }
+  }) => OcptFloorPlanArrowOps.setArrowLabel(
+    database: database,
+    arrowId: arrowId,
+    label: label,
+    deviceId: deviceId,
+  );
 
-    await database.transaction(() async {
-      final current = await _liveArrowRowOrNull(database: database, arrowId: arrowId);
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: arrowId,
-        current: current,
-        next: current.copyWith(label: label),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Updates arrow [arrowId]'s bezier control point — `(ctrlXM, ctrlYM)`, in metres — bending it
-  /// into a curve, or straightening it back out by writing both `const Value(null)`. Writes only
-  /// these two columns.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptFloorPlanArrowOps.updateArrowCurve].
   Future<void> updateArrowCurve({
     required OcptProjectDatabase database,
     required String arrowId,
     required Value<double?> ctrlXM,
     required Value<double?> ctrlYM,
-  }) async {
-    if (database.refusesUserWrite("updateArrowCurve")) {
-      return;
-    }
+  }) => OcptFloorPlanArrowOps.updateArrowCurve(
+    database: database,
+    arrowId: arrowId,
+    ctrlXM: ctrlXM,
+    ctrlYM: ctrlYM,
+    deviceId: deviceId,
+  );
 
-    final companion = OcptFloorPlanArrowsTableCompanion(ctrlXM: ctrlXM, ctrlYM: ctrlYM);
+  /// Forwards to [OcptFloorPlanArrowOps.deleteArrow].
+  Future<void> deleteArrow({required OcptProjectDatabase database, required String arrowId}) =>
+      OcptFloorPlanArrowOps.deleteArrow(database: database, arrowId: arrowId, deviceId: deviceId);
 
-    await database.transaction(() async {
-      final current = await _liveArrowRowOrNull(database: database, arrowId: arrowId);
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: arrowId,
-        current: current,
-        next: current.copyWithCompanion(companion),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones arrow [arrowId].
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteArrow({required OcptProjectDatabase database, required String arrowId}) async {
-    if (database.refusesUserWrite("deleteArrow")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final current = await _liveArrowRowOrNull(database: database, arrowId: arrowId);
-      if (current == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: arrowId,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-      await stamps.flush(database);
-    });
-  }
-
-  /// Copies Resources set [sourceSetId]'s own live **set-scope** symbols (`sceneId` and `shotId`
-  /// both null — the set's own décor, never a scene's re-dressing nor a shot's blocking) onto set
-  /// [destinationSetId]'s plan, as independent copies (fresh ids, never links), creating that
-  /// destination plan if it doesn't exist yet ([_ensurePlan]).
-  ///
-  /// **This is only the copying half of "duplicate this set"**:
-  /// minting [destinationSetId] as a fresh Resources set in the same location
-  /// (`OcptLocationsService.createSiblingSet`) and linking it to the calling scene
-  /// (`OcptLocationsService.assignSceneToSet`) are the other two steps, and this service
-  /// deliberately does not take them on. `OcptLocationsService` already depends on this one (for
-  /// its own delete cascade, [tombstoneFloorPlanRowsOfSet]), and dependencies never reference their
-  /// dependents, so this service cannot depend back on `OcptLocationsService` to mint the set
-  /// itself — `OcptShotListBloc`, which already holds both services, is what calls all three in
-  /// order and reports the new set id back to its own state.
-  ///
-  /// A no-op while [sourceSetId] carries no plan or no set-scope symbol at all.
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptFloorPlanCascadeOps.duplicateSet].
   Future<void> duplicateSet({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String destinationSetId,
-  }) async {
-    if (database.refusesUserWrite("duplicateSet")) {
-      return;
-    }
+  }) => OcptFloorPlanCascadeOps.duplicateSet(
+    database: database,
+    sourceSetId: sourceSetId,
+    destinationSetId: destinationSetId,
+    deviceId: deviceId,
+  );
 
-    await database.transaction(() async {
-      final setScopeSymbols =
-          (await _symbolRowsOfSet(database: database, setId: sourceSetId))
-              .where(
-                (row) =>
-                    ocptFloorPlanScopeOf(sceneId: row.sceneId, shotId: row.shotId) ==
-                    OcptFloorPlanScope.set,
-              )
-              .toList()
-            ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
-
-      if (setScopeSymbols.isEmpty) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await _ensurePlan(database: database, setId: destinationSetId, stamps: stamps);
-
-      for (final row in setScopeSymbols) {
-        final newId = const Uuid().v4();
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptFloorPlanSymbolsTable,
-          rowId: newId,
-          current: null,
-          next: row.copyWith(id: newId, setId: destinationSetId),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
-  /// props any more, now that the scope matrix confines a prop to scene scope) and the arrows drawn
-  /// between two of them, from set [sourceSetId] onto shot [destinationShotId] of set
-  /// [destinationSetId] — the same set for a same-set copy, a different one for a copy across sets
-  /// — as **independent copies**, appended after [destinationShotId]'s own current symbols of each
-  /// layer. Creates [destinationSetId]'s plan if it doesn't exist yet ([_ensurePlan]).
-  ///
-  /// An arrow whose either end is a set-scope or scene-scope symbol (a set element the source
-  /// shot's own blocking points at or from) is **not copied**: that symbol belongs to
-  /// [sourceSetId]'s own décor and has no copied counterpart on [destinationSetId] in general (nor,
-  /// for a same-set copy, any reason to point the copy back at the very same décor symbol the
-  /// source shot already points at) — only a movement whose both ends are themselves being copied
-  /// travels with it.
-  ///
-  /// A no-op while [sourceShotId] carries nothing on [sourceSetId].
-  ///
-  /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// Forwards to [OcptFloorPlanCascadeOps.copyShotBlocking].
   Future<void> copyShotBlocking({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String sourceShotId,
     required String destinationSetId,
     required String destinationShotId,
-  }) async {
-    if (database.refusesUserWrite("copyShotBlocking")) {
-      return;
-    }
+  }) => OcptFloorPlanCascadeOps.copyShotBlocking(
+    database: database,
+    sourceSetId: sourceSetId,
+    sourceShotId: sourceShotId,
+    destinationSetId: destinationSetId,
+    destinationShotId: destinationShotId,
+    deviceId: deviceId,
+  );
 
-    await database.transaction(() async {
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-      await _ensurePlan(database: database, setId: destinationSetId, stamps: stamps);
-
-      final symbolRows =
-          (await (database.select(database.ocptFloorPlanSymbolsTable)..where(
-                  (table) =>
-                      table.setId.equals(sourceSetId) &
-                      table.shotId.equals(sourceShotId) &
-                      table.isDeleted.not(),
-                ))
-                .get())
-            ..sort((a, b) => a.sortKey.compareTo(b.sortKey));
-
-      final newSymbolIdBySourceId = <String, String>{};
-      for (final row in symbolRows) {
-        final existingOfLayer = await _symbolRowsOfSetAndLayer(
-          database: database,
-          setId: destinationSetId,
-          layer: row.layer,
-        );
-        final newSymbolId = const Uuid().v4();
-        newSymbolIdBySourceId[row.id] = newSymbolId;
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptFloorPlanSymbolsTable,
-          rowId: newSymbolId,
-          current: null,
-          next: row.copyWith(
-            id: newSymbolId,
-            setId: destinationSetId,
-            shotId: Value(destinationShotId),
-            sortKey: ocptFractionalKeyBetween(
-              before: existingOfLayer.isEmpty ? null : existingOfLayer.last.sortKey,
-            ),
-          ),
-          stamps: stamps,
-        );
-      }
-
-      final arrowRows =
-          await (database.select(database.ocptFloorPlanArrowsTable)..where(
-                (table) =>
-                    table.setId.equals(sourceSetId) &
-                    table.shotId.equals(sourceShotId) &
-                    table.isDeleted.not(),
-              ))
-              .get();
-      for (final row in arrowRows) {
-        final newFromSymbolId = newSymbolIdBySourceId[row.fromSymbolId];
-        final newToSymbolId = newSymbolIdBySourceId[row.toSymbolId];
-        if (newFromSymbolId == null || newToSymbolId == null) {
-          continue;
-        }
-        final newArrowId = const Uuid().v4();
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptFloorPlanArrowsTable,
-          rowId: newArrowId,
-          current: null,
-          next: row.copyWith(
-            id: newArrowId,
-            setId: destinationSetId,
-            shotId: destinationShotId,
-            fromSymbolId: newFromSymbolId,
-            toSymbolId: newToSymbolId,
-          ),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
-  /// Tombstones shot [shotId]'s own shot-layer symbols and every arrow it carries — every arrow
-  /// whose own `shotId` names it, and, defensively, every arrow touching one of the symbols being
-  /// removed — for `OcptShotListService.deleteShot`'s and `.tombstoneShotsOfScreenplay`'s own
-  /// cascade.
-  ///
-  /// **Never touches a set-scope/scene-scope symbol or another shot's rows**: shot [shotId] can
-  /// only ever own symbols whose own `shotId` equals it (the scope invariant), so this is exactly
-  /// the shot's own placements, nothing of the décor it was drawn against.
-  ///
-  /// **Unguarded**, exactly as `OcptStoryboardService.tombstonePanelsOfShot` is: its only caller
-  /// has already refused the write on a preview connection and is already inside the transaction
-  /// removing the shot. Stamps through [stamps], that caller's own instance.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forwards to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfShot].
   Future<void> tombstoneFloorPlanRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
     required OcptRowStampService? stamps,
-  }) async {
-    final ownArrows = await (database.select(
-      database.ocptFloorPlanArrowsTable,
-    )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
-    for (final row in ownArrows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
+  }) => OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfShot(
+    database: database,
+    shotId: shotId,
+    stamps: stamps,
+  );
 
-    final symbolRows = await (database.select(
-      database.ocptFloorPlanSymbolsTable,
-    )..where((table) => table.shotId.equals(shotId) & table.isDeleted.not())).get();
-    for (final row in symbolRows) {
-      await _tombstoneArrowsTouchingSymbol(database: database, symbolId: row.id, stamps: stamps);
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanSymbolsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Tombstones Resources set [setId]'s own plan row (if any — a set nothing has ever been drawn
-  /// on has none to tombstone), its symbols and its arrows, in one pass —
-  /// `OcptLocationsService.deleteSet`'s and `.deleteLocation`'s own cascade. Removing a set's
-  /// **link** to a scene (`OcptLocationsService
-  /// .removeSceneFromSet`) never calls this: unlinking keeps the plan, so placements come back if
-  /// the set is relinked.
-  ///
-  /// **Unguarded**, exactly as [tombstoneFloorPlanRowsOfShot] is: the caller has already refused
-  /// the write on a preview connection and is already inside the transaction removing the
-  /// Resources set. Stamps through [stamps], that caller's own instance.
-  ///
-  /// {@macro open_cine_prod_tools.tombstones}
+  /// Forwards to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfSet].
   Future<void> tombstoneFloorPlanRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
     required OcptRowStampService? stamps,
-  }) async {
-    final arrowRows = await _arrowRowsOfSet(database: database, setId: setId);
-    for (final row in arrowRows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-
-    final symbolRows = await _symbolRowsOfSet(database: database, setId: setId);
-    for (final row in symbolRows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanSymbolsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-
-    final current = await _livePlanRowOrNull(database: database, setId: setId);
-    if (current != null) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanSetsTable,
-        rowId: setId,
-        current: current,
-        next: current.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Creates the plan row of Resources set [setId] if none exists yet, from inside the caller's
-  /// own transaction and stamping through its own [stamps] — **idempotent**, and safe under
-  /// concurrent replicas: the plan's own row id **is** [setId] (`OcptFloorPlanSetsTable`'s own doc
-  /// comment), so two devices that each place the first symbol on the same set while offline
-  /// converge on one row through the sync merge rather than each minting their own.
-  Future<void> _ensurePlan({
-    required OcptProjectDatabase database,
-    required String setId,
-    required OcptRowStampService stamps,
-  }) async {
-    final existing = await (database.select(
-      database.ocptFloorPlanSetsTable,
-    )..where((table) => table.id.equals(setId))).getSingleOrNull();
-    if (existing != null) {
-      return;
-    }
-
-    await OcptRowStampService.writeAndStamp(
-      database: database,
-      table: database.ocptFloorPlanSetsTable,
-      rowId: setId,
-      current: null,
-      next: OcptFloorPlanSetRow(id: setId, isDeleted: false),
-      stamps: stamps,
-    );
-  }
+  }) => OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfSet(
+    database: database,
+    setId: setId,
+    stamps: stamps,
+  );
 
   /// The scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
   /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
@@ -1243,130 +788,6 @@ class OcptFloorPlanService extends AbsOcptService {
       );
     }
   }
-
-  /// Tombstones every live arrow whose [OcptFloorPlanArrow.fromSymbolId] or
-  /// [OcptFloorPlanArrow.toSymbolId] equals [symbolId] — the write body [deleteSymbol] and
-  /// [tombstoneFloorPlanRowsOfShot] share.
-  Future<void> _tombstoneArrowsTouchingSymbol({
-    required OcptProjectDatabase database,
-    required String symbolId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final rows =
-        await (database.select(database.ocptFloorPlanArrowsTable)..where(
-              (table) =>
-                  (table.fromSymbolId.equals(symbolId) | table.toSymbolId.equals(symbolId)) &
-                  table.isDeleted.not(),
-            ))
-            .get();
-
-    for (final row in rows) {
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptFloorPlanArrowsTable,
-        rowId: row.id,
-        current: row,
-        next: row.copyWith(isDeleted: true),
-        stamps: stamps,
-      );
-    }
-  }
-
-  /// Every live scene id of screenplay [screenplayId].
-  Future<List<String>> _liveSceneIdsOfScreenplay({
-    required OcptProjectDatabase database,
-    required String screenplayId,
-  }) async {
-    final rows = await (database.select(
-      database.ocptScenesTable,
-    )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
-    return rows.map((row) => row.id).toList(growable: false);
-  }
-
-  /// The resolved absolute path of every live `assets` row of [assetIds], keyed by id. See
-  /// `OcptStoryboardService._liveAssetPathsById`'s own doc comment for why a missing entry is a
-  /// normal state.
-  Future<Map<String, String>> _liveAssetPathsById({
-    required OcptProjectDatabase database,
-    required Set<String> assetIds,
-  }) async {
-    if (assetIds.isEmpty) {
-      return const {};
-    }
-
-    final rows = await (database.select(
-      database.ocptAssetsTable,
-    )..where((table) => table.id.isIn(assetIds) & table.isDeleted.not())).get();
-    return {for (final row in rows) row.id: row.path};
-  }
-
-  /// Reads back the live plan row of Resources set [setId], or null if it doesn't exist yet or has
-  /// been tombstoned.
-  Future<OcptFloorPlanSetRow?> _livePlanRowOrNull({
-    required OcptProjectDatabase database,
-    required String setId,
-  }) => (database.select(
-    database.ocptFloorPlanSetsTable,
-  )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
-
-  /// Every live symbol row of set [setId].
-  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfSet({
-    required OcptProjectDatabase database,
-    required String setId,
-  }) => (database.select(
-    database.ocptFloorPlanSymbolsTable,
-  )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
-
-  /// Every live symbol row of set [setId] on layer [layer], ordered by `sortKey` — what a new
-  /// symbol of that layer is appended after.
-  Future<List<OcptFloorPlanSymbolRow>> _symbolRowsOfSetAndLayer({
-    required OcptProjectDatabase database,
-    required String setId,
-    required OcptFloorPlanLayer layer,
-  }) =>
-      (database.select(database.ocptFloorPlanSymbolsTable)
-            ..where(
-              (table) =>
-                  table.setId.equals(setId) &
-                  table.layer.equalsValue(layer) &
-                  table.isDeleted.not(),
-            )
-            ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
-          .get();
-
-  /// Reads back the live symbol row [symbolId], or null if it doesn't exist or has been tombstoned.
-  Future<OcptFloorPlanSymbolRow?> _liveSymbolRowOrNull({
-    required OcptProjectDatabase database,
-    required String symbolId,
-  }) => (database.select(
-    database.ocptFloorPlanSymbolsTable,
-  )..where((table) => table.id.equals(symbolId) & table.isDeleted.not())).getSingleOrNull();
-
-  /// Reads back the live shot row [shotId], or null if it doesn't exist or has been tombstoned —
-  /// [placeSymbol]'s own way of checking a shot-scope override's own shot belongs to the sequence
-  /// its target scene-scope symbol does.
-  Future<OcptShotRow?> _liveShotRowOrNull({
-    required OcptProjectDatabase database,
-    required String shotId,
-  }) => (database.select(
-    database.ocptShotsTable,
-  )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
-
-  /// Every live arrow row of set [setId].
-  Future<List<OcptFloorPlanArrowRow>> _arrowRowsOfSet({
-    required OcptProjectDatabase database,
-    required String setId,
-  }) => (database.select(
-    database.ocptFloorPlanArrowsTable,
-  )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
-
-  /// Reads back the live arrow row [arrowId], or null if it doesn't exist or has been tombstoned.
-  Future<OcptFloorPlanArrowRow?> _liveArrowRowOrNull({
-    required OcptProjectDatabase database,
-    required String arrowId,
-  }) => (database.select(
-    database.ocptFloorPlanArrowsTable,
-  )..where((table) => table.id.equals(arrowId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Masks [original] for one sequence ([sceneId]) or one shot ([shotId]) alone — exactly one of
   /// the two is non-null — a hidden override: sets `isHidden` on [existingOverride] when one
