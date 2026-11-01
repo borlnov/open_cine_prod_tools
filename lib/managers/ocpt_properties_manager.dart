@@ -387,7 +387,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   static List<OcptRecentProjectModel>? _parseRecentProjects(String value) {
     // Decoded here rather than through the shared helper: on a failure that one logs the whole
     // body, which holds every project's path and name.
-    final List<Map<String, dynamic>> jsonList;
+    List<Map<String, dynamic>>? jsonList;
     try {
       jsonList = List<Map<String, dynamic>>.from(jsonDecode(value) as List<dynamic>);
     } catch (error) {
@@ -395,14 +395,16 @@ class OcptPropertiesManager extends AbstractPropertiesManager
         "The recent projects stored in the local storage isn't a JSON array, we "
         "can't convert it (${error.runtimeType})",
       );
-      return null;
     }
 
-    final projects = <OcptRecentProjectModel>[];
-    for (final jsonEntry in jsonList) {
-      final project = OcptRecentProjectModel.fromJson(jsonEntry);
-      if (project != null) {
-        projects.add(project);
+    List<OcptRecentProjectModel>? projects;
+    if (jsonList != null) {
+      projects = [];
+      for (final jsonEntry in jsonList) {
+        final project = OcptRecentProjectModel.fromJson(jsonEntry);
+        if (project != null) {
+          projects.add(project);
+        }
       }
     }
 

@@ -350,21 +350,12 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     // below; it is cancelled by _killWorker/_handleWorkerDeath, not in this function.
     // ignore: cancel_subscriptions
     late final StreamSubscription<dynamic> messageSubscription;
-    Isolate isolate;
-    try {
-      isolate = await Isolate.spawn(
-        _spellCheckWorkerMain,
-        receivePort.sendPort,
-        onExit: exitPort.sendPort,
-        onError: errorPort.sendPort,
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to spawn the spell-check worker isolate: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final isolate = await _spawnWorkerIsolate(
+      receivePort: receivePort,
+      exitPort: exitPort,
+      errorPort: errorPort,
+    );
+    if (isolate == null) {
       receivePort.close();
       exitPort.close();
       errorPort.close();
@@ -402,6 +393,33 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
     _worker = worker;
     _logger.i("The spell-check worker isolate started");
     return worker;
+  }
+
+  /// Spawns the spell-check worker isolate, reporting to the given ports, or returns null (having
+  /// logged why) if spawning failed.
+  Future<Isolate?> _spawnWorkerIsolate({
+    required ReceivePort receivePort,
+    required ReceivePort exitPort,
+    required ReceivePort errorPort,
+  }) async {
+    Isolate? isolate;
+    try {
+      isolate = await Isolate.spawn(
+        _spellCheckWorkerMain,
+        receivePort.sendPort,
+        onExit: exitPort.sendPort,
+        onError: errorPort.sendPort,
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to spawn the spell-check worker isolate: "
+        "${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    return isolate;
   }
 
   /// Handles a message received from the worker isolate: a `_LoadResponse`, a `_CheckResponse` or

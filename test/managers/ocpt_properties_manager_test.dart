@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:shared_preferences_platform_interface/types.dart';
 
 /// Builds a project with the given [path], for tests that only care about ordering/deduplication.
 OcptRecentProjectModel _projectAt(String path, {DateTime? lastOpenedAt}) => OcptRecentProjectModel(
@@ -41,6 +42,16 @@ void main() {
 
   group('OcptPropertiesManager.recentProjects', () {
     test('is empty by default', () async {
+      expect(await manager.recentProjects.load(), isNull);
+    });
+
+    test('a stored value that is not a JSON array loads as null', () async {
+      await SharedPreferencesAsyncPlatform.instance!.setString(
+        'RECENT_PROJECTS',
+        'not json',
+        SharedPreferencesOptions(),
+      );
+
       expect(await manager.recentProjects.load(), isNull);
     });
 
