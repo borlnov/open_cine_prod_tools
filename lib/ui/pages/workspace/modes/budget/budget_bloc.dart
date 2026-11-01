@@ -15,29 +15,10 @@ import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.d
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_quote_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_sharing_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_elements_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_people_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_service.dart';
-import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
-import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
-import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
-import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_poste.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
@@ -48,53 +29,58 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_snapshot_loader.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-/// This is the bloc class for the budget production mode.
+/// This is the bloc class for the budget production mode: its **mode bloc**.
 ///
-/// It loads the current project's title and the mode's own whole read on entry: the quote itself
-/// ([_budgetQuoteService], seeding [_seed]'s ten CNC postes on the first read of an empty table),
-/// the cash journal ([_budgetJournalService]: every live entry and commitment, and every live
-/// voucher keyed by the entry it evidences), the financing plan ([_budgetFinancingService]: every
-/// live resource and mileage rate), the catering-and-travel pass's own reads ([_scheduleService]'s
-/// schedule, [_roleIndexService]'s roles, [_peopleService]'s people and [_locationsService]'s
-/// locations — the last read only to name the decor a day shoots at, never carried on state
-/// itself), the breakdown's own elements catalogue ([_elementsService], read the same way
-/// `OcptScheduleBloc` already does, carried on state raw beside the roles and the people), and the
-/// project's currency, default VAT rate and meal/snack prices. It mixes in
-/// [MixinOcptProjectVersionsBloc], answering its two hooks through [flushPendingProjectWrites] and
-/// [reloadFromProjectDatabase].
+/// It reads the current project's whole budget through [_loader] on entry (the quote, seeding the
+/// ten CNC postes on the first read of an empty table; the cash journal; the financing plan; the
+/// revenue sharing; the catering-and-travel pass and the catalogues it is joined with; and the
+/// project's currency, default VAT rate and prices), and owns that data, the page setup, the shared
+/// selection (the selected row, the filtered poste, the highlighted share, the poste the régie
+/// provisions into, the expanded nodes), the chrome (the central view, the tools page, the
+/// simplified and tax-basis switches, the right dock) and the transient write error of none of them.
 ///
-/// **[_seed] is a constructor argument, captured once, rather than watched.** No bloc or service
-/// may ever see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of
-/// (context))` and hands the list in when it creates this bloc; [reloadFromProjectDatabase] reuses
-/// the very list it was given rather than re-resolving it, since a preview or a restore swaps the
-/// database, not the app's own locale — nothing about the seed's own words has changed by the time
-/// a reload runs, and this bloc has no `BuildContext` to re-resolve them with even if it had.
+/// Everything a view writes belongs to that view's bloc — `OcptBudgetExpensesBloc`,
+/// `OcptBudgetCashJournalBloc`, `OcptBudgetFinancingBloc` and `OcptBudgetSharingBloc` — which writes
+/// through the services and asks this bloc to read the snapshot again ([reload]) before it selects
+/// or forgets anything; `OcptBudgetExportBloc` owns the four exports. A view selects the record it
+/// has just created through [OcptBudgetSelectionCreatedEvent] and [OcptBudgetShareCreatedEvent].
+///
+/// **Every read of the snapshot reconciles the shared selection** ([_readBudgetSnapshot]): a
+/// selected row, a filtered poste or a highlighted share that the fresh snapshot no longer holds is
+/// dropped in the very state that carries the snapshot, and the selection epoch moves with
+/// [OcptBudgetSelectionCause.reconciled]. While the `Versions` tab is open, the working-copy card
+/// is refreshed once the data has landed, the mode's stand-in for "a save landing while it is open".
+///
+/// **A failed write is not caught anywhere in this mode.** The view whose write failed keeps its
+/// edit pending, and the action the flush was for does not happen: [flushAllPendingWritesIn] and
+/// [flushPendingProjectWrites] answer false, and the handler stops. Which actions flush is the old
+/// handlers' own list: a dock tab change, a view, a tools page, the simplified and tax-basis
+/// switches, the selection of a poste, a line, a commitment or an entry, the poste filter, an
+/// export, a version preview, a restore, a saved version and a package export. The selection of a
+/// receipt, a resource, a taking or a share, going back, creating a record and the project
+/// settings do not.
+///
+/// **[_loader] holds the seed, captured once, rather than watched.** No bloc or service may ever
+/// see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of(context))`
+/// and hands the list in when it creates this bloc; a preview or a restore reuses the very list
+/// rather than re-resolving it, since it swaps the database, not the app's own locale.
 ///
 /// **There is no episode selector.** One budget serves the whole production (ADR 0019): the
 /// catalogue this bloc reads is project-wide, naming no episode at all, so the mode keeps the
-/// shell's own `onEpisodeSelected` null for the same reason the schedule mode does — not for want
-/// of a bloc, but because a selector would filter a read that was never split by episode to begin
-/// with.
+/// shell's own `onEpisodeSelected` null for the same reason the schedule mode does.
 ///
 /// The right dock fraction and the last right dock tab are persisted through
 /// [_propertiesManager]'s `budgetRightDockFraction`/`budgetLastRightDockTab`, mirroring
-/// `OcptScheduleBloc`'s own pair — the mode carries no left dock any more, so there is no fraction
-/// of its own to persist.
+/// `OcptScheduleBloc`'s own pair — the mode carries no left dock any more.
 ///
-/// Every write but the free-text fields (which ride the expenses view's debounce, flushed by
-/// [_flushAllPendingWrites] on a selection change, a dock tab change, a version preview and the
-/// mode's own `deactivate()`) lands the moment it is dispatched, then reloads the quote snapshot
-/// through [_applyBudgetSnapshot] — which also reconciles [OcptBudgetState.selection] against the
-/// freshly loaded snapshot, and, while the `Versions` tab is open, asks
-/// [MixinOcptProjectVersionsBloc] for a fresh working-copy capture, the mode's own stand-in for "a
-/// save landing while it is open".
-///
-/// It mixes in [MixinOcptProjectPackageBloc] too: the `Export` panel's own standing project-package
-/// card is wired here exactly as every other mode's is, beside the budget's own documents — see
-/// `OcptBudgetMode`'s own doc comment.
+/// It mixes in [MixinOcptProjectVersionsBloc], answering its two hooks through
+/// [flushPendingProjectWrites] and [reloadFromProjectDatabase] (the entry read), and
+/// [MixinOcptProjectPackageBloc] too: the `Export` panel's own standing project-package card is
+/// wired here exactly as every other mode's is, beside the budget's own documents.
 class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
@@ -121,52 +107,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// The manager the project package export goes through.
   final OcptExportManager _exportManager;
 
-  /// The service used to read and write the quote: the postes and their lines.
-  final OcptBudgetQuoteService _budgetQuoteService;
-
-  /// The service used to read the cash journal: every live entry and commitment. Its own
-  /// [OcptBudgetJournalService.setEntryReceipt]/[OcptBudgetJournalService.clearEntryReceipt] are
-  /// what the bloc's own handlers write an entry's voucher through — never `OcptBudgetEntryDialog`
-  /// itself, exactly as every other write in this mode.
-  final OcptBudgetJournalService _budgetJournalService;
-
-  /// The service used to read and write the financing plan: the `budget_resources` catalogue and
-  /// the `budget_mileage_rates` [_loadBudgetSnapshot] resolves a traveller's own reimbursement
-  /// against.
-  final OcptBudgetFinancingService _budgetFinancingService;
-
-  /// The service used to read and write the defrayals: the `budget_allowances` a production types
-  /// for itself, which nothing here deduces from the schedule.
-  final OcptBudgetAllowancesService _budgetAllowancesService;
-
-  /// The service used to read and write the revenue sharing: the `budget_revenues` takings and the
-  /// `budget_shares` splitting what they bring in.
-  final OcptBudgetSharingService _budgetSharingService;
-
-  /// The service the catering-and-travel pass reads its own days and slots off — never an
-  /// `OcptSchedulePlanSnapshot`, see [_loadBudgetSnapshot]'s own doc comment.
-  final OcptScheduleService _scheduleService;
-
-  /// The service the catering-and-travel pass reads every role's own kind and `personId` off, to
-  /// split cast from extras and to join a convoked role back to the human playing it.
-  final OcptRoleIndexService _roleIndexService;
-
-  /// The service the catering-and-travel pass reads every person's own display name, commute
-  /// distance, mileage rate and declared crew positions off.
-  final OcptPeopleService _peopleService;
-
-  /// The service [_loadBudgetSnapshot] reads the project's locations and sets off, for the one
-  /// reading that needs them: naming the decor a shooting day plays at.
-  final OcptLocationsService _locationsService;
-
-  /// The service [_loadBudgetSnapshot] reads the breakdown's own elements catalogue off — what the
-  /// feed card's own breakdown row counts against, and what `+ From breakdown` picks a fresh quote
-  /// line from. Mirrors `OcptScheduleBloc._elementsService`.
-  final OcptElementsService _elementsService;
-
-  /// The ten CNC postes, already localized — see the class doc comment for why this is a
-  /// constructor argument captured once rather than watched.
-  final List<OcptBudgetPosteSeed> _seed;
+  /// Reads the whole budget from the open project, see [OcptBudgetSnapshotLoader].
+  final OcptBudgetSnapshotLoader _loader;
 
   /// Class constructor
   ///
@@ -178,51 +120,17 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
-    OcptBudgetQuoteService? budgetQuoteService,
-    OcptBudgetJournalService? budgetJournalService,
-    OcptBudgetFinancingService? budgetFinancingService,
-    OcptBudgetAllowancesService? budgetAllowancesService,
-    OcptBudgetSharingService? budgetSharingService,
-    OcptScheduleService? scheduleService,
-    OcptRoleIndexService? roleIndexService,
-    OcptPeopleService? peopleService,
-    OcptLocationsService? locationsService,
-    OcptElementsService? elementsService,
-  }) : _seed = seed,
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+    OcptBudgetSnapshotLoader? snapshotLoader,
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
-       _budgetQuoteService =
-           budgetQuoteService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetQuoteService,
-       _budgetJournalService =
-           budgetJournalService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetJournalService,
-       _budgetFinancingService =
-           budgetFinancingService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetFinancingService,
-       _budgetAllowancesService =
-           budgetAllowancesService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetAllowancesService,
-       _budgetSharingService =
-           budgetSharingService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetSharingService,
-       _scheduleService =
-           scheduleService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
-       _roleIndexService =
-           roleIndexService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
-       _peopleService =
-           peopleService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
-       _locationsService =
-           locationsService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
-       _elementsService =
-           elementsService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
+       _loader =
+           snapshotLoader ??
+           OcptBudgetSnapshotLoader(
+             projectsManager: projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+             seed: seed,
+           ),
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
   }
@@ -366,8 +274,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   Future<void> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) =>
       _onLoadRequested(const OcptBudgetLoadRequestedEvent(), emitter);
 
-  /// Loads the current project's whole quote read: the postes with their lines (seeding [_seed]'s
-  /// ten CNC postes on the first read of an empty table), the currency and the default VAT rate.
+  /// Loads the current project's whole budget through [_loader] (which seeds the ten CNC postes on
+  /// the first read of an empty table), the page setup and the persisted dock state.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the read it just performed. The selection and any
@@ -409,7 +317,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     // older data over it.
     await runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final loaded = await _loadBudgetSnapshot(project);
+      final loaded = await _loader.load(project);
       final pageSetup = await _loadPageSetup(project);
 
       emitter(
@@ -426,7 +334,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           people: loaded.people,
           elements: loaded.elements,
           mileageRates: loaded.mileageRates,
-          provisionPosteId: _defaultProvisionPosteIdOf(loaded.snapshot.postes),
+          provisionPosteId: ocptBudgetDefaultProvisionPosteIdOf(loaded.snapshot.postes),
           regieDecorNameByDayId: loaded.regieDecorNameByDayId,
           rightDockFraction: rightDockFraction,
           lastRightDockTab: lastRightDockTab,
@@ -451,143 +359,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         margins:
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
-
-  /// Reads [project]'s whole read: the postes with their lines, the cash journal's own entries and
-  /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
-  /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
-  /// and the meal/buffet prices, joined into one [OcptBudgetSnapshot] alongside the raw
-  /// roles/people/elements and the decor name map the view reads directly.
-  ///
-  /// **Reads `OcptScheduleService.loadSchedule`'s own `OcptScheduleSnapshot` directly, never an
-  /// `OcptSchedulePlanSnapshot`.** A plan snapshot additionally joins every episode's own shot list
-  /// and the episode list — neither of which a head count needs — so building one here would make
-  /// the budget mode load the whole découpage to count meals; the schedule snapshot alone already
-  /// carries the days, the slots (each with its own live crew, cast and guests already nested) and
-  /// the blocks that `OcptBudgetSnapshot.build` reads the catering-and-travel pass's own meal
-  /// sittings from.
-  ///
-  /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
-  /// [OcptBudgetSnapshot]: `OcptBudgetFiche`'s own `+ From breakdown` picker needs the
-  /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
-  Future<
-    ({
-      OcptBudgetSnapshot snapshot,
-      List<OcptRole> roles,
-      List<OcptPerson> people,
-      List<OcptElement> elements,
-      List<OcptBudgetMileageRate> mileageRates,
-      Map<String, String> regieDecorNameByDayId,
-    })
-  >
-  _loadBudgetSnapshot(OcptOpenProjectModel project) async {
-    final database = project.database;
-    final postes = await _budgetQuoteService.loadPostes(database: database, seed: _seed);
-    final entries = await _budgetJournalService.loadEntries(database: database);
-    final commitments = await _budgetJournalService.loadCommitments(database: database);
-    final resources = await _budgetFinancingService.loadResources(database: database);
-    final revenues = await _budgetSharingService.loadRevenues(database: database);
-    final shares = await _budgetSharingService.loadShares(database: database);
-    final receipts = await _budgetJournalService.loadReceipts(database: database);
-    final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
-    final defaultVatRateBasisPoints = await _projectsManager
-        .loadCurrentProjectDefaultVatRateBasisPoints();
-
-    final scheduleSnapshot = await _scheduleService.loadSchedule(database: database);
-    final roles = await _roleIndexService.loadRoles(database: database);
-    final people = await _peopleService.loadPeople(database: database);
-    final elements = await _elementsService.loadElements(database: database);
-    final locations = await _locationsService.loadLocations(database: database);
-    final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
-    final allowances = await _budgetAllowancesService.loadAllowances(database: database);
-    final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
-    // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
-    // own name, but what it prices is the buffet, never a snack in the trade's own words.
-    final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
-
-    final snapshot = OcptBudgetSnapshot.build(
-      postes: postes,
-      entries: entries,
-      commitments: commitments,
-      resources: resources,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
-      receiptsByEntryId: receipts,
-      scheduleDays: scheduleSnapshot.days,
-      slotsByDayId: scheduleSnapshot.slotsByDayId,
-      blocksByDayId: scheduleSnapshot.blocksByDayId,
-      roles: roles,
-      allowances: allowances,
-      mealPriceCents: mealPriceCents,
-      buffetPriceCents: buffetPriceCents,
-      revenues: revenues,
-      shares: shares,
-    );
-
-    return (
-      snapshot: snapshot,
-      roles: roles,
-      people: people,
-      elements: elements,
-      mileageRates: mileageRates,
-      regieDecorNameByDayId: _regieDecorNameByDayId(
-        days: scheduleSnapshot.days,
-        slotsByDayId: scheduleSnapshot.slotsByDayId,
-        locations: locations,
-      ),
-    );
-  }
-
-  /// The poste the régie view's own provisioning starts out pointed at: the CNC nomenclature's own
-  /// `Transports, défraiements, régie`, by its **stable seeded id**, when the project still has it,
-  /// and the first poste otherwise.
-  ///
-  /// **A preference among the postes that exist, never an assumption that one of them does.** A
-  /// production is free to have renamed, split or deleted that poste — the nomenclature is seeded,
-  /// not frozen — and a project with no poste at all has nowhere to provision into, which the view
-  /// says rather than pretending otherwise.
-  String? _defaultProvisionPosteIdOf(List<OcptBudgetPoste> postes) {
-    const regiePosteId = 'd75aa74c-ed99-494a-bca0-3508b166ec18';
-
-    return postes.any((poste) => poste.id == regiePosteId) ? regiePosteId : postes.firstOrNull?.id;
-  }
-
-  /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
-  /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
-  /// order — resolved out of [locations] (and their own live sets) alone.
-  /// `lib/models/rules/ocpt_budget_regie.dart`'s own pass reads no location or set at all, being
-  /// pure arithmetic over head counts, so this is a separate, purely presentational reading rather
-  /// than a second implementation of anything that file states. A day whose slots name neither
-  /// carries no key here, which the view reads as nothing rather than a placeholder.
-  Map<String, String> _regieDecorNameByDayId({
-    required List<OcptShootingDay> days,
-    required Map<String, List<OcptShootingSlot>> slotsByDayId,
-    required List<OcptLocation> locations,
-  }) {
-    final locationById = {for (final location in locations) location.id: location};
-    final setById = {
-      for (final location in locations)
-        for (final set in location.sets) set.id: set,
-    };
-
-    final decorNameByDayId = <String, String>{};
-    for (final day in days) {
-      for (final slot in slotsByDayId[day.id] ?? const <OcptShootingSlot>[]) {
-        final set = slot.setId == null ? null : setById[slot.setId];
-        if (set != null) {
-          decorNameByDayId[day.id] = set.name;
-          break;
-        }
-
-        final location = slot.locationId == null ? null : locationById[slot.locationId];
-        if (location != null) {
-          decorNameByDayId[day.id] = location.name;
-          break;
-        }
-      }
-    }
-
-    return decorNameByDayId;
-  }
 
   /// Leaves the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
@@ -926,7 +697,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    await _applyBudgetSnapshot(emitter, project);
+    await runSerially(() => _readBudgetSnapshot(emitter, project));
   }
 
   /// Narrows every view of the mode to `event.posteId`, or clears the filter when it is null — see
@@ -968,35 +739,20 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Re-reads the quote of [project] and applies it, reconciling [OcptBudgetState.selection]
-  /// against what the fresh snapshot still holds — whichever object it names, gone missing, is
-  /// dropped rather than trusted to still mean something. `OcptBudgetReceiptSelection` names a
-  /// `budget_entries` row exactly as `OcptBudgetEntrySelection` does, so it is checked against
-  /// [OcptBudgetSnapshot.entries] the same way; this also covers
-  /// `OcptBudgetState.selectedRevenueId`, which is now a getter over [OcptBudgetState.selection]
-  /// rather than a field of its own.
-  ///
-  /// Every handler that writes to the quote tables ends here, which is also the mode's own stand-in
-  /// for "a save landing while the `Versions` tab is open":
-  /// [OcptProjectWorkingCopyRefreshRequestedEvent] is dispatched once the fresh snapshot has
-  /// landed, mirroring `OcptScheduleBloc ._applyScheduleSnapshot`.
-  Future<void> _applyBudgetSnapshot(
-    Emitter<OcptBudgetState> emitter,
-    OcptOpenProjectModel project,
-  ) => runSerially(() => _readBudgetSnapshot(emitter, project));
-
   /// Reads [project]'s whole snapshot, reconciles the shared selection against it, emits both in
   /// one state, and asks for a fresh working-copy capture while the `Versions` tab is open.
   ///
-  /// Not queued: [_applyBudgetSnapshot] and [reloadScopesIn] queue it, each in its own way. Whatever
+  /// Not queued: [reloadScopesIn] and the settings handler queue it, each in its own way. Whatever
   /// the selection, the filter or the share named that the snapshot no longer holds is dropped in
   /// the very state that carries the snapshot, and moves the selection epoch with
-  /// [OcptBudgetSelectionCause.reconciled].
+  /// [OcptBudgetSelectionCause.reconciled]. `OcptBudgetReceiptSelection` names a `budget_entries`
+  /// row exactly as `OcptBudgetEntrySelection` does, so it is checked against the entries the same
+  /// way.
   Future<void> _readBudgetSnapshot(
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,
   ) async {
-    final loaded = await _loadBudgetSnapshot(project);
+    final loaded = await _loader.load(project);
     final snapshot = loaded.snapshot;
     // The filter is reconciled exactly as the selection is: a poste deleted while every view was
     // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
@@ -1046,7 +802,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             state.provisionPosteId != null &&
                 loaded.snapshot.postes.any((poste) => poste.id == state.provisionPosteId)
             ? state.provisionPosteId
-            : _defaultProvisionPosteIdOf(loaded.snapshot.postes),
+            : ocptBudgetDefaultProvisionPosteIdOf(loaded.snapshot.postes),
         regieDecorNameByDayId: loaded.regieDecorNameByDayId,
         forceSelectionValue: !selectionStillExists,
         forceFilterPosteIdValue: !filterStillExists,
