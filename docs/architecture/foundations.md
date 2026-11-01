@@ -21,7 +21,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   and a test building one directly never has to call either. A service is built by its owner,
   never by the UI and never registered in `globalGetIt()`,
   and its life cycle is its owner's, not a project's: `OcptProjectsManager` initialises its 23
-  services in `initLifeCycle()` and disposes them in reverse after closing the open project, and
+  services in `initLifeCycle()` and disposes them in reverse after closing the open project (they
+  are built by `OcptProjectsServices`, and the manager's create, open, move, preview, close and
+  project-settings operations are `OcptProject*Ops` classes it forwards to), and
   `OcptExportManager` and `OcptSyncManager` do the same for theirs. A service that builds services
   of its own (`OcptScreenplayService`, `OcptShotListService`, `OcptPeopleService`…) owns them and
   drives theirs the same way; one it is only handed (the screenplay service
@@ -739,9 +741,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
   (`lib/models/`) whose `verdict` is `current | older | newer | unreadable | foreignDevBuild`. The
   probe also takes the running build's own `appVersion`, because ADR 0029 makes the gate compare a
   **pair**: the file's schema version *and* the app version that last wrote it, against this build's
-  schema *and* version. `OcptProjectsManager.probeProjectFile` is that probe and `openProject`'s
-  `_gateOnFileFormat` is what acts on it, **before** the currently open project is closed, so a
-  refusal never costs the user the project they already had. A **newer**-schema file is refused with
+  schema *and* version. `OcptProjectsManager.probeProjectFile` is that probe and the file-format gate
+  in `OcptProjectOpenOps` (which `openProject` runs) is what acts on it, **before** the currently open
+  project is closed, so a refusal never costs the user the project they already had. A
+  **newer**-schema file is refused with
   `OcptProjectStatus.newerFormat` — not opened, not touched, not added to the recent list, since
   handing it to drift stamps its `user_version` back *down* while leaving the newer build's tables in
   place. A file at this build's **own** schema but last written by a **pre-release build that is not
