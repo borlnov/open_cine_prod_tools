@@ -249,8 +249,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     );
 
     emit(
-      state.copyWith(
-        isLoading: false,
+      state.copyToLoaded(
         projectFilePath: projectFilePath,
         isShowInFolderAvailable: !isMobile,
         isMoveAvailable: !isMobile && !isMoveWithheldByHosting,
@@ -258,15 +257,10 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
         pageFormat: pageFormat ?? OcptPageFormat.usLetter,
         minimumRestMinutes: minimumRestMinutes,
-        forceMinimumRestMinutesValue: minimumRestMinutes == null,
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        forceDefaultVatRateBasisPointsValue: defaultVatRateBasisPoints == null,
         mealPriceCents: mealPriceCents,
-        forceMealPriceCentsValue: mealPriceCents == null,
         buffetPriceCents: buffetPriceCents,
-        forceBuffetPriceCentsValue: buffetPriceCents == null,
         screenplayLanguage: screenplayLanguage,
-        forceScreenplayLanguageValue: screenplayLanguage == null,
         episodes: episodes,
         mileageRates: mileageRates,
         dictionaryWords: dictionaryWords,
@@ -324,7 +318,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
 
     if (!isOpened) {
-      emitter(state.copyWith(isShowInFolderFailed: true));
+      emitter(state.copyWithShowInFolderFailed());
     }
   }
 
@@ -333,7 +327,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsShowInFolderFailureDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    emitter(state.copyWith(isShowInFolderFailed: false));
+    emitter(state.copyWithShowInFolderFailureDismissed());
   }
 
   /// Shows the native save-file dialog, suggesting the project's current file name inside its
@@ -381,11 +375,11 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
 
     if (!result.status.isSuccess) {
-      emitter(state.copyWith(moveError: result.status));
+      emitter(state.copyWithMoveError(moveError: result.status));
       return;
     }
 
-    emitter(state.copyWith(projectFilePath: result.value!.path, forceMoveErrorValue: true));
+    emitter(state.copyWithMoved(projectFilePath: result.value!.path));
   }
 
   /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
@@ -443,7 +437,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMoveErrorDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    emitter(state.copyWith(forceMoveErrorValue: true));
+    emitter(state.copyWithMoveErrorDismissed());
   }
 
   /// Writes the newly picked currency to the project, then reflects it in the state.
@@ -452,7 +446,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectCurrencyCode(event.currencyCode);
-    emitter(state.copyWith(currencyCode: event.currencyCode, hasChanged: true));
+    emitter(state.copyWithCurrencyCode(currencyCode: event.currencyCode));
   }
 
   /// Writes the newly picked page format to the project, then reflects it in the state.
@@ -461,7 +455,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectPageFormat(event.pageFormat);
-    emitter(state.copyWith(pageFormat: event.pageFormat, hasChanged: true));
+    emitter(state.copyWithPageFormat(pageFormat: event.pageFormat));
   }
 
   /// Writes the newly committed minimum rest to the project, then reflects it in the state.
@@ -474,13 +468,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectMinimumRestMinutes(event.minutes);
-    emitter(
-      state.copyWith(
-        minimumRestMinutes: event.minutes,
-        forceMinimumRestMinutesValue: event.minutes == null,
-        hasChanged: true,
-      ),
-    );
+    emitter(state.copyWithMinimumRestMinutes(minimumRestMinutes: event.minutes));
   }
 
   /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
@@ -493,13 +481,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectDefaultVatRateBasisPoints(event.basisPoints);
-    emitter(
-      state.copyWith(
-        defaultVatRateBasisPoints: event.basisPoints,
-        forceDefaultVatRateBasisPointsValue: event.basisPoints == null,
-        hasChanged: true,
-      ),
-    );
+    emitter(state.copyWithDefaultVatRate(defaultVatRateBasisPoints: event.basisPoints));
   }
 
   /// Writes the newly committed meal price to the project, then reflects it in the state.
@@ -508,13 +490,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectMealPriceCents(event.cents);
-    emitter(
-      state.copyWith(
-        mealPriceCents: event.cents,
-        forceMealPriceCentsValue: event.cents == null,
-        hasChanged: true,
-      ),
-    );
+    emitter(state.copyWithMealPrice(mealPriceCents: event.cents));
   }
 
   /// Writes the newly committed buffet price to the project, then reflects it in the state —
@@ -525,13 +501,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectSnackPriceCents(event.cents);
-    emitter(
-      state.copyWith(
-        buffetPriceCents: event.cents,
-        forceBuffetPriceCentsValue: event.cents == null,
-        hasChanged: true,
-      ),
-    );
+    emitter(state.copyWithBuffetPrice(buffetPriceCents: event.cents));
   }
 
   /// Writes the newly picked screenplay language to the project, then reflects it in the state.
@@ -544,13 +514,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
     await _projectsManager.saveCurrentProjectScreenplayLanguage(event.screenplayLanguage);
-    emitter(
-      state.copyWith(
-        screenplayLanguage: event.screenplayLanguage,
-        forceScreenplayLanguageValue: event.screenplayLanguage == null,
-        hasChanged: true,
-      ),
-    );
+    emitter(state.copyWithScreenplayLanguage(screenplayLanguage: event.screenplayLanguage));
   }
 
   /// Applies `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then
@@ -582,7 +546,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
-    emitter(state.copyWith(dictionaryWords: dictionaryWords, hasChanged: true));
+    emitter(state.copyWithDictionaryWords(dictionaryWords: dictionaryWords));
   }
 
   /// Appends a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
@@ -599,7 +563,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final id = await _projectsManager.screenplayService.createEpisode(database: _database);
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWith(episodes: episodes, hasChanged: id != null ? true : null));
+    emitter(state.copyWithEpisodeAdded(episodes: episodes, isAdded: id != null));
   }
 
   /// Writes the newly committed title of `event.screenplayId`, then re-reads the project's
@@ -614,7 +578,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       title: Value(event.title),
     );
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
   /// Writes the newly committed printed number of `event.screenplayId`, then re-reads the
@@ -629,7 +593,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       number: Value(event.number),
     );
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
   /// Moves `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then
@@ -644,7 +608,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
       newPosition: event.newPosition,
     );
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    emitter(state.copyWith(episodes: episodes, hasChanged: true));
+    emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
   /// Deletes `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog`
@@ -666,7 +630,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     );
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
     await _projectsManager.recordCurrentProjectEpisodeCount();
-    emitter(state.copyWith(episodes: episodes, hasChanged: deleted ? true : null));
+    emitter(state.copyWithEpisodeDeleted(episodes: episodes, isDeleted: deleted));
   }
 
   /// Appends a new, blank mileage rate, then re-reads the project's rates so the card shows what
@@ -682,7 +646,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: id != null ? true : null));
+    emitter(state.copyWithMileageRateAdded(mileageRates: mileageRates, isAdded: id != null));
   }
 
   /// Writes the newly committed label of mileage rate `event.rateId`, then re-reads the project's
@@ -699,7 +663,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
   }
 
   /// Writes the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-reads
@@ -716,7 +680,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
   }
 
   /// Deletes `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-reads
@@ -736,6 +700,6 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWith(mileageRates: mileageRates, hasChanged: true));
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
   }
 }
