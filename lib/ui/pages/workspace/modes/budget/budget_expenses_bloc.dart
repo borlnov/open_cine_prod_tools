@@ -488,7 +488,11 @@ class OcptBudgetExpensesBloc
 
     await _writeAllPendingFieldEdits(project, pending);
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
-      return true;
+      // The write landed but the mode could not read it back, which the old handler let escape
+      // and so stopped the action behind the flush: answering that all went well would let a
+      // preview, an export or a restore run on the snapshot from before the write. The edit stays
+      // pending, and the next flush writes it again.
+      throw StateError("The data could not be read again after the pending edits were written");
     }
 
     emitter(

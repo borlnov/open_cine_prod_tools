@@ -60,8 +60,20 @@ class _CountingScheduleService extends OcptScheduleService {
   /// The label of each slot write, in the order they were made.
   final List<String?> slotLabelWrites = [];
 
+  /// Whether [loadSchedule] throws.
+  bool loadFails = false;
+
   /// Class constructor
   _CountingScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
+
+  @override
+  Future<OcptScheduleSnapshot> loadSchedule({required OcptProjectDatabase database}) {
+    if (loadFails) {
+      throw StateError("schedule read intentionally failed for the test");
+    }
+
+    return super.loadSchedule(database: database);
+  }
 
   @override
   Future<void> updateSlot({
@@ -437,6 +449,48 @@ void main() {
 
       await dayBloc.close();
       await bloc.close();
+    });
+
+    test("a flush whose re-read fails after the write stops what it was for", () async {
+      final fixture = await writePlacedShot();
+      final service = _CountingScheduleService();
+      // The mode lets a failed read escape its handler, as the old handlers did: it reaches the
+      // zone as an uncaught error, which this test collects.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        final bloc = OcptScheduleBloc(
+          projectsManager: projectsManager,
+          propertiesManager: propertiesManager,
+          routerManager: _RecordingRouterManager(),
+          exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+          scheduleService: service,
+        );
+        final dayBloc = OcptScheduleDayBloc(
+          modeBloc: bloc,
+          projectsManager: projectsManager,
+          scheduleService: service,
+          fieldEditDebounce: _neverDebounce,
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+        typeSlotLabel(dayBloc, fixture.slotId, "Cave");
+        await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+        service.loadFails = true;
+        expect(await bloc.flushAllPendingWrites(), isFalse);
+
+        // The write landed, but the mode could not read it back: nothing may go on as if it had.
+        service.loadFails = false;
+        expect((await readSchedule()).slotsByDayId[fixture.dayId]!.single.label, "Cave");
+        expect(dayBloc.state.pendingFieldEdits, isNotEmpty);
+
+        expect(await bloc.flushAllPendingWrites(), isTrue);
+        expect(dayBloc.state.pendingFieldEdits, isEmpty);
+
+        await dayBloc.close();
+        await bloc.close();
+      }, (error, stackTrace) => uncaught.add(error));
+
+      expect(uncaught.whereType<StateError>(), isNotEmpty);
     });
 
     test("flushing every pending write writes the edit and has the mode read it back", () async {

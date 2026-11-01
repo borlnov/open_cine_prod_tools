@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -30,6 +31,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_snapshot_loader.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -80,6 +82,24 @@ class _FlakyQuoteService extends OcptBudgetQuoteService {
       simpleLabel: simpleLabel,
       estimateToCompleteCents: estimateToCompleteCents,
     );
+  }
+}
+
+/// A snapshot loader whose read can be made to fail.
+class _FlakySnapshotLoader extends OcptBudgetSnapshotLoader {
+  /// Whether [load] throws.
+  bool fails = false;
+
+  /// Class constructor
+  _FlakySnapshotLoader({required super.projectsManager, required super.seed});
+
+  @override
+  Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
+    if (fails) {
+      throw StateError("budget read intentionally failed for the test");
+    }
+
+    return super.load(project);
   }
 }
 
@@ -1012,6 +1032,54 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
 
       expect(bloc.pendingWritesFlusherCount, 1);
+    });
+  });
+
+  group("a typed edit whose re-read fails after it was written", () {
+    test("stops what the flush was for, and is still pending", () async {
+      final loader = _FlakySnapshotLoader(projectsManager: projectsManager, seed: _smallSeed);
+      final bloc = OcptBudgetBloc(
+        seed: _smallSeed,
+        projectsManager: projectsManager,
+        propertiesManager: propertiesManager,
+        routerManager: _RecordingRouterManager(),
+        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        snapshotLoader: loader,
+      );
+      addTearDown(bloc.close);
+      final expensesBloc = OcptBudgetExpensesBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+        fieldEditDebounce: const Duration(days: 1),
+      );
+      addTearDown(expensesBloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final posteId = loaded.postes.first.id;
+
+      expensesBloc.add(
+        OcptBudgetFieldChangedEvent(
+          targetId: posteId,
+          field: OcptBudgetField.posteLabel,
+          rawValue: "Typed",
+        ),
+      );
+      await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+      loader.fails = true;
+      expect(await bloc.flushAllPendingWrites(), isFalse);
+
+      // The write landed, but the mode could not read it back: nothing may go on as if it had.
+      final stored = await projectsManager.budgetQuoteService.loadPostes(
+        database: projectsManager.currentProject!.database,
+        seed: _smallSeed,
+      );
+      expect(stored.firstWhere((poste) => poste.id == posteId).label, "Typed");
+      expect(expensesBloc.state.pendingFieldEdits, isNotEmpty);
+
+      loader.fails = false;
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+      await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
+      expect(bloc.state.postes.firstWhere((poste) => poste.id == posteId).label, "Typed");
     });
   });
 

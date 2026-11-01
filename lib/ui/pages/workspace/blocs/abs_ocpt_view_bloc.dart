@@ -40,6 +40,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 /// so a pending edit reaches the database whichever of the view and the mode closes first.
 /// A flush whose write fails throws, keeps the edit pending, and makes the mode's
 /// [OcptPendingWritesRun] say so: whether the action behind the flush then stops is the mode's call.
+/// So does a flush whose write landed but whose `reload` answered false, in a mode whose old code
+/// let that read failure escape: the action must not run over a snapshot from before the write.
 ///
 /// **Rules for whoever writes the next view bloc.**
 ///
