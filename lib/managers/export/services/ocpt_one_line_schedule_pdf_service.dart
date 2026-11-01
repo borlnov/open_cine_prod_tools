@@ -70,7 +70,7 @@ const Map<int, pw.TableColumnWidth> _lineColumnWidths = {
 /// PDF exports already read**, so this document cannot disagree with a call sheet or the shooting
 /// plan about what order a shoot's sequences run in. A line is a run of consecutive
 /// [OcptShootingBlockKind.shot] blocks on the same slot and the same scene, collapsed exactly as
-/// `OcptCallSheetPdfService`'s own `_DayRow.shotRun` folds one, or a single
+/// `OcptCallSheetDayRow.shotRun` folds one, or a single
 /// [OcptShootingBlockKind.hold] block, which never folds with anything — see [_buildOneLineRows]'s
 /// own doc comment for why every other block kind gives no line at all.
 ///
@@ -467,7 +467,7 @@ class OcptOneLineSchedulePdfService extends AbsOcptService {
 
 /// One printed line: a run of one or more consecutive [OcptShootingBlockKind.shot] blocks on the
 /// same slot and the same scene, collapsed exactly as `OcptCallSheetPdfService`'s own
-/// `_DayRow.shotRun` folds one ([shots] non-empty), or a single [OcptShootingBlockKind.hold] block,
+/// `OcptCallSheetDayRow.shotRun` folds one ([shots] non-empty), or a single [OcptShootingBlockKind.hold] block,
 /// which never folds with anything ([shots] always empty for one). See [_buildOneLineRows]'s own
 /// doc comment for why every other block kind gives no line at all.
 class _OneLineRow {
@@ -546,7 +546,7 @@ class _OneLineRow {
 /// [OcptShootingBlockKind.hairMakeUp], [OcptShootingBlockKind.meal], [OcptShootingBlockKind.pause],
 /// [OcptShootingBlockKind.travel] or [OcptShootingBlockKind.wrap] block is not one — a meal break
 /// is not a sequence, and the mode's own strip agenda, which this document prints, shows shot chips
-/// alone. Mirrors `OcptCallSheetPdfService`'s own `_buildDayRows`, so the two documents cannot
+/// alone. Mirrors `ocptCallSheetBuildDayRows`, so the two documents cannot
 /// disagree about what one printed line is.
 List<_OneLineRow> _buildOneLineRows({
   required OcptSchedulePlanSnapshot plan,

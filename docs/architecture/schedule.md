@@ -475,10 +475,11 @@ seven documents a production runs on.
   cast table, the two directories and a trailing `NOM / MOTIF / HORAIRES` guest table. That table
   carries **five columns, not the reference's six**: no field of this app says what happens in a
   sequence, so `RÉSUMÉ` could only ever have printed an em dash on every row. The **contacts block**
-  prints twice, over two different department sets, sharing one `_contactsBlock` builder: the key
-  contacts (direction, production, unit management) and the by-department crew block (casting and
-  extras, image, electric and grip, sound, art department, costume, hair and make-up, special
-  effects — construction and post-production are not on set, so neither ever reaches a call sheet),
+  prints twice, over two different department sets, sharing one
+  `OcptCallSheetHeaderSections.contactsBlock` builder: the key contacts (direction, production, unit
+  management) and the by-department crew block (casting and extras, image, electric and grip, sound,
+  art department, costume, hair and make-up, special effects — construction and post-production are
+  not on set, so neither ever reaches a call sheet),
   both laid out in **rows of at most four columns**, the last row padded with empty ones so every
   column keeps the same width whatever it holds. The **cast table lists
   every role the day calls for**, not only the convoked ones: a role a placed shot plays but nobody

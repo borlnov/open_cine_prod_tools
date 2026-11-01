@@ -1080,7 +1080,7 @@ class OcptShootingPlanPdfService extends AbsOcptService {
   /// **A block's own [OcptShootingDayBlock.crewNote] prints under its own row**: `notes` is the
   /// private one that never prints, `crewNote` is the one that does. A shot run's own note closes
   /// the pending table chunk the moment it is seen — mirroring
-  /// `OcptCallSheetPdfService._mainTableSection`'s own `flushShotRows` — since a `pw.Table` row
+  /// `OcptCallSheetTableSections.mainTableSection`'s own `flushShotRows` — since a `pw.Table` row
   /// cannot itself span the page width the note deserves; a milestone's own note has no such
   /// problem, [_milestoneProseLine] already being a full-width line that prints it inline.
   List<pw.Widget> _dayTimetableWidgets({
