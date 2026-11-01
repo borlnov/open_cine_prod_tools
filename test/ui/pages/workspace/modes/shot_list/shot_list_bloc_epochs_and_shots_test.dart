@@ -864,9 +864,18 @@ void main() {
     await Future<void>.delayed(const Duration(seconds: 2, milliseconds: 100));
     final beforeTabSelected = countingManager.captureCount;
 
+    // A capture runs after the state it follows, and how long that takes depends on the load of
+    // the machine, so it is waited for rather than given a fixed window.
+    Future<void> waitForCaptures(int expectedCount) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (countingManager.captureCount < expectedCount && DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+    }
+
     bloc.add(const OcptShotListRightDockTabSelectedEvent(tab: OcptShotListRightDockTab.versions));
     await waitForState(bloc, (state) => state.rightDockTab == OcptShotListRightDockTab.versions);
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await waitForCaptures(beforeTabSelected + 1);
     expect(countingManager.captureCount, beforeTabSelected + 1);
 
     // Clear the throttle again, then flush a field edit while the tab opened above is still the
@@ -880,7 +889,7 @@ void main() {
       ),
     );
     await waitForState(bloc, (state) => state.selectedShot!.shotSize == "Wide");
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await waitForCaptures(beforeTabSelected + 2);
     expect(countingManager.captureCount, beforeTabSelected + 2);
 
     await inspector.close();
