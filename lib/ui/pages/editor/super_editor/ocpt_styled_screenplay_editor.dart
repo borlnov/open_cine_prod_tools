@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_n
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_settle_merge_policy.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_context_menu.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_document_settle.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_editor_builder.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_fluid_surface.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_history.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_jump_handler.dart';
@@ -680,20 +681,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _titlePageNodeCount = decoded.titlePageNodeCount;
     _titlePagePrefixLength = decoded.titlePagePrefixLength;
     _composer = MutableDocumentComposer();
-    _editor = Editor(
-      editables: {Editor.documentKey: _document, Editor.composerKey: _composer},
-      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-        ..insert(0, ocptTitlePageGuardRequestHandler)
-        ..add(ocptChangeNodeMetadataRequestHandler)
-        ..add(ocptReplaceNodeTextRequestHandler),
-      // `isHistoryEnabled` defaults to false, which is what used to make every command's own
-      // `HistoryBehavior.undoable` moot: `undo()`/`redo()` returned immediately and `history`/
-      // `future` never grew. `historyGroupingPolicy` defaults to `neverMergePolicy`, which groups
-      // nothing at all, and super_editor's own `defaultMergePolicy` groups a typing run only
-      // within 100 ms — see [OcptSettleMergePolicy] for what this one groups instead.
-      isHistoryEnabled: true,
-      historyGroupingPolicy: _history.mergePolicy,
-    );
+    _editor = ocptStyledEditorFor(document: _document, composer: _composer, history: _history);
 
     _document.addListener(_onDocumentChanged);
     _composer.selectionNotifier.addListener(_onSelectionChanged);

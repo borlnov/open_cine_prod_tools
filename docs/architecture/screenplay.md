@@ -128,8 +128,9 @@ model, the title page, the spell-checking, the docks and the syntax guide.
 - Undo and redo: **one undo step is one gesture of the writer's, plus everything the editor derived
   from it** — a keystroke run, an Enter, a Tab, a dropdown pick, a paste or a replace, together with
   the reclassification, the uppercasing, the `#N#` renumbering and the metadata the editor computed
-  *because* of it. Never the derived half alone. `Editor` runs with `isHistoryEnabled: true` and
-  `OcptSettleMergePolicy` (`ocpt_settle_merge_policy.dart`) as its `historyGroupingPolicy`:
+  *because* of it. Never the derived half alone. `Editor` (built by `ocptStyledEditorFor`,
+  `ocpt_styled_editor_builder.dart`) runs with `isHistoryEnabled: true` and `OcptSettleMergePolicy`
+  (`ocpt_settle_merge_policy.dart`) as its `historyGroupingPolicy`:
   every derived pass goes through `runDerivedPass`, which merges the transactions it closes onto the
   gesture's own — without it, Ctrl+Z pops the derived transaction, the 120 ms debounce restarts, the
   pass re-derives exactly what was undone and pushes it back forever, which is a manual Tab that
