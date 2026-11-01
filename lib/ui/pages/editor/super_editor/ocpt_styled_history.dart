@@ -16,7 +16,10 @@ final class OcptStyledHistory {
     required Editor Function() editorOf,
     required void Function() syncSceneNumbers,
     required void Function() reportReadState,
-  }) : _editorOf = editorOf,
+  }) : mergePolicy = OcptSettleMergePolicy(),
+       _isRedoStackStale = false,
+       _isApplyingHistory = false,
+       _editorOf = editorOf,
        _syncSceneNumbers = syncSceneNumbers,
        _reportReadState = reportReadState;
 
@@ -38,7 +41,7 @@ final class OcptStyledHistory {
   ///
   /// Owned here rather than built per [Editor]: it carries the "a derived pass is running
   /// right now" flag [runDerivedPass] raises, which every derived pass has to reach.
-  final OcptSettleMergePolicy mergePolicy = OcptSettleMergePolicy();
+  final OcptSettleMergePolicy mergePolicy;
 
   /// Whether the transactions the editor's `future` list still holds have been overtaken by an
   /// edit made since they were undone, i.e. whether a redo would replay them onto a document that
@@ -49,12 +52,12 @@ final class OcptStyledHistory {
   /// still meaningful. This flag is what says it instead: raised by [markRedoStale] on every
   /// change that is neither an undo/redo of ours nor a pass this widget derived, lowered by
   /// [undo].
-  bool _isRedoStackStale = false;
+  bool _isRedoStackStale;
 
   /// Whether [undo] or [redo] is currently applying a change to the document, which is how
   /// the document listener tells a restored document apart from an edit of the writer's: an undo
   /// or a redo must not mark its own document change as one that invalidates the redo stack.
-  bool _isApplyingHistory = false;
+  bool _isApplyingHistory;
 
   /// Whether [undo] or [redo] is currently applying a change, which is how the document listener
   /// tells a restored document apart from an edit of the writer's.

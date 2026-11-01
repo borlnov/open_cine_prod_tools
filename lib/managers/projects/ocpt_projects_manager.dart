@@ -249,13 +249,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   final OcptProjectFileCompatibilityService projectFileCompatibilityService;
 
   /// Whether a create/open/close operation is currently in progress.
-  bool _isBusy = false;
+  bool _isBusy;
 
   /// The callbacks the modes register to answer, at any moment, whether they hold changes that
   /// haven't reached the database yet.
   ///
   /// See [registerUnsavedChangesReporter] for why this manager has to ask at all.
-  final _unsavedChangesReporters = <bool Function()>[];
+  final List<bool Function()> _unsavedChangesReporters;
 
   /// The project currently open, if any, with a stream to react to it changing.
   ///
@@ -311,7 +311,9 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     required OcptPropertiesManager? propertiesManager,
     required OcptAppLanguageCodeGetter? appLanguageCode,
     required PlatformManager? platformManager,
-  }) : _logger = logger,
+  }) : _isBusy = false,
+       _unsavedChangesReporters = <bool Function()>[],
+       _logger = logger,
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _appLanguageCode = appLanguageCode ?? _localesManagerLanguageCode,
        _platformManager = platformManager ?? PlatformManager(),

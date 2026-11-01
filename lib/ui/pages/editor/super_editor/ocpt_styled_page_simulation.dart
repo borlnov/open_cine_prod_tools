@@ -21,7 +21,10 @@ final class OcptStyledPageSimulation {
     required void Function(VoidCallback derivedPass) runDerivedPass,
     required bool Function() isEnabled,
     required OcptPageSetup Function() pageSetupOf,
-  }) : _documentOf = documentOf,
+  }) : pageCount = 0,
+       titlePageSheetCount = 0,
+       trailingBottomPadding = 0,
+       _documentOf = documentOf,
        _editorOf = editorOf,
        _runDerivedPass = runDerivedPass,
        _isEnabled = isEnabled,
@@ -44,18 +47,18 @@ final class OcptStyledPageSimulation {
 
   /// The number of simulated pages the document currently spans while page simulation is on
   /// (always 0 while it's off), set by [recompute].
-  int pageCount = 0;
+  int pageCount;
 
   /// How many of those [pageCount] pages the title page takes up before the script itself starts
   /// (always 0 while page simulation is off), set by [recompute]: the offset a painted sheet's
   /// index needs before it means a **script** page number (see
   /// [OcptStyledPagination.titlePageSheetCount]).
-  int titlePageSheetCount = 0;
+  int titlePageSheetCount;
 
   /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
   /// scrollable content reaches all the way down to the last simulated page's own bottom margin
   /// (always 0 while page simulation is off), set by [recompute].
-  double trailingBottomPadding = 0;
+  double trailingBottomPadding;
 
   /// The document the pagination is computed over.
   MutableDocument get _document => _documentOf();

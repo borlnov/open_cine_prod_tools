@@ -87,7 +87,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   static const _loggerCategory = "resources_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -160,7 +160,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptElementsService? elementsService,
     OcptResourcesRevealRequest? revealRequest,
     String? selectedEpisodeId,
-  }) : _pendingRevealRequest = revealRequest,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _pendingRevealRequest = revealRequest,
        _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),

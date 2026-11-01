@@ -56,7 +56,7 @@ class OcptBudgetExpensesBloc
   static const _loggerCategory = "budget_expenses_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -81,7 +81,8 @@ class OcptBudgetExpensesBloc
     OcptBudgetQuoteService? budgetQuoteService,
     OcptBudgetJournalService? budgetJournalService,
     Duration fieldEditDebounce = OcptBudgetBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _budgetQuoteService =
            budgetQuoteService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).budgetQuoteService,

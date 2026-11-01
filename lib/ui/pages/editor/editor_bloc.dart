@@ -69,7 +69,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   static const _loggerCategory = "editor_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
@@ -115,10 +115,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   String? _undeliveredText;
 
   /// Whether [disposeLifeCycle] has started.
-  bool _isDisposing = false;
+  bool _isDisposing;
 
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
-  int _nextJumpRequestId = 0;
+  int _nextJumpRequestId;
 
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
@@ -147,7 +147,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
     String? selectedEpisodeId,
-  }) : _selectedEpisodeId = selectedEpisodeId,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _isDisposing = false,
+       _nextJumpRequestId = 0,
+       _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),

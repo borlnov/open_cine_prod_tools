@@ -25,17 +25,17 @@ import 'package:spell_kit/spell_kit.dart';
 /// rest) and a wavy underline ([ocptEditorSpellCheckErrorColor]) at once.
 class OcptEditorSearchTextController extends TextEditingController {
   /// The matches currently painted, in source order.
-  List<OcptTextMatch> _matches = const [];
+  List<OcptTextMatch> _matches;
 
   /// The index, in [_matches], of the current match; null while there is none.
   int? _currentMatchIndex;
 
   /// The misspelled ranges currently painted, document-absolute — the very offsets [text] is
   /// addressed by.
-  List<SpellRange> _spellCheckRanges = const [];
+  List<SpellRange> _spellCheckRanges;
 
   /// Class constructor
-  OcptEditorSearchTextController({super.text});
+  OcptEditorSearchTextController({super.text}) : _matches = const [], _spellCheckRanges = const [];
 
   /// Replaces the matches this controller paints and repaints, unless [matches] and
   /// [currentMatchIndex] are exactly the ones already held.

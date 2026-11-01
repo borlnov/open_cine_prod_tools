@@ -54,7 +54,7 @@ class OcptShotListFloorPlanPlacementsBloc
   static const _loggerCategory = "shot_list_floor_plan_placements_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -75,7 +75,8 @@ class OcptShotListFloorPlanPlacementsBloc
     OcptProjectsManager? projectsManager,
     OcptFloorPlanService? floorPlanService,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _floorPlanService =
            floorPlanService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).floorPlanService,

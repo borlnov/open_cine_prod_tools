@@ -66,7 +66,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
   static const _loggerCategory = "workspace_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to read this replica's own device id (see [_startSyncSessionIfPaired]) — the
   /// active workspace mode is not persisted, so this bloc no longer reaches into it for that.
@@ -95,7 +95,8 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     OcptProjectsManager? projectsManager,
     OcptSyncManager? syncManager,
     OcptRelayHostManager? hostManager,
-  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManagerOverride = syncManager,
        _hostManagerOverride = hostManager,

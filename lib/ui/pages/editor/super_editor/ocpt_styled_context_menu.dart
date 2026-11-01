@@ -39,7 +39,9 @@ final class OcptStyledContextMenu {
     onSpellingSuggestionsRequestedOf,
     required ValueChanged<String>? Function() onWordIgnoredOf,
     required ValueChanged<String>? Function() onWordLearnedOf,
-  }) : _documentOf = documentOf,
+  }) : controller = MenuController(),
+       _suggestions = const [],
+       _documentOf = documentOf,
        _editorOf = editorOf,
        _composerOf = composerOf,
        _documentLayoutKey = documentLayoutKey,
@@ -86,7 +88,7 @@ final class OcptStyledContextMenu {
 
   /// The controller opening/closing the right-click context menu ([OcptEditorContextMenu]), which
   /// the owning widget's build also positions it with, at the tap [onSecondaryTapUp] resolved.
-  final MenuController controller = MenuController();
+  final MenuController controller;
 
   /// The misspelled word the last right-click landed on, or null when it didn't — read by the
   /// owning widget's build to gate [OcptEditorContextMenu]'s spelling group.
@@ -123,7 +125,7 @@ final class OcptStyledContextMenu {
 
   /// Up to five spelling suggestions for [_misspelledWord], fetched once by
   /// [onSecondaryTapUp] when the menu opened — never refetched on every rebuild.
-  List<String> _suggestions = const [];
+  List<String> _suggestions;
 
   /// Whether [_composer]'s current selection is expanded, i.e. there is something for the
   /// right-click context menu's Cut/Copy entries to act on: read fresh on every the build, so it

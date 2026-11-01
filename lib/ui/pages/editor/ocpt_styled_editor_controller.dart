@@ -26,11 +26,11 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The block type of the caret's current node, mirrored from the live styled editor by
   /// [updateReadState].
-  FountainLineType _currentBlockType = FountainLineType.action;
+  FountainLineType _currentBlockType;
 
   /// The inline styles active at the caret (or across the whole selection), mirrored from the live
   /// styled editor by [updateReadState].
-  Set<OcptInlineStyle> _activeInlineStyles = const {};
+  Set<OcptInlineStyle> _activeInlineStyles;
 
   /// The find/replace query last handed to [updateSearch], remembered here (rather than only
   /// forwarded) so a delegate that attaches *after* the query was set — a raw → styled mode switch
@@ -44,26 +44,26 @@ class OcptStyledEditorController extends ChangeNotifier {
 
   /// The match count the attached delegate last reported through [reportSearchMatchCount]; `0`
   /// while detached.
-  int _searchMatchCount = 0;
+  int _searchMatchCount;
 
   /// The misspelled ranges by node id [updateSpellCheckRanges] last set, remembered here for the
   /// same reason [_searchQuery] is: a delegate attaching after this was set (a raw → styled mode
   /// switch while the ranges are already known) must receive them immediately at [attach] time,
   /// rather than waiting for the page's next reactive sync.
-  Map<String, List<SpellRange>> _spellCheckRangesByNodeId = const {};
+  Map<String, List<SpellRange>> _spellCheckRangesByNodeId;
 
   /// The checkable node texts the attached delegate last reported through [reportSpellCheckTexts];
   /// empty while detached, since there is nothing to check without a live document to read them
   /// from.
-  Map<String, String> _spellCheckTextsByNodeId = const {};
+  Map<String, String> _spellCheckTextsByNodeId;
 
   /// Whether the attached delegate had anything left to undo when it last called
   /// [updateReadState]; false while detached.
-  bool _canUndo = false;
+  bool _canUndo;
 
   /// Whether the attached delegate had anything left to redo when it last called
   /// [updateReadState]; false while detached.
-  bool _canRedo = false;
+  bool _canRedo;
 
   /// The match count the toolbar/page should currently show for the styled mode's own search.
   int get searchMatchCount => _searchMatchCount;
@@ -79,7 +79,18 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// controller (for example in a widget test that tears its tree down, disposing this controller,
   /// before the next frame that would have run the callback ever gets pumped), and
   /// `ChangeNotifier.notifyListeners()` asserts when called after [dispose].
-  bool _disposed = false;
+  bool _disposed;
+
+  /// Class constructor
+  OcptStyledEditorController()
+    : _currentBlockType = FountainLineType.action,
+      _activeInlineStyles = const {},
+      _searchMatchCount = 0,
+      _spellCheckRangesByNodeId = const {},
+      _spellCheckTextsByNodeId = const {},
+      _canUndo = false,
+      _canRedo = false,
+      _disposed = false;
 
   /// Whether a live styled editor is currently attached; false in raw mode.
   bool get isAttached => _delegate != null;

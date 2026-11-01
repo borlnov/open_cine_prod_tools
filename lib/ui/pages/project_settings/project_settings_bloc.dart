@@ -65,7 +65,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
   static const _loggerCategory = "project_settings_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to read and write the current project's settings.
   final OcptProjectsManager _projectsManager;
@@ -101,7 +101,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptRelayHostManager? hostManager,
     OcptPropertiesManager? propertiesManager,
     OcptFolderLauncher? launchFolder,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _exportManagerOverride = exportManager,
        _syncManagerOverride = syncManager,
        _hostManagerOverride = hostManager,

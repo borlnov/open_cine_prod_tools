@@ -14,27 +14,32 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// controllers live exactly as long as the dialog does, whichever rows are on screen.
 class OcptBudgetNewBreakdownSelection {
   /// The ids of the breakdown elements currently checked.
-  final Set<String> selectedIds = {};
+  final Set<String> selectedIds;
 
   /// The quantity of each checked element, in thousandths, keyed by element id.
-  final Map<String, int> quantityMilliByElementId = {};
+  final Map<String, int> quantityMilliByElementId;
 
   /// The quantity field controller of each element met so far, keyed by element id.
-  final Map<String, TextEditingController> _quantityControllers = {};
+  final Map<String, TextEditingController> _quantityControllers;
 
   /// The poste a row was individually filed under, overriding [bulkPosteId] — keyed by element id,
   /// absent while the row still follows the bulk default.
-  final Map<String, String> _posteOverrideByElementId = {};
+  final Map<String, String> _posteOverrideByElementId;
 
   /// The search text.
-  String query = "";
+  String query;
 
   /// The poste every row inherits until it is given one of its own — the `File all under`
   /// header's own answer, and the default half of [posteFor].
   String? bulkPosteId;
 
   /// Class constructor
-  OcptBudgetNewBreakdownSelection();
+  OcptBudgetNewBreakdownSelection()
+    : selectedIds = {},
+      quantityMilliByElementId = {},
+      _quantityControllers = {},
+      _posteOverrideByElementId = {},
+      query = "";
 
   /// The quantity field controller of [element], created on first request.
   TextEditingController quantityControllerOf(OcptElement element) =>

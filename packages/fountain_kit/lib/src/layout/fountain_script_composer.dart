@@ -579,16 +579,16 @@ class _LineRange {
 class _PageBuilder {
   /// Creates a [_PageBuilder] laying out pages of `_metrics.linesPerPage`
   /// lines.
-  _PageBuilder(this._metrics);
+  _PageBuilder(this._metrics) : _pages = [], _current = [];
 
   /// The metrics every placement decision is measured against.
   final FountainLayoutMetrics _metrics;
 
   /// The pages already closed, in order.
-  final List<FountainScriptPage> _pages = [];
+  final List<FountainScriptPage> _pages;
 
   /// The lines placed so far on the page still being filled.
-  final List<FountainScriptLine> _current = [];
+  final List<FountainScriptLine> _current;
 
   /// How many more lines fit on the page currently being filled.
   int get _capacity => _metrics.linesPerPage - _current.length;

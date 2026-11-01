@@ -75,7 +75,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     http.Client? httpClient,
     OcptWebSocketConnector? webSocketConnector,
     this.reconnectDelay = const Duration(seconds: 2),
-  }) : _logger = logger,
+  }) : _socketWanted = false,
+       _logger = logger,
        _httpClient = httpClient ?? http.Client(),
        _ownsHttpClient = httpClient == null,
        // A bearer header on a WebSocket handshake is only possible because the default connector
@@ -135,7 +136,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   WebSocketChannel? _activeSocket;
   StreamSubscription<Object?>? _activeSocketSubscription;
   Timer? _reconnectTimer;
-  bool _socketWanted = false;
+  bool _socketWanted;
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(

@@ -62,9 +62,11 @@ class OcptRowStampService extends AbsWithLifeCycle {
   int? _version;
 
   /// The stamps written so far, waiting for [flush].
-  final _pending = <OcptRowFieldVersionsTableCompanion>[];
+  final List<OcptRowFieldVersionsTableCompanion> _pending;
 
-  OcptRowStampService._({required this.deviceId, required int clock}) : _clock = clock;
+  OcptRowStampService._({required this.deviceId, required int clock})
+    : _pending = <OcptRowFieldVersionsTableCompanion>[],
+      _clock = clock;
 
   /// Seeds a new instance from the highest version [database] currently holds anywhere in
   /// `row_field_versions`, to be written by [deviceId].

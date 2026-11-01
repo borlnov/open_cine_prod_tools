@@ -55,7 +55,7 @@ class OcptResourcesLocationsBloc
   static const _loggerCategory = "resources_locations_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -93,7 +93,8 @@ class OcptResourcesLocationsBloc
     OcptAssetsService? assetsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,

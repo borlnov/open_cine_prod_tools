@@ -15,13 +15,15 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// [FountainTitlePageEntry].
 class _PendingTitleEntry {
   /// Creates a [_PendingTitleEntry] starting at [startLine].
-  _PendingTitleEntry({required this.key, required this.startLine}) : endLine = startLine;
+  _PendingTitleEntry({required this.key, required this.startLine})
+    : values = [],
+      endLine = startLine;
 
   /// The entry key, exactly as written in the source.
   final String key;
 
   /// The value lines accumulated so far, in source order.
-  final List<String> values = [];
+  final List<String> values;
 
   /// The global line number of the `key: value` line itself.
   final int startLine;

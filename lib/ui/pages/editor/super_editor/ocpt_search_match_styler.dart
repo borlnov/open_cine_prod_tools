@@ -47,7 +47,10 @@ const NamedAttribution ocptSearchCurrentMatchAttribution = NamedAttribution(
 /// presenter pipeline on its own.
 class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
   /// The matches currently painted, keyed by the id of the node they were found in.
-  Map<String, List<OcptTextMatch>> _matchesByNodeId = const {};
+  Map<String, List<OcptTextMatch>> _matchesByNodeId;
+
+  /// Class constructor
+  OcptSearchMatchStyler() : _matchesByNodeId = const {};
 
   /// The id of the node holding the current match, or null while there is none.
   String? _currentMatchNodeId;

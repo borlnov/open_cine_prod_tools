@@ -29,22 +29,25 @@ class OcptConfigManagerBuilder extends AbstractConfigBuilder<OcptConfigManager> 
 class OcptConfigManager extends AbsUsualConfigManager
     with MixinLocaleConfig, MixinThemesConfig, MixinLicensesConfig, MixinStoresConf {
   /// Creates the config manager with the app's default logger.
-  OcptConfigManager() : super(logger: appLogger());
+  OcptConfigManager()
+    : _fileLogEnabledVar = const NotNullableConfigVar<bool>(
+        'logs.file.enabled',
+        defaultValue: false,
+      ),
+      _fileLogLevelVar = const NotNullParserConfigVar<LogsLevel, String>(
+        'logs.file.level',
+        defaultValue: LogsLevel.info,
+        parser: LogsLevel.parseFromString,
+      ),
+      super(logger: appLogger());
 
   /// Whether app logs are also written to a rotating file (`logs.file.enabled`), read by
   /// `OcptFileLoggingManager`.
-  final _fileLogEnabledVar = const NotNullableConfigVar<bool>(
-    'logs.file.enabled',
-    defaultValue: false,
-  );
+  final NotNullableConfigVar<bool> _fileLogEnabledVar;
 
   /// The minimum level a line must reach to be written to that file (`logs.file.level`), read by
   /// `OcptFileLoggingManager`.
-  final _fileLogLevelVar = const NotNullParserConfigVar<LogsLevel, String>(
-    'logs.file.level',
-    defaultValue: LogsLevel.info,
-    parser: LogsLevel.parseFromString,
-  );
+  final NotNullParserConfigVar<LogsLevel, String> _fileLogLevelVar;
 
   /// Whether app logs are also written to a rotating file.
   bool get fileLogEnabled => _fileLogEnabledVar.load();

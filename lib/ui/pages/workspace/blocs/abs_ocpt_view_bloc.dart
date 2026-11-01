@@ -91,23 +91,23 @@ abstract class AbsOcptViewBloc<
   late final VoidCallback _unregisterFlusher;
 
   /// Whether [close] was called.
-  bool _isClosing = false;
+  bool _isClosing;
 
   /// How many [OcptViewModeStateChangedEvent]s this view dispatched to itself so far.
-  int _dispatchedReactions = 0;
+  int _dispatchedReactions;
 
   /// How many of them [onModeStateChanged] has returned from.
-  int _handledReactions = 0;
+  int _handledReactions;
 
   /// Completed, and replaced, whenever something [addToModeAndWait] waits on may have happened.
-  Completer<void> _reactionSignal = Completer<void>();
+  Completer<void> _reactionSignal;
 
   /// The running debounce timer, if any, see [restartDebounce].
   Timer? _debounceTimer;
 
   /// The edits [flushEditsWithoutState] wrote or is writing, by key, until the data they were
   /// written into may have changed under them.
-  final Map<Object?, Object?> _editsWrittenWithoutState = {};
+  final Map<Object?, Object?> _editsWrittenWithoutState;
 
   /// The write [flushEditsWithoutState] is running, if any.
   Future<void>? _writeWithoutStateInFlight;
@@ -118,7 +118,12 @@ abstract class AbsOcptViewBloc<
   /// not replay its last value to a new listener, so a view built after the mode loaded would
   /// otherwise take the first change it sees for the baseline.
   AbsOcptViewBloc(super.initialState, {required this.modeBloc})
-    : _lastReloadEpoch = modeBloc.state.reloadEpoch,
+    : _isClosing = false,
+      _dispatchedReactions = 0,
+      _handledReactions = 0,
+      _reactionSignal = Completer<void>(),
+      _editsWrittenWithoutState = {},
+      _lastReloadEpoch = modeBloc.state.reloadEpoch,
       _lastSelectionEpoch = modeBloc.state.selectionEpoch {
     _modeSubscription = modeBloc.stream.listen(_onModeState, onDone: _signalReaction);
     _unregisterFlusher = modeBloc.registerPendingWritesFlusher(this);

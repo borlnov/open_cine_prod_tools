@@ -64,7 +64,7 @@ class OcptShotListFloorPlanSetsBloc
   static const _loggerCategory = "shot_list_floor_plan_sets_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The centre X, in metres, a set's underlay is framed at the moment it is first imported —
   /// see [_onUnderlayImportRequested].
@@ -111,7 +111,8 @@ class OcptShotListFloorPlanSetsBloc
     OcptElementsService? elementsService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _locationsService =
            locationsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,

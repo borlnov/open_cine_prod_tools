@@ -23,13 +23,13 @@ class OcptBudgetNewAttachmentAnswers {
   /// Whether a `poste`/`optionalPoste` answer has been given at all — `optionalPoste`'s own `Hors
   /// devis` answers this true while leaving [posteId] null, which a bare null cannot tell apart
   /// from "nothing chosen yet".
-  bool posteAnswered = false;
+  bool posteAnswered;
 
   /// The quote line answered under `posteAndLine`, or null.
   String? lineId;
 
   /// Whether `posteAndLine`'s own third answer, `Aucune`, was picked.
-  bool lineNoneAnswered = false;
+  bool lineNoneAnswered;
 
   /// The financing resource answered under `financingResource`, or null.
   String? resourceId;
@@ -51,7 +51,7 @@ class OcptBudgetNewAttachmentAnswers {
   OcptBudgetShareFormFields? pendingNewShare;
 
   /// Class constructor
-  OcptBudgetNewAttachmentAnswers();
+  OcptBudgetNewAttachmentAnswers() : posteAnswered = false, lineNoneAnswered = false;
 
   /// Answers the poste, null standing for `Hors devis`.
   void selectPoste(String? posteId) {

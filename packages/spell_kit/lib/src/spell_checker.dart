@@ -74,7 +74,10 @@ class _LookupResult {
 class SpellChecker {
   /// Creates a [SpellChecker] over [dictionary].
   SpellChecker(this.dictionary, {int memoCapacity = _defaultMemoCapacity})
-    : ruleIndex = HunspellAffixRuleIndex(dictionary.affixFile),
+    : _memo = LinkedHashMap(),
+      _extraWordsExact = const {},
+      _extraWordsCaseInsensitive = const {},
+      ruleIndex = HunspellAffixRuleIndex(dictionary.affixFile),
       _memoCapacity = memoCapacity;
 
   /// The dictionary this checker looks words up in.
@@ -91,14 +94,14 @@ class SpellChecker {
   /// was typed. Iteration (and re-insertion) order is insertion order,
   /// which is what makes evicting `_memo.keys.first` an LRU eviction rather
   /// than a FIFO one: every read moves its entry back to the end.
-  final LinkedHashMap<String, bool> _memo = LinkedHashMap();
+  final LinkedHashMap<String, bool> _memo;
 
   /// The learned and ignored words pushed in by the caller, split by
   /// whether they carry an interior capital (see [setExtraWords]).
-  Set<String> _extraWordsExact = const {};
+  Set<String> _extraWordsExact;
 
   /// The lowercased form of every extra word with no interior capital.
-  Set<String> _extraWordsCaseInsensitive = const {};
+  Set<String> _extraWordsCaseInsensitive;
 
   /// Sets the learned and ignored words a caller wants treated as known in
   /// addition to the dictionary itself.

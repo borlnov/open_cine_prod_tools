@@ -55,7 +55,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   static const _loggerCategory = "joining_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager driving the actual join: opening the relay transport and fetching/materialising
   /// its latest snapshot.
@@ -79,7 +79,9 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptProjectsManager? projectsManager,
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
-  }) : _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _cancelled = false,
+       _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
@@ -92,7 +94,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// snapshot fetch or materialisation already under way, so a cancelled join may still finish
   /// writing a `.ocpt` to disk after this flag is set — that file is simply never opened or shown,
   /// which is an acceptable cost for how rarely a cancel lands mid-write.
-  bool _cancelled = false;
+  bool _cancelled;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

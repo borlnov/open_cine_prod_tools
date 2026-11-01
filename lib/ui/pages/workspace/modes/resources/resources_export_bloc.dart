@@ -32,7 +32,7 @@ class OcptResourcesExportBloc
   static const _loggerCategory = "resources_export_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to read which project is open, for the log of a failed export.
   final OcptProjectsManager _projectsManager;
@@ -48,7 +48,8 @@ class OcptResourcesExportBloc
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptExportManager? exportManager,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptResourcesExportState.init());
 

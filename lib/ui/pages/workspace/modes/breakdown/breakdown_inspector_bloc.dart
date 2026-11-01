@@ -52,7 +52,7 @@ class OcptBreakdownInspectorBloc
   static const _loggerCategory = "breakdown_inspector_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -81,7 +81,8 @@ class OcptBreakdownInspectorBloc
     OcptElementsService? elementsService,
     OcptLocationsService? locationsService,
     Duration fieldEditDebounce = OcptBreakdownBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _breakdownService =
            breakdownService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).breakdownService,

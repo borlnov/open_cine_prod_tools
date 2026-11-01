@@ -148,7 +148,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   static const _loggerCategory = "relay_host";
 
   /// The logger this manager writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// Class constructor
   ///
@@ -194,7 +194,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     this.port = ocptDefaultInAppHostingPort,
     OcptLanAddressResolver? lanAddressResolver,
     OcptRelayStoreFactory? storeFactory,
-  }) : _platformManager = platformManager ?? PlatformManager(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _isDisposed = false,
+       _platformManager = platformManager ?? PlatformManager(),
        _secretsManager = secretsManager,
        _syncManager = syncManager,
        _propertiesManager = propertiesManager,
@@ -251,7 +253,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
 
   /// Whether [disposeLifeCycle] has closed [_state]: a state set afterwards is dropped, since the
   /// keeper's closed stream would throw on it.
-  bool _isDisposed = false;
+  bool _isDisposed;
 
   OcptRelayStore? _store;
   HttpServer? _httpServer;

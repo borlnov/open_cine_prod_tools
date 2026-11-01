@@ -90,7 +90,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   static const _loggerCategory = "budget_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The default delay between the last field edit and its autosave write, for the expenses view.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -121,7 +121,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
     OcptBudgetSnapshotLoader? snapshotLoader,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),

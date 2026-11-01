@@ -19,7 +19,7 @@ class OcptEditorSpellCheckCaches {
   /// *current* `startOffset` every time regardless of whether this entry's text changed, which is
   /// what lets an edit to an *earlier*, unrelated block shift a later one's absolute offset without
   /// invalidating this cache entry — only the block's own text does that.
-  final Map<int, ({String text, List<SpellRange> ranges})> raw = {};
+  final Map<int, ({String text, List<SpellRange> ranges})> raw;
 
   /// The (language, visibility, manager generation) combination [raw] was last built under.
   ({OcptScreenplayLanguage? language, bool isVisible, int generation})? rawKey;
@@ -29,7 +29,7 @@ class OcptEditorSpellCheckCaches {
   /// index, a node id doesn't shift when an *earlier* node's own text changes — so no "re-translate by
   /// current offset" step is needed: a styled `SpellRange` is already relative to its own node's
   /// display text, exactly the addressing `SpellingAndGrammarStyler` wants.
-  final Map<String, ({String text, List<SpellRange> ranges})> styled = {};
+  final Map<String, ({String text, List<SpellRange> ranges})> styled;
 
   /// The (language, visibility, manager generation) combination [styled] was last built under.
   ({OcptScreenplayLanguage? language, bool isVisible, int generation})? styledKey;
@@ -38,7 +38,7 @@ class OcptEditorSpellCheckCaches {
   /// learned can re-issue a styled-mode check over them without waiting for the styled editor to
   /// report anything fresh — nothing about the document changed, only the manager's word sets did,
   /// and the styled editor itself has no reason to notice that on its own.
-  Map<String, String> lastStyledTexts = const {};
+  Map<String, String> lastStyledTexts;
 
   /// The learned-word set last pushed into the spell-check manager, assigned alongside every call of
   /// `OcptSpellCheckManager.setLearnedWords`. A settings-page change compares its freshly re-read
@@ -46,7 +46,14 @@ class OcptEditorSpellCheckCaches {
   /// settings-page change, including a currency edit that has nothing to do with the dictionary, and
   /// re-checking the whole screenplay on every one of those would be exactly the wasted debounce tick
   /// the incremental pass exists to avoid.
-  Set<String> pushedLearnedWords = const {};
+  Set<String> pushedLearnedWords;
+
+  /// Class constructor
+  OcptEditorSpellCheckCaches()
+    : raw = {},
+      styled = {},
+      lastStyledTexts = const {},
+      pushedLearnedWords = const {};
 
   /// Forgets both caches and their keys: a document built from a different Fountain source than the
   /// one they describe, where a stale entry could coincidentally match a new block's or node's text.

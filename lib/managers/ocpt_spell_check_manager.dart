@@ -66,7 +66,7 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   static const _loggerCategory = "spell_check";
 
   /// The logger this manager writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// Creates an [OcptSpellCheckManager].
   ///
@@ -75,7 +75,15 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   /// asset bundle the way `rootBundle` needs to can pass one reading the very same files straight
   /// off disk instead — the manager never cares which.
   OcptSpellCheckManager({OcptSpellCheckAssetLoader? loadAsset})
-    : _loadAsset = loadAsset ?? rootBundle.loadString;
+    : _logger = buildOcptLogsHelper(_loggerCategory),
+      _ignoredWords = const {},
+      _learnedWords = const {},
+      _requestIdCounter = 0,
+      _generation = 0,
+      _languageRequestSerial = 0,
+      _pendingChecks = {},
+      _pendingSuggestions = {},
+      _loadAsset = loadAsset ?? rootBundle.loadString;
 
   /// The seam [useLanguage] reads a dictionary's two asset files through.
   final OcptSpellCheckAssetLoader _loadAsset;
@@ -89,27 +97,27 @@ class OcptSpellCheckManager extends AbsWithLifeCycle {
   OcptScreenplayLanguage? _loadedLanguage;
 
   /// The words the bloc last pushed in through [ignoreWords].
-  Set<String> _ignoredWords = const {};
+  Set<String> _ignoredWords;
 
   /// The words the bloc last pushed in through [setLearnedWords].
-  Set<String> _learnedWords = const {};
+  Set<String> _learnedWords;
 
   /// The next request id handed out by [_nextRequestId].
-  int _requestIdCounter = 0;
+  int _requestIdCounter;
 
   /// Bumped by [useLanguage], [ignoreWords] and [setLearnedWords]; see the class doc comment for
   /// what it guards against.
-  int _generation = 0;
+  int _generation;
 
   /// Bumped by every [useLanguage] call, so one that is overtaken by a later one while awaiting
   /// can tell and stand down — see [_isSupersededLanguageRequest].
-  int _languageRequestSerial = 0;
+  int _languageRequestSerial;
 
   /// The [check] requests still awaiting a `_CheckResponse`, keyed by request id.
-  final Map<int, _PendingCheck> _pendingChecks = {};
+  final Map<int, _PendingCheck> _pendingChecks;
 
   /// The [suggestionsFor] requests still awaiting a `_SuggestResponse`, keyed by request id.
-  final Map<int, _PendingSuggestion> _pendingSuggestions = {};
+  final Map<int, _PendingSuggestion> _pendingSuggestions;
 
   /// The language whose dictionary is currently loaded, or null if none is.
   OcptScreenplayLanguage? get loadedLanguage => _loadedLanguage;

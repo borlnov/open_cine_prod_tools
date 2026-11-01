@@ -40,7 +40,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
   static const _loggerCategory = "hosting_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager owning the in-process relay this bloc starts, stops and reconciles.
   final OcptRelayHostManager _hostManager;
@@ -68,7 +68,8 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
     OcptSyncManager? syncManager,
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
-  }) : _hostManager = hostManager ?? globalGetIt().get<OcptRelayHostManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _hostManager = hostManager ?? globalGetIt().get<OcptRelayHostManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),

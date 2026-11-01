@@ -54,7 +54,7 @@ class OcptResourcesRolesBloc
   static const _loggerCategory = "resources_roles_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -82,7 +82,8 @@ class OcptResourcesRolesBloc
     OcptRoleIndexService? roleIndexService,
     OcptRoleCandidatesService? roleCandidatesService,
     Duration fieldEditDebounce = OcptResourcesBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _roleIndexService =
            roleIndexService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,

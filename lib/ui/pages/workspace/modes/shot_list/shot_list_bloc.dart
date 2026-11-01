@@ -103,7 +103,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   static const _loggerCategory = "shot_list_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -161,7 +161,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptLocationsService? locationsService,
     String? selectedEpisodeId,
     OcptShotListRevealRequest? revealRequest,
-  }) : _selectedEpisodeId = selectedEpisodeId,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _selectedEpisodeId = selectedEpisodeId,
        _pendingRevealRequest = revealRequest,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),

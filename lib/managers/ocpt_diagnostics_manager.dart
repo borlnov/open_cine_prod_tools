@@ -48,7 +48,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   static const _loggerCategory = "diagnostics";
 
   /// The logger every recorded entry is forwarded to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The buffer and its change stream. It holds an unmodifiable snapshot that is replaced on every
   /// change, and emits even when the snapshot compares equal to the previous one (lists compare by
@@ -57,11 +57,13 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
 
   /// Whether [disposeLifeCycle] has closed the stream: an entry recorded afterwards still reaches
   /// the logger, but neither the buffer nor the stream.
-  bool _isDisposed = false;
+  bool _isDisposed;
 
   /// Builds a manager with an empty buffer.
   OcptDiagnosticsManager()
-    : _entries = ValueKeeperWithStream<List<OcptDiagnosticsEntry>>(
+    : _logger = buildOcptLogsHelper(_loggerCategory),
+      _isDisposed = false,
+      _entries = ValueKeeperWithStream<List<OcptDiagnosticsEntry>>(
         value: List.unmodifiable(<OcptDiagnosticsEntry>[]),
         emitUnchangedValue: true,
       );

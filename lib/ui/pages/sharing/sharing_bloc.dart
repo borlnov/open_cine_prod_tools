@@ -30,7 +30,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
   static const _loggerCategory = "sharing_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to read the current project and its own app version.
   final OcptProjectsManager _projectsManager;
@@ -46,7 +46,8 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     OcptProjectsManager? projectsManager,
     OcptSyncManager? syncManager,
     OcptPropertiesManager? propertiesManager,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        super(const OcptSharingState.init());

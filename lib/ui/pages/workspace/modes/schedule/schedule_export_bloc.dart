@@ -36,7 +36,7 @@ class OcptScheduleExportBloc
   static const _loggerCategory = "schedule_export_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -53,7 +53,8 @@ class OcptScheduleExportBloc
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
     OcptExportManager? exportManager,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptScheduleExportState.init());
 

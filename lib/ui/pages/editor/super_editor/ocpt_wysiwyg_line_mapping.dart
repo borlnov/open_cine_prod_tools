@@ -16,7 +16,9 @@ class OcptWysiwygLineMapping {
     required String sourceText,
     required List<int> blankLinesBeforeByNode,
     required int trailingBlankLines,
-  }) : _sourceText = sourceText {
+  }) : _lineByNodeIndex = [],
+       _nodeIndexByLine = [],
+       _sourceText = sourceText {
     var line = 0;
     for (var nodeIndex = 0; nodeIndex < blankLinesBeforeByNode.length; nodeIndex++) {
       for (var blank = 0; blank < blankLinesBeforeByNode[nodeIndex]; blank++) {
@@ -38,11 +40,11 @@ class OcptWysiwygLineMapping {
   final String _sourceText;
 
   /// The 0-based source line of each node, indexed by node index.
-  final List<int> _lineByNodeIndex = [];
+  final List<int> _lineByNodeIndex;
 
   /// The node index owning each 0-based source line (a blank line's entry points at the node
   /// following it), indexed by line number.
-  final List<int> _nodeIndexByLine = [];
+  final List<int> _nodeIndexByLine;
 
   /// The 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
   /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.

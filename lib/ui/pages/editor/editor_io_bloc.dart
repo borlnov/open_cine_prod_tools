@@ -36,7 +36,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
   static const _loggerCategory = "editor_io_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -56,7 +56,8 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     OcptProjectsManager? projectsManager,
     OcptExportManager? exportManager,
     OcptScreenplayService? screenplayService,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _screenplayService =
            screenplayService ??

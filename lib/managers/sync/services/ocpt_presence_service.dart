@@ -66,7 +66,11 @@ class OcptPresenceService extends AbsOcptService {
     this.heartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
     this.peerTimeout = ocptDefaultPresencePeerTimeout,
     this.clock = _systemClock,
-  }) : platform = platform ?? Platform.operatingSystem;
+  }) : _heartbeatCounter = 0,
+       _peers = {},
+       _isRunning = false,
+       _rosterController = StreamController<OcptPresenceRoster>.broadcast(),
+       platform = platform ?? Platform.operatingSystem;
 
   /// The transport this service heartbeats over and listens to peers through.
   final OcptRemoteStorage storage;
@@ -88,15 +92,14 @@ class OcptPresenceService extends AbsOcptService {
   final DateTime Function() clock;
 
   OcptWorkspaceMode? _currentMode;
-  int _heartbeatCounter = 0;
-  final Map<String, _SeenPeer> _peers = {};
+  int _heartbeatCounter;
+  final Map<String, _SeenPeer> _peers;
 
   StreamSubscription<String>? _presenceSubscription;
   Timer? _heartbeatTimer;
-  bool _isRunning = false;
+  bool _isRunning;
 
-  final StreamController<OcptPresenceRoster> _rosterController =
-      StreamController<OcptPresenceRoster>.broadcast();
+  final StreamController<OcptPresenceRoster> _rosterController;
 
   /// This replica's own current frame — [_heartbeatCounter] only actually advances when
   /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or,

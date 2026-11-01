@@ -60,7 +60,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   static const _loggerCategory = "home_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The properties manager used to read/update the recent projects list.
   final OcptPropertiesManager _propertiesManager;
@@ -99,7 +99,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     OcptRouterManager? routerManager,
     FileSelectorManager? fileSelectorManager,
     OcptExportManager? exportManager,
-  }) : _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),

@@ -91,7 +91,7 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   static const _loggerCategory = "breakdown_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The default delay between the last field edit and its autosave write, for the inspector bloc.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
@@ -155,7 +155,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     OcptLocationsService? locationsService,
     OcptPeopleService? peopleService,
     String? selectedEpisodeId,
-  }) : _selectedEpisodeId = selectedEpisodeId,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),

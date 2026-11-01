@@ -36,7 +36,8 @@ final class OcptStyledSearch {
     required GlobalKey documentLayoutKey,
     required bool Function() isMounted,
     required void Function(int count) onMatchCountReported,
-  }) : _documentOf = documentOf,
+  }) : styler = OcptSearchMatchStyler(),
+       _documentOf = documentOf,
        _editorOf = editorOf,
        _documentLayoutKey = documentLayoutKey,
        _isMounted = isMounted,
@@ -60,7 +61,7 @@ final class OcptStyledSearch {
   /// This helper's half of the find/replace bar's highlight, handed to `SuperEditor` as a custom
   /// style phase; never rebuilt, so `markDirty()` calls survive across a build rather than
   /// resetting the highlight every frame.
-  final OcptSearchMatchStyler styler = OcptSearchMatchStyler();
+  final OcptSearchMatchStyler styler;
 
   /// The find/replace query [update] last set, or null while there is no active search —
   /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,

@@ -53,7 +53,7 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   static const _loggerCategory = "file_logging";
 
   /// The logger this manager writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// Creates the manager.
   ///
@@ -71,7 +71,8 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
     LoggerManager? loggerManager,
     Future<String> Function()? resolveLogDirectoryPath,
     bool Function()? isDesktopPlatform,
-  }) : _configManager = configManager,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _configManager = configManager,
        _loggerManager = loggerManager,
        _resolveLogDirectoryPath = resolveLogDirectoryPath ?? _defaultLogDirectoryPath,
        _isDesktopPlatform = isDesktopPlatform ?? _defaultIsDesktopPlatform;

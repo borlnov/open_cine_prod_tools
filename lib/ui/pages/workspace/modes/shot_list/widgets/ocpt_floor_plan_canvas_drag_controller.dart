@@ -23,7 +23,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// settled values back: what they mean (move, duplicate, resize…) is for the canvas to report.
 class OcptFloorPlanCanvasDragController extends ChangeNotifier {
   OcptFloorPlanSymbolDragKind? _dragKind;
-  bool _isDuplicatingDrag = false;
+  bool _isDuplicatingDrag;
+
+  /// Class constructor
+  OcptFloorPlanCanvasDragController() : _isDuplicatingDrag = false;
   OcptFloorPlanSymbolLiveOverride? _liveOverride;
   OcptFloorPlanUnderlayDragKind? _underlayDragKind;
   ({double xM, double yM, double widthM, double heightM})? _liveUnderlayFrame;

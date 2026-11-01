@@ -30,7 +30,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
   static const _loggerCategory = "repointing_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to read the current project and its own app version.
   final OcptProjectsManager _projectsManager;
@@ -46,7 +46,8 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
     OcptProjectsManager? projectsManager,
     OcptSyncManager? syncManager,
     OcptPropertiesManager? propertiesManager,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        super(const OcptRepointingState.init());

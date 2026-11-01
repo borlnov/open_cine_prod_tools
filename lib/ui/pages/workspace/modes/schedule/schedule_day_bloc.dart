@@ -51,7 +51,7 @@ class OcptScheduleDayBloc
   static const _loggerCategory = "schedule_day_bloc";
 
   /// The logger this BLoC writes to.
-  final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -81,7 +81,8 @@ class OcptScheduleDayBloc
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
     Duration fieldEditDebounce = OcptScheduleBloc.defaultFieldEditDebounce,
-  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,

@@ -19,7 +19,13 @@ import 'package:super_editor/super_editor.dart';
 final class OcptStyledSpellCheckRanges {
   /// Creates an [OcptStyledSpellCheckRanges].
   OcptStyledSpellCheckRanges({required MutableDocument Function() documentOf})
-    : _documentOf = documentOf;
+    : styler = SpellingAndGrammarStyler(
+        spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(
+          color: ocptEditorSpellCheckErrorColor,
+        ),
+      ),
+      _lastRangesByNodeId = const {},
+      _documentOf = documentOf;
 
   /// Resolves the document the ranges address.
   final MutableDocument Function() _documentOf;
@@ -30,16 +36,12 @@ final class OcptStyledSpellCheckRanges {
   /// colour the raw mode's own controller underlines with, so both surfaces read as the same
   /// feature. Never rebuilt, since `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
   /// survive across a build.
-  final SpellingAndGrammarStyler styler = SpellingAndGrammarStyler(
-    spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(
-      color: ocptEditorSpellCheckErrorColor,
-    ),
-  );
+  final SpellingAndGrammarStyler styler;
 
   /// The misspelled ranges [update] last applied to [styler], keyed by node id and remembered here
   /// too so a right-click can tell whether it landed inside one — [SpellingAndGrammarStyler]
   /// itself exposes no getter to ask that of.
-  Map<String, List<SpellRange>> _lastRangesByNodeId = const {};
+  Map<String, List<SpellRange>> _lastRangesByNodeId;
 
   /// The document the ranges address.
   MutableDocument get _document => _documentOf();

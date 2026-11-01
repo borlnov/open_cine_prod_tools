@@ -99,7 +99,8 @@ class OcptRelayServer {
     int maxAuthFailuresPerSource = 20,
     Duration authFailureWindow = const Duration(minutes: 1),
     this.onEvent,
-  }) : _rateLimiter = _AuthRateLimiter(
+  }) : _eventSubscribersByProject = {},
+       _rateLimiter = _AuthRateLimiter(
          maxFailures: maxAuthFailuresPerSource,
          window: authFailureWindow,
        );
@@ -140,7 +141,7 @@ class OcptRelayServer {
   /// The sockets currently subscribed to each project's `events` route, so a write can be
   /// broadcast to every subscriber of the project it landed in. Per server process only (see this
   /// class's own doc comment) — a project with no subscriber has no entry here at all.
-  final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject = {};
+  final Map<String, Set<WebSocketChannel>> _eventSubscribersByProject;
 
   /// The assembled request handler for this relay's five routes: mount it under `shelf_io.serve`
   /// or any other shelf adapter that supports request hijacking, which the `events` route needs
@@ -483,11 +484,11 @@ class OcptRelayServer {
 /// cheapest guard against a brute-force or denial-of-service attempt, not a security boundary of
 /// its own.
 class _AuthRateLimiter {
-  _AuthRateLimiter({required this.maxFailures, required this.window});
+  _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
 
   final int maxFailures;
   final Duration window;
-  final Map<String, _FailureWindow> _failuresBySource = {};
+  final Map<String, _FailureWindow> _failuresBySource;
 
   /// True when [source] has already failed authentication [maxFailures] times or more within the
   /// current window, and every further request from it should be rejected without even looking at

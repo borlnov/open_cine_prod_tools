@@ -77,7 +77,8 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
     required this.placeholders,
     required this.hintStyleBuilder,
     required this.metrics,
-  });
+  }) : _rowShiftByNodeId = {},
+       _placeholderFieldKeyByNodeId = {};
 
   /// The placeholder text to show for an empty field, keyed by [ocptTitlePageFieldKeys] (a key
   /// missing an entry, which should not normally happen, simply never gets a hint shown for it):
@@ -102,7 +103,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// time [createViewModel] runs for a Contact or Source node, and read back by [createComponent]
   /// (which never sees the document, only this node's view model) for that same node moments
   /// later, in the same layout pass. Absent for every other title-page node.
-  final Map<String, double> _rowShiftByNodeId = {};
+  final Map<String, double> _rowShiftByNodeId;
 
   /// The [ocptTitlePageFieldKeys] key of the field [createComponent] should paint a placeholder
   /// hint for, keyed by node id — present only for a field's **first** node (a field spanning
@@ -111,7 +112,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// title-page node, and read back by [createComponent] for that same node moments later, in the
   /// same layout pass (mirrors [_rowShiftByNodeId]'s own lifetime, see the class-level doc comment
   /// for why that pattern is safe here). Absent for every node that isn't a field's first.
-  final Map<String, String> _placeholderFieldKeyByNodeId = {};
+  final Map<String, String> _placeholderFieldKeyByNodeId;
 
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {

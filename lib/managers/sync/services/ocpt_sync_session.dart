@@ -74,7 +74,11 @@ class OcptSyncSession {
     required this.storage,
     required this.changesetService,
     this.pushInterval = ocptDefaultSyncPushInterval,
-  }) : _logger = logger;
+  }) : _status = const OcptSyncStatusInSync(),
+       _statusController = StreamController<OcptSyncStatus>.broadcast(),
+       _conflicts = [],
+       _isRunning = false,
+       _logger = logger;
 
   /// The logger this session writes to: a sub-logger built by the sync manager.
   final MixinActLogger _logger;
@@ -106,14 +110,13 @@ class OcptSyncSession {
   /// How often this session runs [OcptChangesetService.syncOnce] on its own timer.
   final Duration pushInterval;
 
-  OcptSyncStatus _status = const OcptSyncStatusInSync();
-  final StreamController<OcptSyncStatus> _statusController =
-      StreamController<OcptSyncStatus>.broadcast();
-  final List<OcptScreenplayMergeConflict> _conflicts = [];
+  OcptSyncStatus _status;
+  final StreamController<OcptSyncStatus> _statusController;
+  final List<OcptScreenplayMergeConflict> _conflicts;
 
   StreamSubscription<void>? _newWorkSubscription;
   Timer? _pushTimer;
-  bool _isRunning = false;
+  bool _isRunning;
 
   /// This session's current status. [statusStream] never replays it to a new listener — read this
   /// first to seed a fresh subscriber, exactly as this class's own doc comment says.
