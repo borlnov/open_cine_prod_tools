@@ -76,14 +76,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     await super.initAsyncBloc(emit: emit);
 
     final invite = await _loadCurrentInvite();
-    emit(
-      state.copyWith(
-        isLoading: false,
-        projectName: _projectsManager.currentProject!.name,
-        invite: invite,
-        forceInviteValue: invite == null,
-      ),
-    );
+    emit(state.copyToLoaded(projectName: _projectsManager.currentProject!.name, invite: invite));
   }
 
   /// The current project's own relay invite, or null when it isn't paired — either because it has
@@ -121,7 +114,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     OcptSharingPairRequestedEvent event,
     Emitter<OcptSharingState> emitter,
   ) async {
-    emitter(state.copyWith(isPairing: true, pairingFailed: false));
+    emitter(state.copyWithPairing());
 
     final project = _projectsManager.currentProject!;
     final deviceId = await _propertiesManager.loadOrCreateDeviceId();
@@ -141,15 +134,15 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
       if (!paired.status.isSuccess) {
         // The relay's answer can name its address, so only the status is logged.
         _logger.e('Pairing the project with a relay failed: ${paired.status.name}');
-        emitter(state.copyWith(isPairing: false, pairingFailed: true));
+        emitter(state.copyWithPairingFailed());
         return;
       }
 
-      emitter(state.copyWith(isPairing: false, invite: paired.value));
+      emitter(state.copyWithPaired(invite: paired.value));
     } catch (error, stackTrace) {
       // The error can name the relay's address, so only its type is logged.
       _logger.e('Pairing the project with a relay failed: ${error.runtimeType}', null, stackTrace);
-      emitter(state.copyWith(isPairing: false, pairingFailed: true));
+      emitter(state.copyWithPairingFailed());
     }
   }
 
@@ -165,7 +158,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     }
 
     await _syncManager.unpairProject(database: _database, projectId: invite.projectId);
-    emitter(state.copyWith(forceInviteValue: true));
+    emitter(state.copyWithInviteCleared());
   }
 
   /// Clears [OcptSharingState.pairingFailed] once the page has shown its own snack bar for it.
@@ -173,6 +166,6 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     OcptSharingPairingErrorDismissedEvent event,
     Emitter<OcptSharingState> emitter,
   ) {
-    emitter(state.copyWith(pairingFailed: false));
+    emitter(state.copyWithFailureDismissed());
   }
 }
