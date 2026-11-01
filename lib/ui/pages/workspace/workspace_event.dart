@@ -12,14 +12,6 @@ sealed class OcptWorkspaceEvent extends BlocEventForMixin {
   const OcptWorkspaceEvent();
 }
 
-/// Requests loading the last used workspace mode.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptWorkspaceLoadRequestedEvent extends OcptWorkspaceEvent {
-  /// Class constructor
-  const OcptWorkspaceLoadRequestedEvent();
-}
-
 /// Selects a production mode from the bottom mode switcher, and persists it.
 class OcptWorkspaceModeSelectedEvent extends OcptWorkspaceEvent {
   /// The mode the user selected.

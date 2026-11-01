@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -59,7 +60,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 /// shutdown, since restarting it on a fresh port would strand connected peers; the sync session,
 /// tied to the project's database, is stopped there whether or not hosting is running (see
 /// [disposeLifeCycle]).
-class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
+class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
+    with MixinAsyncInitBloc<OcptWorkspaceState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "workspace_bloc";
 
@@ -97,9 +99,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManagerOverride = syncManager,
        _hostManagerOverride = hostManager,
-       super(const OcptWorkspaceState.init()) {
-    add(const OcptWorkspaceLoadRequestedEvent());
-  }
+       super(const OcptWorkspaceState.init());
 
   /// [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
@@ -149,7 +149,6 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptWorkspaceLoadRequestedEvent>(_onLoadRequested);
     on<OcptWorkspaceModeSelectedEvent>(_onModeSelected);
     on<OcptWorkspaceRevealRequestConsumedEvent>(_onRevealRequestConsumed);
     on<OcptWorkspaceEpisodeSelectedEvent>(_onEpisodeSelected);
@@ -160,6 +159,8 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     );
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Always starts the workspace on [OcptWorkspaceMode.screenplay] — a fresh [OcptWorkspaceBloc]
   /// is built every time a project opens (`workspace_page.dart`), so there is no "last mode" to
   /// resume, unlike switching between the project's own episodes, which leaves the active mode
@@ -168,13 +169,14 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// why it is never restored from anywhere instead). Once [_startSyncSessionIfPaired] has had its
   /// chance to start a presence service for a paired project, this replica's resolved mode is
   /// reported to it too, so a peer already on the project sees which mode this replica opened into.
-  Future<void> _onLoadRequested(
-    OcptWorkspaceLoadRequestedEvent event,
-    Emitter<OcptWorkspaceState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptWorkspaceState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     const mode = OcptWorkspaceMode.screenplay;
     final episodes = await _loadEpisodes();
-    emitter(
+    emit(
       state.copyWith(
         isLoading: false,
         mode: mode,
@@ -206,7 +208,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
   /// mode's own widget test) or no project is open.
   ///
   /// The return value is *fresh start*, not merely *now online*: only a fresh start's self-seed
-  /// starts the sync session against the hosted relay, which is why [_onLoadRequested] then skips
+  /// starts the sync session against the hosted relay, which is why [initAsyncBloc] then skips
   /// [_startSyncSessionIfPaired] for it. A project reopened while its relay was still up from
   /// before is already online on entry and self-seeds nothing, so this returns false and lets the
   /// ordinary paired start seed a session against the local relay. Any failure is swallowed for the
@@ -348,7 +350,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
 
   /// Applies the mode selected from the bottom mode switcher, or by another mode sending the user
   /// there. Not persisted: only a project switch resets the active mode, back to
-  /// [OcptWorkspaceMode.screenplay] (see [_onLoadRequested]); nothing here needs to remember what
+  /// [OcptWorkspaceMode.screenplay] (see [initAsyncBloc]); nothing here needs to remember what
   /// this switch picked.
   ///
   /// `event.revealRequest` is carried into the state untouched and never read here: what a mode
@@ -402,7 +404,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState> {
     // session reads and writes that database on every tick: one left running against it only throws
     // "Can't re-open a database after closing it" every push interval. The relay keeps serving
     // peers from its own store regardless, and re-opening the project seeds a fresh session against
-    // it ([_onLoadRequested]).
+    // it ([initAsyncBloc]).
     await _syncManager?.stopSyncSession();
 
     return super.disposeLifeCycle();
