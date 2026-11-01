@@ -501,6 +501,258 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
 
+  /// Copies this state with the data a reload read, each given part replacing its counterpart.
+  ///
+  /// A null part is kept as it is. [reloadEpoch] moves by one, whichever parts were given.
+  OcptShotListState copyWithReloadedData({
+    required OcptShotListSnapshot? snapshot,
+    required OcptShotFieldSuggestions? suggestions,
+    required OcptStoryboardSnapshot? storyboardSnapshot,
+    required OcptFloorPlanSnapshot? floorPlanSnapshot,
+    required List<OcptLocation>? locations,
+    required Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId,
+    required List<OcptRole>? roles,
+  }) => copyWith(
+    snapshot: snapshot,
+    suggestions: suggestions,
+    storyboardSnapshot: storyboardSnapshot,
+    floorPlanSnapshot: floorPlanSnapshot,
+    locations: locations,
+    setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+    roles: roles,
+    reloadEpoch: reloadEpoch + 1,
+  );
+
+  /// Copies this state as loaded when no project is open: the preferences restored, no snapshot,
+  /// and no version previewed.
+  OcptShotListState copyToLoadedWithoutProject({
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required Set<OcptShotListColumn> visibleColumns,
+    required OcptShotListRightDockTab lastRightDockTab,
+    required OcptShotListCentreView centreView,
+  }) => copyWith(
+    isLoading: false,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    visibleColumns: visibleColumns,
+    lastRightDockTab: lastRightDockTab,
+    centreView: centreView,
+    forcePreviewedVersionIdValue: true,
+  );
+
+  /// Copies this state as loaded from the open project: everything read from it, the preferences
+  /// restored and the first selection made, whose cause is [OcptShotListSelectionCause.load].
+  ///
+  /// Each selection goes back to null when its argument is, and so does the previewed version id
+  /// when [previewedVersion] is.
+  OcptShotListState copyToLoaded({
+    required String title,
+    required OcptProjectVersion? previewedVersion,
+    required OcptShotListSnapshot snapshot,
+    required OcptStoryboardSnapshot storyboardSnapshot,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required List<OcptLocation> locations,
+    required Map<String, List<OcptFloorPlanSymbol>> setScopeSymbolsBySetId,
+    required OcptPageSetup pageSetup,
+    required String screenplayText,
+    required List<OcptRole> roles,
+    required String? selectedSequenceId,
+    required String? selectedShotId,
+    required String? selectedSetId,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required Set<OcptShotListColumn> visibleColumns,
+    required OcptShotListRightDockTab lastRightDockTab,
+    required OcptShotListCentreView centreView,
+    required List<String> screenplayCharacters,
+    required OcptShotFieldSuggestions suggestions,
+  }) => copyWith(
+    isLoading: false,
+    title: title,
+    previewedVersionId: previewedVersion?.id,
+    forcePreviewedVersionIdValue: previewedVersion == null,
+    snapshot: snapshot,
+    storyboardSnapshot: storyboardSnapshot,
+    floorPlanSnapshot: floorPlanSnapshot,
+    locations: locations,
+    setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+    pageSetup: pageSetup,
+    screenplayText: screenplayText,
+    roles: roles,
+    selectedSequenceId: selectedSequenceId,
+    forceSelectedSequenceIdValue: snapshot.sequences.isEmpty,
+    selectedShotId: selectedShotId,
+    forceSelectedShotIdValue: selectedShotId == null,
+    selectedSetId: selectedSetId,
+    forceSelectedSetIdValue: selectedSetId == null,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    visibleColumns: visibleColumns,
+    lastRightDockTab: lastRightDockTab,
+    centreView: centreView,
+    screenplayCharacters: screenplayCharacters,
+    suggestions: suggestions,
+    reloadEpoch: reloadEpoch + 1,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptShotListSelectionCause.load,
+  );
+
+  /// Copies this state with sequence [sequenceId] selected, [selectedShotId] and [selectedSetId]
+  /// as its selected shot and set (each going back to null when null).
+  ///
+  /// The selection's cause says whether [isSameSequence] was picked again.
+  OcptShotListState copyWithSelectedSequence({
+    required String sequenceId,
+    required String? selectedShotId,
+    required String? selectedSetId,
+    required bool isSameSequence,
+  }) => copyWith(
+    selectedSequenceId: sequenceId,
+    selectedShotId: selectedShotId,
+    forceSelectedShotIdValue: selectedShotId == null,
+    selectedSetId: selectedSetId,
+    forceSelectedSetIdValue: selectedSetId == null,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: isSameSequence
+        ? OcptShotListSelectionCause.sequenceReselected
+        : OcptShotListSelectionCause.sequence,
+  );
+
+  /// Copies this state with shot [shotId] of sequence [sequenceId] selected, the inspector tab
+  /// showing.
+  OcptShotListState copyWithSelectedShot({required String sequenceId, required String shotId}) =>
+      copyWith(
+        selectedSequenceId: sequenceId,
+        selectedShotId: shotId,
+        rightDockTab: OcptShotListRightDockTab.inspector,
+        lastRightDockTab: OcptShotListRightDockTab.inspector,
+        selectionEpoch: selectionEpoch + 1,
+        selectionCause: OcptShotListSelectionCause.shot,
+      );
+
+  /// Copies this state with [snapshot] as the shot list that holds the freshly created [shotId] of
+  /// sequence [sequenceId], selected with the inspector tab showing.
+  ///
+  /// A null [shotId] keeps the current shot selection.
+  OcptShotListState copyWithCreatedShot({
+    required OcptShotListSnapshot snapshot,
+    required String sequenceId,
+    required String? shotId,
+  }) => copyWith(
+    snapshot: snapshot,
+    selectedSequenceId: sequenceId,
+    selectedShotId: shotId,
+    rightDockTab: OcptShotListRightDockTab.inspector,
+    lastRightDockTab: OcptShotListRightDockTab.inspector,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptShotListSelectionCause.shotCreated,
+  );
+
+  /// Copies this state with the sequences dock's visibility flipped.
+  OcptShotListState copyWithSequencePanelToggled() =>
+      copyWith(isSequencePanelVisible: !isSequencePanelVisible);
+
+  /// Copies this state with [tab] as the last right dock tab, and the dock closed when
+  /// [isAlreadyActive] or showing [tab] otherwise.
+  OcptShotListState copyWithRightDockTabSelected({
+    required OcptShotListRightDockTab tab,
+    required bool isAlreadyActive,
+  }) => copyWith(
+    rightDockTab: isAlreadyActive ? null : tab,
+    forceRightDockTabValue: isAlreadyActive,
+    lastRightDockTab: tab,
+  );
+
+  /// Copies this state with the right dock closed.
+  OcptShotListState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
+
+  /// Copies this state with the right dock opened on the last tab it showed.
+  OcptShotListState copyWithRightDockReopened() => copyWith(rightDockTab: lastRightDockTab);
+
+  /// Copies this state with [left] and [right] as the dock fractions.
+  ///
+  /// A null fraction keeps the current one.
+  OcptShotListState copyWithDockFractions({required double? left, required double? right}) =>
+      copyWith(leftDockFraction: left, rightDockFraction: right);
+
+  /// Copies this state with [visibleColumns] as the optional table columns shown.
+  OcptShotListState copyWithVisibleColumns({required Set<OcptShotListColumn> visibleColumns}) =>
+      copyWith(visibleColumns: visibleColumns);
+
+  /// Copies this state with [pageSetup] as the screenplay's page setup.
+  OcptShotListState copyWithPageSetup({required OcptPageSetup pageSetup}) =>
+      copyWith(pageSetup: pageSetup);
+
+  /// Copies this state after a shot was deleted, with the data read back and [reselectedShotId] as
+  /// the selected shot (going back to null when null).
+  ///
+  /// The selection moves, with the cause [OcptShotListSelectionCause.shotDeleted], only when
+  /// [wasSelected].
+  OcptShotListState copyWithDeletedShot({
+    required OcptShotListSnapshot snapshot,
+    required OcptShotFieldSuggestions suggestions,
+    required OcptStoryboardSnapshot storyboardSnapshot,
+    required OcptFloorPlanSnapshot floorPlanSnapshot,
+    required String? reselectedShotId,
+    required bool wasSelected,
+  }) => copyWith(
+    snapshot: snapshot,
+    suggestions: suggestions,
+    storyboardSnapshot: storyboardSnapshot,
+    floorPlanSnapshot: floorPlanSnapshot,
+    selectedShotId: reselectedShotId,
+    forceSelectedShotIdValue: reselectedShotId == null,
+    reloadEpoch: reloadEpoch + 1,
+    selectionEpoch: wasSelected ? selectionEpoch + 1 : null,
+    selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
+  );
+
+  /// Copies this state with [view] as the centre view.
+  OcptShotListState copyWithCentreView({required OcptShotListCentreView view}) =>
+      copyWith(centreView: view);
+
+  /// Copies this state with set [setId] selected.
+  OcptShotListState copyWithSelectedSet({required String setId}) => copyWith(
+    selectedSetId: setId,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptShotListSelectionCause.set,
+  );
+
+  /// Copies this state with set [setId], just added to the selected sequence, selected.
+  OcptShotListState copyWithAddedSet({required String setId}) => copyWith(
+    selectedSetId: setId,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptShotListSelectionCause.setAdded,
+  );
+
+  /// Copies this state with [setId] selected after the selected set was removed, going back to
+  /// null when null.
+  OcptShotListState copyWithRemovedSetFallback({required String? setId}) => copyWith(
+    selectedSetId: setId,
+    forceSelectedSetIdValue: setId == null,
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: OcptShotListSelectionCause.setRemoved,
+  );
+
+  /// Copies this state with the selection moved for [cause], naming the row [targetId].
+  ///
+  /// A null [targetId] keeps the current one.
+  OcptShotListState copyWithMovedSelection({
+    required OcptShotListSelectionCause cause,
+    required String? targetId,
+  }) => copyWith(
+    selectionEpoch: selectionEpoch + 1,
+    selectionCause: cause,
+    selectionTargetId: targetId,
+  );
+
+  /// Copies this state with the write error raised.
+  OcptShotListState copyToWriteFailed() => copyWith(hasWriteError: true);
+
+  /// Copies this state with the write error dismissed.
+  OcptShotListState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [

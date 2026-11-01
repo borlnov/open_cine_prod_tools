@@ -36,7 +36,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_selection_cause.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
@@ -297,7 +296,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithReloadedData(
           snapshot: snapshot,
           suggestions: suggestions,
           storyboardSnapshot: storyboardSnapshot,
@@ -305,7 +304,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           locations: locations,
           setScopeSymbolsBySetId: setScopeSymbolsBySetId,
           roles: roles,
-          reloadEpoch: state.reloadEpoch + 1,
         ),
       );
       return true;
@@ -316,7 +314,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
       return false;
     }
   }
@@ -366,14 +364,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoadedWithoutProject(
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
           lastRightDockTab: lastRightDockTab,
           centreView: centreView,
-          forcePreviewedVersionIdValue: true,
         ),
       );
       return;
@@ -419,11 +415,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           : centreView;
 
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoaded(
           title: project.name,
-          previewedVersionId: previewedVersion?.id,
-          forcePreviewedVersionIdValue: previewedVersion == null,
+          previewedVersion: previewedVersion,
           snapshot: snapshot,
           storyboardSnapshot: storyboardSnapshot,
           floorPlanSnapshot: floorPlanSnapshot,
@@ -433,11 +427,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           screenplayText: screenplayText,
           roles: roles,
           selectedSequenceId: selectedSequenceId,
-          forceSelectedSequenceIdValue: snapshot.sequences.isEmpty,
           selectedShotId: firstShotId,
-          forceSelectedShotIdValue: firstShotId == null,
           selectedSetId: selectedSetId,
-          forceSelectedSetIdValue: selectedSetId == null,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           visibleColumns: visibleColumns,
@@ -445,9 +436,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           centreView: effectiveCentreView,
           screenplayCharacters: screenplayCharacters,
           suggestions: suggestions,
-          reloadEpoch: state.reloadEpoch + 1,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptShotListSelectionCause.load,
         ),
       );
     });
@@ -476,16 +464,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         : ocptFirstShotIdOf(snapshot: state.snapshot, sequenceId: event.sequenceId);
 
     emitter(
-      state.copyWith(
-        selectedSequenceId: event.sequenceId,
+      state.copyWithSelectedSequence(
+        sequenceId: event.sequenceId,
         selectedShotId: selectedShotId,
-        forceSelectedShotIdValue: selectedShotId == null,
         selectedSetId: firstSetId,
-        forceSelectedSetIdValue: firstSetId == null,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: isSameSequence
-            ? OcptShotListSelectionCause.sequenceReselected
-            : OcptShotListSelectionCause.sequence,
+        isSameSequence: isSameSequence,
       ),
     );
   }
@@ -509,16 +492,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
 
-    emitter(
-      state.copyWith(
-        selectedSequenceId: sequence.id,
-        selectedShotId: event.shotId,
-        rightDockTab: OcptShotListRightDockTab.inspector,
-        lastRightDockTab: OcptShotListRightDockTab.inspector,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptShotListSelectionCause.shot,
-      ),
-    );
+    emitter(state.copyWithSelectedShot(sequenceId: sequence.id, shotId: event.shotId));
   }
 
   /// Creates a shot at the end of the selected scene sequence, reloads the shot list and selects
@@ -550,14 +524,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
 
         emitter(
-          state.copyWith(
+          state.copyWithCreatedShot(
             snapshot: snapshot,
-            selectedSequenceId: sequence.sceneId,
-            selectedShotId: shotId,
-            rightDockTab: OcptShotListRightDockTab.inspector,
-            lastRightDockTab: OcptShotListRightDockTab.inspector,
-            selectionEpoch: state.selectionEpoch + 1,
-            selectionCause: OcptShotListSelectionCause.shotCreated,
+            sequenceId: sequence.sceneId,
+            shotId: shotId,
           ),
         );
       });
@@ -568,7 +538,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -577,7 +547,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListSequencePanelToggledEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(isSequencePanelVisible: !state.isSequencePanelVisible));
+    emitter(state.copyWithSequencePanelToggled());
   }
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
@@ -593,13 +563,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
 
-    emitter(
-      state.copyWith(
-        rightDockTab: isAlreadyActive ? null : event.tab,
-        forceRightDockTabValue: isAlreadyActive,
-        lastRightDockTab: event.tab,
-      ),
-    );
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
 
     if (!isAlreadyActive && event.tab == OcptShotListRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -614,8 +578,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   ) async {
     emitter(
       state.rightDockTab != null
-          ? state.copyWith(forceRightDockTabValue: true)
-          : state.copyWith(rightDockTab: state.lastRightDockTab),
+          ? state.copyWithRightDockClosed()
+          : state.copyWithRightDockReopened(),
     );
   }
 
@@ -624,7 +588,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListRightDockClosedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(forceRightDockTabValue: true));
+    emitter(state.copyWithRightDockClosed());
   }
 
   /// Persists [tab] as the mode's last right dock tab, unless it already is.
@@ -651,7 +615,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       await _propertiesManager.shotListRightDockFraction.store(right);
     }
 
-    emitter(state.copyWith(leftDockFraction: left, rightDockFraction: right));
+    emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
   /// Restores both dock fractions to their defaults, persisting them.
@@ -665,9 +629,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     );
 
     emitter(
-      state.copyWith(
-        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
-        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
+      state.copyWithDockFractions(
+        left: OcptWorkspaceDock.leftDefaultFraction,
+        right: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
   }
@@ -683,7 +647,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     await _propertiesManager.shotListVisibleColumns.store(visibleColumns);
-    emitter(state.copyWith(visibleColumns: visibleColumns));
+    emitter(state.copyWithVisibleColumns(visibleColumns: visibleColumns));
   }
 
   /// Dismisses the transient write error currently shown.
@@ -691,7 +655,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListWriteErrorDismissedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 
   /// Leaves the workspace: flushes any pending field edit, closes the current project, and
@@ -718,7 +682,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
 
     await runSerially(() async {
       final pageSetup = await _reader.loadPageSetup(project);
-      emitter(state.copyWith(pageSetup: pageSetup));
+      emitter(state.copyWithPageSetup(pageSetup: pageSetup));
     });
   }
 
@@ -775,7 +739,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         final storyboardSnapshot = await _reader.loadStoryboard(project);
         final floorPlanSnapshot = await _reader.loadFloorPlans(project);
         emitter(
-          state.copyWith(
+          state.copyWithDeletedShot(
             snapshot: snapshot,
             suggestions: suggestions,
             storyboardSnapshot: storyboardSnapshot,
@@ -783,11 +747,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
             // so the floor plans view must re-read too, exactly as the board does above.
             floorPlanSnapshot: floorPlanSnapshot,
-            selectedShotId: reselectedShotId,
-            forceSelectedShotIdValue: reselectedShotId == null,
-            reloadEpoch: state.reloadEpoch + 1,
-            selectionEpoch: wasSelected ? state.selectionEpoch + 1 : null,
-            selectionCause: wasSelected ? OcptShotListSelectionCause.shotDeleted : null,
+            reselectedShotId: reselectedShotId,
+            wasSelected: wasSelected,
           ),
         );
       });
@@ -798,7 +759,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -812,7 +773,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     Emitter<OcptShotListState> emitter,
   ) async {
     await _propertiesManager.shotListLastCentreView.store(event.view);
-    emitter(state.copyWith(centreView: event.view));
+    emitter(state.copyWithCentreView(view: event.view));
   }
 
   /// Selects set `event.setId` on the floor plans view. A symbol only ever belongs to the set
@@ -821,13 +782,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListSetSelectedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        selectedSetId: event.setId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptShotListSelectionCause.set,
-      ),
-    );
+    emitter(state.copyWithSelectedSet(setId: event.setId));
   }
 
   /// Selects set `event.setId`, one the floor plan sets bloc just added to the selected sequence
@@ -837,13 +792,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListSetAddedEvent event,
     Emitter<OcptShotListState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        selectedSetId: event.setId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptShotListSelectionCause.setAdded,
-      ),
-    );
+    emitter(state.copyWithAddedSet(setId: event.setId));
   }
 
   /// Falls back to the selected sequence's own first set (null while it has none left), after the
@@ -858,14 +807,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       sequenceId: state.selectedSequenceId,
     );
 
-    emitter(
-      state.copyWith(
-        selectedSetId: nextSetId,
-        forceSelectedSetIdValue: nextSetId == null,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptShotListSelectionCause.setRemoved,
-      ),
-    );
+    emitter(state.copyWithRemovedSetFallback(setId: nextSetId));
   }
 
   /// Reads the floor plans again after a placement was removed or hidden, then moves the selection
@@ -884,13 +826,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: event.cause,
-        selectionTargetId: event.targetId,
-      ),
-    );
+    emitter(state.copyWithMovedSelection(cause: event.cause, targetId: event.targetId));
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
