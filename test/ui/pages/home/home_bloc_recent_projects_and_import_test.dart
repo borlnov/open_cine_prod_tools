@@ -2,31 +2,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
-import 'package:act_platform_manager/act_platform_manager.dart';
-import 'package:act_test_utility/act_test_utility.dart';
-import 'package:archive/archive_io.dart';
-import 'package:drift/drift.dart' show OrderingTerm, Value;
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
-import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
-import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
-import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
-import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
@@ -34,197 +24,17 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/home/home_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
-
-/// A [PlatformManager] whose [isMobile] is stubbed, so a test can exercise either of
-/// [OcptHomeBloc]'s "New project"/import branches without a real platform underneath it — the same
-/// double `ocpt_export_manager_test.dart`'s own `_StubPlatformManager` already is.
-class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
-  @override
-  final bool isMobile;
-}
-
-/// An export manager whose [pickAndReadScreenplay] is stubbed, to exercise the bloc's import flow
-/// without any real file dialog. [fountainIoService] is left as the real, pure implementation.
-///
-/// [isMobile] defaults to true so a test not exercising the desktop save-file dialog keeps taking
-/// the very same no-dialog branch it always has ([OcptProjectsManager.freeNewProjectFilePath]);
-/// [saveLocationService] is only reached at all once a test sets [isMobile] to false.
-class _FakeExportManager extends OcptExportManager {
-  /// Class constructor
-  _FakeExportManager({
-    this.importResult,
-    this.importStatus = OcptScreenplayImportStatus.cancelled,
-    bool isMobile = true,
-    super.saveLocationService,
-  }) : super(
-         fileSelectorManager: const FileSelectorManager(),
-         platformManager: _StubPlatformManager(isMobile: isMobile),
-       );
-
-  /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
-  final OcptImportedFountainModel? importResult;
-
-  /// The status [pickAndReadScreenplay] returns when [importResult] is null, defaulting to a
-  /// cancelled open dialog.
-  final OcptScreenplayImportStatus importStatus;
-
-  /// The file type label of the last [pickAndReadScreenplay] call.
-  String? lastFileTypeLabel;
-
-  @override
-  Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
-  pickAndReadScreenplay({required String fileTypeLabel}) async {
-    lastFileTypeLabel = fileTypeLabel;
-
-    final result = importResult;
-    if (result == null) {
-      return ResultWithStatus(status: importStatus);
-    }
-
-    return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result);
-  }
-}
-
-/// A projects manager whose [newProjectsDirectory] resolves to a fixed [directory] instead of
-/// asking `path_provider` for the platform's real Downloads folder — `path_provider`'s desktop
-/// implementations need the plugin-registrant plumbing a plain `flutter test` run doesn't reliably
-/// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
-/// note already flags elsewhere. This is what lets `OcptHomeBloc._onCreateProjectRequested`'s own
-/// [OcptProjectsManager.freeNewProjectFilePath] call be exercised for real in these tests.
-class _TestProjectsManager extends OcptProjectsManager {
-  /// Class constructor
-  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
-
-  /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
-  final Directory directory;
-
-  @override
-  Future<Directory> newProjectsDirectory() async => directory;
-
-  /// Overridden for the very same reason [newProjectsDirectory] is: the real
-  /// [OcptProjectsManager.suggestedProjectsDirectory] falls back to
-  /// [OcptProjectsManager.getDefaultProjectsDirectory], which asks `path_provider` for the
-  /// platform's real documents directory the moment nothing has been remembered yet — exactly what
-  /// a plain `flutter test` run cannot answer.
-  @override
-  Future<String> suggestedProjectsDirectory() async => directory.path;
-}
-
-/// A save location service answering [saveLocationAnswer]/[directoryAnswer] without ever showing a
-/// native dialog, and recording that either was asked — used to exercise a project card's own
-/// `Export…`, and a project package import's own destination folder picker, without a real dialog.
-///
-/// A null answer is the user cancelling the dialog, which every import/export of this app treats
-/// as a silent no-op.
-class _RecordingSaveLocationService extends OcptSaveLocationService {
-  /// The path [pickSaveLocation] hands back, or null to answer as a cancelled dialog.
-  final String? saveLocationAnswer;
-
-  /// The path [pickDirectory] hands back, or null to answer as a cancelled dialog.
-  final String? directoryAnswer;
-
-  /// How many times a save location was asked for.
-  int askCount = 0;
-
-  /// The [pickDirectory] confirm button text of the last call, or null if it was never called.
-  String? lastDirectoryConfirmButtonText;
-
-  /// The suggested file name of the last [pickSaveLocation] call, or null if it was never called.
-  String? lastSuggestedFileName;
-
-  /// The `initialDirectory` of the last [pickSaveLocation] call, or null if it was never called or
-  /// none was passed.
-  String? lastInitialDirectory;
-
-  /// Class constructor
-  _RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer})
-    : super(logger: const SilentLogger());
-
-  @override
-  Future<String?> pickSaveLocation({
-    required String suggestedFileName,
-    required String fileTypeLabel,
-    required List<String> extensions,
-    String? initialDirectory,
-  }) async {
-    askCount++;
-    lastSuggestedFileName = suggestedFileName;
-    lastInitialDirectory = initialDirectory;
-    return saveLocationAnswer;
-  }
-
-  @override
-  Future<String?> pickDirectory({
-    required String confirmButtonText,
-    String? initialDirectory,
-  }) async {
-    lastDirectoryConfirmButtonText = confirmButtonText;
-    return directoryAnswer;
-  }
-}
-
-/// A file selector manager whose [openSelector] is stubbed, to exercise the bloc's import flows
-/// without any real open-file dialog.
-class _FakeFileSelectorManager extends FileSelectorManager {
-  /// Class constructor
-  _FakeFileSelectorManager({this.result});
-
-  /// The file [openSelector] returns, or null to simulate a cancelled dialog.
-  final XFile? result;
-
-  /// The extensions of the last [openSelector] call.
-  List<String>? lastAllowedExtensions;
-
-  @override
-  Future<ResultWithBoolStatus<XFile>> openSelector({
-    required List<String> allowedExtensions,
-    required String label,
-    bool strictOnExtensions = true,
-  }) async {
-    lastAllowedExtensions = allowedExtensions;
-    // A cancelled native dialog reports success with no file, never a failure status — mirroring
-    // FileSelectorManager.openSelector's own real behaviour.
-    return ResultWithBoolStatus<XFile>(status: BoolResultStatus.success, value: result);
-  }
-}
-
-/// A router manager whose [push] only records the route pushed: these bloc tests don't build a
-/// real GoRouter for it to operate on.
-class _RecordingRouterManager extends OcptRouterManager {
-  /// Runs while [push] is awaited, standing in for whatever the user did in the workspace before
-  /// popping back to the home page — a real push only completes once they leave it.
-  final Future<void> Function()? whilePushed;
-
-  /// Class constructor
-  _RecordingRouterManager({this.whilePushed});
-
-  /// The last route [push] was called with, or null if it never was.
-  OcptRoute? pushedRoute;
-
-  @override
-  Future<Y?> push<Y extends Object?>(
-    OcptRoute route, {
-    Map<String, String> pathParameters = const <String, String>{},
-    Map<String, dynamic> queryParameters = const <String, dynamic>{},
-    Object? extra,
-  }) async {
-    pushedRoute = route;
-    await whilePushed?.call();
-    return null;
-  }
-}
+import 'home_bloc_test_doubles.dart';
 
 void main() {
   late OcptPropertiesManager propertiesManager;
+
   late OcptProjectsManager projectsManager;
+
   late Directory tempDir;
 
   setUpAll(() async {
@@ -240,7 +50,7 @@ void main() {
   setUp(() async {
     await propertiesManager.deleteAll();
     tempDir = await Directory.systemTemp.createTemp("ocpt_home_bloc_test_");
-    projectsManager = _TestProjectsManager(
+    projectsManager = TestProjectsManager(
       directory: tempDir,
       propertiesManager: propertiesManager,
       appLanguageCode: () => "en",
@@ -263,9 +73,9 @@ void main() {
   }) => OcptHomeBloc(
     propertiesManager: propertiesManager,
     projectsManager: projectsManager,
-    routerManager: routerManager ?? _RecordingRouterManager(),
+    routerManager: routerManager ?? RecordingRouterManager(),
     fileSelectorManager: fileSelectorManager ?? const FileSelectorManager(),
-    exportManager: exportManager ?? _FakeExportManager(),
+    exportManager: exportManager ?? FakeExportManager(),
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
@@ -282,7 +92,7 @@ void main() {
 
   test("refreshes the recent projects list once the workspace pops back", () async {
     final filePath = p.join(tempDir.path, "Series.ocpt");
-    final routerManager = _RecordingRouterManager(
+    final routerManager = RecordingRouterManager(
       whilePushed: () async {
         // What a session in the workspace does: the settings page's Episodes card adds one, and
         // closing the project is what writes the new count onto the recent projects entry.
@@ -345,14 +155,14 @@ void main() {
 
   test('imports a picked fountain file into a new project and navigates to the editor', () async {
     const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
-    final exportManager = _FakeExportManager(
+    final exportManager = FakeExportManager(
       importResult: const OcptImportedFountainModel(
         fountainText: importedText,
         sourceFileName: "draft.fountain",
       ),
     );
     final savedPath = p.join(tempDir.path, "My Movie.ocpt");
-    final routerManager = _RecordingRouterManager();
+    final routerManager = RecordingRouterManager();
 
     final bloc = buildBloc(exportManager: exportManager, routerManager: routerManager);
 
@@ -390,7 +200,7 @@ void main() {
   });
 
   test('a cancelled screenplay file picker leaves the bloc idle and creates no project', () async {
-    final exportManager = _FakeExportManager();
+    final exportManager = FakeExportManager();
     final bloc = buildBloc(exportManager: exportManager);
 
     bloc.add(
@@ -409,7 +219,7 @@ void main() {
   });
 
   test('an unreadable screenplay file is stated and creates no project', () async {
-    final exportManager = _FakeExportManager(
+    final exportManager = FakeExportManager(
       importStatus: OcptScreenplayImportStatus.unreadableFile,
     );
     final bloc = buildBloc(exportManager: exportManager);
@@ -460,9 +270,9 @@ void main() {
       "New project shows the save dialog and creates the project where the user picked",
       () async {
         final pickedPath = p.join(tempDir.path, "Wherever I Want.ocpt");
-        final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: pickedPath);
+        final saveLocationService = RecordingSaveLocationService(saveLocationAnswer: pickedPath);
         final bloc = buildBloc(
-          exportManager: _FakeExportManager(
+          exportManager: FakeExportManager(
             isMobile: false,
             saveLocationService: saveLocationService,
           ),
@@ -489,12 +299,9 @@ void main() {
     );
 
     test("cancelling the New project save dialog creates nothing", () async {
-      final saveLocationService = _RecordingSaveLocationService();
+      final saveLocationService = RecordingSaveLocationService();
       final bloc = buildBloc(
-        exportManager: _FakeExportManager(
-          isMobile: false,
-          saveLocationService: saveLocationService,
-        ),
+        exportManager: FakeExportManager(isMobile: false, saveLocationService: saveLocationService),
       );
 
       bloc.add(const OcptHomeCreateProjectRequestedEvent(name: "Movie", fileTypeLabel: "Project"));
@@ -514,8 +321,8 @@ void main() {
       () async {
         const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
         final pickedPath = p.join(tempDir.path, "Renamed On The Way Out.ocpt");
-        final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: pickedPath);
-        final exportManager = _FakeExportManager(
+        final saveLocationService = RecordingSaveLocationService(saveLocationAnswer: pickedPath);
+        final exportManager = FakeExportManager(
           importResult: const OcptImportedFountainModel(
             fountainText: importedText,
             sourceFileName: "draft.fountain",
@@ -548,8 +355,8 @@ void main() {
 
     test("cancelling the import's save dialog creates nothing", () async {
       const importedText = "Title: My Movie\n\nINT. HOUSE - DAY\n\nAction.\n";
-      final saveLocationService = _RecordingSaveLocationService();
-      final exportManager = _FakeExportManager(
+      final saveLocationService = RecordingSaveLocationService();
+      final exportManager = FakeExportManager(
         importResult: const OcptImportedFountainModel(
           fountainText: importedText,
           sourceFileName: "draft.fountain",
@@ -655,7 +462,7 @@ void main() {
       () async {
         final filePath = p.join(tempDir.path, "movie.ocpt");
         await createProjectAtPreviousFormat(filePath);
-        final routerManager = _RecordingRouterManager();
+        final routerManager = RecordingRouterManager();
         final bloc = buildBloc(routerManager: routerManager);
 
         bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
@@ -686,7 +493,7 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await createProjectFromTheFuture(filePath);
       await propertiesManager.deleteAll();
-      final routerManager = _RecordingRouterManager();
+      final routerManager = RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
       bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
@@ -718,7 +525,7 @@ void main() {
       final filePath = p.join(tempDir.path, "movie.ocpt");
       await createProjectWrittenByAnotherDevBuild(filePath);
       await propertiesManager.deleteAll();
-      final routerManager = _RecordingRouterManager();
+      final routerManager = RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
       bloc.add(OcptHomeOpenProjectRequestedEvent(filePath: filePath, fileTypeLabel: "Project"));
@@ -839,7 +646,7 @@ void main() {
       await projectsManager.createProject(name: "My Movie", filePath: filePath);
       await projectsManager.closeCurrentProject();
 
-      final routerManager = _RecordingRouterManager();
+      final routerManager = RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
       bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
@@ -855,7 +662,7 @@ void main() {
 
     test("a project that fails to open raises the error and navigates nowhere", () async {
       final filePath = p.join(tempDir.path, "does-not-exist.ocpt");
-      final routerManager = _RecordingRouterManager();
+      final routerManager = RecordingRouterManager();
       final bloc = buildBloc(routerManager: routerManager);
 
       bloc.add(OcptHomeShareProjectRequestedEvent(filePath: filePath));
@@ -865,338 +672,6 @@ void main() {
       expect(state.error, isNotNull);
       expect(projectsManager.currentProject, isNull);
       expect(routerManager.pushedRoute, isNull);
-
-      await bloc.close();
-    });
-  });
-
-  group("the home toolbar's Join a shared project…", () {
-    test("pushes the Rejoindre screen and opens no project", () async {
-      final routerManager = _RecordingRouterManager();
-      final bloc = buildBloc(routerManager: routerManager);
-
-      bloc.add(const OcptHomeJoinSharedProjectRequestedEvent());
-      await pumpEventQueue();
-
-      expect(routerManager.pushedRoute, OcptRoute.joining);
-      expect(projectsManager.currentProject, isNull);
-
-      await bloc.close();
-    });
-  });
-
-  group("a project card's Export…", () {
-    /// Writes a real file under the temp directory and returns its path, so an `assets` row can
-    /// point at something that is actually there.
-    String writeReferencedFile(String name) {
-      final path = p.join(tempDir.path, name);
-      File(path).writeAsStringSync("referenced bytes");
-      return path;
-    }
-
-    /// Creates a project at [filePath], adds one `assets` row labelled [label] and pointing at
-    /// [assetPath] (which may or may not exist), then closes it — a project card names a file
-    /// nothing has opened, exactly like this leaves the project.
-    Future<void> createProjectWithAsset(
-      String filePath, {
-      required String assetPath,
-      required String label,
-    }) async {
-      await projectsManager.createProject(name: "My Movie", filePath: filePath);
-      final database = projectsManager.currentProject!.database;
-      await database
-          .into(database.ocptAssetsTable)
-          .insert(
-            OcptAssetsTableCompanion.insert(
-              id: label,
-              kind: OcptAssetKind.locationPhoto,
-              path: assetPath,
-              label: Value(label),
-              addedAt: DateTime.utc(2026, 8, 19),
-            ),
-          );
-      await projectsManager.closeCurrentProject();
-    }
-
-    test(
-      "runs the pre-flight and asks through the state when a referenced file is missing",
-      () async {
-        final filePath = p.join(tempDir.path, "movie.ocpt");
-        await createProjectWithAsset(
-          filePath,
-          assetPath: p.join(tempDir.path, "gone.jpg"),
-          label: "Town hall permit",
-        );
-
-        final bloc = buildBloc();
-        bloc.add(
-          OcptProjectPackageExportRequestedEvent(
-            fileTypeLabel: "Project package",
-            target: OcptProjectPackageTarget(filePath: filePath, name: "My Movie"),
-          ),
-        );
-
-        final state = await waitForState(
-          bloc,
-          (state) => state.projectPackagePendingExport != null,
-        );
-
-        expect(state.projectPackagePendingExport?.missingAssets.single.label, "Town hall permit");
-        expect(state.projectPackageNotice, isNull);
-        expect(
-          projectsManager.currentProject,
-          isNull,
-          reason: "nothing was opened to export the card's project",
-        );
-
-        await bloc.close();
-      },
-    );
-
-    test("writes to the picked save location when nothing is missing", () async {
-      final filePath = p.join(tempDir.path, "movie.ocpt");
-      await createProjectWithAsset(
-        filePath,
-        assetPath: writeReferencedFile("headshot.jpg"),
-        label: "Headshot",
-      );
-
-      final packagePath = p.join(tempDir.path, "movie.ocptz");
-      final saveLocationService = _RecordingSaveLocationService(saveLocationAnswer: packagePath);
-      final bloc = buildBloc(
-        exportManager: OcptExportManager(
-          fileSelectorManager: const FileSelectorManager(),
-          saveLocationService: saveLocationService,
-        ),
-      );
-
-      bloc.add(
-        OcptProjectPackageExportRequestedEvent(
-          fileTypeLabel: "Project package",
-          target: OcptProjectPackageTarget(filePath: filePath, name: "My Movie"),
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.projectPackageNotice != null);
-
-      expect(state.projectPackageNotice?.kind, OcptProjectPackageNoticeKind.exportSucceeded);
-      expect(File(packagePath).existsSync(), isTrue);
-      expect(saveLocationService.askCount, 1);
-      expect(projectsManager.currentProject, isNull);
-
-      await bloc.close();
-    });
-  });
-
-  group("importing a project package", () {
-    late Directory importsParent;
-
-    setUp(() {
-      importsParent = Directory(p.join(tempDir.path, "imports"))..createSync(recursive: true);
-    });
-
-    /// Creates a project, exports it as a package at [packagePath], and returns it: the package a
-    /// test picks through the (faked) open dialog.
-    Future<String> exportedPackage(String packagePath) async {
-      final projectFilePath = p.join(tempDir.path, "source.ocpt");
-      await projectsManager.createProject(name: "Les Vagues", filePath: projectFilePath);
-      await projectsManager.closeCurrentProject();
-
-      final result = await projectsManager.exportProjectPackage(
-        projectFilePath: projectFilePath,
-        projectName: "Les Vagues",
-        packageFilePath: packagePath,
-      );
-      expect(result.status.isSuccess, isTrue);
-      return packagePath;
-    }
-
-    /// Rewrites the `manifest.json` entry of the package at [sourcePath] with [transform] applied
-    /// to it, and returns the path of the package this produces — used to build the malformed
-    /// package a newer `packageFormat` refusal is tested against, on the model of
-    /// `ocpt_project_package_service_test.dart`'s own `repackagedWith`.
-    Future<String> repackagedWithManifest(
-      String sourcePath,
-      Map<String, dynamic> Function(Map<String, dynamic> manifest) transform,
-    ) async {
-      final archive = ZipDecoder().decodeStream(InputFileStream(sourcePath));
-      final manifestEntry = archive.files.firstWhere((entry) => entry.name == "manifest.json");
-      final manifest = jsonDecode(utf8.decode(manifestEntry.readBytes()!)) as Map<String, dynamic>;
-      final rewrittenManifest = utf8.encode(jsonEncode(transform(manifest)));
-
-      final targetPath = p.join(p.dirname(sourcePath), "repackaged-${p.basename(sourcePath)}");
-      final encoder = ZipFileEncoder()..create(targetPath);
-      try {
-        for (final entry in archive.files) {
-          if (!entry.isFile) {
-            continue;
-          }
-          final bytes = entry.name == "manifest.json" ? rewrittenManifest : entry.readBytes()!;
-          encoder.addArchiveFile(ArchiveFile.bytes(entry.name, bytes));
-        }
-      } finally {
-        await encoder.close();
-      }
-
-      return targetPath;
-    }
-
-    test("imports a picked package into the picked parent folder and raises the report, without "
-        "opening anything itself", () async {
-      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-      final fileSelectorManager = _FakeFileSelectorManager(result: XFile(packagePath));
-      final saveLocationService = _RecordingSaveLocationService(
-        directoryAnswer: importsParent.path,
-      );
-      final bloc = buildBloc(
-        fileSelectorManager: fileSelectorManager,
-        exportManager: OcptExportManager(
-          fileSelectorManager: const FileSelectorManager(),
-          saveLocationService: saveLocationService,
-        ),
-      );
-
-      bloc.add(
-        const OcptHomeImportProjectPackageRequestedEvent(
-          packageFileTypeLabel: "Project package",
-          destinationConfirmButtonText: "Import here",
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.projectPackageImportReport != null);
-
-      final report = state.projectPackageImportReport!;
-      expect(report.projectName, "Les Vagues");
-      expect(report.skippedAssets, isEmpty);
-      expect(File(report.projectFilePath).existsSync(), isTrue);
-      expect(fileSelectorManager.lastAllowedExtensions, ["ocptz"]);
-      expect(saveLocationService.lastDirectoryConfirmButtonText, "Import here");
-      expect(
-        projectsManager.currentProject,
-        isNull,
-        reason: "the bloc unpacks the package but never opens it itself",
-      );
-      expect(state.projectPackageImportError, isNull);
-
-      await bloc.close();
-    });
-
-    test(
-      "an existing folder of that name comes back as destinationExists, raised through the state",
-      () async {
-        final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-        Directory(p.join(importsParent.path, "Les Vagues")).createSync(recursive: true);
-
-        final bloc = buildBloc(
-          fileSelectorManager: _FakeFileSelectorManager(result: XFile(packagePath)),
-          exportManager: OcptExportManager(
-            fileSelectorManager: const FileSelectorManager(),
-            saveLocationService: _RecordingSaveLocationService(directoryAnswer: importsParent.path),
-          ),
-        );
-
-        bloc.add(
-          const OcptHomeImportProjectPackageRequestedEvent(
-            packageFileTypeLabel: "Project package",
-            destinationConfirmButtonText: "Import here",
-          ),
-        );
-
-        final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
-
-        expect(state.projectPackageImportError, OcptProjectPackageStatus.destinationExists);
-        expect(state.projectPackageImportReport, isNull);
-
-        await bloc.close();
-      },
-    );
-
-    test("a packageFormat newer than this build's is refused with its own status rather than an "
-        "exception", () async {
-      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-      final futurePackagePath = await repackagedWithManifest(
-        packagePath,
-        (manifest) => {...manifest, "packageFormat": 999},
-      );
-
-      final bloc = buildBloc(
-        fileSelectorManager: _FakeFileSelectorManager(result: XFile(futurePackagePath)),
-        exportManager: OcptExportManager(
-          fileSelectorManager: const FileSelectorManager(),
-          saveLocationService: _RecordingSaveLocationService(directoryAnswer: importsParent.path),
-        ),
-      );
-
-      bloc.add(
-        const OcptHomeImportProjectPackageRequestedEvent(
-          packageFileTypeLabel: "Project package",
-          destinationConfirmButtonText: "Import here",
-        ),
-      );
-
-      final state = await waitForState(bloc, (state) => state.projectPackageImportError != null);
-
-      expect(state.projectPackageImportError, OcptProjectPackageStatus.unsupportedPackageFormat);
-      expect(state.projectPackageImportReport, isNull);
-      expect(importsParent.listSync(), isEmpty);
-
-      await bloc.close();
-    });
-
-    test("a cancelled open dialog does nothing at all", () async {
-      final saveLocationService = _RecordingSaveLocationService(
-        directoryAnswer: importsParent.path,
-      );
-      final bloc = buildBloc(
-        fileSelectorManager: _FakeFileSelectorManager(),
-        exportManager: OcptExportManager(
-          fileSelectorManager: const FileSelectorManager(),
-          saveLocationService: saveLocationService,
-        ),
-      );
-
-      bloc.add(
-        const OcptHomeImportProjectPackageRequestedEvent(
-          packageFileTypeLabel: "Project package",
-          destinationConfirmButtonText: "Import here",
-        ),
-      );
-      await waitForState(bloc, (state) => state.isBusy);
-      final state = await waitForState(bloc, (state) => !state.isBusy);
-
-      expect(state.projectPackageImportReport, isNull);
-      expect(state.projectPackageImportError, isNull);
-      expect(
-        saveLocationService.lastDirectoryConfirmButtonText,
-        isNull,
-        reason: "the folder picker is never reached once the open dialog was cancelled",
-      );
-
-      await bloc.close();
-    });
-
-    test("a cancelled folder picker does nothing at all", () async {
-      final packagePath = await exportedPackage(p.join(tempDir.path, "movie.ocptz"));
-      final bloc = buildBloc(
-        fileSelectorManager: _FakeFileSelectorManager(result: XFile(packagePath)),
-        exportManager: OcptExportManager(
-          fileSelectorManager: const FileSelectorManager(),
-          saveLocationService: _RecordingSaveLocationService(),
-        ),
-      );
-
-      bloc.add(
-        const OcptHomeImportProjectPackageRequestedEvent(
-          packageFileTypeLabel: "Project package",
-          destinationConfirmButtonText: "Import here",
-        ),
-      );
-      await waitForState(bloc, (state) => state.isBusy);
-      final state = await waitForState(bloc, (state) => !state.isBusy);
-
-      expect(state.projectPackageImportReport, isNull);
-      expect(state.projectPackageImportError, isNull);
-      expect(importsParent.listSync(), isEmpty);
 
       await bloc.close();
     });
