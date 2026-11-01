@@ -178,6 +178,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
       return;
     }
 
+    OcptProjectVersionNoticeKind? failure;
     try {
       await projectsManager.createProjectVersion(name: event.name, note: event.note);
     } catch (error, stackTrace) {
@@ -186,11 +187,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         null,
         stackTrace,
       );
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.creationFailed);
-      return;
+      failure = OcptProjectVersionNoticeKind.creationFailed;
     }
 
-    await _emitVersions(emitter);
+    await _emitVersions(emitter, notice: failure);
   });
 
   /// Shows the inline delete confirmation of one card, replacing whichever answer any card was
@@ -218,6 +218,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionDeletionConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
+    OcptProjectVersionNoticeKind? failure;
     try {
       await projectsManager.deleteProjectVersion(event.versionId);
     } catch (error, stackTrace) {
@@ -227,11 +228,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         null,
         stackTrace,
       );
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.deletionFailed);
-      return;
+      failure = OcptProjectVersionNoticeKind.deletionFailed;
     }
 
-    await _emitVersions(emitter);
+    await _emitVersions(emitter, notice: failure);
   });
 
   /// Shows the inline restore confirmation of one card, replacing whichever answer any card was
@@ -315,6 +315,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     OcptProjectVersionRenameConfirmedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() async {
+    OcptProjectVersionNoticeKind? failure;
     try {
       await projectsManager.renameProjectVersion(
         versionId: event.versionId,
@@ -328,11 +329,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         null,
         stackTrace,
       );
-      await _emitVersions(emitter, notice: OcptProjectVersionNoticeKind.renameFailed);
-      return;
+      failure = OcptProjectVersionNoticeKind.renameFailed;
     }
 
-    await _emitVersions(emitter);
+    await _emitVersions(emitter, notice: failure);
   });
 
   /// Enters the read-only preview of a version: flushes whatever the mode still holds, asks the

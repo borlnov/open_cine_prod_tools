@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -47,6 +48,32 @@ class _FailingRenameProjectsManager extends OcptProjectsManager {
     required String name,
     required String note,
   }) async => throw StateError("rename intentionally failed for the test");
+}
+
+/// A projects manager whose [createProjectVersion] always fails, to exercise the bloc's creation
+/// failure path.
+class _FailingCreateProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _FailingCreateProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
+
+  @override
+  Future<OcptProjectVersion?> createProjectVersion({
+    required String name,
+    required String note,
+  }) async => throw StateError("creation intentionally failed for the test");
+}
+
+/// A projects manager whose [deleteProjectVersion] always fails, to exercise the bloc's deletion
+/// failure path.
+class _FailingDeleteProjectsManager extends OcptProjectsManager {
+  /// Class constructor
+  _FailingDeleteProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
+
+  @override
+  Future<void> deleteProjectVersion(String versionId) async =>
+      throw StateError("deletion intentionally failed for the test");
 }
 
 /// A projects manager that counts how many times a working-copy capture actually reads the whole
@@ -229,6 +256,52 @@ void main() {
     expect(renamed.versionPendingRenameId, isNull);
 
     await bloc.close();
+  });
+
+  test('a failing creation reports it and adds no version', () async {
+    final failingManager = _FailingCreateProjectsManager(propertiesManager: propertiesManager);
+    await failingManager.initLifeCycle();
+    final created = await failingManager.createProject(
+      name: "Failing Movie",
+      filePath: p.join(tempDir.path, "failing.ocpt"),
+    );
+    expect(created.status.isSuccess, isTrue);
+
+    final bloc = buildBloc(overrideProjectsManager: failingManager);
+    await waitForState(bloc, (state) => !state.isLoading);
+
+    bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "v1", note: ""));
+    final state = await waitForState(bloc, (state) => state.projectVersionNotice != null);
+
+    expect(state.projectVersionNotice, OcptProjectVersionNoticeKind.creationFailed);
+    expect(state.projectVersions, isEmpty);
+
+    await bloc.close();
+    await failingManager.disposeLifeCycle();
+  });
+
+  test('a failing deletion reports it and keeps the version', () async {
+    final failingManager = _FailingDeleteProjectsManager(propertiesManager: propertiesManager);
+    await failingManager.initLifeCycle();
+    final created = await failingManager.createProject(
+      name: "Failing Movie",
+      filePath: p.join(tempDir.path, "failing.ocpt"),
+    );
+    expect(created.status.isSuccess, isTrue);
+    await failingManager.createProjectVersion(name: "v1", note: "");
+
+    final bloc = buildBloc(overrideProjectsManager: failingManager);
+    await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
+    final versionId = bloc.state.projectVersions.single.id;
+
+    bloc.add(OcptProjectVersionDeletionConfirmedEvent(versionId: versionId));
+    final state = await waitForState(bloc, (state) => state.projectVersionNotice != null);
+
+    expect(state.projectVersionNotice, OcptProjectVersionNoticeKind.deletionFailed);
+    expect(state.projectVersions.single.name, "v1");
+
+    await bloc.close();
+    await failingManager.disposeLifeCycle();
   });
 
   test('a failing rename reports it and leaves the version alone', () async {
