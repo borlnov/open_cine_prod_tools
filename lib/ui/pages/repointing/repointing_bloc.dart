@@ -74,7 +74,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
   Future<void> initAsyncBloc({required Emitter<OcptRepointingState> emit}) async {
     await super.initAsyncBloc(emit: emit);
 
-    emit(state.copyWith(isLoading: false, projectName: _projectsManager.currentProject!.name));
+    emit(state.copyToLoaded(projectName: _projectsManager.currentProject!.name));
   }
 
   /// Re-points the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
@@ -88,7 +88,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
     OcptRepointingRequestedEvent event,
     Emitter<OcptRepointingState> emitter,
   ) async {
-    emitter(state.copyWith(isRepointing: true, repointFailed: false));
+    emitter(state.copyWithRepointing());
 
     try {
       final project = _projectsManager.currentProject!;
@@ -96,7 +96,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
       if (row == null) {
         _logger.e('Switching the project to another relay failed: it has no existing pairing');
-        emitter(state.copyWith(isRepointing: false, repointFailed: true));
+        emitter(state.copyWithRepointFailed());
         return;
       }
 
@@ -114,13 +114,12 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
       if (!repointed.status.isSuccess) {
         // The relay's answer can name its address, so only the status is logged.
         _logger.e('Switching the project to another relay failed: ${repointed.status.name}');
-        emitter(state.copyWith(isRepointing: false, repointFailed: true));
+        emitter(state.copyWithRepointFailed());
         return;
       }
 
       emitter(
-        state.copyWith(
-          isRepointing: false,
+        state.copyWithRepointed(
           enrolment: OcptRelayEnrolment(
             relayBaseUri: event.relayBaseUri,
             enrolmentSecret: event.enrolmentSecret,
@@ -134,7 +133,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(isRepointing: false, repointFailed: true));
+      emitter(state.copyWithRepointFailed());
     }
   }
 
@@ -143,6 +142,6 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
     OcptRepointingErrorDismissedEvent event,
     Emitter<OcptRepointingState> emitter,
   ) {
-    emitter(state.copyWith(repointFailed: false));
+    emitter(state.copyWithErrorDismissed());
   }
 }

@@ -72,6 +72,23 @@ class OcptRepointingState extends BlocStateForMixin<OcptRepointingState> {
     enrolment: enrolment ?? (forceEnrolmentValue ? null : this.enrolment),
   );
 
+  /// Copies this state as loaded for the project called [projectName].
+  OcptRepointingState copyToLoaded({required String projectName}) =>
+      copyWith(isLoading: false, projectName: projectName);
+
+  /// Copies this state with a switch of relay under way and the previous failure forgotten.
+  OcptRepointingState copyWithRepointing() => copyWith(isRepointing: true, repointFailed: false);
+
+  /// Copies this state with the switch of relay ended on a failure.
+  OcptRepointingState copyWithRepointFailed() => copyWith(isRepointing: false, repointFailed: true);
+
+  /// Copies this state with the switch of relay done, the project now enrolled through [enrolment].
+  OcptRepointingState copyWithRepointed({required OcptRelayEnrolment enrolment}) =>
+      copyWith(isRepointing: false, enrolment: enrolment);
+
+  /// Copies this state with the failure dismissed.
+  OcptRepointingState copyWithErrorDismissed() => copyWith(repointFailed: false);
+
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
