@@ -225,19 +225,16 @@ class OcptShotListStoryboardBloc
         database: project.database,
         shotId: event.shotId,
       );
-      if (panelId == null) {
-        return;
+      if (panelId != null) {
+        await _storyboardService.replacePanelImage(
+          database: project.database,
+          panelId: panelId,
+          path: path,
+        );
+        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+          emitter(state.copyWithSelectedPanel(panelId: panelId));
+        }
       }
-
-      await _storyboardService.replacePanelImage(
-        database: project.database,
-        panelId: panelId,
-        path: path,
-      );
-      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        return;
-      }
-      emitter(state.copyWithSelectedPanel(panelId: panelId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a storyboard frame onto shot ${event.shotId} "
@@ -387,17 +384,16 @@ class OcptShotListStoryboardBloc
 
     try {
       await _storyboardService.deletePanel(database: project.database, panelId: event.panelId);
-      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        return;
+      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        emitter(
+          state.copyWithDeletedPanelEdits(
+            // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
+            pendingFieldEdits: Map.of(state.pendingFieldEdits)
+              ..removeWhere((key, _) => isOfPanel(key)),
+            wasSelected: wasSelected,
+          ),
+        );
       }
-      emitter(
-        state.copyWithDeletedPanelEdits(
-          // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
-          pendingFieldEdits: Map.of(state.pendingFieldEdits)
-            ..removeWhere((key, _) => isOfPanel(key)),
-          wasSelected: wasSelected,
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete panel ${event.panelId} of project "
@@ -444,14 +440,11 @@ class OcptShotListStoryboardBloc
         x2: event.x2,
         y2: event.y2,
       );
-      if (annotationId == null) {
-        return;
+      if (annotationId != null) {
+        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+          emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
+        }
       }
-
-      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        return;
-      }
-      emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to draw a ${event.kind} mark onto panel ${event.panelId} "
@@ -483,14 +476,11 @@ class OcptShotListStoryboardBloc
         x1: event.x1,
         y1: event.y1,
       );
-      if (annotationId == null) {
-        return;
+      if (annotationId != null) {
+        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+          emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
+        }
       }
-
-      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        return;
-      }
-      emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a label onto panel ${event.panelId} of project "
@@ -545,17 +535,16 @@ class OcptShotListStoryboardBloc
         database: project.database,
         annotationId: event.annotationId,
       );
-      if (!await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        return;
+      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        emitter(
+          state.copyWithDeletedAnnotationEdits(
+            // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
+            pendingFieldEdits: Map.of(state.pendingFieldEdits)
+              ..removeWhere((key, _) => isOfAnnotation(key)),
+            wasSelected: wasSelected,
+          ),
+        );
       }
-      emitter(
-        state.copyWithDeletedAnnotationEdits(
-          // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
-          pendingFieldEdits: Map.of(state.pendingFieldEdits)
-            ..removeWhere((key, _) => isOfAnnotation(key)),
-          wasSelected: wasSelected,
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to delete mark ${event.annotationId} of project "

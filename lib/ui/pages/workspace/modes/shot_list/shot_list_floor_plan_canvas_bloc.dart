@@ -256,15 +256,12 @@ class OcptShotListFloorPlanCanvasBloc
         label: label,
         setElementShape: event.setElementShape,
       );
-      if (symbolId == null) {
-        return;
+      if (symbolId != null) {
+        final isCharacter = event.layer == OcptFloorPlanLayer.characters && shotId != null;
+        if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+          emitter(state.copyWithPlacedSymbol(symbolId: symbolId, isCharacter: isCharacter));
+        }
       }
-
-      final isCharacter = event.layer == OcptFloorPlanLayer.characters && shotId != null;
-      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-        return;
-      }
-      emitter(state.copyWithPlacedSymbol(symbolId: symbolId, isCharacter: isCharacter));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to place a ${event.layer} symbol on set ${event.setId} "
@@ -432,51 +429,53 @@ class OcptShotListFloorPlanCanvasBloc
       final onEveryScope = event.choice == OcptFloorPlanScopeChoice.every;
       String? targetSceneId;
       String? targetShotId;
+      var isTargetResolved = true;
       if (!onEveryScope) {
         if (decision.level == OcptFloorPlanOverrideLevel.sequence) {
           final sequence = modeState.selectedSequence;
-          if (sequence is! OcptSceneShotSequence) {
-            emitter(state.copyWithScopeDecisionDismissed());
-            return;
+          if (sequence is OcptSceneShotSequence) {
+            targetSceneId = sequence.sceneId;
+          } else {
+            isTargetResolved = false;
           }
-          targetSceneId = sequence.sceneId;
         } else {
           final shotId = modeState.selectedShotId;
-          if (shotId == null) {
-            emitter(state.copyWithScopeDecisionDismissed());
-            return;
+          if (shotId != null) {
+            targetShotId = shotId;
+          } else {
+            isTargetResolved = false;
           }
-          targetShotId = shotId;
         }
       }
 
-      final existingOverride = onEveryScope
-          ? null
-          : modeState.floorPlanSnapshot?.setsById[decision.setId]?.symbols.firstWhereOrNull(
-              (symbol) =>
-                  symbol.overridesSymbolId == decision.symbolId &&
-                  symbol.sceneId == targetSceneId &&
-                  symbol.shotId == targetShotId,
-            );
-      final isWritten = await _floorPlanService.applyScopeDecision(
-        database: project.database,
-        decision: decision,
-        onEveryScope: onEveryScope,
-        original: ocptFloorPlanSymbolById(
-          floorPlanSnapshot: modeState.floorPlanSnapshot,
-          symbolId: decision.symbolId,
-        ),
-        existingOverride: existingOverride,
-        targetSceneId: targetSceneId,
-        targetShotId: targetShotId,
-      );
-      if (!isWritten) {
+      if (!isTargetResolved) {
         emitter(state.copyWithScopeDecisionDismissed());
-        return;
+      } else {
+        final existingOverride = onEveryScope
+            ? null
+            : modeState.floorPlanSnapshot?.setsById[decision.setId]?.symbols.firstWhereOrNull(
+                (symbol) =>
+                    symbol.overridesSymbolId == decision.symbolId &&
+                    symbol.sceneId == targetSceneId &&
+                    symbol.shotId == targetShotId,
+              );
+        final isWritten = await _floorPlanService.applyScopeDecision(
+          database: project.database,
+          decision: decision,
+          onEveryScope: onEveryScope,
+          original: ocptFloorPlanSymbolById(
+            floorPlanSnapshot: modeState.floorPlanSnapshot,
+            symbolId: decision.symbolId,
+          ),
+          existingOverride: existingOverride,
+          targetSceneId: targetSceneId,
+          targetShotId: targetShotId,
+        );
+        if (isWritten) {
+          await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+        }
+        emitter(state.copyWithScopeDecisionDismissed());
       }
-
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-      emitter(state.copyWithScopeDecisionDismissed());
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to resolve the scope decision on symbol "
@@ -628,14 +627,11 @@ class OcptShotListFloorPlanCanvasBloc
         label: source.label,
         setElementShape: source.setElementShape,
       );
-      if (symbolId == null) {
-        return;
+      if (symbolId != null) {
+        if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+          emitter(state.copyWithDuplicatedSymbol(symbolId: symbolId));
+        }
       }
-
-      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-        return;
-      }
-      emitter(state.copyWithDuplicatedSymbol(symbolId: symbolId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to duplicate symbol ${event.symbolId} of project "

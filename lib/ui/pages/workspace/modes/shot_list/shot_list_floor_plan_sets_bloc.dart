@@ -213,11 +213,9 @@ class OcptShotListFloorPlanSetsBloc
 
     try {
       final props = await _loadPropsOfSequence(project: project, sequenceId: event.sequenceId);
-      if (modeBloc.state.selectedSequenceId != event.sequenceId) {
-        return;
+      if (modeBloc.state.selectedSequenceId == event.sequenceId) {
+        emitter(state.copyWithSequenceProps(props: props));
       }
-
-      emitter(state.copyWithSequenceProps(props: props));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read the props of sequence ${event.sequenceId} of "
@@ -271,18 +269,15 @@ class OcptShotListFloorPlanSetsBloc
         name: ocptSceneHeadingPlaceOf(sequence.heading),
         locationId: event.locationId,
       );
-      if (setId == null) {
-        return;
+      if (setId != null) {
+        if (await modeBloc.reload({
+          OcptShotListReloadScope.floorPlans,
+          OcptShotListReloadScope.locations,
+          OcptShotListReloadScope.setScopeSymbols,
+        })) {
+          await addToModeAndWait(OcptShotListSetAddedEvent(setId: setId));
+        }
       }
-
-      if (!await modeBloc.reload({
-        OcptShotListReloadScope.floorPlans,
-        OcptShotListReloadScope.locations,
-        OcptShotListReloadScope.setScopeSymbols,
-      })) {
-        return;
-      }
-      await addToModeAndWait(OcptShotListSetAddedEvent(setId: setId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to create a floor plan set on scene ${sequence.sceneId} "
@@ -315,14 +310,11 @@ class OcptShotListFloorPlanSetsBloc
         sceneId: sequence.sceneId,
         setId: event.setId,
       );
-      if (linkId == null) {
-        return;
+      if (linkId != null) {
+        if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+          await addToModeAndWait(OcptShotListSetAddedEvent(setId: event.setId));
+        }
       }
-
-      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-        return;
-      }
-      await addToModeAndWait(OcptShotListSetAddedEvent(setId: event.setId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to link set ${event.setId} to scene ${sequence.sceneId} "
@@ -380,19 +372,19 @@ class OcptShotListFloorPlanSetsBloc
         sceneId: sceneId,
         setId: event.setId,
       );
-      if (!await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
-        return;
-      }
-      if (wasSelected) {
-        await addToModeAndWait(const OcptShotListSetRemovedEvent());
-      }
+      if (await modeBloc.reload({OcptShotListReloadScope.floorPlans})) {
+        if (wasSelected) {
+          await addToModeAndWait(const OcptShotListSetRemovedEvent());
+        }
 
-      emitter(
-        state.copyWithUnlinkedSetEdits(
-          // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
-          pendingFieldEdits: Map.of(state.pendingFieldEdits)..removeWhere((key, _) => isOfSet(key)),
-        ),
-      );
+        emitter(
+          state.copyWithUnlinkedSetEdits(
+            // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
+            pendingFieldEdits: Map.of(state.pendingFieldEdits)
+              ..removeWhere((key, _) => isOfSet(key)),
+          ),
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to unlink set ${event.setId} of project "
@@ -426,18 +418,15 @@ class OcptShotListFloorPlanSetsBloc
         name: event.newSetName,
         sceneId: sceneId,
       );
-      if (newSetId == null) {
-        return;
+      if (newSetId != null) {
+        if (await modeBloc.reload({
+          OcptShotListReloadScope.floorPlans,
+          OcptShotListReloadScope.locations,
+          OcptShotListReloadScope.setScopeSymbols,
+        })) {
+          await addToModeAndWait(OcptShotListSetAddedEvent(setId: newSetId));
+        }
       }
-
-      if (!await modeBloc.reload({
-        OcptShotListReloadScope.floorPlans,
-        OcptShotListReloadScope.locations,
-        OcptShotListReloadScope.setScopeSymbols,
-      })) {
-        return;
-      }
-      await addToModeAndWait(OcptShotListSetAddedEvent(setId: newSetId));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to duplicate set ${event.setId} of project "

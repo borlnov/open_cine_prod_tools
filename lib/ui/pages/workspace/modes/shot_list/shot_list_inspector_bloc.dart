@@ -525,16 +525,14 @@ class OcptShotListInspectorBloc
         screenplayId: modeBloc.screenplayIdOf(project),
         name: event.characterName,
       );
-      if (roleId == null) {
-        return;
+      if (roleId != null) {
+        await _shotListService.attachCharacter(
+          database: project.database,
+          shotId: event.shotId,
+          roleId: roleId,
+        );
+        await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
       }
-
-      await _shotListService.attachCharacter(
-        database: project.database,
-        shotId: event.shotId,
-        roleId: roleId,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.snapshot, OcptShotListReloadScope.roles});
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to add a character to shot "

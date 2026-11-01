@@ -265,6 +265,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       return false;
     }
 
+    var isReloaded = false;
     try {
       OcptShotListSnapshot? snapshot;
       OcptShotFieldSuggestions? suggestions;
@@ -306,7 +307,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           roles: roles,
         ),
       );
-      return true;
+      isReloaded = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -315,8 +316,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         stackTrace,
       );
       emitter(state.copyToWriteFailed());
-      return false;
     }
+
+    return isReloaded;
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
