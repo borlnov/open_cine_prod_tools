@@ -98,7 +98,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptEditorIoNotice(
             kind: OcptEditorIoNoticeKind.exportSucceeded,
             path: outcome.savedPath,
@@ -114,7 +114,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportFailed),
         ),
       );
@@ -153,7 +153,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptEditorIoNotice(
             kind: OcptEditorIoNoticeKind.pdfExportSucceeded,
             path: outcome.savedPath,
@@ -169,7 +169,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportFailed),
         ),
       );
@@ -200,7 +200,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
       // stating, and it leaves the screenplay on screen exactly as it was.
       if (result.status != OcptScreenplayImportStatus.cancelled) {
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importUnreadable),
           ),
         );
@@ -228,7 +228,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
       await addToModeAndWait(OcptEditorImportedTextAppliedEvent(text: imported.fountainText));
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
         ),
       );
@@ -240,7 +240,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importFailed),
         ),
       );
@@ -252,6 +252,6 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     OcptEditorIoNoticeDismissedEvent event,
     Emitter<OcptEditorIoState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }

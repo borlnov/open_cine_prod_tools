@@ -22,6 +22,13 @@ class OcptEditorIoState extends BlocStateForMixin<OcptEditorIoState> {
   OcptEditorIoState copyWith({OcptEditorIoNotice? ioNotice, bool forceIoNoticeValue = false}) =>
       OcptEditorIoState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
+  /// Copies this state with [ioNotice] shown as the outcome of an export or an import.
+  OcptEditorIoState copyWithIoNotice({required OcptEditorIoNotice ioNotice}) =>
+      copyWith(ioNotice: ioNotice);
+
+  /// Copies this state with the shown notice cleared.
+  OcptEditorIoState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, ioNotice];
