@@ -276,7 +276,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   number and the title are set in the same gesture, and a misclick writes nothing.
   **On a phone both reduce to a fixed icon-only chrome trigger**, their label carried by the
   tooltip alone rather than a `Flexible` label the phone toolbar has no room to ellipsize cleanly
-  beside the mode's own controls (`OcptWorkspaceShell._buildEpisodeIconTrigger`); wider windows are
+  beside the mode's own controls (`OcptWorkspaceShellToolbar`); wider windows are
   unchanged.
   **The selection is not persisted**:
   opening a project lands on the first episode, a reading preference costing nothing to lose where a
@@ -446,10 +446,10 @@ the persistence, the project versions, the sync-ready data model and the read-on
 
 - The workspace shell's own compact-width reductions, all width-keyed rather than platform-keyed:
   below `ocptCompactWidthBreakpoint` the two side docks present as edge drawers over a full-width
-  centre (`OcptWorkspaceShell._buildCompactDrawers`) — summoned by the very same toolbar dock
-  toggles that open a persistent column above the breakpoint, dismissed by tapping the scrim beside
-  the open drawer, full-width on a phone (`ocptIsPhoneWidth`) and, above that (a tablet in portrait),
-  a resizable drawer opened to its dock's own fraction and carrying the same
+  centre (`OcptWorkspaceShell`, in `_OcptWorkspaceCompactDrawers`) — summoned by the very same
+  toolbar dock toggles that open a persistent column above the breakpoint, dismissed by tapping
+  the scrim beside the open drawer, full-width on a phone (`ocptIsPhoneWidth`) and, above that (a
+  tablet in portrait), a resizable drawer opened to its dock's own fraction and carrying the same
   `OcptWorkspaceDockDivider` a persistent column has on its centre-facing edge, so its width is
   dragged by touch and reuses the very same `OcptWorkspaceDockLayoutController` fraction the landscape
   columns do. That divider is a 1 px seam carrying a small three-dot grip that reads as grabbable on

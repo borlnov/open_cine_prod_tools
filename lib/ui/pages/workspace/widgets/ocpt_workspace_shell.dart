@@ -3,16 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
-import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_indicator.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock_layout_controller.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_export_share_anchor.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell_toolbar.dart';
 
 /// The persistent application chrome around a production mode's own content: a toolbar, an
 /// optional full-width [OcptWorkspaceShell.banner] under it, an optional pair of resizable side
@@ -66,7 +61,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_l
 /// Below [ocptCompactWidthBreakpoint] the two side docks no longer fit as persistent columns
 /// beside the centre floor, so the row reduces to edge drawers: the centre fills the width and an
 /// open panel slides over it, summoned by the same toolbar dock toggles (see
-/// [_OcptWorkspaceShellState._buildCompactDrawers]). This is a pure width reduction — the widget
+/// [_OcptWorkspaceCompactDrawers]). This is a pure width reduction — the widget
 /// stays presentational and reads no platform.
 ///
 /// This is otherwise a **stateless slot widget with respect to a mode's own content**, exactly as
@@ -361,473 +356,93 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     builder: (context, constraints) {
       // On a phone the toolbar has no room for its secondary actions beside the mode's own, so the
       // export, project-settings and help controls fold from their toolbar slots into the `⋮`
-      // overflow instead (see [_buildFoldedChromeEntries]). Above a phone they stay toolbar
+      // overflow instead (see [OcptWorkspaceShellToolbar]). Above a phone they stay toolbar
       // controls, exactly as before.
       final isPhone = ocptIsPhoneWidth(constraints.maxWidth);
       // Below this width the title, the mode label and the single-episode `Add an episode…`
       // button are dropped from the toolbar entirely, and the docks row reduces to drawers (see
-      // [_buildDocksRow]).
+      // [_OcptWorkspaceDocksRow]).
       final isCompact = ocptIsCompactWidth(constraints.maxWidth);
 
       return Column(
         children: [
-          OcptWorkspaceToolbar(
-            title: widget.title,
-            isDirty: widget.isDirty,
-            isReadOnly: widget.isReadOnly,
+          OcptWorkspaceShellToolbar(
+            shell: widget,
+            isPhone: isPhone,
             isCompact: isCompact,
-            onBack: widget.onBack,
-            episodeControl: _buildEpisodeControl(context, isPhone, isCompact),
-            actions: widget.toolbarActions,
-            modeLabel: widget.modeLabel,
-            presenceIndicator: const OcptPresenceIndicator(),
-            exportAction: isPhone ? null : _buildExportAction(context),
-            dockToggles: _buildDockToggles(context, isCompact),
-            saveAction: _buildSaveAction(context),
-            projectSettingsAction: isPhone ? null : _buildProjectSettingsAction(context),
-            helpAction: isPhone ? null : _buildHelpAction(context),
-            overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : widget.overflowEntries,
+            isLeftDockToggledOn: isCompact
+                ? _compactDrawer == _OcptCompactDrawerSide.left
+                : widget.isLeftDockOpen,
+            isRightDockToggledOn: isCompact
+                ? _compactDrawer == _OcptCompactDrawerSide.right
+                : widget.isRightDockOpen,
+            onLeftDockToggled: widget.onToggleLeftDock == null
+                ? null
+                : isCompact
+                ? () => _toggleCompactDrawer(_OcptCompactDrawerSide.left)
+                : widget.onToggleLeftDock,
+            onRightDockToggled: widget.onToggleRightDock == null
+                ? null
+                : isCompact
+                ? () => _toggleCompactDrawer(_OcptCompactDrawerSide.right)
+                : widget.onToggleRightDock,
           ),
           if (widget.banner != null) widget.banner!,
-          Expanded(child: _buildDocksRow(isCompact)),
+          Expanded(
+            child: _OcptWorkspaceDocksRow(
+              shell: widget,
+              isCompact: isCompact,
+              compactDrawer: _compactDrawer,
+              onCompactDrawerClosed: _closeCompactDrawer,
+            ),
+          ),
           if (widget.statusBar != null) widget.statusBar!,
         ],
       );
     },
   );
+}
 
-  /// Builds the `⋮` overflow entries on a phone: the export, project-settings and help actions the
-  /// toolbar folded out of its own slots, above the mode's own
-  /// [OcptWorkspaceShell.overflowEntries], separated from them by a divider when both groups are
-  /// present.
-  ///
-  /// Each folded action guards on its own callback, exactly as the toolbar slot it replaces did, so
-  /// a mode that withholds one (the settings action under a version preview, the help action every
-  /// mode but the budget one) simply contributes no entry for it. When nothing folds, the mode's
-  /// own entries are returned untouched.
-  List<PopupMenuEntry<void>> _buildPhoneOverflowEntries(BuildContext context) {
-    final folded = _buildFoldedChromeEntries(context);
-    if (folded.isEmpty) {
-      return widget.overflowEntries;
-    }
+/// Builds the left dock / centre / right dock row, wiring the dividers to
+/// [OcptWorkspaceShell.dockLayoutController] and reporting drag ends through
+/// [OcptWorkspaceShell.onDockFractionsChanged].
+///
+/// Skips the [LayoutBuilder]/[ListenableBuilder]/dock-width machinery entirely when
+/// [OcptWorkspaceShell.dockLayoutController] is null (a mode with no dock at all): `centre` then
+/// simply fills the row.
+///
+/// Below [ocptCompactWidthBreakpoint] ([isCompact], resolved once by the caller from the very
+/// same width [build] already reads for the toolbar) the two side docks can no longer coexist
+/// with the centre floor as persistent columns, so the row reduces to [_OcptWorkspaceCompactDrawers]:
+/// `centre` fills the whole width and at most one panel slides over it as an edge drawer,
+/// summoned by the toolbar's own dock toggles. Above the breakpoint the row keeps its persistent
+/// side columns unchanged.
+class _OcptWorkspaceDocksRow extends StatelessWidget {
+  /// The shell whose panels and callbacks the row lays out.
+  final OcptWorkspaceShell shell;
 
-    return [
-      ...folded,
-      if (widget.overflowEntries.isNotEmpty) const PopupMenuDivider(),
-      ...widget.overflowEntries,
-    ];
-  }
+  /// Whether the window is below [ocptCompactWidthBreakpoint].
+  final bool isCompact;
 
-  /// Builds the folded export / project-settings / help entries for [_buildPhoneOverflowEntries],
-  /// each rendered only when the mode wired its callback, in the same order they hold in the
-  /// toolbar. Their labels reuse the controls' own strings, and each fires the very same callback
-  /// its toolbar control does.
-  List<PopupMenuEntry<void>> _buildFoldedChromeEntries(BuildContext context) {
-    final tr = Tr.of(context);
-    final onExportRequested = widget.onExportRequested;
-    final onProjectSettingsRequested = widget.onProjectSettingsRequested;
-    final onHelpRequested = widget.onHelpRequested;
+  /// Which compact drawer, if any, is open.
+  final _OcptCompactDrawerSide compactDrawer;
 
-    return [
-      // No control's own bounds are meaningful once the gesture came through a menu item rather
-      // than the toolbar button itself, so this is the one caller that always hands down null.
-      if (onExportRequested != null)
-        PopupMenuItem<void>(
-          onTap: () => onExportRequested(null),
-          child: Text(tr.workspaceExportAction),
-        ),
-      if (onProjectSettingsRequested != null)
-        PopupMenuItem<void>(
-          onTap: onProjectSettingsRequested,
-          child: Text(tr.workspaceProjectSettingsTooltip),
-        ),
-      if (onHelpRequested != null)
-        PopupMenuItem<void>(onTap: onHelpRequested, child: Text(tr.workspaceHelpTooltip)),
-    ];
-  }
+  /// Called when the scrim closes the open compact drawer.
+  final VoidCallback onCompactDrawerClosed;
 
-  /// Builds the toolbar's `Export` control, or null when the mode withheld it — no control is
-  /// rendered at all then, rather than a disabled one.
-  ///
-  /// Unlike the chrome's icon-only controls, this one carries its own label: an export is not the
-  /// kind of gesture a bare glyph reads as, so it does not take [OcptWorkspaceToolbar
-  /// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
-  /// [TextButton]'s own default touch target.
-  ///
-  /// That last part takes **two** overrides, and neither alone is enough.
-  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
-  /// over the [ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme`
-  /// already shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that
-  /// actually shows: a [TextButton] takes its density from the ambient theme, which on a desktop
-  /// platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so this button
-  /// drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default density
-  /// being standard whatever the theme says. Beware that `flutter test` reports the Android density
-  /// unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a widget test
-  /// cannot see by default.
-  ///
-  /// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
-  /// its `RenderBox` at tap time — the anchor [OcptWorkspaceShell.onExportRequested] hands down for
-  /// the OS share sheet's iPad/Mac popover — without this widget itself needing a [GlobalKey].
-  Widget? _buildExportAction(BuildContext context) {
-    final onExportRequested = widget.onExportRequested;
-    if (onExportRequested == null) {
-      return null;
-    }
+  /// Class constructor
+  const _OcptWorkspaceDocksRow({
+    required this.shell,
+    required this.isCompact,
+    required this.compactDrawer,
+    required this.onCompactDrawerClosed,
+  });
 
-    final tr = Tr.of(context);
-
-    return Tooltip(
-      message: tr.workspaceExportTooltip,
-      child: Builder(
-        builder: (buttonContext) => TextButton.icon(
-          onPressed: () => onExportRequested(ocptExportShareAnchorOf(buttonContext)),
-          icon: const Icon(Icons.file_upload_outlined, size: 16),
-          label: Text(tr.workspaceExportAction),
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
-            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.standard,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Builds whatever fills the toolbar's episode slot: the selector for a project holding several
-  /// episodes, the `Add an episode…` button for one holding a single one, or null for neither.
-  ///
-  /// The two guard themselves on [OcptWorkspaceShell.episodes]'s own length, so the order they are
-  /// tried in never decides anything: a project can't be both at once.
-  ///
-  /// On a phone ([isPhone]) the selector reduces to an icon-only chrome button: the real control
-  /// carries a label as wide as the episode's own title, which the phone toolbar has no room for
-  /// beside the mode's own controls, and a label-bearing control squeezed into a `Flexible` there
-  /// overflows its own icon rather than ellipsizing cleanly. The label lives in the tooltip then.
-  ///
-  /// Below [ocptCompactWidthBreakpoint] ([isCompact]) the `Add an episode…` button is withheld
-  /// outright rather than reduced further — it is a discovery affordance nobody is looking for, and
-  /// there is no room left to spend on one at that width. The selector is unaffected: it still
-  /// reduces to its own phone-width icon trigger, since a project already known to be a series must
-  /// still let its episode be switched, and [ocptPhoneWidthBreakpoint] is always below
-  /// [ocptCompactWidthBreakpoint], so a phone never has to reduce the button — it never sees it.
-  Widget? _buildEpisodeControl(BuildContext context, bool isPhone, bool isCompact) =>
-      _buildEpisodeSelector(context, isPhone) ??
-      (isCompact ? null : _buildAddEpisodeAction(context));
-
-  /// Builds the toolbar's episode selector, or null when [OcptWorkspaceShell.onEpisodeSelected] is
-  /// null or [OcptWorkspaceShell.episodes] holds at most one — no control is rendered at all then,
-  /// rather than a disabled one, exactly like [_buildExportAction].
-  ///
-  /// The trigger reads the selected episode's own label; the menu lists every episode with the
-  /// selected one marked, followed by `Manage episodes…` when
-  /// [OcptWorkspaceShell.onProjectSettingsRequested] is wired (see the class doc comment for why it
-  /// is that callback rather than a new one). That entry carries [_manageEpisodesOption] rather
-  /// than null: a [PopupMenuButton] cannot carry a null value for an entry that must still be
-  /// selectable, since it can't tell that apart from the menu being dismissed without a pick
-  /// (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the same workaround, for the same
-  /// reason).
-  ///
-  /// It wraps itself in a [Flexible] — the toolbar wraps nothing itself — because an episode's
-  /// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
-  /// the control that gives width up, its trigger ellipsizing like the project title beside it. On
-  /// a phone ([isPhone]) it is an icon-only fixed trigger instead (its label in the tooltip), since
-  /// the phone toolbar has no room to ellipsize a title beside the mode's own controls.
-  Widget? _buildEpisodeSelector(BuildContext context, bool isPhone) {
-    final onEpisodeSelected = widget.onEpisodeSelected;
-    if (onEpisodeSelected == null || widget.episodes.length <= 1) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-    final onProjectSettingsRequested = widget.onProjectSettingsRequested;
-    final selected = _episodeById(widget.selectedEpisodeId);
-
-    final button = PopupMenuButton<String>(
-      tooltip: tr.workspaceEpisodeSelectorTooltip,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      onSelected: (value) => value == _manageEpisodesOption
-          ? onProjectSettingsRequested?.call()
-          : onEpisodeSelected(value),
-      itemBuilder: (context) => [
-        for (final episode in widget.episodes)
-          PopupMenuItem<String>(
-            value: episode.id,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 18,
-                  child: episode.id == widget.selectedEpisodeId
-                      ? const Icon(Icons.check, size: 16)
-                      : null,
-                ),
-                const SizedBox(width: 6),
-                Text(ocptWorkspaceEpisodeLabelOf(tr, episode)),
-              ],
-            ),
-          ),
-        if (onProjectSettingsRequested != null) ...[
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: _manageEpisodesOption,
-            child: Text(tr.workspaceManageEpisodesAction),
-          ),
-        ],
-      ],
-      child: isPhone
-          ? _buildEpisodeIconTrigger(theme)
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: SizedBox(
-                height: ocptToolbarChromeButtonSize,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        selected == null ? "" : ocptWorkspaceEpisodeLabelOf(tr, selected),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_drop_down,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-
-    // On a phone the trigger is a fixed, icon-only chrome button, so it stays out of the toolbar's
-    // flexible width entirely; only on a wider window does it share (and give up) that width.
-    return isPhone ? button : Flexible(child: button);
-  }
-
-  /// Builds the phone-width, icon-only trigger for [_buildEpisodeSelector]: a fixed chrome-sized
-  /// glyph pair (an episode library icon and the dropdown caret), reading which episode is on
-  /// screen from its tooltip rather than a label the phone toolbar has no room for.
-  Widget _buildEpisodeIconTrigger(ThemeData theme) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: SizedBox(
-      height: ocptToolbarChromeButtonSize,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.video_library_outlined, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
-        ],
-      ),
-    ),
-  );
-
-  /// Builds the toolbar's `Add an episode…` button, or null when
-  /// [OcptWorkspaceShell.onAddEpisodeRequested] is null or [OcptWorkspaceShell.episodes] holds
-  /// anything other than exactly one.
-  ///
-  /// The empty list is deliberately not the button's case either: it means the project's episodes
-  /// haven't loaded yet, and a button flashing in for one frame before the selector replaces it
-  /// would be a lie about a project that turns out to be a series.
-  ///
-  /// It is dressed as the selector it stands in for rather than as an action: muted foreground,
-  /// [TextTheme.bodySmall], no fill. Sizing it to the toolbar band takes the same two overrides
-  /// [_buildExportAction] documents at length, and neither alone is enough.
-  ///
-  /// It is laid out by hand rather than as a [TextButton.icon] so its label sits in a [Flexible]:
-  /// this control shares the toolbar's flexible width with the project title, and a window too
-  /// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
-  ///
-  /// Never called at all below [ocptCompactWidthBreakpoint] — [_buildEpisodeControl] withholds it
-  /// there itself — and [ocptPhoneWidthBreakpoint] is always below that breakpoint too, so this
-  /// method never has to reduce itself to an icon-only trigger the way the selector does: by the
-  /// time it runs, the toolbar is already wide enough for its label.
-  Widget? _buildAddEpisodeAction(BuildContext context) {
-    final onAddEpisodeRequested = widget.onAddEpisodeRequested;
-    if (onAddEpisodeRequested == null || widget.episodes.length != 1) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return Flexible(
-      child: Tooltip(
-        message: tr.workspaceAddEpisodeTooltip,
-        child: TextButton(
-          onPressed: onAddEpisodeRequested,
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurfaceVariant,
-            textStyle: theme.textTheme.bodySmall,
-            minimumSize: const Size(0, ocptToolbarChromeButtonSize),
-            maximumSize: const Size(double.infinity, ocptToolbarChromeButtonSize),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.standard,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.playlist_add, size: 16),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  tr.workspaceAddEpisodeAction,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// The episode of [OcptWorkspaceShell.episodes] whose id is [id], or null while [id] is null or
-  /// names none of them — the moment right after the project's episodes changed under a stale
-  /// selection, before the workspace bloc has re-resolved it.
-  OcptEpisode? _episodeById(String? id) {
-    for (final episode in widget.episodes) {
-      if (episode.id == id) {
-        return episode;
-      }
-    }
-
-    return null;
-  }
-
-  /// Builds the toolbar's dock toggles, left one first, skipping whichever side the mode gave no
-  /// callback for.
-  ///
-  /// Both wear the same sidebar glyph, the right one mirrored, so the pair reads as one control
-  /// per side of the workspace; the `iconButtonTheme` paints the open one with its accent wash.
-  ///
-  /// Above [ocptCompactWidthBreakpoint] ([isCompact] false) a tap calls the mode's own
-  /// [OcptWorkspaceShell.onToggleLeftDock]/[OcptWorkspaceShell.onToggleRightDock] and the button's
-  /// selected state reads the mode's own [OcptWorkspaceShell.isLeftDockOpen]/
-  /// [OcptWorkspaceShell.isRightDockOpen] flag, exactly as before. Below it, the very same buttons
-  /// drive [_compactDrawer] instead — the mode's own flags and callbacks are not consulted at all —
-  /// so the mode never has to know its dock became a drawer, and the shell never has to know
-  /// anything about what that drawer contains.
-  List<Widget> _buildDockToggles(BuildContext context, bool isCompact) {
-    final tr = Tr.of(context);
-    final onToggleLeftDock = widget.onToggleLeftDock;
-    final onToggleRightDock = widget.onToggleRightDock;
-
-    final isLeftOpen = isCompact
-        ? _compactDrawer == _OcptCompactDrawerSide.left
-        : widget.isLeftDockOpen;
-    final isRightOpen = isCompact
-        ? _compactDrawer == _OcptCompactDrawerSide.right
-        : widget.isRightDockOpen;
-
-    return [
-      if (onToggleLeftDock != null)
-        IconButton(
-          icon: Icon(isLeftOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 24),
-          tooltip: tr.workspaceToggleLeftDockTooltip,
-          isSelected: isLeftOpen,
-          style: OcptWorkspaceToolbar.chromeButtonStyle,
-          onPressed: isCompact
-              ? () => _toggleCompactDrawer(_OcptCompactDrawerSide.left)
-              : onToggleLeftDock,
-        ),
-      if (onToggleRightDock != null)
-        IconButton(
-          icon: Transform.flip(
-            flipX: true,
-            child: Icon(isRightOpen ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 24),
-          ),
-          tooltip: tr.workspaceToggleRightDockTooltip,
-          isSelected: isRightOpen,
-          style: OcptWorkspaceToolbar.chromeButtonStyle,
-          onPressed: isCompact
-              ? () => _toggleCompactDrawer(_OcptCompactDrawerSide.right)
-              : onToggleRightDock,
-        ),
-    ];
-  }
-
-  /// Builds the toolbar's save control — the button, or the same-sized spinner while
-  /// [OcptWorkspaceShell.isSaving] — or null when the mode has nothing to save.
-  Widget? _buildSaveAction(BuildContext context) {
-    final onSave = widget.onSave;
-    if (onSave == null) {
-      return null;
-    }
-
-    if (widget.isSaving) {
-      return const SizedBox.square(
-        dimension: ocptToolbarChromeButtonSize,
-        child: Center(
-          child: SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-        ),
-      );
-    }
-
-    return IconButton(
-      icon: const Icon(Icons.save_outlined, size: 24),
-      tooltip: Tr.of(context).editorSaveTooltip,
-      style: OcptWorkspaceToolbar.chromeButtonStyle,
-      onPressed: onSave,
-    );
-  }
-
-  /// Builds the toolbar's project settings action, or null when the mode withheld it.
-  Widget? _buildProjectSettingsAction(BuildContext context) {
-    final onProjectSettingsRequested = widget.onProjectSettingsRequested;
-    if (onProjectSettingsRequested == null) {
-      return null;
-    }
-
-    return IconButton(
-      icon: const Icon(Icons.settings_outlined, size: 24),
-      tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
-      style: OcptWorkspaceToolbar.chromeButtonStyle,
-      onPressed: onProjectSettingsRequested,
-    );
-  }
-
-  /// Builds the toolbar's `Help` action, or null when the mode withheld it.
-  Widget? _buildHelpAction(BuildContext context) {
-    final onHelpRequested = widget.onHelpRequested;
-    if (onHelpRequested == null) {
-      return null;
-    }
-
-    return IconButton(
-      icon: const Icon(Icons.help_outline, size: 24),
-      tooltip: Tr.of(context).workspaceHelpTooltip,
-      style: OcptWorkspaceToolbar.chromeButtonStyle,
-      onPressed: onHelpRequested,
-    );
-  }
-
-  /// Builds the left dock / centre / right dock row, wiring the dividers to
-  /// [OcptWorkspaceShell.dockLayoutController] and reporting drag ends through
-  /// [OcptWorkspaceShell.onDockFractionsChanged].
-  ///
-  /// Skips the [LayoutBuilder]/[ListenableBuilder]/dock-width machinery entirely when
-  /// [OcptWorkspaceShell.dockLayoutController] is null (a mode with no dock at all): `centre` then
-  /// simply fills the row.
-  ///
-  /// Below [ocptCompactWidthBreakpoint] ([isCompact], resolved once by the caller from the very
-  /// same width [build] already reads for the toolbar) the two side docks can no longer coexist
-  /// with the centre floor as persistent columns, so the row reduces to [_buildCompactDrawers]:
-  /// `centre` fills the whole width and at most one panel slides over it as an edge drawer,
-  /// summoned by the toolbar's own dock toggles. Above the breakpoint the row keeps its persistent
-  /// side columns unchanged.
-  Widget _buildDocksRow(bool isCompact) {
-    final controller = widget.dockLayoutController;
+  @override
+  Widget build(BuildContext context) {
+    final controller = shell.dockLayoutController;
     if (controller == null) {
-      return widget.centre;
+      return shell.centre;
     }
 
     return LayoutBuilder(
@@ -835,7 +450,12 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
         final rowWidth = constraints.maxWidth;
 
         if (isCompact) {
-          return _buildCompactDrawers(context, rowWidth);
+          return _OcptWorkspaceCompactDrawers(
+            shell: shell,
+            compactDrawer: compactDrawer,
+            rowWidth: rowWidth,
+            onCompactDrawerClosed: onCompactDrawerClosed,
+          );
         }
 
         return ListenableBuilder(
@@ -845,15 +465,15 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
               rowWidth: rowWidth,
               leftFraction: controller.leftFraction,
               rightFraction: controller.rightFraction,
-              isLeftDockVisible: widget.leftPanel != null,
-              isRightDockVisible: widget.rightPanel != null,
+              isLeftDockVisible: shell.leftPanel != null,
+              isRightDockVisible: shell.rightPanel != null,
             );
 
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (widget.leftPanel != null) ...[
-                  OcptWorkspaceDock(width: widths.left, child: widget.leftPanel!),
+                if (shell.leftPanel != null) ...[
+                  OcptWorkspaceDock(width: widths.left, child: shell.leftPanel!),
                   OcptWorkspaceDockDivider(
                     onDragUpdate: (deltaX) => controller.setLeftFraction(
                       OcptWorkspaceDock.clampLeftFraction(
@@ -861,14 +481,14 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
                         rowWidth,
                       ),
                     ),
-                    onDragEnd: () => widget.onDockFractionsChanged?.call((
+                    onDragEnd: () => shell.onDockFractionsChanged?.call((
                       left: controller.leftFraction,
                       right: null,
                     )),
                   ),
                 ],
-                Expanded(child: widget.centre),
-                if (widget.rightPanel != null) ...[
+                Expanded(child: shell.centre),
+                if (shell.rightPanel != null) ...[
                   OcptWorkspaceDockDivider(
                     onDragUpdate: (deltaX) => controller.setRightFraction(
                       OcptWorkspaceDock.clampRightFraction(
@@ -876,12 +496,12 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
                         rowWidth,
                       ),
                     ),
-                    onDragEnd: () => widget.onDockFractionsChanged?.call((
+                    onDragEnd: () => shell.onDockFractionsChanged?.call((
                       left: null,
                       right: controller.rightFraction,
                     )),
                   ),
-                  OcptWorkspaceDock(width: widths.right, child: widget.rightPanel!),
+                  OcptWorkspaceDock(width: widths.right, child: shell.rightPanel!),
                 ],
               ],
             );
@@ -890,90 +510,137 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
       },
     );
   }
+}
 
-  /// Builds the compact-width presentation of the docks row: [OcptWorkspaceShell.centre] fills the
-  /// whole row of [rowWidth], and at most one side panel — [_compactDrawer]'s own choice — slides
-  /// over it as an edge drawer, dimming the centre behind a scrim that closes the drawer when
-  /// tapped.
-  ///
-  /// The drawers are summoned by the toolbar's own dock toggles ([_buildDockToggles]), but their
-  /// visibility here is [_compactDrawer] alone — never
-  /// [OcptWorkspaceShell.isLeftDockOpen]/[OcptWorkspaceShell.isRightDockOpen] — which is what keeps
-  /// both closed the moment a mode mounts and keeps the two mutually exclusive no matter what a
-  /// mode's own flags say. A side whose panel the mode never built
-  /// ([OcptWorkspaceShell.leftPanel]/[OcptWorkspaceShell.rightPanel] null) still has no drawer at
-  /// all regardless of [_compactDrawer], exactly as it has no column at an expanded width.
-  ///
-  /// A tablet-width drawer ([ocptIsPhoneWidth] false — a tablet in portrait, a narrow desktop
-  /// window) opens to its dock's own fraction of the row and carries the same
-  /// [OcptWorkspaceDockDivider] a persistent column has on its centre-facing edge, so it can be
-  /// resized by touch just as a column is by mouse; the drag reuses the very same
-  /// [OcptWorkspaceShell.dockLayoutController] fraction, so a width set in portrait carries over to
-  /// the landscape columns and back. A phone-width drawer fills the whole row instead — there is no
-  /// centre left to keep in view, so there is nothing to resize against and no divider is drawn.
-  /// The whole thing is wrapped in a [ListenableBuilder] on the controller so a resize drag
-  /// re-lays-out the drawer without rebuilding the centre underneath, the same pattern the
-  /// persistent columns use.
-  Widget _buildCompactDrawers(BuildContext context, double rowWidth) {
-    // Non-null in this branch: [_buildDocksRow] returns the bare centre when the controller is
+/// Builds the compact-width presentation of the docks row: [OcptWorkspaceShell.centre] fills the
+/// whole row of [rowWidth], and at most one side panel — [compactDrawer]'s own choice — slides
+/// over it as an edge drawer, dimming the centre behind a scrim that closes the drawer when
+/// tapped.
+///
+/// The drawers are summoned by the toolbar's own dock toggles (`OcptWorkspaceShellToolbar`), but their
+/// visibility here is [compactDrawer] alone — never
+/// [OcptWorkspaceShell.isLeftDockOpen]/[OcptWorkspaceShell.isRightDockOpen] — which is what keeps
+/// both closed the moment a mode mounts and keeps the two mutually exclusive no matter what a
+/// mode's own flags say. A side whose panel the mode never built
+/// ([OcptWorkspaceShell.leftPanel]/[OcptWorkspaceShell.rightPanel] null) still has no drawer at
+/// all regardless of [compactDrawer], exactly as it has no column at an expanded width.
+///
+/// A tablet-width drawer ([ocptIsPhoneWidth] false — a tablet in portrait, a narrow desktop
+/// window) opens to its dock's own fraction of the row and carries the same
+/// [OcptWorkspaceDockDivider] a persistent column has on its centre-facing edge, so it can be
+/// resized by touch just as a column is by mouse; the drag reuses the very same
+/// [OcptWorkspaceShell.dockLayoutController] fraction, so a width set in portrait carries over to
+/// the landscape columns and back. A phone-width drawer fills the whole row instead — there is no
+/// centre left to keep in view, so there is nothing to resize against and no divider is drawn.
+/// The whole thing is wrapped in a [ListenableBuilder] on the controller so a resize drag
+/// re-lays-out the drawer without rebuilding the centre underneath, the same pattern the
+/// persistent columns use.
+class _OcptWorkspaceCompactDrawers extends StatelessWidget {
+  /// The shell whose panels and callbacks the row lays out.
+  final OcptWorkspaceShell shell;
+
+  /// Which compact drawer, if any, is open.
+  final _OcptCompactDrawerSide compactDrawer;
+
+  /// The width of the docks row.
+  final double rowWidth;
+
+  /// Called when the scrim closes the open drawer.
+  final VoidCallback onCompactDrawerClosed;
+
+  /// Class constructor
+  const _OcptWorkspaceCompactDrawers({
+    required this.shell,
+    required this.compactDrawer,
+    required this.rowWidth,
+    required this.onCompactDrawerClosed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Non-null in this branch: [_OcptWorkspaceDocksRow] returns the bare centre when the controller is
     // null.
-    final controller = widget.dockLayoutController!;
-    final leftPanel = widget.leftPanel;
-    final rightPanel = widget.rightPanel;
+    final controller = shell.dockLayoutController!;
+    final leftPanel = shell.leftPanel;
+    final rightPanel = shell.rightPanel;
 
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
         final colorScheme = Theme.of(context).colorScheme;
-        final isLeftDrawerOpen = leftPanel != null && _compactDrawer == _OcptCompactDrawerSide.left;
+        final isLeftDrawerOpen = leftPanel != null && compactDrawer == _OcptCompactDrawerSide.left;
         final isRightDrawerOpen =
-            rightPanel != null && _compactDrawer == _OcptCompactDrawerSide.right;
+            rightPanel != null && compactDrawer == _OcptCompactDrawerSide.right;
 
         return Stack(
           children: [
-            Positioned.fill(child: widget.centre),
+            Positioned.fill(child: shell.centre),
             if (isLeftDrawerOpen || isRightDrawerOpen)
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: _closeCompactDrawer,
+                  onTap: onCompactDrawerClosed,
                   child: ColoredBox(color: colorScheme.scrim.withValues(alpha: 0.46)),
                 ),
               ),
             if (isLeftDrawerOpen)
-              _buildCompactDrawer(
+              _OcptWorkspaceCompactDrawer(
                 controller: controller,
                 rowWidth: rowWidth,
                 isLeft: true,
                 panel: leftPanel,
+                onDockFractionsChanged: shell.onDockFractionsChanged,
               ),
             if (isRightDrawerOpen)
-              _buildCompactDrawer(
+              _OcptWorkspaceCompactDrawer(
                 controller: controller,
                 rowWidth: rowWidth,
                 isLeft: false,
                 panel: rightPanel,
+                onDockFractionsChanged: shell.onDockFractionsChanged,
               ),
           ],
         );
       },
     );
   }
+}
 
-  /// Builds one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
-  ///
-  /// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider
-  /// compact row it opens to [controller]'s clamped fraction and carries an
-  /// [OcptWorkspaceDockDivider] on its centre-facing edge, wired exactly like the matching
-  /// persistent column's — the left drawer's handle on its right, the right drawer's on its left —
-  /// so the drag sign and the persistence through [OcptWorkspaceShell.onDockFractionsChanged] are
-  /// identical.
-  Widget _buildCompactDrawer({
-    required OcptWorkspaceDockLayoutController controller,
-    required double rowWidth,
-    required bool isLeft,
-    required Widget panel,
-  }) {
+/// Builds one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
+///
+/// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider
+/// compact row it opens to [controller]'s clamped fraction and carries an
+/// [OcptWorkspaceDockDivider] on its centre-facing edge, wired exactly like the matching
+/// persistent column's — the left drawer's handle on its right, the right drawer's on its left —
+/// so the drag sign and the persistence through [OcptWorkspaceShell.onDockFractionsChanged] are
+/// identical.
+class _OcptWorkspaceCompactDrawer extends StatelessWidget {
+  /// The controller holding the dock fractions.
+  final OcptWorkspaceDockLayoutController controller;
+
+  /// The width of the docks row.
+  final double rowWidth;
+
+  /// Whether the drawer is anchored to the left edge.
+  final bool isLeft;
+
+  /// The panel the drawer shows.
+  final Widget panel;
+
+  /// Called with the fractions a resize drag ended on.
+  final ValueChanged<({double? left, double? right})>? onDockFractionsChanged;
+
+  /// Class constructor
+  const _OcptWorkspaceCompactDrawer({
+    required this.controller,
+    required this.rowWidth,
+    required this.isLeft,
+    required this.panel,
+    required this.onDockFractionsChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     if (ocptIsPhoneWidth(rowWidth)) {
       return Positioned(
         top: 0,
@@ -1004,7 +671,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
                 rowWidth,
               ),
             ),
-      onDragEnd: () => widget.onDockFractionsChanged?.call(
+      onDragEnd: () => onDockFractionsChanged?.call(
         isLeft
             ? (left: controller.leftFraction, right: null)
             : (left: null, right: controller.rightFraction),
@@ -1025,9 +692,3 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     );
   }
 }
-
-/// The value the episode selector's `Manage episodes…` entry carries, distinct from every episode
-/// id (a UUID, never empty) — see [_OcptWorkspaceShellState._buildEpisodeSelector]'s own doc
-/// comment for why a [PopupMenuButton] cannot carry a null value for an entry that must still be
-/// selectable.
-const String _manageEpisodesOption = "";
