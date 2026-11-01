@@ -12,15 +12,6 @@ sealed class OcptResourcesWorkspaceEvent extends OcptResourcesEvent {
   const OcptResourcesWorkspaceEvent();
 }
 
-/// Requests loading the current project's whole resources catalogue, together with the persisted
-/// dock fractions.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptResourcesLoadRequestedEvent extends OcptResourcesWorkspaceEvent {
-  /// Class constructor
-  const OcptResourcesLoadRequestedEvent();
-}
-
 /// Requests leaving the workspace: flushes any pending field edit, closes the current project, and
 /// navigates back to the home page.
 class OcptResourcesBackRequestedEvent extends OcptResourcesWorkspaceEvent {

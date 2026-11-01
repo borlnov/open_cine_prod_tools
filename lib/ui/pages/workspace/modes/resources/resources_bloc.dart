@@ -82,7 +82,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     with
         MixinOcptProjectVersionsBloc<OcptResourcesState>,
         MixinOcptProjectPackageBloc<OcptResourcesState>,
-        MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope> {
+        MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope>,
+        MixinAsyncInitBloc<OcptResourcesState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "resources_bloc";
 
@@ -125,7 +126,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ///
   /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
   /// load goes through the very same handler (entering or leaving a version preview calls
-  /// [reloadFromProjectDatabase], which is [_onLoadRequested]), and re-applying it there would
+  /// [reloadFromProjectDatabase], which is [_load]), and re-applying it there would
   /// yank the user back to a record they may well have navigated away from.
   OcptResourcesRevealRequest? _pendingRevealRequest;
 
@@ -181,15 +182,12 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       super(OcptResourcesState.init()) {
-    add(const OcptResourcesLoadRequestedEvent());
-  }
+       super(OcptResourcesState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptResourcesLoadRequestedEvent>(_onLoadRequested);
     on<OcptResourcesBackRequestedEvent>(_onBackRequested);
     on<OcptResourcesProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptResourcesTabSelectedEvent>(_onTabSelected);
@@ -297,8 +295,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) =>
-      _onLoadRequested(const OcptResourcesLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptResourcesState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the persisted dock fractions and the current project's whole resources catalogue.
   ///
@@ -313,10 +321,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// (re)load, and so are the selected location and element, mirroring `OcptShotListBloc`'s own
   /// selection reset: a preview or a restore changes the whole database underneath, so a stale
   /// selection is dropped rather than trusted to still mean the same thing.
-  Future<void> _onLoadRequested(
-    OcptResourcesLoadRequestedEvent event,
-    Emitter<OcptResourcesState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptResourcesState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.resourcesLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;

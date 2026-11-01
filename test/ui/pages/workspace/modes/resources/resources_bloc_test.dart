@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -714,7 +715,7 @@ void main() {
     );
     await waitForState(bloc, (state) => state.selectedElementId == elementId);
 
-    bloc.add(const OcptResourcesLoadRequestedEvent());
+    bloc.add(const AsyncInitEvent());
     final reloaded = await waitForState(bloc, (state) => state.selectedElementId == null);
 
     expect(reloaded.selectedElementId, isNull);
