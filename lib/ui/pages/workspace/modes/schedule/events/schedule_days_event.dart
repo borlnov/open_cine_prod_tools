@@ -11,7 +11,7 @@ sealed class OcptScheduleDaysEvent extends OcptScheduleEvent {
   const OcptScheduleDaysEvent();
 }
 
-/// Creates a new shooting day dated [date], appended at the end of the schedule.
+/// Create a new shooting day dated [date], appended at the end of the schedule.
 class OcptScheduleDayCreatedEvent extends OcptScheduleDaysEvent {
   /// The new day's date.
   final DateTime date;
@@ -24,7 +24,7 @@ class OcptScheduleDayCreatedEvent extends OcptScheduleDaysEvent {
   List<Object?> get props => [...super.props, date];
 }
 
-/// Writes a new date onto day [dayId] immediately, dispatched by the day inspector's own date
+/// Write a new date onto day [dayId] immediately, dispatched by the day inspector's own date
 /// field.
 class OcptScheduleDayDateChangedEvent extends OcptScheduleDaysEvent {
   /// The id of the day being redated.
@@ -41,7 +41,7 @@ class OcptScheduleDayDateChangedEvent extends OcptScheduleDaysEvent {
   List<Object?> get props => [...super.props, dayId, date];
 }
 
-/// Writes a new status onto day [dayId] immediately, dispatched by the day inspector's own status
+/// Write a new status onto day [dayId] immediately, dispatched by the day inspector's own status
 /// control.
 class OcptScheduleDayStatusChangedEvent extends OcptScheduleDaysEvent {
   /// The id of the day whose status changed.
@@ -58,7 +58,7 @@ class OcptScheduleDayStatusChangedEvent extends OcptScheduleDaysEvent {
   List<Object?> get props => [...super.props, dayId, status];
 }
 
-/// Duplicates day [sourceDayId] into a new day dated [date], dispatched by the day card's own `⋮`
+/// Duplicate day [sourceDayId] into a new day dated [date], dispatched by the day card's own `⋮`
 /// menu once its date picker resolved. Copies the source day's slots, crew and cast; copies
 /// neither its placed shots nor its crew note (`OcptScheduleService.duplicateDay`'s own rule).
 class OcptScheduleDayDuplicationRequestedEvent extends OcptScheduleDaysEvent {
@@ -76,7 +76,7 @@ class OcptScheduleDayDuplicationRequestedEvent extends OcptScheduleDaysEvent {
   List<Object?> get props => [...super.props, sourceDayId, date];
 }
 
-/// Deletes day [dayId] for good — its slots, their crew and cast, and its blocks along with it —
+/// Delete day [dayId] for good — its slots, their crew and cast, and its blocks along with it —
 /// dispatched by the mode once its `OcptConfirmDialog` (opened by the day card's own `⋮` menu) has
 /// already been answered.
 class OcptScheduleDayDeletionConfirmedEvent extends OcptScheduleDaysEvent {

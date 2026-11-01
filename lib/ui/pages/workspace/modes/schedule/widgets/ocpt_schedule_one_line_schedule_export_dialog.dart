@@ -44,7 +44,7 @@ class OcptScheduleOneLineScheduleExportDialog extends StatefulWidget {
   State<OcptScheduleOneLineScheduleExportDialog> createState() =>
       _OcptScheduleOneLineScheduleExportDialogState();
 
-  /// Shows the dialog and returns the [OcptOneLineScheduleExportOptions] the user applied, or null
+  /// Show the dialog and return the [OcptOneLineScheduleExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptOneLineScheduleExportOptions?> show(
     BuildContext context, {
@@ -128,13 +128,13 @@ class _OcptScheduleOneLineScheduleExportDialogState
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptOneLineScheduleExportOptions], the selected days
+  /// Pop the dialog returning the resulting [OcptOneLineScheduleExportOptions], the selected days
   /// in [OcptScheduleOneLineScheduleExportDialog.days]' own order rather than selection order.
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router

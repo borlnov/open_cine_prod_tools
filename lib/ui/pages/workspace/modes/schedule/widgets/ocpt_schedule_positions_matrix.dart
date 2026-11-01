@@ -247,7 +247,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     );
   }
 
-  /// One column per live slot, in day order then the day's own slot order — see the class doc
+  /// Get one column per live slot, in day order then the day's own slot order — see the class doc
   /// comment.
   List<_OcptPositionsMatrixColumn> _columnsOf() => [
     for (final day in days)
@@ -259,7 +259,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
         ),
   ];
 
-  /// One band per day holding at least one live slot, in the same order [_columnsOf] walks —
+  /// Get one band per day holding at least one live slot, in the same order [_columnsOf] walks —
   /// the two are read side by side, a band spanning exactly the columns its own day contributed.
   List<_OcptPositionsMatrixDayBand> _dayBandsOf(BuildContext context, Tr tr) {
     final dateFormat = DateFormat.Md(Localizations.localeOf(context).toString());
@@ -276,7 +276,8 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     ];
   }
 
-  /// Every department group holding at least one row, in [OcptCrewDepartment.values] order, then
+  /// Get every department group holding at least one row, in [OcptCrewDepartment.values] order,
+  /// then
   /// the free-label/unrecognised group last — see the class doc comment for the whole rule.
   List<_OcptPositionsMatrixGroup> _groupsOf(Tr tr, List<_OcptPositionsMatrixColumn> columns) {
     final held = <OcptCrewPositionRef>{};

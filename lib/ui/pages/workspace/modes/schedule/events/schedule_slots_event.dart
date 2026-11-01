@@ -11,7 +11,7 @@ sealed class OcptScheduleSlotsEvent extends OcptScheduleEvent {
   const OcptScheduleSlotsEvent();
 }
 
-/// Creates a new slot inside day [dayId], appended at the end of its current slots, dispatched by
+/// Create a new slot inside day [dayId], appended at the end of its current slots, dispatched by
 /// the day view's own `+ Créneau` control, once built.
 class OcptScheduleSlotCreatedEvent extends OcptScheduleSlotsEvent {
   /// The id of the day the new slot belongs to.
@@ -25,7 +25,7 @@ class OcptScheduleSlotCreatedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, dayId];
 }
 
-/// Writes a new location/set onto slot [slotId] immediately, dispatched by the slot card's own
+/// Write a new location/set onto slot [slotId] immediately, dispatched by the slot card's own
 /// location and set pickers, once built. Picking a location clears the set (a set belongs to one
 /// location); [setId] is passed alongside [locationId] rather than derived from it, since only the
 /// widget knows which of the two pickers was just answered.
@@ -51,7 +51,7 @@ class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId, locationId, setId];
 }
 
-/// Pins slot [slotId]'s own [edge] immediately, dispatched by the slot card's own anchor menu and
+/// Pin slot [slotId]'s own [edge] immediately, dispatched by the slot card's own anchor menu and
 /// by the minute field beside it — the one hour a slot carries, everything else a call sheet prints
 /// for it being computed off that (ADR 0015, amended a second time).
 ///
@@ -85,7 +85,7 @@ class OcptScheduleSlotAnchorChangedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId, edge, minute, sourceSlotId];
 }
 
-/// Moves slot [slotId] to [newPosition] (0-based) within its own day, dispatched by a slot-reorder
+/// Move slot [slotId] to [newPosition] (0-based) within its own day, dispatched by a slot-reorder
 /// gesture, once built.
 class OcptScheduleSlotReorderedEvent extends OcptScheduleSlotsEvent {
   /// The id of the day the slot belongs to.
@@ -109,7 +109,7 @@ class OcptScheduleSlotReorderedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, dayId, slotId, newPosition];
 }
 
-/// Deletes slot [slotId] for good, dispatched by the mode once its `OcptConfirmDialog` has already
+/// Delete slot [slotId] for good, dispatched by the mode once its `OcptConfirmDialog` has already
 /// been answered. A block sitting in the slot only loses its `slotId`
 /// (`OcptScheduleService.deleteSlot`'s own rule) and keeps its place in the day.
 class OcptScheduleSlotDeletionConfirmedEvent extends OcptScheduleSlotsEvent {
@@ -124,7 +124,7 @@ class OcptScheduleSlotDeletionConfirmedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId];
 }
 
-/// Adds [personId] to slot [slotId]'s own crew, dispatched by the slot card's own `+ Crew member`
+/// Add [personId] to slot [slotId]'s own crew, dispatched by the slot card's own `+ Crew member`
 /// footer. The position is not carried here: `OcptScheduleService.addSlotCrewMember` pre-fills it
 /// from what [personId] declared in the address book, and
 /// `OcptScheduleSlotCrewMemberPositionChangedEvent` is what corrects it afterwards.
@@ -143,7 +143,7 @@ class OcptScheduleSlotCrewMemberAddedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId, personId];
 }
 
-/// Writes a new position onto crew assignment [crewMemberId] immediately, dispatched by the slot
+/// Write a new position onto crew assignment [crewMemberId] immediately, dispatched by the slot
 /// card's own position picker.
 class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleSlotsEvent {
   /// The id of the crew assignment being edited.
@@ -169,7 +169,7 @@ class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleSlotsEv
   List<Object?> get props => [...super.props, crewMemberId, positionId, customLabel];
 }
 
-/// Removes crew assignment [crewMemberId] for good, dispatched by its own row's dismissal.
+/// Remove crew assignment [crewMemberId] for good, dispatched by its own row's dismissal.
 class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleSlotsEvent {
   /// The id of the crew assignment to remove.
   final String crewMemberId;
@@ -182,7 +182,7 @@ class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, crewMemberId];
 }
 
-/// Convokes role [roleId] during slot [slotId], dispatched by the slot card's own `+ Cast` footer.
+/// Convoke role [roleId] during slot [slotId], dispatched by the slot card's own `+ Cast` footer.
 class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleSlotsEvent {
   /// The id of the slot the role is convoked to.
   final String slotId;
@@ -198,7 +198,7 @@ class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId, roleId];
 }
 
-/// Removes cast convocation [castRoleId] for good, dispatched by its own row's dismissal.
+/// Remove cast convocation [castRoleId] for good, dispatched by its own row's dismissal.
 class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleSlotsEvent {
   /// The id of the cast convocation to remove.
   final String castRoleId;
@@ -211,7 +211,7 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, castRoleId];
 }
 
-/// Adds [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
+/// Add [personId] to slot [slotId]'s own guests, dispatched by the guest band's own `+ Guest`
 /// footer — the address book alone, per Benoit's own decision: nobody is created from this mode, so
 /// there is no free-named counterpart of this event.
 class OcptScheduleSlotGuestAddedEvent extends OcptScheduleSlotsEvent {
@@ -229,7 +229,7 @@ class OcptScheduleSlotGuestAddedEvent extends OcptScheduleSlotsEvent {
   List<Object?> get props => [...super.props, slotId, personId];
 }
 
-/// Removes guest attendance [guestId] for good, dispatched by its own row's dismissal.
+/// Remove guest attendance [guestId] for good, dispatched by its own row's dismissal.
 class OcptScheduleSlotGuestRemovedEvent extends OcptScheduleSlotsEvent {
   /// The id of the guest attendance to remove.
   final String guestId;

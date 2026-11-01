@@ -76,7 +76,8 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   /// a minute reaches the database immediately rather than riding the mode's own debounce.
   late int? _lastReportedMinute = widget.minute;
 
-  /// [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is null.
+  /// Get [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is
+  /// null.
   String get _formattedMinute => widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
 
   /// Register [_onFocusChanged] as a listener of [_focusNode].
@@ -123,7 +124,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     );
   }
 
-  /// Commits the field's current text once it loses focus, mirroring the resources sheets' own
+  /// Commit the field's current text once it loses focus, mirroring the resources sheets' own
   /// flush-on-focus-lost idiom.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
@@ -131,7 +132,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
-  /// Parses the field's current text and reports it, or reverts the field to
+  /// Parse the field's current text and report it, or revert the field to
   /// [OcptScheduleMinuteField.minute]'s own formatted reading when the text is neither empty nor a
   /// valid clock reading.
   void _commit() {

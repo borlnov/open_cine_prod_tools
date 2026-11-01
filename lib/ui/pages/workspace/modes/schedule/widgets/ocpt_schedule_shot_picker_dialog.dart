@@ -66,7 +66,7 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
   @override
   State<OcptScheduleShotPickerDialog> createState() => _OcptScheduleShotPickerDialogState();
 
-  /// Shows the dialog and returns the id of the shot picked, or null if the user dismissed it.
+  /// Show the dialog and return the id of the shot picked, or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
     required List<OcptShotListSnapshot> shotListSnapshots,
@@ -177,7 +177,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   /// Rebuild the dialog so the list follows the query typed in the search field.
   void _onQueryChanged() => setState(() {});
 
-  /// Every episode of [OcptScheduleShotPickerDialog.shotListSnapshots] with at least one sequence
+  /// Get every episode of [OcptScheduleShotPickerDialog.shotListSnapshots] with at least one
+  /// sequence
   /// still matching the search field's own text, each such sequence's own shots already narrowed
   /// to the matching ones — a sequence left with nothing simply disappears from the result, and so
   /// does an episode left with no sequence, exactly as a sequence left with no matching shot
@@ -217,7 +218,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     return sections;
   }
 
-  /// The fields a shot of [sequence] is matched against: its own code and shot size, plus — for a
+  /// Get the fields a shot of [sequence] is matched against: its own code and shot size, plus — for
+  /// a
   /// real scene — its heading and display number, so `ins cuisine` finds every shot of `INT.
   /// KITCHEN - DAY` even though neither word names the shot itself.
   List<String> _searchFieldsOf(OcptShotSequence sequence, OcptShot shot) => [
@@ -227,7 +229,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     if (sequence is OcptSceneShotSequence) sequence.displaySceneNumber,
   ];
 
-  /// [sequence] with its own shots replaced by [shots] — narrows a sequence down to its matching
+  /// Get [sequence] with its own shots replaced by [shots] — narrows a sequence down to its
+  /// matching
   /// shots without losing which subclass (a real scene or the orphan group) it is, which is what
   /// [_OcptScheduleShotPickerSequenceSection] reads its own heading off.
   OcptShotSequence _narrowedTo(OcptShotSequence sequence, List<OcptShot> shots) =>
@@ -244,7 +247,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
         OcptOrphanShotSequence() => OcptOrphanShotSequence(shots: shots),
       };
 
-  /// The label of the [OcptScheduleEpisodeBand] naming [section]'s episode — the same reading the
+  /// Get the label of the [OcptScheduleEpisodeBand] naming [section]'s episode — the same reading
+  /// the
   /// left dock's own list gives it — or null for no band at all while
   /// [OcptScheduleShotPickerDialog.episodes] holds one episode or none (ADR 0019) or [section]'s
   /// own [_OcptScheduleShotPickerSection.screenplayId] names none of them (a stale id mid-reload,

@@ -130,7 +130,8 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     );
   }
 
-  /// [source] paired with its resolved display title, sorted by arrival then by that title — the
+  /// Get [source] paired with its resolved display title, sorted by arrival then by that title —
+  /// the
   /// order people actually walk in, which `ocptComputeDayConvocations` itself cannot produce: it
   /// ties on id for want of a name, and resolving one is this state's own job, not that pure
   /// function's (see [OcptDayConvocation]'s own doc comment). Used once per group ([build]), so a

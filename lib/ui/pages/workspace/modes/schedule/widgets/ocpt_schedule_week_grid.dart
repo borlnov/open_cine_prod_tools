@@ -258,10 +258,11 @@ class OcptScheduleWeekGrid extends StatelessWidget {
   }
 }
 
-/// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
+/// Get [date] with its time component dropped, so it can key a `Map` alongside
+/// `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
-/// The `[startMinute, endMinute)` the grid draws, covering the default 06:00-24:00 span **and**
+/// Get the `[startMinute, endMinute)` the grid draws, covering the default 06:00-24:00 span **and**
 /// whatever every one of [weekDays]' own computed timeline or own events actually returns — the
 /// rule that lets a night shoot's blocks (ending past minute 1440) draw correctly rather than being
 /// clipped to a bare 24 hours, and that lets an event pinned outside every block's own span still
@@ -574,7 +575,8 @@ class _OcptScheduleWeekColumnLayers extends StatelessWidget {
     );
   }
 
-  /// The sun-shading bands for this column: pre-sunrise and post-civil-dusk are tinted as night,
+  /// Get the sun-shading bands for this column: pre-sunrise and post-civil-dusk are tinted as
+  /// night,
   /// the sunset-to-civil-dusk stretch as dusk — nothing at all when [sunTimes] is null (no
   /// coordinates pinned yet), which is deliberate: a plausible wrong band is worse than none.
   List<({int top, int bottom, bool isDusk})> _sunBandsOf() {
@@ -602,7 +604,8 @@ class _OcptScheduleWeekColumnLayers extends StatelessWidget {
     return bands;
   }
 
-  /// The lane index [slots] places [slotId] at, or `0` when [slotId] names none of them — a block
+  /// Get the lane index [slots] places [slotId] at, or `0` when [slotId] names none of them — a
+  /// block
   /// whose slot has since been deleted from under it (the timeline reads a snapshot that is always
   /// at least as fresh, so this is defensive rather than expected) still has to land somewhere
   /// rather than vanish from the grid.

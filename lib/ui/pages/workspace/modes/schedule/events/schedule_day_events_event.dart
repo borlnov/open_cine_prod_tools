@@ -10,7 +10,7 @@ sealed class OcptScheduleDayEventsEvent extends OcptScheduleEvent {
   const OcptScheduleDayEventsEvent();
 }
 
-/// Creates a new event on day [dayId] at [minute], dispatched by the day view's or the day
+/// Create a new event on day [dayId] at [minute], dispatched by the day view's or the day
 /// inspector's own `+ Event` footer (`OcptScheduleDayEventsList.onEventAdded`). [minute] is a
 /// starting point the row's own minute field immediately corrects, never a claim about when
 /// anything happens — see `OcptScheduleMode`'s own default-hour helper.
@@ -29,7 +29,7 @@ class OcptScheduleDayEventCreatedEvent extends OcptScheduleDayEventsEvent {
   List<Object?> get props => [...super.props, dayId, minute];
 }
 
-/// Writes a new hour onto event [eventId], dispatched the moment its own minute field commits —
+/// Write a new hour onto event [eventId], dispatched the moment its own minute field commits —
 /// unlike every other event field, an event's hour is never typed into the field-edit debounce
 /// (`OcptScheduleField` carries no minute entry), mirroring a slot's or a block's own anchor.
 class OcptScheduleDayEventMinuteChangedEvent extends OcptScheduleDayEventsEvent {
@@ -47,7 +47,7 @@ class OcptScheduleDayEventMinuteChangedEvent extends OcptScheduleDayEventsEvent 
   List<Object?> get props => [...super.props, eventId, minute];
 }
 
-/// Removes event [eventId] for good, dispatched once `OcptConfirmDialog` has confirmed it — named
+/// Remove event [eventId] for good, dispatched once `OcptConfirmDialog` has confirmed it — named
 /// for the confirmation it comes after, exactly as `OcptScheduleBlockDeletionConfirmedEvent` is.
 class OcptScheduleDayEventDeletionConfirmedEvent extends OcptScheduleDayEventsEvent {
   /// The id of the event to remove.

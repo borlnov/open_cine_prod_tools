@@ -35,7 +35,7 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
   State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
       _OcptScheduleShootingPlanXlsxExportDialogState();
 
-  /// Shows the dialog and returns the [OcptShootingPlanXlsxExportOptions] the user applied, or null
+  /// Show the dialog and return the [OcptShootingPlanXlsxExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptShootingPlanXlsxExportOptions?> show(
     BuildContext context, {
@@ -83,7 +83,7 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
     );
   }
 
-  /// Pops the dialog returning the resulting [OcptShootingPlanXlsxExportOptions], the selected days
+  /// Pop the dialog returning the resulting [OcptShootingPlanXlsxExportOptions], the selected days
   /// in [OcptScheduleShootingPlanXlsxExportDialog.days]' own order rather than selection order —
   /// mirrors `OcptScheduleShootingPlanExportDialog._submit`.
   ///

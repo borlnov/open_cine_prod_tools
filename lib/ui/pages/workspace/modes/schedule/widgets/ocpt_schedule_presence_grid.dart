@@ -308,7 +308,8 @@ class _OcptPresenceGridLabelRow extends StatelessWidget {
     );
   }
 
-  /// [person]'s own declared positions, localized, then the names of the roles cast to them, joined
+  /// Get [person]'s own declared positions, localized, then the names of the roles cast to them,
+  /// joined
   /// — what a row's own subtitle prints. Empty when they hold neither.
   String _subtitleOf(Tr tr) {
     final positionLabels = person.positions

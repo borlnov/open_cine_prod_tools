@@ -11,7 +11,7 @@ sealed class OcptScheduleFieldsEvent extends OcptScheduleEvent {
   const OcptScheduleFieldsEvent();
 }
 
-/// Records the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
+/// Record the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
 /// on every keystroke into a day/slot/block/crew/cast/group free-text field — rides
 /// `OcptScheduleBloc`'s own 2 s field-edit debounce.
 class OcptScheduleFieldChangedEvent extends OcptScheduleFieldsEvent {

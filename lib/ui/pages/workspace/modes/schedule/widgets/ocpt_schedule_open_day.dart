@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_event.dart';
 
-/// Selects day [dayId] and switches the centre to the day view — the shared "open this day"
+/// Select day [dayId] and switch the centre to the day view — the shared "open this day"
 /// gesture the strip's own header click, a week column header click, a month cell click, a
 /// positions matrix or presence grid column header click and an alert's own card all answer the
 /// same way.

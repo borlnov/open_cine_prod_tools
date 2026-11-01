@@ -72,7 +72,7 @@ class OcptScheduleExportBloc
     on<OcptScheduleIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the
+  /// Export the general call sheets of `event.options.dayIds`, one PDF per day, into a folder the
   /// user picks.
   ///
   /// Flushes whatever is still pending first — that flush re-reads the plan snapshot, so a printed
@@ -135,7 +135,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports the named call sheets of `event.options.dayIds`, one PDF per (selected convocation ×
+  /// Export the named call sheets of `event.options.dayIds`, one PDF per (selected convocation ×
   /// day), into a folder the user picks. See [_onCallSheetsExportRequested]'s own doc comment for
   /// the flush, the cancellation and the partial-failure contract, identical here.
   Future<void> _onNamedCallSheetsExportRequested(
@@ -193,7 +193,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports the whole-shoot shooting plan of `event.options.dayIds` as a single PDF, written
+  /// Export the whole-shoot shooting plan of `event.options.dayIds` as a single PDF, written
   /// through the native save dialog.
   ///
   /// Flushes whatever is still pending first, exactly as [_onCallSheetsExportRequested]; a
@@ -256,7 +256,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports the whole-shoot shooting plan's own five-sheet workbook of `event.options.dayIds` as a
+  /// Export the whole-shoot shooting plan's own five-sheet workbook of `event.options.dayIds` as a
   /// single XLSX file, written through the native save dialog. Mirrors
   /// [_onShootingPlanExportRequested] — see its own doc comment for the flush and the cancellation
   /// contract, identical here.
@@ -318,7 +318,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports the cast's own *Day Out of Days* over `event.options.dayIds` as a single PDF, written
+  /// Export the cast's own *Day Out of Days* over `event.options.dayIds` as a single PDF, written
   /// through the native save dialog. Mirrors [_onShootingPlanExportRequested] — see its own doc
   /// comment for the flush and the cancellation contract, identical here.
   Future<void> _onDayOutOfDaysExportRequested(
@@ -373,7 +373,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports the one-line schedule over `event.options.dayIds` as a single PDF, written through the
+  /// Export the one-line schedule over `event.options.dayIds` as a single PDF, written through the
   /// native save dialog. Mirrors [_onDayOutOfDaysExportRequested] — see its own doc comment for the
   /// flush and the cancellation contract, identical here.
   Future<void> _onOneLineScheduleExportRequested(
@@ -428,7 +428,7 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Exports `event.options.dayId`'s own sides booklet as a single PDF, written through the native
+  /// Export `event.options.dayId`'s own sides booklet as a single PDF, written through the native
   /// save dialog. Mirrors [_onOneLineScheduleExportRequested] — see its own doc comment for the
   /// flush and the cancellation contract, identical here.
   ///
@@ -501,7 +501,8 @@ class OcptScheduleExportBloc
     }
   }
 
-  /// Every live episode [dayId] plays, in [OcptScheduleState.episodes]' own order, each paired with
+  /// Get every live episode [dayId] plays, in [OcptScheduleState.episodes]' own order, each paired
+  /// with
   /// its own freshly-parsed screenplay text — what [_onSidesExportRequested] hands
   /// [OcptExportManager.exportSides].
   ///
@@ -537,7 +538,7 @@ class OcptScheduleExportBloc
     return documents;
   }
 
-  /// Clears the transient export notice currently shown, if any.
+  /// Clear the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptScheduleIoNoticeDismissedEvent event,
     Emitter<OcptScheduleExportState> emitter,

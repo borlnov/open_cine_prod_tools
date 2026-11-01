@@ -126,7 +126,7 @@ class OcptScheduleDayBloc
     on<OcptScheduleFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
   }
 
-  /// Drops what the mode's fresh data no longer holds.
+  /// Drop what the mode's fresh data no longer holds.
   ///
   /// When the mode read everything again (`OcptScheduleSelectionCause.load`: entry, a version
   /// preview or a restore, the project settings page) every pending edit goes, whichever row it was
@@ -171,7 +171,7 @@ class OcptScheduleDayBloc
     emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one, then has the mode read the schedule again — which
   /// also refreshes the working-copy card if the `Versions` tab is open — and only then forgets
   /// what it wrote, so what a field shows never falls back to a stale stored value between the two.
@@ -217,7 +217,7 @@ class OcptScheduleDayBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
+  /// Write every pending field edit directly to the database, bypassing both the debounce timer
   /// and the bloc's own event queue.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
@@ -257,7 +257,8 @@ class OcptScheduleDayBloc
     }
   }
 
-  /// The ids of every row of [snapshot] a free-text field can be typed into: the days, the slots
+  /// Get the ids of every row of [snapshot] a free-text field can be typed into: the days, the
+  /// slots
   /// and what they convoke, the blocks and the events.
   Set<String> _scheduleRowIdsOf(OcptScheduleSnapshot snapshot) => {
     for (final day in snapshot.days) day.id,
@@ -274,7 +275,7 @@ class OcptScheduleDayBloc
       for (final event in events) event.id,
   };
 
-  /// Creates a new slot inside a day.
+  /// Create a new slot inside a day.
   Future<void> _onSlotCreated(
     OcptScheduleSlotCreatedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -292,7 +293,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new location/set onto a slot.
+  /// Write a new location/set onto a slot.
   Future<void> _onSlotPlaceChanged(
     OcptScheduleSlotPlaceChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -311,7 +312,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Pins a slot's own anchored edge to a typed hour or to another slot's opposite edge.
+  /// Pin a slot's own anchored edge to a typed hour or to another slot's opposite edge.
   Future<void> _onSlotAnchorChanged(
     OcptScheduleSlotAnchorChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -331,7 +332,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Moves a slot to a new position within its own day.
+  /// Move a slot to a new position within its own day.
   Future<void> _onSlotReordered(
     OcptScheduleSlotReorderedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -349,7 +350,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Deletes a slot for good, confirmed by the mode's own `OcptConfirmDialog`.
+  /// Delete a slot for good, confirmed by the mode's own `OcptConfirmDialog`.
   Future<void> _onSlotDeletionConfirmed(
     OcptScheduleSlotDeletionConfirmedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -363,7 +364,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Adds a crew member to a slot.
+  /// Add a crew member to a slot.
   Future<void> _onSlotCrewMemberAdded(
     OcptScheduleSlotCrewMemberAddedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -381,7 +382,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new position onto a crew assignment.
+  /// Write a new position onto a crew assignment.
   Future<void> _onSlotCrewMemberPositionChanged(
     OcptScheduleSlotCrewMemberPositionChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -400,7 +401,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Removes a crew assignment for good.
+  /// Remove a crew assignment for good.
   Future<void> _onSlotCrewMemberRemoved(
     OcptScheduleSlotCrewMemberRemovedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -417,7 +418,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Convokes a role during a slot.
+  /// Convoke a role during a slot.
   Future<void> _onSlotCastRoleAdded(
     OcptScheduleSlotCastRoleAddedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -435,7 +436,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Removes a cast convocation for good.
+  /// Remove a cast convocation for good.
   Future<void> _onSlotCastRoleRemoved(
     OcptScheduleSlotCastRoleRemovedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -452,7 +453,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Names a candidacy on an **audition** block — the hour that candidate is expected at.
+  /// Name a candidacy on an **audition** block — the hour that candidate is expected at.
   Future<void> _onBlockCandidateAdded(
     OcptScheduleBlockCandidateAddedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -470,7 +471,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Takes a candidacy off an audition block, leaving the block and the candidacy alone.
+  /// Take a candidacy off an audition block, leaving the block and the candidacy alone.
   Future<void> _onBlockCandidateRemoved(
     OcptScheduleBlockCandidateRemovedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -487,7 +488,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Adds a guest to a slot, from the address book alone.
+  /// Add a guest to a slot, from the address book alone.
   Future<void> _onSlotGuestAdded(
     OcptScheduleSlotGuestAddedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -505,7 +506,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Removes a guest attendance for good.
+  /// Remove a guest attendance for good.
   Future<void> _onSlotGuestRemoved(
     OcptScheduleSlotGuestRemovedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -519,7 +520,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Creates a new event on a day, at the hour the mode's own default-hour helper computed.
+  /// Create a new event on a day, at the hour the mode's own default-hour helper computed.
   Future<void> _onDayEventCreated(
     OcptScheduleDayEventCreatedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -537,7 +538,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new hour onto an event, the moment its own minute field commits.
+  /// Write a new hour onto an event, the moment its own minute field commits.
   Future<void> _onDayEventMinuteChanged(
     OcptScheduleDayEventMinuteChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -555,7 +556,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Removes an event for good.
+  /// Remove an event for good.
   Future<void> _onDayEventDeletionConfirmed(
     OcptScheduleDayEventDeletionConfirmedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -569,8 +570,8 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new shooting status onto a shot — the very column the shot list mode's own inspector
-  /// edits — then reloads every episode's own shot list so every shot code, block chip and
+  /// Write a new shooting status onto a shot — the very column the shot list mode's own inspector
+  /// edits — then reload every episode's own shot list so every shot code, block chip and
   /// inspector line that shows it follows.
   Future<void> _onShotStatusChanged(
     OcptScheduleShotStatusChangedEvent event,
@@ -590,7 +591,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.shotLists});
   }
 
-  /// Creates a new non-shot block (a milestone or a `hold`) at the end of the timetable named by
+  /// Create a new non-shot block (a milestone or a `hold`) at the end of the timetable named by
   /// the event's own [OcptScheduleBlockCreatedEvent.slotId] — the slot card whose own `+ Block`
   /// menu dispatched it.
   Future<void> _onBlockCreated(
@@ -610,7 +611,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Creates a new **shot** block at the end of the timetable named by the event's own
+  /// Create a new **shot** block at the end of the timetable named by the event's own
   /// [OcptScheduleShotBlockCreatedEvent.slotId], placing the shot it names — the slot card's own
   /// `+ Block` menu's `Shot` entry, once the mode's own picker dialog resolved to a pick.
   Future<void> _onShotBlockCreated(
@@ -630,7 +631,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new duration onto a block.
+  /// Write a new duration onto a block.
   Future<void> _onBlockDurationChanged(
     OcptScheduleBlockDurationChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -648,7 +649,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new anchor onto a block.
+  /// Write a new anchor onto a block.
   Future<void> _onBlockAnchorChanged(
     OcptScheduleBlockAnchorChangedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -666,7 +667,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Writes a new sequence onto a hold block — `OcptScheduleService.updateBlock` itself refuses the
+  /// Write a new sequence onto a hold block — `OcptScheduleService.updateBlock` itself refuses the
   /// column on any other kind, so this handler passes it through unconditionally rather than
   /// checking the block's own kind a second time.
   Future<void> _onBlockSequenceChanged(
@@ -686,7 +687,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Moves a block to a new position within its own slot's timetable.
+  /// Move a block to a new position within its own slot's timetable.
   Future<void> _onBlockReordered(
     OcptScheduleBlockReorderedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -704,7 +705,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Moves a block to another slot, appended at the end of its own timetable.
+  /// Move a block to another slot, appended at the end of its own timetable.
   Future<void> _onBlockMovedToSlot(
     OcptScheduleBlockMovedToSlotEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -729,7 +730,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Deletes a block for good, confirmed by the mode's own `OcptConfirmDialog`.
+  /// Delete a block for good, confirmed by the mode's own `OcptConfirmDialog`.
   Future<void> _onBlockDeletionConfirmed(
     OcptScheduleBlockDeletionConfirmedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -743,7 +744,7 @@ class OcptScheduleDayBloc
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
-  /// Records the raw text just typed into a field as a pending edit, visible immediately, and
+  /// Record the raw text just typed into a field as a pending edit, visible immediately, and
   /// (re)starts the field-edit debounce.
   Future<void> _onFieldChanged(
     OcptScheduleFieldChangedEvent event,
@@ -756,7 +757,7 @@ class OcptScheduleDayBloc
     restartDebounce(_fieldEditDebounce, const OcptScheduleFieldEditFlushRequestedEvent());
   }
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptScheduleFieldEditFlushRequestedEvent event,
     Emitter<OcptScheduleDayState> emitter,
@@ -764,7 +765,7 @@ class OcptScheduleDayBloc
     await onFlushRequested(emitter);
   }
 
-  /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
+  /// Write every one of [edits] to [project]'s database, one write per entry — the shared write
   /// loop [onFlushRequested] and [flushPendingWritesWithoutState] both run, so the switch over
   /// [OcptScheduleField] is written once.
   Future<void> _writeAllPendingFieldEdits(

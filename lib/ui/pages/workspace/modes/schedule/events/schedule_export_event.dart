@@ -23,7 +23,7 @@ sealed class OcptScheduleExportEvent extends OcptScheduleEvent {
   const OcptScheduleExportEvent();
 }
 
-/// Requests exporting the general call sheets of [options]' own days, one PDF per day, into a
+/// Request exporting the general call sheets of [options]' own days, one PDF per day, into a
 /// folder the user picks — dispatched once `OcptScheduleCallSheetsExportDialog` returns its result.
 class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleExportEvent {
   /// The one-off options the export runs with (the page format/margins and which days to print).
@@ -53,7 +53,7 @@ class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleExportEvent
   List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
 
-/// Requests exporting the named call sheets of [options]' own days, one PDF per (selected
+/// Request exporting the named call sheets of [options]' own days, one PDF per (selected
 /// convocation × day), into a folder the user picks — dispatched once
 /// `OcptScheduleNamedCallSheetsExportDialog` returns its result.
 class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleExportEvent {
@@ -86,7 +86,7 @@ class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleExport
   List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
 
-/// Requests exporting the whole-shoot shooting plan of [options]' own days as a single PDF, written
+/// Request exporting the whole-shoot shooting plan of [options]' own days as a single PDF, written
 /// through the native save dialog — dispatched once `OcptScheduleShootingPlanExportDialog` returns
 /// its result.
 class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleExportEvent {
@@ -117,7 +117,7 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleExportEve
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting the whole-shoot shooting plan's own **workbook** of [options]' own days as a
+/// Request exporting the whole-shoot shooting plan's own **workbook** of [options]' own days as a
 /// single XLSX file, written through the native save dialog — dispatched once
 /// `OcptScheduleShootingPlanXlsxExportDialog` returns its result. The workbook sibling of
 /// [OcptScheduleShootingPlanExportRequestedEvent].
@@ -148,7 +148,7 @@ class OcptScheduleShootingPlanXlsxExportRequestedEvent extends OcptScheduleExpor
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting the cast's own *Day Out of Days* over [options]' own days as a single PDF,
+/// Request exporting the cast's own *Day Out of Days* over [options]' own days as a single PDF,
 /// written through the native save dialog — dispatched once
 /// `OcptScheduleDayOutOfDaysExportDialog` returns its result.
 class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleExportEvent {
@@ -179,7 +179,7 @@ class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleExportEve
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting the one-line schedule over `options.dayIds` as a single PDF, written through
+/// Request exporting the one-line schedule over `options.dayIds` as a single PDF, written through
 /// the native save dialog — dispatched once `OcptScheduleOneLineScheduleExportDialog` returns its
 /// result.
 class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleExportEvent {
@@ -210,7 +210,7 @@ class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleExport
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting `options.dayId`'s own sides booklet as a single PDF, written through the
+/// Request exporting `options.dayId`'s own sides booklet as a single PDF, written through the
 /// native save dialog — dispatched once `OcptScheduleSidesExportDialog` returns its result.
 class OcptScheduleSidesExportRequestedEvent extends OcptScheduleExportEvent {
   /// The one-off options the export runs with (the page format/margins, the one day printed, the
@@ -240,7 +240,7 @@ class OcptScheduleSidesExportRequestedEvent extends OcptScheduleExportEvent {
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Clears the transient export notice currently shown, if any.
+/// Clear the transient export notice currently shown, if any.
 class OcptScheduleIoNoticeDismissedEvent extends OcptScheduleExportEvent {
   /// Class constructor
   const OcptScheduleIoNoticeDismissedEvent();

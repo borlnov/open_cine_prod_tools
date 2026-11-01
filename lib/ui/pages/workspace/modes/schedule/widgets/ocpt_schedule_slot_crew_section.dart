@@ -321,7 +321,7 @@ class _CrewMemberRow extends StatelessWidget {
     );
   }
 
-  /// Opens the shared `OcptCrewPositionPickerDialog`, promoting [promotedPositions] and excluding
+  /// Open the shared `OcptCrewPositionPickerDialog`, promoting [promotedPositions] and excluding
   /// [takenPositions] — no "Custom label…" entry: a crew row picks off the catalogue or off what
   /// the person already declared, never types a fresh free label here. Reports whatever was
   /// picked through [onPositionChanged]; a dismissed dialog leaves the assignment untouched.

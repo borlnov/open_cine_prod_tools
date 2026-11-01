@@ -16,6 +16,6 @@ class OcptScheduleDraggedBlock {
   /// The id of the slot the block belongs to at the moment the drag starts.
   final String sourceSlotId;
 
-  /// Builds a drag payload.
+  /// Build a drag payload.
   const OcptScheduleDraggedBlock({required this.blockId, required this.sourceSlotId});
 }

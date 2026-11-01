@@ -88,7 +88,7 @@ class OcptScheduleAgendaView extends StatelessWidget {
     };
   }
 
-  /// The resolver every one of the three agendas' own tint reads through — a day's own
+  /// Get the resolver every one of the three agendas' own tint reads through — a day's own
   /// [OcptScheduleState.firstLocationOfDay] under [OcptScheduleAgendaColorMode.location], or its
   /// `OcptSchedulePlanSnapshot.effectCategoryOfDay` under [OcptScheduleAgendaColorMode.effect] —
   /// built once per build so switching the "Colour by" control re-tints all three presentations at

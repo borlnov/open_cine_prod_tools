@@ -208,7 +208,8 @@ class OcptScheduleInspectorView extends StatelessWidget {
     );
   }
 
-  /// [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of the
+  /// Get [shot]'s own sequence label, exactly as the left dock heads that sequence's own section of
+  /// the
   /// unplaced-shots list (`Tr.scheduleUnplacedSequenceLabel`/`Tr.scheduleUnplacedOrphanGroupLabel`
   /// plus the heading) — resolved here, out of [OcptScheduleState.shotListSnapshots], rather than
   /// by the inspector itself, so a widget never has to search the snapshot on its own. Null while

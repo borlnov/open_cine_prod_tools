@@ -70,7 +70,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// selector**: the mode reads every episode of the project at once, so it withholds the shell's
 /// own `onEpisodeSelected` outright.
 class OcptScheduleMode extends StatelessWidget {
-  /// Creates the schedule mode.
+  /// Create the schedule mode.
   const OcptScheduleMode({super.key});
 
   /// Build the schedule mode as a [MultiBlocProvider].
@@ -200,7 +200,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     },
   );
 
-  /// Builds the seven entries the toolbar's `Export` button offers, disabled together when the
+  /// Build the seven entries the toolbar's `Export` button offers, disabled together when the
   /// project holds no live day at all — there would be nothing to print, and the sides dialog
   /// additionally relies on it, its day dropdown having to open on some day.
   ///
@@ -269,7 +269,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     ];
   }
 
-  /// Opens the export panel, then dispatches the picked document's own request onto the mode's
+  /// Open the export panel, then dispatch the picked document's own request onto the mode's
   /// existing `_request…Export` methods, unchanged: every one of the six opens its own options
   /// dialog, exactly as it always has.
   Future<void> _requestExport(
@@ -315,7 +315,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
   }
 
-  /// [dayId]'s own convocations that a named call sheet can be addressed to — every one carrying an
+  /// Get [dayId]'s own convocations that a named call sheet can be addressed to — every one
+  /// carrying an
   /// [OcptDayConvocation.selectionKey], which is to say everybody but its **guests** — read by the
   /// named call sheets dialog for whichever days the user ticks there, rather than
   /// [OcptScheduleState.convocationsOfDay] directly.
@@ -329,7 +330,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
       if (convocation.selectionKey != null) convocation,
   ];
 
-  /// Shows the general call sheets export options dialog, then dispatches the export request if the
+  /// Show the general call sheets export options dialog, then dispatch the export request if the
   /// user applied it, resolving here — the last place with a [BuildContext] — every localized
   /// string the exported documents and the native folder dialog carry.
   Future<void> _requestCallSheetsExport(
@@ -362,7 +363,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the named call sheets export options dialog, then dispatches the export request if the
+  /// Show the named call sheets export options dialog, then dispatch the export request if the
   /// user applied it — mirrors [_requestCallSheetsExport]. The dialog picks its own days (the
   /// mode's own selection ticked by default, as [_requestCallSheetsExport]'s general dialog does),
   /// so no day needs to be selected for this to run.
@@ -399,7 +400,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the shooting plan export options dialog, then dispatches the export request if the user
+  /// Show the shooting plan export options dialog, then dispatch the export request if the user
   /// applied it — mirrors [_requestCallSheetsExport].
   Future<void> _requestShootingPlanExport(
     BuildContext context,
@@ -430,7 +431,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the shooting plan **workbook**'s own export options dialog, then dispatches the export
+  /// Show the shooting plan **workbook**'s own export options dialog, then dispatch the export
   /// request if the user applied it — mirrors [_requestShootingPlanExport], its dialog asking for
   /// the days and nothing else (`OcptScheduleShootingPlanXlsxExportDialog`'s own doc comment).
   Future<void> _requestShootingPlanXlsxExport(
@@ -458,7 +459,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the *Day Out of Days* export options dialog, then dispatches the export request if the
+  /// Show the *Day Out of Days* export options dialog, then dispatch the export request if the
   /// user applied it — mirrors [_requestShootingPlanExport].
   Future<void> _requestDayOutOfDaysExport(
     BuildContext context,
@@ -489,7 +490,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the one-line schedule export options dialog, then dispatches the export request if the
+  /// Show the one-line schedule export options dialog, then dispatch the export request if the
   /// user applied it — mirrors [_requestDayOutOfDaysExport].
   Future<void> _requestOneLineScheduleExport(
     BuildContext context,
@@ -520,7 +521,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Shows the sides export options dialog, then dispatches the export request if the user applied
+  /// Show the sides export options dialog, then dispatch the export request if the user applied
   /// it — mirrors [_requestOneLineScheduleExport], but hands the dialog the mode's own selected day
   /// to open on, a booklet being about one day rather than a range.
   Future<void> _requestSidesExport(
@@ -557,7 +558,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Asks `OcptConfirmDialog` whether day [dayId] really is to be deleted, then dispatches the
+  /// Ask `OcptConfirmDialog` whether day [dayId] really is to be deleted, then dispatch the
   /// deletion if the user answered `Delete`.
   Future<void> _handleDayDeletionRequested(BuildContext context, String dayId) async {
     final bloc = context.read<OcptScheduleBloc>();
@@ -580,7 +581,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     bloc.add(OcptScheduleDayDeletionConfirmedEvent(dayId: dayId));
   }
 
-  /// Opens the project settings page, then re-reads the page setup if the user changed something —
+  /// Open the project settings page, then re-read the page setup if the user changed something —
   /// mirrors `OcptBreakdownMode._requestProjectSettings`/`OcptShotListMode`'s own handler: the page
   /// format is what the three export dialogs pre-fill their format dropdown from.
   ///
@@ -604,8 +605,8 @@ class _ScheduleViewState extends State<_ScheduleView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Opens `OcptScheduleShotPickerDialog` for slot [slotId] — the slot card's own `+ Block` menu's
-  /// `Shot` entry — then dispatches [OcptScheduleShotBlockCreatedEvent] once the user picked a
+  /// Open `OcptScheduleShotPickerDialog` for slot [slotId] — the slot card's own `+ Block` menu's
+  /// `Shot` entry — then dispatch [OcptScheduleShotBlockCreatedEvent] once the user picked a
   /// shot. Does nothing while the dialog is dismissed with no pick.
   Future<void> _handleShotBlockRequested(BuildContext context, String slotId) async {
     final bloc = context.read<OcptScheduleBloc>();
@@ -628,7 +629,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     dayBloc.add(OcptScheduleShotBlockCreatedEvent(slotId: slotId, shotId: shotId));
   }
 
-  /// Asks `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatches the
+  /// Ask `OcptConfirmDialog` whether slot [slotId] really is to be deleted, then dispatch the
   /// deletion if the user answered `Delete`.
   Future<void> _handleSlotDeletionRequested(BuildContext context, String slotId) async {
     final dayBloc = context.read<OcptScheduleDayBloc>();
@@ -651,7 +652,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     dayBloc.add(OcptScheduleSlotDeletionConfirmedEvent(slotId: slotId));
   }
 
-  /// Asks `OcptConfirmDialog` whether block [blockId] really is to be deleted, then dispatches the
+  /// Ask `OcptConfirmDialog` whether block [blockId] really is to be deleted, then dispatch the
   /// deletion if the user answered `Delete`.
   Future<void> _handleBlockDeletionRequested(BuildContext context, String blockId) async {
     final dayBloc = context.read<OcptScheduleDayBloc>();
@@ -674,7 +675,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     dayBloc.add(OcptScheduleBlockDeletionConfirmedEvent(blockId: blockId));
   }
 
-  /// Asks `OcptConfirmDialog` whether event [eventId] really is to be deleted, then dispatches the
+  /// Ask `OcptConfirmDialog` whether event [eventId] really is to be deleted, then dispatch the
   /// deletion if the user answered `Delete`.
   Future<void> _handleDayEventDeletionRequested(BuildContext context, String eventId) async {
     final dayBloc = context.read<OcptScheduleDayBloc>();
@@ -697,7 +698,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     dayBloc.add(OcptScheduleDayEventDeletionConfirmedEvent(eventId: eventId));
   }
 
-  /// Applies bloc-driven effects onto the page: the live dock fractions, the transient version
+  /// Apply bloc-driven effects onto the page: the live dock fractions, the transient version
   /// notice SnackBar and the project package questions and notices.
   void _onStateChanged(BuildContext context, OcptScheduleState state) {
     _dockLayoutController.syncFromPersisted(
@@ -732,7 +733,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     }
   }
 
-  /// Dispatches the project package export, resolving here — the last place with a
+  /// Dispatch the project package export, resolving here — the last place with a
   /// [BuildContext] — the label the native save dialog carries.
   ///
   /// What happens next depends on what the project references: everything being there, the save
@@ -746,7 +747,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can

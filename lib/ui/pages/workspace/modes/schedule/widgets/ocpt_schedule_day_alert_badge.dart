@@ -110,7 +110,8 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
     );
   }
 
-  /// The tooltip: how many alerts this day raises, then the distinct kinds among them, each named
+  /// Get the tooltip: how many alerts this day raises, then the distinct kinds among them, each
+  /// named
   /// once however many times it was raised — a day with six "role not convoked" alerts reads as one
   /// problem to go and look at, not as a wall of the same sentence.
   String _tooltipOf(Tr tr) {

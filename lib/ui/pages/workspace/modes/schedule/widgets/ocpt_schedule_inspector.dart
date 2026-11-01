@@ -940,7 +940,7 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     );
   }
 
-  /// Commits the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
+  /// Commit the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
   /// own flush-on-focus-lost idiom.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
@@ -948,7 +948,7 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
-  /// Parses the field's current text and reports it, or reverts the field to
+  /// Parse the field's current text and report it, or revert the field to
   /// [_OcptScheduleBlockDurationField.durationMinutes]'s own formatted reading when the text is
   /// empty, unparseable or negative.
   void _commit() {

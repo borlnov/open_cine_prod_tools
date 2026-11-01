@@ -211,8 +211,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleProjectSettingsChangedEvent>(_onProjectSettingsChanged);
   }
 
-  /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
-  /// about to swap the database can't send it into the previewed version instead, then clears the
+  /// Write whatever free-text field edit is still sitting in the field-edit debounce, so a preview
+  /// about to swap the database can't send it into the previewed version instead, then clear the
   /// selected shot: a shot selected out of the working copy's own shot list means nothing once a
   /// preview swaps that data out.
   ///
@@ -314,7 +314,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _load(emit);
   }
 
-  /// Writes every pending edit of the views directly to the database, without touching [state].
+  /// Write every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptBreakdownBloc.flushPendingFieldEdits`:
   /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -324,7 +324,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// [defaultFieldEditDebounce] worth of typing isn't lost.
   Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
-  /// Loads the current project's whole schedule read: the schedule itself, the shot list and the
+  /// Load the current project's whole schedule read: the schedule itself, the shot list and the
   /// three resources catalogues.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
@@ -402,7 +402,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     });
   }
 
-  /// Reads the page setup the three PDF exports are typeset with: the open project's own page
+  /// Read the page setup the three PDF exports are typeset with: the open project's own page
   /// format, paired with the app-wide margins preference, exactly as the shot list mode's own bloc
   /// pairs them for the scenario coverage export.
   ///
@@ -416,7 +416,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// The day a load lands on: the one dated today, failing that the next one still to come, and
+  /// Get the day a load lands on: the one dated today, failing that the next one still to come, and
   /// failing that the last one shot — null only for a project holding no day at all.
   ///
   /// The mode opens on the day view, which without a selection shows nothing but a hint, so a load
@@ -449,11 +449,11 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     return nextToCome ?? days.last;
   }
 
-  /// Reads [project]'s whole schedule.
+  /// Read [project]'s whole schedule.
   Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
       _scheduleService.loadSchedule(database: project.database);
 
-  /// Reads every live candidacy of [project], flattened out of the per-role map the service
+  /// Read every live candidacy of [project], flattened out of the per-role map the service
   /// answers with: this mode never asks "who was seen for this part" — it asks "who is this
   /// convocation for", one candidacy at a time, which the state's own map answers.
   ///
@@ -471,7 +471,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     return [for (final candidates in candidatesByRoleId.values) ...candidates];
   }
 
-  /// Reads every live episode's own whole shot list, in the same order — the schedule reading
+  /// Read every live episode's own whole shot list, in the same order — the schedule reading
   /// across the whole project rather than one screenplay (`docs/adr/0019`): a shooting day belongs
   /// to no episode, and regularly places shots of more than one.
   ///
@@ -506,7 +506,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     return (episodes: episodes, shotLists: shotLists);
   }
 
-  /// Leaves the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
     OcptScheduleBackRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -515,7 +515,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     _routerManager.pop();
   }
 
-  /// Toggles the left (days) dock's visibility.
+  /// Toggle the left (days) dock's visibility.
   Future<void> _onLeftPanelToggled(
     OcptScheduleLeftPanelToggledEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -523,7 +523,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithListPanelToggled());
   }
 
-  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
+  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it). Flushes any pending field edit first, mirroring every other mode.
   Future<void> _onRightDockTabSelected(
     OcptScheduleRightDockTabSelectedEvent event,
@@ -542,7 +542,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptScheduleState.lastRightDockTab].
   Future<void> _onRightDockToggled(
     OcptScheduleRightDockToggledEvent event,
@@ -560,7 +560,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Closes the right dock via its own × close button.
+  /// Close the right dock via its own × close button.
   Future<void> _onRightDockClosed(
     OcptScheduleRightDockClosedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -568,7 +568,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Applies and persists whichever dock fraction the ended drag gesture reports.
+  /// Apply and persist whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(
     OcptScheduleDockFractionsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -586,7 +586,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
-  /// Restores both dock fractions to their defaults, persisting them.
+  /// Restore both dock fractions to their defaults, persisting them.
   Future<void> _onDockLayoutReset(
     OcptScheduleDockLayoutResetEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -604,7 +604,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     );
   }
 
-  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  /// Persist [tab] as the mode's last right dock tab, unless it already is.
   Future<void> _persistLastRightDockTab(OcptScheduleRightDockTab tab) async {
     if (state.lastRightDockTab == tab) {
       return;
@@ -613,7 +613,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _propertiesManager.scheduleLastRightDockTab.store(tab);
   }
 
-  /// Selects day [OcptScheduleDaySelectedEvent.dayId], clearing both the selected block and the
+  /// Select day [OcptScheduleDaySelectedEvent.dayId], clearing both the selected block and the
   /// selected shot: a day selected on its own has neither, and the day's own read-out is what the
   /// inspector must fall back to (see the event's own doc comment). A day id that no longer exists
   /// in the current snapshot is ignored.
@@ -628,8 +628,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithSelectedDay(dayId: event.dayId));
   }
 
-  /// Selects block [OcptScheduleBlockSelectedEvent.blockId] and its own day, opening the right dock
-  /// on the `Inspector` tab, and clears the selected shot: the two selections are mutually
+  /// Select block [OcptScheduleBlockSelectedEvent.blockId] and its own day, opening the right dock
+  /// on the `Inspector` tab, and clear the selected shot: the two selections are mutually
   /// exclusive.
   Future<void> _onBlockSelected(
     OcptScheduleBlockSelectedEvent event,
@@ -642,8 +642,8 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithSelectedBlock(dayId: event.dayId, blockId: event.blockId));
   }
 
-  /// Selects shot [OcptScheduleShotSelectedEvent.shotId], opening the right dock on the `Inspector`
-  /// tab, and clears the selected block: the two selections are mutually exclusive. A shot id
+  /// Select shot [OcptScheduleShotSelectedEvent.shotId], opening the right dock on the `Inspector`
+  /// tab, and clear the selected block: the two selections are mutually exclusive. A shot id
   /// naming no live shot of the current shot list is ignored.
   Future<void> _onShotSelected(
     OcptScheduleShotSelectedEvent event,
@@ -656,7 +656,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithSelectedShot(shotId: event.shotId));
   }
 
-  /// Switches the centre between the agenda and the day view.
+  /// Switch the centre between the agenda and the day view.
   Future<void> _onCentreViewSelected(
     OcptScheduleCentreViewSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -664,7 +664,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithCentreView(view: event.view));
   }
 
-  /// Switches the agenda's own presentation.
+  /// Switch the agenda's own presentation.
   Future<void> _onAgendaModeSelected(
     OcptScheduleAgendaModeSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -672,7 +672,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithAgendaMode(mode: event.mode));
   }
 
-  /// Switches what fact the agenda tints a day with.
+  /// Switch what fact the agenda tints a day with.
   Future<void> _onAgendaColorModeSelected(
     OcptScheduleAgendaColorModeSelectedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -680,7 +680,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithAgendaColorMode(mode: event.mode));
   }
 
-  /// Pages the week/month agenda to a new anchor date.
+  /// Page the week/month agenda to a new anchor date.
   Future<void> _onAgendaAnchorDateChanged(
     OcptScheduleAgendaAnchorDateChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -688,7 +688,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     emitter(state.copyWithAgendaAnchorDate(date: event.date));
   }
 
-  /// Creates a new shooting day and selects it.
+  /// Create a new shooting day and select it.
   Future<void> _onDayCreated(
     OcptScheduleDayCreatedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -706,7 +706,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Writes a new date onto the selected day.
+  /// Write a new date onto the selected day.
   Future<void> _onDayDateChanged(
     OcptScheduleDayDateChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -724,7 +724,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter);
   }
 
-  /// Writes a new status onto the selected day.
+  /// Write a new status onto the selected day.
   Future<void> _onDayStatusChanged(
     OcptScheduleDayStatusChangedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -742,7 +742,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter);
   }
 
-  /// Duplicates a day and selects the new one.
+  /// Duplicate a day and select the new one.
   Future<void> _onDayDuplicationRequested(
     OcptScheduleDayDuplicationRequestedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -764,7 +764,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Deletes a day for good, confirmed by the mode's own `OcptConfirmDialog`.
+  /// Delete a day for good, confirmed by the mode's own `OcptConfirmDialog`.
   Future<void> _onDayDeletionConfirmed(
     OcptScheduleDayDeletionConfirmedEvent event,
     Emitter<OcptScheduleState> emitter,
@@ -778,7 +778,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await _applyScheduleSnapshot(emitter);
   }
 
-  /// Re-reads the schedule and applies it, reconciling the selected day and block against what the
+  /// Re-read the schedule and apply it, reconciling the selected day and block against what the
   /// fresh snapshot still holds (see [reloadScopesIn]).
   ///
   /// Every handler that writes to the schedule tables ends here.
@@ -786,7 +786,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
   }
 
-  /// Writes every pending write of the mode's views immediately, through the flushers they
+  /// Write every pending write of the mode's views immediately, through the flushers they
   /// registered. A view that wrote reads the schedule again itself, which also refreshes the
   /// `Versions` tab's working-copy card if it is the one showing.
   ///
@@ -801,7 +801,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     return !run.hasFailed;
   }
 
-  /// Dispatches [OcptProjectWorkingCopyRefreshRequestedEvent] while the `Versions` tab is the one
+  /// Dispatch [OcptProjectWorkingCopyRefreshRequestedEvent] while the `Versions` tab is the one
   /// currently open — see the class doc comment for why every write here counts as "a save landing
   /// while it is open".
   void _requestWorkingCopyRefreshIfVersionsOpen() {
@@ -810,7 +810,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     }
   }
 
-  /// Re-reads the project's whole schedule after the project settings page changed something.
+  /// Re-read the project's whole schedule after the project settings page changed something.
   ///
   /// The page setup and the minimum rest are the obvious two — the three export dialogs pre-fill
   /// their format dropdown from the one, and the rest-time alert reads the other, and that page is

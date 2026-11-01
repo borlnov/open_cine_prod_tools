@@ -99,7 +99,8 @@ class OcptScheduleTimetableRow extends StatelessWidget {
   /// withheld — which also makes this row undraggable, [otherSlots] having nowhere left to matter.
   final ValueChanged<String>? onMovedToSlot;
 
-  /// Whether this row's own block names a sequence through `shooting_day_blocks.sceneId` — a hold
+  /// Tell whether this row's own block names a sequence through `shooting_day_blocks.sceneId` — a
+  /// hold
   /// reserving one's time, or a rehearsal working it — which is what draws the sequence picker.
   bool get _namesASequence =>
       block.kind == OcptShootingBlockKind.hold || block.kind == OcptShootingBlockKind.rehearsal;
@@ -643,7 +644,8 @@ class _OcptScheduleCandidatePicker extends StatelessWidget {
   }
 }
 
-/// One candidacy's own wording — who, and for which part — the pair every reading of a candidacy
+/// Get one candidacy's own wording — who, and for which part — the pair every reading of a
+/// candidacy
 /// in this app carries, since two candidacies of one person are two different things and a name
 /// alone could not tell them apart.
 ///
@@ -657,7 +659,7 @@ String _ocptCandidacyLabelOf(Tr tr, List<OcptRole> roles, OcptRoleCandidate cand
       _ocptRoleNameOf(tr, roles, candidate.roleId),
     );
 
-/// The name of the part [roleId] names in [roles], or the cast's own "unnamed" reading when it
+/// Get the name of the part [roleId] names in [roles], or the cast's own "unnamed" reading when it
 /// has none or [roles] does not hold it.
 String _ocptRoleNameOf(Tr tr, List<OcptRole> roles, String roleId) {
   for (final role in roles) {
@@ -801,14 +803,16 @@ class _OcptScheduleDurationStepper extends StatelessWidget {
   }
 }
 
-/// The smallest multiple of [_ocptDurationStepGridMinutes] strictly greater than [durationMinutes]
+/// Get the smallest multiple of [_ocptDurationStepGridMinutes] strictly greater than
+/// [durationMinutes]
 /// — what the stepper's `+` control reports. An off-grid duration snaps onto the grid rather than
 /// merely growing past it (12 → 15, not 17); a duration already on the grid still moves by exactly
 /// [_ocptDurationStepGridMinutes] (15 → 20).
 int _ocptStepDurationUp(int durationMinutes) =>
     ((durationMinutes ~/ _ocptDurationStepGridMinutes) + 1) * _ocptDurationStepGridMinutes;
 
-/// The largest multiple of [_ocptDurationStepGridMinutes] strictly smaller than [durationMinutes],
+/// Get the largest multiple of [_ocptDurationStepGridMinutes] strictly smaller than
+/// [durationMinutes],
 /// floored at zero — what the stepper's `−` control reports, mirroring [_ocptStepDurationUp]'s own
 /// snap-to-grid rule (12 → 10, 15 → 10, and a duration under the grid's own first step → 0 rather
 /// than a negative one).

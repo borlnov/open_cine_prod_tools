@@ -156,7 +156,8 @@ class OcptScheduleMonthGrid extends StatelessWidget {
   }
 }
 
-/// [date] with its time component dropped, so it can key a `Map` alongside `OcptShootingDay.date`.
+/// Get [date] with its time component dropped, so it can key a `Map` alongside
+/// `OcptShootingDay.date`.
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
 
 /// One cell of the month grid.
@@ -342,7 +343,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     );
   }
 
-  /// `☀ 06:12 / 21:04`, the cell's own compact sun line.
+  /// Get `☀ 06:12 / 21:04`, the cell's own compact sun line.
   String _sunLine(OcptSunTimes sunTimes) {
     final sunrise = sunTimes.sunriseMinute;
     final sunset = sunTimes.sunsetMinute;

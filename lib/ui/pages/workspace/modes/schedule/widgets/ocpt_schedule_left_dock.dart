@@ -82,7 +82,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// in the inspector. Never withheld — see the class doc comment.
   final ValueChanged<String> onShotSelected;
 
-  /// The total number of shots across every [unplacedGroups] entry.
+  /// Get the total number of shots across every [unplacedGroups] entry.
   int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
 
   /// Class constructor
@@ -236,14 +236,14 @@ class OcptScheduleLeftDock extends StatelessWidget {
     );
   }
 
-  /// [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
+  /// Get [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
   /// order.
   List<OcptScheduleUnplacedGroup> _groupsOf(String screenplayId) => [
     for (final group in unplacedGroups)
       if (group.screenplayId == screenplayId) group,
   ];
 
-  /// Opens the platform date picker seeded on [initialDate] (today when omitted), reporting the
+  /// Open the platform date picker seeded on [initialDate] (today when omitted), reporting the
   /// pick to [onPicked]. Does nothing when the picker is dismissed with no pick — mirrors
   /// `OcptPersonSheetDateField._pickDate`, the app's own convention for [showDatePicker]. The
   /// `firstDate`/`lastDate` bounds are anchored on today but widen to include [initialDate]

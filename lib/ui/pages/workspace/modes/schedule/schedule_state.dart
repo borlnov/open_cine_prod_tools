@@ -244,33 +244,36 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     ),
   };
 
-  /// Every live day of [snapshot], in `dayNumber` order (empty while nothing is loaded).
+  /// Get every live day of [snapshot], in `dayNumber` order (empty while nothing is loaded).
   List<OcptShootingDay> get days => snapshot?.days ?? const [];
 
-  /// Every day of [days], keyed by its id.
+  /// Get every day of [days], keyed by its id.
   Map<String, OcptShootingDay> get daysById => snapshot?.daysById ?? const {};
 
-  /// The number of live days — the status bar's own first counter.
+  /// Get the number of live days — the status bar's own first counter.
   int get dayCount => snapshot?.dayCount ?? 0;
 
-  /// The number of shots placed somewhere in the schedule — the status bar's own second counter.
+  /// Get the number of shots placed somewhere in the schedule — the status bar's own second
+  /// counter.
   int get placedShotCount => snapshot?.placedShotIds.length ?? 0;
 
-  /// The number of shots that still have no live block placing them — the status bar's own third
+  /// Get the number of shots that still have no live block placing them — the status bar's own
+  /// third
   /// counter, and what [unplacedGroups] lists.
   int get shotsLeftToPlaceCount {
     final placedShotIds = snapshot?.placedShotIds ?? const <String>{};
     return _allShots.where((shot) => !placedShotIds.contains(shot.id)).length;
   }
 
-  /// The selected day, or null while none is selected (or the selected one disappeared from a
+  /// Get the selected day, or null while none is selected (or the selected one disappeared from a
   /// freshly loaded [snapshot]).
   OcptShootingDay? get selectedDay {
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? null : daysById[selectedDayId];
   }
 
-  /// The selected block, or null while none is selected (or it disappeared, or its own day did).
+  /// Get the selected block, or null while none is selected (or it disappeared, or its own day
+  /// did).
   OcptShootingDayBlock? get selectedBlock {
     final selectedDayId = this.selectedDayId;
     final selectedBlockId = this.selectedBlockId;
@@ -287,54 +290,56 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return null;
   }
 
-  /// The selected shot, or null while none is selected (or it disappeared from a freshly loaded
+  /// Get the selected shot, or null while none is selected (or it disappeared from a freshly loaded
   /// [shotListSnapshots]) — mirrors [selectedBlock]'s own convention.
   OcptShot? get selectedShot {
     final selectedShotId = this.selectedShotId;
     return selectedShotId == null ? null : shotById(selectedShotId);
   }
 
-  /// The whole location catalogue, keyed by id. Delegates to [planSnapshot], empty while it is
+  /// Get the whole location catalogue, keyed by id. Delegates to [planSnapshot], empty while it is
   /// null.
   Map<String, OcptLocation> get locationById => planSnapshot?.locationById ?? const {};
 
-  /// Every set of every location of [locations], keyed by id. Delegates to [planSnapshot], empty
+  /// Get every set of every location of [locations], keyed by id. Delegates to [planSnapshot],
+  /// empty
   /// while it is null.
   Map<String, OcptSet> get setById => planSnapshot?.setById ?? const {};
 
-  /// The whole cast, keyed by id. Delegates to [planSnapshot], empty while it is null.
+  /// Get the whole cast, keyed by id. Delegates to [planSnapshot], empty while it is null.
   Map<String, OcptRole> get roleById => planSnapshot?.roleById ?? const {};
 
-  /// The whole address book, keyed by id. Delegates to [planSnapshot], empty while it is null.
+  /// Get the whole address book, keyed by id. Delegates to [planSnapshot], empty while it is null.
   Map<String, OcptPerson> get personById => planSnapshot?.personById ?? const {};
 
-  /// Every live candidacy, keyed by id — what an audition block's own row and a candidate's
+  /// Get every live candidacy, keyed by id — what an audition block's own row and a candidate's
   /// convocation card read their name and their part off. Delegates to [planSnapshot], empty while
   /// it is null.
   Map<String, OcptRoleCandidate> get roleCandidateById =>
       planSnapshot?.roleCandidateById ?? const {};
 
-  /// [selectedDayId]'s own live slots, in `sortKey` order (empty while none is selected, or the
+  /// Get [selectedDayId]'s own live slots, in `sortKey` order (empty while none is selected, or the
   /// selected day carries none).
   List<OcptShootingSlot> get selectedDaySlots {
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? const [] : (snapshot?.slotsByDayId[selectedDayId] ?? const []);
   }
 
-  /// [selectedDayId]'s own live blocks — its timetable — in `sortKey` order.
+  /// Get [selectedDayId]'s own live blocks — its timetable — in `sortKey` order.
   List<OcptShootingDayBlock> get selectedDayBlocks {
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? const [] : (snapshot?.blocksByDayId[selectedDayId] ?? const []);
   }
 
-  /// [selectedDayId]'s own live events, ordered by [OcptShootingDayEvent.minute] then by
+  /// Get [selectedDayId]'s own live events, ordered by [OcptShootingDayEvent.minute] then by
   /// `sortKey` — see `OcptScheduleSnapshot.eventsByDayId`.
   List<OcptShootingDayEvent> get selectedDayEvents {
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? const [] : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
 
-  /// Every real scene of every episode's own [shotListSnapshots], as an [OcptSceneShotSequence],
+  /// Get every real scene of every episode's own [shotListSnapshots], as an
+  /// [OcptSceneShotSequence],
   /// episode 1's before episode 2's — what a hold block's own sequence picker offers.
   /// [OcptOrphanShotSequence] is deliberately excluded: it names no `scenes` row, so
   /// `shooting_day_blocks.sceneId` could never point at it.
@@ -344,7 +349,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         if (sequence is OcptSceneShotSequence) sequence,
   ];
 
-  /// The live shots still to place, grouped by the sequence they belong to, every episode's own
+  /// Get the live shots still to place, grouped by the sequence they belong to, every episode's own
   /// sequences in their own screenplay order and episode 1's groups before episode 2's
   /// ([shotListSnapshots]' own order), each group's shots in their own sequence order. A sequence
   /// with nothing left to place has no entry at all.
@@ -383,7 +388,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return groups;
   }
 
-  /// For every shot placed somewhere in the schedule, the day numbers it is placed on —
+  /// Get, for every shot placed somewhere in the schedule, the day numbers it is placed on —
   /// deduplicated and in ascending order — keyed by shot id. A shot with no live block placing it
   /// has no entry here, read the same way an absent key reads everywhere else in this state: as
   /// "unplaced". What the shot picker dialog's own already-placed mark reads.
@@ -417,7 +422,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     };
   }
 
-  /// Every live shot of every episode's own shot list, across every sequence including the orphan
+  /// Get every live shot of every episode's own shot list, across every sequence including the
+  /// orphan
   /// group, episode 1's before episode 2's — [shotListSnapshots]' own order.
   List<OcptShot> get _allShots => [
     for (final shotListSnapshot in shotListSnapshots)
@@ -510,11 +516,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       projectPackageNotice = null,
       projectPackagePendingExportTarget = null;
 
-  /// The shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has since
+  /// Get the shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has
+  /// since
   /// been deleted). Delegates to [planSnapshot].
   OcptShot? shotById(String shotId) => planSnapshot?.shotById(shotId);
 
-  /// The event [eventId] of the selected day, or null while it names none of
+  /// Get the event [eventId] of the selected day, or null while it names none of
   /// [selectedDayEvents] — what the day view's and the day inspector's own event label/notes fields
   /// read their stored value off, there being no per-event map to keep in step with a fresh
   /// snapshot.
@@ -527,7 +534,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return null;
   }
 
-  /// The guest attendance [guestId] among the guests of the selected day's [selectedDaySlots], or
+  /// Get the guest attendance [guestId] among the guests of the selected day's [selectedDaySlots],
+  /// or
   /// null while it names no live guest of the selected day — what a slot card's own guest
   /// reason/notes fields read their stored value off.
   OcptShootingSlotGuest? selectedDayGuestOf(String guestId) {
@@ -541,38 +549,43 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     return null;
   }
 
-  /// The hour a freshly created event of day [dayId] is first given — that day's own earliest
+  /// Get the hour a freshly created event of day [dayId] is first given — that day's own earliest
   /// resolved slot start ([dayArrivalMinute]) when it has one, or 09:00 otherwise. Only ever a
   /// **starting point**: the row's own minute field immediately lets the user correct it, so this
   /// is never a claim about when anything actually happens on the day.
   int newEventMinuteOf(String dayId) => dayArrivalMinute(dayId) ?? _defaultDayEventFallbackMinute;
 
-  /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
+  /// Get [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
   /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
   /// all. Delegates to [planSnapshot].
   OcptShootingDayTimelines? timelinesOfDay(String dayId) => planSnapshot?.timelinesOfDay(dayId);
 
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
+  /// Get day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per
+  /// uncast
   /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at
   /// all (or while [planSnapshot] itself is null). Delegates to [planSnapshot].
   List<OcptDayConvocation> convocationsOfDay(String dayId) =>
       planSnapshot?.convocationsOfDay(dayId) ?? const [];
 
-  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots — or
+  /// Get day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots —
+  /// or
   /// null while it has no live slot at all. Delegates to [planSnapshot].
   int? dayArrivalMinute(String dayId) => planSnapshot?.dayArrivalMinute(dayId);
 
-  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
+  /// Get [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live
+  /// slot
   /// has no location, or that location has no coordinates pinned yet. Delegates to [planSnapshot].
   OcptSunTimes? sunTimesOfDay(String dayId) => planSnapshot?.sunTimesOfDay(dayId);
 
-  /// Every alert day [dayId] itself raises, in the order `ocptComputeScheduleAlerts` returned them
+  /// Get every alert day [dayId] itself raises, in the order `ocptComputeScheduleAlerts` returned
+  /// them
   /// (hard before soft), empty while it raises none — what every day-level alert indicator of the
   /// mode reads. Delegates to [planSnapshot].
   List<OcptScheduleAlert> alertsOfDay(String dayId) =>
       planSnapshot?.alertsByDayId[dayId] ?? const [];
 
-  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
+  /// Get [dayId]'s own first live slot's location, or null while it has none — what a day's own
+  /// tint
   /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
   /// Delegates to [planSnapshot].
   OcptLocation? firstLocationOfDay(String dayId) => planSnapshot?.firstLocationOfDay(dayId);

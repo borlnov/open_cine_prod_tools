@@ -19,10 +19,10 @@ class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState>
   /// Class constructor
   const OcptScheduleExportState({required this.ioNotice});
 
-  /// Builds the state of a bloc that has exported nothing yet.
+  /// Build the state of a bloc that has exported nothing yet.
   const OcptScheduleExportState.init() : ioNotice = null;
 
-  /// Copies this state, replacing what is given. [ioNotice] goes back to null only through
+  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
   /// [forceIoNoticeValue], since a null argument means "keep".
   @override
   OcptScheduleExportState copyWith({
@@ -30,11 +30,11 @@ class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState>
     bool forceIoNoticeValue = false,
   }) => OcptScheduleExportState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
-  /// Copies this state with [ioNotice] as the outcome of the last export.
+  /// Copy this state with [ioNotice] as the outcome of the last export.
   OcptScheduleExportState copyWithIoNotice({required OcptScheduleIoNotice ioNotice}) =>
       copyWith(ioNotice: ioNotice);
 
-  /// Copies this state with the export notice dismissed.
+  /// Copy this state with the export notice dismissed.
   OcptScheduleExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

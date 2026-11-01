@@ -57,7 +57,7 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
   @override
   State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
 
-  /// Shows the dialog and returns the [OcptSidesExportOptions] the user applied, or null if they
+  /// Show the dialog and return the [OcptSidesExportOptions] the user applied, or null if they
   /// cancelled it.
   static Future<OcptSidesExportOptions?> show(
     BuildContext context, {
@@ -183,13 +183,13 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptSidesExportOptions].
+  /// Pop the dialog returning the resulting [OcptSidesExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

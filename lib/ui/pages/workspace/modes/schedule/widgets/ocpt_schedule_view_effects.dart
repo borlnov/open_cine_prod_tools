@@ -31,7 +31,7 @@ class OcptScheduleViewEffects extends StatelessWidget {
         child: child,
       );
 
-  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  /// Show the outcome of an export as a SnackBar, then dismiss it.
   void _onExportStateChanged(BuildContext context, OcptScheduleExportState state) {
     final ioNotice = state.ioNotice;
     if (ioNotice == null) {
@@ -44,7 +44,7 @@ class OcptScheduleViewEffects extends StatelessWidget {
     context.read<OcptScheduleExportBloc>().add(const OcptScheduleIoNoticeDismissedEvent());
   }
 
-  /// Maps [notice] to its localized, user-facing message.
+  /// Map [notice] to its localized, user-facing message.
   ///
   /// The two full-success kinds degrade to the generic "shared" message on mobile
   /// ([OcptScheduleIoNotice.wasShared]): there is no path or folder to name, the run having been

@@ -45,7 +45,7 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
   State<OcptScheduleDayOutOfDaysExportDialog> createState() =>
       _OcptScheduleDayOutOfDaysExportDialogState();
 
-  /// Shows the dialog and returns the [OcptDayOutOfDaysExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptDayOutOfDaysExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptDayOutOfDaysExportOptions?> show(
     BuildContext context, {
@@ -129,13 +129,13 @@ class _OcptScheduleDayOutOfDaysExportDialogState
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptDayOutOfDaysExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptDayOutOfDaysExportOptions], the selected days in
   /// [OcptScheduleDayOutOfDaysExportDialog.days]' own order rather than selection order — that
   /// order is what the table's own first and last convoked days are read against.
   ///

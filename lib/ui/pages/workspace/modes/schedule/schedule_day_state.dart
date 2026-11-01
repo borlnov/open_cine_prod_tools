@@ -23,35 +23,36 @@ class OcptScheduleDayState extends BlocStateForMixin<OcptScheduleDayState> {
   /// Class constructor
   const OcptScheduleDayState({required this.pendingFieldEdits});
 
-  /// Builds the state of a bloc that holds no pending edit.
+  /// Build the state of a bloc that holds no pending edit.
   const OcptScheduleDayState.init() : pendingFieldEdits = const {};
 
-  /// What [field] of entity [targetId] shows: its pending edit if it has one, else [storedValue].
+  /// Get what [field] of entity [targetId] shows: its pending edit if it has one, else
+  /// [storedValue].
   String fieldValueOf(String targetId, OcptScheduleField field, String storedValue) =>
       pendingFieldEdits[(targetId, field)] ?? storedValue;
 
-  /// Copies this state, replacing [pendingFieldEdits] when given — always replaced wholesale, the
+  /// Copy this state, replacing [pendingFieldEdits] when given — always replaced wholesale, the
   /// caller (the bloc's own field-edit handler) computing the full next map.
   @override
   OcptScheduleDayState copyWith({Map<OcptSchedulePendingFieldKey, String>? pendingFieldEdits}) =>
       OcptScheduleDayState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as what is still pending once the rows that are
+  /// Copy this state with [pendingFieldEdits] as what is still pending once the rows that are
   /// gone lost their edits.
   OcptScheduleDayState copyWithPrunedFieldEdits({
     required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as the edits waiting in the debounce, a keystroke
+  /// Copy this state with [pendingFieldEdits] as the edits waiting in the debounce, a keystroke
   /// later.
   OcptScheduleDayState copyWithTypedFieldEdits({
     required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with no field edit left pending.
+  /// Copy this state with no field edit left pending.
   OcptScheduleDayState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  /// Copy this state with [pendingFieldEdits] as what the write that just landed left pending.
   OcptScheduleDayState copyWithFlushedFieldEdits({
     required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);

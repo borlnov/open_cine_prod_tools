@@ -87,7 +87,7 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
   State<OcptScheduleNamedCallSheetsExportDialog> createState() =>
       _OcptScheduleNamedCallSheetsExportDialogState();
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptCallSheetExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
@@ -255,7 +255,8 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     );
   }
 
-  /// The union of [dayIds]' own convocations (via [OcptScheduleNamedCallSheetsExportDialog.days]'
+  /// Get the union of [dayIds]' own convocations (via
+  /// [OcptScheduleNamedCallSheetsExportDialog.days]'
   /// own order, then each day's own convocation order), deduplicated by [_keyOf]: a person convoked
   /// on more than one of [dayIds] contributes one entry, its first.
   List<OcptDayConvocation> _unionOf(Set<String> dayIds) {
@@ -268,7 +269,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     ];
   }
 
-  /// Recomputes [_recipients] against [nextDayIds] and carries the tick state over: a key still in
+  /// Recompute [_recipients] against [nextDayIds] and carry the tick state over: a key still in
   /// the recomputed union keeps whatever [_selectedKeys] already says about it, a key the previous
   /// union didn't have is ticked (this dialog's standing default is "everybody"), and a key the new
   /// union no longer has is dropped — simply by not being iterated below, [_selectedKeys] holding
@@ -288,20 +289,20 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     });
   }
 
-  /// [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
+  /// Get [convocation]'s own selection key — see [_selectedKeys]' own doc comment.
   ///
   /// Non-null for every convocation this dialog is ever handed: a guest is the one kind that
   /// carries none, and [OcptScheduleNamedCallSheetsExportDialog.recipientsOfDay] filters those out
   /// before the list ever reaches here.
   String _keyOf(OcptDayConvocation convocation) => convocation.selectionKey!;
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
   /// [OcptScheduleNamedCallSheetsExportDialog.days]' own order rather than selection order —
   /// mirrors `OcptScheduleCallSheetsExportDialog._submit`.
   ///

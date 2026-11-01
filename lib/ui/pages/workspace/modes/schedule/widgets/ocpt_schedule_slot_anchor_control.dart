@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.da
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_minute_field.dart';
 
-/// The label of the day's own slot [slotId], as [otherSlots] carries it, or the unnamed-slot
+/// Get the label of the day's own slot [slotId], as [otherSlots] carries it, or the unnamed-slot
 /// wording when it has none (or names no slot of this day any more).
 String _labelOfSlot(BuildContext context, List<(String, String)> otherSlots, String slotId) {
   for (final (id, rawLabel) in otherSlots) {
@@ -23,7 +23,7 @@ String _labelOfSlot(BuildContext context, List<(String, String)> otherSlots, Str
   return Tr.of(context).scheduleInspectorUnnamedSlot;
 }
 
-/// [rawLabel], or the unnamed-slot wording when it is empty.
+/// Get [rawLabel], or the unnamed-slot wording when it is empty.
 String _labelOf(BuildContext context, String rawLabel) =>
     rawLabel.isEmpty ? Tr.of(context).scheduleInspectorUnnamedSlot : rawLabel;
 
@@ -244,7 +244,8 @@ class _AnchorButton extends StatelessWidget {
     );
   }
 
-  /// The anchor menu's own entries: the two fixed-hour ones, then, per other live slot of the day,
+  /// Build the anchor menu's own entries: the two fixed-hour ones, then, per other live slot of the
+  /// day,
   /// the two directions a link can read it in. Every entry carries a **non-null** value, a
   /// [PopupMenuButton] reading null as "the menu was dismissed" and never calling `onSelected` for
   /// it — the trap `ocptNewLocationMenuValue` already documents.
@@ -303,7 +304,7 @@ class _AnchorButton extends StatelessWidget {
     ];
   }
 
-  /// Reports [choice] to [onAnchorChanged], **freezing the hour the edge was reading** when it goes
+  /// Report [choice] to [onAnchorChanged], **freezing the hour the edge was reading** when it goes
   /// back to a typed one: switching away from a link pre-fills the field with what it was showing
   /// at that moment, rather than emptying it or resurrecting whatever was typed before the link.
   void _onChoicePicked(_AnchorChoice choice) {

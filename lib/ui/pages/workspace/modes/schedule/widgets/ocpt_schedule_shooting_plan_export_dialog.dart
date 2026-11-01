@@ -45,7 +45,7 @@ class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
   State<OcptScheduleShootingPlanExportDialog> createState() =>
       _OcptScheduleShootingPlanExportDialogState();
 
-  /// Shows the dialog and returns the [OcptShootingPlanExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptShootingPlanExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptShootingPlanExportOptions?> show(
     BuildContext context, {
@@ -174,13 +174,13 @@ class _OcptScheduleShootingPlanExportDialogState
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptShootingPlanExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptShootingPlanExportOptions], the selected days in
   /// [OcptScheduleShootingPlanExportDialog.days]' own order rather than selection order.
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router

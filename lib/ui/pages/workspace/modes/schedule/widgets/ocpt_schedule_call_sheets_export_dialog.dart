@@ -51,7 +51,7 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
   State<OcptScheduleCallSheetsExportDialog> createState() =>
       _OcptScheduleCallSheetsExportDialogState();
 
-  /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptCallSheetExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
     BuildContext context, {
@@ -133,13 +133,13 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
+  /// Pop the dialog returning the resulting [OcptCallSheetExportOptions], the selected days in
   /// [OcptScheduleCallSheetsExportDialog.days]' own order rather than selection order.
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router

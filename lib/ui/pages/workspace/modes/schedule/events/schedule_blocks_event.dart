@@ -12,7 +12,7 @@ sealed class OcptScheduleBlocksEvent extends OcptScheduleEvent {
   const OcptScheduleBlocksEvent();
 }
 
-/// Names candidacy [roleCandidateId] on **audition** block [blockId], dispatched by that row's own
+/// Name candidacy [roleCandidateId] on **audition** block [blockId], dispatched by that row's own
 /// `+` picker — the one convocation in this app read off a block rather than off a slot (ADR 0024),
 /// because a candidate is expected at twenty past ten rather than "on the unit today".
 ///
@@ -37,7 +37,7 @@ class OcptScheduleBlockCandidateAddedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, roleCandidateId];
 }
 
-/// Removes candidate convocation [blockCandidateId] for good, dispatched by its own chip's remove
+/// Remove candidate convocation [blockCandidateId] for good, dispatched by its own chip's remove
 /// control.
 ///
 /// **Touches neither the block nor the candidacy**: the audition stays exactly where it is and the
@@ -54,7 +54,7 @@ class OcptScheduleBlockCandidateRemovedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockCandidateId];
 }
 
-/// Writes a new shooting status onto shot [shotId] immediately — the very column the shot list
+/// Write a new shooting status onto shot [shotId] immediately — the very column the shot list
 /// mode's own inspector edits (`OcptShotListService.updateShot`'s `status`) — dispatched by that
 /// shot's own block row's status control, in whichever slot card places it.
 class OcptScheduleShotStatusChangedEvent extends OcptScheduleBlocksEvent {
@@ -72,7 +72,7 @@ class OcptScheduleShotStatusChangedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, shotId, status];
 }
 
-/// Creates a new non-shot block (a milestone or a `hold`) inside slot [slotId], appended at the end
+/// Create a new non-shot block (a milestone or a `hold`) inside slot [slotId], appended at the end
 /// of that slot's own timetable, dispatched by that slot card's own `+ Block` control — the gesture
 /// names the slot it sits on directly.
 class OcptScheduleBlockCreatedEvent extends OcptScheduleBlocksEvent {
@@ -91,7 +91,7 @@ class OcptScheduleBlockCreatedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, slotId, kind];
 }
 
-/// Creates a new **shot** block inside slot [slotId], appended at the end of that slot's own
+/// Create a new **shot** block inside slot [slotId], appended at the end of that slot's own
 /// timetable, dispatched once the mode's own shot picker dialog — opened by that slot card's own
 /// `+ Block` menu's `Shot` entry — resolves to a pick.
 ///
@@ -117,7 +117,7 @@ class OcptScheduleShotBlockCreatedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, slotId, shotId];
 }
 
-/// Writes a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
+/// Write a new duration onto block [blockId] immediately, dispatched by its own slot card's own ±
 /// duration controls.
 class OcptScheduleBlockDurationChangedEvent extends OcptScheduleBlocksEvent {
   /// The id of the block being edited.
@@ -138,7 +138,7 @@ class OcptScheduleBlockDurationChangedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, durationMinutes];
 }
 
-/// Writes a new anchor onto block [blockId] immediately, dispatched by its own slot card's own
+/// Write a new anchor onto block [blockId] immediately, dispatched by its own slot card's own
 /// anchor pin.
 class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleBlocksEvent {
   /// The id of the block being edited.
@@ -155,7 +155,7 @@ class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, anchorMinute];
 }
 
-/// Writes a new sequence onto **hold** block [blockId] immediately, dispatched by its own timetable
+/// Write a new sequence onto **hold** block [blockId] immediately, dispatched by its own timetable
 /// row's sequence picker — the control that finally fills `shooting_day_blocks.sceneId`, which says
 /// which roles a held sequence calls for (its free-text label never could).
 class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleBlocksEvent {
@@ -173,7 +173,7 @@ class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, sceneId];
 }
 
-/// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by
+/// Move block [blockId] to [newPosition] (0-based) within its own slot's timetable, dispatched by
 /// a drag-to-reorder gesture on that slot card's own timetable. The block's own slot is read off
 /// its own row (`OcptScheduleService.reorderBlock`), so no slot or day id travels with this event.
 class OcptScheduleBlockReorderedEvent extends OcptScheduleBlocksEvent {
@@ -191,7 +191,7 @@ class OcptScheduleBlockReorderedEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, newPosition];
 }
 
-/// Moves block [blockId] to slot [targetSlotId], appended at the end of that slot's own timetable,
+/// Move block [blockId] to slot [targetSlotId], appended at the end of that slot's own timetable,
 /// dispatched either by dragging a row out of one slot card's own timetable onto another's, or by
 /// picking an entry of the block's own `Move to…` menu.
 class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleBlocksEvent {
@@ -209,7 +209,7 @@ class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleBlocksEvent {
   List<Object?> get props => [...super.props, blockId, targetSlotId];
 }
 
-/// Deletes block [blockId] for good, whatever its kind, dispatched by the mode once its
+/// Delete block [blockId] for good, whatever its kind, dispatched by the mode once its
 /// `OcptConfirmDialog` has already been answered.
 class OcptScheduleBlockDeletionConfirmedEvent extends OcptScheduleBlocksEvent {
   /// The id of the block to delete.
