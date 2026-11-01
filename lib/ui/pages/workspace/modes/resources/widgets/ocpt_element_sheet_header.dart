@@ -76,6 +76,7 @@ class OcptElementSheetHeader extends StatelessWidget {
     required this.onPhotoCleared,
   });
 
+  /// Build the element sheet header as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,6 +111,7 @@ class _PhotoPlaceholder extends StatelessWidget {
   /// Class constructor
   const _PhotoPlaceholder({required this.category});
 
+  /// Build the photo placeholder as a [Center].
   @override
   Widget build(BuildContext context) {
     final color = Color(
@@ -145,6 +147,7 @@ class _Fields extends StatelessWidget {
     required this.onCategoryChanged,
   });
 
+  /// Build the fields as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -242,6 +245,7 @@ class _TrackingBadge extends StatelessWidget {
   /// Class constructor
   const _TrackingBadge({required this.element});
 
+  /// Build the tracking badge as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -276,6 +280,7 @@ class _CategoryPicker extends StatelessWidget {
   /// Class constructor
   const _CategoryPicker({required this.element, required this.onCategoryChanged});
 
+  /// Build the category picker as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

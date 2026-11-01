@@ -32,6 +32,7 @@ class OcptResourcesListPanelView extends StatelessWidget {
   /// Class constructor
   const OcptResourcesListPanelView({super.key, required this.state, required this.episodes});
 
+  /// Build the resources list panel view as an [OcptResourcesListPanel].
   @override
   Widget build(BuildContext context) => OcptResourcesListPanel(
     activeTab: state.activeTab,

@@ -17,6 +17,7 @@ class OcptPickedValueButton extends StatelessWidget {
   /// Class constructor
   const OcptPickedValueButton({super.key, required this.label, required this.onPressed});
 
+  /// Build the picked value button as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final onPressed = this.onPressed;

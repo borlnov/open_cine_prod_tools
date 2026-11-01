@@ -18,6 +18,7 @@ class OcptResourcesSearchToggle extends StatelessWidget {
   /// Class constructor
   const OcptResourcesSearchToggle({super.key, required this.isSearchVisible});
 
+  /// Build the resources search toggle as an [IconButton].
   @override
   Widget build(BuildContext context) => IconButton(
     icon: const Icon(Icons.search, size: 20),

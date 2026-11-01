@@ -18,6 +18,7 @@ class OcptResourcesListMessage extends StatelessWidget {
   /// Class constructor
   const OcptResourcesListMessage({super.key, required this.message});
 
+  /// Build the resources list message as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -77,6 +77,7 @@ class OcptPersonSheetUnavailabilitiesCard extends StatelessWidget {
     required this.onAdded,
   });
 
+  /// Build the person sheet unavailabilities card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -212,6 +213,7 @@ class _OcptUnavailabilityRow extends StatefulWidget {
     required this.onSlotAdded,
   });
 
+  /// Create the [_OcptUnavailabilityRowState] holding the state of the unavailability row.
   @override
   State<_OcptUnavailabilityRow> createState() => _OcptUnavailabilityRowState();
 }
@@ -255,12 +257,14 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   /// Whether a local reason edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_reasonFocusNode].
   @override
   void initState() {
     super.initState();
     _reasonFocusNode.addListener(_flushOnFocusLost);
   }
 
+  /// Build the unavailability row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -463,6 +467,8 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
     _report();
   }
 
+  /// Flush the pending edit, cancel [_debounce], then dispose [_reasonFocusNode] and
+  /// [_reasonController].
   @override
   void dispose() {
     _flushIfDirty();

@@ -30,6 +30,7 @@ class OcptResourcesDeleteAction extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the resources delete action as an [Align].
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

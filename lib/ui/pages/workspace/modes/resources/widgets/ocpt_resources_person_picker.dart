@@ -57,6 +57,7 @@ class OcptResourcesPersonPicker extends StatelessWidget {
     this.onPersonSheetOpenRequested,
   });
 
+  /// Build the resources person picker as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -129,6 +130,7 @@ class _Badge extends StatelessWidget {
   /// Class constructor
   const _Badge({required this.picker});
 
+  /// Build the badge as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

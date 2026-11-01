@@ -48,6 +48,7 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
     required this.onPhotoRemoved,
   });
 
+  /// Build the location sheet photos card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -107,6 +108,7 @@ class _OcptPhotoTile extends StatefulWidget {
   /// Class constructor
   const _OcptPhotoTile({required this.photo, required this.onRemoved});
 
+  /// Create the [_OcptPhotoTileState] holding the state of the photo tile.
   @override
   State<_OcptPhotoTile> createState() => _OcptPhotoTileState();
 }
@@ -116,6 +118,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
   /// Whether the referenced file was there when it was last asked about.
   late bool _exists = File(widget.photo.path).existsSync();
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant _OcptPhotoTile oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -124,6 +127,7 @@ class _OcptPhotoTileState extends State<_OcptPhotoTile> {
     }
   }
 
+  /// Build the photo tile as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -175,6 +179,7 @@ class _MissingFile extends StatelessWidget {
   /// Class constructor
   const _MissingFile();
 
+  /// Build the missing file as a [Center].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -208,6 +213,7 @@ class _OcptAddPhotoTile extends StatelessWidget {
   /// Class constructor
   const _OcptAddPhotoTile({required this.onPressed});
 
+  /// Build the add photo tile as a [CustomPaint].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

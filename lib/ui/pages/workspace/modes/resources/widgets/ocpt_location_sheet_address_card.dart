@@ -59,6 +59,7 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     required this.onPersonSheetOpenRequested,
   });
 
+  /// Build the location sheet address card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

@@ -24,6 +24,7 @@ class OcptResourcesTabBar extends StatelessWidget {
   /// Class constructor
   const OcptResourcesTabBar({super.key, required this.activeTab, required this.onTabSelected});
 
+  /// Build the resources tab bar as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -67,6 +68,7 @@ class _OcptResourcesTabEntry extends StatelessWidget {
   /// Class constructor
   const _OcptResourcesTabEntry({required this.label, required this.isActive, required this.onTap});
 
+  /// Build the resources tab entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

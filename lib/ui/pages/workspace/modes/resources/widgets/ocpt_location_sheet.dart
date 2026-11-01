@@ -225,6 +225,7 @@ class OcptLocationSheet extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the location sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -363,6 +364,7 @@ class _LogisticsRow extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the logistics row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -433,6 +435,7 @@ class _ConstraintsCallout extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the constraints callout as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -495,6 +498,7 @@ class _NotesField extends StatelessWidget {
     this.hintText,
   });
 
+  /// Build the notes field as an [OcptResourcesSheetField].
   @override
   Widget build(BuildContext context) {
     final onFieldChanged = this.onFieldChanged;

@@ -228,6 +228,7 @@ class OcptRoleSheet extends StatelessWidget {
     required this.onEpisodesChanged,
   });
 
+  /// Build the role sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -333,6 +334,7 @@ class _CastPicker extends StatelessWidget {
   /// Class constructor
   const _CastPicker({required this.sheet});
 
+  /// Build the cast picker as an [OcptResourcesPersonPicker].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -356,6 +358,7 @@ class _CastingCard extends StatelessWidget {
   /// Class constructor
   const _CastingCard({required this.sheet});
 
+  /// Build the casting card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

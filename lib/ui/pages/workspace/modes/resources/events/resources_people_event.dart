@@ -30,7 +30,7 @@ class OcptResourcesPersonDeletionRequestedEvent extends OcptResourcesPeopleEvent
   /// Class constructor
   const OcptResourcesPersonDeletionRequestedEvent({required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId];
 }
@@ -59,7 +59,7 @@ class OcptResourcesPersonFieldChangedEvent extends OcptResourcesPeopleEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, field, rawValue];
 }
@@ -76,7 +76,7 @@ class OcptResourcesPersonColorChangedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesPersonColorChangedEvent({required this.personId, required this.colorIndex});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, colorIndex];
 }
@@ -93,7 +93,7 @@ class OcptResourcesPersonBirthDateChangedEvent extends OcptResourcesPeopleEvent 
   /// Class constructor
   const OcptResourcesPersonBirthDateChangedEvent({required this.personId, required this.date});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, date];
 }
@@ -113,7 +113,7 @@ class OcptResourcesPersonTransportAutonomyChangedEvent extends OcptResourcesPeop
     required this.isTransportAutonomous,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, isTransportAutonomous];
 }
@@ -133,7 +133,7 @@ class OcptResourcesPersonImageRightsStatusChangedEvent extends OcptResourcesPeop
     required this.status,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, status];
 }
@@ -153,7 +153,7 @@ class OcptResourcesPersonImageRightsDateChangedEvent extends OcptResourcesPeople
     required this.date,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, date];
 }
@@ -178,7 +178,7 @@ class OcptResourcesPersonMileageRateChangedEvent extends OcptResourcesPeopleEven
     required this.mileageRateId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, mileageRateId];
 }
@@ -203,7 +203,7 @@ class OcptResourcesPositionAddedEvent extends OcptResourcesPeopleEvent {
     required this.customLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, positionId, customLabel];
 }
@@ -226,7 +226,7 @@ class OcptResourcesPositionUpdatedEvent extends OcptResourcesPeopleEvent {
     required this.customLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id, positionId, customLabel];
 }
@@ -239,7 +239,7 @@ class OcptResourcesPositionRemovedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesPositionRemovedEvent({required this.id});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id];
 }
@@ -255,7 +255,7 @@ class OcptResourcesSkillAddedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesSkillAddedEvent({required this.personId, required this.label});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, label];
 }
@@ -271,7 +271,7 @@ class OcptResourcesSkillUpdatedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesSkillUpdatedEvent({required this.id, required this.label});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id, label];
 }
@@ -284,7 +284,7 @@ class OcptResourcesSkillRemovedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesSkillRemovedEvent({required this.id});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id];
 }
@@ -325,7 +325,7 @@ class OcptResourcesUnavailabilityAddedEvent extends OcptResourcesPeopleEvent {
     required this.reason,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -375,7 +375,7 @@ class OcptResourcesUnavailabilityUpdatedEvent extends OcptResourcesPeopleEvent {
     required this.reason,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -397,7 +397,7 @@ class OcptResourcesUnavailabilityRemovedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesUnavailabilityRemovedEvent({required this.id});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id];
 }
@@ -417,7 +417,7 @@ class OcptResourcesPersonPhotoPickRequestedEvent extends OcptResourcesPeopleEven
     required this.fileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, fileTypeLabel];
 }
@@ -430,7 +430,7 @@ class OcptResourcesPersonPhotoClearedEvent extends OcptResourcesPeopleEvent {
   /// Class constructor
   const OcptResourcesPersonPhotoClearedEvent({required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId];
 }
@@ -453,7 +453,7 @@ class OcptResourcesImageRightsDocumentPickRequestedEvent extends OcptResourcesPe
     required this.fileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId, fileTypeLabel];
 }
@@ -467,7 +467,7 @@ class OcptResourcesImageRightsDocumentClearedEvent extends OcptResourcesPeopleEv
   /// Class constructor
   const OcptResourcesImageRightsDocumentClearedEvent({required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId];
 }

@@ -39,6 +39,7 @@ class OcptResourcesLocationSheetView extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the resources location sheet view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

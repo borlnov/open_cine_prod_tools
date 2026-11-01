@@ -67,6 +67,7 @@ class OcptRoleSheetHeader extends StatelessWidget {
     required this.onPersonSheetOpenRequested,
   });
 
+  /// Build the role sheet header as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,6 +123,7 @@ class _Name extends StatelessWidget {
   /// Class constructor
   const _Name({required this.header});
 
+  /// Build the name as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -175,6 +177,7 @@ class _NumberBadge extends StatelessWidget {
   /// Class constructor
   const _NumberBadge({required this.header});
 
+  /// Build the number badge as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -210,6 +213,7 @@ class _CastMemberLine extends StatelessWidget {
   /// Class constructor
   const _CastMemberLine({required this.header});
 
+  /// Build the cast member line as an [Align].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -271,6 +275,7 @@ class _KindPicker extends StatelessWidget {
   /// Class constructor
   const _KindPicker({required this.header});
 
+  /// Build the kind picker as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

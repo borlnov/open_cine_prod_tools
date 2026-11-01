@@ -28,6 +28,7 @@ class OcptPersonAvatar extends StatelessWidget {
   /// Class constructor
   const OcptPersonAvatar({super.key, required this.person, required this.radius});
 
+  /// Build the person avatar as a [ClipOval].
   @override
   Widget build(BuildContext context) => ClipOval(
     child: SizedBox.square(

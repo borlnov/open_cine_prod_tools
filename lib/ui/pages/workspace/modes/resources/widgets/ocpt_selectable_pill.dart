@@ -25,6 +25,7 @@ class OcptSelectablePill extends StatelessWidget {
     required this.onPressed,
   });
 
+  /// Build the selectable pill as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

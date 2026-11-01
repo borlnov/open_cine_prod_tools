@@ -37,6 +37,7 @@ class OcptResourcesElementSheetView extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the resources element sheet view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

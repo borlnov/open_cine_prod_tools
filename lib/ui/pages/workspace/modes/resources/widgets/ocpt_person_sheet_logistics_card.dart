@@ -65,6 +65,7 @@ class OcptPersonSheetLogisticsCard extends StatelessWidget {
     required this.onMileageRateChanged,
   });
 
+  /// Build the person sheet logistics card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -169,6 +170,7 @@ class _OcptTransportAutonomyControl extends StatelessWidget {
   /// Class constructor
   const _OcptTransportAutonomyControl({required this.value, required this.onChanged});
 
+  /// Build the transport autonomy control as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -219,6 +221,7 @@ class _OcptMileageRatePicker extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the mileage rate picker as a [DropdownButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -271,6 +274,7 @@ class _Option extends StatelessWidget {
   /// Class constructor
   const _Option({required this.control, required this.optionValue, required this.label});
 
+  /// Build the option as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

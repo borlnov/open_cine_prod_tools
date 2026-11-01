@@ -51,6 +51,7 @@ class OcptPersonSheetMealsHealthCard extends StatelessWidget {
     required this.onSkillRemoved,
   });
 
+  /// Build the person sheet meals health card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -119,6 +120,7 @@ class _OcptPersonSkillChips extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptPersonSkillChipsState] holding the state of the person skill chips.
   @override
   State<_OcptPersonSkillChips> createState() => _OcptPersonSkillChipsState();
 }
@@ -134,6 +136,7 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
   /// Whether the inline add field is currently shown in place of the `+` affordance.
   bool _isAdding = false;
 
+  /// Build the person skill chips as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -184,6 +187,7 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
     setState(() => _isAdding = false);
   }
 
+  /// Dispose [_addController] and [_addFocusNode].
   @override
   void dispose() {
     _addController.dispose();
@@ -204,6 +208,7 @@ class _OcptSkillChip extends StatelessWidget {
   /// Class constructor
   const _OcptSkillChip({required this.label, required this.onRemoved});
 
+  /// Build the skill chip as an [InputChip].
   @override
   Widget build(BuildContext context) {
     final onRemoved = this.onRemoved;

@@ -79,6 +79,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     required this.onPersonSheetOpenRequested,
   });
 
+  /// Build the element sheet sourcing card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -168,6 +169,7 @@ class _SourceKindPicker extends StatelessWidget {
   /// Class constructor
   const _SourceKindPicker({required this.element, required this.onSourceKindChanged});
 
+  /// Build the source kind picker as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

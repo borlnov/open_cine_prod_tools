@@ -42,7 +42,7 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, labels, fileTypeLabel, shareAnchor];
 }
@@ -79,7 +79,7 @@ class OcptResourcesContactListExportRequestedEvent extends OcptResourcesExportEv
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }

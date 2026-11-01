@@ -32,6 +32,8 @@ class OcptContactListExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptContactListExportDialog({required this.current, super.key});
 
+  /// Create the [_OcptContactListExportDialogState] holding the state of the contact list export
+  /// dialog.
   @override
   State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
 
@@ -51,12 +53,14 @@ class _OcptContactListExportDialogState extends State<OcptContactListExportDialo
   /// The page format currently selected in the dropdown.
   late OcptPageFormat _selectedFormat;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedFormat = widget.current.format;
   }
 
+  /// Build the contact list export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

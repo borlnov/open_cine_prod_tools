@@ -24,7 +24,7 @@ class OcptResourcesRoleCreationRequestedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleCreationRequestedEvent({required this.kind});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, kind];
 }
@@ -53,7 +53,7 @@ class OcptResourcesRoleFieldChangedEvent extends OcptResourcesRolesEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId, field, rawValue];
 }
@@ -70,7 +70,7 @@ class OcptResourcesRoleCastChangedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleCastChangedEvent({required this.roleId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId, personId];
 }
@@ -87,7 +87,7 @@ class OcptResourcesRoleKindChangedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleKindChangedEvent({required this.roleId, required this.kind});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId, kind];
 }
@@ -107,7 +107,7 @@ class OcptResourcesRoleEpisodesChangedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleEpisodesChangedEvent({required this.roleId, required this.episodeIds});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId, episodeIds];
 }
@@ -124,7 +124,7 @@ class OcptResourcesRoleDeletionRequestedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleDeletionRequestedEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -139,7 +139,7 @@ class OcptResourcesOrphanedRoleKeptEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesOrphanedRoleKeptEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -163,7 +163,7 @@ class OcptResourcesRoleMergeRequestedEvent extends OcptResourcesRolesEvent {
     required this.targetRoleId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sourceRoleId, targetRoleId];
 }
@@ -181,7 +181,7 @@ class OcptResourcesRoleCandidateAddedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleCandidateAddedEvent({required this.roleId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId, personId];
 }
@@ -207,7 +207,7 @@ class OcptResourcesRoleCandidateStatusChangedEvent extends OcptResourcesRolesEve
     required this.status,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, candidateId, status];
 }
@@ -227,7 +227,7 @@ class OcptResourcesRoleCandidateAuditionDateChangedEvent extends OcptResourcesRo
     required this.auditionedOn,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, candidateId, auditionedOn];
 }
@@ -256,7 +256,7 @@ class OcptResourcesRoleCandidateFieldChangedEvent extends OcptResourcesRolesEven
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, candidateId, field, rawValue];
 }
@@ -274,7 +274,7 @@ class OcptResourcesRoleCandidateRemovedEvent extends OcptResourcesRolesEvent {
   /// Class constructor
   const OcptResourcesRoleCandidateRemovedEvent({required this.candidateId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, candidateId];
 }

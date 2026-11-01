@@ -76,6 +76,7 @@ class OcptResourcesMode extends StatelessWidget {
   /// Creates the resources mode.
   const OcptResourcesMode({super.key, this.revealRequest});
 
+  /// Build the resources mode as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -127,6 +128,7 @@ class _ResourcesView extends StatefulWidget {
   /// Class constructor
   const _ResourcesView({required this.hasRevealRequest});
 
+  /// Create the [_ResourcesViewState] holding the state of the resources view.
   @override
   State<_ResourcesView> createState() => _ResourcesViewState();
 }
@@ -142,6 +144,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// Tell the workspace that a reveal request was taken into account, so it applies only once.
   @override
   void initState() {
     super.initState();
@@ -156,6 +159,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     }
   }
 
+  /// Flush the pending field edits of the bloc before the view leaves the tree.
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
@@ -167,6 +171,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     super.deactivate();
   }
 
+  /// Build the resources view as a [BlocConsumer].
   @override
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptResourcesBloc, OcptResourcesState>(
@@ -660,6 +665,7 @@ class _ResourcesViewState extends State<_ResourcesView> {
     );
   }
 
+  /// Dispose [_dockLayoutController].
   @override
   void dispose() {
     _dockLayoutController.dispose();

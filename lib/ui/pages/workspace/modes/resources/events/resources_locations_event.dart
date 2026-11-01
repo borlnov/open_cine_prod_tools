@@ -32,7 +32,7 @@ class OcptResourcesLocationDeletionRequestedEvent extends OcptResourcesLocations
   /// Class constructor
   const OcptResourcesLocationDeletionRequestedEvent({required this.locationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId];
 }
@@ -58,7 +58,7 @@ class OcptResourcesLocationFieldChangedEvent extends OcptResourcesLocationsEvent
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, field, rawValue];
 }
@@ -78,7 +78,7 @@ class OcptResourcesLocationColorChangedEvent extends OcptResourcesLocationsEvent
     required this.colorIndex,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, colorIndex];
 }
@@ -97,7 +97,7 @@ class OcptResourcesLocationPermitStatusChangedEvent extends OcptResourcesLocatio
     required this.status,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, status];
 }
@@ -114,7 +114,7 @@ class OcptResourcesLocationPermitDateChangedEvent extends OcptResourcesLocations
   /// Class constructor
   const OcptResourcesLocationPermitDateChangedEvent({required this.locationId, required this.date});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, date];
 }
@@ -134,7 +134,7 @@ class OcptResourcesLocationContactChangedEvent extends OcptResourcesLocationsEve
     required this.personId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, personId];
 }
@@ -147,7 +147,7 @@ class OcptResourcesSetAddedEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesSetAddedEvent({required this.locationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId];
 }
@@ -171,7 +171,7 @@ class OcptResourcesSetFieldChangedEvent extends OcptResourcesLocationsEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId, field, rawValue];
 }
@@ -184,7 +184,7 @@ class OcptResourcesSetRemovedEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesSetRemovedEvent({required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId];
 }
@@ -203,7 +203,7 @@ class OcptResourcesSetLocationChangedEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesSetLocationChangedEvent({required this.setId, required this.locationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId, locationId];
 }
@@ -223,7 +223,7 @@ class OcptResourcesSceneAssignedToSetEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesSceneAssignedToSetEvent({required this.sceneId, required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
 }
@@ -240,7 +240,7 @@ class OcptResourcesSceneRemovedFromSetEvent extends OcptResourcesLocationsEvent 
   /// Class constructor
   const OcptResourcesSceneRemovedFromSetEvent({required this.sceneId, required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
 }
@@ -263,7 +263,7 @@ class OcptResourcesLocationPhotoAddRequestedEvent extends OcptResourcesLocations
     required this.fileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, fileTypeLabel];
 }
@@ -283,7 +283,7 @@ class OcptResourcesPermitDocumentPickRequestedEvent extends OcptResourcesLocatio
     required this.fileTypeLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId, fileTypeLabel];
 }
@@ -297,7 +297,7 @@ class OcptResourcesPermitDocumentClearedEvent extends OcptResourcesLocationsEven
   /// Class constructor
   const OcptResourcesPermitDocumentClearedEvent({required this.locationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId];
 }
@@ -321,7 +321,7 @@ class OcptResourcesAssetValidFromChangedEvent extends OcptResourcesLocationsEven
   /// Class constructor
   const OcptResourcesAssetValidFromChangedEvent({required this.assetId, required this.date});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, assetId, date];
 }
@@ -339,7 +339,7 @@ class OcptResourcesAssetValidUntilChangedEvent extends OcptResourcesLocationsEve
   /// Class constructor
   const OcptResourcesAssetValidUntilChangedEvent({required this.assetId, required this.date});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, assetId, date];
 }
@@ -352,7 +352,7 @@ class OcptResourcesAssetRemovedEvent extends OcptResourcesLocationsEvent {
   /// Class constructor
   const OcptResourcesAssetRemovedEvent({required this.assetId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, assetId];
 }
@@ -404,7 +404,7 @@ class OcptResourcesLocationAvailabilityAddedEvent extends OcptResourcesLocations
     required this.note,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -464,7 +464,7 @@ class OcptResourcesLocationAvailabilityUpdatedEvent extends OcptResourcesLocatio
     required this.note,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,
@@ -488,7 +488,7 @@ class OcptResourcesLocationAvailabilityRemovedEvent extends OcptResourcesLocatio
   /// Class constructor
   const OcptResourcesLocationAvailabilityRemovedEvent({required this.id});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, id];
 }

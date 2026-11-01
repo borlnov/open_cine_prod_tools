@@ -57,6 +57,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
     required this.onPermitStatusChanged,
   });
 
+  /// Build the location sheet header as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,6 +108,7 @@ class _OcptLocationColorBar extends StatelessWidget {
   /// Class constructor
   const _OcptLocationColorBar({required this.colorIndex, required this.onColorChanged});
 
+  /// Build the location color bar as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -159,6 +161,7 @@ class _OcptPermitStatusBadge extends StatelessWidget {
   /// Class constructor
   const _OcptPermitStatusBadge({required this.status, required this.onChanged});
 
+  /// Build the permit status badge as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

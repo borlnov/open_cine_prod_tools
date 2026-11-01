@@ -58,6 +58,7 @@ class OcptElementSheetScenesCard extends StatelessWidget {
     required this.onLinkRemoved,
   });
 
+  /// Build the element sheet scenes card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -118,6 +119,7 @@ class _ScenePicker extends StatelessWidget {
     required this.onSceneAssigned,
   });
 
+  /// Build the scene picker as an [Align].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -174,6 +176,7 @@ class _OcptSceneLinkRow extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptSceneLinkRowState] holding the state of the scene link row.
   @override
   State<_OcptSceneLinkRow> createState() => _OcptSceneLinkRowState();
 }
@@ -206,12 +209,14 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_flushOnFocusLost);
   }
 
+  /// Build the scene link row as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -308,6 +313,8 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
     widget.onUpdated?.call(quantity: _quantityController.text, notes: _notesController.text);
   }
 
+  /// Flush the pending edit, cancel [_debounce], then dispose [_focusNode], [_quantityController]
+  /// and [_notesController].
   @override
   void dispose() {
     _flushIfDirty();
@@ -348,6 +355,7 @@ class _RowField extends StatelessWidget {
     this.isDecimal = false,
   });
 
+  /// Build the row field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

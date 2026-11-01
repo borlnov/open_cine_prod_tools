@@ -101,7 +101,7 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     lastLostEditsEpoch: lostEditsEpoch,
   );
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

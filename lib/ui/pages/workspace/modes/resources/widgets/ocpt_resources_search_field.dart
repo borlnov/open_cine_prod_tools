@@ -30,6 +30,7 @@ class OcptResourcesSearchField extends StatefulWidget {
   /// Class constructor
   const OcptResourcesSearchField({super.key, required this.query, required this.onChanged});
 
+  /// Create the [_OcptResourcesSearchFieldState] holding the state of the resources search field.
   @override
   State<OcptResourcesSearchField> createState() => _OcptResourcesSearchFieldState();
 }
@@ -41,6 +42,7 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.query);
 
+  /// Show the new query in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant OcptResourcesSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -50,6 +52,7 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
     }
   }
 
+  /// Build the resources search field as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -83,6 +86,7 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
     widget.onChanged("");
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

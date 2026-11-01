@@ -77,6 +77,7 @@ class OcptElementsList extends StatelessWidget {
     required this.onElementSelected,
   });
 
+  /// Build the elements list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -150,6 +151,7 @@ class _OcptElementEntry extends StatelessWidget {
   /// Class constructor
   const _OcptElementEntry({required this.element, required this.isSelected, required this.onTap});
 
+  /// Build the element entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -35,6 +35,7 @@ class OcptDateRangeControl extends StatelessWidget {
     required this.onEndPressed,
   });
 
+  /// Build the date range control as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

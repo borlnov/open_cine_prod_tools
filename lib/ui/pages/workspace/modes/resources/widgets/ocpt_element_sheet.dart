@@ -165,6 +165,7 @@ class OcptElementSheet extends StatelessWidget {
     required this.onRoleSheetOpenRequested,
   });
 
+  /// Build the element sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -278,6 +279,7 @@ class _RolesConcernedCard extends StatelessWidget {
   /// Class constructor
   const _RolesConcernedCard({required this.rolesConcerned, required this.onRoleSheetOpenRequested});
 
+  /// Build the roles concerned card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

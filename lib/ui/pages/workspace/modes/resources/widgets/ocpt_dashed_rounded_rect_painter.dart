@@ -21,6 +21,7 @@ class OcptDashedRoundedRectPainter extends CustomPainter {
   /// Class constructor
   const OcptDashedRoundedRectPainter({required this.color});
 
+  /// Stroke the dashed rounded outline of the whole canvas.
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
@@ -43,6 +44,7 @@ class OcptDashedRoundedRectPainter extends CustomPainter {
     }
   }
 
+  /// Repaint when [oldDelegate] has another colour.
   @override
   bool shouldRepaint(covariant OcptDashedRoundedRectPainter oldDelegate) =>
       oldDelegate.color != color;

@@ -40,6 +40,7 @@ class OcptPersonSheetAvatar extends StatelessWidget {
     required this.onColorChanged,
   });
 
+  /// Build the person sheet avatar as an [OcptResourcesPhotoSlot].
   @override
   Widget build(BuildContext context) => OcptResourcesPhotoSlot(
     photo: person.photo,

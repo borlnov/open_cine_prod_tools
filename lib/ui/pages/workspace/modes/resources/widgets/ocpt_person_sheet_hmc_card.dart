@@ -35,6 +35,7 @@ class OcptPersonSheetHmcCard extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the person sheet hmc card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -103,6 +104,7 @@ class _FieldRow extends StatelessWidget {
   /// Class constructor
   const _FieldRow({required this.card, required this.fields});
 
+  /// Build the field row as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,

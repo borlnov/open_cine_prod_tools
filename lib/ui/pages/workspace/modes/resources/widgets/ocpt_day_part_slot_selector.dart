@@ -21,6 +21,7 @@ class OcptDayPartSlotSelector extends StatelessWidget {
   /// Class constructor
   const OcptDayPartSlotSelector({super.key, required this.value, required this.onChanged});
 
+  /// Build the day part slot selector as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

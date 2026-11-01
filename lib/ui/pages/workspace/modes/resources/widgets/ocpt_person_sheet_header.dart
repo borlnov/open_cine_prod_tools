@@ -61,6 +61,7 @@ class OcptPersonSheetHeader extends StatelessWidget {
     required this.onBirthDateChanged,
   });
 
+  /// Build the person sheet header as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -144,6 +145,7 @@ class _MinorBadge extends StatelessWidget {
   /// Class constructor
   const _MinorBadge({required this.age});
 
+  /// Build the minor badge as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -177,6 +179,7 @@ class _FieldRow extends StatelessWidget {
   /// Class constructor
   const _FieldRow({required this.first, required this.second});
 
+  /// Build the field row as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,6 +213,7 @@ class _TextField extends StatelessWidget {
     this.errorTextOf,
   });
 
+  /// Build the text field as an [OcptResourcesSheetField].
   @override
   Widget build(BuildContext context) => OcptResourcesSheetField(
     ownerId: header.person.id,
@@ -234,6 +238,7 @@ class _ContactGrid extends StatelessWidget {
   /// Class constructor
   const _ContactGrid({required this.header});
 
+  /// Build the contact grid as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

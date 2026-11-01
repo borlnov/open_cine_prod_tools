@@ -32,6 +32,7 @@ class OcptRoleAvatar extends StatelessWidget {
   /// Class constructor
   const OcptRoleAvatar({super.key, required this.castMember, required this.radius});
 
+  /// Build the role avatar as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

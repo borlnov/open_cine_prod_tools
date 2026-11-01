@@ -55,6 +55,7 @@ class OcptResourcesRoleSheetView extends StatelessWidget {
     required this.onMergeRequested,
   });
 
+  /// Build the resources role sheet view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

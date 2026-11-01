@@ -73,6 +73,7 @@ class OcptLocationsList extends StatelessWidget {
     required this.onLocationSelected,
   });
 
+  /// Build the locations list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -115,6 +116,7 @@ class _OcptLocationEntry extends StatelessWidget {
   /// Class constructor
   const _OcptLocationEntry({required this.location, required this.isSelected, required this.onTap});
 
+  /// Build the location entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

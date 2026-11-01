@@ -76,6 +76,7 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
     required this.onLinkRemoved,
   });
 
+  /// Build the role sheet elements card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -161,6 +162,7 @@ class _OcptRoleElementRow extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptRoleElementRowState] holding the state of the role element row.
   @override
   State<_OcptRoleElementRow> createState() => _OcptRoleElementRowState();
 }
@@ -186,12 +188,14 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_flushOnFocusLost);
   }
 
+  /// Build the role element row as a [Focus].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -277,6 +281,7 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
     widget.onUpdated?.call(_notesController.text);
   }
 
+  /// Flush the pending edit, cancel [_debounce], then dispose [_focusNode] and [_notesController].
   @override
   void dispose() {
     _flushIfDirty();
@@ -296,6 +301,7 @@ class _CategoryHeading extends StatelessWidget {
   /// Class constructor
   const _CategoryHeading({required this.category});
 
+  /// Build the category heading as a [Padding].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -342,6 +348,7 @@ class _ElementPicker extends StatelessWidget {
   /// Class constructor
   const _ElementPicker({required this.card, required this.linked});
 
+  /// Build the element picker as an [Align].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

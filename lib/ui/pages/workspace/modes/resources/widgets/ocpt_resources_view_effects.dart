@@ -23,6 +23,7 @@ class OcptResourcesViewEffects extends StatelessWidget {
   /// Class constructor
   const OcptResourcesViewEffects({super.key, required this.child});
 
+  /// Build the resources view effects as a [BlocListener].
   @override
   Widget build(BuildContext context) =>
       BlocListener<OcptResourcesExportBloc, OcptResourcesExportState>(

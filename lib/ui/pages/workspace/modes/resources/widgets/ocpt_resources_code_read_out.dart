@@ -33,6 +33,7 @@ class OcptResourcesCodeReadOut extends StatelessWidget {
   /// Class constructor
   const OcptResourcesCodeReadOut({super.key, required this.label, required this.code});
 
+  /// Build the resources code read out as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

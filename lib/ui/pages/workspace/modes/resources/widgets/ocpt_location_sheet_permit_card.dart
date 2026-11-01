@@ -80,6 +80,7 @@ class OcptLocationSheetPermitCard extends StatelessWidget {
     required this.onPermitDocumentValidUntilChanged,
   });
 
+  /// Build the location sheet permit card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -149,6 +150,7 @@ class _Document extends StatelessWidget {
     required this.onPermitDocumentValidUntilChanged,
   });
 
+  /// Build the document as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

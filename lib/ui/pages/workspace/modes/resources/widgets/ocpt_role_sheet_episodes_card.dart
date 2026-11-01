@@ -42,6 +42,7 @@ class OcptRoleSheetEpisodesCard extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the role sheet episodes card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

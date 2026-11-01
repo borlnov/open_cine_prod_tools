@@ -39,7 +39,7 @@ class OcptResourcesExportState extends BlocStateForMixin<OcptResourcesExportStat
   /// Copies this state with the export notice dismissed.
   OcptResourcesExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, ioNotice];
 }

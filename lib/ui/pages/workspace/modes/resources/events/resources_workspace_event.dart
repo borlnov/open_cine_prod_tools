@@ -37,7 +37,7 @@ class OcptResourcesTabSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -50,7 +50,7 @@ class OcptResourcesPersonSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesPersonSelectedEvent({required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId];
 }
@@ -66,7 +66,7 @@ class OcptResourcesRoleSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesRoleSelectedEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -86,7 +86,7 @@ class OcptResourcesPersonSheetOpenRequestedEvent extends OcptResourcesWorkspaceE
   /// Class constructor
   const OcptResourcesPersonSheetOpenRequestedEvent({required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, personId];
 }
@@ -106,7 +106,7 @@ class OcptResourcesRoleSheetOpenRequestedEvent extends OcptResourcesWorkspaceEve
   /// Class constructor
   const OcptResourcesRoleSheetOpenRequestedEvent({required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, roleId];
 }
@@ -120,7 +120,7 @@ class OcptResourcesLocationSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesLocationSelectedEvent({required this.locationId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, locationId];
 }
@@ -142,7 +142,7 @@ class OcptResourcesOpenSetInShotListRequestedEvent extends OcptResourcesWorkspac
   /// Class constructor
   const OcptResourcesOpenSetInShotListRequestedEvent({required this.setId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, setId];
 }
@@ -163,7 +163,7 @@ class OcptResourcesElementSelectedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesElementSelectedEvent({required this.elementId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, elementId];
 }
@@ -197,7 +197,7 @@ class OcptResourcesSearchQueryChangedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesSearchQueryChangedEvent({required this.query});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, query];
 }
@@ -212,7 +212,7 @@ class OcptResourcesRightDockTabSelectedEvent extends OcptResourcesWorkspaceEvent
   /// Class constructor
   const OcptResourcesRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -244,7 +244,7 @@ class OcptResourcesDockFractionsChangedEvent extends OcptResourcesWorkspaceEvent
   /// Class constructor
   const OcptResourcesDockFractionsChangedEvent({this.left, this.right});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, left, right];
 }
@@ -299,7 +299,7 @@ class OcptResourcesRecordCreatedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesRecordCreatedEvent({required this.tab, required this.recordId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab, recordId];
 }
@@ -318,7 +318,7 @@ class OcptResourcesRecordDroppedEvent extends OcptResourcesWorkspaceEvent {
   /// Class constructor
   const OcptResourcesRecordDroppedEvent({required this.tab, required this.recordId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab, recordId];
 }

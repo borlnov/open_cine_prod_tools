@@ -31,6 +31,7 @@ class OcptResourcesRightDockView extends StatelessWidget {
     required this.onVersionCreationRequested,
   });
 
+  /// Build the resources right dock view as an [OcptResourcesRightDock].
   @override
   Widget build(BuildContext context) => OcptResourcesRightDock(
     versionsChild: OcptProjectVersionsPanel(

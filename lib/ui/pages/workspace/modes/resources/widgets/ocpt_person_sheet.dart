@@ -167,6 +167,7 @@ class OcptPersonSheet extends StatelessWidget {
     required this.onDeleteRequested,
   });
 
+  /// Build the person sheet as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -257,6 +258,7 @@ class _CardGrid extends StatelessWidget {
   /// Class constructor
   const _CardGrid({required this.sheet});
 
+  /// Build the card grid as a [Column].
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,

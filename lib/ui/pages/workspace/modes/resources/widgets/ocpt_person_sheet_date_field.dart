@@ -39,6 +39,7 @@ class OcptPersonSheetDateField extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the person sheet date field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

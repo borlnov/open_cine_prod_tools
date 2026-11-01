@@ -67,6 +67,7 @@ class OcptPeopleList extends StatelessWidget {
     required this.onPersonSelected,
   });
 
+  /// Build the people list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -105,6 +106,7 @@ class _OcptPersonEntry extends StatelessWidget {
   /// Class constructor
   const _OcptPersonEntry({required this.person, required this.isSelected, required this.onTap});
 
+  /// Build the person entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

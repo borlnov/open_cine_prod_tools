@@ -69,6 +69,7 @@ class OcptResourcesPhotoSlot extends StatelessWidget {
     required this.onColorChanged,
   });
 
+  /// Build the resources photo slot.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -151,6 +152,7 @@ class _OcptPhotoSlotMenu extends StatelessWidget {
     required this.slot,
   });
 
+  /// Build the photo slot menu as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

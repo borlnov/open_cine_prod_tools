@@ -53,6 +53,7 @@ class OcptResourcesColorSwatches extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the resources color swatches as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.all(_gridPadding),
@@ -90,6 +91,7 @@ class _OcptColorSwatch extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the color swatch as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

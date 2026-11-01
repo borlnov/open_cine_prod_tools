@@ -130,6 +130,7 @@ class OcptRolesList extends StatelessWidget {
     required this.onRoleSelected,
   });
 
+  /// Build the roles list as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -226,6 +227,7 @@ class _OcptRoleEntry extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the role entry as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -351,6 +353,7 @@ class _OcptRoleCastingPill extends StatelessWidget {
   /// Class constructor
   const _OcptRoleCastingPill({required this.progress});
 
+  /// Build the role casting pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -65,6 +65,7 @@ class OcptResourcesCentre extends StatelessWidget {
     required this.onElementDeleteRequested,
   });
 
+  /// Build the resources centre as a [Column].
   @override
   Widget build(BuildContext context) {
     final orphanedAlerts = state.orphanedRoleAlerts;

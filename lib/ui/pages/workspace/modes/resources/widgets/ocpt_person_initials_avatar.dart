@@ -26,6 +26,7 @@ class OcptPersonInitialsAvatar extends StatelessWidget {
   /// Class constructor
   const OcptPersonInitialsAvatar({super.key, required this.person, required this.radius});
 
+  /// Build the person initials avatar as a [CircleAvatar].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

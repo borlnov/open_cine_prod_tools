@@ -19,6 +19,7 @@ class OcptResourcesReadOnlyBanner extends StatelessWidget {
   /// Class constructor
   const OcptResourcesReadOnlyBanner({super.key, required this.previewedVersion});
 
+  /// Build the resources read only banner as an [OcptWorkspaceReadOnlyBanner].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

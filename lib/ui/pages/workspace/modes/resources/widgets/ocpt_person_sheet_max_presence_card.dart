@@ -36,6 +36,7 @@ class OcptPersonSheetMaxPresenceCard extends StatelessWidget {
     required this.onFieldChanged,
   });
 
+  /// Build the person sheet max presence card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

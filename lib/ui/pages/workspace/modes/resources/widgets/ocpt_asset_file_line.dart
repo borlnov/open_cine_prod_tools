@@ -34,6 +34,7 @@ class OcptAssetFileLine extends StatefulWidget {
   /// Class constructor
   const OcptAssetFileLine({super.key, required this.asset, required this.onRemoved});
 
+  /// Create the [_OcptAssetFileLineState] holding the state of the asset file line.
   @override
   State<OcptAssetFileLine> createState() => _OcptAssetFileLineState();
 }
@@ -43,6 +44,7 @@ class _OcptAssetFileLineState extends State<OcptAssetFileLine> {
   /// Whether the referenced file was there when it was last asked about.
   late bool _exists = File(widget.asset.path).existsSync();
 
+  /// Check again that the file exists when its path changes.
   @override
   void didUpdateWidget(covariant OcptAssetFileLine oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -51,6 +53,7 @@ class _OcptAssetFileLineState extends State<OcptAssetFileLine> {
     }
   }
 
+  /// Build the asset file line as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

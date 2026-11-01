@@ -68,7 +68,7 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
   OcptResourcesElementsState copyWithFieldEditsLost({required int lostEditsEpoch}) =>
       copyWith(pendingElementFieldEdits: const {}, lastLostEditsEpoch: lostEditsEpoch);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, pendingElementFieldEdits, lastLostEditsEpoch];
 }

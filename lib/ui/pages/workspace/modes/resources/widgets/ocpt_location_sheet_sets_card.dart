@@ -102,6 +102,7 @@ class OcptLocationSheetSetsCard extends StatelessWidget {
     required this.onOpenInShotListRequested,
   });
 
+  /// Build the location sheet sets card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -141,6 +142,7 @@ class _SetRow extends StatelessWidget {
   /// Class constructor
   const _SetRow({required this.card, required this.set});
 
+  /// Build the set row as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -223,6 +225,7 @@ class _FloorPlanRow extends StatelessWidget {
   /// Class constructor
   const _FloorPlanRow({required this.card, required this.set});
 
+  /// Build the floor plan row as a [Row].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -264,6 +267,7 @@ class _MoveButton extends StatelessWidget {
   /// Class constructor
   const _MoveButton({required this.card, required this.set});
 
+  /// Build the move button as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -304,6 +308,7 @@ class _SetField extends StatelessWidget {
     required this.label,
   });
 
+  /// Build the set field as an [OcptResourcesSheetField].
   @override
   Widget build(BuildContext context) {
     final onSetFieldChanged = card.onSetFieldChanged;
@@ -330,6 +335,7 @@ class _ScenesRow extends StatelessWidget {
   /// Class constructor
   const _ScenesRow({required this.card, required this.set});
 
+  /// Build the scenes row as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -384,6 +390,7 @@ class _ScenePicker extends StatelessWidget {
   /// Class constructor
   const _ScenePicker({required this.card, required this.set});
 
+  /// Build the scene picker as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

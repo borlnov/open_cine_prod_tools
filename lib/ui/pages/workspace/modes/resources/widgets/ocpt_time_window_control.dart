@@ -38,6 +38,7 @@ class OcptTimeWindowControl extends StatelessWidget {
     required this.onEndPressed,
   });
 
+  /// Build the time window control as a [Row].
   @override
   Widget build(BuildContext context) => Row(
     children: [

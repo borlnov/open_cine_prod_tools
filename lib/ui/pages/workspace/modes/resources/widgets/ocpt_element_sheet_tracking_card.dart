@@ -47,6 +47,7 @@ class OcptElementSheetTrackingCard extends StatelessWidget {
     required this.onTrackingFlagChanged,
   });
 
+  /// Build the element sheet tracking card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -112,6 +113,7 @@ class _Flag extends StatelessWidget {
     required this.onTrackingFlagChanged,
   });
 
+  /// Build the flag as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

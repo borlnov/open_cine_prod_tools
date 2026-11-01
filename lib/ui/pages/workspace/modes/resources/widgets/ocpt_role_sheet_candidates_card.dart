@@ -93,6 +93,7 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
     required this.onCandidateRemoveRequested,
   });
 
+  /// Build the role sheet candidates card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -195,6 +196,7 @@ class _OcptRoleCandidateRow extends StatefulWidget {
     required this.onCandidateRemoveRequested,
   });
 
+  /// Create the [_OcptRoleCandidateRowState] holding the state of the role candidate row.
   @override
   State<_OcptRoleCandidateRow> createState() => _OcptRoleCandidateRowState();
 }
@@ -206,6 +208,7 @@ class _OcptRoleCandidateRowState extends State<_OcptRoleCandidateRow> {
   /// Whether the note field is currently shown.
   late bool _isNoteExpanded = widget.notesValue.isNotEmpty;
 
+  /// Build the role candidate row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -296,6 +299,7 @@ class _OcptCandidateStatusPill extends StatelessWidget {
   /// Class constructor
   const _OcptCandidateStatusPill({required this.status});
 
+  /// Build the candidate status pill as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -331,6 +335,7 @@ class _CandidatePicker extends StatelessWidget {
   /// Class constructor
   const _CandidatePicker({required this.card, required this.ordered});
 
+  /// Build the candidate picker as an [Align].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -392,6 +397,7 @@ class _ActionsMenu extends StatelessWidget {
     required this.onCandidateRemoveRequested,
   });
 
+  /// Build the actions menu as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -444,6 +450,7 @@ class _NoteToggle extends StatelessWidget {
   /// Class constructor
   const _NoteToggle({required this.isExpanded, required this.onToggled});
 
+  /// Build the note toggle as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

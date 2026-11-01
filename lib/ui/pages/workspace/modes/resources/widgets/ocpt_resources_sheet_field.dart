@@ -93,6 +93,7 @@ class OcptResourcesSheetField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptResourcesSheetFieldState] holding the state of the resources sheet field.
   @override
   State<OcptResourcesSheetField> createState() => _OcptResourcesSheetFieldState();
 }
@@ -113,12 +114,14 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
   /// [OcptResourcesSheetField.errorTextOf] is only shown once typing has stopped.
   final FocusNode _focusNode = FocusNode();
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new value when the owner or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant OcptResourcesSheetField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -129,6 +132,7 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     }
   }
 
+  /// Build the resources sheet field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -183,6 +187,7 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     return errorTextOf(_controller.text);
   }
 
+  /// Dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode.dispose();

@@ -86,6 +86,7 @@ class OcptLocationSheetAvailabilitiesCard extends StatelessWidget {
     required this.onAdded,
   });
 
+  /// Build the location sheet availabilities card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -235,6 +236,7 @@ class _OcptAvailabilityRow extends StatefulWidget {
     required this.onSlotAdded,
   });
 
+  /// Create the [_OcptAvailabilityRowState] holding the state of the availability row.
   @override
   State<_OcptAvailabilityRow> createState() => _OcptAvailabilityRowState();
 }
@@ -281,12 +283,14 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
   /// Whether a local note edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_noteFocusNode].
   @override
   void initState() {
     super.initState();
     _noteFocusNode.addListener(_flushOnFocusLost);
   }
 
+  /// Build the availability row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -532,6 +536,8 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
     _report();
   }
 
+  /// Flush the pending edit, cancel [_debounce], then dispose [_noteFocusNode] and
+  /// [_noteController].
   @override
   void dispose() {
     _flushIfDirty();
@@ -558,6 +564,7 @@ class _OcptWeekdaySelector extends StatelessWidget {
   /// Class constructor
   const _OcptWeekdaySelector({required this.value, required this.onToggled});
 
+  /// Build the weekday selector as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final materialLocalizations = MaterialLocalizations.of(context);

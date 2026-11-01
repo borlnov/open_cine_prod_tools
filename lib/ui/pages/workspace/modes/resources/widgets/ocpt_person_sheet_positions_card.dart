@@ -66,6 +66,7 @@ class OcptPersonSheetPositionsCard extends StatelessWidget {
     required this.onAdded,
   });
 
+  /// Build the person sheet positions card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -130,6 +131,7 @@ class _OcptPersonPositionRow extends StatefulWidget {
     required this.onRemoved,
   });
 
+  /// Create the [_OcptPersonPositionRowState] holding the state of the person position row.
   @override
   State<_OcptPersonPositionRow> createState() => _OcptPersonPositionRowState();
 }
@@ -161,12 +163,14 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
   /// Whether a local edit is waiting to be flushed.
   bool _isDirty = false;
 
+  /// Register [_flushOnFocusLost] as a listener of [_labelFocusNode].
   @override
   void initState() {
     super.initState();
     _labelFocusNode.addListener(_flushOnFocusLost);
   }
 
+  /// Build the person position row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -307,6 +311,8 @@ class _OcptPersonPositionRowState extends State<_OcptPersonPositionRow> {
     }
   }
 
+  /// Flush the pending edit, cancel [_debounce], then dispose [_labelFocusNode] and
+  /// [_labelController].
   @override
   void dispose() {
     _flushIfDirty();

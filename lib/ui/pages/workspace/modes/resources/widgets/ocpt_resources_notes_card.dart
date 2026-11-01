@@ -33,6 +33,7 @@ class OcptResourcesNotesCard extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the resources notes card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) => OcptResourcesSheetCard(
     title: title,

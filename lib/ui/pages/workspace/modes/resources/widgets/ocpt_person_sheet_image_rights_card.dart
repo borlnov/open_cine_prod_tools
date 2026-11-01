@@ -71,6 +71,7 @@ class OcptPersonSheetImageRightsCard extends StatelessWidget {
     required this.onDocumentCleared,
   });
 
+  /// Build the person sheet image rights card as an [OcptResourcesSheetCard].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -126,6 +127,7 @@ class _OcptImageRightsStatusBadge extends StatelessWidget {
   /// Class constructor
   const _OcptImageRightsStatusBadge({required this.status, required this.onChanged});
 
+  /// Build the image rights status badge as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

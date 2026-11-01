@@ -148,6 +148,7 @@ class OcptResourcesListPanel extends StatelessWidget {
     required this.onAddElementRequested,
   });
 
+  /// Build the resources list panel as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -280,6 +281,7 @@ class _OcptAddRoleButton extends StatelessWidget {
   /// Class constructor
   const _OcptAddRoleButton({required this.onKindPicked});
 
+  /// Build the add role button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -322,6 +324,7 @@ class _OcptAddElementButton extends StatelessWidget {
   /// Class constructor
   const _OcptAddElementButton({required this.onCategoryPicked});
 
+  /// Build the add element button as a [MenuAnchor].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -354,6 +357,7 @@ class _Body extends StatelessWidget {
   /// Class constructor
   const _Body({required this.panel});
 
+  /// Build the body as an [OcptElementsList].
   @override
   Widget build(BuildContext context) {
     if (panel.activeTab == OcptResourcesTab.people) {

@@ -30,6 +30,7 @@ class OcptPersonSheetMinorCallout extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the person sheet minor callout as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
