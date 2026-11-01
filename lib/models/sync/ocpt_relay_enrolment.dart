@@ -4,6 +4,7 @@
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_uri_query.dart';
 import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 
 /// The two pieces of information the on-set relay's own enrolment QR carries so a device can be
@@ -39,10 +40,8 @@ class OcptRelayEnrolment extends Equatable {
   static ResultWithStatus<OcptRelayEnrolmentStatus, OcptRelayEnrolment> parse(
     String enrolmentString,
   ) {
-    final Uri uri;
-    try {
-      uri = Uri.parse(enrolmentString);
-    } on FormatException {
+    final uri = Uri.tryParse(enrolmentString);
+    if (uri == null) {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedUri);
     }
 
@@ -54,15 +53,12 @@ class OcptRelayEnrolment extends Equatable {
     }
 
     // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
-    final String? relay;
-    final String? secret;
-    try {
-      final query = uri.queryParameters;
-      relay = query[_relayParam];
-      secret = query[_secretParam];
-    } on FormatException {
+    final query = ocptQueryParametersOrNull(uri);
+    if (query == null) {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedUri);
     }
+    final relay = query[_relayParam];
+    final secret = query[_secretParam];
     if (relay == null || relay.isEmpty) {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.missingRelay);
     }
@@ -70,10 +66,8 @@ class OcptRelayEnrolment extends Equatable {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.missingSecret);
     }
 
-    final Uri relayBaseUri;
-    try {
-      relayBaseUri = Uri.parse(relay);
-    } on FormatException {
+    final relayBaseUri = Uri.tryParse(relay);
+    if (relayBaseUri == null) {
       return const ResultWithStatus(status: OcptRelayEnrolmentStatus.malformedRelay);
     }
 

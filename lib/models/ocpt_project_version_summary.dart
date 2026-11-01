@@ -113,14 +113,14 @@ class OcptProjectVersionSummary extends Equatable {
   /// restorable, so an unreadable one is logged and shown as zeroes rather than hiding the version
   /// from its own list.
   static OcptProjectVersionSummary parse(String summaryJson) {
+    var summary = empty;
     try {
       final decoded = jsonDecode(summaryJson);
       if (decoded is! Map<String, dynamic>) {
         appLogger().w("The stored project version summary isn't a JSON object");
-        return empty;
+      } else {
+        summary = fromJson(decoded) ?? empty;
       }
-
-      return fromJson(decoded) ?? empty;
     } on FormatException catch (error, stackTrace) {
       // A JSON error quotes the text around the fault, so only its type is logged.
       appLogger().w(
@@ -128,8 +128,9 @@ class OcptProjectVersionSummary extends Equatable {
         null,
         stackTrace,
       );
-      return empty;
     }
+
+    return summary;
   }
 
   /// Object string representation, useful for debugging and logging.

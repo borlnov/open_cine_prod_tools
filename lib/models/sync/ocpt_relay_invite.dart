@@ -4,6 +4,7 @@
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_uri_query.dart';
 import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 
 /// The three pieces of information the Partager screen's QR code carries so the Rejoindre screen
@@ -29,10 +30,8 @@ class OcptRelayInvite extends Equatable {
   ///
   /// A failure is not logged: the string is, or holds, a token.
   static ResultWithStatus<OcptRelayInviteStatus, OcptRelayInvite> parse(String inviteString) {
-    final Uri uri;
-    try {
-      uri = Uri.parse(inviteString);
-    } on FormatException {
+    final uri = Uri.tryParse(inviteString);
+    if (uri == null) {
       return const ResultWithStatus(status: OcptRelayInviteStatus.malformedUri);
     }
 
@@ -44,17 +43,13 @@ class OcptRelayInvite extends Equatable {
     }
 
     // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
-    final String? relay;
-    final String? projectId;
-    final String? token;
-    try {
-      final query = uri.queryParameters;
-      relay = query[_relayParam];
-      projectId = query[_projectIdParam];
-      token = query[_tokenParam];
-    } on FormatException {
+    final query = ocptQueryParametersOrNull(uri);
+    if (query == null) {
       return const ResultWithStatus(status: OcptRelayInviteStatus.malformedUri);
     }
+    final relay = query[_relayParam];
+    final projectId = query[_projectIdParam];
+    final token = query[_tokenParam];
     if (relay == null || relay.isEmpty) {
       return const ResultWithStatus(status: OcptRelayInviteStatus.missingRelay);
     }
@@ -65,10 +60,8 @@ class OcptRelayInvite extends Equatable {
       return const ResultWithStatus(status: OcptRelayInviteStatus.missingToken);
     }
 
-    final Uri relayBaseUri;
-    try {
-      relayBaseUri = Uri.parse(relay);
-    } on FormatException {
+    final relayBaseUri = Uri.tryParse(relay);
+    if (relayBaseUri == null) {
       return const ResultWithStatus(status: OcptRelayInviteStatus.malformedRelay);
     }
 

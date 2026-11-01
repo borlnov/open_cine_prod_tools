@@ -63,6 +63,20 @@ void main() {
       expect(result.value, isNull);
     });
 
+    test('reports a string that cannot be parsed as a URI as a malformed URI', () {
+      final result = OcptRelayEnrolment.parse('http://[');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayEnrolmentStatus.malformedUri);
+      expect(result.value, isNull);
+    });
+
+    test('reports a relay that cannot be parsed as a URI as a malformed relay', () {
+      final result = OcptRelayEnrolment.parse('ocpt://relay?r=http%3A%2F%2F%5B&e=x');
+      expect(result.isSuccess, isFalse);
+      expect(result.status, OcptRelayEnrolmentStatus.malformedRelay);
+      expect(result.value, isNull);
+    });
+
     test('rejects a plain string', () {
       final result = OcptRelayEnrolment.parse('not a uri at all');
       expect(result.isSuccess, isFalse);
