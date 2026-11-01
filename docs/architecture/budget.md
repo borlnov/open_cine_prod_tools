@@ -353,10 +353,10 @@ are all here, and this file is the whole record of them.
   (`AGENTS.md`). `ocptBudgetCncPosteSeeds` (`lib/ui/widgets/helpers/ocpt_budget_labels.dart`) is the
   one place that turns the ten constants into `OcptBudgetPosteSeed` (`lib/models/`, already
   localized), and `OcptBudgetMode` calls it **once**, against the outer, listening-safe
-  `BuildContext`, and hands the result to `OcptBudgetBloc` as a constructor argument rather than
-  something the bloc watches: a provider's own `create` callback may never perform a listening
-  `Tr.of` read, and nothing about a seed's own words changes between a preview and a restore, which
-  swap the database, not the app's locale.
+  `BuildContext`, and hands the result to `OcptBudgetBloc` as a constructor argument (it keeps it in
+  its `OcptBudgetSnapshotLoader`) rather than something the bloc watches: a provider's own
+  `create` callback may never perform a listening `Tr.of` read, and nothing about a seed's own
+  words changes between a preview and a restore, which swap the database, not the app's locale.
 
 ## The schema
 
@@ -434,8 +434,7 @@ are all here, and this file is the whole record of them.
 - **One budget for the whole production, not one per episode** (ADR 0019): `budget_postes` and
   `budget_lines` name no episode at all, so `OcptBudgetMode` keeps the shell's own
   `onEpisodeSelected` null, exactly as the schedule mode already does and for the schedule's own
-  reason — a selector would filter a read that was never split by episode to begin with, not a
-  standing-in for a bloc this mode does not have; it has one.
+  reason — a selector would filter a read that was never split by episode to begin with.
 - **Four chips in the header, in the design's own order** — `dashboard`, `expenses`, `resources`,
   `tools` — each switching `OcptBudgetState.view`, and, only while `tools` is picked, a second
   segmented switch beside them switching `OcptBudgetState.toolsView` between the drawer's own three
@@ -445,6 +444,81 @@ are all here, and this file is the whole record of them.
   class doc comment). The right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
   `Inspector`, the polymorphic fiche described below; the shared `Versions` tab every mode carries;
   and `Help`.
+
+## The blocs
+
+- **The mode is one mode bloc and five view blocs** (ADR 0034; `foundations.md` states the idiom).
+  `OcptBudgetMode` builds `OcptBudgetBloc` first, then the export, expenses, financing, sharing
+  and cash journal blocs with `lazy: false`, so each has registered its flusher before a widget
+  reads it. The files sit in `lib/ui/pages/workspace/modes/budget/`; the events are one sealed
+  hierarchy per domain in `events/` (`workspace`, `selection`, `expenses`, `cash_journal`,
+  `financing`, `sharing`, `export`), all extending the abstract `OcptBudgetEvent`, and
+  `budget_event.dart` only exports them.
+  - **The mode bloc** holds the snapshot (the quote, the journal, the financing plan, the sharing
+    and the catering pass, joined by `OcptBudgetSnapshotLoader`, which only reads) with the raw
+    roles, people, elements and mileage rates, the page setup, the title, the central view, the
+    tools page, the two header switches, the docks, and the shared selection: the sealed
+    `OcptBudgetSelection`, the filtered poste, the highlighted share, the poste the régie
+    provisions into and the expanded nodes. `OcptBudgetReloadScope` has one value, `snapshot`: the
+    budget is read as a whole, and the page setup is read by a whole load alone.
+  - **Every read of the snapshot reconciles the selection**, in the very state that carries it: a
+    selected row, a filtered poste or a highlighted share the fresh snapshot no longer holds is
+    dropped, and `selectionEpoch` moves with `OcptBudgetSelectionCause.reconciled`. The project
+    settings page re-reads the same way, so it refreshes the currency and the default VAT rate but
+    not the page setup, which only a whole load reads again.
+  - **What moves the selection says why** (`OcptBudgetSelectionCause`): `selected` (a poste, a
+    line, a commitment, an entry, a receipt, a resource or a taking, opening the right dock on its
+    `Inspector` tab), `shareSelected` (a plain highlight), `created`, `filtered`,
+    `provisionSelected`, `viewChanged` (the chips asking to drop the selection), `reconciled`,
+    `cleared` (ahead of a version preview, a restore, a saved version or a package export) and
+    `load`. A view creates a record, reads the snapshot again and asks the mode to select it
+    (`OcptBudgetSelectionCreatedEvent`, `OcptBudgetShareCreatedEvent`, both awaited): a poste and a
+    line open the right dock, a resource, a taking and a share do not. Selecting an id the
+    snapshot does not hold moves nothing. No view bloc reacts to a selection: nothing a view holds
+    is scoped to the selected row.
+  - **What flushes the typed edits is the old handlers' own list.** A dock tab change, a view, a
+    tools page, either switch, the selection of a poste, a line, a commitment or an entry, the
+    poste filter, an export, a version preview, a restore, a saved version and a package export
+    write what the views hold first. The selection of a receipt, a resource, a taking or a share,
+    the dock toggle, the provisioning poste, a tree node, going back, creating a record and the
+    project settings do not.
+  - **A write that fails is not caught.** The service's error stops the handler it ran in: the edit
+    stays pending and on screen, the database is unchanged, and the debounce is gone until the next
+    keystroke, which writes everything again. The flush reports it, so the action behind it does
+    not happen: the mode's flush hooks answer false, and the selection, the view change, the
+    export, the preview, the restore, the saved version and the package export stop with the edit
+    still pending. Leaving the mode while a write fails is only logged. A read that fails after a
+    write that landed is logged and answers false, which stops the view that asked from selecting a
+    row the state may not hold.
+  - **`OcptBudgetExpensesBloc`** writes the postes and the quote lines (creating, reordering,
+    deleting, the estimate derived again, the tax basis, the inherited VAT rate), the `Pay` action
+    of a line, and owns the one pending-edit map of the mode (`OcptBudgetField`) with its debounce
+    and its flusher. A write is the service, then `await modeBloc.reload({snapshot})`, then the
+    edits it wrote are forgotten (only those whose value is still the one written). A mode that
+    reads everything again (entry, a version preview, a restore) drops them unwritten; an ordinary
+    re-read leaves them alone, including those typed into a row deleted meanwhile, as before the
+    split. Paying a line directly is still not atomic: the commitment is written, then the entry,
+    and a failure between the two leaves the commitment behind and reads nothing.
+  - **`OcptBudgetCashJournalBloc`** writes the entries and the commitments: creating, editing and
+    deleting each, settling a commitment, undoing a settlement on every entry that names it,
+    promoting an entry or a commitment into the quote, moving an entry off the quote. An entry
+    dialog can name a resource, a taking or a share still to be made; the bloc creates it through
+    the same writes the owning view uses (`budget_form_writes.dart`, extensions on the services),
+    so the row is the same whichever door it came through.
+  - **`OcptBudgetFinancingBloc`** writes the resources, the defrayals and the provisioning of a
+    poste, and keeps an in-kind contribution's counterpart quote line in step (it reads the postes
+    from the mode when it needs them). Deleting a contribution takes its counterpart line with it.
+  - **`OcptBudgetSharingBloc`** writes the takings and the shares.
+  - **The three blocs that type nothing hold no state of their own.** Their state classes are
+    empty: the data is the mode's, the selection is the mode's, and none of their fields is typed
+    into a debounce. They exist for the writes, and register a flusher that has nothing to write.
+  - **`OcptBudgetExportBloc`** runs the four exports and owns the transient notice. Each one first
+    has the mode write what is pending (`flushAllPendingWrites`, and stops if a write failed),
+    then reads the snapshot the mode holds.
+  - **The widgets.** `budget_mode.dart` still builds the shell and routes each event to the bloc
+    that owns it; the fiche reads the pending edits from the expenses bloc through a
+    `BlocBuilder`, so a keystroke redraws the fiche and not the whole mode, and the export notice
+    is shown by `OcptBudgetViewEffects`.
 
 ## The dashboard
 
@@ -1355,8 +1429,9 @@ are all here, and this file is the whole record of them.
   Every other write in the mode lands the instant it is dispatched — a tax-basis radio, a reorder,
   a delete, a creation — while the free-text fields alone (`OcptBudgetField`: a poste's label and
   code, a line's label, quantity, unit, unit price and notes) ride a 2 s autosave debounce, flushed
-  on a selection change, a dock tab change, a change of view, either header toggle, entering a
-  version preview and the mode's own `deactivate()`. Those last paths were added after the fact and
+  on the selection of a poste, a line, a commitment or an entry, the poste filter, a dock tab
+  change, a change of view, either header toggle, an export, entering a version preview and the
+  mode's own `deactivate()` (see "The blocs"). Those last paths were added after the fact and
   are the reason the mode once looked like it ignored what it was told: an amount typed in the
   cost-tracking table and followed straight by a click on another view was still sitting in the
   debounce, so that view drew the snapshot from before it and corrected itself two seconds later.
@@ -1541,12 +1616,13 @@ are all here, and this file is the whole record of them.
   poste picker — the same one a commitment offers — only while the selected kind is `inKind`, on
   creation and on an edit that turns a resource into one; a subsidy or a cash contribution never shows
   it. `OcptBudgetResourceFormFields.posteId` carries the pick.
-- **One counterpart line, kept in step by one write.** `OcptBudgetBloc`'s own reconciliation
-  (`_reconcileInKindCounterpartLine`, run right after the resource's own fields are written, the
-  same "one write, two rows" shape `OcptBudgetLinePaidDirectlyEvent` already uses) keeps exactly
-  one counterpart line whenever a contribution is in kind, and none otherwise: it mints one where
-  there is none, follows the label and the amount on an ordinary edit, **re-homes** the line —
-  deleted and re-minted, never moved in place, since `budget_lines.sortKey` is fractional within
+- **One counterpart line, kept in step by one write.** `OcptBudgetFinancingBloc`'s own
+  reconciliation (`_reconcileInKindCounterpartLine`, run right after the resource's own fields
+  are written, the same "one write, two rows" shape `OcptBudgetLinePaidDirectlyEvent` already
+  uses) keeps exactly one counterpart line whenever a contribution is in kind, and none otherwise:
+  it mints one where there is none, follows the label and the amount on an ordinary edit,
+  **re-homes** the line — deleted and re-minted, never moved in place, since
+  `budget_lines.sortKey` is fractional within
   its own poste ("A commitment's poste is editable, a quote line's is not") — when the poste
   changes, drops it on a reclassification away from in kind, and tombstones it with the
   contribution when that is deleted.
@@ -1569,8 +1645,8 @@ are all here, and this file is the whole record of them.
   at` reading and a calm banner naming the contribution it is covered by. Its sole action,
   `Edit the contribution`, opens that contribution — the one place the figure is changed, since
   editing the line directly would drift it away from the resource it must equal, which
-  `OcptBudgetBloc`'s own field-edit guard also refuses. An in-kind resource's own fiche mirrors it:
-  it names the poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`,
+  `OcptBudgetExpensesBloc`'s own field-edit guard also refuses. An in-kind resource's own fiche
+  mirrors it: it names the poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`,
   never a field of its own) and, while no journal entry has named it, drops its own
   `Promised · Received` stepper for the same `Valued at` reading — a valuation runs through no
   collection lifecycle — keeping that stepper and a real received figure the moment an entry does

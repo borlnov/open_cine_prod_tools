@@ -78,9 +78,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   view, a dock tab, a group of the inspector, the export panel, a function that cuts across views.
   A rendering of the same data with neither (a recap, a read-only table) has no bloc, and a mode
   whose surfaces are cut by function rather than by central view follows the same definition. The
-  shot list is the reference (`shot-list.md`); the schedule, the resources and the breakdown are split
-  the same way (`schedule.md`, `resources.md`, `breakdown.md`), and the other modes still own a
-  single bloc until they are.
+  shot list is the reference (`shot-list.md`); the schedule, the resources, the breakdown and the
+  budget are split the same way (`schedule.md`, `resources.md`, `breakdown.md`, `budget.md`), and
+  the other mode still owns a single bloc until it is.
   - **The mode bloc** (`OcptShotListBloc`, mixing in `MixinOcptModeBloc<State, Scope>` beside the
     two project mixins) owns **all the data** — every snapshot, the title, the page setup, the
     catalogues — and loads it; the **shared selection** (the chain a sequence, a shot and a set
@@ -144,12 +144,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
     asks every flusher even after one failed and answers `(hasWritten, hasFailed)`;
     `flushAllPendingWritesIn` turns that into the answer of `flushAllPendingWrites`, and
     `flushPendingProjectWrites` into whether the version or package action may go on. The two
-    modes differ because their old code did. The schedule had no `catch`, so a failed write aborted
-    the handler: its hooks answer false on `hasFailed`, and the preview, the restore, a saved
-    version, the package export, the dock tab change and each of the seven exports stop with the
-    edit still pending. The shot list's views catch their own failure (`hasWriteError`, the edit
-    dropped) and carry on: its hooks always answer true, and the action goes ahead on the value
-    the database still holds. A new mode copies whichever of the two its old handlers did, and a
+    modes differ because their old code did. The schedule and the budget had no `catch`, so a failed
+    write aborted the handler: their hooks answer false on `hasFailed`, and the preview, the
+    restore, a saved version, the package export, the dock tab change and each of the exports (and,
+    in the budget, every selection or view change that flushes) stop with the edit still pending.
+    The shot list's views catch their own failure (`hasWriteError`, the edit dropped) and carry
+    on: its hooks always answer true, and the action goes ahead on the value the database still
+    holds. A new mode copies whichever of the two its old handlers did, and a
     view that wants the action to go on catches its failure itself. The other modes' hooks answer
     true, unchanged.
   - **A stateless flush is written once.** The flush without state leaves the pending map full, as
@@ -203,7 +204,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
   `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
   is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list, the schedule,
-  the resources and the breakdown are) —
+  the resources, the breakdown and the budget are) —
   `OcptWorkspaceMode.isImplemented` is true of all six today, kept as an explicit list rather than a
   bare `true` so a mode shipped ahead of its own content (the way `budget` itself once sat here,
   rendering the shared "coming in a future version" empty state) has a single, obvious place to be
