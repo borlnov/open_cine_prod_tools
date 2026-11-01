@@ -138,7 +138,7 @@ class OcptResourcesElementsBloc
     _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
     if (state.pendingElementFieldEdits.isNotEmpty) {
-      emitter(state.copyWith(pendingElementFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
     }
   }
 
@@ -215,7 +215,11 @@ class OcptResourcesElementsBloc
         return;
       }
 
-      emitter(state.copyWith(pendingElementFieldEdits: _pendingWithoutElement(event.elementId)));
+      emitter(
+        state.copyWithElementDeleted(
+          pendingElementFieldEdits: _pendingWithoutElement(event.elementId),
+        ),
+      );
       await addToModeAndWait(
         OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.elements, recordId: event.elementId),
       );
@@ -243,7 +247,7 @@ class OcptResourcesElementsBloc
   ) async {
     final pending = Map<(String, OcptElementField), String>.of(state.pendingElementFieldEdits)
       ..[(event.elementId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingElementFieldEdits: pending));
+    emitter(state.copyWithFieldEditTyped(pendingElementFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesElementsFieldEditFlushRequestedEvent());
   }
@@ -282,7 +286,7 @@ class OcptResourcesElementsBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingElementFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -305,7 +309,7 @@ class OcptResourcesElementsBloc
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     emitter(
-      state.copyWith(
+      state.copyWithFieldEditsWritten(
         pendingElementFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingElementFieldEdits,
           written: pending,
@@ -330,7 +334,7 @@ class OcptResourcesElementsBloc
   /// This bloc empties its own map as well, for the mode that is closing and no longer answers.
   Future<void> _loseEdits(Emitter<OcptResourcesElementsState> emitter) async {
     await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
-    emitter(state.copyWith(pendingElementFieldEdits: const {}));
+    emitter(state.copyWithFieldEditsCleared());
   }
 
   /// Writes every pending field edit directly to the database, bypassing the debounce timer, the

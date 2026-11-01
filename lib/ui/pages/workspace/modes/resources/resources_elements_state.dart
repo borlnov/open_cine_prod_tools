@@ -30,6 +30,28 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
   );
 
+  /// Copies this state with every pending field edit dropped.
+  OcptResourcesElementsState copyWithFieldEditsCleared() =>
+      copyWith(pendingElementFieldEdits: const {});
+
+  /// Copies this state with [pendingElementFieldEdits] as the edits sitting in the debounce, an
+  /// element's field having just been typed into.
+  OcptResourcesElementsState copyWithFieldEditTyped({
+    required Map<(String, OcptElementField), String> pendingElementFieldEdits,
+  }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
+
+  /// Copies this state with [pendingElementFieldEdits] as the edits left once the pending ones
+  /// were written.
+  OcptResourcesElementsState copyWithFieldEditsWritten({
+    required Map<(String, OcptElementField), String> pendingElementFieldEdits,
+  }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
+
+  /// Copies this state with [pendingElementFieldEdits] as the edits left once an element was
+  /// deleted.
+  OcptResourcesElementsState copyWithElementDeleted({
+    required Map<(String, OcptElementField), String> pendingElementFieldEdits,
+  }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingElementFieldEdits];
