@@ -39,6 +39,21 @@ class OcptBudgetExpensesState extends BlocStateForMixin<OcptBudgetExpensesState>
   OcptBudgetExpensesState copyWith({Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits}) =>
       OcptBudgetExpensesState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
 
+  /// Copies this state with every pending field edit dropped.
+  OcptBudgetExpensesState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as the edits sitting in the debounce, a field
+  /// having just been typed into.
+  OcptBudgetExpensesState copyWithFieldEditTyped({
+    required Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as the edits left once the pending ones were
+  /// written.
+  OcptBudgetExpensesState copyWithFieldEditsWritten({
+    required Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits];

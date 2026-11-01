@@ -134,7 +134,7 @@ class OcptBudgetExpensesBloc
 
     cancelDebounce();
     if (state.pendingFieldEdits.isNotEmpty) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
     }
   }
 
@@ -445,7 +445,7 @@ class OcptBudgetExpensesBloc
   ) async {
     final pending = Map<OcptBudgetPendingFieldKey, String>.of(state.pendingFieldEdits)
       ..[(event.targetId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithFieldEditTyped(pendingFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptBudgetFieldEditFlushRequestedEvent());
   }
@@ -482,7 +482,7 @@ class OcptBudgetExpensesBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -496,7 +496,7 @@ class OcptBudgetExpensesBloc
     }
 
     emitter(
-      state.copyWith(
+      state.copyWithFieldEditsWritten(
         pendingFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingFieldEdits,
           written: pending,
