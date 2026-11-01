@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -593,7 +594,7 @@ void main() {
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
       // What a version preview or a restore does once it has swapped the database.
-      bloc.add(const OcptBudgetLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
 
       expect(quote.updatePosteCalls, 0);

@@ -14,15 +14,6 @@ sealed class OcptBudgetWorkspaceEvent extends OcptBudgetEvent {
   const OcptBudgetWorkspaceEvent();
 }
 
-/// Requests loading the current project's whole quote read: the postes with their lines (seeded on
-/// first read), the project's currency and default VAT rate.
-///
-/// Dispatched once by the bloc's own constructor; it isn't meant to be sent by a widget.
-class OcptBudgetLoadRequestedEvent extends OcptBudgetWorkspaceEvent {
-  /// Class constructor
-  const OcptBudgetLoadRequestedEvent();
-}
-
 /// Requests leaving the workspace: closes the current project and navigates back to the home page.
 class OcptBudgetBackRequestedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor

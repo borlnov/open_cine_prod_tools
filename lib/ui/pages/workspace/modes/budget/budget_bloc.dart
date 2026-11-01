@@ -85,7 +85,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
         MixinOcptProjectPackageBloc<OcptBudgetState>,
-        MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope> {
+        MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope>,
+        MixinAsyncInitBloc<OcptBudgetState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "budget_bloc";
 
@@ -131,15 +132,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
              projectsManager: projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
              seed: seed,
            ),
-       super(const OcptBudgetState.init()) {
-    add(const OcptBudgetLoadRequestedEvent());
-  }
+       super(const OcptBudgetState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptBudgetLoadRequestedEvent>(_onLoadRequested);
     on<OcptBudgetBackRequestedEvent>(_onBackRequested);
     on<OcptBudgetRightDockTabSelectedEvent>(_onRightDockTabSelected);
     on<OcptBudgetRightDockToggledEvent>(_onRightDockToggled);
@@ -271,8 +269,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) =>
-      _onLoadRequested(const OcptBudgetLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptBudgetState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the current project's whole budget through [_loader] (which seeds the ten CNC postes on
   /// the first read of an empty table), the page setup and the persisted dock state.
@@ -282,10 +290,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// pending field edit are always cleared on a (re)load: a preview or a restore changes the whole
   /// database underneath, so a stale selection is dropped rather than trusted to still mean
   /// something.
-  Future<void> _onLoadRequested(
-    OcptBudgetLoadRequestedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptBudgetState> emitter) async {
     final rightDockFraction =
         await _propertiesManager.budgetRightDockFraction.load() ??
         OcptWorkspaceDock.rightDefaultFraction;
