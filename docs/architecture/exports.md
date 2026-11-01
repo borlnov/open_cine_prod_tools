@@ -166,8 +166,10 @@ sit.
 
 - **On mobile, the write funnel hands the bytes to the OS share sheet instead of a picked save
   location.** `file_selector`'s `getSaveLocation`/`getDirectoryPath` have no Android or iOS
-  implementation, so `OcptExportManager`'s single write funnel branches on `PlatformManager.isMobile`
-  (`foundations.md`): desktop keeps `getSaveLocation`/`getDirectoryPath` → `File.writeAsBytes`
+  implementation, so `OcptExportWriteService`'s single write funnel (which `OcptExportManager`
+  owns, and which its `OcptDocumentExportOps`, `OcptBudgetExportOps` and `OcptScheduleExportOps`
+  write through) branches on `PlatformManager.isMobile` (`foundations.md`): desktop keeps
+  `getSaveLocation`/`getDirectoryPath` → `File.writeAsBytes`
   unchanged, mobile writes the bytes to a `path_provider` temp file and hands it — every file at
   once, for the folder-batch exports — to `OcptShareService` (`lib/managers/export/services/`, a
   thin `share_plus` wrapper reached through the manager rather than `globalGetIt()`, so a test can

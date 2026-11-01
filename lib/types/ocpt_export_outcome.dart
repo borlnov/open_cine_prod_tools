@@ -5,7 +5,7 @@
 import 'package:equatable/equatable.dart';
 
 /// What a single-file export produced through `OcptExportManager`'s write funnel
-/// (`_writeToPickedLocation`).
+/// (`OcptExportWriteService.writeToPickedLocation`).
 ///
 /// Every export method used to return the written path directly, null meaning a cancelled dialog
 /// or a failed write. On mobile there is no "save as" dialog to pick a path from at all —
