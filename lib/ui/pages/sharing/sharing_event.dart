@@ -10,14 +10,6 @@ sealed class OcptSharingEvent extends BlocEventForMixin {
   const OcptSharingEvent();
 }
 
-/// Requests loading the current project's own relay pairing, if it has one.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptSharingLoadRequestedEvent extends OcptSharingEvent {
-  /// Class constructor
-  const OcptSharingLoadRequestedEvent();
-}
-
 /// Reports that the "Pair and create on the relay" action was pressed, with the relay address and
 /// the enrolment secret typed into the ① Configure form.
 class OcptSharingPairRequestedEvent extends OcptSharingEvent {

@@ -13,15 +13,6 @@ sealed class OcptHostingEvent extends BlocEventForMixin {
   const OcptHostingEvent();
 }
 
-/// Requests loading the current project's own hosting facts: the manager's current host state, its
-/// "host on launch" preference and whether it can be set at all.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptHostingLoadRequestedEvent extends OcptHostingEvent {
-  /// Class constructor
-  const OcptHostingLoadRequestedEvent();
-}
-
 /// Reports a new value off `OcptRelayHostManager.stateStream` — the bloc's own subscription to it
 /// forwards every state the manager moves through as one of these.
 class OcptHostingHostStateChangedEvent extends OcptHostingEvent {

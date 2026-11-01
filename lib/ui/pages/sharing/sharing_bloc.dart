@@ -5,6 +5,7 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -23,7 +24,8 @@ import 'package:uuid/uuid.dart';
 /// single row, exactly as `OcptSyncManager._readSnapshottedProjectId` already does for the very
 /// same reason. Pairing it through [OcptSyncManager.pairProjectToRelay] and unpairing it through
 /// [OcptSyncManager.unpairProject] are the only two writes this bloc ever makes.
-class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
+class OcptSharingBloc extends BlocForMixin<OcptSharingState>
+    with MixinAsyncInitBloc<OcptSharingState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "sharing_bloc";
 
@@ -47,9 +49,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
   }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       super(const OcptSharingState.init()) {
-    add(const OcptSharingLoadRequestedEvent());
-  }
+       super(const OcptSharingState.init());
 
   /// The current project's writable file — a paired project's own pairing row and its ongoing sync
   /// session both belong to the project **file**, never to a read-only preview
@@ -61,20 +61,22 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState> {
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptSharingLoadRequestedEvent>(_onLoadRequested);
     on<OcptSharingPairRequestedEvent>(_onPairRequested);
     on<OcptSharingUnpairConfirmedEvent>(_onUnpairConfirmed);
     on<OcptSharingPairingErrorDismissedEvent>(_onPairingErrorDismissed);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Loads the current project's own relay invite, if it is paired, so the page opens directly on
   /// ② Invite for a project that already is, and on ① Configure otherwise.
-  Future<void> _onLoadRequested(
-    OcptSharingLoadRequestedEvent event,
-    Emitter<OcptSharingState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptSharingState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final invite = await _loadCurrentInvite();
-    emitter(
+    emit(
       state.copyWith(
         isLoading: false,
         projectName: _projectsManager.currentProject!.name,

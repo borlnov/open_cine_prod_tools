@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
@@ -33,7 +34,8 @@ import 'package:open_cine_prod_tools/ui/pages/sharing/hosting_state.dart';
 /// manager's own host-state stream and, only while hosting is online, the sync manager's own
 /// presence roster stream, both of which (like every ACT manager stream, `CLAUDE.md`'s own pitfalls
 /// list) never replay their current value to a new listener.
-class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
+class OcptHostingBloc extends BlocForMixin<OcptHostingState>
+    with MixinAsyncInitBloc<OcptHostingState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "hosting_bloc";
 
@@ -70,9 +72,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       super(const OcptHostingState.init()) {
-    add(const OcptHostingLoadRequestedEvent());
-  }
+       super(const OcptHostingState.init());
 
   /// The current project — the route reaching this bloc is guarded exactly like the sharing bloc's
   /// own, so a project is always open by the time this runs.
@@ -82,7 +82,6 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptHostingLoadRequestedEvent>(_onLoadRequested);
     on<OcptHostingHostStateChangedEvent>(_onHostStateChanged);
     on<OcptHostingPresenceChangedEvent>(_onPresenceChanged);
     on<OcptHostingStartStopRequestedEvent>(_onStartStopRequested);
@@ -99,13 +98,16 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
     );
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Seeds every field of [OcptHostingState] off the managers' own getters, exactly as
-  /// `OcptSharingBloc._onLoadRequested`/`OcptWorkspaceBloc._onLoadRequested` do for the very same
+  /// `OcptSharingBloc.initAsyncBloc`/`OcptWorkspaceBloc.initAsyncBloc` do for the very same
   /// "streams don't replay" reason.
-  Future<void> _onLoadRequested(
-    OcptHostingLoadRequestedEvent event,
-    Emitter<OcptHostingState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptHostingState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final hostState = _hostManager.state;
     if (hostState is OcptRelayHostOnline) {
       _subscribeToPresence();
@@ -118,7 +120,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
         ? await _loadOnlineExtras(hostState, preferredAddress: state.selectedAddress)
         : null;
 
-    emitter(
+    emit(
       state.copyWith(
         isLoading: false,
         hostState: hostState,
@@ -394,7 +396,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState> {
   /// address rather than falling back to `online.lanBaseUri.host` (the default) — this is what lets
   /// a port-apply restart ([_onHostStateChanged]'s online branch, which passes
   /// [OcptHostingState.selectedAddress]) keep the address an operator had already picked, instead
-  /// of wiping it back to the default on every restart. [_onLoadRequested] passes the very same
+  /// of wiping it back to the default on every restart. [initAsyncBloc] passes the very same
   /// [OcptHostingState.selectedAddress] for the same reason, harmless when it is still null
   /// (nothing was ever picked yet).
   Future<
