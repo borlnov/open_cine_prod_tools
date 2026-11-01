@@ -24,6 +24,8 @@ import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
@@ -83,10 +85,20 @@ class OcptEditorPage extends StatelessWidget {
   const OcptEditorPage({super.key});
 
   @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (context) => OcptEditorBloc(
-      selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
-    ),
+  Widget build(BuildContext context) => MultiBlocProvider(
+    providers: [
+      BlocProvider(
+        create: (context) => OcptEditorBloc(
+          selectedEpisodeId: context.read<OcptWorkspaceBloc>().state.selectedEpisodeId,
+        ),
+      ),
+      // Built with the mode rather than on first read: a view bloc registers itself with the mode
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptEditorSpellCheckBloc(modeBloc: context.read<OcptEditorBloc>()),
+      ),
+    ],
     child: const _EditorView(),
   );
 }
@@ -332,64 +344,68 @@ class _EditorViewState extends State<_EditorView> {
         ),
       },
       child: Scaffold(
-        body: BlocConsumer<OcptEditorBloc, OcptEditorState>(
-          listener: _onStateChanged,
-          builder: (context, state) {
-            if (state.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: BlocListener<OcptEditorSpellCheckBloc, OcptEditorSpellCheckState>(
+          listener: (context, spellState) =>
+              _syncSpellCheck(context.read<OcptEditorBloc>().state, spellState),
+          child: BlocConsumer<OcptEditorBloc, OcptEditorState>(
+            listener: _onStateChanged,
+            builder: (context, state) {
+              if (state.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            final isReadOnly = state.isPreviewingVersion;
-            final isRawMode = _liveMode(state) == OcptEditorMode.raw;
-            final workspaceState = context.watch<OcptWorkspaceBloc>().state;
+              final isReadOnly = state.isPreviewingVersion;
+              final isRawMode = _liveMode(state) == OcptEditorMode.raw;
+              final workspaceState = context.watch<OcptWorkspaceBloc>().state;
 
-            return OcptWorkspaceShell(
-              title: state.title,
-              isDirty: state.isDirty,
-              isReadOnly: isReadOnly,
-              onBack: () =>
-                  context.read<OcptEditorBloc>().add(const OcptEditorBackRequestedEvent()),
-              episodes: workspaceState.episodes,
-              selectedEpisodeId: workspaceState.selectedEpisodeId,
-              onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
-                OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
-              ),
-              // Withheld under a preview like every other way into the project settings: a preview
-              // has nothing there that may be written.
-              onAddEpisodeRequested: isReadOnly
-                  ? null
-                  : () => _requestProjectSettings(
-                      context,
-                      reveal: OcptProjectSettingsReveal.episodes,
-                    ),
-              toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
-              modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
-              onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
-              overflowEntries: _buildOverflowEntries(context, state),
-              isLeftDockOpen: state.isScenePanelVisible,
-              onToggleLeftDock: () =>
-                  context.read<OcptEditorBloc>().add(const OcptEditorScenePanelToggledEvent()),
-              isRightDockOpen: state.rightDockTab != null,
-              onToggleRightDock: () =>
-                  context.read<OcptEditorBloc>().add(const OcptEditorRightDockToggledEvent()),
-              // A previewed version has nothing to save: the whole point of the preview is that
-              // nothing the user does reaches the project.
-              onSave: isReadOnly ? null : _requestManualSave,
-              isSaving: state.isSaving,
-              onProjectSettingsRequested: isReadOnly
-                  ? null
-                  : () => _requestProjectSettings(context),
-              banner: _buildReadOnlyBanner(context, state),
-              leftPanel: _buildScenePanel(context, state),
-              rightPanel: _buildRightDock(context, state),
-              centre: _buildCentre(context, state, isRawMode: isRawMode),
-              statusBar: _buildStatusBar(context, state),
-              dockLayoutController: _dockLayoutController,
-              onDockFractionsChanged: (fractions) => context.read<OcptEditorBloc>().add(
-                OcptEditorDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
-              ),
-            );
-          },
+              return OcptWorkspaceShell(
+                title: state.title,
+                isDirty: state.isDirty,
+                isReadOnly: isReadOnly,
+                onBack: () =>
+                    context.read<OcptEditorBloc>().add(const OcptEditorBackRequestedEvent()),
+                episodes: workspaceState.episodes,
+                selectedEpisodeId: workspaceState.selectedEpisodeId,
+                onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
+                  OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
+                ),
+                // Withheld under a preview like every other way into the project settings: a preview
+                // has nothing there that may be written.
+                onAddEpisodeRequested: isReadOnly
+                    ? null
+                    : () => _requestProjectSettings(
+                        context,
+                        reveal: OcptProjectSettingsReveal.episodes,
+                      ),
+                toolbarActions: _buildToolbarActions(context, state, isRawMode: isRawMode),
+                modeLabel: Tr.of(context).workspaceModeLabelScreenplay,
+                onExportRequested: (anchor) => unawaited(_requestExport(context, anchor)),
+                overflowEntries: _buildOverflowEntries(context, state),
+                isLeftDockOpen: state.isScenePanelVisible,
+                onToggleLeftDock: () =>
+                    context.read<OcptEditorBloc>().add(const OcptEditorScenePanelToggledEvent()),
+                isRightDockOpen: state.rightDockTab != null,
+                onToggleRightDock: () =>
+                    context.read<OcptEditorBloc>().add(const OcptEditorRightDockToggledEvent()),
+                // A previewed version has nothing to save: the whole point of the preview is that
+                // nothing the user does reaches the project.
+                onSave: isReadOnly ? null : _requestManualSave,
+                isSaving: state.isSaving,
+                onProjectSettingsRequested: isReadOnly
+                    ? null
+                    : () => _requestProjectSettings(context),
+                banner: _buildReadOnlyBanner(context, state),
+                leftPanel: _buildScenePanel(context, state),
+                rightPanel: _buildRightDock(context, state),
+                centre: _buildCentre(context, state, isRawMode: isRawMode),
+                statusBar: _buildStatusBar(context, state),
+                dockLayoutController: _dockLayoutController,
+                onDockFractionsChanged: (fractions) => context.read<OcptEditorBloc>().add(
+                  OcptEditorDockFractionsChangedEvent(left: fractions.left, right: fractions.right),
+                ),
+              );
+            },
+          ),
         ),
       ),
     ),
@@ -668,11 +684,13 @@ class _EditorViewState extends State<_EditorView> {
             jumpRequest: state.jumpRequest,
             styledController: _styledEditorController,
             onSpellingSuggestionsRequested: (word) =>
-                context.read<OcptEditorBloc>().spellingSuggestionsFor(word),
-            onWordIgnored: (word) =>
-                context.read<OcptEditorBloc>().add(OcptEditorWordIgnoredEvent(word: word)),
-            onWordLearned: (word) =>
-                context.read<OcptEditorBloc>().add(OcptEditorWordLearnedEvent(word: word)),
+                context.read<OcptEditorSpellCheckBloc>().spellingSuggestionsFor(word),
+            onWordIgnored: (word) => context.read<OcptEditorSpellCheckBloc>().add(
+              OcptEditorWordIgnoredEvent(word: word),
+            ),
+            onWordLearned: (word) => context.read<OcptEditorSpellCheckBloc>().add(
+              OcptEditorWordLearnedEvent(word: word),
+            ),
           );
 
     // The find/replace bar is a *slot* that is always there — an empty box while it is closed —
@@ -1027,7 +1045,14 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
-  /// Pushes [OcptEditorState.rawSpellCheckRanges] onto [_textController]'s own
+  /// Pushes both sets of spell-check ranges onto the live editing surface, see
+  /// [_syncRawSpellCheck] and [_syncStyledSpellCheck].
+  void _syncSpellCheck(OcptEditorState state, OcptEditorSpellCheckState spellState) {
+    _syncRawSpellCheck(state, spellState);
+    _syncStyledSpellCheck(state, spellState);
+  }
+
+  /// Pushes [OcptEditorSpellCheckState.rawSpellCheckRanges] onto [_textController]'s own
   /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the rule
   /// that each editing surface paints what it shows.
   ///
@@ -1037,16 +1062,16 @@ class _EditorViewState extends State<_EditorView> {
   /// controller's ranges rather than leaving a raw field the user can no longer see holding a stale
   /// set — harmless on its own since nothing repaints it, but exactly the kind of state a mode
   /// switch back to raw should never resurrect uninvited.
-  void _syncRawSpellCheck(OcptEditorState state) {
+  void _syncRawSpellCheck(OcptEditorState state, OcptEditorSpellCheckState spellState) {
     if (_liveMode(state) != OcptEditorMode.raw || state.isPreviewingVersion) {
       _textController.updateSpellCheckRanges(const []);
       return;
     }
 
-    _textController.updateSpellCheckRanges(state.rawSpellCheckRanges);
+    _textController.updateSpellCheckRanges(spellState.rawSpellCheckRanges);
   }
 
-  /// Pushes [OcptEditorState.styledSpellCheckRanges] onto [_styledEditorController]'s own
+  /// Pushes [OcptEditorSpellCheckState.styledSpellCheckRanges] onto [_styledEditorController]'s own
   /// [OcptStyledEditorController.updateSpellCheckRanges], the styled mode's own half of the rule
   /// that each editing surface paints what it shows — the raw mode's own counterpart is
   /// [_syncRawSpellCheck].
@@ -1055,13 +1080,13 @@ class _EditorViewState extends State<_EditorView> {
   /// is no live styled editor to push anything onto otherwise, and a version preview has no editing
   /// surface at all to underline anything in. Both cases clear the controller's ranges, for the
   /// identical reason [_syncRawSpellCheck]'s own doc comment gives.
-  void _syncStyledSpellCheck(OcptEditorState state) {
+  void _syncStyledSpellCheck(OcptEditorState state, OcptEditorSpellCheckState spellState) {
     if (_liveMode(state) != OcptEditorMode.styled || state.isPreviewingVersion) {
       _styledEditorController.updateSpellCheckRanges(const {});
       return;
     }
 
-    _styledEditorController.updateSpellCheckRanges(state.styledSpellCheckRanges);
+    _styledEditorController.updateSpellCheckRanges(spellState.styledSpellCheckRanges);
   }
 
   /// Places the raw controller's selection on [match] and scrolls it into view exactly as
@@ -1240,7 +1265,9 @@ class _EditorViewState extends State<_EditorView> {
       final spellCheckTexts = _styledEditorController.spellCheckTextsByNodeId;
       if (!mapEquals(spellCheckTexts, _lastReportedStyledSpellCheckTexts)) {
         _lastReportedStyledSpellCheckTexts = spellCheckTexts;
-        bloc.add(OcptEditorStyledSpellCheckTextsReportedEvent(textsByNodeId: spellCheckTexts));
+        context.read<OcptEditorSpellCheckBloc>().add(
+          OcptEditorStyledSpellCheckTextsReportedEvent(textsByNodeId: spellCheckTexts),
+        );
       }
     }
 
@@ -1350,6 +1377,7 @@ class _EditorViewState extends State<_EditorView> {
     OcptProjectSettingsReveal? reveal,
   }) async {
     final bloc = context.read<OcptEditorBloc>();
+    final spellCheckBloc = context.read<OcptEditorSpellCheckBloc>();
     final workspaceBloc = context.read<OcptWorkspaceBloc>();
     final hasChanged = await globalGetIt().get<OcptRouterManager>().push<bool>(
       OcptRoute.projectSettings,
@@ -1360,6 +1388,7 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     bloc.add(const OcptEditorProjectSettingsChangedEvent());
+    spellCheckBloc.add(const OcptEditorSpellCheckDictionaryRefreshRequestedEvent());
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
@@ -1564,8 +1593,7 @@ class _EditorViewState extends State<_EditorView> {
 
     _syncRawSearch(state);
     _syncStyledSearch(state);
-    _syncRawSpellCheck(state);
-    _syncStyledSpellCheck(state);
+    _syncSpellCheck(state, context.read<OcptEditorSpellCheckBloc>().state);
 
     if (state.hasSaveError) {
       ScaffoldMessenger.of(context)

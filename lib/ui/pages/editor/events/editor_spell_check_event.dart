@@ -135,3 +135,24 @@ class OcptEditorWordLearnedEvent extends OcptEditorSpellCheckEvent {
   @override
   List<Object?> get props => [...super.props, word];
 }
+
+/// Reports that the mode's spell-check switch or the project's screenplay language changed.
+///
+/// Dispatched by the bloc to itself when it sees either move in the mode's state; it isn't meant to
+/// be sent by widgets. Clears the underlines when spell-checking is now off, and drives the
+/// dictionary to match.
+class OcptEditorSpellCheckSettingsChangedEvent extends OcptEditorSpellCheckEvent {
+  /// Class constructor
+  const OcptEditorSpellCheckSettingsChangedEvent();
+}
+
+/// Requests reading the project's learned words again, after the project settings page might have
+/// changed them (a word un-learned in the project dictionary dialog, say).
+///
+/// The words are pushed into the spell-check manager only when they differ from what was pushed
+/// last: the event fires on *every* settings-page change, including one that never touched the
+/// dictionary.
+class OcptEditorSpellCheckDictionaryRefreshRequestedEvent extends OcptEditorSpellCheckEvent {
+  /// Class constructor
+  const OcptEditorSpellCheckDictionaryRefreshRequestedEvent();
+}
