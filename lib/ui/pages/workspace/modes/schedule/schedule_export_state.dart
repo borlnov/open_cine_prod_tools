@@ -30,6 +30,13 @@ class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState>
     bool forceIoNoticeValue = false,
   }) => OcptScheduleExportState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
+  /// Copies this state with [ioNotice] as the outcome of the last export.
+  OcptScheduleExportState copyWithIoNotice({required OcptScheduleIoNotice ioNotice}) =>
+      copyWith(ioNotice: ioNotice);
+
+  /// Copies this state with the export notice dismissed.
+  OcptScheduleExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, ioNotice];

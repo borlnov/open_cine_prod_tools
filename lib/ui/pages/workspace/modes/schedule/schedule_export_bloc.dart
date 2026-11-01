@@ -109,7 +109,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: result.isComplete
                 ? OcptScheduleIoNoticeKind.folderExportSucceeded
@@ -129,7 +129,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -169,7 +169,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: result.isComplete
                 ? OcptScheduleIoNoticeKind.folderExportSucceeded
@@ -189,7 +189,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -238,7 +238,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -254,7 +254,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -295,7 +295,7 @@ class OcptScheduleExportBloc
       if (outcome is OcptExportFailed) {
         // The manager already logged why the workbook could not be built.
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
           ),
         );
@@ -303,7 +303,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -319,7 +319,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -360,7 +360,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -376,7 +376,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -417,7 +417,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -433,7 +433,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -492,7 +492,7 @@ class OcptScheduleExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptScheduleIoNotice(
             kind: OcptScheduleIoNoticeKind.fileExportSucceeded,
             path: outcome.savedPath,
@@ -508,7 +508,7 @@ class OcptScheduleExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptScheduleIoNotice(kind: OcptScheduleIoNoticeKind.exportFailed),
         ),
       );
@@ -556,6 +556,6 @@ class OcptScheduleExportBloc
     OcptScheduleIoNoticeDismissedEvent event,
     Emitter<OcptScheduleExportState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }
