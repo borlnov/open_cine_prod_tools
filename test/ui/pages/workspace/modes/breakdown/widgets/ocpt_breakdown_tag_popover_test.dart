@@ -66,6 +66,7 @@ OcptBreakdownSearchCandidate _candidate({
   taggedSceneCount: taggedSceneCount,
 );
 
+/// Run the tests of [OcptBreakdownTagPopover].
 void main() {
   /// Pumps a scrolling column with [topInset] of empty space above the anchored word, inside a
   /// window [windowHeight] tall, and reports the word's own rect and the popover's.

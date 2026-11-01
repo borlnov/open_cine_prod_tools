@@ -28,8 +28,10 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 /// The fixed device id every stamp this file's writes carry.
 const _deviceId = "device-1";
 
+/// Answer with the fixed device id.
 Future<String> _testDeviceId() async => _deviceId;
 
+/// Run the tests of [OcptStoryboardService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 OcptDayOutOfDaysDay _day(int number, Set<String> roleIds) =>
     OcptDayOutOfDaysDay(id: "day-$number", convokedRoleIds: roleIds);
 
+/// Run the tests of the day out of days.
 void main() {
   group("a role's own span", () {
     test("a role convoked on the first and the last of three days holds the middle one", () {

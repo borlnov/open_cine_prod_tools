@@ -37,6 +37,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: testAppLanguageCode);
 
+  /// Count the capture, then delegate to the real one.
   @override
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
     captureCount++;
@@ -44,6 +45,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
   }
 }
 
+/// Run the tests of the editor bloc load edit and save.
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
 

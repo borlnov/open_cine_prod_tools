@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'ocpt_budget_fiche_test_doubles.dart';
 
+/// Run the tests of the budget fiche poste and commitment variants.
 void main() {
   testWidgets("shows the empty hint while nothing is selected", (tester) async {
     useTallSurface(tester);

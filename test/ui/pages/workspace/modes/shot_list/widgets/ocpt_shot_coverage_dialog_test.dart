@@ -24,6 +24,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -56,6 +57,8 @@ Future<void> _useLargeSurface(WidgetTester tester) async {
 /// A realistic scene: heading, an action line, a character cue, a parenthetical and a dialogue
 /// line, matching the fixture `OcptScriptWordLayout.of`'s own tests use.
 const _sceneId = "scene-1";
+
+/// A short scene: a heading, an action line and a line of dialogue.
 const _sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
 /// Builds the layout every test in this file lays its scene out from.
@@ -119,6 +122,7 @@ Color? _backgroundOfWord(WidgetTester tester, String text) {
   return container.color;
 }
 
+/// Run the tests of [OcptShotCoverageDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

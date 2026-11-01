@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'ocpt_budget_cash_journal_test_doubles.dart';
 
+/// Run the tests of the budget cash journal table and balance.
 void main() {
   testWidgets("the table scrolls sideways rather than overflowing a narrow centre", (tester) async {
     // 760 logical pixels is roughly what the centre is left with on a laptop screen once the right

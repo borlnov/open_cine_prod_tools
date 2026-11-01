@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:path/path.dart' as p;
 import 'ocpt_export_manager_test_doubles.dart';
 
+/// Run the tests of the export manager call sheets and plan.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

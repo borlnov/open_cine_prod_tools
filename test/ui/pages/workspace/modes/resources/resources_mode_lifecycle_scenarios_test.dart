@@ -15,6 +15,7 @@ import 'resources_mode_scenarios_test_doubles.dart';
 /// How long a scenario waits, in real time, for the working copy capture throttle to let go.
 const _captureThrottle = Duration(milliseconds: 2100);
 
+/// Run the tests of the resources mode lifecycle scenarios.
 void main() {
   final harness = ResourcesScenarioHarness();
 

@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_status.dart';
 import 'package:path/path.dart' as p;
 
+/// Run the tests of [OcptSnapshotService].
 void main() {
   // OcptProjectPackageService reports its soft failures through appLogger(), which requires a
   // global manager instance to be set; merely accessing it creates the (otherwise unused)

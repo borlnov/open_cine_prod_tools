@@ -20,6 +20,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptProjectSettingsBudgetSection].
 void main() {
   /// The VAT rate field: the section's first [TextField] in build order.
   Finder vatRateField() => find.byType(TextField).at(0);

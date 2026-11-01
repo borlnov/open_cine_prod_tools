@@ -26,6 +26,8 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedResult;
 
+  /// Record the pop and its result, then pop the route of the test's own navigator, when it can
+  /// pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     wasPopped = true;
@@ -53,6 +55,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptProjectDictionaryDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

@@ -57,6 +57,7 @@ FountainLayoutMetrics _metrics({int linesPerPage = 5}) => FountainLayoutMetrics(
   lyrics: _box(30),
 );
 
+/// Build a scene heading reading [headingText].
 FountainSceneHeading _sceneHeading(String headingText) => FountainSceneHeading(
   sourceRange: _range,
   rawText: headingText,
@@ -64,27 +65,37 @@ FountainSceneHeading _sceneHeading(String headingText) => FountainSceneHeading(
   forcedMarker: false,
 );
 
+/// Build an action block of [lines].
 FountainActionBlock _action(List<String> lines) =>
     FountainActionBlock(sourceRange: _range, lines: lines, forced: false);
 
+/// Build a transition reading [text].
 FountainTransition _transition(String text) =>
     FountainTransition(sourceRange: _range, text: text, forced: false);
 
+/// Build a centered text reading [text].
 FountainCenteredText _centeredText(String text) =>
     FountainCenteredText(sourceRange: _range, text: text);
 
+/// Build lyrics of [lines].
 FountainLyrics _lyrics(List<String> lines) => FountainLyrics(sourceRange: _range, lines: lines);
 
+/// Build a level 1 section reading [text].
 FountainSection _section(String text) => FountainSection(sourceRange: _range, level: 1, text: text);
 
+/// Build a synopsis reading [text].
 FountainSynopsis _synopsis(String text) => FountainSynopsis(sourceRange: _range, text: text);
 
+/// Build a note block reading [text].
 FountainNoteBlock _note(String text) => FountainNoteBlock(sourceRange: _range, text: text);
 
+/// Build a boneyard reading [text].
 FountainBoneyard _boneyard(String text) => FountainBoneyard(sourceRange: _range, text: text);
 
+/// A page break.
 const FountainPageBreak _pageBreak = FountainPageBreak(sourceRange: _range);
 
+/// Build a character cue named [name].
 FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
     FountainCharacter(
       sourceRange: _range,
@@ -93,12 +104,15 @@ FountainCharacter _character(String name, {String? extension, bool isDualDialogu
       isDualDialogue: isDualDialogue,
     );
 
+/// Build a parenthetical reading [text].
 FountainParenthetical _parenthetical(String text) =>
     FountainParenthetical(sourceRange: _range, text: text);
 
+/// Build a line of dialogue saying [text].
 FountainDialogueLine _dialogueLine(String text) =>
     FountainDialogueLine(sourceRange: _range, text: text);
 
+/// Build a dialogue group of [children] spoken by [name].
 FountainDialogueGroup _dialogueGroup(
   String name,
   List<FountainBlock> children, {
@@ -111,9 +125,11 @@ FountainDialogueGroup _dialogueGroup(
   isDualDialogue: isDualDialogue,
 );
 
+/// Build a document of [blocks], with [titlePage] when one is given.
 FountainDocument _document(List<FountainBlock> blocks, {FountainTitlePage? titlePage}) =>
     FountainDocument(titlePage: titlePage, blocks: blocks, sourceText: '');
 
+/// Run the tests of [FountainScriptStatistics.of].
 void main() {
   group('FountainScriptStatistics.of', () {
     test('an empty document is all zero', () {

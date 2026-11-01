@@ -34,6 +34,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// which this file's [OcptPairingService] needs the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -67,33 +68,40 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_bloc_test.dart`'s own
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 }
@@ -107,13 +115,16 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// no need to exercise — only that the pairing moved and a live session started is what the bloc
 /// reacts to.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// Whether [openRelayRemoteStorage] throws, as a relay that cannot be reached does.
   final bool shouldFailToOpenTransport;
 
   /// Whether [repointProjectToRelay] throws instead of answering a status.
   final bool shouldThrowOnRepoint;
 
+  /// The pairing service the double hands to its flows.
   final OcptPairingService _pairing;
 
+  /// Class constructor
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
@@ -127,6 +138,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
          ),
        );
 
+  /// Open a storage that accepts everything and holds nothing, or throw when told to fail.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -140,6 +152,8 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     return _FakeRemoteStorage();
   }
 
+  /// Pair the project with a fake token and start the session, or answer that the relay is
+  /// unreachable.
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
@@ -177,6 +191,8 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     );
   }
 
+  /// Move the saved pairing to the new relay and start the session, failing in the ways the test
+  /// asks for.
   @override
   Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
@@ -219,6 +235,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }
 }
 
+/// Run the tests of [OcptRepointingBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

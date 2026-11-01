@@ -41,6 +41,7 @@ class _FailingScheduleService extends OcptScheduleService {
   /// Class constructor
   _FailingScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
 
+  /// Fail as a refused slot write does.
   @override
   Future<void> updateSlot({
     required OcptProjectDatabase database,
@@ -55,6 +56,7 @@ class _FailingScheduleService extends OcptScheduleService {
 /// The fixed device id [_FailingScheduleService] stamps its writes with.
 Future<String> _testDeviceId() async => "test-device";
 
+/// Run the tests of the schedule export bloc bloc as whole.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

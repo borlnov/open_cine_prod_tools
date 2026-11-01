@@ -44,6 +44,7 @@ bool _anySpanIsUnderlined(InlineSpan root) {
   return false;
 }
 
+/// Run the tests of [OcptEditorSearchTextController].
 void main() {
   /// Builds a widget tree and hands back a [BuildContext] from inside it — [buildTextSpan] takes
   /// one, but never actually reads anything from it (the search/spell colours are fixed constants,

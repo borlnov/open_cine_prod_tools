@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 
+/// Run the tests of the budget financing.
 void main() {
   OcptBudgetEntry buildEntry({
     String id = "entry-1",

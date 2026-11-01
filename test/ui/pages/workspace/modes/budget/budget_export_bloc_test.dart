@@ -170,6 +170,8 @@ class _FakeBudgetExportManager extends OcptExportManager {
     this.financialReportFails = false,
   }) : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the snapshot and the tax basis, then fail when told to, otherwise answer with the
+  /// canned saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportBudgetQuote({
     required OcptBudgetSnapshot snapshot,
@@ -192,6 +194,7 @@ class _FakeBudgetExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Fail when told to, otherwise answer with the canned saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportBudgetFinancingPlan({
     required OcptBudgetSnapshot snapshot,
@@ -209,6 +212,8 @@ class _FakeBudgetExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the link labels, then fail when told to, otherwise answer with the canned saved path,
+  /// or with nothing.
   @override
   Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
@@ -227,6 +232,7 @@ class _FakeBudgetExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Fail when told to, otherwise answer with the canned saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportBudgetFinancialReport({
     required OcptBudgetSnapshot snapshot,
@@ -247,6 +253,7 @@ class _FakeBudgetExportManager extends OcptExportManager {
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -259,6 +266,7 @@ const _smallSeed = [
   OcptBudgetPosteSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
 ];
 
+/// Run the tests of [OcptBudgetExportBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

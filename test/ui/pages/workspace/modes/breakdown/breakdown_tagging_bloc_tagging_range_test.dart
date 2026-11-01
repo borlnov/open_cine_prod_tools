@@ -38,6 +38,7 @@ class _SlowTabItem extends SharedPrefsItemWithParser<OcptBreakdownRightDockTab, 
   /// How many stores finished.
   int finished = 0;
 
+  /// Class constructor
   _SlowTabItem()
     : super(
         "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
@@ -45,6 +46,8 @@ class _SlowTabItem extends SharedPrefsItemWithParser<OcptBreakdownRightDockTab, 
         castTo: (value) => value.name,
       );
 
+  /// Count the start, wait 60 milliseconds, store the value as the real item does, then count the
+  /// end.
   @override
   Future<bool> store(OcptBreakdownRightDockTab? value) async {
     started++;
@@ -57,12 +60,15 @@ class _SlowTabItem extends SharedPrefsItemWithParser<OcptBreakdownRightDockTab, 
 
 /// A properties manager whose last right dock tab is stored slowly.
 class _SlowPropertiesManager extends OcptPropertiesManager {
+  /// The slow item the manager hands out.
   final _SlowTabItem _slowTab = _SlowTabItem();
 
+  /// Get the slow item.
   @override
   _SlowTabItem get breakdownLastRightDockTab => _slowTab;
 }
 
+/// Run the tests of the breakdown tagging bloc tagging range.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

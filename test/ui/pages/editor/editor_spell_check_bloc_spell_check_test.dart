@@ -24,6 +24,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:spell_kit/spell_kit.dart';
 import 'editor_spell_check_bloc_test_doubles.dart';
 
+/// Run the tests of the editor spell check bloc spell check.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

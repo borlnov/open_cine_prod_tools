@@ -27,6 +27,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: Stack(children: [child])),
 );
 
+/// Run the tests of [OcptJoiningStatusOverlay].
 void main() {
   testWidgets("the busy state shows a spinner, the current step's own label and Annuler", (
     tester,

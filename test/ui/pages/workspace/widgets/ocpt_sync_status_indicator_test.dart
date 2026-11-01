@@ -30,14 +30,18 @@ class _FakeSyncManager extends OcptSyncManager {
   /// Every call `syncNow()` recorded, oldest first.
   int syncNowCallCount = 0;
 
+  /// The controller behind [syncStatusChanges].
   final _controller = StreamController<OcptSyncStatus?>.broadcast();
 
+  /// Read the status the double was given.
   @override
   OcptSyncStatus? get syncStatus => status;
 
+  /// Emit the statuses the test adds to the controller.
   @override
   Stream<OcptSyncStatus?> get syncStatusChanges => _controller.stream;
 
+  /// Class constructor
   _FakeSyncManager(this.status)
     : super(
         changesetService: const OcptChangesetService(
@@ -53,6 +57,7 @@ class _FakeSyncManager extends OcptSyncManager {
     _controller.add(next);
   }
 
+  /// Count the call and answer that the sync went well.
   @override
   Future<OcptSyncSessionStatus> syncNow() async {
     syncNowCallCount++;
@@ -60,14 +65,17 @@ class _FakeSyncManager extends OcptSyncManager {
     return OcptSyncSessionStatus.ok;
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
 /// An [OcptRouterManager] recording the last route [push] was asked to navigate to, instead of
 /// driving a real `GoRouter` — mirrors `resources_mode_test.dart`'s own `_RecordingRouterManager`.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// The last route pushed, or null before any.
   OcptRoute? pushedRoute;
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -80,6 +88,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Wrap [child] in a localized app, so the widget under test finds its theme and its words.
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -93,6 +102,7 @@ Widget _wrap(Widget child) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptSyncStatusIndicator].
 void main() {
   /// Widens the test surface well past the default 800px (`compact-breakpoint-vs-default-test
   /// -surface.md`'s own pitfall) and pumps [indicator].

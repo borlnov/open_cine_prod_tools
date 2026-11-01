@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'ocpt_floor_plan_sheet_test_doubles.dart';
 
+/// Run the tests of the floor plan sheet footprints and glyphs.
 void main() {
   group("OcptFloorPlanSheet.of — footprints", () {
     test("a symbol with no widthM/heightM of its own draws at the layer's default footprint", () {

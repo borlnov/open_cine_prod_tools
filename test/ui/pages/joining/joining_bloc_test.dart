@@ -39,6 +39,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// exercised: every fake [OcptSyncManager] below stubs `joinFromRelay` before it would touch it).
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -79,8 +80,10 @@ class _TestProjectsManager extends OcptProjectsManager {
   /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
   final Directory directory;
 
+  /// Class constructor
   _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> newProjectsDirectory() async => directory;
 
@@ -121,6 +124,7 @@ class _FakeSyncManager extends OcptSyncManager {
   /// The parent directory path of the last [joinFromRelay] call, or null if it never was.
   String? lastParentDirectoryPath;
 
+  /// Class constructor
   _FakeSyncManager({
     required OcptPairingService pairingService,
     required this.joinResultPath,
@@ -133,6 +137,8 @@ class _FakeSyncManager extends OcptSyncManager {
          ),
        );
 
+  /// Count the call, remember the parent directory, wait for the hook, then fail with the canned
+  /// failure or answer with the joined path.
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
@@ -158,9 +164,11 @@ class _FakeSyncManager extends OcptSyncManager {
 /// the same double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own
 /// `_StubPlatformManager` already is.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
+  /// Class constructor
   _StubPlatformManager({required this.isMobile});
 }
 
@@ -183,6 +191,8 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _RecordingSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the confirm button text and the initial directory, and answer
+  /// with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,
@@ -201,6 +211,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 /// dialog keeps taking the very same no-dialog branch it always has
 /// (`OcptProjectsManager.newProjectsDirectory`).
 class _FakeExportManager extends OcptExportManager {
+  /// Class constructor
   _FakeExportManager({bool isMobile = true, super.saveLocationService})
     : super(
         fileSelectorManager: const FileSelectorManager(),
@@ -218,6 +229,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [replace] was called with, or null if it never was.
   OcptRoute? replacedRoute;
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -229,6 +241,7 @@ class _RecordingRouterManager extends OcptRouterManager {
     return null;
   }
 
+  /// Record the route replaced, and answer with nothing.
   @override
   Future<Y?> replace<Y extends Object?>(
     OcptRoute route, {
@@ -241,6 +254,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of [OcptJoiningBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

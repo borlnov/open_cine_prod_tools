@@ -19,6 +19,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -26,6 +27,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of [OcptConfirmDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

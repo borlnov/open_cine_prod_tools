@@ -16,9 +16,11 @@ const FountainSourceRange _range = FountainSourceRange(
   endOffset: 0,
 );
 
+/// Build an action block of [lines].
 FountainActionBlock _action(List<String> lines) =>
     FountainActionBlock(sourceRange: _range, lines: lines, forced: false);
 
+/// Build a character cue named [name].
 FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
     FountainCharacter(
       sourceRange: _range,
@@ -27,9 +29,11 @@ FountainCharacter _character(String name, {String? extension, bool isDualDialogu
       isDualDialogue: isDualDialogue,
     );
 
+/// Build a line of dialogue saying [text].
 FountainDialogueLine _dialogueLine(String text) =>
     FountainDialogueLine(sourceRange: _range, text: text);
 
+/// Build an empty dialogue group spoken by [name].
 FountainDialogueGroup _dialogueGroup(
   String name, {
   String? extension,
@@ -41,6 +45,7 @@ FountainDialogueGroup _dialogueGroup(
   isDualDialogue: isDualDialogue,
 );
 
+/// Run the tests of [speakingCharactersOf].
 void main() {
   group('speakingCharactersOf', () {
     test('a document with no dialogue has no speaking characters', () {

@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 
+/// Run the tests of [ocptCompositeRowStampKey].
 void main() {
   group("ocptCompositeRowStampKey", () {
     test("joins the parts of a two-column key with the separator", () {

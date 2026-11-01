@@ -48,6 +48,7 @@ OcptBreakdownSearchCandidate _set({
   taggedSceneCount: taggedSceneCount,
 );
 
+/// Run the tests of the breakdown search.
 void main() {
   group("ocptBreakdownSearchCatalogues — grouping", () {
     test("splits the matching candidates into their three kinds", () {

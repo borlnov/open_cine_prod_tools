@@ -40,6 +40,7 @@ OcptBreakdownTarget _buildTarget({
   occurrenceCount: 1,
 );
 
+/// Run the tests of the breakdown legend.
 void main() {
   group("ocptBreakdownLegendKeyOf", () {
     test("an element target's key carries its own category", () {

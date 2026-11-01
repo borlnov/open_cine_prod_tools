@@ -43,6 +43,7 @@ OcptShootingSlotTimeline _oneBlockTimeline({
   ],
 );
 
+/// Run the tests of [OcptShootingDayAgendaGrid].
 void main() {
   group("bounds", () {
     test("a day with no slot is empty and never crashes", () {

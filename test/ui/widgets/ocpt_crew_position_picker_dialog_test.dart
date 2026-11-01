@@ -25,6 +25,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -48,6 +49,7 @@ Widget _wrapWithLocalization(Widget child, {Locale locale = const Locale('en', '
       home: child,
     );
 
+/// Run the tests of [OcptCrewPositionPickerDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

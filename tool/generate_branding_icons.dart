@@ -243,6 +243,7 @@ class _Fill extends _Shape {
   /// Class constructor
   const _Fill(this.rect);
 
+  /// Measure the distance to the rectangle.
   @override
   double distanceTo(double x, double y) => rect.distanceTo(x, y);
 }
@@ -258,6 +259,8 @@ class _Stroke extends _Shape {
   /// Class constructor
   const _Stroke(this.rect, {required this.strokeWidth});
 
+  /// Measure the distance to the outline: the distance to the rectangle's edge, less half the
+  /// stroke width.
   @override
   double distanceTo(double x, double y) => rect.distanceTo(x, y).abs() - strokeWidth / 2;
 }

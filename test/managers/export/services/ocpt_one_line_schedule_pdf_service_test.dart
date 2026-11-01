@@ -201,6 +201,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   minimumRestMinutes: null,
 );
 
+/// Run the tests of [OcptOneLineSchedulePdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -46,8 +46,11 @@ const _screenplay =
 /// columns, statuses or groups apart without depending on the app's own translations. Mirrors
 /// `ocpt_resources_xlsx_export_service_test.dart`'s own `_buildLabels`.
 const _scenesSheetName = "Scenes";
+
+/// The name of the entries sheet the tests look for.
 const _entriesSheetName = "Breakdown";
 
+/// Build the labels the service writes its workbook with.
 OcptBreakdownXlsxLabels _buildLabels() => OcptBreakdownXlsxLabels(
   fileNameSuffix: "breakdown",
   scenesSheetName: _scenesSheetName,
@@ -270,6 +273,7 @@ Object? _valueOf(Data? cell) {
 /// The value of column [index] in [row], or null when the row is shorter than that column.
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
+/// Run the tests of [OcptBreakdownXlsxExportService].
 void main() {
   const service = OcptBreakdownXlsxExportService(logger: SilentLogger());
   const parser = FountainParser();

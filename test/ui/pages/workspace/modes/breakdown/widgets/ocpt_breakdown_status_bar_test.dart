@@ -24,6 +24,7 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptBreakdownStatusBar].
 void main() {
   /// Pumps the status bar for [taggedTargetCount] tagged targets, [usedCategoryCount] categories,
   /// [toFindCount] elements still to find and [needsCheckTagCount] tags still to check, in a band

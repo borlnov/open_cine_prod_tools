@@ -145,6 +145,7 @@ Future<void> _pumpPanel(
   ),
 );
 
+/// Run the tests of [OcptScheduleAlertsPanel].
 void main() {
   testWidgets("an empty plan reads as nothing to look at", (tester) async {
     await _pumpPanel(tester, alerts: const []);

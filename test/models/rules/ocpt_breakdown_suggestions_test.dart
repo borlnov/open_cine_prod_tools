@@ -51,6 +51,7 @@ OcptBreakdownTag _tag({
   needsCheck: false,
 );
 
+/// Run the tests of the breakdown suggestions.
 void main() {
   group("ocptBreakdownSuggestionsOf — basic matching", () {
     test("suggests an untagged occurrence of a tag's own text in another scene", () {

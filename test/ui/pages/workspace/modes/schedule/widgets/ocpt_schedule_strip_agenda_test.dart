@@ -88,6 +88,7 @@ OcptShootingDayBlock _buildShotBlock({required String id, required String shotId
       crewNote: "",
     );
 
+/// Run the tests of [OcptScheduleStripAgenda].
 void main() {
   final dayOne = _buildDay(id: "day-1", dayNumber: 1);
 

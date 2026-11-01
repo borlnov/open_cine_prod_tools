@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_mileage_rate_amount.dart';
 
+/// Run the tests of the mileage rate amount.
 void main() {
   group("ocptMileageRateMilliCentsOf", () {
     test("reads a rate typed to three decimals", () {

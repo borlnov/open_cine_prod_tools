@@ -56,6 +56,7 @@ OcptShot _buildShot({List<String> characters = const [], String? shootingDay, in
       averageDifficulty: 1,
     );
 
+/// Run the tests of [OcptShotMetadataPanel].
 void main() {
   testWidgets("shows the empty hint when no shot is selected", (tester) async {
     await tester.pumpWidget(

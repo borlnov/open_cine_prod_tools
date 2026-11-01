@@ -51,6 +51,8 @@ Future<void> _useLargeSurface(WidgetTester tester) async {
 /// A single-scene screenplay: heading then one action line, matching the fixture
 /// `OcptScriptWordLayout.of`'s own tests use elsewhere.
 const _sceneId = "scene-1";
+
+/// A short scene: a heading and an action line.
 const _sceneText = "INT. HOUSE - DAY\n\nA lamp sits on the desk.\n";
 
 /// The layout every test in this file reads its word offsets from — exactly what
@@ -170,6 +172,7 @@ Widget _buildView({
   onOpenInResourcesRequested: () {},
 );
 
+/// Run the tests of [OcptBreakdownScriptView].
 void main() {
   testWidgets("a tagged passage is washed with its target's own colour", (tester) async {
     await _useLargeSurface(tester);

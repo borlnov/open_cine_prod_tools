@@ -16,6 +16,7 @@ import 'package:super_editor/super_editor_test.dart';
 
 import 'editor_page_scenarios_test_doubles.dart';
 
+/// Run the tests of the editor page lifecycle scenarios.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 

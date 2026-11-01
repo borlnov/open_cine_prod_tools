@@ -5,6 +5,7 @@
 import "package:flutter_test/flutter_test.dart";
 import "package:open_cine_prod_tools/models/rules/ocpt_app_version.dart";
 
+/// Run the tests of [OcptAppVersion].
 void main() {
   group("OcptAppVersion.parse", () {
     test("a bare MAJOR.MINOR.PATCH tag is stable", () {

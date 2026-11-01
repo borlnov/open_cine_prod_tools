@@ -28,6 +28,7 @@ Widget _wrap(Widget child, {double width = 220}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptEditorInspectorPanel].
 void main() {
   testWidgets('empty state when the caret precedes every scene', (tester) async {
     await tester.pumpWidget(

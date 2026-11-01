@@ -8,6 +8,7 @@ import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:fountain_kit/src/serializer/fountain_title_page_writer.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the title page writer.
 void main() {
   const writer = FountainTitlePageWriter();
   const parser = FountainParser();

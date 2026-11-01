@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 
 import 'breakdown_mode_scenarios_test_doubles.dart';
 
+/// Run the tests of the breakdown mode inspector scenarios.
 void main() {
   final harness = BreakdownScenarioHarness();
 

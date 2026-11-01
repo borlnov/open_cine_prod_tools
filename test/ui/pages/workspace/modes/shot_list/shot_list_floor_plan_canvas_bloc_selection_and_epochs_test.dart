@@ -34,6 +34,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'shot_list_floor_plan_canvas_bloc_test_doubles.dart';
 
+/// Run the tests of the shot list floor plan canvas bloc selection and epochs.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

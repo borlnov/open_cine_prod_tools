@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart';
 
+/// Run the tests of the synchronised tables.
 void main() {
   late OcptProjectDatabase database;
 

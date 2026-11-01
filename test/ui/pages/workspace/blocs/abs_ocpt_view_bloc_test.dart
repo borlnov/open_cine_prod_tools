@@ -20,21 +20,25 @@ enum _Scope {
 
 /// The state of the double mode: its two epochs.
 class _ModeState extends BlocStateForMixin<_ModeState> with MixinOcptModeState<_ModeState> {
+  /// The reload epoch of the state.
   @override
   final int reloadEpoch;
 
+  /// The selection epoch of the state.
   @override
   final int selectionEpoch;
 
   /// Class constructor
   const _ModeState({this.reloadEpoch = 0, this.selectionEpoch = 0});
 
+  /// Copy the state with the epochs replaced.
   @override
   _ModeState copyWith({int? reloadEpoch, int? selectionEpoch}) => _ModeState(
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
   );
 
+  /// List the fields that decide equality: those of the base plus both epochs.
   @override
   List<Object?> get props => [...super.props, reloadEpoch, selectionEpoch];
 }
@@ -53,6 +57,7 @@ class _ModeEvent extends BlocEventForMixin {
   /// An event whose handler waits for [gate], keeping the mode busy.
   const _ModeEvent.waiting(Completer<void> this.gate) : isSelection = false;
 
+  /// List the fields that decide equality: those of the base plus [isSelection].
   @override
   List<Object?> get props => [...super.props, isSelection];
 }
@@ -68,6 +73,7 @@ class _ModeSetEpochsEvent extends BlocEventForMixin {
   /// Class constructor
   const _ModeSetEpochsEvent({required this.reloadEpoch, required this.selectionEpoch});
 
+  /// List the fields that decide equality: those of the base plus both epochs.
   @override
   List<Object?> get props => [...super.props, reloadEpoch, selectionEpoch];
 }
@@ -77,6 +83,7 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
   /// Class constructor
   _ModeBloc() : super(const _ModeState());
 
+  /// Register the events that set the epochs, and the awaited one that moves an epoch on.
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
@@ -94,12 +101,14 @@ class _ModeBloc extends BlocForMixin<_ModeState> with MixinOcptModeBloc<_ModeSta
     });
   }
 
+  /// Run the flushers and report whether none failed.
   @override
   Future<bool> flushAllPendingWritesIn(Emitter<_ModeState> emitter) async {
     final run = await runPendingWritesFlushers();
     return !run.hasFailed;
   }
 
+  /// Move the reload epoch on, and report success.
   @override
   Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_ModeState> emitter) async {
     emitter(state.copyWith(reloadEpoch: state.reloadEpoch + 1));
@@ -132,6 +141,7 @@ class _ViewState extends BlocStateForMixin<_ViewState> {
     this.selected = "",
   });
 
+  /// Copy the state with the given fields replaced.
   @override
   _ViewState copyWith({
     List<String>? reactions,
@@ -145,6 +155,8 @@ class _ViewState extends BlocStateForMixin<_ViewState> {
     selected: selected ?? this.selected,
   );
 
+  /// List the fields that decide equality: those of the base plus the reactions, the pending text,
+  /// the debounce count and the selection.
   @override
   List<Object?> get props => [...super.props, reactions, pending, debounceCount, selected];
 }
@@ -157,6 +169,7 @@ class _TypeAndDebounceEvent extends BlocEventForMixin {
   /// Class constructor
   const _TypeAndDebounceEvent(this.text);
 
+  /// List the fields that decide equality: those of the base plus [text].
   @override
   List<Object?> get props => [...super.props, text];
 }
@@ -179,6 +192,7 @@ class _SelectEvent extends BlocEventForMixin {
   /// Class constructor
   const _SelectEvent(this.name, {required this.isAwaited});
 
+  /// List the fields that decide equality: those of the base plus [name] and [isAwaited].
   @override
   List<Object?> get props => [...super.props, name, isAwaited];
 }
@@ -197,6 +211,7 @@ class _TypeEvent extends BlocEventForMixin {
   /// Class constructor
   const _TypeEvent(this.text);
 
+  /// List the fields that decide equality: those of the base plus [text].
   @override
   List<Object?> get props => [...super.props, text];
 }
@@ -219,6 +234,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Class constructor
   _ViewBloc({required super.modeBloc, required this.sink}) : super(const _ViewState());
 
+  /// Register the events that type, debounce and select.
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
@@ -241,6 +257,8 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     on<_AskModeEvent>((event, emitter) => addToMode(const _ModeEvent(isSelection: false)));
   }
 
+  /// Record whether the mode reloaded, moved its selection or both, and clear the selection when it
+  /// moved.
   @override
   Future<void> onModeStateChanged(
     OcptViewModeStateChangedEvent<_ModeState> event,
@@ -261,6 +279,8 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     );
   }
 
+  /// Write the pending text to the sink and clear it, or fail when told to; report whether anything
+  /// was written.
   @override
   Future<bool> onFlushRequested(Emitter<_ViewState> emitter) async {
     if (state.pending.isEmpty) {
@@ -276,6 +296,8 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     return true;
   }
 
+  /// Write the pending text to the sink through the stateless flush, waiting for the gate and
+  /// failing when told to.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     if (state.pending.isNotEmpty) {
@@ -291,6 +313,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   }
 }
 
+/// Run the tests of [AbsOcptViewBloc].
 void main() {
   test(
     'a view reacts to the mode reading again, to its selection moving, and says which',

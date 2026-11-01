@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 
+/// Run the tests of [OcptRelayInvite].
 void main() {
   group('OcptRelayInvite', () {
     test('round-trips a plain invite through toInviteString/parse', () {

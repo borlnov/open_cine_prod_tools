@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'ocpt_project_version_codec_test_doubles.dart';
 
+/// Run the tests of the project version codec digest changes budget and decoding.
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
   // accessing it creates the (otherwise unused) singleton.

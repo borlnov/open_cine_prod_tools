@@ -24,6 +24,7 @@ String _formatted({
     )
     .text;
 
+/// Run the tests of [OcptDecimalTextInputFormatter].
 void main() {
   const formatter = OcptDecimalTextInputFormatter();
 

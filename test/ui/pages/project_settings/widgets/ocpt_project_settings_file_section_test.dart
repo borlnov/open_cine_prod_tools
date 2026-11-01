@@ -42,6 +42,7 @@ Future<void> _pumpSection(
   await tester.pumpAndSettle();
 }
 
+/// Run the tests of [OcptProjectSettingsFileSection].
 void main() {
   testWidgets("shows the project's file path as selectable text", (tester) async {
     await _pumpSection(

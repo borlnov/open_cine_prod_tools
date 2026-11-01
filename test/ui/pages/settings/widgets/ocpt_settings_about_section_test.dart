@@ -23,6 +23,7 @@ Widget _buildSection(String appVersion) => MaterialApp(
   home: Scaffold(body: OcptSettingsAboutSection(appVersion: appVersion)),
 );
 
+/// Run the tests of [OcptSettingsAboutSection].
 void main() {
   testWidgets("the app logo stands next to the name and version of the application", (
     tester,

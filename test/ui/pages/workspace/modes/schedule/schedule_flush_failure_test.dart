@@ -32,6 +32,7 @@ Future<String> _testDeviceId() async => "test-device";
 
 /// A router manager whose [pop] does nothing: these tests never leave the workspace.
 class _SilentRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -44,6 +45,8 @@ class _FlakyScheduleService extends OcptScheduleService {
   /// Class constructor
   _FlakyScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
 
+  /// Fail as a refused slot write does while told to, otherwise update the slot as the real service
+  /// does.
   @override
   Future<void> updateSlot({
     required OcptProjectDatabase database,
@@ -78,6 +81,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _RecordingSaveLocationService({required this.answer}) : super(logger: const SilentLogger());
 
+  /// Count the question and answer with the canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -90,6 +94,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   }
 }
 
+/// Run the tests of the schedule flush failure.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

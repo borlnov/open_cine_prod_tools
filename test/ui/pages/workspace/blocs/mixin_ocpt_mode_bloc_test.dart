@@ -22,9 +22,11 @@ enum _Scope {
 
 /// The state of the double mode: its epochs and the log of what its hooks did.
 class _State extends BlocStateForMixin<_State> with MixinOcptModeState<_State> {
+  /// The reload epoch of the state.
   @override
   final int reloadEpoch;
 
+  /// The selection epoch of the state.
   @override
   final int selectionEpoch;
 
@@ -34,6 +36,7 @@ class _State extends BlocStateForMixin<_State> with MixinOcptModeState<_State> {
   /// Class constructor
   const _State({this.reloadEpoch = 0, this.selectionEpoch = 0, this.reads = const []});
 
+  /// Copy the state with the given fields replaced.
   @override
   _State copyWith({int? reloadEpoch, int? selectionEpoch, List<Set<_Scope>>? reads}) => _State(
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
@@ -41,6 +44,7 @@ class _State extends BlocStateForMixin<_State> with MixinOcptModeState<_State> {
     reads: reads ?? this.reads,
   );
 
+  /// List the fields that decide equality: those of the base plus the epochs and the reads.
   @override
   List<Object?> get props => [...super.props, reloadEpoch, selectionEpoch, reads];
 }
@@ -62,6 +66,7 @@ class _Flusher implements OcptPendingWritesFlusher {
   /// Class constructor
   _Flusher({this.hasPending = true});
 
+  /// Count the flush, fail when told to, and report whether anything was pending.
   @override
   Future<bool> flushPendingWrites() async {
     flushCount++;
@@ -71,6 +76,7 @@ class _Flusher implements OcptPendingWritesFlusher {
     return hasPending;
   }
 
+  /// Count the flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     flushWithoutStateCount++;
@@ -105,6 +111,7 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
   Future<void> runPendingWritesFlushersWithoutStateForTest() =>
       runPendingWritesFlushersWithoutState();
 
+  /// Run the flushers, then reload the first scope when one wrote; report whether none failed.
   @override
   Future<bool> flushAllPendingWritesIn(Emitter<_State> emitter) async {
     final run = await runPendingWritesFlushers();
@@ -115,6 +122,8 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
     return !run.hasFailed;
   }
 
+  /// Wait for the gate of this read, fail when told to, then move the reload epoch on and record
+  /// the scopes.
   @override
   Future<bool> reloadScopesIn(Set<_Scope> scopes, Emitter<_State> emitter) async {
     final index = _readCount++;
@@ -131,6 +140,7 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
   }
 }
 
+/// Run the tests of [MixinOcptModeBloc].
 void main() {
   test('a registered flusher is asked to write, an unregistered one no longer is', () async {
     final mode = _ModeBloc();

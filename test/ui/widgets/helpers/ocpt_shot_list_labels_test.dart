@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 
+/// Run the tests of the shot list labels.
 void main() {
   group("ocptParseShotDuration / ocptFormatShotDuration round trip", () {
     test("a blank input parses to null, matching the null formatting", () {

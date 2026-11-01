@@ -6,6 +6,7 @@ import 'package:fountain_kit/src/layout/fountain_print_style.dart';
 import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the print style.
 void main() {
   group('FountainPrintStyle.of', () {
     test('scene heading prints bold and upper-cased', () {

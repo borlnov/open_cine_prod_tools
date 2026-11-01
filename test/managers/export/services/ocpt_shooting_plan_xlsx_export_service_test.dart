@@ -31,11 +31,20 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 /// sheets or columns apart without depending on the app's own translations. Mirrors
 /// `ocpt_breakdown_xlsx_export_service_test.dart`'s own `_buildLabels`.
 const _locationsSheetName = "Locations";
+
+/// The name of the sequences sheet the tests look for.
 const _sequencesSheetName = "Sequences";
+
+/// The name of the people sheet the tests look for.
 const _peopleSheetName = "Crew and cast";
+
+/// The name of the elements sheet the tests look for.
 const _elementsSheetName = "Elements";
+
+/// The name of the chronology sheet the tests look for.
 const _chronologySheetName = "Chronology";
 
+/// Build the labels the service writes its workbook with.
 OcptShootingPlanXlsxLabels _buildLabels() => OcptShootingPlanXlsxLabels(
   fileNameSuffix: "shooting plan",
   locationsSheetName: _locationsSheetName,
@@ -243,6 +252,7 @@ Object? _valueOf(Data? cell) {
 /// The value of column [index] in [row], or null when the row is shorter than that column.
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
+/// Run the tests of [OcptShootingPlanXlsxExportService].
 void main() {
   const service = OcptShootingPlanXlsxExportService(logger: SilentLogger());
 

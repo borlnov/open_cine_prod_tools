@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
+/// Run the tests of [OcptBudgetJournalService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

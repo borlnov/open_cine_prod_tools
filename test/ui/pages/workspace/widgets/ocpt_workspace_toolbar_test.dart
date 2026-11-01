@@ -21,6 +21,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptWorkspaceToolbar].
 void main() {
   testWidgets("the back action fires onBack when clicked", (tester) async {
     var backCount = 0;

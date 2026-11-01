@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
 
+/// Run the tests of the schedule labels.
 void main() {
   group("ocptScheduleStartOfWeek", () {
     // Monday 3 August 2026 through Sunday 9 August 2026.

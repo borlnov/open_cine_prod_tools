@@ -216,6 +216,7 @@ Finder _fieldLabelled(String label) => find.descendant(
   matching: find.byType(TextField),
 );
 
+/// Run the tests of [OcptBreakdownTargetInspector].
 void main() {
   testWidgets("an element target shows its status, category and details sections", (tester) async {
     await _useTallSurface(tester);

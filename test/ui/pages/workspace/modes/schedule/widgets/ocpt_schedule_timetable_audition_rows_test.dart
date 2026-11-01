@@ -46,6 +46,7 @@ OcptSceneShotSequence _buildSequence({
   shots: const [],
 );
 
+/// Run the tests of the schedule timetable audition rows.
 void main() {
   /// Builds an [OcptScheduleTimetable] with the neutral defaults these tests don't otherwise care
   /// about — a lone slot with no other one to move a block to and no cross-slot moving wired up,

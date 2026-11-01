@@ -77,6 +77,7 @@ OcptShot _buildShot({required String id, required String code}) => OcptShot(
   averageDifficulty: 0,
 );
 
+/// Run the tests of [OcptScheduleLeftDock].
 void main() {
   final dayOne = _buildDay(id: "day-1", dayNumber: 1);
   final dayThree = _buildDay(id: "day-3", dayNumber: 3, status: OcptShootingDayStatus.shot);

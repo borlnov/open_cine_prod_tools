@@ -23,6 +23,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -35,6 +36,7 @@ class _FakeFileLoggingManager extends OcptFileLoggingManager {
   /// The path [logFilePath] reports.
   final String? _path;
 
+  /// Read the log file path the double was given.
   @override
   String? get logFilePath => _path;
 
@@ -55,6 +57,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptDiagnosticsPage].
 void main() {
   late _RecordingRouterManager routerManager;
   late OcptDiagnosticsManager diagnosticsManager;

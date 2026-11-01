@@ -45,6 +45,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The method channel `flutter_secure_storage` talks over — `sharing_page_test.dart`'s own mock.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -78,33 +79,40 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_page_test.dart`'s own
 /// fixture, unused by these tests beyond satisfying [OcptSyncManager]'s own constructor.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 }
@@ -114,6 +122,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// `_FakeTransportSyncManager`. Its every other method (`loadPairedProjectId`, `presenceRoster`, …)
 /// is the real, unpaired-project behaviour, which is all these gating tests need of it.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// Class constructor
   _FakeTransportSyncManager({required OcptPairingService super.pairingService})
     : super(
         changesetService: const OcptChangesetService(
@@ -122,6 +131,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -135,14 +145,18 @@ class _FakeTransportSyncManager extends OcptSyncManager {
 /// exercised by these gating tests — `hosting_bloc_test.dart`'s own `_FakeHostManager`, trimmed to
 /// what a page-level gating test needs.
 class _FakeHostManager extends OcptRelayHostManager {
+  /// The controller behind [stateStream].
   final _controller = StreamController<OcptRelayHostState>.broadcast();
 
+  /// Report that the host is stopped.
   @override
   OcptRelayHostState get state => const OcptRelayHostStopped();
 
+  /// Emit the host states the test adds to the controller.
   @override
   Stream<OcptRelayHostState> get stateStream => _controller.stream;
 
+  /// Do nothing.
   @override
   Future<void> startHosting({
     required OcptProjectDatabase database,
@@ -153,13 +167,16 @@ class _FakeHostManager extends OcptRelayHostManager {
     int? port,
   }) async {}
 
+  /// Do nothing.
   @override
   Future<void> stopHosting() async {}
 
+  /// Answer that the reconcile failed, as this test does not exercise it.
   @override
   Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async =>
       const OcptReconcileFailed('not exercised by this test');
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
@@ -169,6 +186,7 @@ class _FakeHostManager extends OcptRelayHostManager {
 /// stubbing `isDesktop` directly rather than `isMobile`/`isLinux`/etc., since that is the one flag
 /// the gating actually reads.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a desktop platform.
   @override
   final bool isDesktop;
 
@@ -190,6 +208,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of the sharing page hosting.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptPairingService pairingService;

@@ -35,10 +35,12 @@ class _TestProjectsManager extends OcptProjectsManager {
   /// Class constructor
   _TestProjectsManager({required this.directory, super.propertiesManager});
 
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> newProjectsDirectory() async => directory;
 }
 
+/// Run the tests of the projects manager preview and move.
 void main() {
   // OcptPropertiesManager wraps a process-wide singleton (see the properties manager test), so we
   // create it once, backed by an in-memory store, and clear it between tests.

@@ -21,6 +21,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptEditorSavedTimeSegment].
 void main() {
   testWidgets("a null lastSavedAt shows the never-saved fallback wording", (tester) async {
     await tester.pumpWidget(

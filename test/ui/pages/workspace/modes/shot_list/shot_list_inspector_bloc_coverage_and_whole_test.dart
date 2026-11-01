@@ -45,6 +45,7 @@ class _FailingShotCoverageService extends OcptShotCoverageService {
   const _FailingShotCoverageService()
     : super(logger: const SilentLogger(), deviceId: _testDeviceId);
 
+  /// Fail as a refused coverage write does.
   @override
   Future<String> addRange({
     required OcptProjectDatabase database,
@@ -66,6 +67,7 @@ class _HoldingShotListService extends OcptShotListService {
   /// How many reads were held back so far.
   int holdCount = 0;
 
+  /// Completes to let the held call go on.
   final Completer<void> _release = Completer<void>();
 
   /// Class constructor
@@ -81,6 +83,7 @@ class _HoldingShotListService extends OcptShotListService {
   /// Lets every held read answer.
   void release() => _release.complete();
 
+  /// Load the shot list as the real service does, then hold the call while reads are to be held.
   @override
   Future<OcptShotListSnapshot> loadShotList({
     required OcptProjectDatabase database,
@@ -101,6 +104,7 @@ class _HoldingShotListService extends OcptShotListService {
   }
 }
 
+/// Run the tests of the shot list inspector bloc coverage and whole.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

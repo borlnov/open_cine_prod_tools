@@ -19,6 +19,7 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// A router manager whose [pop] dismisses through [_navigatorKey] instead of a real `GoRouter`,
 /// which this file has none of.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator.
   @override
   void pop<Y extends Object?>([Y? result]) => _navigatorKey.currentState?.pop<Y>(result);
 }
@@ -43,6 +44,7 @@ Widget _buildHost(List<OcptSkippedAsset> skippedAssets) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptProjectPackageSkippedFilesDialog].
 void main() {
   setUpAll(() {
     OcptGlobalManager.instance.managers.registerSingleton<OcptRouterManager>(

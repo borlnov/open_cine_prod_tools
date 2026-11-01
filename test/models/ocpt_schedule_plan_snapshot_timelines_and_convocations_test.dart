@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'ocpt_schedule_plan_snapshot_test_doubles.dart';
 
+/// Run the tests of the schedule plan snapshot timelines and convocations.
 void main() {
   group("timelinesOfDay", () {
     test("resolves an end-anchored slot's own hours against a start-anchored one", () {

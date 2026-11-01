@@ -47,6 +47,7 @@ OcptShootingSlotGuest _buildGuest({
   notes: notes,
 );
 
+/// Run the tests of the shooting plan pdf service events and grid.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

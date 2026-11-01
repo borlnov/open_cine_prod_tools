@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
 
+/// Run the tests of the weekday mask.
 void main() {
   group("ocptWeekdayMaskContains", () {
     test("the every-day mask covers all seven days", () {

@@ -17,6 +17,7 @@ Editor _editorFor(MutableDocument document) => Editor(
     ..insert(0, ocptTitlePageGuardRequestHandler),
 );
 
+/// Run the tests of [ocptTitlePageGuardRequestHandler].
 void main() {
   group("ocptTitlePageGuardRequestHandler", () {
     test("drops a merge between two different title-page fields (Draft date <- Contact)", () {

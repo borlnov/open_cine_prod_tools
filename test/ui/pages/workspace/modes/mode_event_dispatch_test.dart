@@ -76,6 +76,7 @@ String _bodyOf(String text, RegExpMatch declaration) {
   return text.substring(declaration.start, index);
 }
 
+/// Run the tests of the mode event dispatch.
 void main() {
   final root = Directory("lib");
   final sources = <String, String>{

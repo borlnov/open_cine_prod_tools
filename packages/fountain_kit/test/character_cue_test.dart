@@ -5,6 +5,7 @@
 import 'package:fountain_kit/src/parser/fountain_character_cue.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [parseFountainCharacterCue].
 void main() {
   group('parseFountainCharacterCue', () {
     test('reads a plain cue as its name alone', () {

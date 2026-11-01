@@ -35,6 +35,7 @@ class _TransactionCountingDatabase extends OcptProjectDatabase {
   }
 }
 
+/// Run the tests of the role index service reconciliation.
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

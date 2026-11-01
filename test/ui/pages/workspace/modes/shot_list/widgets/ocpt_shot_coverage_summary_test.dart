@@ -32,6 +32,8 @@ Future<void> _useTallSurface(WidgetTester tester) async {
 /// A realistic scene: heading, an action line, a character cue, a parenthetical and a dialogue
 /// line, matching the fixture `OcptScriptWordLayout.of`'s own tests use.
 const _sceneId = "scene-1";
+
+/// A short scene: a heading, an action line and a line of dialogue.
 const _sceneText = 'INT. HOUSE - DAY\n\nJohn walks in.\n\nJOHN\n(whispering)\nHello there.';
 
 /// Builds the layout every test in this file lays its scene out from.
@@ -73,6 +75,7 @@ Widget _buildSummary({
   onClearAll: isReadOnly ? null : (onClearAll ?? () {}),
 );
 
+/// Run the tests of [OcptShotCoverageSummary].
 void main() {
   testWidgets("shows the orphan hint, and no select button, when the layout is null", (
     tester,

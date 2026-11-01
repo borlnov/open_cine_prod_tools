@@ -15,6 +15,7 @@ String testAppLanguageCode() => "en";
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Completes the moment [pop] is called.

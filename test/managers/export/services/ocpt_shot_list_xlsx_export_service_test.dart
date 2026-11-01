@@ -133,6 +133,7 @@ Object? _valueOf(Data? cell) => switch (cell?.value) {
 Object? _cellOf(List<Object?> row, OcptShotListXlsxColumn column) =>
     column.index < row.length ? row[column.index] : null;
 
+/// Run the tests of [OcptShotListXlsxExportService].
 void main() {
   const service = OcptShotListXlsxExportService(logger: SilentLogger());
 

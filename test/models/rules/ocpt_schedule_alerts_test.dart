@@ -123,6 +123,7 @@ List<OcptScheduleAlert> _computeAlerts({
 OcptSchedulePermitWindow _buildPermitWindow({DateTime? validFrom, DateTime? validUntil}) =>
     OcptSchedulePermitWindow(validFrom: validFrom, validUntil: validUntil);
 
+/// Run the tests of the schedule alerts.
 void main() {
   group("rule 1 — a person convoked on a day they are unavailable", () {
     test("a full-day unavailability fires for every slot the person is linked to", () {

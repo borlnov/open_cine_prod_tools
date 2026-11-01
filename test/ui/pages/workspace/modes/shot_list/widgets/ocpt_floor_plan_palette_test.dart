@@ -37,6 +37,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   );
 }
 
+/// Build a palette with the given tool, element shape and scope.
 OcptFloorPlanPalette _buildPalette({
   required String setName,
   String sequenceCode = "7",
@@ -91,6 +92,7 @@ OcptFloorPlanPalette _buildPalette({
   onUnderlayClearRequested: null,
 );
 
+/// Run the tests of [OcptFloorPlanPalette].
 void main() {
   testWidgets("shows the Set group header naming the set, and no Shot group without a focused "
       "shot", (tester) async {

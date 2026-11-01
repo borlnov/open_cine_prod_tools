@@ -94,6 +94,7 @@ OcptBreakdownTarget _buildRoleTarget({required String id, required String name})
       occurrenceCount: 1,
     );
 
+/// Run the tests of [OcptBreakdownScenePanel].
 void main() {
   final propTarget = _buildElementTarget(
     id: "el-1",

@@ -71,6 +71,7 @@ OcptShot _buildShot({required String id, required String code}) => OcptShot(
   averageDifficulty: 0,
 );
 
+/// Run the tests of [OcptScheduleState].
 void main() {
   group("unplacedGroups", () {
     test("reports each group's own episode alongside its sequence", () {

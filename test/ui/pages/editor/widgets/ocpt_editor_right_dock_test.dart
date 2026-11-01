@@ -40,6 +40,7 @@ Widget _dock({
   onClose: () => closed.add(null),
 );
 
+/// Run the tests of [OcptEditorRightDock].
 void main() {
   testWidgets('renders one label per available tab, in mock-up order', (tester) async {
     await tester.pumpWidget(

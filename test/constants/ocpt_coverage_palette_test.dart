@@ -18,6 +18,7 @@ double _relativeLuminance(int color) {
   return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
 }
 
+/// Run the tests of the coverage palette.
 void main() {
   group("ocptCoveragePalette", () {
     test("holds 16 distinct, fully opaque colours", () {

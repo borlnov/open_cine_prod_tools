@@ -253,6 +253,7 @@ OcptPerson _buildPerson({required String id, int? commuteKmMilli, String? mileag
       unavailabilities: const [],
     );
 
+/// Run the tests of [OcptBudgetState].
 void main() {
   group("OcptBudgetState.init", () {
     test("starts loading, with no snapshot and the default right dock tab", () {

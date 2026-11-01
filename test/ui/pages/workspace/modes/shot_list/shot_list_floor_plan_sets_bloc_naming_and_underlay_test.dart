@@ -48,6 +48,7 @@ class _ReadFailingFloorPlanService extends OcptFloorPlanService {
         deviceId: source.deviceId,
       );
 
+  /// Fail while told to, otherwise load the floor plans as the real service does.
   @override
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
     required OcptProjectDatabase database,
@@ -60,6 +61,7 @@ class _ReadFailingFloorPlanService extends OcptFloorPlanService {
   }
 }
 
+/// Run the tests of the shot list floor plan sets bloc naming and underlay.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

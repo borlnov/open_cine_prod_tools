@@ -57,6 +57,8 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedResult;
 
+  /// Record the pop and its result, then pop the route of the test's own navigator, when it can
+  /// pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     wasPopped = true;
@@ -74,9 +76,11 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager` already
 /// is.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
+  /// Class constructor
   _StubPlatformManager({required this.isMobile});
 }
 
@@ -99,6 +103,8 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _RecordingSaveLocationService({this.saveLocationAnswer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the suggested name and the initial directory, and answer with the
+  /// canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -128,6 +134,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptProjectSettingsPage].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late Directory tempDir;

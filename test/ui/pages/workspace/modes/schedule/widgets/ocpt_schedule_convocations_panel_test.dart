@@ -120,6 +120,7 @@ Future<void> _pumpPanel(
   ),
 );
 
+/// Run the tests of [OcptScheduleConvocationsPanel].
 void main() {
   testWidgets("shows the empty hint while no day is selected", (tester) async {
     await _pumpPanel(tester);

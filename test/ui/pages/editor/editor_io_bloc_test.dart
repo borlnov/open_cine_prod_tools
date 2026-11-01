@@ -46,6 +46,7 @@ String _testAppLanguageCode() => "en";
 /// state emitted earlier in the same event handler (the emitted state and the handler's own
 /// completion are not ordered with respect to a stream listener in the test).
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Whether [pop] was called.
@@ -123,6 +124,7 @@ class _FakeExportManager extends OcptExportManager {
     this.importStatus = OcptScreenplayImportStatus.cancelled,
   }) : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember what was exported, and answer with the canned saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
@@ -139,6 +141,7 @@ class _FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as a PDF, and answer with the canned saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
@@ -161,6 +164,8 @@ class _FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the file type label, and answer with the canned screenplay, or with the canned status
+  /// when there is none.
   @override
   Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
   pickAndReadScreenplay({required String fileTypeLabel}) async {
@@ -181,6 +186,7 @@ class _ThrowingPdfExportManager extends OcptExportManager {
   /// Class constructor
   _ThrowingPdfExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Fail as a PDF export that breaks does.
   @override
   Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
@@ -202,12 +208,25 @@ class _EditorStates {
   /// The file exchange bloc's state.
   final OcptEditorIoState io;
 
+  /// Read whether the mode is loading.
   bool get isLoading => mode.isLoading;
+
+  /// Read whether the mode has unsaved changes.
   bool get isDirty => mode.isDirty;
+
+  /// Read the text of the mode.
   String get text => mode.text;
+
+  /// Read the current line of the mode.
   int get currentLine => mode.currentLine;
+
+  /// Read the page setup of the mode.
   OcptPageSetup get pageSetup => mode.pageSetup;
+
+  /// Read the scene headings of the mode.
   List<FountainSceneHeading> get scenes => mode.scenes;
+
+  /// Read the notice of the io state.
   OcptEditorIoNotice? get ioNotice => io.ioNotice;
 
   /// Class constructor
@@ -252,6 +271,7 @@ class _Editor {
   }
 }
 
+/// Run the tests of [OcptEditorIoBloc].
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
 

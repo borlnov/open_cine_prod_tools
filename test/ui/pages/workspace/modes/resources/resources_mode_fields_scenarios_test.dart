@@ -13,6 +13,7 @@ const _debounceElapsed = Duration(milliseconds: 2500);
 /// How long a scenario waits while staying clear of the 2 s field-edit debounce.
 const _beforeDebounce = Duration(milliseconds: 300);
 
+/// Run the tests of the resources mode fields scenarios.
 void main() {
   final harness = ResourcesScenarioHarness();
 

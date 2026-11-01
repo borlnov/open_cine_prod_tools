@@ -44,12 +44,14 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
         deviceId: source.deviceId,
       );
 
+  /// Fail as a refused symbol deletion does.
   @override
   Future<void> deleteSymbol({
     required OcptProjectDatabase database,
     required String symbolId,
   }) async => throw StateError("symbol deletion intentionally failed for the test");
 
+  /// Fail as a refused arrow deletion does.
   @override
   Future<void> deleteArrow({
     required OcptProjectDatabase database,
@@ -66,6 +68,7 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
   /// How many reads were held back so far.
   int holdCount = 0;
 
+  /// Completes to let the held call go on.
   final Completer<void> _release = Completer<void>();
 
   /// Class constructor
@@ -79,6 +82,7 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
   /// Lets every held read answer.
   void release() => _release.complete();
 
+  /// Load the floor plans as the real service does, then hold the call while reads are to be held.
   @override
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
     required OcptProjectDatabase database,
@@ -94,6 +98,7 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
   }
 }
 
+/// Run the tests of the shot list floor plan placements bloc bloc as whole.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

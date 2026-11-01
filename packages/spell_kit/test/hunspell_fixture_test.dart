@@ -15,6 +15,7 @@ SpellChecker _checkerFor(String name) {
   return SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
 }
 
+/// Run the tests of the hunspell fixture.
 void main() {
   group('flag width', () {
     test('the default (single-character) width is parsed', () {

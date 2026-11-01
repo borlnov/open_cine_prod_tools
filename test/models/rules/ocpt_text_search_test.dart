@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 
+/// Run the tests of [ocptFindTextMatches].
 void main() {
   group("ocptFindTextMatches", () {
     test("an empty query matches nothing", () {

@@ -19,6 +19,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 /// so a dialog opened through `showDialog` genuinely closes: this mode's own bloc resolves its
 /// router manager from `globalGetIt()`, with no real GoRouter for `pop` to delegate to.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = navigatorKey.currentState;

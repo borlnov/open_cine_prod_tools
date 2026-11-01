@@ -115,6 +115,7 @@ Widget _panel({
   onRenameConfirmed: (id, name, note) => calls.renameConfirmed.add((id, name, note)),
 );
 
+/// Run the tests of [OcptProjectVersionsPanel].
 void main() {
   /// Grows the test surface past the panel's own 700px-tall wrapper: three actions in a card's
   /// footer (`Rename`, `Restore this version`, `Delete`) wrap onto two lines at this width, tall

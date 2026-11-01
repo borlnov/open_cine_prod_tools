@@ -82,6 +82,7 @@ OcptShot _buildShot({
   averageDifficulty: difficulty.toDouble(),
 );
 
+/// Run the tests of [OcptShotListTable].
 void main() {
   /// Pumps the table, recording every shot selection it reports.
   Future<List<String>> pumpTable(

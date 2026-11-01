@@ -61,6 +61,7 @@ ScriptImportFailure _failureOf(String text, String fileName) {
   fail('reading the file was expected to throw');
 }
 
+/// Run the tests of [ScriptImporter].
 void main() {
   group('dispatch by extension', () {
     test('a ".fdx" file is read as Final Draft', () {

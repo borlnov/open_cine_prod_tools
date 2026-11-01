@@ -19,6 +19,7 @@ const _beforeDebounce = Duration(milliseconds: 300);
 /// The date of the only day most scenarios plan, far from any clock a test could run on.
 final _shootingDate = DateTime(2099, 3);
 
+/// Run the tests of the schedule mode fields scenarios.
 void main() {
   final harness = ScheduleScenarioHarness();
 

@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 import 'package:path/path.dart' as p;
 import 'ocpt_export_manager_test_doubles.dart';
 
+/// Run the tests of the export manager day out of days and sides.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

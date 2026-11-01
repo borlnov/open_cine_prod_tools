@@ -93,6 +93,7 @@ OcptBreakdownTarget _buildElementTarget({
   occurrenceCount: 1,
 );
 
+/// Run the tests of [OcptBreakdownSceneInspector].
 void main() {
   testWidgets("shows the mode's own empty message while nothing is selected", (tester) async {
     await tester.pumpWidget(

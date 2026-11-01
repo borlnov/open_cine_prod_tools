@@ -25,6 +25,7 @@ class _InertExportManager extends OcptExportManager {
   _InertExportManager() : super(fileSelectorManager: const FileSelectorManager());
 }
 
+/// Run the tests of [OcptEditorSearchBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

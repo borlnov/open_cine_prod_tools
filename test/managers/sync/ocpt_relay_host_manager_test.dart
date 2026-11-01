@@ -37,6 +37,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -71,6 +72,7 @@ void _mockSecureStorage(Map<String, String> store) {
 /// exercised on either branch without a real platform underneath it — mirrors
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own stub.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -85,16 +87,32 @@ class _StubPlatformManager extends PlatformManager {
 /// [OcptRelayHostManager] calls the right one, with the right localhost URI, and tears the session
 /// down again on `OcptRelayHostManager.stopHosting`.
 class _SpySyncManager extends OcptSyncManager {
+  /// The relay address seeded into the pairing, when there is one.
   Uri? seededRelayBaseUri;
+
+  /// The enrolment secret seeded into the pairing, when there is one.
   String? seededEnrolmentSecret;
+
+  /// The project id seeded into the pairing, when there is one.
   String? seededProjectId;
+
+  /// Whether the manager paired the project.
   bool didPair = false;
+
+  /// Whether the manager repointed the project.
   bool didRepoint = false;
+
+  /// Whether the manager stopped the sync session.
   bool didStopSession = false;
+
+  /// The roster to answer with while the pairing is seeded.
   OcptPresenceRoster? rosterWhileSeeded;
 
+  /// Read the roster to answer with.
   @override
   OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
+
+  /// Class constructor
   _SpySyncManager()
     : super(
         changesetService: const OcptChangesetService(
@@ -103,6 +121,7 @@ class _SpySyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Record the pairing, the values it was seeded with and the roster at that time.
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
@@ -138,6 +157,7 @@ class _SpySyncManager extends OcptSyncManager {
     );
   }
 
+  /// Record the repointing, the values it was seeded with and the roster at that time.
   @override
   Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
@@ -166,12 +186,14 @@ class _SpySyncManager extends OcptSyncManager {
     return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
+  /// Record that the session was stopped.
   @override
   Future<void> stopSyncSession() async {
     didStopSession = true;
   }
 }
 
+/// Run the tests of [OcptRelayHostManager].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

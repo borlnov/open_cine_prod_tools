@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 
+/// Run the tests of [OcptConfigManager].
 void main() {
   // appLogger() (used by OcptConfigManager's own constructor) requires a global manager instance
   // to exist; merely accessing it creates the (otherwise unused) safe-logger singleton, exactly

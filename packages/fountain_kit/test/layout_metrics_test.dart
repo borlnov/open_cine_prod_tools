@@ -13,6 +13,7 @@ void _expectClose(double value, double expected) {
   expect(value, closeTo(expected, 0.0001));
 }
 
+/// Run the tests of the layout metrics.
 void main() {
   group('US Letter preset', () {
     final metrics = FountainLayoutMetrics.usLetter();

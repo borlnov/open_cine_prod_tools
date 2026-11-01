@@ -10,6 +10,7 @@ import 'package:test/test.dart';
 List<FountainLineType> _classify(List<String> lines) =>
     const FountainLineClassifier().classify(lines);
 
+/// Run the tests of the line classifier.
 void main() {
   group('blank lines', () {
     test('a truly empty line is blank', () {

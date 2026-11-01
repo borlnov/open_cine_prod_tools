@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+/// Run the tests of [OcptProjectFileCompatibilityService].
 void main() {
   // The service reports what it can't read through appLogger(), which requires a global manager
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.

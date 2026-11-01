@@ -57,10 +57,12 @@ class _FailingStoryboardService extends OcptStoryboardService {
         deviceId: _testDeviceId,
       );
 
+  /// Fail as a refused panel creation does.
   @override
   Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async =>
       throw StateError("panel creation intentionally failed for the test");
 
+  /// Fail as a refused comment write does.
   @override
   Future<void> updatePanelComment({
     required OcptProjectDatabase database,
@@ -79,6 +81,7 @@ class _HoldingStoryboardService extends OcptStoryboardService {
   /// How many reads were held back so far.
   int holdCount = 0;
 
+  /// Completes to let the held call go on.
   final Completer<void> _release = Completer<void>();
 
   /// Class constructor
@@ -92,6 +95,7 @@ class _HoldingStoryboardService extends OcptStoryboardService {
   /// Lets every held read answer.
   void release() => _release.complete();
 
+  /// Load the storyboard as the real service does, then hold the call while reads are to be held.
   @override
   Future<OcptStoryboardSnapshot> loadStoryboard({
     required OcptProjectDatabase database,
@@ -121,6 +125,7 @@ class _ReadFailingStoryboardService extends OcptStoryboardService {
         deviceId: source.deviceId,
       );
 
+  /// Fail while told to, otherwise load the storyboard as the real service does.
   @override
   Future<OcptStoryboardSnapshot> loadStoryboard({
     required OcptProjectDatabase database,
@@ -141,6 +146,7 @@ class _HoldingShotListService extends OcptShotListService {
   /// How many reads were held back so far.
   int holdCount = 0;
 
+  /// Completes to let the held call go on.
   final Completer<void> _release = Completer<void>();
 
   /// Class constructor
@@ -156,6 +162,7 @@ class _HoldingShotListService extends OcptShotListService {
   /// Lets every held read answer.
   void release() => _release.complete();
 
+  /// Load the shot list as the real service does, then hold the call while reads are to be held.
   @override
   Future<OcptShotListSnapshot> loadShotList({
     required OcptProjectDatabase database,
@@ -176,6 +183,7 @@ class _HoldingShotListService extends OcptShotListService {
   }
 }
 
+/// Run the tests of the shot list storyboard bloc bloc as whole.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

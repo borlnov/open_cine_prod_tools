@@ -24,6 +24,7 @@ Color _borderColor(WidgetTester tester) {
   return decoration.border!.top.color;
 }
 
+/// Run the tests of [OcptJoiningScanFrame].
 void main() {
   testWidgets("idle status paints the theme's own outline colour", (tester) async {
     await tester.pumpWidget(

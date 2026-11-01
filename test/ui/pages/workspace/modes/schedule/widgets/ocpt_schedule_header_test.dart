@@ -45,6 +45,7 @@ Widget _buildHeader({
   ),
 );
 
+/// Run the tests of [OcptScheduleHeader].
 void main() {
   testWidgets("the Colour by control is hidden outside the agenda view", (tester) async {
     await tester.pumpWidget(_buildHeader(centreView: OcptScheduleCentreView.day));

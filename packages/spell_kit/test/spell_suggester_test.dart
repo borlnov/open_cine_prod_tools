@@ -25,6 +25,7 @@ SpellSuggester _frenchSuggester() {
   return SpellSuggester(checker);
 }
 
+/// Run the tests of [SpellSuggester].
 void main() {
   group('the suggestions fixture', () {
     late SpellSuggester suggester;

@@ -38,6 +38,7 @@ OcptProjectWorkingCopyState _workingCopy({
   isModifiedSinceBase: isModifiedSinceBase,
 );
 
+/// Run the tests of [OcptProjectWorkingCopyCard].
 void main() {
   testWidgets('shows the title and the counters of the working copy', (tester) async {
     var created = 0;

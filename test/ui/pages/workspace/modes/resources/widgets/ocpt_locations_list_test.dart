@@ -64,6 +64,7 @@ OcptLocation _location({
   availabilities: const [],
 );
 
+/// Run the tests of [OcptLocationsList].
 void main() {
   /// Pumps the list over [locations].
   Future<void> pumpList(

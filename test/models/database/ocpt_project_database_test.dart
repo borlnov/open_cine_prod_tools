@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 
+/// Run the tests of [OcptProjectDatabase].
 void main() {
   late OcptProjectDatabase database;
 

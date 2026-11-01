@@ -35,6 +35,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -68,33 +69,40 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — everything
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this bloc's own tests.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 }
@@ -104,13 +112,16 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// for the relay being unreachable, or the enrolment secret being refused — exactly the shape
 /// `ocpt_sync_manager_pairing_test.dart`'s own `_FakeTransportSyncManager` already follows.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// Whether [openRelayRemoteStorage] throws, as a relay that cannot be reached does.
   final bool shouldFailToOpenTransport;
 
   /// Whether [pairProjectToRelay] throws instead of answering a status.
   final bool shouldThrowOnPair;
 
+  /// The pairing service the double hands to its flows.
   final OcptPairingService _pairing;
 
+  /// Class constructor
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
@@ -124,6 +135,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
          ),
        );
 
+  /// Open a storage that accepts everything and holds nothing, or throw when told to fail.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -142,6 +154,8 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   // real `OcptProjectPackageService.writePackage` file I/O, which under the full suite's parallel
   // load is the one flaky step — the pairing is saved and an invite returned, or the failure flag
   // throws, which is all the bloc reacts to.
+  /// Pair the project with a fake token and start the session, failing in the ways the test asks
+  /// for.
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
     required OcptProjectDatabase database,
@@ -185,6 +199,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }
 }
 
+/// Run the tests of [OcptSharingBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

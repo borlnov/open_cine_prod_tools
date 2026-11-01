@@ -33,6 +33,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -66,30 +67,37 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] holding at most one uploaded snapshot — everything
 /// `publishSnapshot`/`joinFromRelay` need of a transport, and nothing about a network.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The last snapshot uploaded, or null before any.
   (OcptSnapshotDescriptor, Uint8List)? uploaded;
 
   /// When set, the status every request/response call answers instead of succeeding.
   OcptRemoteStorageStatus? failWith;
 
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Fail with the canned failure when there is one, otherwise keep the snapshot as the latest.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
@@ -104,6 +112,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
     return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
+  /// Fail with the canned failure when there is one, otherwise answer with the snapshot uploaded
+  /// last.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async {
@@ -115,12 +125,15 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
     return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
   }
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
+/// Run the tests of the sync manager snapshot.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

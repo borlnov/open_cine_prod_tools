@@ -81,6 +81,7 @@ final _backdropFinder = find.descendant(
   matching: find.byType(ColoredBox),
 );
 
+/// Run the tests of [OcptEditorPreview].
 void main() {
   final layout = OcptEditorPreviewLayout(metrics: FountainLayoutMetrics.usLetter());
   // Matches `_OcptEditorPreviewState._pagePadding`: the horizontal padding kept around the page.

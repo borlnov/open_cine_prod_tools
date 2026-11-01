@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_character_colour.dart';
 
+/// Run the tests of [ocptFloorPlanCharacterColourOf].
 void main() {
   group("ocptFloorPlanCharacterColourOf", () {
     test("the same name always yields the same colour", () {

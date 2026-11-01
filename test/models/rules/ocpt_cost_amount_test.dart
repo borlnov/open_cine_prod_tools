@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 
+/// Run the tests of the cost amount.
 void main() {
   group("ocptCostCentsOf", () {
     test("reads a whole amount and a decimal one", () {

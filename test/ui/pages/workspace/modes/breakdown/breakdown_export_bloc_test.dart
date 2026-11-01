@@ -38,6 +38,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter for it
 /// to operate on.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -139,6 +140,8 @@ class _FakeExportManager extends OcptExportManager {
   _FakeExportManager({this.exportResult, this.fails = false})
     : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember what was exported as sheets and with which toggles, then answer with the canned
+  /// result.
   @override
   Future<OcptExportOutcome?> exportBreakdownSheets({
     required FountainDocument document,
@@ -173,6 +176,7 @@ class _FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as a workbook, then answer with the canned result.
   @override
   Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
@@ -199,6 +203,7 @@ class _FakeExportManager extends OcptExportManager {
   }
 }
 
+/// Run the tests of [OcptBreakdownExportBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

@@ -199,6 +199,7 @@ Future<void> _pumpDayInspector(
   onWeatherNoteChanged: onWeatherNoteChanged,
 );
 
+/// Run the tests of [OcptScheduleInspector].
 void main() {
   testWidgets("the scroll position survives a switch from a day to a block to a shot", (
     tester,

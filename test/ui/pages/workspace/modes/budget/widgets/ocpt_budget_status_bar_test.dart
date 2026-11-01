@@ -22,6 +22,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 900, child: child)),
 );
 
+/// Run the tests of [OcptBudgetStatusBar].
 void main() {
   testWidgets("names the trailing figure as the quote, whatever it is", (tester) async {
     await tester.pumpWidget(

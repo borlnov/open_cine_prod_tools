@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 /// The label of the control opening the popover these tests pump.
 const String _anchorLabel = "Pick";
 
+/// Run the tests of [OcptResourcesColorSwatches].
 void main() {
   /// The palette indices the pumped grid reported.
   late List<int> picks;

@@ -97,6 +97,7 @@ OcptPerson _person({required String id, String firstName = "Jane", String lastNa
 /// A zero-amount, fully-covered total — the default reading of an amount nothing names.
 const _zeroTotal = OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
 
+/// Run the tests of [OcptBudgetSharing].
 void main() {
   /// Pumps [OcptBudgetSharing] with every callback a no-op unless overridden.
   Future<void> pumpView(

@@ -61,6 +61,7 @@ OcptFloorPlanSymbol _furnitureSymbol(String setId, String symbolId, double xM, d
       isHidden: false,
     );
 
+/// Build an empty floor plan set with the id [id].
 OcptFloorPlanSet _setOf(String id, List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSet(
   id: id,
   name: "Set $id",
@@ -75,6 +76,7 @@ OcptFloorPlanSet _setOf(String id, List<OcptFloorPlanSymbol> symbols) => OcptFlo
   arrows: const [],
 );
 
+/// Run the tests of [OcptFloorPlanView].
 void main() {
   /// Builds a minimal [OcptFloorPlanView] over [floorPlanSet], reporting every settled zoom into
   /// [zoomSettledTo] — every write callback a plain no-op, since these tests are about framing

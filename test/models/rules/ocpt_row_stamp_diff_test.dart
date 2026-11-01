@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_diff.dart';
 
+/// Run the tests of [ocptChangedColumnNames].
 void main() {
   group("ocptChangedColumnNames", () {
     test("names no column when the two maps agree on every value", () {

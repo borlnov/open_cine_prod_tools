@@ -39,6 +39,7 @@ OcptAssetRef _asset({
   validUntil: null,
 );
 
+/// Run the tests of the person sheet fields and cards.
 void main() {
   setUpAll(() {
     OcptGlobalManager.instance;

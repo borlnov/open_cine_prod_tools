@@ -57,6 +57,7 @@ class _RecordingExportManager extends OcptExportManager {
   /// Class constructor
   _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the episode tag, and answer that the file was saved under the project name.
   @override
   Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
@@ -70,6 +71,7 @@ class _RecordingExportManager extends OcptExportManager {
   }
 }
 
+/// Run the tests of the editor page mode switch and menus.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

@@ -7,7 +7,10 @@ import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:fountain_kit/src/serializer/fountain_serializer.dart';
 import 'package:test/test.dart';
 
+/// The parser turning the test sources into documents.
 const FountainParser _parser = FountainParser();
+
+/// The serializer turning documents back into source.
 const FountainSerializer _serializer = FountainSerializer();
 
 /// Asserts that parsing [source], writing it back out, and parsing that
@@ -21,6 +24,7 @@ void _expectRoundTrips(String source) {
   expect(reparsed.titlePage, original.titlePage);
 }
 
+/// Run the tests of the serializer.
 void main() {
   group('individual elements round-trip', () {
     test('scene heading', () {

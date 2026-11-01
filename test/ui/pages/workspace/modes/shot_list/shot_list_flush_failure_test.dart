@@ -34,6 +34,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// A router manager whose [pop] does nothing: these tests never leave the workspace.
 class _SilentRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -51,6 +52,7 @@ class _FailingFieldShotListService extends OcptShotListService {
         deviceId: source.deviceId,
       );
 
+  /// Fail as a refused field write does.
   @override
   Future<void> updateTextField({
     required OcptProjectDatabase database,
@@ -68,6 +70,7 @@ class _RecordingExportManager extends OcptExportManager {
   /// Class constructor
   _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the snapshot and answer that the workbook was saved.
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -93,6 +96,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _RecordingSaveLocationService({required this.answer}) : super(logger: const SilentLogger());
 
+  /// Count the question and answer with the canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -105,6 +109,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   }
 }
 
+/// Run the tests of the shot list flush failure.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

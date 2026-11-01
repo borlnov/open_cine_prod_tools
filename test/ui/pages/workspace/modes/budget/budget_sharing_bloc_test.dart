@@ -26,6 +26,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -38,6 +39,7 @@ const _smallSeed = [
   OcptBudgetPosteSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
 ];
 
+/// Run the tests of [OcptBudgetSharingBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

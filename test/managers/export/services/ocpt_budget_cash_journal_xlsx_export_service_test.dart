@@ -97,6 +97,7 @@ Object? _valueOf(Data? cell) => switch (cell?.value) {
   final other => other.toString(),
 };
 
+/// Run the tests of [OcptBudgetCashJournalXlsxExportService].
 void main() {
   const service = OcptBudgetCashJournalXlsxExportService(logger: SilentLogger());
 

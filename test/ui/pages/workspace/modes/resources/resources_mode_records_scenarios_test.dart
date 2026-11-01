@@ -12,6 +12,7 @@ import 'resources_mode_scenarios_test_doubles.dart';
 /// How long a scenario lets the mode's 2 s field-edit debounce run out.
 const _debounceElapsed = Duration(milliseconds: 2500);
 
+/// Run the tests of the resources mode records scenarios.
 void main() {
   final harness = ResourcesScenarioHarness();
 

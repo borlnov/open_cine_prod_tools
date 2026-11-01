@@ -22,9 +22,13 @@ final navigatorKey = GlobalKey<NavigatorState>();
 /// `pop` finds nothing left to pop and only records, exactly as every other test here already
 /// relies on.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Whether the dialog popped.
   bool popped = false;
+
+  /// The value the dialog popped with.
   Object? poppedValue;
 
+  /// Record the pop and its value, then pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;

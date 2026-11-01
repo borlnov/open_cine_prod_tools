@@ -51,6 +51,7 @@ import 'seed_demo_project_data.dart';
 import 'seed_demo_project_schedule.dart';
 import 'seed_demo_project_shots.dart';
 
+/// Run the tests of the seed demo project.
 void main() {
   // Every service logs through appLogger(), which needs a global manager instance to exist;
   // merely accessing it creates the (otherwise unused) singleton.

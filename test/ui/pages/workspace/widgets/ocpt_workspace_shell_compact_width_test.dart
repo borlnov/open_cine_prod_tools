@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_shell.dart';
 import 'ocpt_workspace_shell_test_doubles.dart';
 
+/// Run the tests of the workspace shell compact width.
 void main() {
   const pilotEpisode = OcptEpisode(id: "ep-1", number: 1, title: "Pilot");
 

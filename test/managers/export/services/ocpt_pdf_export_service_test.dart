@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_pdf_export_se
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
+/// Run the tests of [OcptPdfExportService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

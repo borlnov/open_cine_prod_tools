@@ -28,6 +28,7 @@ Map<String, dynamic> _styleOf(Stylesheet stylesheet, Document document, Document
         .firstWhere((rule) => rule.selector.matches(document, node))
         .styler(document, node);
 
+/// Run the tests of [OcptFountainEditorStylesheet].
 void main() {
   final metrics = FountainLayoutMetrics.usLetter();
   final colorScheme = ColorScheme.fromSeed(seedColor: Colors.deepPurple);

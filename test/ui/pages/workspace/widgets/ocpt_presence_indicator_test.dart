@@ -25,14 +25,18 @@ class _FakePresenceSyncManager extends OcptSyncManager {
   /// What [presenceRoster] returns — the seed a fresh listener reads before the stream ever emits.
   OcptPresenceRoster? roster;
 
+  /// The controller behind [presenceRosterChanges].
   final _controller = StreamController<OcptPresenceRoster?>.broadcast();
 
+  /// Read the roster the double was given.
   @override
   OcptPresenceRoster? get presenceRoster => roster;
 
+  /// Emit the rosters the test adds to the controller.
   @override
   Stream<OcptPresenceRoster?> get presenceRosterChanges => _controller.stream;
 
+  /// Class constructor
   _FakePresenceSyncManager(this.roster)
     : super(
         changesetService: const OcptChangesetService(
@@ -48,6 +52,7 @@ class _FakePresenceSyncManager extends OcptSyncManager {
     _controller.add(next);
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
@@ -56,6 +61,7 @@ class _FakePresenceSyncManager extends OcptSyncManager {
 OcptPresenceFrame _frame({required String deviceId, required String platform, String? modeKey}) =>
     OcptPresenceFrame(deviceId: deviceId, platform: platform, modeKey: modeKey, heartbeat: 0);
 
+/// Wrap [child] in a localized app, so the widget under test finds its theme and its words.
 Widget _wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -69,6 +75,7 @@ Widget _wrap(Widget child) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptPresenceIndicator].
 void main() {
   /// Widens the test surface well past the default 800px (`compact-breakpoint-vs-default-test
   /// -surface.md`'s own pitfall) and pumps [indicator].

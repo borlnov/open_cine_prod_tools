@@ -55,6 +55,7 @@ OcptBudgetPoste _buildPoste({required String id}) => OcptBudgetPoste(
   lines: const [],
 );
 
+/// Run the tests of the budget regie defrayal table.
 void main() {
   /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.
   Future<void> pumpView(

@@ -40,6 +40,7 @@ OcptShotCoverageRange _buildRange({
   isStale: false,
 );
 
+/// Run the tests of [OcptScriptWordLayout].
 void main() {
   const sceneId = "scene-1";
 

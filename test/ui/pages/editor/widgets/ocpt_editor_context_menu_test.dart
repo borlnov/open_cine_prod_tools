@@ -21,6 +21,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptEditorContextMenu].
 void main() {
   testWidgets("shows up to five suggestions over a misspelled word, capped", (tester) async {
     final controller = MenuController();

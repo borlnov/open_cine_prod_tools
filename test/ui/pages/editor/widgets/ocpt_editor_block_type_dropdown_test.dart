@@ -38,6 +38,7 @@ const _assignableTypesAndLabels = {
   FountainLineType.pageBreak: "Page break",
 };
 
+/// Run the tests of [OcptEditorBlockTypeDropdown].
 void main() {
   testWidgets("shows the localized label of currentType", (tester) async {
     await tester.pumpWidget(

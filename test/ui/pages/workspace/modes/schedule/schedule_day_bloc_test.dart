@@ -38,6 +38,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Completes the moment [pop] is called.
@@ -66,6 +67,7 @@ class _CountingScheduleService extends OcptScheduleService {
   /// Class constructor
   _CountingScheduleService() : super(logger: const SilentLogger(), deviceId: _testDeviceId);
 
+  /// Fail when told to, otherwise load the schedule as the real service does.
   @override
   Future<OcptScheduleSnapshot> loadSchedule({required OcptProjectDatabase database}) {
     if (loadFails) {
@@ -75,6 +77,7 @@ class _CountingScheduleService extends OcptScheduleService {
     return super.loadSchedule(database: database);
   }
 
+  /// Remember the label written, then update the slot as the real service does.
   @override
   Future<void> updateSlot({
     required OcptProjectDatabase database,
@@ -102,6 +105,7 @@ const _shortDebounce = Duration(milliseconds: 60);
 /// A debounce no test waits out, for the tests that must find an edit still pending.
 const _neverDebounce = Duration(days: 1);
 
+/// Run the tests of [OcptScheduleDayBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

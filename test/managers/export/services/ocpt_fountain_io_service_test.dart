@@ -9,6 +9,7 @@ import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_service.dart';
 
+/// Run the tests of [OcptFountainIoService].
 void main() {
   const service = OcptFountainIoService(logger: SilentLogger());
 

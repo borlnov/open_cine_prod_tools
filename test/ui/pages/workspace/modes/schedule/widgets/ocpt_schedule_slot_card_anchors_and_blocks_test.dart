@@ -41,6 +41,7 @@ OcptShootingSlotGuest _buildGuest({
   notes: notes,
 );
 
+/// Run the tests of the schedule slot card anchors and blocks.
 void main() {
   final person = buildPerson(id: "person-1", firstName: "Léa");
 

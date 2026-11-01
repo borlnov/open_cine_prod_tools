@@ -136,6 +136,7 @@ OcptLocation _buildLocation({required String id, String name = ""}) => OcptLocat
   availabilities: const [],
 );
 
+/// Run the tests of `generate`.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

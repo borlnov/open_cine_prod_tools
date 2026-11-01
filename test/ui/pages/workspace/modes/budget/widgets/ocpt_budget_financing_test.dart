@@ -130,6 +130,7 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
   ],
 );
 
+/// Run the tests of [OcptBudgetFinancing].
 void main() {
   /// Pumps [OcptBudgetFinancing] with every callback a no-op unless overridden.
   Future<void> pumpView(

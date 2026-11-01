@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 import 'ocpt_budget_cost_tracking_test_doubles.dart';
 
+/// Run the tests of the budget cost tracking compact width.
 void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.

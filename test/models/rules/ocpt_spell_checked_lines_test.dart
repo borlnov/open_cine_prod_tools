@@ -16,6 +16,7 @@ const _placeholderRange = FountainSourceRange(
   endOffset: 0,
 );
 
+/// Run the tests of the spell checked lines.
 void main() {
   group('ocptLineTypeOfBlock', () {
     test("maps each of the screenplay's own prose blocks to its line type", () {

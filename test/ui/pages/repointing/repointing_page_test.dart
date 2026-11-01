@@ -42,6 +42,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// The method channel `flutter_secure_storage` talks over — `sharing_page_test.dart`'s own mock.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -75,33 +76,40 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all — `sharing_page_test.dart`'s own
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 }
@@ -114,8 +122,10 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// assert anything about the live sync status the repointing page doesn't even show — have no
 /// reason to start one at all, and every reason not to.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// The pairing service the double hands to its flows.
   final OcptPairingService _pairing;
 
+  /// Class constructor
   _FakeTransportSyncManager({required OcptPairingService pairingService})
     : _pairing = pairingService,
       super(
@@ -126,6 +136,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -133,6 +144,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     String? enrolmentSecret,
   }) => _FakeRemoteStorage();
 
+  /// Save the pairing to the new relay, keeping the token it had when there was one.
   @override
   Future<StatusWithExtraInfo<OcptSyncFlowStatus>> repointProjectToRelay({
     required OcptProjectDatabase database,
@@ -172,6 +184,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of the repointing page.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptPairingService pairingService;

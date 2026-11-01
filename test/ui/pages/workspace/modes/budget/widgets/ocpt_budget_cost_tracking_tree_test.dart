@@ -39,6 +39,7 @@ OcptBudgetCommitment _commitment({
   sortKey: "a0",
 );
 
+/// Run the tests of the budget cost tracking tree.
 void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.

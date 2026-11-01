@@ -175,6 +175,7 @@ class _ComposedScreenplay {
       );
 }
 
+/// Run the tests of [OcptScenarioCoverageLayout].
 void main() {
   group("OcptScenarioCoverageLayout.of bars", () {
     test("draws one bar on the rows the covered passage was printed on", () {

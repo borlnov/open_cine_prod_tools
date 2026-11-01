@@ -108,6 +108,7 @@ OcptBudgetEntry _buildCreditEntry({
   personId: null,
 );
 
+/// Run the tests of [OcptBudgetFinancingPlanPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -55,6 +55,7 @@ Future<Tr> _pumpFeedCard(
 /// A callback that does nothing — the default for a test not concerned with what a tap dispatches.
 void _noop() {}
 
+/// Run the tests of [OcptBudgetFeedCard].
 void main() {
   group("the three rows", () {
     testWidgets("each prints its own title and one-line reading", (tester) async {

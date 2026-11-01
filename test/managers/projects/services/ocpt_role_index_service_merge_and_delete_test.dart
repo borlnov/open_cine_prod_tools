@@ -111,6 +111,7 @@ Future<void> _insertRoleTag(
       ),
     );
 
+/// Run the tests of the role index service merge and delete.
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

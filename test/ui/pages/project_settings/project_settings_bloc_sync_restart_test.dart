@@ -67,6 +67,7 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// A [PlatformManager] whose [isMobile] is stubbed.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -82,6 +83,7 @@ class _FixedSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _FixedSaveLocationService(this.path) : super(logger: const SilentLogger());
 
+  /// Answer with the canned path.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -102,6 +104,7 @@ class _FailingSyncManager extends OcptSyncManager {
   /// Whether [startSyncSession] was called.
   bool isStartCalled = false;
 
+  /// Get a session that is not running.
   @override
   OcptSyncSession? get syncSession => _FakeSyncSession();
 
@@ -114,6 +117,7 @@ class _FailingSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -121,9 +125,11 @@ class _FailingSyncManager extends OcptSyncManager {
     String? enrolmentSecret,
   }) => _FakeRemoteStorage();
 
+  /// Do nothing: there is no session to stop.
   @override
   Future<void> stopSyncSession() async {}
 
+  /// Record that a start was asked, then fail as an unreachable relay does.
   @override
   Future<void> startSyncSession({
     required String projectId,
@@ -140,6 +146,7 @@ class _FailingSyncManager extends OcptSyncManager {
   }
 }
 
+/// Run the tests of the project settings bloc sync restart.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

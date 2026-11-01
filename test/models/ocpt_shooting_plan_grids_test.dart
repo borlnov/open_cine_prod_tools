@@ -288,6 +288,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   minimumRestMinutes: null,
 );
 
+/// Run the tests of [OcptShootingPlanGrids].
 void main() {
   const presenceMark = "x";
   const persoLabel = "Cast";

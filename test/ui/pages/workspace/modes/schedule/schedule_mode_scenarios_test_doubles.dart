@@ -60,6 +60,7 @@ class ScheduleScenarioRouterManager extends OcptRouterManager {
   /// The number of pages pushed since the last reset.
   int pushCount = 0;
 
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -68,6 +69,7 @@ class ScheduleScenarioRouterManager extends OcptRouterManager {
     }
   }
 
+  /// Count the push, and answer with the canned answer when its type fits.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -123,6 +125,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     failedFileNames = const [];
   }
 
+  /// Record the general call sheets export, and answer as a folder.
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -137,6 +140,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _folderAnswer(dayIds);
   }
 
+  /// Record the named call sheets export, and answer as a folder.
   @override
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -152,6 +156,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _folderAnswer(dayIds);
   }
 
+  /// Record the shooting plan export, and answer as a file.
   @override
   Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
@@ -172,6 +177,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _fileAnswer("shootingPlan");
   }
 
+  /// Record the shooting plan workbook export, and answer as a file.
   @override
   Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
@@ -185,6 +191,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _fileAnswer("shootingPlanXlsx");
   }
 
+  /// Record the day out of days export, and answer as a file.
   @override
   Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
@@ -200,6 +207,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _fileAnswer("dayOutOfDays");
   }
 
+  /// Record the one-line schedule export, and answer as a file.
   @override
   Future<OcptExportOutcome?> exportOneLineSchedule({
     required OcptSchedulePlanSnapshot plan,
@@ -215,6 +223,7 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     return _fileAnswer("oneLineSchedule");
   }
 
+  /// Record the sides export, and answer as a file.
   @override
   Future<OcptExportOutcome?> exportSides({
     required OcptSchedulePlanSnapshot plan,

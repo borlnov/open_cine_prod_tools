@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'budget_mode_scenarios_test_doubles.dart';
 
+/// Run the tests of the budget allowance edit.
 void main() {
   final harness = BudgetScenarioHarness();
 

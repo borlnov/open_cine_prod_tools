@@ -65,6 +65,7 @@ OcptShootingDayBlock _buildMealBlock({
   crewNote: "",
 );
 
+/// Run the tests of the budget regie meals and feed.
 void main() {
   /// Pumps [OcptBudgetRegie] with every callback a no-op unless overridden.
   Future<void> pumpView(

@@ -38,6 +38,7 @@ final _realCncSeed = [
     OcptBudgetPosteSeed(id: poste.id, code: poste.code, label: poste.code, simpleLabel: null),
 ];
 
+/// Run the tests of the budget bloc edits and views.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

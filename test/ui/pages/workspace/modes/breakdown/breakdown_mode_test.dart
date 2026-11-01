@@ -46,6 +46,7 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// `showDialog` genuinely closes: this mode's own bloc resolves its router manager from
 /// `globalGetIt()`, with no real GoRouter for `pop` to delegate to.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -88,6 +89,7 @@ class _RecordingExportManager extends OcptExportManager {
   /// Class constructor
   _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the episode tag, and answer that the workbook was saved under the project name.
   @override
   Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
@@ -104,6 +106,7 @@ class _RecordingExportManager extends OcptExportManager {
   }
 }
 
+/// Run the tests of [OcptBreakdownMode].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

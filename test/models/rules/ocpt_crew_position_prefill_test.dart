@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_crew_position_prefill.dart';
 
+/// Run the tests of the crew position prefill.
 void main() {
   group("nothing declared", () {
     test("pre-fills nothing and promotes nothing", () {

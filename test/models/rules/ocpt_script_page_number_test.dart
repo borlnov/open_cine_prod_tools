@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 
+/// Run the tests of the script page number.
 void main() {
   group("ocptScriptPageNumberLabelOf", () {
     test("the first script page is never numbered", () {

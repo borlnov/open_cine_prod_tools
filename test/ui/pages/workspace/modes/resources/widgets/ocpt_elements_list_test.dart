@@ -62,6 +62,7 @@ OcptElement _element({
   roleLinks: const [],
 );
 
+/// Run the tests of [OcptElementsList].
 void main() {
   /// Pumps the list over [elements].
   Future<Tr> pumpList(

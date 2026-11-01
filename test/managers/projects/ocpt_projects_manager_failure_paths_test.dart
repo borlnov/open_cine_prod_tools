@@ -26,6 +26,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A properties manager that cannot record a recent project, which is the last step of creating
 /// or opening a project.
 class _ThrowingPropertiesManager extends OcptPropertiesManager {
+  /// Fail as a store that cannot be written does.
   @override
   Future<void> addRecentProject(OcptRecentProjectModel project) async =>
       throw const FileSystemException("recent projects unavailable");
@@ -40,6 +41,7 @@ class _ThrowingHydrationService extends OcptProjectVersionsService {
         codec: const OcptProjectVersionCodec(logger: SilentLogger()),
       );
 
+  /// Fail as a payload that cannot be applied does.
   @override
   Future<void> hydratePreview({
     required OcptProjectDatabase database,

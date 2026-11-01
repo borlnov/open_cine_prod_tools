@@ -115,6 +115,7 @@ Future<Uint8List> _renderRgba(OcptFloorPlanSheet sheet, {String? selectedSymbolI
   return byteData!.buffer.asUint8List();
 }
 
+/// Build a sheet of the given symbols and arrows.
 OcptFloorPlanSheet _sheetOf({
   List<OcptFloorPlanSymbolShape> symbols = const [],
   List<OcptFloorPlanArrowShape> arrows = const [],
@@ -133,6 +134,7 @@ OcptFloorPlanSheet _sheetOf({
   return (rgba[index], rgba[index + 1], rgba[index + 2], rgba[index + 3]);
 }
 
+/// Run the tests of [OcptFloorPlanCanvasPainter].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -96,9 +96,11 @@ class _NavigatorKeyRouterManager extends OcptRouterManager {
   /// Class constructor
   _NavigatorKeyRouterManager({required this.navigatorKey});
 
+  /// Pop the route of the test's own navigator.
   @override
   void pop<Y extends Object?>([Y? result]) => navigatorKey.currentState?.pop<Y>(result);
 
+  /// Record the route pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -123,6 +125,7 @@ class _FakeFileSelectorManager extends FileSelectorManager {
   /// Class constructor
   _FakeFileSelectorManager();
 
+  /// Answer with the canned file.
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({
     required List<String> allowedExtensions,
@@ -143,6 +146,7 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   const _FakeSaveLocationService({this.directoryAnswer}) : super(logger: const SilentLogger());
 
+  /// Answer with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,
@@ -150,6 +154,7 @@ class _FakeSaveLocationService extends OcptSaveLocationService {
   }) async => directoryAnswer;
 }
 
+/// Run the tests of [OcptHomePage].
 void main() {
   // OcptHomePage builds its OcptHomeBloc internally via `OcptHomeBloc()`, which resolves every
   // manager it needs from globalGetIt() by default. We register real (but test-controlled)

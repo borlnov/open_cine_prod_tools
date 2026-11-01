@@ -26,6 +26,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
 OcptShootingDayEvent _buildEvent({String id = "event-1", int minute = 1020, String label = ""}) =>
     OcptShootingDayEvent(id: id, shootingDayId: "day-1", minute: minute, label: label, notes: "");
 
+/// Run the tests of [OcptScheduleDayEventsList].
 void main() {
   testWidgets("an event's hour, label and note are drawn", (tester) async {
     final event = _buildEvent(label: "Fireworks");

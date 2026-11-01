@@ -17,6 +17,7 @@ SpellChecker _checkerFor(String language) {
   return SpellChecker(SpellDictionary.parse(affix: affix, dictionary: dictionary));
 }
 
+/// Run the tests of the real dictionaries.
 void main() {
   group('French (real dictionary)', () {
     late SpellChecker checker;

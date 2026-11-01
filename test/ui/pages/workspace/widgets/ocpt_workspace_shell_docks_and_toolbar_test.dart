@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_toolbar.dart';
 import 'ocpt_workspace_shell_test_doubles.dart';
 
+/// Run the tests of the workspace shell docks and toolbar.
 void main() {
   const pilotEpisode = OcptEpisode(id: "ep-1", number: 1, title: "Pilot");
 

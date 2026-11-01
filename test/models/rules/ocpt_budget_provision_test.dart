@@ -87,6 +87,7 @@ OcptBudgetLine _provisionedLine({
   ),
 );
 
+/// Run the tests of the budget provision.
 void main() {
   group("ocptBudgetProvisionItemsOf", () {
     test("catering carries a real quantity and a real unit price", () {

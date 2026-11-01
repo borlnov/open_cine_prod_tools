@@ -24,35 +24,43 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   /// Every payload [sendPresence] was called with, in order.
   final List<String> sentPayloads = [];
 
+  /// The controller behind [presenceStream].
   final StreamController<String> _presenceController = StreamController<String>.broadcast();
 
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit the frames the test adds to the controller.
   @override
   Stream<String> get presenceStream => _presenceController.stream;
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Record the payload sent.
   @override
   void sendPresence(String opaquePayload) => sentPayloads.add(opaquePayload);
 
@@ -63,6 +71,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   /// Simulates a malformed frame arriving over the wire — never a valid [OcptPresenceFrame.toJson].
   void emitRawFrame(String raw) => _presenceController.add(raw);
 
+  /// Close the controller behind [presenceStream].
   Future<void> dispose() => _presenceController.close();
 }
 
@@ -82,6 +91,7 @@ Future<void> _waitUntil(
   }
 }
 
+/// Run the tests of [OcptPresenceService].
 void main() {
   const deviceId = 'device-self';
   const peerDeviceId = 'device-peer';

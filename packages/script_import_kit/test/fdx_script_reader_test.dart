@@ -62,6 +62,7 @@ ScriptImportFailure _failureOf(String xml) {
   fail('reading the document was expected to throw');
 }
 
+/// Run the tests of [FdxScriptReader].
 void main() {
   group('paragraph types', () {
     test('a scene heading keeps its INT./EXT. form', () {

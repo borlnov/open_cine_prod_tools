@@ -10,9 +10,13 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
+
+/// The time a test waits before it gives up.
 const _timeout = Timeout(Duration(seconds: 5));
 
+/// Build an envelope with [changesetId], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -21,6 +25,7 @@ OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
+/// Run the tests of the relay reconcile command.
 void main() {
   group('parseReconcileInvite', () {
     test('round-trips a well-formed invite', () {

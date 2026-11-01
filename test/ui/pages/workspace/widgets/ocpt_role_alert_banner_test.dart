@@ -37,6 +37,7 @@ OcptRole _role(String id, String name) => OcptRole(
   episodeIds: const [],
 );
 
+/// Run the tests of [OcptRoleAlertBanner].
 void main() {
   group("orphaned variant", () {
     const alert = OcptRemovedRoleAlert(roleId: "r1", characterName: "LE CLIENT");

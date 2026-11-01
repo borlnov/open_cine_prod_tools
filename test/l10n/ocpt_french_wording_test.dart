@@ -22,6 +22,7 @@ const _misEnSceneKey = 'shotListInspectorNotesSectionTitle';
 /// « scénario » (which is the right word for a screenplay and must stay) is left alone.
 final RegExp _sceneWord = RegExp(r'\bscènes?\b', caseSensitive: false);
 
+/// Run the tests of the french wording.
 void main() {
   test('no French string calls a screenplay scene « une scène »', () {
     // In this trade a screenplay's scene is **une séquence** in French; « une scène » names

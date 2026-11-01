@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_project_dictionary_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 
+/// Run the tests of [OcptProjectDictionaryService].
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

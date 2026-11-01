@@ -56,6 +56,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// tree, exactly what `joining_bloc_test.dart`'s own `_FakeSyncManager` exists to cover more
 /// thoroughly (its stub instead returns a real path, which none of these tests need).
 class _FailFastSyncManager extends OcptSyncManager {
+  /// Class constructor
   _FailFastSyncManager()
     : super(
         changesetService: const OcptChangesetService(
@@ -64,6 +65,7 @@ class _FailFastSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Answer that the relay is unreachable.
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
     required OcptRemoteStorage storage,
@@ -78,9 +80,11 @@ class _FailFastSyncManager extends OcptSyncManager {
 /// actually reaches a real native dialog — none of this page's own tests exercise the desktop
 /// save/folder dialogs themselves, that being `joining_bloc_test.dart`'s own job.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
+  /// Class constructor
   _StubPlatformManager({required this.isMobile});
 }
 
@@ -96,8 +100,10 @@ OcptExportManager _joiningExportManager() => OcptExportManager(
 /// asking `path_provider`, which never answers under a plain `flutter test` run: the join a test
 /// submits resolves its folder through it before reaching [_FailFastSyncManager].
 class _TestProjectsManager extends OcptProjectsManager {
+  /// Class constructor
   _TestProjectsManager({super.propertiesManager}) : super(appLanguageCode: () => "en");
 
+  /// Answer with the system temporary directory.
   @override
   Future<Directory> newProjectsDirectory() async => Directory.systemTemp;
 }
@@ -108,6 +114,7 @@ class _TestProjectsManager extends OcptProjectsManager {
 /// success states without wiring up the whole relay/snapshot machinery `joining_bloc_test.dart`
 /// already covers on its own.
 class _TestableJoiningBloc extends OcptJoiningBloc {
+  /// Class constructor
   _TestableJoiningBloc({
     required OcptSyncManager syncManager,
     required OcptProjectsManager projectsManager,
@@ -130,6 +137,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The last route [replace] was called with, or null if it never was.
   OcptRoute? replacedRoute;
 
+  /// Record the route replaced, and answer with nothing.
   @override
   Future<Y?> replace<Y extends Object?>(
     OcptRoute route, {
@@ -142,6 +150,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of the joining page.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

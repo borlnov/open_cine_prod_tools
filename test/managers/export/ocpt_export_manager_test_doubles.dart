@@ -31,6 +31,7 @@ class FakeSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   FakeSaveLocationService({this.result}) : super(logger: const SilentLogger());
 
+  /// Remember the suggested name and the initial directory, and answer with the canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -44,6 +45,7 @@ class FakeSaveLocationService extends OcptSaveLocationService {
     return result;
   }
 
+  /// Remember the confirm button text, and answer with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,

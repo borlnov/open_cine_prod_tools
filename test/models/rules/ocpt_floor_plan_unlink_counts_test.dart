@@ -34,6 +34,7 @@ OcptFloorPlanSymbol _symbol({
   isHidden: false,
 );
 
+/// Build a floor plan set holding [symbols].
 OcptFloorPlanSet _setOf(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSet(
   id: "set-1",
   name: "Cuisine",
@@ -48,6 +49,7 @@ OcptFloorPlanSet _setOf(List<OcptFloorPlanSymbol> symbols) => OcptFloorPlanSet(
   arrows: const [],
 );
 
+/// Run the tests of [ocptFloorPlanUnlinkCountsOf].
 void main() {
   group("ocptFloorPlanUnlinkCountsOf", () {
     test("counts every category with nothing placed", () {

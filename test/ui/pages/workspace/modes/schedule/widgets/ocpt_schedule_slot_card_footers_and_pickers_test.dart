@@ -42,6 +42,7 @@ OcptRoleCandidate _buildCandidacy({
   notes: "",
 );
 
+/// Run the tests of the schedule slot card footers and pickers.
 void main() {
   final person = buildPerson(id: "person-1", firstName: "Léa");
 

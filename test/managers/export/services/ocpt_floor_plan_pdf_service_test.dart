@@ -209,6 +209,7 @@ OcptFloorPlanArrow _movementArrowOf({
   ctrlYM: ctrlYM,
 );
 
+/// Run the tests of [OcptFloorPlanPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

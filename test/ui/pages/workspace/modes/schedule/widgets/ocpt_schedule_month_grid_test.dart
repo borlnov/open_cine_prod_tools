@@ -63,6 +63,7 @@ OcptShootingSlot _buildSlot({required String id}) => OcptShootingSlot(
   guests: const [],
 );
 
+/// Run the tests of [OcptScheduleMonthGrid].
 void main() {
   // Any date inside August 2026 — the tests below only ever place a single day, on the 3rd.
   final anchorDate = DateTime(2026, 8, 3);

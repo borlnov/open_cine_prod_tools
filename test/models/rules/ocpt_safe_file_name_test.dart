@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_safe_file_name.dart';
 
+/// Run the tests of [ocptSafeFileNameOf].
 void main() {
   group("ocptSafeFileNameOf", () {
     test("leaves an ordinary name untouched", () {

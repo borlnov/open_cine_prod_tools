@@ -53,6 +53,7 @@ class _RecordingExportManager extends OcptExportManager {
   /// Class constructor
   _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the episode tag, and answer that the workbook was saved under the project name.
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -86,6 +87,7 @@ class _StubFileSelectorManager extends FileSelectorManager {
   }) async => ResultWithBoolStatus(status: BoolResultStatus.success, value: XFile(pickedPath));
 }
 
+/// Run the tests of the shot list mode export and episodes.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

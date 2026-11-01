@@ -22,6 +22,7 @@ import 'editor_page_scenarios_test_doubles.dart';
 /// What the screenplay reads in the version the preview and restore scenarios capture.
 const _versionText = "INT. LIGHTHOUSE - NIGHT\n\nThe lamp turns.\n";
 
+/// Run the tests of the editor page io scenarios.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 

@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_minimum_rest.dart';
 
+/// Run the tests of the minimum rest.
 void main() {
   group("ocptMinimumRestMinutesOf", () {
     test("reads a whole number of hours as minutes", () {

@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptChangesetEnvelope].
 void main() {
   group('OcptChangesetEnvelope', () {
     final createdAt = DateTime.utc(2026, 8, 29, 12, 30);

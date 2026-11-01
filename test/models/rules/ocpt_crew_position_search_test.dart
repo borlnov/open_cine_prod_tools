@@ -54,6 +54,7 @@ const Map<String, String> _expectedFeminineWords = {
   "électricien·ne": "électricienne",
 };
 
+/// Run the tests of the crew position search.
 void main() {
   group("ocptCrewPositionSearchNormalized", () {
     test("lower-cases plain text", () {

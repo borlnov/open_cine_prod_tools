@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'ocpt_shot_coverage_service_test_doubles.dart';
 
+/// Run the tests of the shot coverage service ranges and staleness.
 void main() {
   // Refusing a write on a previewed version logs through appLogger(), which requires a global
   // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.

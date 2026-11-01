@@ -75,9 +75,11 @@ FountainLayoutMetrics _metrics({
   lyrics: _box(lyricsCols, leftIndentInches: 2.5),
 );
 
+/// Build an action block of [lines].
 FountainActionBlock _action(List<String> lines) =>
     FountainActionBlock(sourceRange: _range, lines: lines, forced: false);
 
+/// Build a scene heading reading [headingText], with a scene number when one is given.
 FountainSceneHeading _sceneHeading(String headingText, {String? sceneNumber}) =>
     FountainSceneHeading(
       sourceRange: _range,
@@ -87,14 +89,18 @@ FountainSceneHeading _sceneHeading(String headingText, {String? sceneNumber}) =>
       sceneNumber: sceneNumber,
     );
 
+/// Build a transition reading [text].
 FountainTransition _transition(String text) =>
     FountainTransition(sourceRange: _range, text: text, forced: false);
 
+/// Build a centered text reading [text].
 FountainCenteredText _centeredText(String text) =>
     FountainCenteredText(sourceRange: _range, text: text);
 
+/// Build lyrics of [lines].
 FountainLyrics _lyrics(List<String> lines) => FountainLyrics(sourceRange: _range, lines: lines);
 
+/// Build a character cue named [name].
 FountainCharacter _character(String name, {String? extension, bool isDualDialogue = false}) =>
     FountainCharacter(
       sourceRange: _range,
@@ -103,12 +109,15 @@ FountainCharacter _character(String name, {String? extension, bool isDualDialogu
       isDualDialogue: isDualDialogue,
     );
 
+/// Build a parenthetical reading [text].
 FountainParenthetical _parenthetical(String text) =>
     FountainParenthetical(sourceRange: _range, text: text);
 
+/// Build a line of dialogue saying [text].
 FountainDialogueLine _dialogueLine(String text) =>
     FountainDialogueLine(sourceRange: _range, text: text);
 
+/// Build a dialogue group of [children] spoken by [name].
 FountainDialogueGroup _dialogueGroup(
   String name,
   List<FountainBlock> children, {
@@ -121,8 +130,10 @@ FountainDialogueGroup _dialogueGroup(
   isDualDialogue: isDualDialogue,
 );
 
+/// A page break.
 const FountainPageBreak _pageBreak = FountainPageBreak(sourceRange: _range);
 
+/// Build a document of [blocks], with no title page.
 FountainDocument _document(List<FountainBlock> blocks) =>
     FountainDocument(titlePage: null, blocks: blocks, sourceText: '');
 
@@ -134,8 +145,10 @@ int _wordsPerLine(int cols, int wordLen) => (cols + 1) ~/ (wordLen + 1);
 /// wrapped line count is easy to predict by hand.
 String _words(String word, int count) => List.filled(count, word).join(' ');
 
+/// The composer laying documents out in pages.
 const FountainScriptComposer _composer = FountainScriptComposer();
 
+/// Run the tests of the script composer.
 void main() {
   group('word-wrap widths per element type', () {
     test('scene heading wraps at metrics.sceneHeading.maxWidthColumns', () {

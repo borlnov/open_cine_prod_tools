@@ -18,6 +18,7 @@ MutableDocument _documentFrom(String source) => OcptWysiwygCodec.decode(source).
 /// `linesPerPage` (54): 80 short, one-line action paragraphs, each separated by a blank line.
 final String _longSource = List.generate(80, (index) => "Action line $index.").join("\n\n");
 
+/// Run the tests of the styled page pagination.
 void main() {
   final metrics = FountainLayoutMetrics.usLetter();
 

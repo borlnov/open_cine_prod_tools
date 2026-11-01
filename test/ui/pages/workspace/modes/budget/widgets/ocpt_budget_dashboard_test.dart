@@ -150,6 +150,7 @@ Future<Tr> _pumpDashboard(
   return Tr.of(tester.element(find.byType(OcptBudgetDashboard)));
 }
 
+/// Run the tests of [OcptBudgetDashboard].
 void main() {
   group("the Devis total tile", () {
     testWidgets("reads the quote's own total and how many postes it holds", (tester) async {

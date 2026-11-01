@@ -53,6 +53,7 @@ Uint8List _zip(Map<String, String> entries) {
 /// The bytes of [text], as a picked file's would be read.
 Uint8List _bytesOf(String text) => Uint8List.fromList(utf8.encode(text));
 
+/// Run the tests of [OcptScriptImportService].
 void main() {
   const service = OcptScriptImportService(
     logger: SilentLogger(),

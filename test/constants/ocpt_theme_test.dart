@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
+/// Run the tests of the theme.
 void main() {
   group('ocpt_theme.ocptTheme builds both brightnesses', () {
     test('the light theme is built', () {

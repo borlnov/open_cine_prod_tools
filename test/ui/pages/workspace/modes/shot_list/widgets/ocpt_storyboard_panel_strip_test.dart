@@ -46,6 +46,7 @@ OcptStoryboardPanel _panel(String id, {String comment = ""}) => OcptStoryboardPa
   annotations: const [],
 );
 
+/// Run the tests of [OcptStoryboardPanelStrip].
 void main() {
   testWidgets("a shot with no panel shows the import slot alone, labelled 'no panel yet'", (
     tester,

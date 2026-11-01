@@ -52,6 +52,7 @@ class _FailingLocationsService extends OcptLocationsService {
         deviceId: source.deviceId,
       );
 
+  /// Fail as a refused set creation does.
   @override
   Future<String?> createSetLinkedToScene({
     required OcptProjectDatabase database,
@@ -60,6 +61,7 @@ class _FailingLocationsService extends OcptLocationsService {
     String? locationId,
   }) async => throw StateError("set creation intentionally failed for the test");
 
+  /// Fail as a refused set rename does.
   @override
   Future<void> updateSet({
     required OcptProjectDatabase database,
@@ -79,6 +81,7 @@ class _HoldingElementsService extends OcptElementsService {
   /// How many reads were held back so far.
   int holdCount = 0;
 
+  /// Completes to let the held call go on.
   final Completer<void> _release = Completer<void>();
 
   /// Class constructor
@@ -92,6 +95,8 @@ class _HoldingElementsService extends OcptElementsService {
   /// Lets every held read answer.
   void release() => _release.complete();
 
+  /// Read the props of the scene as the real service does, then hold the call for the scenes to be
+  /// held.
   @override
   Future<List<OcptScenePropSummary>> propsOfScene({
     required OcptProjectDatabase database,
@@ -106,6 +111,7 @@ class _HoldingElementsService extends OcptElementsService {
   }
 }
 
+/// Run the tests of the shot list floor plan sets bloc bloc as whole.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

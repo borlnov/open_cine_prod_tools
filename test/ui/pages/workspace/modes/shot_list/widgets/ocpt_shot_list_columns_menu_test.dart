@@ -23,6 +23,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptShotListColumnsMenu].
 void main() {
   /// Pumps the menu with [visibleColumns] checked, recording every toggle it reports.
   Future<List<OcptShotListColumn>> pumpMenu(

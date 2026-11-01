@@ -27,6 +27,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'budget_expenses_bloc_test_doubles.dart';
 
+/// Run the tests of the budget expenses bloc postes and lines.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

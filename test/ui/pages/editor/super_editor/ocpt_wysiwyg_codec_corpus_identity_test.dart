@@ -56,6 +56,7 @@ void _addAttribution(
 String _expectedRoundTrip(String fileName, String original) =>
     fileName == "structure.fountain" ? original.replaceAll("\n## ", "\n# ") : original;
 
+/// Run the tests of the wysiwyg codec corpus identity.
 void main() {
   group("OcptWysiwygCodec.decode/encode corpus identity", () {
     final corpusDirectory = Directory("packages/fountain_kit/test/corpus");

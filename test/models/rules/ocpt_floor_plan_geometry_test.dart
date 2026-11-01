@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 
+/// Run the tests of the floor plan geometry.
 void main() {
   group("ocptFloorPlanDefaultFootprintM", () {
     test("a character's default footprint is 0.5 m, the implicit ruler", () {

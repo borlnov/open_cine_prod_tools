@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_candidacy.dar
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 
+/// Run the tests of the shooting convocations.
 void main() {
   group("one slot, one person", () {
     test("arrival and departure read off the slot's own bounds", () {

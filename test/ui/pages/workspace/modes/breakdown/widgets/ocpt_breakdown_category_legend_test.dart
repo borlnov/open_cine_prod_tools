@@ -24,6 +24,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 280, height: 600, child: child)),
 );
 
+/// Run the tests of [OcptBreakdownCategoryLegend].
 void main() {
   const propEntry = OcptBreakdownLegendEntry(
     kind: OcptBreakdownTargetKind.element,

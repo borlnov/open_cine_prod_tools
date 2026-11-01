@@ -34,6 +34,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   );
 }
 
+/// Build a floor plan set named [name].
 OcptFloorPlanSet _set({required String id, required String name}) => OcptFloorPlanSet(
   id: id,
   name: name,
@@ -88,6 +89,7 @@ Widget _tabs({
   onSetDeleteRequested: onSetDeleteRequested,
 );
 
+/// Run the tests of [OcptFloorPlanSetTabs].
 void main() {
   testWidgets("the ＋ Set button's own visible text is the word alone, no + repeated", (
     tester,

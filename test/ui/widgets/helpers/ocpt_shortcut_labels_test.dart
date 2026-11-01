@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shortcut_labels.dart';
 
+/// Run the tests of [ocptPrimaryShortcutLabel].
 void main() {
   group('ocptPrimaryShortcutLabel', () {
     tearDown(() {

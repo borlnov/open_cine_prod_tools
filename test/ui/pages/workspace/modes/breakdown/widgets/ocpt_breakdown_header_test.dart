@@ -41,6 +41,7 @@ Widget _wrapInApp(Widget child, {required double width}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptBreakdownHeader].
 void main() {
   /// Pumps the header, recording every reported view selection and query change.
   Future<(List<OcptBreakdownCentreView> views, List<String> queries)> pumpHeader(

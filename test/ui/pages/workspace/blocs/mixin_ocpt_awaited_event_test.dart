@@ -13,6 +13,7 @@ class _State extends BlocStateForMixin<_State> {
   /// Class constructor
   const _State();
 
+  /// Copy the state: it has no field.
   @override
   _State copyWith() => const _State();
 }
@@ -25,6 +26,7 @@ class _AwaitedEvent extends BlocEventForMixin with MixinOcptAwaitedEvent<int> {
   /// Class constructor
   _AwaitedEvent(this.name);
 
+  /// List the fields that decide equality: those of the base plus [name].
   @override
   List<Object?> get props => [...super.props, name];
 }
@@ -47,6 +49,8 @@ class _Bloc extends BlocForMixin<_State> {
   /// Class constructor
   _Bloc({this.forgetsToComplete = false}) : super(const _State());
 
+  /// Register the awaited event: count it, wait for the gate, then complete it with the answer
+  /// unless told to forget.
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
@@ -60,6 +64,7 @@ class _Bloc extends BlocForMixin<_State> {
   }
 }
 
+/// Run the tests of [MixinOcptAwaitedEvent].
 void main() {
   test('waits for the handler to complete the event and returns its answer', () async {
     final bloc = _Bloc();

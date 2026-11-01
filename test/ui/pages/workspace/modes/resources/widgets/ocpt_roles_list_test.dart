@@ -112,6 +112,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 260, height: 400, child: child)),
 );
 
+/// Run the tests of [OcptRolesList].
 void main() {
   testWidgets("a cast role shows its name and its cast member", (tester) async {
     await tester.pumpWidget(

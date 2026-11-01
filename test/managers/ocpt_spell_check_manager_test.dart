@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 /// test` runs from).
 Future<String> _readDictionaryAssetFromDisk(String assetKey) => File(assetKey).readAsString();
 
+/// Run the tests of [OcptSpellCheckManager].
 void main() {
   // OcptScreenplayLanguage (through appLogger(), used by the manager and its worker) requires a
   // global manager instance to exist; merely accessing it creates the (otherwise unused)

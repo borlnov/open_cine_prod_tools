@@ -79,6 +79,7 @@ OcptElement _element({required String id, required String name, int sceneCount =
   roleLinks: const [],
 );
 
+/// Run the tests of the budget new dialog wizard gestures.
 void main() {
   late RecordingRouterManager routerManager;
 

@@ -140,6 +140,7 @@ OcptBudgetAllowance _allowance({
   sortKey: "a0",
 );
 
+/// Run the tests of the budget new dialog outcome variants.
 void main() {
   late RecordingRouterManager routerManager;
 

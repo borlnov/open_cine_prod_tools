@@ -35,6 +35,7 @@ OcptBudgetRevenue _buildRevenue({
   sortKey: "a0",
 );
 
+/// Run the tests of the budget fiche entry and taking variants.
 void main() {
   group("the entry variant", () {
     testWidgets("Edit is primary, Delete the only secondary, and it carries no outstanding", (

@@ -31,6 +31,7 @@ String _testAppLanguageCode() => "en";
 /// A router manager whose [pop] does nothing: these tests never leave the workspace, and no real
 /// GoRouter is built for it to operate on.
 class _SilentRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -42,6 +43,7 @@ class _FailingRenameProjectsManager extends OcptProjectsManager {
   _FailingRenameProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
+  /// Fail as a refused rename does.
   @override
   Future<void> renameProjectVersion({
     required String versionId,
@@ -57,6 +59,7 @@ class _FailingCreateProjectsManager extends OcptProjectsManager {
   _FailingCreateProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
+  /// Fail as a refused creation does.
   @override
   Future<OcptProjectVersion?> createProjectVersion({
     required String name,
@@ -71,6 +74,7 @@ class _FailingDeleteProjectsManager extends OcptProjectsManager {
   _FailingDeleteProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
+  /// Fail as a refused deletion does.
   @override
   Future<void> deleteProjectVersion(String versionId) async =>
       throw StateError("deletion intentionally failed for the test");
@@ -88,6 +92,7 @@ class _CountingProjectsManager extends OcptProjectsManager {
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
+  /// Count the capture, then delegate to the real one.
   @override
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {
     captureCount++;

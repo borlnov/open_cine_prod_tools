@@ -36,6 +36,7 @@ String _testAppLanguageCode() => "en";
 /// state emitted earlier in the same event handler (the emitted state and the handler's own
 /// completion are not ordered with respect to a stream listener in the test).
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Whether [pop] was called.
@@ -67,12 +68,25 @@ class _EditorStates {
   /// The statistics bloc's state.
   final OcptEditorStatisticsState counters;
 
+  /// Read whether the mode is loading.
   bool get isLoading => mode.isLoading;
+
+  /// Read the page setup of the mode.
   OcptPageSetup get pageSetup => mode.pageSetup;
+
+  /// Read the document of the mode.
   FountainDocument? get document => mode.document;
+
+  /// Read the index of the current scene.
   int? get currentSceneIndex => mode.currentSceneIndex;
+
+  /// Read the scene headings of the mode.
   List<FountainSceneHeading> get scenes => mode.scenes;
+
+  /// Read the statistics of the script.
   FountainScriptStatistics get statistics => counters.statistics;
+
+  /// Read the statistics of the current scene.
   FountainSceneStatistics? get sceneStatistics => counters.sceneStatistics;
 
   /// Class constructor
@@ -118,6 +132,7 @@ class _Editor {
   }
 }
 
+/// Run the tests of [OcptEditorStatisticsBloc].
 void main() {
   const editedText = "INT. HOUSE - DAY\n\nAction.\n";
   // Scene headings start at line 0 and line 4; the two scenes are deliberately given different

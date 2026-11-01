@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 
+/// Run the tests of the day minute.
 void main() {
   group("ocptFormatDayMinute", () {
     test("formats midnight", () {

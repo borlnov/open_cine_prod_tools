@@ -31,6 +31,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptHostingPanel].
 void main() {
   final onlineHostState = OcptRelayHostOnline(
     lanBaseUri: Uri.parse("http://192.168.1.42:53187"),

@@ -15,6 +15,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 /// A router manager whose [pop] pops [navigatorKey]'s own navigator.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = navigatorKey.currentState;

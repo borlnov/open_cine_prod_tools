@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_wor
 
 import 'shot_list_mode_scenarios_test_doubles.dart';
 
+/// Run the tests of the shot list mode lifecycle scenarios.
 void main() {
   final harness = ShotListScenarioHarness();
 

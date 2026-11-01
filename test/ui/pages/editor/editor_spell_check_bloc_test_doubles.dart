@@ -30,6 +30,7 @@ String testAppLanguageCode() => "en";
 /// state emitted earlier in the same event handler (the emitted state and the handler's own
 /// completion are not ordered with respect to a stream listener in the test).
 class RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Whether [pop] was called.
@@ -87,15 +88,21 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
   /// Every [setLearnedWords] call's whole replacement set, in call order.
   final List<Set<String>> setLearnedWordsCalls = [];
 
+  /// The language loaded, or null before any.
   OcptScreenplayLanguage? _loadedLanguage;
+
+  /// The generation, which moves on whenever the checker's verdicts may change.
   int _generation = 0;
 
+  /// Read the language loaded.
   @override
   OcptScreenplayLanguage? get loadedLanguage => _loadedLanguage;
 
+  /// Read the generation.
   @override
   int get generation => _generation;
 
+  /// Load [language] and move the generation on, unless it is already the one loaded.
   @override
   Future<void> useLanguage(OcptScreenplayLanguage? language) async {
     if (language == _loadedLanguage) {
@@ -105,6 +112,8 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
     _generation++;
   }
 
+  /// Record the texts asked about, wait for the gate when there is one, and answer with the canned
+  /// ranges.
   @override
   Future<Map<K, List<SpellRange>>> check<K>(Map<K, String> textsByKey) async {
     final requested = <Object, String>{
@@ -124,24 +133,28 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
     };
   }
 
+  /// Record the word and answer with the canned suggestions.
   @override
   Future<List<String>> suggestionsFor(String word) async {
     suggestionsForCalls.add(word);
     return suggestionsAnswer(word);
   }
 
+  /// Record the words and move the generation on.
   @override
   void ignoreWords(Set<String> words) {
     ignoreWordsCalls.add(words);
     _generation++;
   }
 
+  /// Record the word and move the generation on.
   @override
   void ignoreWord(String word) {
     ignoredWords.add(word);
     _generation++;
   }
 
+  /// Record the words and move the generation on.
   @override
   void setLearnedWords(Set<String> words) {
     setLearnedWordsCalls.add(words);
@@ -157,14 +170,31 @@ class EditorStates {
   /// The spell-check bloc's state.
   final OcptEditorSpellCheckState spell;
 
+  /// Read whether the mode is loading.
   bool get isLoading => mode.isLoading;
+
+  /// Read whether the mode is previewing a version.
   bool get isPreviewingVersion => mode.isPreviewingVersion;
+
+  /// Read whether the spell check is visible in the mode.
   bool get isSpellCheckVisible => mode.isSpellCheckVisible;
+
+  /// Read the screenplay language of the mode.
   OcptScreenplayLanguage? get screenplayLanguage => mode.screenplayLanguage;
+
+  /// Read the document of the mode.
   FountainDocument? get document => mode.document;
+
+  /// Read the page setup of the mode.
   OcptPageSetup get pageSetup => mode.pageSetup;
+
+  /// Read the scene headings of the mode.
   List<FountainSceneHeading> get scenes => mode.scenes;
+
+  /// Read the ranges of the raw editor.
   List<SpellRange> get rawSpellCheckRanges => spell.rawSpellCheckRanges;
+
+  /// Read the ranges of the styled editor.
   Map<String, List<SpellRange>> get styledSpellCheckRanges => spell.styledSpellCheckRanges;
 
   /// Class constructor

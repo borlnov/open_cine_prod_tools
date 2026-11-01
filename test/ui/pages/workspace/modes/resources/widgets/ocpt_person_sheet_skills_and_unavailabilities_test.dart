@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet.dart';
 import 'ocpt_person_sheet_test_doubles.dart';
 
+/// Run the tests of the person sheet skills and unavailabilities.
 void main() {
   setUpAll(() {
     OcptGlobalManager.instance;

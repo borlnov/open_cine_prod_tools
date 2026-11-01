@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_s
 /// status bar's own pages/scenes/characters/words/signs order and 3-entry non-droppable floor.
 const _counters = ["42 pages", "10 scenes", "6 characters", "8640 words", "51200 signs"];
 
+/// The trailing text the status bar is given.
 const _trailingText = "Saved 2 min ago";
 
 /// Builds the status bar under test, constrained to [width] so the narrow-width degradation
@@ -52,6 +53,7 @@ Future<void> _pumpStatusBar(
   await tester.pump();
 }
 
+/// Run the tests of [OcptWorkspaceStatusBar].
 void main() {
   testWidgets("a wide status bar shows every counter and the trailing widget", (tester) async {
     await _pumpStatusBar(tester, width: 1100);

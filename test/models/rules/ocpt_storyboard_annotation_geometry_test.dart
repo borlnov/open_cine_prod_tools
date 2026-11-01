@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_annotation_geometry.dart';
 
+/// Run the tests of [ocptStoryboardAnnotationPointOf].
 void main() {
   group("ocptStoryboardAnnotationPointOf", () {
     test("maps the frame's own top-left corner to the origin", () {

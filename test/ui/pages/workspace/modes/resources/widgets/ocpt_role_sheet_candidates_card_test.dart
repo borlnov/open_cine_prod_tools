@@ -109,6 +109,7 @@ Widget _buildCard({
   ),
 );
 
+/// Run the tests of [OcptRoleSheetCandidatesCard].
 void main() {
   testWidgets("the retained candidacy is drawn first, the rest keep their own order", (
     tester,

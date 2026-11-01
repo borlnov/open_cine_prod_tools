@@ -228,6 +228,7 @@ Widget _buildSheet({
   ),
 );
 
+/// Run the tests of [OcptRoleSheet].
 void main() {
   testWidgets("the header names the role, its rank and its cast member", (tester) async {
     await tester.pumpWidget(

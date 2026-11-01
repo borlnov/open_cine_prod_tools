@@ -67,7 +67,10 @@ FountainLayoutMetrics _metrics({
   lyrics: _box(lyricsCols, leftIndentInches: 2.5),
 );
 
+/// The parser turning the test sources into documents.
 const FountainParser _parser = FountainParser();
+
+/// The composer laying documents out in pages.
 const FountainScriptComposer _composer = FountainScriptComposer();
 
 /// A screenplay parsed and composed in one step, kept together with its
@@ -107,6 +110,7 @@ const FountainSourceRange _range = FountainSourceRange(
   endOffset: 0,
 );
 
+/// Run the tests of the script source provenance.
 void main() {
   group('single-line elements', () {
     test('a scene heading points at its own text', () {

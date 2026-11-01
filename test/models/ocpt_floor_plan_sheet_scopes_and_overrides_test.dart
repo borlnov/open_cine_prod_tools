@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'ocpt_floor_plan_sheet_test_doubles.dart';
 
+/// Run the tests of the floor plan sheet scopes and overrides.
 void main() {
   group("OcptFloorPlanSheet.of — sequence scope", () {
     test("always includes sequence-scoped symbols, never ghosted", () {

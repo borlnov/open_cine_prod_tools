@@ -5,6 +5,7 @@
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the title page.
 void main() {
   group('absence', () {
     test('a document with no title page has a null titlePage', () {

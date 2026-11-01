@@ -25,6 +25,7 @@ String? _sceneNumberAt(Document document, int index) {
   return value is String ? value : null;
 }
 
+/// Run the tests of [sceneNumberNormalizationRequests].
 void main() {
   group("sceneNumberNormalizationRequests", () {
     test("numbers every unnumbered heading sequentially, starting at 1", () {

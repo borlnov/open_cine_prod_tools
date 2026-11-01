@@ -47,6 +47,7 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
         deviceId: source.deviceId,
       );
 
+  /// Fail as a refused symbol placement does.
   @override
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
@@ -67,6 +68,7 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
     bool isHidden = false,
   }) async => throw StateError("symbol placement intentionally failed for the test");
 
+  /// Fail as a refused symbol update does.
   @override
   Future<void> updateSymbol({
     required OcptProjectDatabase database,
@@ -84,6 +86,7 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
   }) async => throw StateError("symbol update intentionally failed for the test");
 }
 
+/// Run the tests of the shot list floor plan canvas bloc gestures and write errors.
 void main() {
   const twoSceneText = "INT. HOUSE - DAY\n\nAction one.\n\nEXT. GARDEN - NIGHT\n\nAction two.\n";
 

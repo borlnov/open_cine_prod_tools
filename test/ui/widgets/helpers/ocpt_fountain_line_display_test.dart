@@ -18,6 +18,7 @@ OcptScriptWordBlock _blockOf(String sceneText, {int index = 0}) =>
 String _printedTextOf(OcptScriptWordBlock block) =>
     ocptFountainWordDisplayRuns(block).expand((runs) => runs).map((run) => run.text).join();
 
+/// Run the tests of [ocptFountainWordDisplayRuns].
 void main() {
   group("ocptFountainWordDisplayRuns", () {
     test("keeps a plain line as it is, each word carrying the whitespace that follows it", () {

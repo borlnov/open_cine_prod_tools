@@ -25,6 +25,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -80,6 +81,7 @@ OcptBudgetCommitment _existingCommitment({
   sortKey: "a0",
 );
 
+/// Run the tests of [OcptBudgetCommitmentDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

@@ -104,6 +104,7 @@ OcptRole _buildRole({required String id, required String name}) => OcptRole(
 OcptSet _buildSet({required String id, required String name}) =>
     OcptSet(id: id, locationId: "location", code: "", name: name, notes: "", sceneIds: const []);
 
+/// Run the tests of [OcptBreakdownSnapshot].
 void main() {
   group("OcptBreakdownSnapshot.build", () {
     test("counts a target tagged twice in one scene as one target, two occurrences", () {

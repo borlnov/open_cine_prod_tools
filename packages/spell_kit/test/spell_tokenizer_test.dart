@@ -5,6 +5,7 @@
 import 'package:spell_kit/spell_kit.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the spell tokenizer.
 void main() {
   group('offsets', () {
     test('a token carries its UTF-16 offsets into the source text', () {

@@ -37,6 +37,7 @@ void _growTestSurface(WidgetTester tester, {double height = 3000}) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+/// Run the tests of [OcptEditorSyntaxGuidePanel].
 void main() {
   testWidgets("renders all 4 section headers", (tester) async {
     _growTestSurface(tester);

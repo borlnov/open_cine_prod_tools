@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_winner.dart';
 
+/// Run the tests of the row stamp winner.
 void main() {
   test('an incoming stamp always wins when the column carries no local stamp', () {
     expect(

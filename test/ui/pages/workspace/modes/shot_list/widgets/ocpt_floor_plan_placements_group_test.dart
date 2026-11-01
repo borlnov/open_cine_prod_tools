@@ -57,6 +57,7 @@ OcptFloorPlanSymbolShape _symbol({
   setElementShape: null,
 );
 
+/// Build a placements group of the given characters and selection.
 Widget _buildGroup({
   String? selectedSymbolId,
   String? selectedArrowId,
@@ -81,6 +82,7 @@ Widget _buildGroup({
   onRestoreOverrideRequested: onRestoreOverrideRequested,
 );
 
+/// Run the tests of [OcptFloorPlanPlacementsGroup].
 void main() {
   testWidgets("shows the three headed sections: Selection, On this shot, Set", (tester) async {
     await _pump(tester, _buildGroup());

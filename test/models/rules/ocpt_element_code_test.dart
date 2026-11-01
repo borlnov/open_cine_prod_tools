@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_element_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 
+/// Run the tests of the element code.
 void main() {
   group("ocptElementCodePrefixOf", () {
     test("gives every category a distinct three-letter prefix", () {

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 
+/// Run the tests of the scene display number.
 void main() {
   group("ocptSceneDisplayNumberOf", () {
     test(

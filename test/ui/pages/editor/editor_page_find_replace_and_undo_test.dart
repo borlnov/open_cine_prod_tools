@@ -31,6 +31,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'editor_page_test_doubles.dart';
 
+/// Run the tests of the editor page find replace and undo.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

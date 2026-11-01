@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// project's settings hold — the function never reaches for one on its own.
 const _defaultDuration = 20;
 
+/// Run the tests of the shooting day timeline.
 void main() {
   group("rule 1 — the chain starts at the slot's own start minute", () {
     test("the first block starts exactly at the slot's start", () {

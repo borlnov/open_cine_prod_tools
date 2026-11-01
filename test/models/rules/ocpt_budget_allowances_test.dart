@@ -27,6 +27,7 @@ OcptBudgetAllowance _allowance({
   sortKey: "a0",
 );
 
+/// Run the tests of the budget allowances.
 void main() {
   group("ocptBudgetAllowanceAmountCents", () {
     test("states a published mileage scale exactly", () {

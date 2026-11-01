@@ -18,12 +18,17 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 /// reacts to those two values, not how they get parsed (`ocpt_config_manager_test.dart` covers
 /// that).
 class _FakeConfigManager extends OcptConfigManager {
+  /// Whether the file log is enabled.
   final bool _fileLogEnabled;
+
+  /// The level of the file log.
   final LogsLevel _fileLogLevel;
 
+  /// Read whether the file log is enabled.
   @override
   bool get fileLogEnabled => _fileLogEnabled;
 
+  /// Read the level of the file log.
   @override
   LogsLevel get fileLogLevel => _fileLogLevel;
 
@@ -53,6 +58,7 @@ class _RecordingLoggerManager extends LoggerManager {
   /// fake by these tests).
   _RecordingLoggerManager() : super(loggerConfigGetter: () => throw UnimplementedError());
 
+  /// Replace any logger registered under [loggerKey], initialise [externalLogger] and record it.
   @override
   Future<void> addExternalLogger(Enum loggerKey, MixinExternalLogger externalLogger) async {
     await removeExternalLogger(loggerKey);
@@ -60,6 +66,7 @@ class _RecordingLoggerManager extends LoggerManager {
     added[loggerKey] = externalLogger;
   }
 
+  /// Record the removal of [loggerKey] and dispose the logger it held.
   @override
   Future<void> removeExternalLogger(Enum loggerKey) async {
     removed.add(loggerKey);
@@ -67,6 +74,7 @@ class _RecordingLoggerManager extends LoggerManager {
   }
 }
 
+/// Run the tests of [OcptFileLoggingManager].
 void main() {
   // appLogger() (used on a caught setup failure) requires a global manager instance to exist;
   // merely accessing it creates the (otherwise unused) safe-logger singleton, exactly the pattern

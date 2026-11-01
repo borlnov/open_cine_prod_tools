@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
+/// Build a shot with the given characters.
 OcptShot _shot({required String id, List<String> characters = const []}) => OcptShot(
   id: id,
   screenplayId: "screenplay-1",
@@ -47,6 +48,7 @@ OcptShot _shot({required String id, List<String> characters = const []}) => Ocpt
   averageDifficulty: 0,
 );
 
+/// Build a symbol on the given layer, optionally linked to a shot.
 OcptFloorPlanSymbol _symbol({
   required String id,
   String? shotId,
@@ -72,6 +74,7 @@ OcptFloorPlanSymbol _symbol({
   isHidden: false,
 );
 
+/// Build a symbol scoped to a scene or a shot, optionally overriding another symbol or hidden.
 OcptFloorPlanSymbol _scopedSymbol({
   required String id,
   String? sceneId,
@@ -98,6 +101,7 @@ OcptFloorPlanSymbol _scopedSymbol({
   isHidden: isHidden,
 );
 
+/// Build a floor plan set holding [symbols].
 OcptFloorPlanSet _set({String id = "set-1", List<OcptFloorPlanSymbol> symbols = const []}) =>
     OcptFloorPlanSet(
       id: id,
@@ -113,6 +117,7 @@ OcptFloorPlanSet _set({String id = "set-1", List<OcptFloorPlanSymbol> symbols = 
       arrows: const [],
     );
 
+/// Build the shot sequence of the scene [sceneId] holding [shots].
 OcptSceneShotSequence _sequence({required String sceneId, List<OcptShot> shots = const []}) =>
     OcptSceneShotSequence(
       sceneId: sceneId,
@@ -124,6 +129,7 @@ OcptSceneShotSequence _sequence({required String sceneId, List<OcptShot> shots =
       shots: shots,
     );
 
+/// Run the tests of the shot list selection.
 void main() {
   final floorPlans = OcptFloorPlanSnapshot.build(
     screenplayId: "screenplay-1",

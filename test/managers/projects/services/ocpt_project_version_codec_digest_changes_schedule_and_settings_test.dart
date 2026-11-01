@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'ocpt_project_version_codec_test_doubles.dart';
 
+/// Run the tests of the project version codec digest changes schedule and settings.
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
   // accessing it creates the (otherwise unused) singleton.

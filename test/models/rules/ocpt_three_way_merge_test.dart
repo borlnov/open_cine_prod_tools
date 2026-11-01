@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_three_way_merge.dart';
 
+/// Run the tests of the three way merge.
 void main() {
   String clean(OcptThreeWayMergeResult result) {
     expect(result, isA<OcptCleanThreeWayMerge>());

@@ -33,6 +33,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// Whether [pop] was called.
   bool popped = false;
 
+  /// Record that a pop happened, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -61,6 +62,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
     assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
 
+/// Run the tests of [OcptWorkspacePage].
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle; this file never gives the styled editor

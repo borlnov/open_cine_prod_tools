@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_state.dart';
 
+/// Run the tests of [OcptBudgetExpensesState].
 void main() {
   group("OcptBudgetExpensesState.fieldValueOf", () {
     test("reads a pending edit ahead of the stored value", () {

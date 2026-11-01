@@ -28,6 +28,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Completes the moment [pop] is called.
@@ -42,6 +43,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
+/// Run the tests of [OcptScheduleBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

@@ -15,6 +15,7 @@ import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'ocpt_styled_screenplay_editor_test_doubles.dart';
 
+/// Run the tests of the styled screenplay editor title page fields.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

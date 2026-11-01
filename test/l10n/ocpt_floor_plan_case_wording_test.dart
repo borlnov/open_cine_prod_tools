@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// and the generated class would only ever show the same strings back with no way to name the key
 /// that carries one.
 const _englishArbPath = 'lib/l10n/intl_en_GB.arb';
+
+/// The path of the French ARB file the wording is checked in.
 const _frenchArbPath = 'lib/l10n/intl_fr.arb';
 
 /// Matches every floor-plan key, including its own `@key` metadata entry on the English side.
@@ -27,6 +29,7 @@ final RegExp _caseWord = RegExp(r'\bcases?\b', caseSensitive: false);
 /// bare « Accessoires » per the maintainer's own rename.
 final RegExp _porteWord = RegExp(r'\bportés?\b', caseSensitive: false);
 
+/// Run the tests of the floor plan case wording.
 void main() {
   test('no floor-plan key name or English string says "case" — the model is a Set', () {
     // The floor plan's own room used to be called a "case", renamed to "Set" in the store; this

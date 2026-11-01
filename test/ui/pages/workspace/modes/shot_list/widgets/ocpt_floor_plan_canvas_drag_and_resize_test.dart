@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_viewport_controller.dart';
 import 'ocpt_floor_plan_canvas_test_doubles.dart';
 
+/// Run the tests of the floor plan canvas drag and resize.
 void main() {
   /// Builds an [OcptFloorPlanCanvas] under the `select` tool, focused on the `Sequence` scope (so
   /// the sequence-layer [symbol] is editable), reporting every move/resize into

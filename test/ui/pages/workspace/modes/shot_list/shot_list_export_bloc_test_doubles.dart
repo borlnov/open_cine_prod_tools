@@ -29,6 +29,7 @@ String testAppLanguageCode() => "en";
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Completes the moment [pop] is called.
@@ -110,6 +111,8 @@ class FakeExportManager extends OcptExportManager {
   FakeExportManager({this.exportResult, this.fails = false, this.buildFails = false})
     : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember what was exported, fail when told to, and answer with the canned saved path, or with
+  /// nothing.
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -137,6 +140,8 @@ class FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as scenario coverage, fail when told to, and answer with the canned
+  /// saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
@@ -176,6 +181,8 @@ class FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as a storyboard, fail when told to, and answer with the canned
+  /// saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportStoryboard({
     required OcptShotListSnapshot snapshot,
@@ -211,6 +218,8 @@ class FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as floor plans, fail when told to, and answer with the canned saved
+  /// path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportFloorPlans({
     required OcptShotListSnapshot snapshot,

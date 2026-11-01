@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_poste.dart';
 
+/// Run the tests of [ocptBudgetDefaultProvisionPosteIdOf].
 void main() {
   const regiePosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 

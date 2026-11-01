@@ -57,6 +57,7 @@ OcptElement _buildElement({
   roleLinks: const [],
 );
 
+/// Run the tests of the shooting plan pdf service elements and file names.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

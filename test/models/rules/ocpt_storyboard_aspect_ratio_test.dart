@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_storyboard_aspect_ratio.dart';
 
+/// Run the tests of [ocptAspectRatioOf].
 void main() {
   group("ocptAspectRatioOf", () {
     test("parses a colon-separated scope ratio", () {

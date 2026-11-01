@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 
+/// Run the tests of [OcptHorizontalScrollView].
 void main() {
   group("OcptHorizontalScrollView", () {
     testWidgets("draws an always-visible scrollbar over a horizontal scroll view", (tester) async {

@@ -23,6 +23,7 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptResourcesStatusBar].
 void main() {
   /// Pumps the status bar with a fixed set of counts, in a band [width] wide.
   Future<void> pumpStatusBar(WidgetTester tester, {double width = 900}) async {

@@ -10,6 +10,7 @@ String testAppLanguageCode() => "en";
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }

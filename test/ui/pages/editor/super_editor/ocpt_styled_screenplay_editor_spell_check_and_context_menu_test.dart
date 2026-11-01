@@ -57,6 +57,7 @@ void _testWidgetsAsDesktop(String description, Future<void> Function(WidgetTeste
   });
 }
 
+/// Run the tests of the styled screenplay editor spell check and context menu.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

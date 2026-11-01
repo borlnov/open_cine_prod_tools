@@ -78,6 +78,7 @@ ScriptImportFailure _failureOf(Uint8List bytes) {
   fail('reading the container was expected to throw');
 }
 
+/// Run the tests of [CeltxScriptReader].
 void main() {
   group('paragraph classes', () {
     test('a scene heading keeps its INT./EXT. form', () {

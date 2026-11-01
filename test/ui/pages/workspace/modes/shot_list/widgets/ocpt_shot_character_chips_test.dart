@@ -37,6 +37,7 @@ OcptRole _role(String id, String name) => OcptRole(
   episodeIds: const [],
 );
 
+/// Run the tests of [OcptShotCharacterChips].
 void main() {
   testWidgets("lists every role of the cast, selected exactly when attached", (tester) async {
     await tester.pumpWidget(

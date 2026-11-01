@@ -27,6 +27,7 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptShotListStatusBar].
 void main() {
   /// Pumps the status bar for a shot list of [shotsToCheckCount] shots left to check, in a band
   /// [width] wide.

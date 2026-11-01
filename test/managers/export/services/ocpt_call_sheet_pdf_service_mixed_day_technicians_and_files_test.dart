@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'ocpt_call_sheet_pdf_service_test_doubles.dart';
 
+/// Run the tests of the call sheet pdf service mixed day technicians and files.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

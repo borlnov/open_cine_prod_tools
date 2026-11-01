@@ -22,6 +22,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptWorkspaceModeSwitcher].
 void main() {
   testWidgets('shows exactly one entry per workspace mode', (tester) async {
     await tester.pumpWidget(

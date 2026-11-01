@@ -64,6 +64,7 @@ OcptShot _buildShot({
   averageDifficulty: difficulty.toDouble(),
 );
 
+/// Run the tests of [OcptShotListSequencePanel].
 void main() {
   final sceneSequence = OcptSceneShotSequence(
     sceneId: "scene-1",

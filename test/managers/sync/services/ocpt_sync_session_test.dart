@@ -25,31 +25,38 @@ import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 /// [OcptSyncSession] itself (only [_FakeChangesetService] would call them, and it doesn't), so they
 /// are stubbed to inert values.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
@@ -57,9 +64,11 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   /// Simulates the relay announcing another replica's own push.
   void pingNewWork() => _newWorkController.add(null);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
@@ -70,23 +79,35 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// its queue runs dry. This is what lets this file test [OcptSyncSession]'s own scheduling and
 /// status logic without a real merge to drive.
 class _FakeChangesetService extends OcptChangesetService {
+  /// How many times a sync was run.
   int syncOnceCalls = 0;
+
+  /// How many times a pull was run.
   int pullAndApplyCalls = 0;
+
+  /// How many times the unpushed edits were counted.
   int countUnpushedEditsCalls = 0;
+
+  /// The number of unpushed edits to answer with.
   int unpushedEditCount = 0;
 
   /// Whether [countUnpushedEdits] throws instead of answering.
   bool isCountFailing = false;
 
+  /// The outcomes the next syncs answer with, one per call.
   final List<Object> syncOnceOutcomes = [];
+
+  /// The outcomes the next pulls answer with, one per call.
   final List<Object> pullAndApplyOutcomes = [];
 
+  /// Class constructor
   _FakeChangesetService()
     : super(
         logger: const SilentLogger(),
         mergeService: const OcptMergeService(logger: SilentLogger()),
       );
 
+  /// Count the sync and answer with the next outcome.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
@@ -99,6 +120,7 @@ class _FakeChangesetService extends OcptChangesetService {
     return _resolve(syncOnceOutcomes);
   }
 
+  /// Count the pull and answer with the next outcome.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
   pullAndApply({
@@ -111,6 +133,7 @@ class _FakeChangesetService extends OcptChangesetService {
     return _resolve(pullAndApplyOutcomes);
   }
 
+  /// Count the call, then answer with the canned count or fail when told to.
   @override
   Future<int> countUnpushedEdits({
     required OcptProjectDatabase database,
@@ -125,6 +148,8 @@ class _FakeChangesetService extends OcptChangesetService {
     return unpushedEditCount;
   }
 
+  /// Answer with the next of [outcomes], throwing it when it is an error and repeating a success
+  /// when none is left.
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> _resolve(
     List<Object> outcomes,
   ) async {
@@ -153,8 +178,10 @@ class _FakeChangesetService extends OcptChangesetService {
 /// A queued outcome of [_FakeChangesetService] that makes the call throw [error], the way the
 /// project database failing underneath a run does.
 class _DatabaseFailure {
+  /// The error to throw.
   final Error error;
 
+  /// Class constructor
   const _DatabaseFailure(this.error);
 }
 
@@ -174,6 +201,7 @@ Future<void> _waitUntil(
   }
 }
 
+/// Run the tests of [OcptSyncSession].
 void main() {
   const projectId = 'project-1';
   const deviceId = 'device-1';

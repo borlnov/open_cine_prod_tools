@@ -61,6 +61,7 @@ class BreakdownScenarioRouterManager extends OcptRouterManager {
   /// The number of pages pushed since the last reset.
   int pushCount = 0;
 
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -69,6 +70,7 @@ class BreakdownScenarioRouterManager extends OcptRouterManager {
     }
   }
 
+  /// Count the push, and answer with the canned answer when its type fits.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -92,6 +94,7 @@ class BreakdownScenarioSaveLocationService extends OcptSaveLocationService {
   BreakdownScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("breakdown_scenarios_save_location"));
 
+  /// Count the question and answer that nothing was picked.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -182,6 +185,7 @@ class BreakdownRecordingExportManager extends OcptExportManager {
     saveDialog.askedCount = 0;
   }
 
+  /// Record the export as sheets, with its options.
   @override
   Future<OcptExportOutcome?> exportBreakdownSheets({
     required FountainDocument document,
@@ -207,6 +211,7 @@ class BreakdownRecordingExportManager extends OcptExportManager {
     includeToFindList: includeToFindList,
   );
 
+  /// Record the export as a workbook.
   @override
   Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,

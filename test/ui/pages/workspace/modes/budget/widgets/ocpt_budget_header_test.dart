@@ -24,6 +24,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptBudgetHeader].
 void main() {
   /// Widens the test surface — `flutter_test`'s own substituted test font renders these short
   /// labels far wider than any real one does, which would make the narrow-window wrapping case

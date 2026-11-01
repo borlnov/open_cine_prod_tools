@@ -36,6 +36,7 @@ Future<Tr> _buildTr(WidgetTester tester) async {
   return tr;
 }
 
+/// Run the tests of the workspace episode label.
 void main() {
   testWidgets("a titled episode reads its number and its title", (tester) async {
     final tr = await _buildTr(tester);

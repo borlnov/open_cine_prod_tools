@@ -16,6 +16,7 @@ import 'ocpt_export_manager_test_doubles.dart';
 
 /// A [PlatformManager] whose [isMobile] is stubbed.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -28,6 +29,7 @@ class _ThrowingShareService extends OcptShareService {
   /// Class constructor
   const _ThrowingShareService() : super(logger: const SilentLogger());
 
+  /// Fail as a platform with no temporary directory does.
   @override
   Future<Directory> temporaryDirectory() async => throw const FileSystemException("no directory");
 }

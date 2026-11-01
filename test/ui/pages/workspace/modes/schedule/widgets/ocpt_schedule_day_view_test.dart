@@ -247,6 +247,7 @@ Future<void> _pumpDayView(
   await tester.pumpAndSettle();
 }
 
+/// Run the tests of [OcptScheduleDayView].
 void main() {
   testWidgets(
     "the events band is absent on a day with no event when the view may not be written to",

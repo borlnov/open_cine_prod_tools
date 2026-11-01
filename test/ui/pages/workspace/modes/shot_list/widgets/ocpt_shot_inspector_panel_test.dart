@@ -143,6 +143,7 @@ Widget _buildPanel({
   isReadOnly: isReadOnly,
 );
 
+/// Run the tests of [OcptShotInspectorPanel].
 void main() {
   testWidgets("a read-only panel reads the shot out and withholds every control", (tester) async {
     await _useTallSurface(tester);

@@ -150,6 +150,7 @@ OcptElement _element({
   roleLinks: const [],
 );
 
+/// Run the tests of [OcptResourcesListPanel].
 void main() {
   /// Pumps the panel on [activeTab], with the four contextual creation callbacks a tab may carry.
   Future<void> pumpPanel(

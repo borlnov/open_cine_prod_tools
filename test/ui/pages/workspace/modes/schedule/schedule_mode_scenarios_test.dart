@@ -23,9 +23,14 @@ import 'schedule_mode_scenarios_test_doubles.dart';
 
 /// Three dates far from any clock the test could run on: one long past, two in the far future.
 final _past = DateTime(2001, 1, 5);
+
+/// The first of the two days the scenarios use.
 final _first = DateTime(2099, 3);
+
+/// The second of the two days the tests use.
 final _second = DateTime(2099, 3, 2);
 
+/// Run the tests of the schedule mode scenarios.
 void main() {
   final harness = ScheduleScenarioHarness();
 

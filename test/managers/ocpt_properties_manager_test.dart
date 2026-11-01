@@ -19,6 +19,7 @@ OcptRecentProjectModel _projectAt(String path, {DateTime? lastOpenedAt}) => Ocpt
   lastOpenedAt: lastOpenedAt ?? DateTime.utc(2026),
 );
 
+/// Run the tests of [OcptPropertiesManager].
 void main() {
   // [OcptPropertiesManager] wraps `PropertiesSingleton`, which is a process-wide singleton bound
   // to whichever `SharedPreferencesAsyncPlatform` was set when it was first created. We therefore

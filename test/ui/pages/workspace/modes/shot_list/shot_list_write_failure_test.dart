@@ -34,6 +34,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }

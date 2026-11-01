@@ -15,9 +15,13 @@ import 'package:test/test.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
+
+/// The time a test waits before it gives up.
 const _timeout = Timeout(Duration(seconds: 5));
 
+/// Build an envelope with [changesetId], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -26,6 +30,7 @@ OcptChangesetEnvelope _envelope(String changesetId) => OcptChangesetEnvelope(
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
+/// Build a descriptor of the snapshot [snapshotId], which describes [bytes].
 OcptSnapshotDescriptor _descriptor({required String snapshotId, required Uint8List bytes}) =>
     OcptSnapshotDescriptor(
       snapshotId: snapshotId,
@@ -34,8 +39,10 @@ OcptSnapshotDescriptor _descriptor({required String snapshotId, required Uint8Li
       contentDigest: sha256.convert(bytes).toString(),
     );
 
+/// Hash [token] the way the relay stores it.
 String _tokenHash(String token) => sha256.convert(utf8.encode(token)).toString();
 
+/// Run the tests of the relay events.
 void main() {
   group('OcptRelayServer events route', () {
     late OcptRelayStore store;

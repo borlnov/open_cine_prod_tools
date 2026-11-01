@@ -80,6 +80,7 @@ class EditorScenarioRouterManager extends OcptRouterManager {
     popCount = 0;
   }
 
+  /// Count the pop, then pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popCount++;
@@ -89,6 +90,7 @@ class EditorScenarioRouterManager extends OcptRouterManager {
     }
   }
 
+  /// Record the route and the extra pushed, and answer with the canned answer when its type fits.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -112,6 +114,7 @@ class EditorScenarioSaveLocationService extends OcptSaveLocationService {
   EditorScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("editor_scenarios_save_location"));
 
+  /// Count the question and answer that nothing was picked.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -213,6 +216,7 @@ class EditorScenarioExportManager extends OcptExportManager {
     importAnswer = const ResultWithStatus(status: OcptScreenplayImportStatus.unreadableFile);
   }
 
+  /// Record the export as a Fountain one.
   @override
   Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
@@ -229,6 +233,7 @@ class EditorScenarioExportManager extends OcptExportManager {
     ),
   );
 
+  /// Record the export as a PDF one, with its page setup and options.
   @override
   Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
@@ -251,6 +256,7 @@ class EditorScenarioExportManager extends OcptExportManager {
     ),
   );
 
+  /// Count the pick and answer with the canned import.
   @override
   Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
   pickAndReadScreenplay({required String fileTypeLabel}) async {

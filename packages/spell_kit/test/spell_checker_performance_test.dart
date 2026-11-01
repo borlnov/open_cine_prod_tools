@@ -71,6 +71,7 @@ List<String> _sampleWords() => const [
   'neige',
 ];
 
+/// Run the tests of the spell checker performance.
 void main() {
   group('the affix rule index', () {
     late SpellChecker checker;

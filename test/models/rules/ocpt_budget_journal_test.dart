@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 
+/// Run the tests of the budget journal.
 void main() {
   OcptBudgetEntry buildEntry({
     String id = "entry-1",

@@ -16,6 +16,7 @@ String _taggedTextOf(String sceneText, int startOffset, int endOffset) {
   return sceneText.substring(span.startOffset, span.endOffset);
 }
 
+/// Run the tests of the breakdown tag span.
 void main() {
   test("a passage with nothing around it is left exactly as it is", () {
     const text = "A lamp sits on the desk";

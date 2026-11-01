@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_enrolment.dart';
 import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 
+/// Run the tests of [OcptRelayEnrolment].
 void main() {
   group('OcptRelayEnrolment', () {
     test('round-trips a plain enrolment through toEnrolmentString/parse', () {

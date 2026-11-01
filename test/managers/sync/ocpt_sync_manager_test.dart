@@ -24,38 +24,47 @@ import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 /// A minimal [OcptRemoteStorage]: [OcptSyncManager]'s own tests below only care that a session
 /// starts and stops around it, never about what it actually stores.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
@@ -63,14 +72,17 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// session's own test file for the fuller version this mirrors; this one only needs to prove
 /// [OcptSyncManager] wires a session up and tears it down correctly, so it stays minimal.
 class _FakeChangesetService extends OcptChangesetService {
+  /// How many times a sync was run.
   int syncOnceCalls = 0;
 
+  /// Class constructor
   _FakeChangesetService()
     : super(
         logger: const SilentLogger(),
         mergeService: const OcptMergeService(logger: SilentLogger()),
       );
 
+  /// Count the sync and answer that it went well, with no conflict.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
     required OcptProjectDatabase database,
@@ -83,6 +95,7 @@ class _FakeChangesetService extends OcptChangesetService {
     return const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
   }
 
+  /// Answer that the pull went well, with no conflict.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
   pullAndApply({
@@ -92,6 +105,7 @@ class _FakeChangesetService extends OcptChangesetService {
   }) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 }
 
+/// Run the tests of [OcptSyncManager].
 void main() {
   group('openRelayRemoteStorage', () {
     test('builds a relay transport from the pairing and the given project id', () {

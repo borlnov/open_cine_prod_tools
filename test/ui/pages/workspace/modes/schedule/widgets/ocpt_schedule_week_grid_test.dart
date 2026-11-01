@@ -125,6 +125,7 @@ Finder _sunBandFinder(WidgetTester tester) {
   );
 }
 
+/// Run the tests of [OcptScheduleWeekGrid].
 void main() {
   // The Monday of the week `OcptScheduleWeekGrid` draws when anchored on this Wednesday.
   final monday = DateTime(2026, 8, 3);

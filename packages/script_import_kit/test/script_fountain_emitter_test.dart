@@ -27,6 +27,7 @@ ScriptLine _line(
   continuesBlock: continuesBlock,
 );
 
+/// Run the tests of [ScriptFountainEmitter].
 void main() {
   group('block separation', () {
     test('two blocks are separated by a blank line', () {

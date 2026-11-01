@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_version.dart';
 
+/// Run the tests of the row stamp version.
 void main() {
   group("ocptNextRowStampVersion", () {
     test("starts a never-ticked clock at version 1", () {

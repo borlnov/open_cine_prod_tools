@@ -24,6 +24,7 @@ final Finder _amountsPaneScrollFinder = find.byWidgetPredicate(
   (widget) => widget is SingleChildScrollView && widget.scrollDirection == Axis.horizontal,
 );
 
+/// Run the tests of the budget cost tracking header and totals.
 void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.

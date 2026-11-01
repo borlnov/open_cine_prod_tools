@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_role_origin.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
+/// Run the tests of [ocptRoleIsActionDetected].
 void main() {
   group("ocptRoleIsActionDetected", () {
     test("false for a cued role, isFromScreenplay true", () {

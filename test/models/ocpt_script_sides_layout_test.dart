@@ -86,6 +86,7 @@ const FountainScriptLine _blank = FountainScriptLine(
 FountainScriptLayout _onePageScript(List<FountainScriptLine> lines) =>
     FountainScriptLayout(pages: [FountainScriptPage(lines: lines)]);
 
+/// Run the tests of [OcptScriptSidesLayout].
 void main() {
   group("a single scene wholly inside one page", () {
     // Page: [row0 (outside), row1 (in span), row2 (in span), row3 (outside), row4 (outside)].

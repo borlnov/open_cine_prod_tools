@@ -30,6 +30,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(height: 600, child: child)),
 );
 
+/// Run the tests of [OcptDiagnosticsLogList].
 void main() {
   setUpAll(() {
     // OcptGlobalManager and OcptDiagnosticsEntry both log through appLogger(), which requires a

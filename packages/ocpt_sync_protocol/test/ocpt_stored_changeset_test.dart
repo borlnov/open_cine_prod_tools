@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of [OcptStoredChangeset].
 void main() {
   group('OcptStoredChangeset', () {
     final stored = OcptStoredChangeset(

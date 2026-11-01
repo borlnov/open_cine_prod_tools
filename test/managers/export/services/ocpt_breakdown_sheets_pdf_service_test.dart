@@ -198,6 +198,7 @@ OcptPerson _buildPerson({
   unavailabilities: const [],
 );
 
+/// Run the tests of [OcptBreakdownSheetsPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

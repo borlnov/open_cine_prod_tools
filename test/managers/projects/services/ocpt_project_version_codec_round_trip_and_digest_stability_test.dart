@@ -36,6 +36,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'ocpt_project_version_codec_test_doubles.dart';
 
+/// Run the tests of the project version codec round trip and digest stability.
 void main() {
   // The codec logs through appLogger(), which requires a global manager instance to be set; merely
   // accessing it creates the (otherwise unused) singleton.

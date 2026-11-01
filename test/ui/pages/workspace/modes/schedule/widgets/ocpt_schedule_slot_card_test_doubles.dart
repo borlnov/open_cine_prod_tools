@@ -30,6 +30,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 /// `showDialog` genuinely closes: this card resolves its router manager from `globalGetIt()`,
 /// with no real GoRouter for `pop` to delegate to.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = navigatorKey.currentState;

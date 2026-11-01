@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 
+/// Run the tests of [OcptChangesetService].
 void main() {
   const deviceId = 'device-1';
   const relayId = 'relay-1';

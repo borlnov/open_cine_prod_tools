@@ -30,6 +30,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter for it
 /// to operate on.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -65,6 +66,7 @@ const _shortDebounce = Duration(milliseconds: 30);
 /// A debounce no test waits out, for the tests that must find an edit still pending.
 const _neverDebounce = Duration(days: 1);
 
+/// Run the tests of [OcptResourcesLocationsBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

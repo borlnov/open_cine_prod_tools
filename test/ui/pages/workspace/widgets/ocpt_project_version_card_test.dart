@@ -79,6 +79,7 @@ Widget _card({
   onRenameCancelled: onRenameCancelled ?? () {},
 );
 
+/// Run the tests of [OcptProjectVersionCard].
 void main() {
   testWidgets('shows the name, the counters and the note of the version', (tester) async {
     await tester.pumpWidget(

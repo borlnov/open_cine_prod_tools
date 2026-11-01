@@ -59,6 +59,7 @@ Color _posterTintOf(WidgetTester tester) => tester
     .singleWhere((box) => box.color.a == 1.0)
     .color;
 
+/// Run the tests of [OcptProjectCard].
 void main() {
   testWidgets('the same project path always yields the same tint', (tester) async {
     const path = '/home/user/projects/glass-paths.ocpt';

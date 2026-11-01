@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 import 'budget_mode_scenarios_test_doubles.dart';
 
+/// Run the tests of the budget mode writes scenarios.
 void main() {
   final harness = BudgetScenarioHarness();
 

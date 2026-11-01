@@ -54,6 +54,7 @@ OcptBreakdownTarget _buildTarget({required OcptBreakdownTargetKind kind, require
       occurrenceCount: 1,
     );
 
+/// Run the tests of the breakdown scene bars.
 void main() {
   final propA = _buildElementTarget(id: "prop-a", category: OcptElementCategory.prop);
   final propB = _buildElementTarget(id: "prop-b", category: OcptElementCategory.prop);

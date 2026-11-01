@@ -22,6 +22,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record the value the dialog popped with.
   @override
   void pop<Y extends Object?>([Y? result]) {
     poppedValue = result;
@@ -70,6 +71,7 @@ OcptBudgetAllowance _buildAllowance({
   sortKey: "a0",
 );
 
+/// Run the tests of [OcptBudgetAllowanceDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

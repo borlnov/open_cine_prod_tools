@@ -56,19 +56,28 @@ class _FakeHostManager extends OcptRelayHostManager {
   /// What [reconcileWithUpstream] returns.
   OcptReconcileOutcome reconcileResult = const OcptReconcileSucceeded(pushed: 0, pulled: 0);
 
+  /// The host state the double reports.
   OcptRelayHostState _state = const OcptRelayHostStopped();
+
+  /// The controller behind [stateStream].
   final _controller = StreamController<OcptRelayHostState>.broadcast();
+
+  /// The project the double reports it hosts, or null.
   String? _hostedProjectId;
 
+  /// Read the host state.
   @override
   OcptRelayHostState get state => _state;
 
+  /// Emit the host states the test adds to the controller.
   @override
   Stream<OcptRelayHostState> get stateStream => _controller.stream;
 
+  /// Read the hosted project id.
   @override
   String? get hostedProjectId => _hostedProjectId;
 
+  /// Answer with the canned LAN addresses.
   @override
   Future<List<InternetAddress>> availableLanAddresses() async => lanAddresses;
 
@@ -82,6 +91,7 @@ class _FakeHostManager extends OcptRelayHostManager {
     _controller.add(next);
   }
 
+  /// Count the call and remember the port.
   @override
   Future<void> startHosting({
     required OcptProjectDatabase database,
@@ -95,11 +105,13 @@ class _FakeHostManager extends OcptRelayHostManager {
     lastStartHostingPort = port;
   }
 
+  /// Count the call.
   @override
   Future<void> stopHosting() async {
     stopHostingCallCount++;
   }
 
+  /// Count the call, remember the invite and answer with the canned outcome.
   @override
   Future<OcptReconcileOutcome> reconcileWithUpstream(OcptRelayInvite invite) async {
     reconcileCallCount++;
@@ -107,6 +119,7 @@ class _FakeHostManager extends OcptRelayHostManager {
     return reconcileResult;
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
@@ -119,6 +132,7 @@ class _FakePairingService extends OcptPairingService {
   /// What [loadPairing] returns.
   OcptProjectPairing? pairing;
 
+  /// Class constructor
   _FakePairingService({this.pairing})
     : super(
         logger: const SilentLogger(),
@@ -128,6 +142,7 @@ class _FakePairingService extends OcptPairingService {
         ),
       );
 
+  /// Answer with the canned pairing.
   @override
   Future<OcptProjectPairing?> loadPairing({
     required OcptProjectDatabase database,
@@ -142,20 +157,28 @@ class _FakeSyncManager extends OcptSyncManager {
   /// What [loadPairedProjectId] returns.
   String? pairedProjectId;
 
+  /// The pairing service the double hands out.
   final _FakePairingService _fakePairingService;
 
+  /// The roster the double reports.
   OcptPresenceRoster? _roster;
+
+  /// The controller behind the roster stream.
   final _controller = StreamController<OcptPresenceRoster>.broadcast();
 
+  /// Get the pairing service the double holds.
   @override
   OcptPairingService get pairingService => _fakePairingService;
 
+  /// Read the roster.
   @override
   OcptPresenceRoster? get presenceRoster => _roster;
 
+  /// Emit the rosters the test adds to the controller.
   @override
   Stream<OcptPresenceRoster>? get presenceRosterStream => _controller.stream;
 
+  /// Class constructor
   _FakeSyncManager({this.pairedProjectId, _FakePairingService? pairingService})
     : _fakePairingService = pairingService ?? _FakePairingService(),
       super(
@@ -165,6 +188,7 @@ class _FakeSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Answer with the canned paired project id.
   @override
   Future<String?> loadPairedProjectId(OcptProjectDatabase database) async => pairedProjectId;
 
@@ -175,9 +199,11 @@ class _FakeSyncManager extends OcptSyncManager {
     _controller.add(roster);
   }
 
+  /// Close the controller behind the stream.
   Future<void> disposeStream() => _controller.close();
 }
 
+/// Run the tests of [OcptHostingBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

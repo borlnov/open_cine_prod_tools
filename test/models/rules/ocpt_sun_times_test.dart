@@ -38,6 +38,7 @@ void _expectCloseTo(
   );
 }
 
+/// Run the tests of [OcptSunTimes].
 void main() {
   group("Paris — summer solstice (48.8566N, 2.3522E)", () {
     // Reference (api.sunrise-sunset.org, 2026-06-21, converted to this container's UTC clock):

@@ -61,6 +61,7 @@ class ResourcesScenarioRouterManager extends OcptRouterManager {
   /// The number of pages pushed since the last reset.
   int pushCount = 0;
 
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -69,6 +70,7 @@ class ResourcesScenarioRouterManager extends OcptRouterManager {
     }
   }
 
+  /// Count the push, and answer with the canned answer when its type fits.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -92,6 +94,7 @@ class ResourcesScenarioSaveLocationService extends OcptSaveLocationService {
   ResourcesScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("resources_scenarios_save_location"));
 
+  /// Count the question and answer that nothing was picked.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -158,6 +161,7 @@ class ResourcesRecordingExportManager extends OcptExportManager {
     saveDialog.askedCount = 0;
   }
 
+  /// Record the export as a workbook.
   @override
   Future<OcptExportOutcome?> exportResourcesXlsx({
     required OcptResourcesSnapshot snapshot,
@@ -168,6 +172,7 @@ class ResourcesRecordingExportManager extends OcptExportManager {
   }) async =>
       _record(document: "xlsx", snapshot: snapshot, pageSetup: null, projectName: projectName);
 
+  /// Record the export as a contact list.
   @override
   Future<OcptExportOutcome?> exportContactList({
     required OcptResourcesSnapshot snapshot,

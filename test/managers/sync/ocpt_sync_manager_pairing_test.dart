@@ -36,6 +36,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -70,20 +71,28 @@ void _mockSecureStorage(Map<String, String> store) {
 /// uploaded, and carrying no network at all — everything [OcptSyncManager.pairProjectToRelay]'s own
 /// tests below need of a transport.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// The envelopes appended so far.
   final List<OcptChangesetEnvelope> appended = [];
+
+  /// The last snapshot uploaded, or null before any.
   (OcptSnapshotDescriptor, Uint8List)? uploaded;
 
   /// When set, the status every request/response call answers instead of succeeding.
   OcptRemoteStorageStatus? failWith;
 
+  /// The controller behind [newWorkStream].
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
+  /// Emit the pings the test adds to the controller.
   @override
   Stream<void> get newWorkStream => _newWorkController.stream;
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Fail with the canned failure when there is one, otherwise keep the envelope and answer with
+  /// the next sequence number.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
@@ -100,11 +109,13 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
     );
   }
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Fail with the canned failure when there is one, otherwise keep the snapshot as the latest.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
@@ -119,14 +130,17 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
     return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
+  /// Answer with the snapshot uploaded last.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async =>
       ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 
+  /// Close the controller behind [newWorkStream].
   Future<void> dispose() => _newWorkController.close();
 }
 
@@ -135,7 +149,10 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// [pairProjectToRelay] itself has no seam for a transport (it always builds its own, per its own
 /// doc comment), so this is how its own tests exercise it with no network at all.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  /// The storage every transport opened by the double is.
   final OcptRemoteStorage storage;
+
+  /// The enrolment secret the last transport was opened with.
   String? capturedEnrolmentSecret;
 
   /// Set by `repointProjectToRelay`'s own tests to hand back a second, distinct
@@ -143,6 +160,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   /// asserted apart from the first [pairProjectToRelay] call's [storage].
   OcptRemoteStorage? storageOverride;
 
+  /// Class constructor
   _FakeTransportSyncManager({
     required this.storage,
     required OcptPairingService super.pairingService,
@@ -153,6 +171,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
          ),
        );
 
+  /// Remember the enrolment secret, and answer with the storage override or the storage.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -165,6 +184,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   }
 }
 
+/// Run the tests of the sync manager pairing.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

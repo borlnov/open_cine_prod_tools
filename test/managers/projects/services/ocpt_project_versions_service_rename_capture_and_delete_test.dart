@@ -38,6 +38,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
+/// Run the tests of the project versions service rename capture and delete.
 void main() {
   // Reading a version's stored summary logs through appLogger(), which requires a global manager
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.

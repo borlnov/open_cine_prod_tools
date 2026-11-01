@@ -18,6 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_image_rights_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_candidate_status.dart';
 
+/// Run the tests of the erased person scrub.
 void main() {
   const codec = OcptProjectVersionCodec(logger: SilentLogger());
 

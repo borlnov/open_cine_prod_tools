@@ -114,6 +114,7 @@ List<OcptBudgetAlert> _computeAlerts({
   projectVatRateBasisPoints: projectVatRateBasisPoints,
 );
 
+/// Run the tests of the budget alerts.
 void main() {
   group("a project with no alert at all", () {
     test("answers an empty list", () {

@@ -42,6 +42,7 @@ class _FakeFileSelectorManager extends FileSelectorManager {
   /// Class constructor
   _FakeFileSelectorManager({this.result});
 
+  /// Remember the allowed extensions, and answer with the canned file.
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({
     required List<String> allowedExtensions,
@@ -55,6 +56,7 @@ class _FakeFileSelectorManager extends FileSelectorManager {
   }
 }
 
+/// Run the tests of the home bloc toolbar export and package.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

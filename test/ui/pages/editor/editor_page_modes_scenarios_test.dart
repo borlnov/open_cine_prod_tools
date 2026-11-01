@@ -27,6 +27,7 @@ String _longScreenplay() {
   return buffer.toString();
 }
 
+/// Run the tests of the editor page modes scenarios.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 

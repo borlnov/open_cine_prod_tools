@@ -85,6 +85,7 @@ OcptBudgetPoste _buildPoste({
   lines: lines,
 );
 
+/// Run the tests of [OcptBudgetQuotePdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_reimbursements.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 
+/// Run the tests of the budget reimbursements.
 void main() {
   /// Builds a defrayal owed to [personId], priced at [quantityMilli] thousandths of a unit at
   /// [unitAmountMilliCents] thousandths of a cent each — 1000/100000 (one unit at 1.00 €) unless a

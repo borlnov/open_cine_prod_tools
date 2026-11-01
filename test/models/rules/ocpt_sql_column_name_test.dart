@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_sql_column_name.dart';
 
+/// Run the tests of the sql column name.
 void main() {
   test('a single-word column name is returned as is', () {
     expect(ocptDartFieldName('id'), 'id');

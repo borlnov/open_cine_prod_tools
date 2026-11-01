@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_pag
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
+/// Run the tests of the styled title page layout.
 void main() {
   final metrics = FountainLayoutMetrics.usLetter();
   final layout = OcptEditorPreviewLayout(metrics: metrics);

@@ -26,6 +26,7 @@ OcptRole _buildRole({
   episodeIds: const [],
 );
 
+/// Run the tests of [OcptRoleCollisionAlert].
 void main() {
   group("OcptRoleCollisionAlert.buildAll", () {
     test("a hand-added role sharing a name with a screenplay role is a collision", () {

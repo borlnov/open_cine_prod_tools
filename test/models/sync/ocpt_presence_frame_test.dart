@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 
+/// Run the tests of [OcptPresenceFrame].
 void main() {
   group('OcptPresenceFrame', () {
     test('round-trips through toJson/fromJson with a mode key set', () {

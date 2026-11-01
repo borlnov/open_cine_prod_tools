@@ -18,6 +18,7 @@ import 'package:test/test.dart';
 List<(String, FountainInlineStyle)> _parse(String text) =>
     const FountainInlineParser().parse(text).map(_summarize).toList();
 
+/// Run the tests of the inline parser.
 void main() {
   group('plain text', () {
     test('text with no markers is a single plain span', () {

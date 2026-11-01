@@ -23,6 +23,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptShotStatusPill].
 void main() {
   testWidgets("shows the current status label", (tester) async {
     await tester.pumpWidget(_wrapInApp(const OcptShotStatusPill(status: OcptShotStatus.retake)));

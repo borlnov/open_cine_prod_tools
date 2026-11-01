@@ -33,6 +33,7 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// `showDialog` genuinely closes: this mode's own bloc resolves its router manager from
 /// `globalGetIt()`, with no real GoRouter for `pop` to delegate to.
 class _RecordingRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -60,6 +61,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptScheduleMode].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

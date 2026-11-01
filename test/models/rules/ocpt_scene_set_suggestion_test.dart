@@ -43,6 +43,7 @@ OcptLocation _location({required String id, required String name, required List<
       availabilities: const [],
     );
 
+/// Run the tests of the scene set suggestion.
 void main() {
   group("ocptSceneHeadingPlaceOf", () {
     test("drops the interior/exterior prefix and the time of day", () {

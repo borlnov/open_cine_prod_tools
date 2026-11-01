@@ -84,6 +84,7 @@ OcptRoleCandidate _candidate({
   notes: "",
 );
 
+/// Run the tests of [OcptRoleCastingProgress].
 void main() {
   group("OcptRoleCastingProgress.of", () {
     test("a cast role is `cast`, whatever candidates it also carries", () {

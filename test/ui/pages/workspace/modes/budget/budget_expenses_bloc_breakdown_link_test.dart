@@ -50,6 +50,8 @@ class _FlakyQuoteService extends OcptBudgetQuoteService {
   /// Class constructor
   _FlakyQuoteService() : super(logger: const SilentLogger(), deviceId: () async => "test-device");
 
+  /// Count the call and wait for the gate, then fail when told to, otherwise update the poste as
+  /// the real service does.
   @override
   Future<void> updatePoste({
     required OcptProjectDatabase database,
@@ -84,6 +86,7 @@ class _FlakySnapshotLoader extends OcptBudgetSnapshotLoader {
   /// Class constructor
   _FlakySnapshotLoader({required super.projectsManager, required super.seed});
 
+  /// Fail when told to, otherwise load the budget as the real loader does.
   @override
   Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
     if (fails) {
@@ -94,6 +97,7 @@ class _FlakySnapshotLoader extends OcptBudgetSnapshotLoader {
   }
 }
 
+/// Run the tests of the budget expenses bloc breakdown link.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

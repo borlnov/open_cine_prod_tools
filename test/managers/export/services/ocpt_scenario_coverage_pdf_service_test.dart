@@ -112,6 +112,7 @@ OcptShot _buildShot({
   averageDifficulty: 0,
 );
 
+/// Run the tests of [OcptScenarioCoveragePdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

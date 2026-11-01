@@ -146,6 +146,7 @@ OcptResourcesSnapshot _buildSnapshot({
   scenes: const [],
 );
 
+/// Run the tests of [OcptContactListPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -35,6 +35,7 @@ String _testAppLanguageCode() => "en";
 /// A router manager whose [pop] does nothing: these tests never leave the workspace, and no real
 /// GoRouter is built for it to operate on.
 class _SilentRouterManager extends OcptRouterManager {
+  /// Ignore the pop: this double navigates nowhere.
   @override
   void pop<Y extends Object?>([Y? result]) {}
 }
@@ -60,6 +61,8 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
   /// Class constructor
   _RecordingSaveLocationService({required this.answer}) : super(logger: const SilentLogger());
 
+  /// Count the question, remember the extensions and the suggested name, and answer with the canned
+  /// location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -79,6 +82,7 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart` uses for the manager's own write
 /// funnel.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -110,9 +114,11 @@ class _RecordingShareService extends OcptShareService {
     : _directory = directory,
       super(logger: const SilentLogger());
 
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> temporaryDirectory() async => _directory;
 
+  /// Count the share, remember the paths and answer with the canned result.
   @override
   Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
     shareCount++;
@@ -121,6 +127,7 @@ class _RecordingShareService extends OcptShareService {
   }
 }
 
+/// Run the tests of `MixinOcptProjectPackageBloc`.
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

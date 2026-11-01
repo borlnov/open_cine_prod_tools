@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_resources_search.dart';
 
+/// Run the tests of the resources search.
 void main() {
   group("ocptResourcesSearchNormalized", () {
     test("lower-cases plain text", () {

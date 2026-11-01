@@ -80,6 +80,7 @@ OcptShot _buildShot({required String id, required String code, String recordingF
       averageDifficulty: 0,
     );
 
+/// Run the tests of [OcptStoryboardPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

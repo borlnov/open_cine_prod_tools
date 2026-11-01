@@ -45,6 +45,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 Future<String> _loadMiniatureDictionaryAsset(String assetKey) async =>
     assetKey.endsWith(".aff") ? "SET UTF-8\n" : "2\nthe\nscene\n";
 
+/// Run the tests of the main.
 void main() {
   // OcptEditorPage reads the current project's name from OcptProjectsManager, and its preferred
   // editing mode from OcptPropertiesManager, both through globalGetIt(); both need a global

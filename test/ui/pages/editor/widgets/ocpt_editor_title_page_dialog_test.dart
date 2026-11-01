@@ -21,6 +21,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   /// The value [pop] was last called with.
   Object? poppedValue;
 
+  /// Record that a pop happened and the value it carried, without navigating.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popped = true;
@@ -43,6 +44,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// A placeholder range for entries built directly (never read by the dialog).
 const _dummyRange = FountainSourceRange(startLine: 0, endLine: 0, startOffset: 0, endOffset: 0);
 
+/// Run the tests of [OcptEditorTitlePageDialog].
 void main() {
   late _RecordingRouterManager routerManager;
 

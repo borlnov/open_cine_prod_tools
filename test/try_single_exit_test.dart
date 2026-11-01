@@ -31,12 +31,15 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
   /// Class constructor
   _ExitFinder({required this.lineOf});
 
+  /// Skip the function expression: its exits are not the enclosing function's.
   @override
   void visitFunctionExpression(FunctionExpression node) {}
 
+  /// Skip the function declaration: its exits are not the enclosing function's.
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {}
 
+  /// Remember the labels this statement declares, then visit it.
   @override
   void visitLabeledStatement(LabeledStatement node) {
     for (final label in node.labels) {
@@ -45,11 +48,13 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     super.visitLabeledStatement(node);
   }
 
+  /// Record the line of the return.
   @override
   void visitReturnStatement(ReturnStatement node) {
     exits.add(lineOf(node.offset));
   }
 
+  /// Record the line of the break, unless it targets the statement or a label declared inside it.
   @override
   void visitBreakStatement(BreakStatement node) {
     final label = node.label?.name;
@@ -58,6 +63,8 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     }
   }
 
+  /// Record the line of the continue, unless it targets a loop or a label declared inside the
+  /// statement.
   @override
   void visitContinueStatement(ContinueStatement node) {
     final label = node.label?.name;
@@ -66,6 +73,7 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     }
   }
 
+  /// Count the loop, then visit it: a `break` or a `continue` inside targets it.
   @override
   void visitForStatement(ForStatement node) {
     _loopDepth++;
@@ -75,6 +83,7 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     _loopDepth--;
   }
 
+  /// Count the loop, then visit it: a `break` or a `continue` inside targets it.
   @override
   void visitWhileStatement(WhileStatement node) {
     _loopDepth++;
@@ -84,6 +93,7 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     _loopDepth--;
   }
 
+  /// Count the loop, then visit it: a `break` or a `continue` inside targets it.
   @override
   void visitDoStatement(DoStatement node) {
     _loopDepth++;
@@ -93,6 +103,7 @@ class _ExitFinder extends RecursiveAstVisitor<void> {
     _loopDepth--;
   }
 
+  /// Count the switch, then visit it: a `break` inside targets it.
   @override
   void visitSwitchStatement(SwitchStatement node) {
     _jumpTargetDepth++;
@@ -113,6 +124,7 @@ class _TryFinder extends RecursiveAstVisitor<void> {
   /// Class constructor
   _TryFinder({required this.lineOf});
 
+  /// Look for the exits of the body of a `try` that has catch clauses, then visit it.
   @override
   void visitTryStatement(TryStatement node) {
     if (node.catchClauses.isNotEmpty) {

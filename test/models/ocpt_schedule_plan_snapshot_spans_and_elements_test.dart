@@ -76,6 +76,7 @@ OcptShotListSnapshot _buildEpisodeShotList({
   ],
 );
 
+/// Run the tests of the schedule plan snapshot spans and elements.
 void main() {
   group("sceneSpanBySceneId", () {
     test("a scene sequence's span is read back", () {

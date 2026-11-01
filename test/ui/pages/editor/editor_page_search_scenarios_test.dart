@@ -15,6 +15,7 @@ import 'editor_page_scenarios_test_doubles.dart';
 /// A screenplay repeating `line` three times, once in capitals and once inside a longer word.
 const _repeatedText = "line one.\n\nLINE two.\n\nOutline three.\n";
 
+/// Run the tests of the editor page search scenarios.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 

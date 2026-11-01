@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
+/// Run the tests of the budget projection.
 void main() {
   OcptBudgetCommitment buildCommitment({
     String id = "commitment-1",

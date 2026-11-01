@@ -31,50 +31,70 @@ OcptChangesetEnvelope _envelope(String suffix) => OcptChangesetEnvelope(
 /// observe whether [sink] was closed through [closed] — everything else this transport never
 /// touches (protocol negotiation, close codes) is stubbed to a fixed value.
 class _FakeWebSocketChannel with StreamChannelMixin<dynamic> implements WebSocketChannel {
+  /// The controller the test pushes incoming frames into.
   final StreamController<dynamic> incoming;
+
+  /// The frames sent through the sink so far.
   final List<dynamic> sent = [];
+
+  /// Whether the sink was closed.
   bool closed = false;
 
+  /// Emit the frames the test pushes.
   @override
   Stream<dynamic> get stream => incoming.stream;
 
+  /// Get a sink that records into this channel.
   @override
   WebSocketSink get sink => _FakeWebSocketSink(this);
 
+  /// Answer that no sub-protocol was negotiated.
   @override
   String? get protocol => null;
 
+  /// Answer that the channel has no close code.
   @override
   int? get closeCode => null;
 
+  /// Answer that the channel has no close reason.
   @override
   String? get closeReason => null;
 
+  /// Answer that the channel is ready at once.
   @override
   Future<void> get ready => Future<void>.value();
 
+  /// Class constructor
   _FakeWebSocketChannel(this.incoming);
 }
 
+/// A sink that records what is sent into its channel.
 class _FakeWebSocketSink implements WebSocketSink {
+  /// The channel the sink records into.
   final _FakeWebSocketChannel _channel;
 
+  /// Answer that the sink is done at once.
   @override
   Future get done => Future<void>.value();
 
+  /// Class constructor
   _FakeWebSocketSink(this._channel);
 
+  /// Record the event as sent.
   @override
   // Matches StreamSink's own untyped signature, which this fake overrides.
   // ignore: avoid_annotating_with_dynamic
   void add(dynamic event) => _channel.sent.add(event);
 
+  /// Ignore the error.
   @override
   void addError(Object error, [StackTrace? stackTrace]) {}
 
+  /// Ignore the stream.
   @override
   Future addStream(Stream stream) async {}
 
+  /// Mark the channel as closed and close the incoming stream.
   @override
   Future close([int? closeCode, String? closeReason]) async {
     _channel.closed = true;
@@ -82,6 +102,7 @@ class _FakeWebSocketSink implements WebSocketSink {
   }
 }
 
+/// Run the tests of [OcptRelayRemoteStorage].
 void main() {
   final relayBaseUri = Uri.parse('https://relay.example.org');
   const projectId = 'project-1';

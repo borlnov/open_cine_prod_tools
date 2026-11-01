@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
+/// Run the tests of [OcptProjectVersionSummary].
 void main() {
   // OcptProjectVersionSummary.parse logs through appLogger(), which requires a global manager
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.

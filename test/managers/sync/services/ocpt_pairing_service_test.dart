@@ -52,6 +52,7 @@ void _mockSecureStorage(Map<String, String> store) {
   );
 }
 
+/// Run the tests of [OcptPairingService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

@@ -22,8 +22,11 @@ const _captureThrottle = Duration(milliseconds: 2100);
 
 /// The dates of the days most scenarios plan, far from any clock a test could run on.
 final _first = DateTime(2099, 3);
+
+/// The second of the two days the tests use.
 final _second = DateTime(2099, 3, 2);
 
+/// Run the tests of the schedule mode lifecycle scenarios.
 void main() {
   final harness = ScheduleScenarioHarness();
 

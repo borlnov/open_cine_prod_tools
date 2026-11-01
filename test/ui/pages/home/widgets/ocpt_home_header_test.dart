@@ -31,6 +31,7 @@ Widget _buildHeader() => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptHomeHeader].
 void main() {
   testWidgets("the app logo leads the header, before the title", (tester) async {
     // The default test surface (800x600) is too narrow for the header's five actions side by

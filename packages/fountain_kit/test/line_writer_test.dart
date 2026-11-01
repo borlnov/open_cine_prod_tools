@@ -23,6 +23,7 @@ String _write(
   sectionLevel: sectionLevel,
 );
 
+/// Run the tests of the line writer.
 void main() {
   group('scene heading', () {
     test('auto-detectable in context needs no marker', () {

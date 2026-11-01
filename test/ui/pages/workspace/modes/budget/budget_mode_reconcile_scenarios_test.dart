@@ -17,6 +17,7 @@ import 'budget_mode_scenarios_test_doubles.dart';
 /// The stable id of the CNC poste the catering and travel provisioning starts out pointed at.
 const _regiePosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 
+/// Run the tests of the budget mode reconcile scenarios.
 void main() {
   final harness = BudgetScenarioHarness();
 

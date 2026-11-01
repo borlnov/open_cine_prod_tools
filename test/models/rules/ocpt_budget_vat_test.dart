@@ -7,6 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
+/// Run the tests of the budget vat.
 void main() {
   group("ocptEffectiveVatRateOf", () {
     test("a line stating no rate follows the project's own", () {

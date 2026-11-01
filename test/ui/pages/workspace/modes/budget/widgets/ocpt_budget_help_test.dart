@@ -23,6 +23,7 @@ Widget _wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 420, height: 1400, child: child)),
 );
 
+/// Run the tests of [OcptBudgetHelp].
 void main() {
   /// Pumps [OcptBudgetHelp] for the given route and returns its own [Tr], resolved from its own
   /// element — mirrors `ocpt_budget_fiche_test_doubles.dart`'s own `pumpFiche`. [toolsView] is read

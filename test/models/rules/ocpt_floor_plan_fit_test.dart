@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart'
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 
+/// Build a symbol shape at the given position, size and rotation.
 OcptFloorPlanSymbolShape _symbolShape({
   required double xM,
   required double yM,
@@ -40,6 +41,7 @@ OcptFloorPlanSymbolShape _symbolShape({
   setElementShape: null,
 );
 
+/// Build a sheet of the given symbols, arrows and underlay.
 OcptFloorPlanSheet _sheetOf({
   List<OcptFloorPlanSymbolShape> symbols = const [],
   List<OcptFloorPlanArrowShape> arrows = const [],
@@ -52,6 +54,7 @@ OcptFloorPlanSheet _sheetOf({
   arrows: arrows,
 );
 
+/// Run the tests of the floor plan fit.
 void main() {
   group("ocptFloorPlanContentBoundsOf", () {
     test("is null for an empty sheet", () {

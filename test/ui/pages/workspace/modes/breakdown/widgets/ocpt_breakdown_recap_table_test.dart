@@ -25,6 +25,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/widgets/
 /// of these small fixtures renders without scrolling, so a widget test never has to scroll to find
 /// what it is asserting on.
 const double _tableWidth = 1100;
+
+/// The height the table is given.
 const double _tableHeight = 700;
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a
@@ -237,6 +239,7 @@ Container _sceneCellContainer(WidgetTester tester, OcptBreakdownTarget target, S
       ),
     );
 
+/// Run the tests of [OcptBreakdownRecapTable].
 void main() {
   testWidgets("nothing tagged at all shows its own empty state, not the no-match one", (
     tester,

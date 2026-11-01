@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_file_external_logger.dart';
 import 'package:path/path.dart' as p;
 
+/// Run the tests of [OcptFileExternalLogger].
 void main() {
   late Directory tempDir;
 

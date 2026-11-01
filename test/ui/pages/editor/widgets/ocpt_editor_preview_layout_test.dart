@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
+/// Run the tests of [OcptEditorPreviewLayout].
 void main() {
   group("OcptEditorPreviewLayout pixels-per-inch consistency", () {
     for (final metrics in [

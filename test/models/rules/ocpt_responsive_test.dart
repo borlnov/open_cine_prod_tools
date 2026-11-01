@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_responsive.dart';
 
+/// Run the tests of the responsive.
 void main() {
   group("ocptIsCompactWidth", () {
     test("classifies a width just below the breakpoint as compact", () {

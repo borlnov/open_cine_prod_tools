@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
 class RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Completes the moment [pop] is called.
@@ -322,6 +323,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     this.sidesFails = false,
   }) : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember the plan, the days and the confirm button text, then fail when told to, otherwise
+  /// answer with the canned result.
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -342,6 +345,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return generalCallSheetsResult;
   }
 
+  /// Remember the days and the convocation keys, then fail when told to, otherwise answer with the
+  /// canned result.
   @override
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -362,6 +367,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return namedCallSheetsResult;
   }
 
+  /// Remember the days, then fail when told to, otherwise answer with the canned saved path, or
+  /// with nothing.
   @override
   Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
@@ -387,6 +394,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the days, then fail when told to, otherwise answer with the canned saved path, or
+  /// with nothing.
   @override
   Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
@@ -405,6 +414,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the days, then fail when told to, otherwise answer with the canned saved path, or
+  /// with nothing.
   @override
   Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
@@ -425,6 +436,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the days, then fail when told to, otherwise answer with the canned saved path, or
+  /// with nothing.
   @override
   Future<OcptExportOutcome?> exportOneLineSchedule({
     required OcptSchedulePlanSnapshot plan,
@@ -445,6 +458,8 @@ class FakeScheduleExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember the day, the presentation and the screenplays asked for, then answer with the canned
+  /// result.
   @override
   Future<OcptExportOutcome?> exportSides({
     required OcptSchedulePlanSnapshot plan,

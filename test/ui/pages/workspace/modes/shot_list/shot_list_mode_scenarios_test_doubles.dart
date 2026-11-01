@@ -66,6 +66,7 @@ Future<String> _scenarioDeviceId() async => "scenario-device";
 /// `showDialog` genuinely closes: the mode resolves its router manager from `globalGetIt()`, with
 /// no real router for `pop` to delegate to.
 class ScenarioRouterManager extends OcptRouterManager {
+  /// Pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     final navigator = _navigatorKey.currentState;
@@ -101,6 +102,8 @@ class ScenarioRecordingExportManager extends OcptExportManager {
     exportCount = 0;
   }
 
+  /// Count the export, remember the snapshot and answer that the workbook was saved under the
+  /// project name.
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -115,6 +118,8 @@ class ScenarioRecordingExportManager extends OcptExportManager {
     return OcptExportSaved("/tmp/$projectName.xlsx");
   }
 
+  /// Count the export, remember the snapshots and answer that the PDF was saved under the project
+  /// name.
   @override
   Future<OcptExportOutcome?> exportStoryboard({
     required OcptShotListSnapshot snapshot,
@@ -136,6 +141,8 @@ class ScenarioRecordingExportManager extends OcptExportManager {
     return OcptExportSaved("/tmp/$projectName.pdf");
   }
 
+  /// Count the export, remember the snapshots and answer that the PDF was saved under the project
+  /// name.
   @override
   Future<OcptExportOutcome?> exportFloorPlans({
     required OcptShotListSnapshot snapshot,
@@ -153,6 +160,8 @@ class ScenarioRecordingExportManager extends OcptExportManager {
     return OcptExportSaved("/tmp/$projectName.pdf");
   }
 
+  /// Count the export, remember the snapshot and answer that the PDF was saved under the project
+  /// name.
   @override
   Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
@@ -185,6 +194,7 @@ class ScenarioFileSelectorManager extends FileSelectorManager {
   /// Class constructor
   ScenarioFileSelectorManager();
 
+  /// Answer with the file at the picked path.
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({
     required List<String> allowedExtensions,
@@ -247,6 +257,8 @@ class _ScenarioShotListService extends OcptShotListService {
         deviceId: _scenarioDeviceId,
       );
 
+  /// Fail while the scenario asks for shot creations to fail, otherwise create the shot as the real
+  /// service does.
   @override
   Future<String?> createShot({
     required OcptProjectDatabase database,
@@ -274,6 +286,8 @@ class _ScenarioStoryboardService extends OcptStoryboardService {
         deviceId: _scenarioDeviceId,
       );
 
+  /// Fail while the scenario asks for panel creations to fail, otherwise add the panel as the real
+  /// service does.
   @override
   Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async {
     if (failures.failPanelCreation) {
@@ -297,6 +311,8 @@ class _ScenarioFloorPlanService extends OcptFloorPlanService {
         deviceId: _scenarioDeviceId,
       );
 
+  /// Fail while the scenario asks for symbol placements to fail, otherwise place the symbol as the
+  /// real service does.
   @override
   Future<String?> placeSymbol({
     required OcptProjectDatabase database,
@@ -356,12 +372,15 @@ class ScenarioProjectsManager extends OcptProjectsManager {
   /// The floor plan service, failing on demand.
   late final _floorPlanService = _ScenarioFloorPlanService(failures: failures);
 
+  /// Get the shot list service the scenario holds.
   @override
   OcptShotListService get shotListService => _shotListService;
 
+  /// Get the storyboard service the scenario holds.
   @override
   OcptStoryboardService get storyboardService => _storyboardService;
 
+  /// Get the floor plan service the scenario holds.
   @override
   OcptFloorPlanService get floorPlanService => _floorPlanService;
 

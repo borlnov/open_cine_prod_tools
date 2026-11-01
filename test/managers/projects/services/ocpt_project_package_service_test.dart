@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+/// Run the tests of [OcptProjectPackageService].
 void main() {
   // The service reports its soft failures through appLogger(), which requires a global manager
   // instance to be set; merely accessing it creates the (otherwise unused) singleton.

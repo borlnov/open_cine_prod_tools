@@ -6,6 +6,7 @@ import 'package:fountain_kit/src/layout/fountain_screenplay_characters.dart';
 import 'package:fountain_kit/src/parser/fountain_parser.dart';
 import 'package:test/test.dart';
 
+/// Run the tests of the screenplay characters.
 void main() {
   group('charactersIntroducedInActionLine', () {
     test('names a character introduced at the start of the line', () {

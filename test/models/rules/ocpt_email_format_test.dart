@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_email_format.dart';
 
+/// Run the tests of [ocptEmailLooksWellFormed].
 void main() {
   group("ocptEmailLooksWellFormed", () {
     test("accepts the addresses a production's address book actually holds", () {

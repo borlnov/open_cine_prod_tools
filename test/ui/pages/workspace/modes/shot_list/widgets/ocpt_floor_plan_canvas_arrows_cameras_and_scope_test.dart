@@ -87,6 +87,7 @@ OcptFloorPlanSet _caseWithArrow({double? ctrlXM, double? ctrlYM}) {
   );
 }
 
+/// Run the tests of the floor plan canvas arrows cameras and scope.
 void main() {
   /// Builds an [OcptFloorPlanCanvas] under the `select` tool, focused on the `Sequence` scope (so
   /// the sequence-layer [symbol] is editable), reporting every move/resize into

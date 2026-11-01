@@ -27,6 +27,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'schedule_export_bloc_test_doubles.dart';
 
+/// Run the tests of the schedule export bloc workbooks and sides.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

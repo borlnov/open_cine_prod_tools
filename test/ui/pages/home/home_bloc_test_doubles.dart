@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 /// double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `StubPlatformManager`
 /// already is.
 class StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -58,6 +59,8 @@ class FakeExportManager extends OcptExportManager {
          platformManager: StubPlatformManager(isMobile: isMobile),
        );
 
+  /// Remember the file type label, and answer with the canned screenplay, or with the canned status
+  /// when there is none.
   @override
   Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
   pickAndReadScreenplay({required String fileTypeLabel}) async {
@@ -85,6 +88,7 @@ class TestProjectsManager extends OcptProjectsManager {
   /// Class constructor
   TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> newProjectsDirectory() async => directory;
 
@@ -127,6 +131,8 @@ class RecordingSaveLocationService extends OcptSaveLocationService {
   RecordingSaveLocationService({this.saveLocationAnswer, this.directoryAnswer})
     : super(logger: const SilentLogger());
 
+  /// Count the question, remember the suggested name and the initial directory, and answer with the
+  /// canned location.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -140,6 +146,7 @@ class RecordingSaveLocationService extends OcptSaveLocationService {
     return saveLocationAnswer;
   }
 
+  /// Remember the confirm button text, and answer with the canned directory.
   @override
   Future<String?> pickDirectory({
     required String confirmButtonText,
@@ -163,6 +170,7 @@ class RecordingRouterManager extends OcptRouterManager {
   /// Class constructor
   RecordingRouterManager({this.whilePushed});
 
+  /// Record the route, wait for the hook while it is pushed, and answer with nothing.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {

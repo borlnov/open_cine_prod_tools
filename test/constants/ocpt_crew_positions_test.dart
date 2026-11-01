@@ -48,6 +48,7 @@ Widget _wrapInApp(WidgetBuilder builder) => MaterialApp(
   home: Scaffold(body: Builder(builder: builder)),
 );
 
+/// Run the tests of the crew positions.
 void main() {
   test("every id is unique", () {
     final ids = ocptCrewPositions.map((position) => position.id).toList();

@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// documents rather than hand-built ones.
 FountainDocument _parse(String source) => const FountainParser().parse(source);
 
+/// Run the tests of [OcptSceneIndexService].
 void main() {
   const service = OcptSceneIndexService(logger: SilentLogger());
   const screenplayId = "screenplay-1";

@@ -37,6 +37,7 @@ const _hardAlert = OcptSchedulePersonDoubleBookedAlert(
   secondSlotId: "slot-b",
 );
 
+/// Run the tests of [OcptScheduleDayAlertBadge].
 void main() {
   testWidgets("a day raising nothing draws nothing at all", (tester) async {
     await tester.pumpWidget(_wrapInApp(const OcptScheduleDayAlertBadge(alerts: [])));

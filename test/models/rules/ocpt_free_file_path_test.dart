@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_free_file_path.dart';
 
+/// Run the tests of [ocptFreeFilePath].
 void main() {
   group("ocptFreeFilePath", () {
     test("returns the plain path when nothing is taken", () {

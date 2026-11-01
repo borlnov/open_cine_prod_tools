@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 
+/// Run the tests of the fractional key.
 void main() {
   group("ocptFractionalKeyBetween", () {
     test("with no bounds at all yields the first key of an empty group", () {

@@ -140,6 +140,7 @@ class _RecordingScreenplayService extends OcptScreenplayService {
   }
 }
 
+/// Run the tests of the styled screenplay editor title page editing.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

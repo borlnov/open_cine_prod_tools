@@ -7,9 +7,13 @@ import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 import 'package:fountain_kit/src/serializer/fountain_inline_serializer.dart';
 import 'package:test/test.dart';
 
+/// The parser the serializer's output is read back with.
 const FountainInlineParser _parser = FountainInlineParser();
+
+/// The serializer under test.
 const FountainInlineSerializer _serializer = FountainInlineSerializer();
 
+/// Run the tests of the inline serializer.
 void main() {
   group('single styles', () {
     test('a plain run serializes with no markers', () {

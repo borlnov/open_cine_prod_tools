@@ -83,6 +83,7 @@ OcptShotListSnapshot _buildTwoSceneShotList({
   ],
 );
 
+/// Run the tests of the schedule plan snapshot effects and alerts.
 void main() {
   group("effectCategoryOfDay", () {
     test("null while nothing is placed on the day at all", () {

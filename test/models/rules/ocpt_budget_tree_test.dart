@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_tree.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
+/// Run the tests of the budget tree.
 void main() {
   OcptBudgetCommitment buildCommitment({
     String id = "commitment-1",

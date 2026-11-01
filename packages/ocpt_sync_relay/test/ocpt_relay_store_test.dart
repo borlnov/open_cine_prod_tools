@@ -10,6 +10,7 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:test/test.dart';
 
+/// Build an envelope with [changesetId] and [lamport], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -31,6 +32,7 @@ OcptSnapshotDescriptor _descriptor({
   contentDigest: sha256.convert(bytes).toString(),
 );
 
+/// Run the tests of [OcptRelayStore].
 void main() {
   group('OcptRelayStore', () {
     late OcptRelayStore store;

@@ -171,6 +171,7 @@ Future<void> _pumpMatrix(
 /// [_pumpMatrix]'s own default `timelinesOfDay`: no day has ever computed one.
 OcptShootingDayTimelines? _noTimelines(String dayId) => null;
 
+/// Run the tests of [OcptSchedulePositionsMatrix].
 void main() {
   testWidgets("shows the empty hint while no position has been held on a slot yet", (tester) async {
     await _pumpMatrix(tester, days: const [], slotsByDayId: const {});

@@ -41,6 +41,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// the exact same wiring for.
 const _secureStorageChannel = MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
+/// Back the platform secure storage channel with [store], so no real keychain is needed.
 void _mockSecureStorage(Map<String, String> store) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     _secureStorageChannel,
@@ -73,33 +74,40 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// An in-memory [OcptRemoteStorage] carrying no network at all.
 class _FakeRemoteStorage implements OcptRemoteStorage {
+  /// Emit nothing.
   @override
   Stream<void> get newWorkStream => const Stream.empty();
 
+  /// Emit nothing.
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
+  /// Accept the envelope, answering with sequence zero.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
       const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: OcptSequenceNumber.zero);
 
+  /// Answer with an empty log.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
   ) async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: []);
 
+  /// Accept the snapshot without keeping it.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
     Uint8List bytes,
   ) async => const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
 
+  /// Answer that no snapshot was ever uploaded.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
+  /// Drop the payload.
   @override
   void sendPresence(String opaquePayload) {}
 }
@@ -110,13 +118,19 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// itself — have no reason to drive. `ocpt_sync_manager_pairing_test.dart` and
 /// `ocpt_sync_manager_snapshot_test.dart` already cover the session's real behaviour.
 class _RecordingSyncManager extends OcptSyncManager {
+  /// Whether a sync session was started.
   bool startSyncSessionCalled = false;
 
   /// Whether [startSyncSession] throws once it has recorded its call.
   bool isStartFailing = false;
+
+  /// Whether a sync session was stopped.
   bool stopSyncSessionCalled = false;
+
+  /// The id of the project the session was started for.
   String? startedProjectId;
 
+  /// Class constructor
   _RecordingSyncManager({required OcptPairingService pairingService})
     : super(
         pairingService: pairingService,
@@ -126,6 +140,7 @@ class _RecordingSyncManager extends OcptSyncManager {
         ),
       );
 
+  /// Open a storage that accepts everything and holds nothing.
   @override
   OcptRemoteStorage openRelayRemoteStorage(
     OcptProjectPairing pairing,
@@ -133,6 +148,7 @@ class _RecordingSyncManager extends OcptSyncManager {
     String? enrolmentSecret,
   }) => _FakeRemoteStorage();
 
+  /// Record the start and the project, and fail as an unreachable relay does when told to.
   @override
   Future<void> startSyncSession({
     required String projectId,
@@ -151,6 +167,7 @@ class _RecordingSyncManager extends OcptSyncManager {
     }
   }
 
+  /// Record that the session was stopped.
   @override
   Future<void> stopSyncSession() async {
     stopSyncSessionCalled = true;
@@ -163,6 +180,7 @@ class _RecordingSyncManager extends OcptSyncManager {
 /// `ocpt_relay_host_manager_test.dart` — this file's tests are about the workspace's own wiring to
 /// them, not their behaviour.
 class _RecordingHostManager extends OcptRelayHostManager {
+  /// The state the double reports.
   OcptRelayHostState stateToReport;
 
   /// The state [maybeAutoStartHosting] transitions [state] to, modelling a fresh host start coming
@@ -170,17 +188,23 @@ class _RecordingHostManager extends OcptRelayHostManager {
   /// reopened while its relay was already up (`online` throughout).
   final OcptRelayHostState? stateAfterAutoStart;
 
+  /// Whether the auto start was attempted.
   bool maybeAutoStartCalled = false;
 
   /// Whether [maybeAutoStartHosting] throws once it has recorded its call.
   bool isAutoStartFailing = false;
+
+  /// Whether hosting was stopped.
   bool stopHostingCalled = false;
 
+  /// Read the state to report.
   @override
   OcptRelayHostState get state => stateToReport;
 
+  /// Class constructor
   _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
 
+  /// Record the attempt, fail when told to, and move to the state to report after an auto start.
   @override
   Future<void> maybeAutoStartHosting({
     required OcptProjectDatabase database,
@@ -198,12 +222,14 @@ class _RecordingHostManager extends OcptRelayHostManager {
     }
   }
 
+  /// Record that hosting was stopped.
   @override
   Future<void> stopHosting() async {
     stopHostingCalled = true;
   }
 }
 
+/// Run the tests of [OcptWorkspaceBloc].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

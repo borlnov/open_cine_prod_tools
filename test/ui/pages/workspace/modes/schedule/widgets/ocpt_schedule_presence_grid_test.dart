@@ -83,6 +83,7 @@ OcptShootingDay _buildDay({required String id, required int dayNumber, required 
       notes: "",
     );
 
+/// Run the tests of [OcptSchedulePresenceGrid].
 void main() {
   testWidgets("shows the empty hint while the address book holds nobody", (tester) async {
     await tester.pumpWidget(

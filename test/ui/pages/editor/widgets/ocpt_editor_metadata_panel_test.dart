@@ -27,6 +27,7 @@ Widget _wrap(Widget child, {double width = 220}) => MaterialApp(
   ),
 );
 
+/// Build a title page entry of [key] holding [value].
 FountainTitlePageEntry _entry(String key, String value) =>
     FountainTitlePageEntry(key: key, values: [value], sourceRange: _range);
 
@@ -40,6 +41,7 @@ void _growTestSurface(WidgetTester tester, {double height = 1200}) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+/// Run the tests of [OcptEditorMetadataPanel].
 void main() {
   testWidgets('renders every title-page field and the script statistics', (tester) async {
     final fullTitlePage = FountainTitlePage(

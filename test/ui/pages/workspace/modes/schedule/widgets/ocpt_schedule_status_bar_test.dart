@@ -23,6 +23,7 @@ Widget _wrapInApp(Widget child, {double width = 700}) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptScheduleStatusBar].
 void main() {
   /// Pumps the status bar for a schedule of [dayCount] days, with or without a selected day and its
   /// own computed end.

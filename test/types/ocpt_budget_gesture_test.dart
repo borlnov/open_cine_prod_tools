@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_flow.dart';
 
+/// Run the tests of [OcptBudgetGesture].
 void main() {
   group("ocptBudgetGestureFlowsOf classifies gestures by the direction money moves", () {
     test("everything the expenses filter offers makes money go out", () {

@@ -26,6 +26,7 @@ Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
 /// library without exposing an otherwise-unneeded public type.
 bool _hasPageSheetsPainter() => _pageSheetsPainterFinder().evaluate().isNotEmpty;
 
+/// Run the tests of the styled screenplay editor layout and page simulation.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

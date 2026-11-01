@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_frame.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_presence_roster.dart';
 
+/// Run the tests of [OcptPresenceRoster].
 void main() {
   group('OcptPresenceRoster', () {
     const selfFrame = OcptPresenceFrame(

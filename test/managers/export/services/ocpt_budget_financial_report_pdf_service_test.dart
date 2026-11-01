@@ -147,6 +147,7 @@ OcptBudgetEntry _buildOffQuoteCreditEntry({required String id, required int cred
       personId: null,
     );
 
+/// Run the tests of [OcptBudgetFinancialReportPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

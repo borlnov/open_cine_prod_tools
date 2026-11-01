@@ -11,8 +11,10 @@ import 'package:ocpt_sync_relay/ocpt_sync_relay.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:test/test.dart';
 
+/// The enrolment secret the tests pair with.
 const _enrolmentSecret = 'enrolment-secret';
 
+/// Build an envelope with [changesetId] and [lamport], from a fixed device.
 OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptChangesetEnvelope(
   changesetId: changesetId,
   originDeviceId: 'device-1',
@@ -21,6 +23,7 @@ OcptChangesetEnvelope _envelope(String changesetId, {int lamport = 1}) => OcptCh
   payload: Uint8List.fromList([1, 2, 3]),
 );
 
+/// Build a descriptor of the snapshot [snapshotId] up to [sequenceUpTo], which describes [bytes].
 OcptSnapshotDescriptor _descriptor({
   required String snapshotId,
   required OcptSequenceNumber sequenceUpTo,
@@ -32,6 +35,8 @@ OcptSnapshotDescriptor _descriptor({
   contentDigest: sha256.convert(bytes).toString(),
 );
 
+/// Send a `POST` of [jsonBody] to [path] through [handler], with the bearer [token] and the
+/// enrolment secret when given.
 Future<shelf.Response> _post(
   shelf.Handler handler,
   String path, {
@@ -50,6 +55,7 @@ Future<shelf.Response> _post(
   ),
 );
 
+/// Send a `GET` to [path] through [handler], with the bearer [token] when given.
 Future<shelf.Response> _get(shelf.Handler handler, String path, {String? token}) async => handler(
   shelf.Request(
     'GET',
@@ -58,9 +64,11 @@ Future<shelf.Response> _get(shelf.Handler handler, String path, {String? token})
   ),
 );
 
+/// Decode the body of [response] as a JSON object.
 Future<Map<String, dynamic>> _jsonBodyOf(shelf.Response response) =>
     response.readAsString().then((body) => jsonDecode(body) as Map<String, dynamic>);
 
+/// Run the tests of [OcptRelayServer].
 void main() {
   group('OcptRelayServer', () {
     late OcptRelayStore store;

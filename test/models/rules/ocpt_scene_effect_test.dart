@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_place.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_time_of_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 
+/// Run the tests of [OcptSceneEffect].
 void main() {
   group('ocptSceneEffectOf', () {
     test('reads an INT heading with an English day word', () {

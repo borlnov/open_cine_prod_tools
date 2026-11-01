@@ -28,6 +28,7 @@ List<FountainBlock> _build(String source) {
   );
 }
 
+/// Run the tests of the block builder.
 void main() {
   group('dialogue grouping', () {
     test('a character cue and its dialogue line form one group', () {

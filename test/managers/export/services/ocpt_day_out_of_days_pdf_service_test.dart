@@ -209,6 +209,7 @@ OcptSchedulePlanSnapshot _buildSnapshot({
   minimumRestMinutes: null,
 );
 
+/// Run the tests of [OcptDayOutOfDaysPdfService].
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

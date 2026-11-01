@@ -25,6 +25,7 @@ Hello world.
 Hello wrold.
 """;
 
+/// Run the tests of the editor page spellcheck scenarios.
 void main() {
   BlinkController.indeterminateAnimationsEnabled = false;
 

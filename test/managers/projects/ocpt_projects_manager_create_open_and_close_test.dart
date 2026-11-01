@@ -15,6 +15,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+/// Run the tests of the projects manager create open and close.
 void main() {
   // OcptPropertiesManager wraps a process-wide singleton (see the properties manager test), so we
   // create it once, backed by an in-memory store, and clear it between tests.

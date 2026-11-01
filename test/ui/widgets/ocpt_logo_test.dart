@@ -15,6 +15,7 @@ Widget _wrapInApp(Widget child, {required Brightness brightness}) => MaterialApp
   home: Scaffold(body: child),
 );
 
+/// Run the tests of [OcptLogo].
 void main() {
   testWidgets("every variant of the mark is bundled with the application", (tester) async {
     // The three assets are declared one by one in the pubspec (their directory also holds the

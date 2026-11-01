@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_set_code.dart';
 
+/// Run the tests of [ocptSetCodeOf].
 void main() {
   group("ocptSetCodeOf", () {
     test("starts at A when the project holds no set", () {

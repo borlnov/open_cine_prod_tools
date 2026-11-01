@@ -70,6 +70,7 @@ class BudgetScenarioRouterManager extends OcptRouterManager {
   /// The number of times the mode asked to leave since the last reset.
   int popCount = 0;
 
+  /// Count the pop, then pop the route of the test's own navigator, when it can pop.
   @override
   void pop<Y extends Object?>([Y? result]) {
     popCount++;
@@ -79,6 +80,7 @@ class BudgetScenarioRouterManager extends OcptRouterManager {
     }
   }
 
+  /// Count the push, and answer with the canned answer when its type fits.
   @override
   Future<Y?> push<Y extends Object?>(
     OcptRoute route, {
@@ -102,6 +104,7 @@ class BudgetScenarioSaveLocationService extends OcptSaveLocationService {
   BudgetScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("budget_scenarios_save_location"));
 
+  /// Count the question and answer that nothing was picked.
   @override
   Future<String?> pickSaveLocation({
     required String suggestedFileName,
@@ -189,6 +192,7 @@ class BudgetRecordingExportManager extends OcptExportManager {
     saveDialog.askedCount = 0;
   }
 
+  /// Record the export as a quote, with its tax basis and options.
   @override
   Future<OcptExportOutcome?> exportBudgetQuote({
     required OcptBudgetSnapshot snapshot,
@@ -212,6 +216,7 @@ class BudgetRecordingExportManager extends OcptExportManager {
     ),
   );
 
+  /// Record the export as a financing plan.
   @override
   Future<OcptExportOutcome?> exportBudgetFinancingPlan({
     required OcptBudgetSnapshot snapshot,
@@ -231,6 +236,7 @@ class BudgetRecordingExportManager extends OcptExportManager {
     ),
   );
 
+  /// Record the export as a cash journal workbook.
   @override
   Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
@@ -249,6 +255,7 @@ class BudgetRecordingExportManager extends OcptExportManager {
     isWorkbook: true,
   );
 
+  /// Record the export as a financial report.
   @override
   Future<OcptExportOutcome?> exportBudgetFinancialReport({
     required OcptBudgetSnapshot snapshot,
@@ -306,6 +313,8 @@ class _ScenarioBudgetQuoteService extends OcptBudgetQuoteService {
   const _ScenarioBudgetQuoteService({required this.failures})
     : super(logger: const SilentLogger(), deviceId: _scenarioDeviceId);
 
+  /// Fail while the scenario asks for line updates to fail, otherwise update the line as the real
+  /// service does.
   @override
   Future<void> updateLine({
     required OcptProjectDatabase database,
@@ -357,6 +366,8 @@ class _ScenarioBudgetJournalService extends OcptBudgetJournalService {
         deviceId: _scenarioDeviceId,
       );
 
+  /// Fail while the scenario asks for entry creations to fail, otherwise create the entry as the
+  /// real service does.
   @override
   Future<String?> createEntry({
     required OcptProjectDatabase database,
@@ -407,9 +418,11 @@ class BudgetScenarioProjectsManager extends OcptProjectsManager {
   /// The journal service, failing on demand.
   late final _journalService = _ScenarioBudgetJournalService(failures: failures);
 
+  /// Get the quote service the scenario holds.
   @override
   OcptBudgetQuoteService get budgetQuoteService => _quoteService;
 
+  /// Get the journal service the scenario holds.
   @override
   OcptBudgetJournalService get budgetJournalService => _journalService;
 

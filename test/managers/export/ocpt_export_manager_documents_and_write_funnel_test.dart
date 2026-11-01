@@ -46,6 +46,7 @@ const Map<int, String> _weekdayLabels = {
 /// A [PlatformManager] whose [isMobile] is stubbed, so the manager's write funnel can be exercised
 /// on either branch without a real platform underneath it.
 class _StubPlatformManager extends PlatformManager {
+  /// Whether this double stands for a mobile platform.
   @override
   final bool isMobile;
 
@@ -73,9 +74,11 @@ class _FakeShareService extends OcptShareService {
     : _directory = directory,
       super(logger: const SilentLogger());
 
+  /// Answer with the directory the test gave.
   @override
   Future<Directory> temporaryDirectory() async => _directory;
 
+  /// Remember the paths and the share origin, and answer with the canned result.
   @override
   Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
     lastPaths = paths;
@@ -84,6 +87,7 @@ class _FakeShareService extends OcptShareService {
   }
 }
 
+/// Run the tests of the export manager documents and write funnel.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

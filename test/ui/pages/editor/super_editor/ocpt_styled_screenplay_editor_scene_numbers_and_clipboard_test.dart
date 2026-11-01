@@ -27,39 +27,50 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
   /// Every [updateSpellCheckRanges] call this delegate received, in call order.
   final List<Map<String, List<SpellRange>>> rangesReceived = [];
 
+  /// Answer that nothing can be undone.
   @override
   bool get canUndo => false;
 
+  /// Answer that nothing can be redone.
   @override
   bool get canRedo => false;
 
+  /// Record the ranges received.
   @override
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
     rangesReceived.add(rangesByNodeId);
   }
 
+  /// Ignore the block type.
   @override
   void applyBlockType(FountainLineType type) {}
 
+  /// Ignore the inline style.
   @override
   void applyToggleInlineStyle(OcptInlineStyle style) {}
 
+  /// Ignore the search.
   @override
   void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {}
 
+  /// Replace nothing.
   @override
   int? replaceCurrentMatch(String replacement) => null;
 
+  /// Replace nothing.
   @override
   void replaceAllMatches(String replacement) {}
 
+  /// Ignore the undo.
   @override
   void undo() {}
 
+  /// Ignore the redo.
   @override
   void redo() {}
 }
 
+/// Run the tests of the styled screenplay editor scene numbers and clipboard.
 void main() {
   // A blinking caret schedules a repeating `Timer`/`Ticker` for as long as the styled editor has
   // a selection, which never lets `pumpAndSettle` settle and trips the "no pending timers" check

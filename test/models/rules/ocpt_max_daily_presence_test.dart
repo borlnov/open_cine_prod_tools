@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 
+/// Run the tests of the max daily presence.
 void main() {
   group("ocptMaxDailyPresenceMinutesOf", () {
     test("reads a plain whole number of minutes", () {

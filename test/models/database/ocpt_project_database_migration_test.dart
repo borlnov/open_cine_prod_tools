@@ -31,6 +31,7 @@ import 'package:sqlite3/sqlite3.dart' show sqlite3;
 // that real file forward rather than merely rewriting the same "undo the last upgrade" trick the
 // schema's own `onUpgrade` doc comment already describes.
 
+/// Run the tests of the project database migration.
 void main() {
   test('currentSchemaVersion is always lastStableSchemaVersion or one above it', () {
     final current = OcptProjectDatabase.currentSchemaVersion;

@@ -229,6 +229,7 @@ OcptRole _buildUnnamedRole() => const OcptRole(
   episodeIds: [],
 );
 
+/// Run the tests of the schedule pdf shared.
 void main() {
   final roleById = {
     "role-a": _buildRole(id: "role-a", number: 5),

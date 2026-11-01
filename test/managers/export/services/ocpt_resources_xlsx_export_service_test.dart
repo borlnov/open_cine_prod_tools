@@ -47,8 +47,14 @@ const Map<int, String> _weekdayLabels = {
 
 /// The four sheet names every test here exports under, distinct so a mixed-up sheet is caught.
 const _peopleSheetName = "People";
+
+/// The name of the roles sheet the tests look for.
 const _rolesSheetName = "Roles";
+
+/// The name of the locations sheet the tests look for.
 const _locationsSheetName = "Locations";
+
+/// The name of the elements sheet the tests look for.
 const _elementsSheetName = "Elements";
 
 /// Builds the labels the tests export with: every header named after the enum value itself and
@@ -311,6 +317,7 @@ Object? _valueOf(Data? cell) {
 /// The value of column [index] in [row], or null when the row is shorter than that column.
 Object? _cellAt(List<Object?> row, int index) => index < row.length ? row[index] : null;
 
+/// Run the tests of [OcptResourcesXlsxExportService].
 void main() {
   const service = OcptResourcesXlsxExportService(logger: SilentLogger());
 

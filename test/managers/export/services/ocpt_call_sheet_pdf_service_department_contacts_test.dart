@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_guest.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'ocpt_call_sheet_pdf_service_test_doubles.dart';
 
+/// Run the tests of the call sheet pdf service department contacts.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

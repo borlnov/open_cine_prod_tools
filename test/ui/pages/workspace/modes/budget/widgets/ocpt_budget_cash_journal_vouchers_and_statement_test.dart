@@ -29,6 +29,7 @@ OcptAssetRef _receipt({String id = "asset-1", required String path}) => OcptAsse
   validUntil: null,
 );
 
+/// Run the tests of the budget cash journal vouchers and statement.
 void main() {
   group("an entry's own voucher marker", () {
     testWidgets("an entry with no voucher shows no marker at all", (tester) async {

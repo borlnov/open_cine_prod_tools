@@ -63,6 +63,7 @@ OcptStoryboardAnnotation _annotation(
   text: text,
 );
 
+/// Run the tests of [OcptStoryboardPanelsGroup].
 void main() {
   testWidgets("lists every panel with its rank and its comment field", (tester) async {
     await _pumpGroup(

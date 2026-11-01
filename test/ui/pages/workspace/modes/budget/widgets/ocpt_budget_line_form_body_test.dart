@@ -21,6 +21,7 @@ class _TestHost extends StatefulWidget {
   /// Class constructor
   const _TestHost({required this.onSaved});
 
+  /// Create the [_TestHostState] holding the draft.
   @override
   State<_TestHost> createState() => _TestHostState();
 }
@@ -34,6 +35,7 @@ class _TestHostState extends State<_TestHost> {
   /// at all.
   OcptBudgetLineFormFields? _draft;
 
+  /// Build the line form body in a column, with the draft it reports.
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Column(
@@ -77,6 +79,7 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
+/// Run the tests of [OcptBudgetLineFormBody].
 void main() {
   /// Pumps [OcptBudgetLineFormBody] inside [_TestHost], [onSaved] recording every reported save.
   Future<Tr> pumpBody(

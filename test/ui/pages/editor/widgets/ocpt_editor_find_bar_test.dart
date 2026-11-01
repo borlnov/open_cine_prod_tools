@@ -56,6 +56,7 @@ OcptEditorFindBar _buildBar({
   onCloseRequested: () => calls.add("onCloseRequested"),
 );
 
+/// Run the tests of [OcptEditorFindBar].
 void main() {
   testWidgets("the replace row is folded by default and unfolds on isReplaceRowOpen", (
     tester,

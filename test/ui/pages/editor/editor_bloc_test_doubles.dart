@@ -123,6 +123,7 @@ class FailingScreenplayService extends OcptScreenplayService {
 /// state emitted earlier in the same event handler (the emitted state and the handler's own
 /// completion are not ordered with respect to a stream listener in the test).
 class RecordingRouterManager extends OcptRouterManager {
+  /// Completes when [pop] is called, so a test can wait for it.
   final _popCompleter = Completer<void>();
 
   /// Whether [pop] was called.

@@ -113,6 +113,7 @@ OcptBreakdownState _loadedState() => OcptBreakdownState.init().copyWith(
   selectedTargetRef: (OcptBreakdownTargetKind.element, _elementId),
 );
 
+/// Run the tests of [OcptBreakdownState].
 void main() {
   group("OcptBreakdownState.selectedTargetSuggestions", () {
     test("is empty while no target is selected", () {

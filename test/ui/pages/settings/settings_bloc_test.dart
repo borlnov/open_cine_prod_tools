@@ -35,15 +35,19 @@ class _FakeLocalesManager extends LocalesManager {
   /// The locale returned by [wantedLocale].
   Locale? _wanted;
 
+  /// Read the locale the double holds.
   @override
   Locale get currentLocale => _current;
 
+  /// Emit the locales the test adds to the controller.
   @override
   Stream<Locale> get currentLocaleStream => _currentLocaleCtrl.stream;
 
+  /// Read the locale that was asked for.
   @override
   Locale? get wantedLocale => _wanted;
 
+  /// Remember the locale asked for.
   @override
   set wantedLocale(Locale? newLocale) => _wanted = newLocale;
 
@@ -78,15 +82,19 @@ class _FakeActThemesManager extends ActThemesManager {
   /// The brightness returned by [brightness].
   Brightness? _brightness;
 
+  /// Read the theme the double holds.
   @override
   MixinActThemes get currentTheme => _theme;
 
+  /// Emit the themes the test adds to the controller.
   @override
   Stream<MixinActThemes> get currentThemeStream => _themeCtrl.stream;
 
+  /// Read the brightness the double holds.
   @override
   Brightness? get brightness => _brightness;
 
+  /// Emit the brightnesses the test adds to the controller.
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
 
@@ -112,6 +120,7 @@ class _FakeActThemesManager extends ActThemesManager {
     _brightnessCtrl.add(newBrightness);
   }
 
+  /// Keep the theme and emit it.
   @override
   Future<void> setCurrentTheme({required MixinActThemes newTheme}) async {
     _theme = newTheme;
@@ -125,6 +134,7 @@ class _FakeActThemesManager extends ActThemesManager {
   }
 }
 
+/// Run the tests of [OcptSettingsBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
 

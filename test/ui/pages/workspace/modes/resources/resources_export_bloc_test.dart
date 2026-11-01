@@ -86,6 +86,8 @@ class _FakeExportManager extends OcptExportManager {
   _FakeExportManager({this.exportResult, this.fails = false})
     : super(fileSelectorManager: const FileSelectorManager());
 
+  /// Remember what was exported, fail when told to, and answer with the canned saved path, or with
+  /// nothing.
   @override
   Future<OcptExportOutcome?> exportResourcesXlsx({
     required OcptResourcesSnapshot snapshot,
@@ -107,6 +109,8 @@ class _FakeExportManager extends OcptExportManager {
     return result == null ? null : OcptExportSaved(result);
   }
 
+  /// Remember what was exported as a contact list, fail when told to, and answer with the canned
+  /// saved path, or with nothing.
   @override
   Future<OcptExportOutcome?> exportContactList({
     required OcptResourcesSnapshot snapshot,
@@ -195,6 +199,7 @@ class _RecordingRouterManager extends OcptRouterManager {
   void pop<Y extends Object?>([Y? result]) {}
 }
 
+/// Run the tests of [OcptResourcesExportBloc].
 void main() {
   late OcptPropertiesManager propertiesManager;
   late OcptProjectsManager projectsManager;

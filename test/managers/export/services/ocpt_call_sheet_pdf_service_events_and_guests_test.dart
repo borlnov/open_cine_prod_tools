@@ -45,6 +45,7 @@ OcptShootingSlotGuest _buildGuest({
   notes: notes,
 );
 
+/// Run the tests of the call sheet pdf service events and guests.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 

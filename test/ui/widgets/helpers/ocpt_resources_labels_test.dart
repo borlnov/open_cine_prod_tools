@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_resources_xlsx_labels.dart';
 import 'package:open_cine_prod_tools/types/ocpt_elements_xlsx_column.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
 
+/// Run the tests of [ocptResourcesXlsxLabelsOf].
 void main() {
   group("ocptResourcesXlsxLabelsOf", () {
     testWidgets("the cost column header names the project's currency", (tester) async {

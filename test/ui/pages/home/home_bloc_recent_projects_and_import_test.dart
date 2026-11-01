@@ -42,6 +42,7 @@ class _ClosedAfterCreateProjectsManager extends TestProjectsManager {
     super.appLanguageCode,
   });
 
+  /// Create the project as the real manager does, then close its database.
   @override
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
     required String name,
@@ -54,6 +55,7 @@ class _ClosedAfterCreateProjectsManager extends TestProjectsManager {
   }
 }
 
+/// Run the tests of the home bloc recent projects and import.
 void main() {
   late OcptPropertiesManager propertiesManager;
 

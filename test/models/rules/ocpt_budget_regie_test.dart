@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
+/// Run the tests of the budget regie.
 void main() {
   OcptShootingDay buildDay({String id = "day-1", int dayNumber = 1, DateTime? date}) =>
       OcptShootingDay(

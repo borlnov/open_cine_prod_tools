@@ -14,6 +14,7 @@ Widget _wrapInApp(Widget child) => MaterialApp(
   ),
 );
 
+/// Run the tests of [OcptShotDifficultyRating].
 void main() {
   testWidgets("shows the numeric value and fills dots up to it", (tester) async {
     await tester.pumpWidget(

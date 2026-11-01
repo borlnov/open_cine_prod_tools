@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_camera_label.dart';
 
+/// Run the tests of [ocptFloorPlanCameraLabelOf].
 void main() {
   group("ocptFloorPlanCameraLabelOf", () {
     test("a solo camera carries no letter", () {

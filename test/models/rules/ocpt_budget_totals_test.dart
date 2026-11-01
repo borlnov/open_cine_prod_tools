@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_poste_strain.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 
+/// Run the tests of the budget totals.
 void main() {
   OcptBudgetLine buildLine({
     String id = "line-1",
