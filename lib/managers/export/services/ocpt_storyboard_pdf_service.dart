@@ -275,9 +275,10 @@ class OcptStoryboardPdfService extends AbsOcptService {
     if (path == null) {
       return null;
     }
+    pw.MemoryImage? image;
     try {
       final bytes = await File(path).readAsBytes();
-      return pw.MemoryImage(bytes);
+      image = pw.MemoryImage(bytes);
     } catch (error, stackTrace) {
       // A missing file (ADR 0013), a path that no longer names a file at all, or bytes the `pdf`
       // package cannot decode: all the same printed state, the placeholder frame.
@@ -286,8 +287,9 @@ class OcptStoryboardPdfService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return image;
   }
 
   /// [shots] split into chunks of at most [size], in order.

@@ -226,9 +226,10 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     if (path == null) {
       return null;
     }
+    pw.MemoryImage? image;
     try {
       final bytes = await File(path).readAsBytes();
-      return pw.MemoryImage(bytes);
+      image = pw.MemoryImage(bytes);
     } catch (error, stackTrace) {
       // A missing file is a normal state (ADR 0013): the picture is left out of the page.
       logger.d(
@@ -236,8 +237,9 @@ class OcptFloorPlanPdfService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return image;
   }
 
   /// One page: the running head, the sequence/set title band, the shot's own key information (or

@@ -28,6 +28,7 @@ class OcptSaveLocationService extends AbsOcptService {
     required List<String> extensions,
     String? initialDirectory,
   }) async {
+    String? pickedPath;
     try {
       final location = await getSaveLocation(
         suggestedName: suggestedFileName,
@@ -36,19 +37,18 @@ class OcptSaveLocationService extends AbsOcptService {
       );
 
       final path = location?.path;
-      if (path == null) {
-        return null;
+      if (path != null) {
+        pickedPath = p.extension(path).isEmpty ? "$path.${extensions.first}" : path;
       }
-
-      return p.extension(path).isEmpty ? "$path.${extensions.first}" : path;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to pick a save location, error: ${error.runtimeType}",
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return pickedPath;
   }
 
   /// Shows the native "choose a folder" dialog and resolves the path the user picked, opening in
@@ -66,8 +66,9 @@ class OcptSaveLocationService extends AbsOcptService {
     required String confirmButtonText,
     String? initialDirectory,
   }) async {
+    String? directoryPath;
     try {
-      return await getDirectoryPath(
+      directoryPath = await getDirectoryPath(
         confirmButtonText: confirmButtonText,
         initialDirectory: initialDirectory,
       );
@@ -77,7 +78,8 @@ class OcptSaveLocationService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return directoryPath;
   }
 }

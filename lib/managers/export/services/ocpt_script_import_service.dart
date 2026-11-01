@@ -86,9 +86,13 @@ class OcptScriptImportService extends AbsOcptService {
       );
     }
 
+    ResultWithStatus<OcptScreenplayImportStatus, String> imported;
     try {
       final result = _importer.read(bytes: bytes, fileName: fileName);
-      return ResultWithStatus(status: OcptScreenplayImportStatus.ok, value: result.fountainText);
+      imported = ResultWithStatus(
+        status: OcptScreenplayImportStatus.ok,
+        value: result.fountainText,
+      );
     } on ScriptImportException catch (error, stackTrace) {
       // Only the kind of failure is logged: the exception's details come from the XML parser and
       // can quote the file's own text.
@@ -97,8 +101,13 @@ class OcptScriptImportService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return ResultWithStatus(status: OcptScreenplayImportStatus.unreadableFile, extraInfo: error);
+      imported = ResultWithStatus(
+        status: OcptScreenplayImportStatus.unreadableFile,
+        extraInfo: error,
+      );
     }
+
+    return imported;
   }
 
   /// Whether [fileName]'s extension names a plain Fountain file, the one format read without any

@@ -33,6 +33,7 @@ class OcptShareService extends AbsOcptService {
   /// Returns whether the share sheet was shown — an exception is caught, logged and reported as
   /// false, exactly like the manager's own writes.
   Future<bool> shareFiles({required List<String> paths, Rect? sharePositionOrigin}) async {
+    var isShown = false;
     try {
       await SharePlus.instance.share(
         ShareParams(
@@ -40,7 +41,7 @@ class OcptShareService extends AbsOcptService {
           sharePositionOrigin: sharePositionOrigin,
         ),
       );
-      return true;
+      isShown = true;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to share ${paths.length} file(s), error: "
@@ -48,7 +49,8 @@ class OcptShareService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return false;
     }
+
+    return isShown;
   }
 }

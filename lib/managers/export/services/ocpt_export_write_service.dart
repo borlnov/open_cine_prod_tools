@@ -68,10 +68,11 @@ class OcptExportWriteService extends AbsOcptService {
       return null;
     }
 
+    OcptExportOutcome? outcome;
     try {
       await File(path).writeAsBytes(bytes, flush: true);
       logger.i("An export was saved");
-      return OcptExportSaved(path);
+      outcome = OcptExportSaved(path);
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to write an export file, error: "
@@ -79,8 +80,9 @@ class OcptExportWriteService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return outcome;
   }
 
   /// [writeToPickedLocation] for a workbook an XLSX service has just built.
@@ -121,6 +123,7 @@ class OcptExportWriteService extends AbsOcptService {
     required Uint8List bytes,
     Rect? shareAnchor,
   }) async {
+    OcptExportOutcome? outcome;
     try {
       final directory = await _shareService.temporaryDirectory();
       final path = p.join(directory.path, fileName);
@@ -133,15 +136,16 @@ class OcptExportWriteService extends AbsOcptService {
       if (shared) {
         logger.i("An export was handed to the share sheet");
       }
-      return shared ? const OcptExportShared() : null;
+      outcome = shared ? const OcptExportShared() : null;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to share a file, error: ${error.runtimeType}",
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return outcome;
   }
 
   /// Writes [bytes] to `[folderPath]/[fileName]`, returning whether it succeeded — logged on
@@ -152,10 +156,11 @@ class OcptExportWriteService extends AbsOcptService {
     required Uint8List bytes,
   }) async {
     final path = p.join(folderPath, fileName);
+    var isWritten = false;
     try {
       await File(path).writeAsBytes(bytes, flush: true);
       logger.i("An export was saved");
-      return true;
+      isWritten = true;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to write an export file, error: "
@@ -163,8 +168,9 @@ class OcptExportWriteService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return false;
     }
+
+    return isWritten;
   }
 
   /// Resolves the folder `exportGeneralCallSheets`/`exportNamedCallSheets` write into: the folder
