@@ -1,0 +1,574 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'package:act_test_utility/act_test_utility.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
+import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_service.dart';
+import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
+import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_location_availability_kind.dart';
+
+void main() {
+  // Refusing a write on a previewed version logs through appLogger(), which requires a global
+  // manager instance to be set; merely accessing it creates the (otherwise unused) singleton.
+  setUpAll(() => OcptGlobalManager.instance);
+
+  Future<String> testDeviceId() async => "test-device";
+
+  final assetsService = OcptAssetsService(logger: const SilentLogger(), deviceId: testDeviceId);
+
+  final floorPlanService = OcptFloorPlanService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    deviceId: testDeviceId,
+  );
+
+  final locationsService = OcptLocationsService(
+    logger: const SilentLogger(),
+    assetsService: assetsService,
+    floorPlanService: floorPlanService,
+    deviceId: testDeviceId,
+  );
+
+  late OcptProjectDatabase database;
+
+  setUp(() {
+    database = OcptProjectDatabase.memory();
+  });
+
+  tearDown(() async {
+    await database.close();
+  });
+
+  /// The location row [id], tombstoned or not.
+  Future<OcptLocationRow> readLocation(String id) =>
+      (database.select(database.ocptLocationsTable)..where((row) => row.id.equals(id))).getSingle();
+
+  /// Every version stamp the project currently holds, keyed by `<table>/<row>/<column>` — the same
+  /// shape `OcptShotListService`'s own stamping tests read `row_field_versions` back through.
+  Future<Map<String, OcptRowFieldVersionRow>> readStamps() async => {
+    for (final stamp in await database.select(database.ocptRowFieldVersionsTable).get())
+      "${stamp.targetTableName}/${stamp.rowId}/${stamp.columnName}": stamp,
+  };
+
+  /// Inserts one scene of `screenplay-1`, the screenplay the scene ↔ set group sets up.
+  Future<void> insertScene({required String id, required int position, required String heading}) =>
+      database
+          .into(database.ocptScenesTable)
+          .insert(
+            OcptScenesTableCompanion.insert(
+              id: id,
+              screenplayId: "screenplay-1",
+              position: position,
+              heading: heading,
+              charStart: position * 100,
+              charEnd: position * 100 + 50,
+            ),
+          );
+
+  /// Creates a location holding one set named [name], and returns that set's id.
+  Future<String> createSetInNewLocation(String name) async {
+    final locationId = (await locationsService.createLocation(database: database, name: name))!;
+    return (await locationsService.createSet(
+      database: database,
+      locationId: locationId,
+      name: name,
+    ))!;
+  }
+
+  group("availability windows", () {
+    test("addAvailability appends a window and loadLocations reads it back", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 20),
+        weekdays: ocptWeekdayMaskToggled(ocptEveryWeekdayMask, DateTime.sunday),
+        slot: OcptDayPartSlot.custom,
+        startMinute: 8 * 60,
+        endMinute: 19 * 60,
+        kind: OcptLocationAvailabilityKind.conditional,
+        note: "No noise after 22:00",
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.startDate, DateTime.utc(2026, 3, 2));
+      expect(availability.endDate, DateTime.utc(2026, 3, 20));
+      expect(ocptWeekdayMaskContains(availability.weekdays, DateTime.sunday), isFalse);
+      expect(ocptWeekdayMaskContains(availability.weekdays, DateTime.monday), isTrue);
+      expect(availability.slot, OcptDayPartSlot.custom);
+      expect(availability.startMinute, 8 * 60);
+      expect(availability.kind, OcptLocationAvailabilityKind.conditional);
+      expect(availability.note, "No noise after 22:00");
+    });
+
+    test("a window is read in start-date order, whatever order it was entered in", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 5),
+        endDate: DateTime.utc(2026, 5),
+      );
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3),
+        endDate: DateTime.utc(2026, 3),
+      );
+
+      final availabilities = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities;
+      expect(availabilities.map((availability) => availability.startDate), [
+        DateTime.utc(2026, 3),
+        DateTime.utc(2026, 5),
+      ]);
+    });
+
+    test("a range ending before it starts is clamped rather than refused", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 20),
+        endDate: DateTime.utc(2026, 3, 2),
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.endDate, DateTime.utc(2026, 3, 20));
+    });
+
+    test("a window covering no weekday at all falls back to every day", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        weekdays: 0,
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.weekdays, ocptEveryWeekdayMask);
+    });
+
+    test("updateAvailability writes only what it was passed", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+        note: "Ask for Camille",
+      ))!;
+
+      await locationsService.updateAvailability(
+        database: database,
+        id: id,
+        kind: const Value(OcptLocationAvailabilityKind.conditional),
+      );
+
+      final availability = (await locationsService.loadLocations(
+        database: database,
+      )).single.availabilities.single;
+      expect(availability.kind, OcptLocationAvailabilityKind.conditional);
+      expect(availability.note, "Ask for Camille");
+    });
+
+    test("removeAvailability tombstones the row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+      ))!;
+
+      await locationsService.removeAvailability(database: database, id: id);
+
+      expect(
+        (await locationsService.loadLocations(database: database)).single.availabilities,
+        isEmpty,
+      );
+      final row = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((row) => row.id.equals(id))).getSingle();
+      expect(row.isDeleted, isTrue);
+    });
+
+    test("deleting a location tombstones its windows too", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final id = (await locationsService.addAvailability(
+        database: database,
+        locationId: locationId,
+        startDate: DateTime.utc(2026, 3, 2),
+        endDate: DateTime.utc(2026, 3, 2),
+      ))!;
+
+      await locationsService.deleteLocation(database: database, locationId: locationId);
+
+      final row = await (database.select(
+        database.ocptLocationAvailabilitiesTable,
+      )..where((row) => row.id.equals(id))).getSingle();
+      expect(row.isDeleted, isTrue);
+    });
+  });
+
+  group("assets", () {
+    test("addLocationPhoto appends a reference and loadLocations reads it back", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.addLocationPhoto(
+        database: database,
+        locationId: locationId,
+        path: "/photos/first.jpg",
+      );
+      await locationsService.addLocationPhoto(
+        database: database,
+        locationId: locationId,
+        path: "/photos/second.jpg",
+      );
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.single.photos.map((photo) => photo.path), [
+        "/photos/first.jpg",
+        "/photos/second.jpg",
+      ]);
+      expect(locations.single.photos.map((photo) => photo.kind), [
+        OcptAssetKind.locationPhoto,
+        OcptAssetKind.locationPhoto,
+      ]);
+    });
+
+    test("removeAsset drops a photo from the location that held it", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final photoId = (await locationsService.addLocationPhoto(
+        database: database,
+        locationId: locationId,
+        path: "/photos/first.jpg",
+      ))!;
+
+      await assetsService.removeAsset(database: database, assetId: photoId);
+
+      final locations = await locationsService.loadLocations(database: database);
+      expect(locations.single.photos, isEmpty);
+    });
+
+    test("setPermitDocument points the location at the document it references", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      await locationsService.setPermitDocument(
+        database: database,
+        locationId: locationId,
+        path: "/permits/granted.pdf",
+      );
+
+      final location = (await locationsService.loadLocations(database: database)).single;
+      expect(location.permitDocument?.path, "/permits/granted.pdf");
+      expect(location.permitDocument?.kind, OcptAssetKind.document);
+      expect(location.permitAssetId, location.permitDocument?.id);
+      // The permit document is not one of the scouting photos, however the two are stored.
+      expect(location.photos, isEmpty);
+    });
+
+    test("setPermitDocument tombstones the document it replaces", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final firstId = (await locationsService.setPermitDocument(
+        database: database,
+        locationId: locationId,
+        path: "/permits/draft.pdf",
+      ))!;
+
+      await locationsService.setPermitDocument(
+        database: database,
+        locationId: locationId,
+        path: "/permits/granted.pdf",
+      );
+
+      final replaced = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(firstId))).getSingle();
+      expect(replaced.isDeleted, isTrue);
+
+      final location = (await locationsService.loadLocations(database: database)).single;
+      expect(location.permitDocument?.path, "/permits/granted.pdf");
+    });
+
+    test("insertAsset records a document's validity window, or leaves it unrecorded", () async {
+      final withDates = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/granted.pdf",
+        validFrom: DateTime.utc(2026, 3, 10),
+        validUntil: DateTime.utc(2026, 3, 31),
+        stamps: null,
+      );
+      final withNoDates = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/undated.pdf",
+        stamps: null,
+      );
+
+      final dated = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(withDates))).getSingle();
+      expect(dated.validFrom, DateTime.utc(2026, 3, 10));
+      expect(dated.validUntil, DateTime.utc(2026, 3, 31));
+
+      // Nobody has recorded a window for the second document — null, not "valid forever".
+      final undated = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(withNoDates))).getSingle();
+      expect(undated.validFrom, isNull);
+      expect(undated.validUntil, isNull);
+    });
+
+    test("updateAssetValidity writes and clears a document's validity window", () async {
+      final assetId = await assetsService.insertAsset(
+        database: database,
+        kind: OcptAssetKind.document,
+        path: "/permits/granted.pdf",
+        stamps: null,
+      );
+
+      await assetsService.updateAssetValidity(
+        database: database,
+        assetId: assetId,
+        validFrom: Value(DateTime.utc(2026, 3, 10)),
+        validUntil: Value(DateTime.utc(2026, 3, 31)),
+      );
+
+      final withDates = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(assetId))).getSingle();
+      expect(withDates.validFrom, DateTime.utc(2026, 3, 10));
+      expect(withDates.validUntil, DateTime.utc(2026, 3, 31));
+
+      // Clearing a date already recorded is as real a gesture as setting it.
+      await assetsService.updateAssetValidity(
+        database: database,
+        assetId: assetId,
+        validFrom: const Value(null),
+      );
+
+      final cleared = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(assetId))).getSingle();
+      expect(cleared.validFrom, isNull);
+      // The untouched field is passed as `Value.absent`, so it survives the partial write.
+      expect(cleared.validUntil, DateTime.utc(2026, 3, 31));
+    });
+
+    test("clearPermitDocument drops both the reference and the row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      final documentId = (await locationsService.setPermitDocument(
+        database: database,
+        locationId: locationId,
+        path: "/permits/granted.pdf",
+      ))!;
+
+      await locationsService.clearPermitDocument(database: database, locationId: locationId);
+
+      final location = (await locationsService.loadLocations(database: database)).single;
+      expect(location.permitAssetId, isNull);
+      expect(location.permitDocument, isNull);
+
+      final row = await (database.select(
+        database.ocptAssetsTable,
+      )..where((row) => row.id.equals(documentId))).getSingle();
+      expect(row.isDeleted, isTrue);
+    });
+  });
+
+  group("row-field-version stamps", () {
+    test("createLocation stamps every column of the new row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+
+      final stamps = await readStamps();
+      final location = await readLocation(locationId);
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("locations/$locationId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(location.toJson().length));
+      for (final column in location.toJson().keys) {
+        final stamp = ownStamps["locations/$locationId/$column"];
+        expect(stamp, isNotNull, reason: "$column should be stamped");
+        expect(stamp!.version, 1);
+      }
+    });
+
+    test("updateLocation stamps only the columns that actually changed", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.updateLocation(
+        database: database,
+        locationId: locationId,
+        name: const Value("Café du port"),
+        city: const Value("Concarneau"),
+      );
+
+      final stamps = await readStamps();
+      final ownKeys = stamps.keys.where((key) => key.startsWith("locations/$locationId/")).toSet();
+      expect(ownKeys, {"locations/$locationId/name", "locations/$locationId/city"});
+
+      // Writing the same values again touches nothing: there is nothing left to stamp.
+      await locationsService.updateLocation(
+        database: database,
+        locationId: locationId,
+        name: const Value("Café du port"),
+      );
+      expect(await readStamps(), stamps);
+    });
+
+    test(
+      "deleteLocation stamps isDeleted on the location, its sets and its availabilities",
+      () async {
+        final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+        final setId = (await locationsService.createSet(
+          database: database,
+          locationId: locationId,
+          name: "Cuisine",
+        ))!;
+        final availabilityId = (await locationsService.addAvailability(
+          database: database,
+          locationId: locationId,
+          startDate: DateTime(2026, 3, 10),
+          endDate: DateTime(2026, 3, 10),
+        ))!;
+        await database.delete(database.ocptRowFieldVersionsTable).go();
+
+        await locationsService.deleteLocation(database: database, locationId: locationId);
+
+        final stamps = await readStamps();
+        expect(stamps["locations/$locationId/isDeleted"]!.version, 1);
+        expect(stamps["sets/$setId/isDeleted"]!.version, 1);
+        expect(stamps["location_availabilities/$availabilityId/isDeleted"]!.version, 1);
+      },
+    );
+
+    test("createSet stamps every column of the new row", () async {
+      final locationId = (await locationsService.createLocation(database: database, name: "A"))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final setId = (await locationsService.createSet(
+        database: database,
+        locationId: locationId,
+        name: "Cuisine",
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSetsTable,
+      )..where((table) => table.id.equals(setId))).getSingle();
+      final ownStamps = {
+        for (final entry in stamps.entries)
+          if (entry.key.startsWith("sets/$setId/")) entry.key: entry.value,
+      };
+
+      expect(ownStamps.keys, hasLength(row.toJson().length));
+      for (final column in row.toJson().keys) {
+        expect(ownStamps["sets/$setId/$column"], isNotNull, reason: "$column should be stamped");
+      }
+    });
+
+    /// Inserts screenplay `screenplay-1` and one live scene `scene-1`, for the tests below that
+    /// link a scene to a set — `scene_sets.sceneId` is a foreign key, and this group's own
+    /// database starts with no screenplay at all.
+    Future<void> insertScreenplayAndScene() async {
+      await database
+          .into(database.ocptScreenplaysTable)
+          .insert(
+            OcptScreenplaysTableCompanion.insert(
+              id: "screenplay-1",
+              title: "Draft",
+              updatedAt: DateTime.now(),
+            ),
+          );
+      await insertScene(id: "scene-1", position: 0, heading: "INT. CUISINE - JOUR");
+    }
+
+    test("assignSceneToSet stamps every column of the new link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+
+      final stamps = await readStamps();
+      final row = await (database.select(
+        database.ocptSceneSetsTable,
+      )..where((table) => table.id.equals(linkId))).getSingle();
+
+      for (final column in row.toJson().keys) {
+        expect(
+          stamps["scene_sets/$linkId/$column"],
+          isNotNull,
+          reason: "$column should be stamped",
+        );
+      }
+    });
+
+    test("removeSceneFromSet stamps isDeleted on the link", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.removeSceneFromSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      );
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+    });
+
+    test("deleteSet stamps isDeleted on its scene_sets links", () async {
+      await insertScreenplayAndScene();
+      final setId = await createSetInNewLocation("Cuisine");
+      final linkId = (await locationsService.assignSceneToSet(
+        database: database,
+        sceneId: "scene-1",
+        setId: setId,
+      ))!;
+      await database.delete(database.ocptRowFieldVersionsTable).go();
+
+      await locationsService.deleteSet(database: database, setId: setId);
+
+      final stamps = await readStamps();
+      expect(stamps["scene_sets/$linkId/isDeleted"]!.version, 1);
+      expect(stamps["sets/$setId/isDeleted"]!.version, 1);
+    });
+  });
+}
