@@ -49,9 +49,10 @@ Resources set carries across its three scopes, and the mode's two newest documen
     service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
     `OcptFloorPlanService.hideSymbolForScope`/`applyScopeDecision`).
   - **`OcptShotListBloc`, the mode bloc.** It loads and owns every snapshot (the shot list, the
-    storyboard, the floor plans, the locations, the set-scope symbols, the roles, the suggestions),
-    the selection (sequence, shot, set), the docks, the right tab, the columns and the centre view,
-    mixes in `MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>` and the two project
+    storyboard, the floor plans, the locations, the set-scope symbols, the roles, the suggestions;
+    the reads themselves are `OcptShotListReader`'s), the selection (sequence, shot, set), the
+    docks, the right tab, the columns and the centre view, mixes in
+    `MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>` and the two project
     mixins, and creates and deletes a shot (which change the selection). `reload` takes a set of
     `OcptShotListReloadScope { snapshot, suggestions, storyboard, floorPlans, locations,
     setScopeSymbols, roles }`; the state carries `reloadEpoch`, `selectionEpoch`,

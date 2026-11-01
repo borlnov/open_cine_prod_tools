@@ -9,7 +9,6 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -25,17 +24,14 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_screenplay_characters_of.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
@@ -46,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_reader.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
@@ -55,7 +52,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// sequences are built in memory by joining the scene index with the shots referencing it, so the
 /// mode always shows the screenplay as it stands — together with the screenplay's speaking
 /// characters, every free-text field's suggestion list, and where each shot sits in the schedule
-/// (joined onto the snapshot by [_loadSnapshot]: the schedule mode is the only writer of a shot's
+/// (joined onto the snapshot by [OcptShotListReader.loadSnapshot]: the schedule mode is the only writer of a shot's
 /// placement), and holds the selection, the dock geometry and the visible table columns on top.
 ///
 /// What the inspector does with a shot — its typed fields and their autosave, its difficulty, its
@@ -123,27 +120,11 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// The manager used to export the shot list to an XLSX workbook.
   final OcptExportManager _exportManager;
 
-  /// The service used to read and write the shot list.
+  /// The service used to write the shot list.
   final OcptShotListService _shotListService;
 
-  /// The service used to read the production's whole cast (for the character chips and the shared
-  /// role alert banner).
-  final OcptRoleIndexService _roleIndexService;
-
-  /// The service used to read a shot's placement in the schedule — its `Jour de tournage` read-out,
-  /// see [_loadSnapshot].
-  final OcptScheduleService _scheduleService;
-
-  /// The service used to read and write the board's panels: `loadStoryboard`, `addPanel`,
-  /// `replacePanelImage`, `reorderPanel`, `updatePanelComment` and `deletePanel`.
-  final OcptStoryboardService _storyboardService;
-
-  /// The service used to read and write the floor plans: `loadFloorPlans`, a symbol's placement/
-  /// move/resize/rotation/deletion.
-  final OcptFloorPlanService _floorPlanService;
-
-  /// The service used to read the project's Resources locations and their sets.
-  final OcptLocationsService _locationsService;
+  /// The reads of the data this mode shows, see [OcptShotListReader].
+  late final OcptShotListReader _reader;
 
   /// The episode this bloc reads and writes, handed down by `OcptShotListMode` from
   /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once rather
@@ -189,22 +170,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
-       _roleIndexService =
-           roleIndexService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleIndexService,
-       _scheduleService =
-           scheduleService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
-       _storyboardService =
-           storyboardService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).storyboardService,
-       _floorPlanService =
-           floorPlanService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).floorPlanService,
-       _locationsService =
-           locationsService ??
-           (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).locationsService,
        super(OcptShotListState.init()) {
+    _reader = OcptShotListReader(
+      projectsManager: _projectsManager,
+      propertiesManager: _propertiesManager,
+      shotListService: _shotListService,
+      roleIndexService: roleIndexService ?? _projectsManager.roleIndexService,
+      scheduleService: scheduleService ?? _projectsManager.scheduleService,
+      storyboardService: storyboardService ?? _projectsManager.storyboardService,
+      floorPlanService: floorPlanService ?? _projectsManager.floorPlanService,
+      locationsService: locationsService ?? _projectsManager.locationsService,
+      screenplayIdOf: screenplayIdOf,
+    );
     add(const OcptShotListLoadRequestedEvent());
   }
 
@@ -304,19 +281,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       for (final scope in scopes) {
         switch (scope) {
           case OcptShotListReloadScope.snapshot:
-            snapshot = await _loadSnapshot(project);
+            snapshot = await _reader.loadSnapshot(project);
           case OcptShotListReloadScope.suggestions:
-            suggestions = await _loadSuggestions(project);
+            suggestions = await _reader.loadSuggestions(project);
           case OcptShotListReloadScope.storyboard:
-            storyboardSnapshot = await _loadStoryboard(project);
+            storyboardSnapshot = await _reader.loadStoryboard(project);
           case OcptShotListReloadScope.floorPlans:
-            floorPlanSnapshot = await _loadFloorPlans(project);
+            floorPlanSnapshot = await _reader.loadFloorPlans(project);
           case OcptShotListReloadScope.locations:
-            locations = await _loadLocations(project);
+            locations = await _reader.loadLocations(project);
           case OcptShotListReloadScope.setScopeSymbols:
-            setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
+            setScopeSymbolsBySetId = await _reader.loadSetScopeSymbolsBySetId(project);
           case OcptShotListReloadScope.roles:
-            roles = await _loadRoles(project);
+            roles = await _reader.loadRoles(project);
         }
       }
 
@@ -400,16 +377,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     // older data over it.
     await runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final screenplayText = await _loadScreenplayText(project);
-      final pageSetup = await _loadPageSetup(project);
-      final snapshot = await _loadSnapshot(project);
-      final storyboardSnapshot = await _loadStoryboard(project);
-      final floorPlanSnapshot = await _loadFloorPlans(project);
-      final locations = await _loadLocations(project);
-      final setScopeSymbolsBySetId = await _loadSetScopeSymbolsBySetId(project);
+      final screenplayText = await _reader.loadScreenplayText(project);
+      final pageSetup = await _reader.loadPageSetup(project);
+      final snapshot = await _reader.loadSnapshot(project);
+      final storyboardSnapshot = await _reader.loadStoryboard(project);
+      final floorPlanSnapshot = await _reader.loadFloorPlans(project);
+      final locations = await _reader.loadLocations(project);
+      final setScopeSymbolsBySetId = await _reader.loadSetScopeSymbolsBySetId(project);
       final screenplayCharacters = ocptScreenplayCharactersOf(screenplayText);
-      final roles = await _loadRoles(project);
-      final suggestions = await _loadSuggestions(project);
+      final roles = await _reader.loadRoles(project);
+      final suggestions = await _reader.loadSuggestions(project);
 
       final revealRequest = _pendingRevealRequest;
       _pendingRevealRequest = null;
@@ -469,86 +446,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       );
     });
   }
-
-  /// Reads the whole shot list of the selected episode's screenplay, joined with where each of its
-  /// shots sits in the schedule (`OcptScheduleService.loadShotPlacements`), keyed by shot id — what
-  /// the `Jour de tournage` read-out is built from. A project with no schedule joins an empty map.
-  ///
-  /// The scenes are numbered with their episode's own prefix: the live episodes are read through
-  /// [_projectsManager]'s `screenplayService` (never through [_shotListService], which
-  /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
-  Future<OcptShotListSnapshot> _loadSnapshot(OcptOpenProjectModel project) async {
-    final database = project.database;
-    final screenplayId = screenplayIdOf(project);
-
-    final episodes = await _projectsManager.screenplayService.loadEpisodes(database: database);
-    final snapshot = await _shotListService.loadShotList(
-      database: database,
-      screenplayId: screenplayId,
-      episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
-    );
-    final placements = await _scheduleService.loadShotPlacements(database: database);
-
-    return snapshot.copyWithPlacements(placements);
-  }
-
-  /// Reads the whole storyboard of the selected episode's screenplay — every live shot's panels,
-  /// keyed by shot id — what the board reads through `OcptShotListState.panelsOfShot`.
-  Future<OcptStoryboardSnapshot> _loadStoryboard(OcptOpenProjectModel project) => _storyboardService
-      .loadStoryboard(database: project.database, screenplayId: screenplayIdOf(project));
-
-  /// Reads the whole floor plans of the selected episode's screenplay — every live set of every
-  /// sequence, keyed by scene id — what the floor plans view reads through
-  /// `OcptShotListState.setsOfSelectedSequence`.
-  Future<OcptFloorPlanSnapshot> _loadFloorPlans(OcptOpenProjectModel project) => _floorPlanService
-      .loadFloorPlans(database: project.database, screenplayId: screenplayIdOf(project));
-
-  /// Reads the project's whole Resources catalogue — every location and its own sets, each
-  /// carrying the scenes it is linked to — what the set tabs' `＋ Set` menu groups by, and what
-  /// `ocptSceneSetSuggestionOf` reads. Project-wide, unlike [_loadFloorPlans]: a set the gallery
-  /// offers to link may already be linked to another episode's sequence.
-  Future<List<OcptLocation>> _loadLocations(OcptOpenProjectModel project) =>
-      _locationsService.loadLocations(database: project.database);
-
-  /// Reads the set-scope symbols of every live Resources set of the project, keyed by set id — the
-  /// gallery thumbnails' content, which draw a set's own décor alone. Project-wide, like
-  /// [_loadLocations].
-  Future<Map<String, List<OcptFloorPlanSymbol>>> _loadSetScopeSymbolsBySetId(
-    OcptOpenProjectModel project,
-  ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
-
-  /// Reads the production's whole cast — every live role, in `sortKey` order — what the character
-  /// chips and the shared role alert banner are derived from.
-  Future<List<OcptRole>> _loadRoles(OcptOpenProjectModel project) =>
-      _roleIndexService.loadRoles(database: project.database);
-
-  /// Reads the selected episode's current Fountain source text, kept in
-  /// `OcptShotListState.screenplayText` for `ocptScreenplayCharactersOf` and the scenario coverage.
-  Future<String> _loadScreenplayText(OcptOpenProjectModel project) => _projectsManager
-      .screenplayService
-      .loadScreenplayText(database: project.database, screenplayId: screenplayIdOf(project));
-
-  /// Reads the page setup the screenplay is typeset with: the open project's own page format,
-  /// paired with the app-wide margins preference, exactly as the screenplay editor's own bloc
-  /// pairs them. The scenario coverage dialog's simulated paper sheet is laid out with it.
-  ///
-  /// A version being previewed is laid out with the setup it was written against instead, which
-  /// travels on the open project model and is never written anywhere — again exactly as the
-  /// screenplay editor's own bloc does it.
-  Future<OcptPageSetup> _loadPageSetup(OcptOpenProjectModel project) async =>
-      project.previewedPageSetup ??
-      OcptPageSetup(
-        format: await _projectsManager.loadCurrentProjectPageFormat() ?? OcptPageFormat.usLetter,
-        margins:
-            await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
-      );
-
-  /// Reads every free-text field's suggestion list, scoped to the selected episode.
-  Future<OcptShotFieldSuggestions> _loadSuggestions(OcptOpenProjectModel project) =>
-      _shotListService.loadFieldSuggestions(
-        database: project.database,
-        screenplayId: screenplayIdOf(project),
-      );
 
   /// Selects a sequence, clearing the selected shot when it actually changes sequence (the centre
   /// table then lists shots the previous selection isn't among).
@@ -642,7 +539,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: sequence.sceneId,
       );
       await runSerially(() async {
-        final snapshot = await _loadSnapshot(project);
+        final snapshot = await _reader.loadSnapshot(project);
 
         await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
 
@@ -814,7 +711,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     }
 
     await runSerially(() async {
-      final pageSetup = await _loadPageSetup(project);
+      final pageSetup = await _reader.loadPageSetup(project);
       emitter(state.copyWith(pageSetup: pageSetup));
     });
   }
@@ -863,14 +760,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
       await runSerially(() async {
-        final snapshot = await _loadSnapshot(project);
+        final snapshot = await _reader.loadSnapshot(project);
         final reselectedShotId = wasSelected
             ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
             : state.selectedShotId;
 
-        final suggestions = await _loadSuggestions(project);
-        final storyboardSnapshot = await _loadStoryboard(project);
-        final floorPlanSnapshot = await _loadFloorPlans(project);
+        final suggestions = await _reader.loadSuggestions(project);
+        final storyboardSnapshot = await _reader.loadStoryboard(project);
+        final floorPlanSnapshot = await _reader.loadFloorPlans(project);
         emitter(
           state.copyWith(
             snapshot: snapshot,
