@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_budget_cnc_postes.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment_form_fields.d
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
@@ -28,7 +30,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_cash_journal_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -121,16 +122,73 @@ void main() {
   }
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).
-  Future<OcptBudgetState> waitForState(
-    OcptBudgetBloc bloc,
-    bool Function(OcptBudgetState state) predicate,
-  ) async {
+  Future<S> waitForState<S>(BlocBase<S> bloc, bool Function(S state) predicate) async {
     if (predicate(bloc.state)) {
       return bloc.state;
     }
 
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
+
+  group("what writes the typed edits first", () {
+    /// Types an edit into the expenses view, dispatches [event] to the mode, and answers whether the
+    /// edit was written (and so forgotten) by the time the mode has handled it.
+    Future<bool> flushes(OcptBudgetEvent event) async {
+      final bloc = buildBloc();
+      final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(days: 1));
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+
+      expensesBloc.add(
+        OcptBudgetFieldChangedEvent(
+          targetId: loaded.postes.first.id,
+          field: OcptBudgetField.posteLabel,
+          rawValue: "Typed",
+        ),
+      );
+      await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+      bloc.add(event);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      final isWritten = expensesBloc.state.pendingFieldEdits.isEmpty;
+      await expensesBloc.close();
+      await bloc.close();
+      return isWritten;
+    }
+
+    test("a view, a tools page, the switches, a dock tab, a poste, a line, a commitment, an "
+        "entry and the poste filter do", () async {
+      for (final event in <OcptBudgetEvent>[
+        const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses),
+        const OcptBudgetToolsViewSelectedEvent(toolsView: OcptBudgetToolsView.regie),
+        const OcptBudgetSimplifiedToggledEvent(isSimplified: true),
+        const OcptBudgetTaxBasisChangedEvent(basis: OcptBudgetTaxBasis.excludingTax),
+        const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.versions),
+        const OcptBudgetPosteSelectedEvent(posteId: "gone"),
+        const OcptBudgetLineSelectedEvent(lineId: "gone"),
+        const OcptBudgetCommitmentSelectedEvent(commitmentId: "gone"),
+        const OcptBudgetEntrySelectedEvent(entryId: "gone"),
+        const OcptBudgetPosteFilterSelectedEvent(posteId: null),
+      ]) {
+        expect(await flushes(event), isTrue, reason: "$event writes the typed edit first");
+      }
+    });
+
+    test("a receipt, a resource, a taking, a share, the dock toggle, the provisioning poste, a "
+        "tree node and the project settings do not", () async {
+      for (final event in <OcptBudgetEvent>[
+        const OcptBudgetReceiptSelectedEvent(receiptId: "gone"),
+        const OcptBudgetResourceSelectedEvent(resourceId: "gone"),
+        const OcptBudgetRevenueSelectedEvent(revenueId: "gone"),
+        const OcptBudgetShareSelectedEvent(shareId: "gone"),
+        const OcptBudgetRightDockToggledEvent(),
+        const OcptBudgetProvisionPosteSelectedEvent(posteId: "gone"),
+        const OcptBudgetRowExpansionToggledEvent(nodeId: "gone"),
+        const OcptBudgetProjectSettingsChangedEvent(),
+      ]) {
+        expect(await flushes(event), isFalse, reason: "$event leaves the typed edit pending");
+      }
+    });
+  });
 
   group("the epochs the views react to", () {
     test("entering the mode moves both epochs and says why", () async {
