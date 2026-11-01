@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
@@ -440,7 +441,7 @@ void main() {
 
       // The first sequence's props are read and held, while the mode moves to the second.
       service.heldScenes.add(firstSequence.sceneId);
-      mode.add(const OcptShotListLoadRequestedEvent());
+      mode.add(const AsyncInitEvent());
       await waitUntil(() => service.holdCount == 1);
       await mode.addAndWait(OcptShotListSequenceSelectedEvent(sequenceId: secondSequence.id));
       await waitUntil(

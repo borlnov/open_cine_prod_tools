@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_test_utility/act_test_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -833,7 +834,7 @@ void main() {
       // storyboard, made while the comment is still empty, is held.
       final selectionEpochBefore = mode.state.selectionEpoch;
       service.heldReads = 1;
-      mode.add(const OcptShotListLoadRequestedEvent());
+      mode.add(const AsyncInitEvent());
       await waitUntil(() => service.holdCount == 1);
 
       // Meanwhile the board writes a comment and has the mode read it.

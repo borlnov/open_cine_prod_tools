@@ -14,15 +14,6 @@ sealed class OcptShotListWorkspaceEvent extends OcptShotListEvent {
   const OcptShotListWorkspaceEvent();
 }
 
-/// Requests loading the current project's shot list, together with the persisted dock fractions,
-/// visible columns and last right dock tab.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptShotListLoadRequestedEvent extends OcptShotListWorkspaceEvent {
-  /// Class constructor
-  const OcptShotListLoadRequestedEvent();
-}
-
 /// Selects the sequence [sequenceId], expanding it in the left dock and showing its shots in the
 /// centre table.
 ///

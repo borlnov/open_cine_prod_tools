@@ -98,7 +98,8 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsBloc<OcptShotListState>,
         MixinOcptProjectPackageBloc<OcptShotListState>,
-        MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope> {
+        MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>,
+        MixinAsyncInitBloc<OcptShotListState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_bloc";
 
@@ -140,7 +141,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// What this mode should land on once its very first load resolves, handed down by
   /// `OcptShotListMode` from its own constructor — the Resources location sheet's own `Open in
   /// shot list`, mirroring `OcptResourcesBloc
-  /// ._pendingRevealRequest`. Nulled the moment [_onLoadRequested] applies it, so it can never
+  /// ._pendingRevealRequest`. Nulled the moment [_load] applies it, so it can never
   /// re-apply itself on a later reload (a version preview entered or left, say).
   OcptShotListRevealRequest? _pendingRevealRequest;
 
@@ -182,14 +183,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       locationsService: locationsService ?? _projectsManager.locationsService,
       screenplayIdOf: screenplayIdOf,
     );
-    add(const OcptShotListLoadRequestedEvent());
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptShotListLoadRequestedEvent>(_onLoadRequested);
     // The three selection events are awaitable: a view bloc moves the shared selection through
     // `addAndWait` and then emits its own state (see `MixinOcptModeBloc.addAndWait`).
     onAwaited<OcptShotListSequenceSelectedEvent>(_onSequenceSelected);
@@ -325,8 +324,18 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptShotListState> emitter) =>
-      _onLoadRequested(const OcptShotListLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptShotListState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptShotListState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the persisted preferences and the current project's shot list, selecting its first
   /// sequence.
@@ -338,10 +347,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the shot list it just read, the two reaching the
   /// mode together (see the hook's own doc comment).
-  Future<void> _onLoadRequested(
-    OcptShotListLoadRequestedEvent event,
-    Emitter<OcptShotListState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.shotListLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
