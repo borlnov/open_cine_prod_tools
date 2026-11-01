@@ -141,7 +141,7 @@ class OcptResourcesPeopleBloc
     _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
     if (state.pendingFieldEdits.isNotEmpty) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
     }
   }
 
@@ -225,7 +225,7 @@ class OcptResourcesPeopleBloc
         return;
       }
 
-      emitter(state.copyWith(pendingFieldEdits: _pendingWithoutPerson(event.personId)));
+      emitter(state.copyWithPersonErased(pendingFieldEdits: _pendingWithoutPerson(event.personId)));
       await addToModeAndWait(
         OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.people, recordId: event.personId),
       );
@@ -253,7 +253,7 @@ class OcptResourcesPeopleBloc
   ) async {
     final pending = Map<(String, OcptPersonField), String>.of(state.pendingFieldEdits)
       ..[(event.personId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithFieldEditTyped(pendingFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesPeopleFieldEditFlushRequestedEvent());
   }
@@ -292,7 +292,7 @@ class OcptResourcesPeopleBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -315,7 +315,7 @@ class OcptResourcesPeopleBloc
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     emitter(
-      state.copyWith(
+      state.copyWithFieldEditsWritten(
         pendingFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingFieldEdits,
           written: pending,
@@ -340,7 +340,7 @@ class OcptResourcesPeopleBloc
   /// This bloc empties its own map as well, for the mode that is closing and no longer answers.
   Future<void> _loseEdits(Emitter<OcptResourcesPeopleState> emitter) async {
     await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
-    emitter(state.copyWith(pendingFieldEdits: const {}));
+    emitter(state.copyWithFieldEditsCleared());
   }
 
   /// Writes every pending field edit directly to the database, bypassing the debounce timer, the

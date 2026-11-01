@@ -29,6 +29,26 @@ class OcptResourcesPeopleState extends BlocStateForMixin<OcptResourcesPeopleStat
   OcptResourcesPeopleState copyWith({Map<(String, OcptPersonField), String>? pendingFieldEdits}) =>
       OcptResourcesPeopleState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
 
+  /// Copies this state with every pending field edit dropped.
+  OcptResourcesPeopleState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as the edits sitting in the debounce, a person's
+  /// field having just been typed into.
+  OcptResourcesPeopleState copyWithFieldEditTyped({
+    required Map<(String, OcptPersonField), String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as the edits left once the pending ones were
+  /// written.
+  OcptResourcesPeopleState copyWithFieldEditsWritten({
+    required Map<(String, OcptPersonField), String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as the edits left once a person was erased.
+  OcptResourcesPeopleState copyWithPersonErased({
+    required Map<(String, OcptPersonField), String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits];
