@@ -5,7 +5,15 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_line_attributions.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_edit_requests.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_selection_clip.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart';
 import 'package:super_editor/super_editor.dart';
+
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_inline_runs.dart'
+    show ocptFountainNoteAttribution;
+export 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_title_page.dart'
+    show ocptTitlePageFieldAttribution, ocptTitlePageFieldKeys, ocptTitlePageKeyMetadataKey;
 
 /// The `ParagraphNode` metadata key holding the number of blank source lines that preceded a node
 /// (0 inside a dialogue group, since a real blank line there would break the group).
@@ -41,45 +49,6 @@ const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 /// absorbed the same way by [OcptWysiwygCodec.sceneNumberRequests]. Rendering the number (styled
 /// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
 const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
-
-/// The `ParagraphNode` metadata key holding which title-page field a node represents (one of
-/// [ocptTitlePageFieldKeys]), or absent for an ordinary body line.
-///
-/// Only ever set by [OcptWysiwygCodec.decodeWithTitlePage] (and the keyboard action that keeps a
-/// title-page field's own Enter gesture continuing the same field, `_splitTitlePageField` in
-/// `ocpt_fountain_keyboard_actions.dart`): none of the ordinary Fountain line machinery this class
-/// documents (auto-detection, forcing markers, uppercasing, scene numbers…) ever applies to a node
-/// carrying it, which is what [OcptWysiwygCodec.isTitlePageNode] lets every one of those passes
-/// check for and skip.
-const String ocptTitlePageKeyMetadataKey = "ocptTitlePageKey";
-
-/// The `blockType` attribution shared by every title-page field node, regardless of which field it
-/// represents ([ocptTitlePageKeyMetadataKey] carries that distinction instead): a title-page field
-/// is never classified, never forced, never uppercased, so it needs no per-field attribution the
-/// way every [FountainLineType] gets its own in [OcptFountainLineAttributions] — only a stylesheet
-/// selector to opt into `OcptFountainEditorStylesheet`'s own per-field positioning.
-const NamedAttribution ocptTitlePageFieldAttribution = NamedAttribution("fountainTitlePageField");
-
-/// The six canonical title-page field keys [OcptWysiwygCodec.decodeWithTitlePage] always
-/// synthesizes exactly one node for (more if a field spans several source lines), in the fixed
-/// order they are written to the source and stacked top-to-bottom in the styled editor — matching
-/// the order `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` fields already appear in
-/// (`editor_bloc.dart`'s `_titlePageEntriesFrom`), so editing the same screenplay through either
-/// front-end never reorders the block for no reason.
-const List<String> ocptTitlePageFieldKeys = [
-  "Title",
-  "Credit",
-  "Author",
-  "Draft date",
-  "Contact",
-  "Source",
-];
-
-/// The attribution marking an inline authoring note (`[[text]]`) for dimmed rendering; unlike
-/// [boldAttribution]/[italicsAttribution]/[underlineAttribution], a note's delimiters stay part of
-/// its node's plain text (see [FountainStyledRun.isNote]), so this attribution is only ever used
-/// for styling, never for serialization (a node's text already carries the brackets verbatim).
-const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainNote");
 
 /// The result of [OcptWysiwygCodec.decode]: everything a caller needs to display a freshly decoded
 /// document and later serialize it back to Fountain text.
@@ -352,7 +321,7 @@ class OcptWysiwygCodec {
             entries: const [],
           );
 
-    final titlePageNodes = _titlePageNodesFrom(titlePage);
+    final titlePageNodes = OcptWysiwygTitlePage.nodesFrom(titlePage);
     final bodyDecoded = decode(bodyText);
 
     return OcptWysiwygDecodeResult(
@@ -402,7 +371,7 @@ class OcptWysiwygCodec {
       nodes.add(
         ParagraphNode(
           id: Editor.createNodeId(),
-          text: _attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
+          text: OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
           metadata: {
             "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
             ocptBlankLinesBeforeMetadataKey: pendingBlanks,
@@ -421,7 +390,7 @@ class OcptWysiwygCodec {
 
   /// Encodes [document] back into Fountain source text, the inverse of [decode]: rejoins each
   /// node's inline attributions into marked-up display text
-  /// ([FountainInlineSerializer.write]/[_runsFromAttributedText]), then lets [FountainLineWriter]
+  /// ([FountainInlineSerializer.write]/[OcptWysiwygInlineRuns.runsFromAttributedText]), then lets [FountainLineWriter]
   /// decide, left to right with the already-fixed earlier lines as context, whether each node's
   /// stored `blockType` needs a forcing marker to (re-)classify correctly, honoring
   /// [ocptHadForcingMarkerMetadataKey] to preserve a marker even when auto-detection alone would
@@ -570,7 +539,7 @@ class OcptWysiwygCodec {
       MutableDocument(nodes: List<DocumentNode>.of(bodyNodes)),
       trailingBlankLines: trailingBlankLines,
     );
-    final titlePageEntries = _titlePageEntriesFromNodes(titlePageNodes);
+    final titlePageEntries = OcptWysiwygTitlePage.entriesFromNodes(titlePageNodes);
     final text = const FountainTitlePageWriter().apply(
       source: bodyEncoded.text,
       existingRange: null,
@@ -592,110 +561,6 @@ class OcptWysiwygCodec {
   static bool isTitlePageNode(ParagraphNode node) =>
       node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
 
-  /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
-  /// `FountainTitlePage.authors`'s own fallback), or null when [titlePage] is null or has no such
-  /// entry.
-  static FountainTitlePageEntry? _titlePageEntryFor(FountainTitlePage? titlePage, String key) {
-    if (titlePage == null) {
-      return null;
-    }
-    return key == "Author"
-        ? (titlePage.entry("Author") ?? titlePage.entry("Authors"))
-        : titlePage.entry(key);
-  }
-
-  /// A placeholder source range for a title-page entry synthesized from live node text rather than
-  /// parsed from source: [FountainTitlePageWriter.apply] only ever reads an entry's key and values,
-  /// never its source range (see `editor_bloc.dart`'s own equivalent placeholder), so standing in
-  /// without a real one is safe.
-  static const _placeholderTitlePageEntryRange = FountainSourceRange(
-    startLine: 0,
-    endLine: 0,
-    startOffset: 0,
-    endOffset: 0,
-  );
-
-  /// Builds the title-page field nodes [decodeWithTitlePage] prepends to the body: one node per
-  /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning
-  /// several (an empty single node when [titlePage] has none for that key at all).
-  ///
-  /// The sheet is protected against every deletion path — select-all + Delete, a selection dragged
-  /// across the sheet, Backspace merging a field into its neighbour — by
-  /// `ocptTitlePageGuardRequestHandler` (`ocpt_title_page_guard_requests.dart`) alone: a node here
-  /// deliberately does **not** carry `NodeMetadata.isDeletable: false`, which would also forbid
-  /// ordinary text editing (typing, Backspace, Delete) *inside* the field, not just its removal
-  /// (`DeleteSelectionCommand`/`DeleteContentCommand` abort any deletion, however small, contained
-  /// in a single non-deletable node — `multi_node_editing.dart:1428-1449, 798-822` of the pinned
-  /// super_editor release).
-  static List<ParagraphNode> _titlePageNodesFrom(FountainTitlePage? titlePage) {
-    final nodes = <ParagraphNode>[];
-    for (final key in ocptTitlePageFieldKeys) {
-      final entry = _titlePageEntryFor(titlePage, key);
-      final values = entry == null || entry.values.isEmpty ? const [""] : entry.values;
-      for (final value in values) {
-        nodes.add(
-          ParagraphNode(
-            id: Editor.createNodeId(),
-            text: AttributedText(value),
-            metadata: {
-              "blockType": ocptTitlePageFieldAttribution,
-              ocptTitlePageKeyMetadataKey: key,
-            },
-          ),
-        );
-      }
-    }
-    return nodes;
-  }
-
-  /// The inverse of [_titlePageNodesFrom]: groups [titlePageNodes] (already in the fixed
-  /// [ocptTitlePageFieldKeys] order, one run of consecutive nodes per field, by construction) back
-  /// into [FountainTitlePageEntry] values, dropping a field whose every line is empty (the common
-  /// case for most fields most of the time) so [FountainTitlePageWriter.apply] never writes a
-  /// stray `Key:` line with nothing after it.
-  static List<FountainTitlePageEntry> _titlePageEntriesFromNodes(
-    List<ParagraphNode> titlePageNodes,
-  ) {
-    final entries = <FountainTitlePageEntry>[];
-    String? currentKey;
-    var currentValues = <String>[];
-
-    void flush() {
-      final key = currentKey;
-      if (key != null) {
-        final nonEmptyValues = currentValues
-            .where((value) => value.trim().isNotEmpty)
-            .toList(growable: false);
-        if (nonEmptyValues.isNotEmpty) {
-          entries.add(
-            FountainTitlePageEntry(
-              key: key,
-              values: nonEmptyValues,
-              sourceRange: _placeholderTitlePageEntryRange,
-            ),
-          );
-        }
-      }
-      currentKey = null;
-      currentValues = [];
-    }
-
-    for (final node in titlePageNodes) {
-      final key = node.getMetadataValue(ocptTitlePageKeyMetadataKey);
-      if (key is! String) {
-        continue;
-      }
-      if (key != currentKey) {
-        flush();
-        currentKey = key;
-      }
-      currentValues.add(node.text.toPlainText());
-    }
-    flush();
-
-    return entries;
-  }
-
   /// Encodes just the [selection] span of [document] into Fountain source text, for the
   /// clipboard: reuses [encode] on a throwaway document holding only the selected nodes (clipping
   /// the first and last node's text to the selection's own start/end offsets, attributions
@@ -706,7 +571,7 @@ class OcptWysiwygCodec {
   /// keeps its own metadata untouched, including its blank-lines-before count, so the spacing
   /// between the copied lines survives.
   static String encodeSelectionToFountain(Document document, DocumentSelection selection) {
-    final nodes = _clippedSelectionNodes(document, selection);
+    final nodes = OcptWysiwygSelectionClip.clippedNodes(document, selection);
     if (nodes.isEmpty) {
       return "";
     }
@@ -719,50 +584,6 @@ class OcptWysiwygCodec {
       ...nodes.skip(1),
     ];
     return encode(MutableDocument(nodes: adjustedNodes)).text;
-  }
-
-  /// The [ParagraphNode]s [selection] spans in [document], in document order, with the first and
-  /// last node's text clipped to the selection's own start/end offsets (a selection collapsed to
-  /// a single node clips both ends of that one node). A non-[ParagraphNode] inside the span (none
-  /// exist in this model today, but [Document.getNodesInside]'s contract allows any [DocumentNode]
-  /// type) is skipped rather than crashing, since it carries nothing this codec can serialize.
-  static List<ParagraphNode> _clippedSelectionNodes(
-    Document document,
-    DocumentSelection selection,
-  ) {
-    final range = selection.normalize(document);
-    final startPosition = range.start.nodePosition;
-    final endPosition = range.end.nodePosition;
-    if (startPosition is! TextNodePosition || endPosition is! TextNodePosition) {
-      return const [];
-    }
-
-    final nodes = document
-        .getNodesInside(range.start, range.end)
-        .whereType<ParagraphNode>()
-        .toList(growable: false);
-    if (nodes.isEmpty) {
-      return const [];
-    }
-
-    return [
-      for (var index = 0; index < nodes.length; index++)
-        _clipNode(
-          nodes[index],
-          startOffset: range.start.nodeId == nodes[index].id ? startPosition.offset : 0,
-          endOffset: range.end.nodeId == nodes[index].id ? endPosition.offset : null,
-        ),
-    ];
-  }
-
-  /// A copy of [node] whose text is clipped to `[startOffset, endOffset)` (or to the end of the
-  /// text when [endOffset] is null), attributions preserved; every other field, including
-  /// metadata, is left untouched.
-  static ParagraphNode _clipNode(ParagraphNode node, {required int startOffset, int? endOffset}) {
-    final clippedText = endOffset != null
-        ? node.text.copyText(startOffset, endOffset)
-        : node.text.copyText(startOffset);
-    return node.copyParagraphWith(text: clippedText);
   }
 
   /// Computes the requests needed to bring every unlocked, non-empty node's `blockType` metadata
@@ -954,7 +775,7 @@ class OcptWysiwygCodec {
       }
 
       final plainText = node.text.toPlainText();
-      final desiredRanges = _noteRanges(plainText);
+      final desiredRanges = OcptWysiwygInlineRuns.noteRanges(plainText);
       final currentRanges =
           node.text
               .getAttributionSpans({ocptFountainNoteAttribution})
@@ -962,7 +783,7 @@ class OcptWysiwygCodec {
               .toList(growable: false)
             ..sort((a, b) => a.$1.compareTo(b.$1));
 
-      if (_sameRanges(currentRanges, desiredRanges)) {
+      if (OcptWysiwygInlineRuns.sameRanges(currentRanges, desiredRanges)) {
         continue;
       }
 
@@ -1006,40 +827,6 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Whether [a] and [b] hold the same (start, exclusive end) ranges in the same order.
-  static bool _sameRanges(List<(int, int)> a, List<(int, int)> b) {
-    if (a.length != b.length) {
-      return false;
-    }
-    for (var index = 0; index < a.length; index++) {
-      if (a[index] != b[index]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /// The (start, exclusive end) character ranges of every `[[...]]` region in [text], left to
-  /// right and non-overlapping, mirroring `FountainInlineParser.parse`'s own note-matching rule
-  /// (nearest `]]` after each `[[`, no nesting).
-  static List<(int, int)> _noteRanges(String text) {
-    final ranges = <(int, int)>[];
-    var index = 0;
-    while (index < text.length) {
-      final openIndex = text.indexOf("[[", index);
-      if (openIndex == -1) {
-        break;
-      }
-      final closeIndex = text.indexOf("]]", openIndex + 2);
-      if (closeIndex == -1) {
-        break;
-      }
-      ranges.add((openIndex, closeIndex + 2));
-      index = closeIndex + 2;
-    }
-    return ranges;
-  }
-
   /// Whether [type] is a dialogue-block element that keeps a dialogue group open (see
   /// [FountainLineClassifier]'s own equivalent private rule), used by [encode] to force
   /// [ocptBlankLinesBeforeMetadataKey] to 0 between two directly-adjacent members.
@@ -1070,7 +857,7 @@ class OcptWysiwygCodec {
   /// to an empty base text, so an emptied heading still serializes through the empty-node rule
   /// (a plain blank line) rather than stranding a lone `#N#` tag.
   static String _displayTextForEncode(ParagraphNode node, FountainLineType type) {
-    final base = _inlineSerializer.write(_runsFromAttributedText(node.text));
+    final base = _inlineSerializer.write(OcptWysiwygInlineRuns.runsFromAttributedText(node.text));
     if (type != FountainLineType.sceneHeading || base.isEmpty) {
       return base;
     }
@@ -1189,90 +976,5 @@ class OcptWysiwygCodec {
       body = body.substring(0, body.length - 1);
     }
     return body;
-  }
-
-  /// Converts [runs] into an `AttributedText`, applying [boldAttribution], [italicsAttribution],
-  /// [underlineAttribution] and [ocptFountainNoteAttribution] over each run's span; the inverse of
-  /// [_runsFromAttributedText].
-  static AttributedText _attributedTextFromRuns(List<FountainStyledRun> runs) {
-    final buffer = StringBuffer();
-    final spans = <(int, int, Attribution)>[];
-
-    for (final run in runs) {
-      final start = buffer.length;
-      buffer.write(run.text);
-      final end = buffer.length - 1;
-      if (end < start) {
-        continue;
-      }
-      if (run.isBold) {
-        spans.add((start, end, boldAttribution));
-      }
-      if (run.isItalic) {
-        spans.add((start, end, italicsAttribution));
-      }
-      if (run.isUnderline) {
-        spans.add((start, end, underlineAttribution));
-      }
-      if (run.isNote) {
-        spans.add((start, end, ocptFountainNoteAttribution));
-      }
-    }
-
-    final attributedText = AttributedText(buffer.toString());
-    for (final (start, end, attribution) in spans) {
-      attributedText.addAttribution(attribution, SpanRange(start, end));
-    }
-    return attributedText;
-  }
-
-  /// Converts [text]'s attributions into [FountainStyledRun]s, splitting it wherever its bold,
-  /// italic, underline or note attribution set changes; the inverse of [_attributedTextFromRuns].
-  ///
-  /// An [ocptFountainNoteAttribution] range always wins over any overlapping bold/italic/underline
-  /// attribution (dropped at this point): a note is atomic in Fountain, so emphasis can never
-  /// survive inside one on serialization.
-  static List<FountainStyledRun> _runsFromAttributedText(AttributedText text) {
-    final plainText = text.toPlainText();
-    if (plainText.isEmpty) {
-      return const [];
-    }
-
-    (bool, bool, bool, bool) styleAt(int offset) {
-      final attributions = text.getAllAttributionsAt(offset);
-      final isNote = attributions.contains(ocptFountainNoteAttribution);
-      return (
-        !isNote && attributions.contains(boldAttribution),
-        !isNote && attributions.contains(italicsAttribution),
-        !isNote && attributions.contains(underlineAttribution),
-        isNote,
-      );
-    }
-
-    final runs = <FountainStyledRun>[];
-    var runStart = 0;
-    var currentStyle = styleAt(0);
-    for (var offset = 1; offset <= plainText.length; offset++) {
-      final style = offset < plainText.length ? styleAt(offset) : null;
-      if (style == currentStyle) {
-        continue;
-      }
-
-      runs.add(
-        FountainStyledRun(
-          text: plainText.substring(runStart, offset),
-          isBold: currentStyle.$1,
-          isItalic: currentStyle.$2,
-          isUnderline: currentStyle.$3,
-          isNote: currentStyle.$4,
-        ),
-      );
-      runStart = offset;
-      if (style != null) {
-        currentStyle = style;
-      }
-    }
-
-    return runs;
   }
 }
