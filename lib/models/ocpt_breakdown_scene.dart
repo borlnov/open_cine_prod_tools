@@ -127,7 +127,7 @@ class OcptBreakdownScene extends Equatable {
   String toString() =>
       "OcptBreakdownScene(id: $id, heading: $heading, status: $status, tagCount: ${tags.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

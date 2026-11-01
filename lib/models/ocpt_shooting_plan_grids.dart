@@ -43,7 +43,7 @@ class OcptShootingPlanElementsGridCategoryBand extends OcptShootingPlanElementsG
   @override
   String toString() => "OcptShootingPlanElementsGridCategoryBand(label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [label];
 }
@@ -69,7 +69,7 @@ class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGri
   String toString() =>
       "OcptShootingPlanElementsGridElementRow(label: $label, cells: ${cells.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [label, cells];
 }
@@ -505,7 +505,7 @@ class OcptShootingPlanGrids extends Equatable {
     return rows;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     slotColumns,

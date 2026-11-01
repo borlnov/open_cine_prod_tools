@@ -33,7 +33,7 @@ class OcptProjectPackagePreflight extends Equatable {
       "OcptProjectPackagePreflight(referencedAssetCount: $referencedAssetCount, "
       "missingAssetCount: ${missingAssets.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [referencedAssetCount, missingAssets];
 }

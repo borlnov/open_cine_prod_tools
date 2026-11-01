@@ -60,7 +60,7 @@ class OcptBudgetCommitmentFormFields extends Equatable {
       "OcptBudgetCommitmentFormFields(dueDate: $dueDate, label: $label, posteId: $posteId, "
       "status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     dueDate,

@@ -109,7 +109,7 @@ class OcptBudgetEntry extends Equatable {
       "OcptBudgetEntry(id: $id, date: $date, label: $label, "
       "voucherNumber: $voucherNumber)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

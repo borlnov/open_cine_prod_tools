@@ -23,7 +23,7 @@ class OcptCardChoiceSection<T> extends Equatable {
   /// Class constructor
   const OcptCardChoiceSection({required this.entries, this.heading});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [heading, entries];
 }

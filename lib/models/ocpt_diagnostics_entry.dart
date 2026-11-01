@@ -38,7 +38,7 @@ class OcptDiagnosticsEntry extends Equatable {
   String toString() =>
       "OcptDiagnosticsEntry(time: $time, category: $category, level: $level, message: $message)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [time, category, level, message];
 }

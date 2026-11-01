@@ -46,7 +46,7 @@ class OcptDayOutOfDaysTable extends Equatable {
   @override
   String toString() => "OcptDayOutOfDaysTable(days: ${dayIds.length}, rows: ${rows.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [dayIds, rows];
 }

@@ -73,7 +73,7 @@ class OcptBudgetPoste extends Equatable {
       "OcptBudgetPoste(id: $id, code: $code, label: $label, "
       "lines: ${lines.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

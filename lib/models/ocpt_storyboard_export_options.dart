@@ -44,7 +44,7 @@ class OcptStoryboardExportOptions extends Equatable {
       "OcptStoryboardExportOptions(format: $format, shotsPerPage: $shotsPerPage, "
       "includeFloorPlansAfterEachSequence: $includeFloorPlansAfterEachSequence)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, shotsPerPage, includeFloorPlansAfterEachSequence];
 }

@@ -146,7 +146,7 @@ class OcptBudgetEntryFormFields extends Equatable {
       "OcptBudgetEntryFormFields(date: $date, label: $label, posteId: $posteId, "
       "isDebit: $isDebit, amountCents: $amountCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     date,

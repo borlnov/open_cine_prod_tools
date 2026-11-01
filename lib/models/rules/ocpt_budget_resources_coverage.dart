@@ -67,7 +67,7 @@ class OcptBudgetResourcesCoverage extends Equatable {
       "OcptBudgetResourcesCoverage(needs: $needs, received: $received, "
       "promisedCents: $promisedCents, missingCents: $missingCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [needs, received, promisedCents, missingCents];
 }

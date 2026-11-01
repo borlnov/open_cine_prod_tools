@@ -69,7 +69,7 @@ class OcptFloorPlanArrowShape extends Equatable {
   @override
   String toString() => "OcptFloorPlanArrowShape(arrowId: $arrowId, kind: $kind, isGhost: $isGhost)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     arrowId,

@@ -286,7 +286,7 @@ class OcptPerson extends Equatable {
   @override
   String toString() => "OcptPerson(id: $id, displayName: $displayName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

@@ -62,7 +62,7 @@ class OcptShootingSlotCrewMember extends Equatable {
   @override
   String toString() => "OcptShootingSlotCrewMember(id: $id, slotId: $slotId, personId: $personId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, slotId, personId, positionId, customLabel, notes];
 }

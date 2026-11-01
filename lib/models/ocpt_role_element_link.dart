@@ -39,7 +39,7 @@ class OcptRoleElementLink extends Equatable {
   @override
   String toString() => "OcptRoleElementLink(id: $id, roleId: $roleId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, roleId, notes];
 }

@@ -46,7 +46,7 @@ class OcptScriptWordBlock extends Equatable {
       "OcptScriptWordBlock(type: $type, startOffset: $startOffset, endOffset: $endOffset, "
       "wordCount: ${words.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [type, text, startOffset, endOffset, words];
 }

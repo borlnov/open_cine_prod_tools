@@ -70,7 +70,7 @@ class OcptRoleCandidate extends Equatable {
   @override
   String toString() => "OcptRoleCandidate(id: $id, roleId: $roleId, status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, roleId, person, status, auditionedOn, notes];
 }

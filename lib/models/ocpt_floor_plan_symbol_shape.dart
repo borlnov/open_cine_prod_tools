@@ -178,7 +178,7 @@ class OcptFloorPlanSymbolShape extends Equatable {
   String toString() =>
       "OcptFloorPlanSymbolShape(symbolId: $symbolId, layer: $layer, isGhost: $isGhost)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     symbolId,

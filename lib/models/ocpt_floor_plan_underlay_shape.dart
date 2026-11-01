@@ -42,7 +42,7 @@ class OcptFloorPlanUnderlayShape extends Equatable {
   @override
   String toString() => "OcptFloorPlanUnderlayShape(assetId: $assetId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [assetId, path, xM, yM, widthM, heightM, rotationDeg];
 }

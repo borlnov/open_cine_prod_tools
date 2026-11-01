@@ -247,7 +247,7 @@ class OcptScriptSidesLayout extends Equatable {
     return pages;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pages];
 }

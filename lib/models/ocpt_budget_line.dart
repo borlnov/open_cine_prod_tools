@@ -91,7 +91,7 @@ class OcptBudgetLine extends Equatable {
   @override
   String toString() => "OcptBudgetLine(id: $id, posteId: $posteId, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

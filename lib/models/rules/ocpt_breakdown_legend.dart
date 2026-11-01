@@ -48,7 +48,7 @@ class OcptBreakdownLegendEntry extends Equatable {
     required this.count,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, category, color, count];
 }

@@ -139,7 +139,7 @@ class OcptProjectVersionSummary extends Equatable {
     return summary;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pageCount, brokenDownSequenceCount];
 }

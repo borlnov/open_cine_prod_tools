@@ -21,7 +21,7 @@ class OcptSyncTransportFailure extends Equatable {
   @override
   String toString() => error.toString();
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [error];
 }

@@ -47,7 +47,7 @@ class OcptProjectPackageImportReport extends Equatable {
       "projectName: $projectName, importedAssetCount: $importedAssetCount, "
       "skippedAssetCount: ${skippedAssets.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [projectFilePath, projectName, importedAssetCount, skippedAssets];
 }

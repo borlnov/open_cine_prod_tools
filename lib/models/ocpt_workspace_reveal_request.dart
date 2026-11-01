@@ -25,7 +25,7 @@ sealed class OcptWorkspaceRevealRequest extends Equatable {
   /// Class constructor
   const OcptWorkspaceRevealRequest();
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [];
 }
@@ -56,7 +56,7 @@ final class OcptResourcesRevealRequest extends OcptWorkspaceRevealRequest {
   @override
   String toString() => "OcptResourcesRevealRequest(tab: $tab, recordId: $recordId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [...super.props, tab, recordId];
 }
@@ -86,7 +86,7 @@ final class OcptShotListRevealRequest extends OcptWorkspaceRevealRequest {
   @override
   String toString() => "OcptShotListRevealRequest(sceneId: $sceneId, setId: $setId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [...super.props, sceneId, setId];
 }

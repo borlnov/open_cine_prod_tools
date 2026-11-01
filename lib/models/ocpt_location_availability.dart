@@ -80,7 +80,7 @@ class OcptLocationAvailability extends Equatable {
   String toString() =>
       "OcptLocationAvailability(id: $id, startDate: $startDate, endDate: $endDate, kind: $kind)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

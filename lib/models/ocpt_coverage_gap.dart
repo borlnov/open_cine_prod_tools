@@ -35,7 +35,7 @@ class OcptCoverageGap extends Equatable {
   String toString() =>
       "OcptCoverageGap(page: $pageIndex, row: $row, columns: $startColumn-$endColumn)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pageIndex, row, startColumn, endColumn];
 }

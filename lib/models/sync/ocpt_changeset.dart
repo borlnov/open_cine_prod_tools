@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 /// [OcptChangeset.decode] are the two ends of that opaque byte string; every other member is this
 /// class's own JSON shape, carried the same way every other model in `lib/models/` carries one.
 class OcptChangeset extends Equatable {
+  /// The JSON key of the field stamps.
   static const _fieldStampsKey = 'fieldStamps';
 
   /// Every field stamp this changeset carries.
@@ -47,9 +48,11 @@ class OcptChangeset extends Equatable {
   /// inverse of [OcptChangeset.decode].
   Uint8List encode() => Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
 
+  /// Describe this [OcptChangeset] for debugging and logging.
   @override
   String toString() => 'OcptChangeset(fieldStamps: $fieldStamps)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fieldStamps];
 }

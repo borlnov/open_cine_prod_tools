@@ -34,7 +34,7 @@ class OcptScriptWord extends Equatable {
   String toString() =>
       "OcptScriptWord(text: $text, startOffset: $startOffset, endOffset: $endOffset)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [text, startOffset, endOffset];
 }

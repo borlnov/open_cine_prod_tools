@@ -42,7 +42,7 @@ class OcptSkippedAsset extends Equatable {
   String toString() =>
       "OcptSkippedAsset(assetId: $assetId, label: $label, originalPath: $originalPath)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [assetId, label, originalPath];
 }

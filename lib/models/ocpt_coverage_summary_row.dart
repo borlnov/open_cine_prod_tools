@@ -65,7 +65,7 @@ class OcptCoverageSummaryRow extends Equatable {
       "OcptCoverageSummaryRow(sequenceId: $sequenceId, shotCount: $shotCount, "
       "covered: $coveredWordCount/$wordCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     sequenceId,

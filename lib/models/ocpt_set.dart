@@ -54,7 +54,7 @@ class OcptSet extends Equatable {
   @override
   String toString() => "OcptSet(id: $id, name: $name)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, locationId, code, name, notes, sceneIds];
 }

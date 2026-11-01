@@ -42,7 +42,7 @@ class OcptBudgetLineFormFields extends Equatable {
       "OcptBudgetLineFormFields(label: $label, quantityMilli: $quantityMilli, unit: $unit, "
       "unitAmountCents: $unitAmountCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [label, quantityMilli, unit, unitAmountCents];
 }

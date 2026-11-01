@@ -69,7 +69,7 @@ class OcptSceneRef extends Equatable {
   @override
   String toString() => "OcptSceneRef(id: $id, heading: $heading)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, position, heading, sceneNumber, episodeNumber];
 }

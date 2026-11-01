@@ -44,7 +44,7 @@ class OcptBreakdownSuggestion extends Equatable {
     required this.text,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [targetKind, targetId, sceneId, startOffset, endOffset, text];
 }

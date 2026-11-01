@@ -66,7 +66,7 @@ class OcptScenarioCoveragePage extends Equatable {
       "OcptScenarioCoveragePage(pageIndex: $pageIndex, segments: ${segments.length}, "
       "gaps: ${gaps.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     pageIndex,

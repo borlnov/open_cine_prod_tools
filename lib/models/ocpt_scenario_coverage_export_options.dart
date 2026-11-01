@@ -59,7 +59,7 @@ class OcptScenarioCoverageExportOptions extends Equatable {
       "includeSceneNumbers: $includeSceneNumbers, includeTitlePage: $includeTitlePage, "
       "includeLegendPage: $includeLegendPage, includeSummaryPage: $includeSummaryPage)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     format,

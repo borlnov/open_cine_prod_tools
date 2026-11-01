@@ -98,7 +98,7 @@ class OcptFloorPlanSet extends Equatable {
       "OcptFloorPlanSet(id: $id, name: $name, symbols: ${symbols.length}, arrows: "
       "${arrows.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

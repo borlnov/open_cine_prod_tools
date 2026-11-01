@@ -28,7 +28,7 @@ class OcptBreakdownSearchResults extends Equatable {
     required this.elements,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [roles, sets, elements];
 }

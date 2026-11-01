@@ -51,7 +51,7 @@ class OcptShootingDayEvent extends Equatable {
       "OcptShootingDayEvent(id: $id, shootingDayId: $shootingDayId, minute: $minute, "
       "label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, shootingDayId, minute, label, notes];
 }

@@ -50,7 +50,7 @@ class OcptBudgetProvisionEntry extends Equatable {
       "OcptBudgetProvisionEntry(kind: $kind, lineId: $lineId, outcome: $outcome, "
       "quantityMilli: $quantityMilli, unitAmountCents: $unitAmountCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, lineId, label, quantityMilli, unitAmountCents, outcome];
 }

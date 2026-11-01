@@ -96,7 +96,7 @@ class OcptBreakdownTag extends Equatable {
   String toString() =>
       "OcptBreakdownTag(id: $id, sceneId: $sceneId, targetKind: $targetKind, targetId: $targetId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

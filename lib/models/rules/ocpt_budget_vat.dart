@@ -31,7 +31,7 @@ class OcptBudgetEffectiveVatRate extends Equatable {
   String toString() =>
       "OcptBudgetEffectiveVatRate(basisPoints: $basisPoints, isOverridden: $isOverridden)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [basisPoints, isOverridden];
 }

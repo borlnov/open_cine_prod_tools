@@ -156,7 +156,7 @@ class OcptBreakdownSheetsLabels extends Equatable {
   String toString() =>
       "OcptBreakdownSheetsLabels(documentTitle: $documentTitle, sceneCount: ${sceneTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

@@ -50,7 +50,7 @@ class OcptFountainSyntaxEntry extends Equatable {
       "OcptFountainSyntaxEntry(topic: $topic, section: $section, "
       "snippetLines: $snippetLines, lineType: $lineType)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [topic, section, snippetLines, lineType];
 }

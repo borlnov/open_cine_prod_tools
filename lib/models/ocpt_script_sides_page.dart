@@ -27,7 +27,7 @@ class OcptScriptSidesPage extends Equatable {
   String toString() =>
       "OcptScriptSidesPage(scriptPageIndex: $scriptPageIndex, lines: ${lines.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [scriptPageIndex, lines];
 }

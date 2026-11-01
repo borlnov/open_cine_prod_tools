@@ -45,7 +45,7 @@ class OcptPageSetup extends Equatable {
   @override
   String toString() => "OcptPageSetup(format: $format, margins: $margins)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins];
 }

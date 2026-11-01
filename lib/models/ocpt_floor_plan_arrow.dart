@@ -71,7 +71,7 @@ class OcptFloorPlanArrow extends Equatable {
   @override
   String toString() => "OcptFloorPlanArrow(id: $id, setId: $setId, shotId: $shotId, kind: $kind)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

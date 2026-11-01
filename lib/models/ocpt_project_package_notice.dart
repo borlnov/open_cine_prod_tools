@@ -32,7 +32,7 @@ class OcptProjectPackageNotice extends Equatable {
       "OcptProjectPackageNotice(kind: $kind, path: $path, "
       "skippedAssetCount: $skippedAssetCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, path, skippedAssetCount];
 }

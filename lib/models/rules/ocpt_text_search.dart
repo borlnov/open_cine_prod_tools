@@ -17,7 +17,7 @@ class OcptTextMatch extends Equatable {
   /// Class constructor
   const OcptTextMatch({required this.start, required this.end});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [start, end];
 }

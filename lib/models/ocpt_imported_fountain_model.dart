@@ -27,7 +27,7 @@ class OcptImportedFountainModel extends Equatable {
       "OcptImportedFountainModel(sourceFileName: $sourceFileName, "
       "fountainTextLength: ${fountainText.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fountainText, sourceFileName];
 }

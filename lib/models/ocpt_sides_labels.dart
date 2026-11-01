@@ -78,7 +78,7 @@ class OcptSidesLabels extends Equatable {
   @override
   String toString() => "OcptSidesLabels(documentTitle: $documentTitle, dayTitle: $dayTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

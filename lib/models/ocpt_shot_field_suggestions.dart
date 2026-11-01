@@ -63,7 +63,7 @@ class OcptShotFieldSuggestions extends Equatable {
       "lensCount: ${lenses.length}, recordingFormatCount: ${recordingFormats.length}, "
       "soundCount: ${sounds.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [shotSizes, framings, cameraMoves, lenses, recordingFormats, sounds];
 }

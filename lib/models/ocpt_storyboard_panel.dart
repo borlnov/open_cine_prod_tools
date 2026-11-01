@@ -70,7 +70,7 @@ class OcptStoryboardPanel extends Equatable {
       "OcptStoryboardPanel(id: $id, shotId: $shotId, hasImage: ${imagePath != null}, "
       "annotations: ${annotations.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, shotId, sortKey, imageAssetId, imagePath, comment, annotations];
 }

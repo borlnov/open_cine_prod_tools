@@ -24,7 +24,7 @@ class OcptShootingDayAgendaColumn extends Equatable {
   @override
   String toString() => "OcptShootingDayAgendaColumn(slotId: $slotId, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [slotId, label];
 }

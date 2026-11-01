@@ -58,7 +58,7 @@ class OcptBudgetEntryWizardResult extends OcptBudgetNewOutcome {
   String toString() =>
       "OcptBudgetEntryWizardResult(fields: $fields, acceptedSuggestion: $acceptedSuggestion)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields, acceptedSuggestion];
 }
@@ -74,7 +74,7 @@ class OcptBudgetNewLineOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewLineOutcome({required this.posteId, required this.fields});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [posteId, fields];
 }
@@ -91,7 +91,7 @@ class OcptBudgetNewLinesFromBreakdownOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewLinesFromBreakdownOutcome({required this.lines});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lines];
 }
@@ -108,7 +108,7 @@ class OcptBudgetNewCommitmentOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewCommitmentOutcome({required this.fields, this.lineId});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields, lineId];
 }
@@ -121,7 +121,7 @@ class OcptBudgetNewResourceOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewResourceOutcome({required this.fields});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields];
 }
@@ -134,7 +134,7 @@ class OcptBudgetNewRevenueOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewRevenueOutcome({required this.fields});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields];
 }
@@ -147,7 +147,7 @@ class OcptBudgetNewAllowanceOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewAllowanceOutcome({required this.fields});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields];
 }
@@ -160,7 +160,7 @@ class OcptBudgetNewShareOutcome extends OcptBudgetNewOutcome {
   /// Class constructor
   const OcptBudgetNewShareOutcome({required this.fields});
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [fields];
 }

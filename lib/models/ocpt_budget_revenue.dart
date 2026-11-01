@@ -60,7 +60,7 @@ class OcptBudgetRevenue extends Equatable {
       "OcptBudgetRevenue(id: $id, date: $date, label: $label, "
       "amountCents: $amountCents, status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, date, label, amountCents, status, notes, sortKey];
 }

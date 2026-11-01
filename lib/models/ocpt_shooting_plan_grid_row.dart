@@ -47,7 +47,7 @@ class OcptShootingPlanGridRow extends Equatable {
   @override
   String toString() => "OcptShootingPlanGridRow(label: $label, cells: ${cells.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [label, cells, isBold, isMuted, isIndented];
 }

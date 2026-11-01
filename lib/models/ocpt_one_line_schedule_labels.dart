@@ -99,7 +99,7 @@ class OcptOneLineScheduleLabels extends Equatable {
   String toString() =>
       "OcptOneLineScheduleLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

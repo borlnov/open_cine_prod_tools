@@ -101,7 +101,7 @@ class OcptBreakdownXlsxLabels extends Equatable {
       "OcptBreakdownXlsxLabels(scenesSheetName: $scenesSheetName, entriesSheetName: "
       "$entriesSheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

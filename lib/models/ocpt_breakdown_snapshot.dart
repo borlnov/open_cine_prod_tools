@@ -241,7 +241,7 @@ class OcptBreakdownSnapshot extends Equatable {
       "toFindCount: $toFindCount, doneSceneCount: $doneSceneCount, "
       "needsCheckTagCount: $needsCheckTagCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     screenplayId,

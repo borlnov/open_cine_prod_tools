@@ -91,7 +91,7 @@ class OcptAssetRef extends Equatable {
   @override
   String toString() => "OcptAssetRef(id: $id, kind: $kind, path: $path)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

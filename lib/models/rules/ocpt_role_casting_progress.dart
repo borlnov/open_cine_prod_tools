@@ -59,7 +59,7 @@ class OcptRoleCastingProgress extends Equatable {
   @override
   String toString() => "OcptRoleCastingProgress(stage: $stage, candidateCount: $candidateCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [stage, candidateCount];
 }

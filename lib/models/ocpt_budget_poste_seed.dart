@@ -37,7 +37,7 @@ class OcptBudgetPosteSeed extends Equatable {
   @override
   String toString() => "OcptBudgetPosteSeed(id: $id, code: $code, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, code, label, simpleLabel];
 }

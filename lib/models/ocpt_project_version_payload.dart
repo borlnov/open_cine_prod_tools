@@ -378,7 +378,7 @@ class OcptProjectVersionPayload extends Equatable {
       "mealPriceCents: $mealPriceCents, snackPriceCents: $snackPriceCents, "
       "isBudgetSimplified: $isBudgetSimplified)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     screenplays,

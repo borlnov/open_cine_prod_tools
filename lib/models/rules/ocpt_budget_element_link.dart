@@ -42,7 +42,7 @@ class OcptBudgetElementLinkCounts extends Equatable {
   String toString() =>
       "OcptBudgetElementLinkCounts(pricedCount: $pricedCount, unpricedCount: $unpricedCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pricedCount, unpricedCount];
 }

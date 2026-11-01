@@ -57,7 +57,7 @@ class OcptCallSheetExportResult extends Equatable {
       "writtenCount: ${writtenFileNames.length}, failedCount: ${failedFileNames.length}, "
       "wasShared: $wasShared)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [folderPath, writtenFileNames, failedFileNames, wasShared];
 }

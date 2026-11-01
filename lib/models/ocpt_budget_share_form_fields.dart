@@ -44,7 +44,7 @@ class OcptBudgetShareFormFields extends Equatable {
       "OcptBudgetShareFormFields(personId: $personId, label: $label, "
       "sharePermille: $sharePermille, reinvestPermille: $reinvestPermille)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [personId, label, sharePermille, reinvestPermille, notes];
 }

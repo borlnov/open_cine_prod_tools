@@ -45,7 +45,7 @@ class OcptShootingDayAgendaColumnInput extends Equatable {
       "OcptShootingDayAgendaColumnInput(slotId: $slotId, label: $label, "
       "captionCount: ${captionByBlockId.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [slotId, label, timeline, captionByBlockId];
 }

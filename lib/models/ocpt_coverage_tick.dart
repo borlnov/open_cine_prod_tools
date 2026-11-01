@@ -26,7 +26,7 @@ class OcptCoverageTick extends Equatable {
   @override
   String toString() => "OcptCoverageTick(row: $row, column: $column)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [row, column];
 }

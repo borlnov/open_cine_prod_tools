@@ -40,7 +40,7 @@ class OcptPackagedAsset extends Equatable {
   String toString() =>
       "OcptPackagedAsset(assetId: $assetId, entry: $entry, originalPath: $originalPath)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [assetId, entry, originalPath];
 }

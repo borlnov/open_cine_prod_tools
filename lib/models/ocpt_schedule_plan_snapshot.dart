@@ -898,7 +898,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
     return calledRoles;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     schedule,

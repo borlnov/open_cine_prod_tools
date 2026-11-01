@@ -97,7 +97,7 @@ class OcptBudgetQuoteLabels extends Equatable {
   @override
   String toString() => "OcptBudgetQuoteLabels(documentTitle: $documentTitle)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

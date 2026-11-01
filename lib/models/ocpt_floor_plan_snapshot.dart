@@ -65,7 +65,7 @@ class OcptFloorPlanSnapshot extends Equatable {
   String toString() =>
       "OcptFloorPlanSnapshot(screenplayId: $screenplayId, setCount: ${setsById.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [screenplayId, setsBySceneId, setsById];
 }

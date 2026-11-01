@@ -65,7 +65,7 @@ class OcptBudgetResourceFormFields extends Equatable {
       "OcptBudgetResourceFormFields(groupKind: $groupKind, personId: $personId, label: $label, "
       "amountCents: $amountCents, status: $status, posteId: $posteId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     groupKind,

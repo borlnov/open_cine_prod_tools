@@ -454,7 +454,7 @@ class OcptBudgetSnapshot extends Equatable {
       "regieDayCount: ${regieDays.length}, allowanceCount: ${allowances.length}, "
       "revenueCount: $revenueCount, shareCount: $shareCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     postes,

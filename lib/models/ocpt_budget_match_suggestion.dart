@@ -79,7 +79,7 @@ class OcptBudgetMatchSuggestion extends Equatable {
       "outstandingCents: $outstandingCents, matchesAmount: $matchesAmount, "
       "matchesDate: $matchesDate, matchesWording: $matchesWording)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     kind,

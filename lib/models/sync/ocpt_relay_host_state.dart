@@ -26,7 +26,7 @@ final class OcptRelayHostStopped extends OcptRelayHostState {
   @override
   String toString() => "OcptRelayHostStopped()";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -41,7 +41,7 @@ final class OcptRelayHostStarting extends OcptRelayHostState {
   @override
   String toString() => "OcptRelayHostStarting()";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -64,7 +64,7 @@ final class OcptRelayHostOnline extends OcptRelayHostState {
   @override
   String toString() => "OcptRelayHostOnline(lanBaseUri: $lanBaseUri)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [lanBaseUri, enrolmentSecret];
 }
@@ -82,7 +82,7 @@ final class OcptRelayHostFailed extends OcptRelayHostState {
   @override
   String toString() => "OcptRelayHostFailed(message: $message)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [message];
 }

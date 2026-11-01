@@ -36,7 +36,7 @@ class OcptShootingPlanGridColumn extends Equatable {
   @override
   String toString() => "OcptShootingPlanGridColumn(dayId: $dayId, slotId: $slotId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [dayId, dayNumber, slotId, slotLabel];
 }

@@ -40,7 +40,7 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
   String toString() =>
       "OcptShootingDayAgendaEventMarker(eventId: $eventId, placement: $placement, row: $row)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [eventId, label, minute, placement, row];
 }

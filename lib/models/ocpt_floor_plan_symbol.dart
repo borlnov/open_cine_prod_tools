@@ -125,7 +125,7 @@ class OcptFloorPlanSymbol extends Equatable {
       "OcptFloorPlanSymbol(id: $id, setId: $setId, sceneId: $sceneId, shotId: $shotId, "
       "layer: $layer)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

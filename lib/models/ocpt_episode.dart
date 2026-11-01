@@ -41,7 +41,7 @@ class OcptEpisode extends Equatable {
   @override
   String toString() => "OcptEpisode(id: $id, number: $number, title: $title)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, number, title];
 }

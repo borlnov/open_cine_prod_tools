@@ -37,7 +37,7 @@ class OcptBudgetJournalRow extends Equatable {
       "OcptBudgetJournalRow(entry: ${entry.id}, debitCents: $debitCents, "
       "creditCents: $creditCents, balanceAfterCents: $balanceAfterCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [entry, debitCents, creditCents, balanceAfterCents];
 }

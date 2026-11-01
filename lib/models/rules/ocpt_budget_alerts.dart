@@ -70,7 +70,7 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
   String toString() =>
       "OcptBudgetPosteOverQuoteAlert(posteId: $posteId, varianceCents: $varianceCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [posteId, quotedAmountCents, paidCents, committedCents, varianceCents];
 }
@@ -114,7 +114,7 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
       "OcptBudgetCashProjectionNegativeAlert(balanceCents: $balanceCents, dueDate: $dueDate, "
       "balanceAfterCents: $balanceAfterCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [balanceCents, dueDate, fallingDueCents, balanceAfterCents];
 }

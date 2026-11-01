@@ -82,7 +82,7 @@ class OcptBudgetRegieDay extends Equatable {
       "OcptBudgetRegieDay(dayId: $dayId, dayNumber: $dayNumber, headCount: $headCount, "
       "mealSittingCount: ${mealSittings.length}, cost: $cost)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     dayId,

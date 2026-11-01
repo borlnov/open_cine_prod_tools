@@ -49,7 +49,7 @@ class OcptOneLineScheduleExportOptions extends Equatable {
       "OcptOneLineScheduleExportOptions(format: $format, margins: $margins, dayIds: $dayIds, "
       "includeTitlePage: $includeTitlePage)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, dayIds, includeTitlePage];
 }

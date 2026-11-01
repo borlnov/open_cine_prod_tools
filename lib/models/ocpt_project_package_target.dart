@@ -25,7 +25,7 @@ class OcptProjectPackageTarget extends Equatable {
   @override
   String toString() => "OcptProjectPackageTarget(filePath: $filePath, name: $name)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [filePath, name];
 }

@@ -50,7 +50,7 @@ class OcptBudgetCoveredTotal extends Equatable {
       "OcptBudgetCoveredTotal(amountCents: $amountCents, coveredLineCount: $coveredLineCount, "
       "lineCount: $lineCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [amountCents, coveredLineCount, lineCount];
 }

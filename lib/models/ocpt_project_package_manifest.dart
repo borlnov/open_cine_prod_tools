@@ -115,7 +115,7 @@ class OcptProjectPackageManifest extends Equatable {
       "schemaVersion: $schemaVersion, projectName: $projectName, exportedAt: $exportedAt, "
       "assetCount: ${assets.length}, skippedAssetCount: ${skippedAssets.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     packageFormat,

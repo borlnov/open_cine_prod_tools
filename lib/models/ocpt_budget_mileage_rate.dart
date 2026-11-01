@@ -44,7 +44,7 @@ class OcptBudgetMileageRate extends Equatable {
       "OcptBudgetMileageRate(id: $id, label: $label, "
       "ratePerKmMilliCents: $ratePerKmMilliCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, label, ratePerKmMilliCents, sortKey];
 }

@@ -31,11 +31,22 @@ import 'package:equatable/equatable.dart';
 /// `TypeConverter` result can never reach [toJson] in the first place, because [value] is never
 /// that Dart-converted form to begin with.
 class OcptFieldStamp extends Equatable {
+  /// The JSON key of the table name.
   static const _tableNameKey = 'tableName';
+
+  /// The JSON key of the row id.
   static const _rowIdKey = 'rowId';
+
+  /// The JSON key of the column name.
   static const _columnNameKey = 'columnName';
+
+  /// The JSON key of the value.
   static const _valueKey = 'value';
+
+  /// The JSON key of the version.
   static const _versionKey = 'version';
+
+  /// The JSON key of the device id.
   static const _deviceIdKey = 'deviceId';
 
   /// The JSON key a blob's base64 text is nested under inside [_valueKey] — see [_encodeValue] for
@@ -97,6 +108,7 @@ class OcptFieldStamp extends Equatable {
     _deviceIdKey: deviceId,
   };
 
+  /// Describe this [OcptFieldStamp] for debugging and logging.
   @override
   String toString() =>
       'OcptFieldStamp(tableName: $tableName, rowId: $rowId, columnName: $columnName, '
@@ -121,6 +133,7 @@ class OcptFieldStamp extends Equatable {
       ? base64Decode(json[_blobKey] as String)
       : json;
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [tableName, rowId, columnName, value, version, deviceId];
 }

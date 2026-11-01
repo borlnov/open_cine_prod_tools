@@ -74,7 +74,7 @@ class OcptStoryboardAnnotation extends Equatable {
   String toString() =>
       "OcptStoryboardAnnotation(id: $id, panelId: $panelId, kind: $kind, text: $text)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, panelId, kind, sortKey, x1, y1, x2, y2, text];
 }

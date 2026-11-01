@@ -15,9 +15,16 @@ import 'package:equatable/equatable.dart';
 /// [toJson] and `OcptPresenceFrame.fromJson` exist purely for the two replicas on either end of
 /// that opaque string.
 class OcptPresenceFrame extends Equatable {
+  /// The JSON key of the device id.
   static const _deviceIdKey = 'deviceId';
+
+  /// The JSON key of the platform.
   static const _platformKey = 'platform';
+
+  /// The JSON key of the mode key.
   static const _modeKeyKey = 'modeKey';
+
+  /// The JSON key of the heartbeat counter.
   static const _heartbeatKey = 'heartbeat';
 
   /// The replica that sent this frame — the same id every changeset it pushes is stamped with.
@@ -65,11 +72,13 @@ class OcptPresenceFrame extends Equatable {
     _heartbeatKey: heartbeat,
   };
 
+  /// Describe this [OcptPresenceFrame] for debugging and logging.
   @override
   String toString() =>
       'OcptPresenceFrame(deviceId: $deviceId, platform: $platform, modeKey: $modeKey, '
       'heartbeat: $heartbeat)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [deviceId, platform, modeKey, heartbeat];
 }

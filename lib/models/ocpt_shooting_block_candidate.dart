@@ -53,7 +53,7 @@ class OcptShootingBlockCandidate extends Equatable {
   String toString() =>
       "OcptShootingBlockCandidate(id: $id, blockId: $blockId, roleCandidateId: $roleCandidateId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, blockId, roleCandidateId, notes];
 }

@@ -11,6 +11,8 @@ const double ocptStoryboardFallbackAspectRatio = 16 / 9;
 /// frame rate, a resolution). Every real-world cinema ratio, from 1.33 (Academy) to 2.76
 /// (Ultra Panavision), sits well inside this band.
 const double _minimumPlausibleRatio = 1;
+
+/// The widest ratio accepted as an aspect ratio, see [_minimumPlausibleRatio].
 const double _maximumPlausibleRatio = 3.5;
 
 /// A `width:height` or `width/height` pair, either side an integer or a decimal.

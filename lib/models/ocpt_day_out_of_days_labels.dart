@@ -109,7 +109,7 @@ class OcptDayOutOfDaysLabels extends Equatable {
   String toString() =>
       "OcptDayOutOfDaysLabels(documentTitle: $documentTitle, dayCount: ${dayDateLabels.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

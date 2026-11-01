@@ -131,7 +131,7 @@ class OcptShootingPlanXlsxLabels extends Equatable {
       "OcptShootingPlanXlsxLabels(locationsSheetName: $locationsSheetName, chronologySheetName: "
       "$chronologySheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

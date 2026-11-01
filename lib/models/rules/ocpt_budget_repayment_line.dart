@@ -77,7 +77,7 @@ class OcptBudgetRepaymentLine extends Equatable {
       "contributedCents: $contributedCents, reimbursableCents: $reimbursableCents, "
       "repaid: $repaid)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [personId, label, contributedCents, reimbursableCents, repaid];
 }

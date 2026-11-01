@@ -120,7 +120,7 @@ class OcptRecentProjectModel extends Equatable {
     );
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [path, name, lastOpenedAt, episodeCount];
 }

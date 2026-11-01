@@ -22,6 +22,7 @@ import 'package:equatable/equatable.dart';
 /// they changed differently — see [ocptThreeWayMerge]'s own doc comment for the algorithm and its
 /// cost.
 sealed class OcptThreeWayMergeResult extends Equatable {
+  /// Class constructor
   const OcptThreeWayMergeResult();
 }
 
@@ -36,9 +37,11 @@ final class OcptCleanThreeWayMerge extends OcptThreeWayMergeResult {
   /// Creates a clean merge result.
   const OcptCleanThreeWayMerge(this.mergedText);
 
+  /// Describe this [OcptCleanThreeWayMerge] for debugging and logging.
   @override
   String toString() => 'OcptCleanThreeWayMerge(mergedText: $mergedText)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [mergedText];
 }
@@ -55,9 +58,11 @@ final class OcptThreeWayMergeConflict extends OcptThreeWayMergeResult {
   /// [OcptThreeWayMergeConflict] rather than an [OcptCleanThreeWayMerge].
   const OcptThreeWayMergeConflict(this.hunks);
 
+  /// Describe this [OcptThreeWayMergeConflict] for debugging and logging.
   @override
   String toString() => 'OcptThreeWayMergeConflict(hunks: $hunks)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [hunks];
 }
@@ -81,11 +86,13 @@ class OcptThreeWayMergeHunk extends Equatable {
     required this.rightLines,
   });
 
+  /// Describe this [OcptThreeWayMergeHunk] for debugging and logging.
   @override
   String toString() =>
       'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: '
       '$rightLines)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [baseLines, leftLines, rightLines];
 }
@@ -215,10 +222,16 @@ List<int?> _matchedIndexByBaseIndex(List<String> base, List<String> other) {
 
 /// One run of consecutive lines [_matchingBlocks] found identical, in order, between two texts.
 class _MatchingBlock {
+  /// The index of the first line of the run in the base text.
   final int baseStart;
+
+  /// The index of the first line of the run in the other text.
   final int otherStart;
+
+  /// The number of lines in the run.
   final int length;
 
+  /// Class constructor
   const _MatchingBlock({required this.baseStart, required this.otherStart, required this.length});
 }
 

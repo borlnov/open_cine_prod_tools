@@ -27,7 +27,7 @@ class OcptScenePropSummary extends Equatable {
   @override
   String toString() => "OcptScenePropSummary(elementId: $elementId, name: $name)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [elementId, name, quantity];
 }

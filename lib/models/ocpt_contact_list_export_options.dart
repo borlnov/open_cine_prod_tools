@@ -33,7 +33,7 @@ class OcptContactListExportOptions extends Equatable {
   @override
   String toString() => "OcptContactListExportOptions(format: $format, margins: $margins)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins];
 }

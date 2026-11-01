@@ -47,7 +47,7 @@ class OcptProjectWorkingCopyState extends Equatable {
       "OcptProjectWorkingCopyState(baseVersionId: $baseVersionId, "
       "isModifiedSinceBase: $isModifiedSinceBase)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [summary, contentDigest, baseVersionId, isModifiedSinceBase];
 }

@@ -222,7 +222,7 @@ class OcptResourcesXlsxLabels extends Equatable {
       "$rolesSheetName, locationsSheetName: $locationsSheetName, elementsSheetName: "
       "$elementsSheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

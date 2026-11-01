@@ -54,7 +54,7 @@ class OcptPdfExportOptions extends Equatable {
       "OcptPdfExportOptions(format: $format, margins: $margins, "
       "includeSceneNumbers: $includeSceneNumbers, includeTitlePage: $includeTitlePage)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, includeSceneNumbers, includeTitlePage];
 }

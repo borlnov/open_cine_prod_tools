@@ -31,7 +31,7 @@ class OcptShootingDayAgendaEventInput extends Equatable {
   @override
   String toString() => "OcptShootingDayAgendaEventInput(id: $id, minute: $minute, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, minute, label];
 }

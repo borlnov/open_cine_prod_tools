@@ -93,7 +93,7 @@ class OcptCoverageBarSegment extends Equatable {
       "OcptCoverageBarSegment(label: $label, page: $pageIndex, rows: $firstRow-$lastRow, "
       "${side.name} lane $lane)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     pageIndex,

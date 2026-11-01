@@ -33,7 +33,7 @@ class OcptProjectPackageExportReport extends Equatable {
       "OcptProjectPackageExportReport(packagePath: $packagePath, "
       "packagedAssetCount: $packagedAssetCount, skippedAssetCount: ${skippedAssets.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [packagePath, packagedAssetCount, skippedAssets];
 }

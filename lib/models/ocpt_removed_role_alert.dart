@@ -44,7 +44,7 @@ class OcptRemovedRoleAlert extends Equatable {
       if (OcptRemovedRoleAlert.of(role) case final alert?) alert,
   ];
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [roleId, characterName];
 }

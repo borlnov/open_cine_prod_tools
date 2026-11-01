@@ -29,7 +29,7 @@ final class OcptReconcileSucceeded extends OcptReconcileOutcome {
   @override
   String toString() => "OcptReconcileSucceeded(pushed: $pushed, pulled: $pulled)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pushed, pulled];
 }
@@ -47,7 +47,7 @@ final class OcptReconcileFailed extends OcptReconcileOutcome {
   @override
   String toString() => "OcptReconcileFailed(message: $message)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [message];
 }

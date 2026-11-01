@@ -269,7 +269,7 @@ class OcptShootingDayAgendaGrid extends Equatable {
     return (value > 0 && value % divisor != 0) ? quotient + 1 : quotient;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [isEmpty, startMinute, endMinute, columns, tiles, events];
 }

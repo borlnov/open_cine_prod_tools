@@ -91,7 +91,7 @@ class OcptShotListSnapshot extends Equatable {
       "OcptShotListSnapshot(screenplayId: $screenplayId, sequenceCount: ${sequences.length}, "
       "totalShotCount: $totalShotCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [screenplayId, sequences, shotsById, placementsByShotId];
 }

@@ -79,7 +79,7 @@ class OcptRoleCollisionAlert extends Equatable {
     return alerts;
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [name, screenplayRoleId, handAddedRoleId];
 }

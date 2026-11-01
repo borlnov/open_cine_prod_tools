@@ -343,7 +343,7 @@ class OcptBudgetProjection extends Equatable {
       "OcptBudgetProjection(openingBalanceCents: $openingBalanceCents, steps: ${steps.length}, "
       "coveredCommitmentCount: $coveredCommitmentCount, commitmentCount: $commitmentCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [openingBalanceCents, steps, coveredCommitmentCount, commitmentCount];
 }

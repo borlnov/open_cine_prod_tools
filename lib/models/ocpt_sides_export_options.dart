@@ -60,7 +60,7 @@ class OcptSidesExportOptions extends Equatable {
       "OcptSidesExportOptions(format: $format, margins: $margins, dayId: $dayId, "
       "includeSceneNumbers: $includeSceneNumbers, presentation: $presentation)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, dayId, includeSceneNumbers, presentation];
 }

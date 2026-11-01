@@ -99,7 +99,7 @@ class OcptScheduleSnapshot extends Equatable {
   String toString() =>
       "OcptScheduleSnapshot(dayCount: $dayCount, placedShotCount: ${placedShotIds.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     days,

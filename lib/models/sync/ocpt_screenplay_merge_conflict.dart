@@ -39,11 +39,13 @@ class OcptScreenplayMergeConflict extends Equatable {
     required this.incomingText,
   });
 
+  /// Describe this [OcptScreenplayMergeConflict] for debugging and logging.
   @override
   String toString() =>
       'OcptScreenplayMergeConflict(screenplayId: $screenplayId, baseText: $baseText, '
       'localText: $localText, incomingText: $incomingText)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [screenplayId, baseText, localText, incomingText];
 }

@@ -29,7 +29,7 @@ class OcptWorkspaceExportDocumentPick<T> extends OcptWorkspaceExportPick<T> {
   @override
   String toString() => "OcptWorkspaceExportDocumentPick(document: $document)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [document];
 }
@@ -46,7 +46,7 @@ class OcptWorkspaceExportProjectPackagePick<T> extends OcptWorkspaceExportPick<T
   @override
   String toString() => "OcptWorkspaceExportProjectPackagePick()";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }

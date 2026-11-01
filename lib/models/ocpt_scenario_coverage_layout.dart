@@ -695,7 +695,7 @@ class OcptScenarioCoverageLayout extends Equatable {
       ? text
       : "${text.substring(0, _maxUncoveredExtractLength).trimRight()}$_ellipsis";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pages, legend, summary];
 }

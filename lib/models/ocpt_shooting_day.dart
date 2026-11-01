@@ -69,7 +69,7 @@ class OcptShootingDay extends Equatable {
   @override
   String toString() => "OcptShootingDay(id: $id, dayNumber: $dayNumber, date: $date)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, date, dayNumber, status, crewNote, weatherNote, notes];
 }

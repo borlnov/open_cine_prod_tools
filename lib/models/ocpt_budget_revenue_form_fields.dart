@@ -44,7 +44,7 @@ class OcptBudgetRevenueFormFields extends Equatable {
       "OcptBudgetRevenueFormFields(date: $date, label: $label, "
       "amountCents: $amountCents, status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [date, label, amountCents, status, notes];
 }

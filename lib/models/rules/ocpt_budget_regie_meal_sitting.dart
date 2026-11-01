@@ -34,7 +34,7 @@ class OcptBudgetRegieMealSitting extends Equatable {
   String toString() =>
       "OcptBudgetRegieMealSitting(blockId: $blockId, slotId: $slotId, headCount: $headCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [blockId, slotId, headCount];
 }

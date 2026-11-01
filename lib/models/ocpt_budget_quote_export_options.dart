@@ -52,7 +52,7 @@ class OcptBudgetQuoteExportOptions extends Equatable {
       "OcptBudgetQuoteExportOptions(format: $format, margins: $margins, "
       "includeTitlePage: $includeTitlePage, taxBasis: $taxBasis)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, includeTitlePage, taxBasis];
 }

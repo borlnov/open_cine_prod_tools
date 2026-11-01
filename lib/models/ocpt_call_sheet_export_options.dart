@@ -56,7 +56,7 @@ class OcptCallSheetExportOptions extends Equatable {
       "OcptCallSheetExportOptions(format: $format, margins: $margins, "
       "dayIds: $dayIds, selectedConvocationKeys: $selectedConvocationKeys)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, dayIds, selectedConvocationKeys];
 }

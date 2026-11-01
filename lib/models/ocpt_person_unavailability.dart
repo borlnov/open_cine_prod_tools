@@ -67,7 +67,7 @@ class OcptPersonUnavailability extends Equatable {
   String toString() =>
       "OcptPersonUnavailability(id: $id, startDate: $startDate, endDate: $endDate, slot: $slot)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

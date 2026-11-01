@@ -40,7 +40,7 @@ class OcptBreakdownSearchCandidate extends Equatable {
     required this.taggedSceneCount,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, id, name, category, taggedSceneCount];
 }

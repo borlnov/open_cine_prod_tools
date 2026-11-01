@@ -67,7 +67,7 @@ class OcptShotCoverageRange extends Equatable {
       "OcptShotCoverageRange(id: $id, sceneId: $sceneId, startOffset: $startOffset, "
       "endOffset: $endOffset, isStale: $isStale)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, sceneId, startOffset, endOffset, coveredTextDigest, isStale];
 }

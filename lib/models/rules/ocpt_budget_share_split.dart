@@ -45,7 +45,7 @@ class OcptBudgetShareSplit extends Equatable {
       "OcptBudgetShareSplit(share: ${share.id}, dueCents: $dueCents, paid: $paid, "
       "reinvestedCents: $reinvestedCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [share, dueCents, paid, reinvestedCents];
 }

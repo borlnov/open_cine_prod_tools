@@ -33,7 +33,7 @@ class OcptPersonSkill extends Equatable {
   @override
   String toString() => "OcptPersonSkill(id: $id, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, personId, label];
 }

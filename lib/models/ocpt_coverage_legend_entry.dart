@@ -46,7 +46,7 @@ class OcptCoverageLegendEntry extends Equatable {
   @override
   String toString() => "OcptCoverageLegendEntry(shotId: $shotId, label: $label)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [shotId, sequenceId, colorIndex, label, shotSize, framing, cameraMove];
 }

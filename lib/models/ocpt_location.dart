@@ -165,7 +165,7 @@ class OcptLocation extends Equatable {
   @override
   String toString() => "OcptLocation(id: $id, name: $name, setCount: ${sets.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,

@@ -93,7 +93,7 @@ class OcptSceneShotSequence extends OcptShotSequence {
   @override
   String toString() => "OcptSceneShotSequence(sceneId: $sceneId, heading: $heading)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     sceneId,
@@ -134,7 +134,7 @@ class OcptOrphanShotSequence extends OcptShotSequence {
   @override
   String toString() => "OcptOrphanShotSequence(shotCount: $shotCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [shots];
 }

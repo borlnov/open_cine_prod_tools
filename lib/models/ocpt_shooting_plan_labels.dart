@@ -270,7 +270,7 @@ class OcptShootingPlanLabels extends Equatable {
   String toString() =>
       "OcptShootingPlanLabels(documentTitle: $documentTitle, dayCount: ${dayTitles.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     fileNameSuffix,

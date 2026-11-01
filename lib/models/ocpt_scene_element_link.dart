@@ -47,7 +47,7 @@ class OcptSceneElementLink extends Equatable {
   @override
   String toString() => "OcptSceneElementLink(id: $id, sceneId: $sceneId)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, sceneId, quantity, notes];
 }

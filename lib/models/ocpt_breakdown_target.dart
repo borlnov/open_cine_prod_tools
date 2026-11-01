@@ -67,7 +67,7 @@ class OcptBreakdownTarget extends Equatable {
   String toString() =>
       "OcptBreakdownTarget(kind: $kind, id: $id, name: $name, occurrenceCount: $occurrenceCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, id, name, category, status, sceneIds, occurrenceCount];
 }

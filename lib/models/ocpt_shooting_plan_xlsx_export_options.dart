@@ -23,7 +23,7 @@ class OcptShootingPlanXlsxExportOptions extends Equatable {
   @override
   String toString() => "OcptShootingPlanXlsxExportOptions(dayIds: $dayIds)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [dayIds];
 }

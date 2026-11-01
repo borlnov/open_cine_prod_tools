@@ -280,7 +280,7 @@ class OcptScriptWordLayout extends Equatable {
   static bool _overlaps(OcptShotCoverageRange range, int startOffset, int endOffset) =>
       range.startOffset < endOffset && range.endOffset > startOffset;
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [sceneId, sceneText, blocks];
 }

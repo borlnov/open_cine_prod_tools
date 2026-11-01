@@ -55,7 +55,7 @@ class OcptShootingDayAgendaTile extends Equatable {
   String toString() =>
       "OcptShootingDayAgendaTile(blockId: $blockId, slotId: $slotId, rows: $startRow+$rowSpan)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [blockId, slotId, caption, startMinute, endMinute, startRow, rowSpan];
 }

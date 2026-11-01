@@ -34,7 +34,7 @@ class OcptStoryboardSnapshot extends Equatable {
       "OcptStoryboardSnapshot(screenplayId: $screenplayId, shotsWithPanels: "
       "${panelsByShotId.length})";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [screenplayId, panelsByShotId];
 }

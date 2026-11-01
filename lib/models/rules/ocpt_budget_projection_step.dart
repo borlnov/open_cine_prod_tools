@@ -41,7 +41,7 @@ class OcptBudgetProjectionStep extends Equatable {
       "OcptBudgetProjectionStep(commitmentId: $commitmentId, dueDate: $dueDate, "
       "amountCents: $amountCents, balanceAfterCents: $balanceAfterCents)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [commitmentId, dueDate, amountCents, balanceAfterCents];
 }

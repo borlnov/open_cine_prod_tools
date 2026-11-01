@@ -71,7 +71,7 @@ class OcptBudgetCommitment extends Equatable {
       "OcptBudgetCommitment(id: $id, label: $label, posteId: $posteId, "
       "status: $status)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, dueDate, label, posteId, amount, status, lineId, sortKey];
 }

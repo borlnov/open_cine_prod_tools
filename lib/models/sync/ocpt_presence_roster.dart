@@ -26,10 +26,12 @@ class OcptPresenceRoster extends Equatable {
   /// Whether [frame] is this replica's own, rather than a peer's.
   bool isSelf(OcptPresenceFrame frame) => frame.deviceId == selfDeviceId;
 
+  /// Describe this [OcptPresenceRoster] for debugging and logging.
   @override
   String toString() =>
       'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
 
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [participants, selfDeviceId];
 }

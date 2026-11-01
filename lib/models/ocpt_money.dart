@@ -36,7 +36,7 @@ class OcptMoney extends Equatable {
       "OcptMoney(amountCents: $amountCents, isTaxInclusive: $isTaxInclusive, "
       "vatRateBasisPoints: $vatRateBasisPoints)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [amountCents, isTaxInclusive, vatRateBasisPoints];
 }

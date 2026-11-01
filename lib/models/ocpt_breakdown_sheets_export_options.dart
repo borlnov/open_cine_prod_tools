@@ -56,7 +56,7 @@ class OcptBreakdownSheetsExportOptions extends Equatable {
       "onlyDoneScenes: $onlyDoneScenes, includeNotes: $includeNotes, "
       "includeToFindList: $includeToFindList)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [format, margins, onlyDoneScenes, includeNotes, includeToFindList];
 }

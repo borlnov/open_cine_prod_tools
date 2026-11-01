@@ -63,7 +63,7 @@ class OcptShotListXlsxLabels extends Equatable {
   @override
   String toString() => "OcptShotListXlsxLabels(sheetName: $sheetName)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [sheetName, columnHeaders, statusLabels, sequenceTitles, dayTagPrefix];
 }

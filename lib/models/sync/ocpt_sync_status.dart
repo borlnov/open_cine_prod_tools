@@ -27,7 +27,7 @@ final class OcptSyncStatusInSync extends OcptSyncStatus {
   @override
   String toString() => "OcptSyncStatusInSync()";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -43,7 +43,7 @@ final class OcptSyncStatusSyncing extends OcptSyncStatus {
   @override
   String toString() => "OcptSyncStatusSyncing()";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => const [];
 }
@@ -67,7 +67,7 @@ final class OcptSyncStatusOffline extends OcptSyncStatus {
   @override
   String toString() => "OcptSyncStatusOffline(pendingEditCount: $pendingEditCount)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [pendingEditCount];
 }
@@ -87,7 +87,7 @@ final class OcptSyncStatusError extends OcptSyncStatus {
   @override
   String toString() => "OcptSyncStatusError(message: $message)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [message];
 }

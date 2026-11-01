@@ -66,7 +66,7 @@ class OcptProjectVersion extends Equatable {
   String toString() =>
       "OcptProjectVersion(id: $id, name: $name, createdAt: $createdAt, isBase: $isBase)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, name, note, createdAt, summary, isBase];
 }

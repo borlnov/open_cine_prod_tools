@@ -52,7 +52,7 @@ class OcptCardChoiceEntry<T> extends Equatable {
   @override
   String toString() => "OcptCardChoiceEntry(title: $title, isAvailable: $isAvailable)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [value, title, description, formatLabel, unavailableReason];
 }

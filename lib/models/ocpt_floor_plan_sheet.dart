@@ -509,7 +509,7 @@ class OcptFloorPlanSheet extends Equatable {
     OcptFloorPlanLayer.set || OcptFloorPlanLayer.props => OcptFloorPlanSymbolGlyphKind.setElement,
   };
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [setId, setName, underlay, symbols, arrows];
 }

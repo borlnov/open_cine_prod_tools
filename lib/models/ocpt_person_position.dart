@@ -44,7 +44,7 @@ class OcptPersonPosition extends Equatable {
   String toString() =>
       "OcptPersonPosition(id: $id, positionId: $positionId, customLabel: $customLabel)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [id, personId, positionId, customLabel];
 }

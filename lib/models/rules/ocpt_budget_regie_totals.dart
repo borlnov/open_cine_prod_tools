@@ -39,7 +39,7 @@ class OcptBudgetRegieTotals extends Equatable {
       "OcptBudgetRegieTotals(headCount: $headCount, mealCount: $mealCount, "
       "buffetCount: $buffetCount, cost: $cost)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [headCount, mealCount, buffetCount, cost];
 }

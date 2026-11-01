@@ -29,9 +29,16 @@ import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 /// aimed at some unrelated app, or at the sharing screen's own `ocpt://join` invite, must fail
 /// cleanly rather than half-parse.
 class OcptRelayEnrolment extends Equatable {
+  /// The URI scheme of an enrolment link.
   static const String _scheme = 'ocpt';
+
+  /// The host part of an enrolment link.
   static const String _host = 'relay';
+
+  /// The query parameter holding the relay address.
   static const String _relayParam = 'r';
+
+  /// The query parameter holding the enrolment secret.
   static const String _secretParam = 'e';
 
   /// The set relay this enrolment points at, e.g. `https://relay.example.org/`.
@@ -111,7 +118,7 @@ class OcptRelayEnrolment extends Equatable {
     );
   }
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [relayBaseUri, enrolmentSecret];
 }

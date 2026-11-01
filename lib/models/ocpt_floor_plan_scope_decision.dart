@@ -73,7 +73,7 @@ class OcptFloorPlanScopeDecision extends Equatable {
   @override
   String toString() => "OcptFloorPlanScopeDecision(symbolId: $symbolId, level: $level)";
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     symbolId,
