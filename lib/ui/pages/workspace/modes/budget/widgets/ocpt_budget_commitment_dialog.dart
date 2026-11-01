@@ -386,7 +386,18 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
               decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
             ),
             const SizedBox(height: 12),
-            if (!widget.posteAlreadyAnswered) ...[_buildPosteField(tr), const SizedBox(height: 12)],
+            if (!widget.posteAlreadyAnswered) ...[
+              _OcptCommitmentPosteField(
+                postes: widget.postes,
+                isSimplified: widget.isSimplified,
+                value: _posteId,
+                onChanged: (value) {
+                  setState(() => _posteId = value);
+                  _report();
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
             TextFormField(
               controller: _amountController,
               decoration: InputDecoration(
@@ -436,31 +447,6 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
       ),
     );
   }
-
-  /// The `Poste` field: a picker, drawn whenever
-  /// [OcptBudgetCommitmentFormBody.posteAlreadyAnswered] is false — whether the dialog is creating
-  /// a commitment or editing one.
-  ///
-  /// **Editable in both, unlike a quote line's own poste** — see
-  /// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an
-  /// attribution typed once against a ten-poste nomenclature, exactly the field somebody gets
-  /// wrong, and this table's flat `sortKey` makes changing it an ordinary field write rather than
-  /// the regrouping a line's own would be.
-  Widget _buildPosteField(Tr tr) => DropdownButtonFormField<String>(
-    initialValue: _posteId,
-    decoration: InputDecoration(labelText: tr.budgetEntryDialogPosteFieldLabel),
-    items: [
-      for (final poste in widget.postes)
-        DropdownMenuItem(
-          value: poste.id,
-          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified)),
-        ),
-    ],
-    onChanged: (value) {
-      setState(() => _posteId = value);
-      _report();
-    },
-  );
 
   /// The `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
   /// reading exactly.
@@ -546,4 +532,49 @@ class _OcptCommitmentStatusPicker extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The commitment form's own `Poste` field: a picker, drawn whenever
+/// [OcptBudgetCommitmentFormBody.posteAlreadyAnswered] is false — whether the dialog is creating
+/// a commitment or editing one.
+///
+/// **Editable in both, unlike a quote line's own poste** — see
+/// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an
+/// attribution typed once against a ten-poste nomenclature, exactly the field somebody gets
+/// wrong, and this table's flat `sortKey` makes changing it an ordinary field write rather than
+/// the regrouping a line's own would be.
+class _OcptCommitmentPosteField extends StatelessWidget {
+  /// The postes the picker offers.
+  final List<OcptBudgetPoste> postes;
+
+  /// Whether the simplified naming applies to the poste labels.
+  final bool isSimplified;
+
+  /// The picked poste id, or null while none is picked.
+  final String? value;
+
+  /// Called with the picked poste id.
+  final ValueChanged<String?> onChanged;
+
+  /// Class constructor
+  const _OcptCommitmentPosteField({
+    required this.postes,
+    required this.isSimplified,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue: value,
+    decoration: InputDecoration(labelText: Tr.of(context).budgetEntryDialogPosteFieldLabel),
+    items: [
+      for (final poste in postes)
+        DropdownMenuItem(
+          value: poste.id,
+          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
+        ),
+    ],
+    onChanged: onChanged,
+  );
 }
