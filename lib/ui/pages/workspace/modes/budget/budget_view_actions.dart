@@ -135,7 +135,7 @@ Future<void> ocptBudgetEditAllowance(
   OcptBudgetState state,
   OcptBudgetAllowance? existing,
 ) async {
-  final bloc = context.read<OcptBudgetBloc>();
+  final financingBloc = context.read<OcptBudgetFinancingBloc>();
   final fields = await OcptBudgetAllowanceDialog.show(
     context,
     existing: existing,
@@ -147,7 +147,7 @@ Future<void> ocptBudgetEditAllowance(
     return;
   }
 
-  bloc.add(
+  financingBloc.add(
     existing == null
         ? OcptBudgetAllowanceCreationConfirmedEvent(fields: fields)
         : OcptBudgetAllowanceUpdateConfirmedEvent(allowanceId: existing.id, fields: fields),
