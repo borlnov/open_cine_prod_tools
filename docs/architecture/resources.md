@@ -16,6 +16,11 @@ their sets, the elements catalogue, and the two documents the mode prints.
   `OcptLocationsService` and `OcptElementsService`, owned by `OcptProjectsManager` beside the shot
   list's own, and `OcptResourcesBloc` joins their four reads into one `OcptResourcesSnapshot` the
   way `OcptShotListBloc` builds its own.
+  Each stays the one public entry to its area and forwards the groups of writes it would otherwise
+  hold alone to stateless operation classes (`OcptPeopleAssetOps`, `OcptPeopleDetailOps`,
+  `OcptLocationsSetOps`, `OcptLocationsReferenceOps`, `OcptRoleIndexReconcileOps`,
+  `OcptRoleIndexMergeOps`, `OcptElementsSceneLinkOps`, `OcptElementsRoleLinkOps`), so a test double
+  overriding one of its methods is still the one every caller reaches.
   **A person is one row, whatever they do on the film**: `people` is the address book, and both the
   cast (`roles.personId`) and the crew positions (`person_positions`) are links onto it, never
   copies of a name — so the same person can be a role, a position and a location's owner at once. A
