@@ -54,7 +54,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
   4: pw.FlexColumnWidth(1.2),
 };
 
-/// Renders the financing plan: every live resource, grouped by [OcptBudgetResourceGroupKind] so an
+/// Render the financing plan: every live resource, grouped by [OcptBudgetResourceGroupKind] so an
 /// in-kind contribution stays visibly apart from a cash one, each group with its own subtotal, then
 /// the plan's own grand total and the needs/resources balance.
 ///
@@ -77,7 +77,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptBudgetFinancingPlanPdfService].
+  /// Create an [OcptBudgetFinancingPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
@@ -86,7 +86,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     OcptCourierPrimeFontsLoader? fontsLoader,
   }) : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the financing plan of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the financing plan of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - financing plan.pdf`); a blank one falls back to the project name alone, exactly
@@ -94,7 +94,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
   String financingPlanFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the financing plan of [snapshot], returning the PDF's bytes.
+  /// Render the financing plan of [snapshot], returning the PDF's bytes.
   ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print, resolved once per document; it defaults to [DateTime.now] so a caller that never
@@ -139,7 +139,8 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The document's own body: one section per non-empty group, the plan's own grand total, then the
+  /// Build the document's own body: one section per non-empty group, the plan's own grand total,
+  /// then the
   /// needs/resources balance.
   List<pw.Widget> _body({
     required OcptScriptPagePainter painter,
@@ -179,7 +180,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ];
   }
 
-  /// One group's own section: its title, its table of resources, then its own subtotal.
+  /// Build one group's own section: its title, its table of resources, then its own subtotal.
   pw.Widget _groupSection({
     required OcptScriptPagePainter painter,
     required OcptBudgetResourceGroupKind kind,
@@ -243,7 +244,8 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     );
   }
 
-  /// One resource's own row: its label, its status, its amount, and what has come in and is still
+  /// Build one resource's own row: its label, its status, its amount, and what has come in and is
+  /// still
   /// outstanding against it — an `inKind` resource with no entry naming it prints
   /// [ocptBudgetExportEmptyValue] for the last two, see the class doc comment.
   pw.TableRow _resourceRow({
@@ -304,7 +306,8 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     );
   }
 
-  /// The needs/resources balance printed under the plan's own grand total: the quote's own needs
+  /// Build the needs/resources balance printed under the plan's own grand total: the quote's own
+  /// needs
   /// (tax-inclusive, always) against [balance]'s own resources, then the three-way verdict.
   pw.Widget _balanceSection({
     required OcptScriptPagePainter painter,
@@ -354,7 +357,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     );
   }
 
-  /// One header cell of a group's own table.
+  /// Build one header cell of a group's own table.
   pw.Widget _headerCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -368,7 +371,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// One ordinary table cell.
+  /// Build one ordinary table cell.
   pw.Widget _textCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -382,7 +385,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// A right-aligned `<label>: <text>` line — a group's own subtotal, or the plan's own grand
+  /// Build a right-aligned `<label>: <text>` line — a group's own subtotal, or the plan's own grand
   /// total.
   pw.Widget _totalRow({
     required OcptScriptPagePainter painter,
@@ -400,7 +403,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// The document's own title page: its name and the moment the export was run.
+  /// Build the document's own title page: its name and the moment the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
     required OcptBudgetFinancingPlanLabels labels,
@@ -430,14 +433,15 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// A block of free text — the note standing in for the whole document on a project with no live
+  /// Build a block of free text — the note standing in for the whole document on a project with no
+  /// live
   /// resource at all.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
   );
 
-  /// The running head every page of the document carries, mirroring
+  /// Build the running head every page of the document carries, mirroring
   /// `OcptContactListPdfService._runningHead` exactly.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
@@ -474,7 +478,8 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     ],
   );
 
-  /// The portrait `pdf` page format every page is drawn on, mirroring `OcptContactListPdfService`'s
+  /// Get the portrait `pdf` page format every page is drawn on, mirroring
+  /// `OcptContactListPdfService`'s
   /// own margin convention.
   PdfPageFormat _pageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageWidthPt,

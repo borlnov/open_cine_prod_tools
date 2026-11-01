@@ -35,7 +35,7 @@ class OcptAssetsService extends AbsOcptService {
   /// Class constructor
   const OcptAssetsService({required super.logger, required this.deviceId});
 
-  /// Inserts one `assets` row of [kind] pointing at [path] and returns its freshly generated id.
+  /// Insert one `assets` row of [kind] pointing at [path] and return its freshly generated id.
   ///
   /// Exactly one of [personId], [locationId], [elementId] and [budgetEntryId] names the subject for
   /// every kind but `OcptAssetKind.storyboardPanelImage` and `OcptAssetKind.floorPlanUnderlay`,
@@ -95,7 +95,7 @@ class OcptAssetsService extends AbsOcptService {
     return id;
   }
 
-  /// Tombstones the `assets` row [assetId], if there is one.
+  /// Tombstone the `assets` row [assetId], if there is one.
   ///
   /// **Unguarded, for the reason [insertAsset] is**: this is the half of a replacement that runs
   /// inside a caller's transaction — a column pointing at one file has no history worth keeping,
@@ -125,7 +125,7 @@ class OcptAssetsService extends AbsOcptService {
     );
   }
 
-  /// Drops the reference [assetId] holds, on a user's own gesture.
+  /// Drop the reference [assetId] holds, on a user's own gesture.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -142,7 +142,7 @@ class OcptAssetsService extends AbsOcptService {
     });
   }
 
-  /// Updates the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
+  /// Update the validity window of `assets` row [assetId] — a user typing, or clearing, the dates
   /// on a document such as a filming permit — to the fields passed as something other than
   /// [Value.absent]. Passing `Value(null)` clears a date already recorded: a production deciding it
   /// no longer wants to track one is as real a gesture as setting it.
@@ -182,7 +182,7 @@ class OcptAssetsService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every `assets` row belonging to person [personId] **and blanks its path and its
+  /// Tombstone every `assets` row belonging to person [personId] **and blanks its path and its
   /// label**, the erasure half of `OcptPeopleService.deletePerson`.
   ///
   /// A tombstone alone would not do here. An asset's `path` is personal data in its own right — an

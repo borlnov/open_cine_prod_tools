@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 ///
 /// What `OcptShotListService` forwards to; that service documents the shot list whole.
 abstract final class OcptShotListCharacterOps {
-  /// Attaches role [roleId] to shot [shotId], appended after its current characters. Does nothing
+  /// Attach role [roleId] to shot [shotId], appended after its current characters. Does nothing
   /// if the shot already has it, if [shotId] doesn't name a live shot, or if [roleId] doesn't name
   /// a live role.
   ///
@@ -99,7 +99,7 @@ abstract final class OcptShotListCharacterOps {
     });
   }
 
-  /// Detaches role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
+  /// Detach role [roleId] from shot [shotId]. Does nothing if it isn't attached — this never
   /// creates a role, unlike [attachCharacter]: there is nothing left to detach from one that
   /// doesn't exist.
   ///
@@ -139,7 +139,7 @@ abstract final class OcptShotListCharacterOps {
     });
   }
 
-  /// Resolves [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
+  /// Resolve [name] (normalised through `fountain_kit`'s `normalizeCharacterName`) to a live
   /// role's id in [database], or **creates** a hand-added silent role linked to [screenplayId]
   /// through [roleIndexService] when none exists
   /// (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`, decision 1) — the

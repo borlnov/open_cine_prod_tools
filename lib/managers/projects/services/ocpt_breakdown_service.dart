@@ -27,8 +27,8 @@ class _OcptBreakdownTagRefused implements Exception {
   const _OcptBreakdownTagRefused();
 }
 
-/// Anchors a passage of the screenplay, tagged during the breakdown pass, to the catalogue row it
-/// calls for — an element, a role or a set — and tracks how far the pass has got, scene by scene.
+/// Anchor a passage of the screenplay, tagged during the breakdown pass, to the catalogue row it
+/// calls for — an element, a role or a set — and track how far the pass has got, scene by scene.
 ///
 /// Takes [OcptElementsService] and [OcptLocationsService] through its constructor, exactly as
 /// `OcptScreenplayService` takes its own collaborators, so a caller cannot mint an element or a
@@ -84,7 +84,7 @@ class OcptBreakdownService extends AbsOcptService {
     await _locationsService.initLifeCycle();
   }
 
-  /// Loads every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
+  /// Load every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
   /// given, ordered by the owning scene's own `position` and then by
   /// [OcptBreakdownTagRow.startOffset] — the order the tagged passages are read in.
   ///
@@ -117,7 +117,7 @@ class OcptBreakdownService extends AbsOcptService {
     return rows;
   }
 
-  /// Loads every live `scene_breakdowns` row of [database], restricted to [screenplayId]'s scenes
+  /// Load every live `scene_breakdowns` row of [database], restricted to [screenplayId]'s scenes
   /// when given, ordered by the owning scene's own `position`.
   ///
   /// A scene with no row simply has none: the caller reads a missing row as
@@ -145,7 +145,7 @@ class OcptBreakdownService extends AbsOcptService {
     return rows;
   }
 
-  /// Loads every live scene of [screenplayId] in [database], in `position` order, each joined with
+  /// Load every live scene of [screenplayId] in [database], in `position` order, each joined with
   /// its live `scene_breakdowns` row through [loadSceneBreakdowns] — never re-queried here — and
   /// carrying an empty [OcptBreakdownScene.tags] list.
   ///
@@ -184,9 +184,9 @@ class OcptBreakdownService extends AbsOcptService {
     ];
   }
 
-  /// Tags the scene-relative `[startOffset, endOffset)` passage [taggedText] of scene [sceneId],
+  /// Tag the scene-relative `[startOffset, endOffset)` passage [taggedText] of scene [sceneId],
   /// pointing it at [targetId] — read as an `elements`, `roles` or `sets` id according to
-  /// [targetKind] — and returns the new tag's id.
+  /// [targetKind] — and return the new tag's id.
   ///
   /// In one transaction: refuses (returns null, logged) when the range overlaps a live tag of the
   /// same scene — two ranges overlap when `a.start < b.end && b.start < a.end`, so touching end to
@@ -254,7 +254,7 @@ class OcptBreakdownService extends AbsOcptService {
     });
   }
 
-  /// Tombstones tag [tagId] — the range stops being highlighted and its target stops being
+  /// Tombstone tag [tagId] — the range stops being highlighted and its target stops being
   /// selectable through it.
   ///
   /// **Never removes the `scene_elements`/`scene_sets` row it once ensured** — see this class's own
@@ -290,7 +290,7 @@ class OcptBreakdownService extends AbsOcptService {
     });
   }
 
-  /// Clears `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
+  /// Clear `needsCheck` on tag [tagId] alone, leaving its `startOffset`/`endOffset` exactly where
   /// they are.
   ///
   /// The honest answer to the common flagged case: [reconcileTags] could not find the tagged text
@@ -330,7 +330,7 @@ class OcptBreakdownService extends AbsOcptService {
     });
   }
 
-  /// Creates a new [category]/[sourceKind] element named [name] and tags the scene-relative
+  /// Create a new [category]/[sourceKind] element named [name] and tag the scene-relative
   /// `[startOffset, endOffset)` passage [taggedText] of scene [sceneId] with it, in one
   /// transaction — the one write the popover's category chips perform.
   ///
@@ -400,7 +400,7 @@ class OcptBreakdownService extends AbsOcptService {
     return created;
   }
 
-  /// Creates a new set named [name] and tags the scene-relative `[startOffset, endOffset)` passage
+  /// Create a new set named [name] and tag the scene-relative `[startOffset, endOffset)` passage
   /// [taggedText] of scene [sceneId] with it, in one transaction — the sibling of
   /// [createElementAndTag], for the one catalogue row the breakdown pass may also mint.
   ///
@@ -474,7 +474,7 @@ class OcptBreakdownService extends AbsOcptService {
     return created;
   }
 
-  /// Creates, or updates, the `scene_breakdowns` row of scene [sceneId], writing whichever of
+  /// Create, or update, the `scene_breakdowns` row of scene [sceneId], writing whichever of
   /// [status]/[notes] are passed as something other than [Value.absent].
   ///
   /// The row is created on the first write for a scene, never eagerly for every scene the
@@ -577,7 +577,7 @@ class OcptBreakdownService extends AbsOcptService {
     });
   }
 
-  /// Re-anchors, or flags, every live breakdown tag of screenplay [screenplayId] against
+  /// Re-anchor, or flags, every live breakdown tag of screenplay [screenplayId] against
   /// [currentFountainText], the text just saved.
   ///
   /// Must run right after `OcptSceneIndexService.reconcile` has refreshed the scenes'
@@ -698,7 +698,7 @@ class OcptBreakdownService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
+  /// Tombstone every live `breakdown_tags` row and every live `scene_breakdowns` row of any of
   /// [sceneIds], and — through [_elementsService] and [_locationsService] — every live
   /// `scene_elements` and `scene_sets` row of those same scenes:
   /// `OcptScreenplayService.deleteEpisode`'s cascade, once
@@ -765,7 +765,7 @@ class OcptBreakdownService extends AbsOcptService {
     );
   }
 
-  /// Inserts the tag row itself and ensures the link it implies, without checking for an overlap:
+  /// Insert the tag row itself and ensures the link it implies, without checking for an overlap:
   /// the caller ([createTag]) has already done that. Stamps the tag insert through [stamps] —
   /// [createTag]'s own instance — while the link ensured below is stamped by whichever of
   /// [_elementsService]/[_locationsService] writes it, through its own nested transaction.
@@ -822,7 +822,8 @@ class OcptBreakdownService extends AbsOcptService {
     return id;
   }
 
-  /// Whether the scene-relative `[startOffset, endOffset)` range overlaps any live tag of scene
+  /// Tell whether the scene-relative `[startOffset, endOffset)` range overlaps any live tag of
+  /// scene
   /// [sceneId] already in [database]. Two ranges overlap when `a.start < b.end && b.start < a.end`;
   /// touching end to end is not an overlap.
   Future<bool> _overlapsLiveTag({
@@ -838,7 +839,8 @@ class OcptBreakdownService extends AbsOcptService {
     return liveTags.any((tag) => startOffset < tag.endOffset && tag.startOffset < endOffset);
   }
 
-  /// The 0-based `position` of every live scene of [database], restricted to [screenplayId] when
+  /// Get the 0-based `position` of every live scene of [database], restricted to [screenplayId]
+  /// when
   /// given, keyed by scene id.
   Future<Map<String, int>> _liveScenePositions({
     required OcptProjectDatabase database,
@@ -855,7 +857,8 @@ class OcptBreakdownService extends AbsOcptService {
     return {for (final row in rows) row.id: row.position};
   }
 
-  /// Every start offset in [haystack] at which [needle] occurs, allowing overlapping matches — the
+  /// Get every start offset in [haystack] at which [needle] occurs, allowing overlapping matches —
+  /// the
   /// occurrence count [OcptBreakdownService.reconcileTags] re-anchors on when it is exactly one,
   /// and flags when it is zero or more than one.
   static List<int> _occurrencesOf({required String needle, required String haystack}) {

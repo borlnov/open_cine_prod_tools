@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 ///
 /// What `OcptShotListService` forwards to; see `OcptShotListCharacterOps`.
 abstract final class OcptShotListCascadeOps {
-  /// The hook `OcptSceneIndexService.reconcile` invokes, through `OcptScreenplayService`,
+  /// Run the hook `OcptSceneIndexService.reconcile` invokes, through `OcptScreenplayService`,
   /// immediately before tombstoning [scenesAboutToBeDeleted] in the `scenes` table.
   ///
   /// Every shot of every one of [scenesAboutToBeDeleted] is orphaned: its `sceneId` becomes null,
@@ -104,9 +104,9 @@ abstract final class OcptShotListCascadeOps {
     }
   }
 
-  /// Tombstones every live shot of [screenplayId] — across every scene and the orphan group alike —
+  /// Tombstone every live shot of [screenplayId] — across every scene and the orphan group alike —
   /// carrying off its `shot_characters`, `shot_coverages`, storyboard panels and floor plan
-  /// shot-layer placements exactly as `deleteShot` does for one shot, and returns the ids it
+  /// shot-layer placements exactly as `deleteShot` does for one shot, and return the ids it
   /// tombstoned: `OcptScreenplayService.deleteEpisode`'s cascade, which needs those ids to also
   /// tombstone whatever a schedule block placed of one of them.
   ///

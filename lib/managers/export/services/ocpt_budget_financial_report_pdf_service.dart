@@ -54,7 +54,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
   5: pw.FlexColumnWidth(1.2),
 };
 
-/// Renders the financial report: the quote read against what has actually moved, poste by poste,
+/// Render the financial report: the quote read against what has actually moved, poste by poste,
 /// with the variance, then the financing plan's own total and the needs/resources balance.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
@@ -78,7 +78,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptBudgetFinancialReportPdfService].
+  /// Create an [OcptBudgetFinancialReportPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
@@ -87,7 +87,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     OcptCourierPrimeFontsLoader? fontsLoader,
   }) : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the financial report of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the financial report of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - financial report.pdf`); a blank one falls back to the project name alone, exactly
@@ -95,7 +95,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
   String financialReportFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the financial report of [snapshot], returning the PDF's bytes.
+  /// Render the financial report of [snapshot], returning the PDF's bytes.
   ///
   /// [exportDate] is the moment the title page's own version line and every page's running head
   /// print, resolved once per document; it defaults to [DateTime.now] so a caller that never
@@ -140,7 +140,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The document's own body: the poste-by-poste table, an `Off quote` row while
+  /// Build the document's own body: the poste-by-poste table, an `Off quote` row while
   /// `snapshot.offQuotePaidTotal` holds anything, its own totals row, then the financing plan's own
   /// total and the needs/resources balance.
   ///
@@ -265,7 +265,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ];
   }
 
-  /// One poste's own row: its label, its quoted total (tax-inclusive), what has been paid and
+  /// Build one poste's own row: its label, its quoted total (tax-inclusive), what has been paid and
   /// committed against it, and the remaining and variance readings — every one of them
   /// `lib/models/rules/ocpt_budget_totals.dart`'s own figure.
   pw.TableRow _posteRow({
@@ -335,7 +335,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     );
   }
 
-  /// The `Off quote` row: spending that names no poste at all, between the last poste and the
+  /// Build the `Off quote` row: spending that names no poste at all, between the last poste and the
   /// totals row, drawn only while [offQuoteTotal] holds something. Only its `Paid` cell carries a
   /// figure — [offQuoteTotal]'s own tax-inclusive amount, plain, exactly as an ordinary poste row's
   /// own `Paid` cell is — every other cell printing [ocptBudgetExportEmptyValue] since there is no
@@ -361,7 +361,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ],
   );
 
-  /// The project's own totals row, closing the table. [paidText] is already resolved through
+  /// Build the project's own totals row, closing the table. [paidText] is already resolved through
   /// [ocptBudgetExportCoveredAmountText] by the caller, exactly as [quotedText] is, since the
   /// `Paid` total folds every poste's own paid total with the off-quote total
   /// (`ocptBudgetCoveredTotalsFoldOf`) and needs the very same coverage read-out the moment either
@@ -402,7 +402,8 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ],
   );
 
-  /// The needs/resources balance printed under the financing plan's own total: the quote's own
+  /// Build the needs/resources balance printed under the financing plan's own total: the quote's
+  /// own
   /// needs (tax-inclusive, always) against [balance]'s own resources, then the three-way verdict.
   pw.Widget _balanceSection({
     required OcptScriptPagePainter painter,
@@ -452,7 +453,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     );
   }
 
-  /// One header cell of the table.
+  /// Build one header cell of the table.
   pw.Widget _headerCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -466,7 +467,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ),
   );
 
-  /// One ordinary table cell.
+  /// Build one ordinary table cell.
   pw.Widget _textCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -484,7 +485,8 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ),
   );
 
-  /// A right-aligned `<label>: <text>` line — the financing plan's own grand total, printed under
+  /// Build a right-aligned `<label>: <text>` line — the financing plan's own grand total, printed
+  /// under
   /// the table.
   pw.Widget _totalRow({
     required OcptScriptPagePainter painter,
@@ -498,7 +500,7 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ),
   );
 
-  /// The document's own title page: its name and the moment the export was run.
+  /// Build the document's own title page: its name and the moment the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
     required OcptBudgetFinancialReportLabels labels,
@@ -528,14 +530,15 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ),
   );
 
-  /// A block of free text — the note standing in for the whole document on a project with no poste
+  /// Build a block of free text — the note standing in for the whole document on a project with no
+  /// poste
   /// at all.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
   );
 
-  /// The running head every page of the document carries, mirroring
+  /// Build the running head every page of the document carries, mirroring
   /// `OcptContactListPdfService._runningHead` exactly.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
@@ -572,7 +575,8 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     ],
   );
 
-  /// The portrait `pdf` page format every page is drawn on, mirroring `OcptContactListPdfService`'s
+  /// Get the portrait `pdf` page format every page is drawn on, mirroring
+  /// `OcptContactListPdfService`'s
   /// own margin convention.
   PdfPageFormat _pageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageWidthPt,

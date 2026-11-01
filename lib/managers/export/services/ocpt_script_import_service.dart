@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_fountain_io_s
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:script_import_kit/script_import_kit.dart';
 
-/// Turns the bytes of a picked screenplay file into the Fountain text the app stores, whichever of
+/// Turn the bytes of a picked screenplay file into the Fountain text the app stores, whichever of
 /// the three formats it came in as.
 ///
 /// A `.fountain` file needs no conversion and goes straight to [fountainIoService]; an `.fdx` and a
@@ -57,7 +57,7 @@ class OcptScriptImportService extends AbsOcptService {
     await fountainIoService.initLifeCycle();
   }
 
-  /// Reads [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
+  /// Read [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
   ///
   /// Returns [OcptScreenplayImportStatus.ok] with the Fountain text, or
   /// [OcptScreenplayImportStatus.unreadableFile] when the file is not the screenplay its name
@@ -100,7 +100,8 @@ class OcptScriptImportService extends AbsOcptService {
     return imported;
   }
 
-  /// Whether [fileName]'s extension names a plain Fountain file, the one format read without any
+  /// Tell whether [fileName]'s extension names a plain Fountain file, the one format read without
+  /// any
   /// conversion.
   bool _isFountainFile(String fileName) {
     final dotIndex = fileName.lastIndexOf(".");

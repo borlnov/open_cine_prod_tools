@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 /// Stateless, so a call takes the database it reads from, the same shape every service's own
 /// private query helpers have.
 abstract final class OcptRoleIndexRows {
-  /// Every live role row of the project, ordered by `sortKey` — the cast is one list over the
+  /// Get every live role row of the project, ordered by `sortKey` — the cast is one list over the
   /// project now, not one per screenplay, so no `screenplayId` filters it.
   static Future<List<OcptRoleRow>> liveRoleRows({required OcptProjectDatabase database}) async {
     final query = database.select(database.ocptRolesTable)
@@ -22,7 +22,7 @@ abstract final class OcptRoleIndexRows {
     return query.get();
   }
 
-  /// Every live `role_episodes` link of the project, joined onto its live `screenplays` row and
+  /// Get every live `role_episodes` link of the project, joined onto its live `screenplays` row and
   /// grouped by `roleId`, each group in the episodes' own `sortKey` order — the read behind
   /// [OcptRole.episodeIds], which the table itself carries no order for (see
   /// `OcptRoleEpisodesTable`'s doc comment).

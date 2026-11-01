@@ -10,13 +10,13 @@ import 'package:act_licenses_manager/act_licenses_manager.dart';
 import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:act_themes_manager/act_themes_manager.dart';
 
-/// Builds the [OcptConfigManager] instance registered by the global manager.
+/// Build the [OcptConfigManager] instance registered by the global manager.
 class OcptConfigManagerBuilder extends AbstractConfigBuilder<OcptConfigManager> {
-  /// Creates the config manager builder.
+  /// Create the config manager builder.
   const OcptConfigManagerBuilder() : super(OcptConfigManager.new);
 }
 
-/// Reads and exposes the configuration variables of the application.
+/// Read and expose the configuration variables of the application.
 ///
 /// Besides the [MixinLocaleConfig] and [MixinThemesConfig] variables required by the locale and
 /// themes managers, the [MixinLicensesConfig] variables required by the licenses manager, and the
@@ -36,13 +36,13 @@ class OcptConfigManager extends AbsUsualConfigManager
   /// `OcptFileLoggingManager`.
   final NotNullParserConfigVar<LogsLevel, String> _fileLogLevelVar;
 
-  /// Whether app logs are also written to a rotating file.
+  /// Tell whether app logs are also written to a rotating file.
   bool get fileLogEnabled => _fileLogEnabledVar.load();
 
-  /// The minimum level a line must reach to be written to that file.
+  /// Get the minimum level a line must reach to be written to that file.
   LogsLevel get fileLogLevel => _fileLogLevelVar.load();
 
-  /// Creates the config manager with the app's default logger.
+  /// Create the config manager with the app's default logger.
   OcptConfigManager()
     : _fileLogEnabledVar = const NotNullableConfigVar<bool>(
         'logs.file.enabled',

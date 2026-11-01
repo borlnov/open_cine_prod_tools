@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 ///
 /// What `OcptRoleIndexService` forwards to; see `OcptRoleIndexReconcileOps`.
 abstract final class OcptRoleIndexMergeOps {
-  /// Merges role [sourceRoleId] into role [targetRoleId] (`docs/adr/0030-…`, decision 3): every row
+  /// Merge role [sourceRoleId] into role [targetRoleId] (`docs/adr/0030-…`, decision 3): every row
   /// naming *source* is re-pointed onto *target* — deduped where *target* already has the
   /// equivalent — *source*'s casting and notes are carried onto *target* where *target* lacks them,
   /// and *source* is tombstoned last.

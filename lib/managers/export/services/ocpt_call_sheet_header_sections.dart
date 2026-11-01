@@ -31,7 +31,7 @@ abstract final class OcptCallSheetHeaderSections {
   // Header sections
   // ---------------------------------------------------------------------------------------------
 
-  /// The general sheet's own recipients line — the day's own convoked people, by first name.
+  /// Build the general sheet's own recipients line — the day's own convoked people, by first name.
   static pw.Widget recipientsSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -60,7 +60,8 @@ abstract final class OcptCallSheetHeaderSections {
     );
   }
 
-  /// A named sheet's own header: who it is for, and the position(s) or the role they are convoked
+  /// Build a named sheet's own header: who it is for, and the position(s) or the role they are
+  /// convoked
   /// under.
   static pw.Widget namedRecipientSection({
     required OcptScriptPagePainter painter,
@@ -86,7 +87,7 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The project's own title, then the `Un film de <director>` line when there is one, then
+  /// Build the project's own title, then the `Un film de <director>` line when there is one, then
   /// [versionLine] — the moment this sheet was produced.
   ///
   /// The version line sits in the title block rather than in the running head, unlike the shooting
@@ -124,7 +125,7 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The day's own number and its full title (`JOUR : 2` / `FEUILLE DE SERVICE DU …`).
+  /// Build the day's own number and its full title (`JOUR : 2` / `FEUILLE DE SERVICE DU …`).
   static pw.Widget dayHeadingSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -147,7 +148,8 @@ abstract final class OcptCallSheetHeaderSections {
     );
   }
 
-  /// A named sheet's own single band line: arrival, band, departure — three figures the general
+  /// Build a named sheet's own single band line: arrival, band, departure — three figures the
+  /// general
   /// sheet only ever prints per person inside its cast table or its two closing lists.
   ///
   /// The middle line is headed by [OcptCallSheetLabels.bandLabelOf] rather than by `PAT` outright:
@@ -176,7 +178,8 @@ abstract final class OcptCallSheetHeaderSections {
     );
   }
 
-  /// A named sheet's own "to bring" table: one `<code> · <name>` / `SEQ` row per [rows] entry, the
+  /// Build a named sheet's own "to bring" table: one `<code> · <name>` / `SEQ` row per [rows]
+  /// entry, the
   /// join [OcptSchedulePlanSnapshot.elementsToBringOnDay] makes between this recipient's own
   /// [OcptElement.broughtByPersonId] and the scenes the day actually plays.
   /// `generateNamedCallSheet` never calls this on an empty [rows] — see its own doc comment.
@@ -221,7 +224,8 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The crew note, verbatim — never printed at all when the day carries none (both generators skip
+  /// Build the crew note, verbatim — never printed at all when the day carries none (both
+  /// generators skip
   /// this widget rather than calling it on a blank note).
   static pw.Widget crewNoteSection({
     required OcptScriptPagePainter painter,
@@ -236,7 +240,8 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The day's own events, one timed line each — what the day does not control, at an absolute
+  /// Build the day's own events, one timed line each — what the day does not control, at an
+  /// absolute
   /// hour, taking part in no chain and therefore never interleaved into the main table's own
   /// milestone rows. Both generators skip this widget rather than calling it on an empty list, for
   /// a different reason than [crewNoteSection]'s own: the cast table prints an em dash on a role
@@ -273,7 +278,8 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The location(s) [locations] names: name, address, then a Google Maps link built from its own
+  /// Build the location(s) [locations] names: name, address, then a Google Maps link built from its
+  /// own
   /// coordinates when it has any — never a network call, and nothing printed when it has none.
   static pw.Widget locationSection({
     required OcptScriptPagePainter painter,
@@ -311,7 +317,7 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// The day's own sunrise, sunset and the two civil twilights, each independently printed as
+  /// Build the day's own sunrise, sunset and the two civil twilights, each independently printed as
   /// [ocptScheduleEmptyValue] while [sunTimes] has no figure for it (ADR 0016).
   static pw.Widget sunSection({
     required OcptScriptPagePainter painter,
@@ -343,7 +349,7 @@ abstract final class OcptCallSheetHeaderSections {
     ],
   );
 
-  /// One figure of [sunSection].
+  /// Build one figure of [sunSection].
   static pw.Widget sunFigure({
     required OcptScriptPagePainter painter,
     required String label,
@@ -353,7 +359,8 @@ abstract final class OcptCallSheetHeaderSections {
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: ocptCallSheetBodyFontSizePt),
   );
 
-  /// The key contacts (production, direction and unit management) or the by-department contacts
+  /// Build the key contacts (production, direction and unit management) or the by-department
+  /// contacts
   /// table (casting and extras, image, electric and grip, sound, art department, costume, hair and
   /// make-up, special effects) — the same widget for both, over whichever [departments] the caller
   /// asks for, since both are "`<position> : <first name>`, grouped by department" laid out in
@@ -424,14 +431,15 @@ abstract final class OcptCallSheetHeaderSections {
     );
   }
 
-  /// [present] split into rows of at most [ocptCallSheetContactsColumnsPerRow] departments each, in
+  /// Get [present] split into rows of at most [ocptCallSheetContactsColumnsPerRow] departments
+  /// each, in
   /// [present]'s own order — what [contactsBlock] lays out one `pw.Row` per row of.
   static List<List<OcptCrewDepartment>> contactsRowsOf(List<OcptCrewDepartment> present) => [
     for (var i = 0; i < present.length; i += ocptCallSheetContactsColumnsPerRow)
       present.sublist(i, math.min(i + ocptCallSheetContactsColumnsPerRow, present.length)),
   ];
 
-  /// One [department]'s own column of [contactsBlock]: its upper-case heading, then one
+  /// Build one [department]'s own column of [contactsBlock]: its upper-case heading, then one
   /// `<position> : <first name>` line per [contacts] entry, with the phone number on a muted
   /// second line when they carry one.
   static pw.Widget departmentContactsColumn({

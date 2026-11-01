@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
 import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders the cash journal into the bytes of an XLSX workbook.
+/// Render the cash journal into the bytes of an XLSX workbook.
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
@@ -51,7 +51,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   /// Class constructor
   const OcptBudgetCashJournalXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the cash journal of the project named
+  /// Get the `.xlsx` file name to suggest when exporting the cash journal of the project named
   /// [projectName]. [episodeTag] is the selected episode's own tag, present only while the open
   /// project holds more than one episode — see `ocptExportFileNameOf`'s own doc comment. In
   /// practice the cash journal is never scoped to one episode (`docs/architecture/budget.md`'s own
@@ -63,8 +63,8 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     extension: xlsxFileExtension,
   );
 
-  /// Builds the workbook holding [snapshot]'s whole cash journal, titled and headed with [labels],
-  /// and returns its bytes.
+  /// Build the workbook holding [snapshot]'s whole cash journal, titled and headed with [labels],
+  /// and return its bytes.
   ///
   /// [linkLabelByEntryId] is the "what this entry settles" column's own text, keyed by
   /// `OcptBudgetEntry.id` — see the class doc comment. Answers [OcptXlsxExportStatus.encodingFailed] if the
@@ -107,12 +107,13 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// The name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when it
+  /// Get the name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when
+  /// it
   /// holds nothing but whitespace.
   String _sheetNameOf(OcptBudgetCashJournalXlsxLabels labels) =>
       labels.sheetName.trim().isEmpty ? fallbackSheetName : labels.sheetName;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], mirroring
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], mirroring
   /// `OcptShotListXlsxExportService._renameDefaultSheet` exactly.
   void _renameDefaultSheet(Excel excel, String sheetName) {
     final defaultSheetName = excel.getDefaultSheet();
@@ -123,7 +124,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Appends the sheet's single header row, one cell per column, and emboldens it.
+  /// Append the sheet's single header row, one cell per column, and embolden it.
   void _appendHeaderRow(Sheet sheet, OcptBudgetCashJournalXlsxLabels labels) {
     final headerRowIndex = sheet.maxRows;
     final headers = [
@@ -147,7 +148,8 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// One journal row's own cells, in column order — see the class doc comment for the honesty each
+  /// Get one journal row's own cells, in column order — see the class doc comment for the honesty
+  /// each
   /// one keeps.
   List<CellValue?> _rowCellsOf({
     required OcptBudgetJournalRow row,
@@ -177,7 +179,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     ];
   }
 
-  /// Appends the trailing totals row: [totals]' own debit, credit and balance, bolded, under
+  /// Append the trailing totals row: [totals]' own debit, credit and balance, bolded, under
   /// [labels]'s own [OcptBudgetCashJournalXlsxLabels.totalsRowLabel].
   void _appendTotalsRow(
     Sheet sheet,
@@ -205,12 +207,12 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace —
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace —
   /// mirroring `OcptShotListXlsxExportService._textOrNull`.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
-  /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
+  /// Get [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
   String _isoDate(DateTime date) =>
       "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
       "${date.day.toString().padLeft(2, '0')}";

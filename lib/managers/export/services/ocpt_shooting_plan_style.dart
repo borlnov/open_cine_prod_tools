@@ -69,7 +69,8 @@ const Map<int, pw.TableColumnWidth> ocptShootingPlanGuestColumnWidths = {
   2: pw.FlexColumnWidth(1.2),
 };
 
-/// [columns] split into chunks of at most [chunkSize], in order — empty when [columns] itself is.
+/// Get [columns] split into chunks of at most [chunkSize], in order — empty when [columns] itself
+/// is.
 /// Generic over the column's own type so every summary grid paginates by the very same rule: a slot
 /// column ([OcptShootingPlanGridColumn]) for the locations, sequences and crew-and-cast grids, a
 /// day column ([OcptShootingDay]) for the elements one — [ocptShootingPlanMaxGridColumnsPerPage]

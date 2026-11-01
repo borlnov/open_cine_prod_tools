@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 /// The JSON shape of the budget rows in a version's payload: one serializer and one parser per
 /// table, mirroring its columns.
 abstract final class OcptVersionBudgetJson {
-  /// Serializes one `budget_postes` row.
+  /// Serialize one `budget_postes` row.
   static Map<String, dynamic> budgetPosteToJson(OcptBudgetPosteRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -26,7 +26,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonProductionKeys.estimateToCompleteCentsKey: row.estimateToCompleteCents,
   };
 
-  /// Parses one `budget_postes` row.
+  /// Parse one `budget_postes` row.
   static OcptBudgetPosteRow budgetPosteFromJson(Map<String, dynamic> json) => OcptBudgetPosteRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -43,7 +43,7 @@ abstract final class OcptVersionBudgetJson {
     ),
   );
 
-  /// Serializes one `budget_lines` row.
+  /// Serialize one `budget_lines` row.
   static Map<String, dynamic> budgetLineToJson(OcptBudgetLineRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -62,7 +62,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.notesKey: row.notes,
   };
 
-  /// Parses one `budget_lines` row.
+  /// Parse one `budget_lines` row.
   static OcptBudgetLineRow budgetLineFromJson(Map<String, dynamic> json) => OcptBudgetLineRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -105,7 +105,7 @@ abstract final class OcptVersionBudgetJson {
     notes: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.notesKey),
   );
 
-  /// Serializes one `budget_entries` row.
+  /// Serialize one `budget_entries` row.
   static Map<String, dynamic> budgetEntryToJson(OcptBudgetEntryRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -125,7 +125,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.personIdKey: row.personId,
   };
 
-  /// Parses one `budget_entries` row.
+  /// Parse one `budget_entries` row.
   static OcptBudgetEntryRow budgetEntryFromJson(Map<String, dynamic> json) => OcptBudgetEntryRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -169,7 +169,7 @@ abstract final class OcptVersionBudgetJson {
     personId: OcptVersionJsonReader.readNullableString(json, OcptVersionJsonKeys.personIdKey),
   );
 
-  /// Serializes one `budget_commitments` row.
+  /// Serialize one `budget_commitments` row.
   static Map<String, dynamic> budgetCommitmentToJson(OcptBudgetCommitmentRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -184,7 +184,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonProductionKeys.commitmentLineIdKey: row.lineId,
   };
 
-  /// Parses one `budget_commitments` row.
+  /// Parse one `budget_commitments` row.
   static OcptBudgetCommitmentRow budgetCommitmentFromJson(Map<String, dynamic> json) =>
       OcptBudgetCommitmentRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -219,7 +219,7 @@ abstract final class OcptVersionBudgetJson {
         ),
       );
 
-  /// Serializes one `budget_resources` row.
+  /// Serialize one `budget_resources` row.
   static Map<String, dynamic> budgetResourceToJson(OcptBudgetResourceRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -233,7 +233,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.notesKey: row.notes,
   };
 
-  /// Parses one `budget_resources` row.
+  /// Parse one `budget_resources` row.
   static OcptBudgetResourceRow budgetResourceFromJson(Map<String, dynamic> json) =>
       OcptBudgetResourceRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -262,7 +262,7 @@ abstract final class OcptVersionBudgetJson {
         notes: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.notesKey),
       );
 
-  /// Serializes one `budget_mileage_rates` row.
+  /// Serialize one `budget_mileage_rates` row.
   static Map<String, dynamic> budgetMileageRateToJson(OcptBudgetMileageRateRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -271,7 +271,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonProductionKeys.ratePerKmMilliCentsKey: row.ratePerKmMilliCents,
   };
 
-  /// Parses one `budget_mileage_rates` row.
+  /// Parse one `budget_mileage_rates` row.
   static OcptBudgetMileageRateRow budgetMileageRateFromJson(Map<String, dynamic> json) =>
       OcptBudgetMileageRateRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -284,7 +284,7 @@ abstract final class OcptVersionBudgetJson {
         ),
       );
 
-  /// Serializes one `budget_revenues` row.
+  /// Serialize one `budget_revenues` row.
   static Map<String, dynamic> budgetRevenueToJson(OcptBudgetRevenueRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -296,7 +296,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.notesKey: row.notes,
   };
 
-  /// Parses one `budget_revenues` row.
+  /// Parse one `budget_revenues` row.
   static OcptBudgetRevenueRow budgetRevenueFromJson(Map<String, dynamic> json) =>
       OcptBudgetRevenueRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -316,7 +316,7 @@ abstract final class OcptVersionBudgetJson {
         notes: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.notesKey),
       );
 
-  /// Serializes one `budget_shares` row.
+  /// Serialize one `budget_shares` row.
   static Map<String, dynamic> budgetShareToJson(OcptBudgetShareRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -328,7 +328,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.notesKey: row.notes,
   };
 
-  /// Parses one `budget_shares` row.
+  /// Parse one `budget_shares` row.
   static OcptBudgetShareRow budgetShareFromJson(Map<String, dynamic> json) => OcptBudgetShareRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -346,7 +346,7 @@ abstract final class OcptVersionBudgetJson {
     notes: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.notesKey),
   );
 
-  /// Serializes one `budget_allowances` row.
+  /// Serialize one `budget_allowances` row.
   static Map<String, dynamic> budgetAllowanceToJson(OcptBudgetAllowanceRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -361,7 +361,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.notesKey: row.notes,
   };
 
-  /// Parses one `budget_allowances` row.
+  /// Parse one `budget_allowances` row.
   static OcptBudgetAllowanceRow budgetAllowanceFromJson(Map<String, dynamic> json) =>
       OcptBudgetAllowanceRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),

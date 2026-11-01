@@ -37,9 +37,9 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// Class constructor
   const OcptBudgetQuoteService({required super.logger, required this.deviceId});
 
-  /// Loads every live poste of [database], in `sortKey` order, each joined with its own live
+  /// Load every live poste of [database], in `sortKey` order, each joined with its own live
   /// `budget_lines` rows (themselves in their own `sortKey` order) — seeding [seed] first if the
-  /// table holds no row at all, tombstones included.
+  /// table holds no row at all, tombstone included.
   Future<List<OcptBudgetPoste>> loadPostes({
     required OcptProjectDatabase database,
     required List<OcptBudgetPosteSeed> seed,
@@ -60,7 +60,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     ];
   }
 
-  /// Creates a new poste named [label], appended at the end of the catalogue, and returns its
+  /// Create a new poste named [label], appended at the end of the catalogue, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -99,7 +99,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of poste [posteId] in [database] that are passed as something other than
+  /// Update the fields of poste [posteId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderPoste] and [deletePoste].
   ///
@@ -142,7 +142,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Moves poste [posteId] to [newPosition] (0-based) within the catalogue's flat `sortKey` order,
+  /// Move poste [posteId] to [newPosition] (0-based) within the catalogue's flat `sortKey` order,
   /// by giving it a `sortKey` sitting between the two postes it lands between. Writes **exactly one
   /// row**.
   ///
@@ -186,7 +186,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Tombstones poste [posteId] in [database] and every live `budget_lines` row it holds, in the
+  /// Tombstone poste [posteId] in [database] and every live `budget_lines` row it holds, in the
   /// same transaction.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -228,8 +228,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Creates a new line named [label] inside poste [posteId], appended at the end of that poste's
-  /// own lines, and returns its freshly generated id.
+  /// Create a new line named [label] inside poste [posteId], appended at the end of that poste's
+  /// own lines, and return its freshly generated id.
   ///
   /// [provisionKey], [provisionDigest] and [quantityMilli] are what the régie view's own
   /// `Provision into the quote` gesture fills in, through [applyProvision] — see
@@ -317,7 +317,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of line [lineId] in [database] that are passed as something other than
+  /// Update the fields of line [lineId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey`, `isDeleted` or `posteId`: those only change through
   /// [reorderLine] and [deleteLine] — this table carries no "move to another poste" of its own,
   /// which would need its own `sortKey` recomputed against a different group entirely.
@@ -379,7 +379,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Moves line [lineId] to [newPosition] (0-based) within its own poste's `sortKey` order, by
+  /// Move line [lineId] to [newPosition] (0-based) within its own poste's `sortKey` order, by
   /// giving it a `sortKey` sitting between the two lines it lands between. Writes **exactly one
   /// row**.
   ///
@@ -423,7 +423,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Tombstones line [lineId].
+  /// Tombstone line [lineId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -452,7 +452,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Writes [entries] onto poste [posteId], one quote line per nature — the régie view's own
+  /// Write [entries] onto poste [posteId], one quote line per nature — the régie view's own
   /// `Provision into the quote` gesture.
   ///
   /// **Takes a plan rather than computing one**: `ocptBudgetProvisionPlanOf` decides what would
@@ -511,7 +511,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Seeds [database]'s `budget_postes` table with [seed], **once**: only when the table holds
+  /// Seed [database]'s `budget_postes` table with [seed], **once**: only when the table holds
   /// **no row at all, tombstones included**. A user who deleted every poste has not asked for them
   /// back, and a table already holding rows — seeded earlier, or built up by hand on a project that
   /// predates this seed list — is left exactly as it is.
@@ -560,14 +560,14 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Every live poste row of [database], ordered by `sortKey`.
+  /// Get every live poste row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetPosteRow>> _livePosteRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetPostesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live poste row [posteId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live poste row [posteId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetPosteRow?> _livePosteRowOrNull({
     required OcptProjectDatabase database,
     required String posteId,
@@ -575,14 +575,14 @@ class OcptBudgetQuoteService extends AbsOcptService {
     database.ocptBudgetPostesTable,
   )..where((table) => table.id.equals(posteId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live line row of [database], ordered by `sortKey`.
+  /// Get every live line row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetLineRow>> _liveLineRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetLinesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live line row of poste [posteId], ordered by `sortKey`.
+  /// Get every live line row of poste [posteId], ordered by `sortKey`.
   Future<List<OcptBudgetLineRow>> _liveLineRowsOfPoste(
     OcptProjectDatabase database, {
     required String posteId,
@@ -592,7 +592,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live line row [lineId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live line row [lineId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetLineRow?> _liveLineRowOrNull({
     required OcptProjectDatabase database,
     required String lineId,

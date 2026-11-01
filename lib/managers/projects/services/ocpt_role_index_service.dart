@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:uuid/uuid.dart';
 
-/// Reconciles the `roles` table of the project against each episode's **whole screenplay cast** —
+/// Reconcile the `roles` table of the project against each episode's **whole screenplay cast** —
 /// the characters cued in dialogue together with the ones only ever introduced in capitals in the
 /// action — and CRUD over the cast.
 ///
@@ -96,7 +96,7 @@ class OcptRoleIndexService extends AbsOcptService {
     await roleCandidatesService.initLifeCycle();
   }
 
-  /// Forwards to [OcptRoleIndexReconcileOps.reconcile].
+  /// Forward to [OcptRoleIndexReconcileOps.reconcile].
   Future<void> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -109,7 +109,7 @@ class OcptRoleIndexService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Loads every live role of the project in [database], in `sortKey` order, each carrying its
+  /// Load every live role of the project in [database], in `sortKey` order, each carrying its
   /// 1-based [OcptRole.number] among that whole list and its [OcptRole.episodeIds] — the episodes
   /// naming it, in the episodes' own `sortKey` order.
   Future<List<OcptRole>> loadRoles({required OcptProjectDatabase database}) async {
@@ -126,10 +126,10 @@ class OcptRoleIndexService extends AbsOcptService {
     ];
   }
 
-  /// Adds a hand-added role of [kind] (never [OcptRoleKind.speaking] — that kind is only ever
-  /// created by [reconcile]) named [name], appended after every live role of the **project**, links
+  /// Add a hand-added role of [kind] (never [OcptRoleKind.speaking] — that kind is only ever
+  /// created by [reconcile]) named [name], appended after every live role of the **project**, link
   /// it to episode [screenplayId] (a hand-added role is created on the selected episode) with a
-  /// freshly generated `role_episodes` row, and returns the role's own freshly generated id.
+  /// freshly generated `role_episodes` row, and return the role's own freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addRole({
@@ -188,7 +188,7 @@ class OcptRoleIndexService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of role [roleId] in [database] that are passed as something other than
+  /// Update the fields of role [roleId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey`, `isFromScreenplay` or `orphanedName`: those only
   /// change through [reorderRole], [reconcile] and [keepOrphanedRoleAsSilent].
   ///
@@ -239,7 +239,7 @@ class OcptRoleIndexService extends AbsOcptService {
     });
   }
 
-  /// Sets the exact episodes role [roleId] is named in to [screenplayIds]: for a hand-added role,
+  /// Set the exact episodes role [roleId] is named in to [screenplayIds]: for a hand-added role,
   /// the one place in the app a `role_episodes` row is written by a gesture rather than by
   /// [reconcile] (`docs/adr/0019-one-project-several-episodes.md` §4.3) — a `silent` or `extra`
   /// role is named by no cue, so nothing else can decide where it speaks. Gating this to a
@@ -330,7 +330,7 @@ class OcptRoleIndexService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptRoleIndexMergeOps.mergeRole].
+  /// Forward to [OcptRoleIndexMergeOps.mergeRole].
   Future<void> mergeRole({
     required OcptProjectDatabase database,
     required String sourceRoleId,
@@ -342,7 +342,7 @@ class OcptRoleIndexService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Tombstones role [roleId], the `shot_characters` rows and the `breakdown_tags` rows naming it
+  /// Tombstone role [roleId], the `shot_characters` rows and the `breakdown_tags` rows naming it
   /// (decision 5), the `role_elements` links naming it, the `role_candidates` rows naming it and
   /// every `role_episodes` link it carries: the removed-role banner's "delete" action, and the
   /// plain way to remove a hand-added role.
@@ -444,7 +444,8 @@ class OcptRoleIndexService extends AbsOcptService {
     });
   }
 
-  /// The removed-role banner's "keep it" action: role [roleId] stops being owned by [reconcile]
+  /// Handle the removed-role banner's "keep it" action: role [roleId] stops being owned by
+  /// [reconcile]
   /// (`isFromScreenplay` becomes false), becomes [OcptRoleKind.silent], and its `orphanedName` is
   /// cleared — its casting, its notes and its `role_episodes` links are untouched, and it now
   /// behaves exactly like a role the user added by hand from the start, its episode pills editable
@@ -485,7 +486,7 @@ class OcptRoleIndexService extends AbsOcptService {
     });
   }
 
-  /// Moves role [roleId] to [newPosition] (0-based) within the **project's** whole cast, by giving
+  /// Move role [roleId] to [newPosition] (0-based) within the **project's** whole cast, by giving
   /// it a `sortKey` sitting between the two roles it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -529,7 +530,7 @@ class OcptRoleIndexService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every `role_episodes` row naming episode [screenplayId]:
+  /// Tombstone every `role_episodes` row naming episode [screenplayId]:
   /// `OcptScreenplayService.deleteEpisode`'s cascade, the last of the links it takes before
   /// tombstoning the screenplay row itself.
   ///

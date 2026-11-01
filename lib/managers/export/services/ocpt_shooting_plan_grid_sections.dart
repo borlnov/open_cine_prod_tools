@@ -22,7 +22,7 @@ abstract final class OcptShootingPlanGridSections {
   // Summary grids
   // ---------------------------------------------------------------------------------------------
 
-  /// Adds one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
+  /// Add one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
   /// [rows] over that chunk's own columns — or a single note page when [chunks] or [rows] is empty
   /// (no slot anywhere in the printed range, or nothing this grid's own kind has to say about it).
   static void addGridPages({
@@ -66,7 +66,7 @@ abstract final class OcptShootingPlanGridSections {
     }
   }
 
-  /// A landscape note page for a grid with nothing to show.
+  /// Build a landscape note page for a grid with nothing to show.
   static pw.MultiPage gridNotePage({
     required OcptScriptPagePainter painter,
     required OcptShootingPlanLabels labels,
@@ -92,7 +92,8 @@ abstract final class OcptShootingPlanGridSections {
     ],
   );
 
-  /// One landscape grid page: the running head, the grid's own title, then its table — a day band
+  /// Build one landscape grid page: the running head, the grid's own title, then its table — a day
+  /// band
   /// row (the day tag printed once above the first of its own slot columns), a slot-label row, then
   /// [rows].
   static pw.MultiPage gridPage({
@@ -181,14 +182,15 @@ abstract final class OcptShootingPlanGridSections {
     );
   }
 
-  /// A grid's own blank cell — the top-left corner of a header row, or one of a category band row's
+  /// Build a grid's own blank cell — the top-left corner of a header row, or one of a category band
+  /// row's
   /// own trailing cells, which carry no per-column value (the elements grid's own band rows).
   static pw.Widget gridCornerCell({required OcptScriptPagePainter painter}) => pw.Padding(
     padding: const pw.EdgeInsets.all(ocptShootingPlanCellPaddingPt),
     child: pw.SizedBox(),
   );
 
-  /// A grid's own header cell (a day tag, a slot's own label).
+  /// Build a grid's own header cell (a day tag, a slot's own label).
   static pw.Widget gridHeaderCell({required OcptScriptPagePainter painter, required String text}) =>
       pw.Padding(
         padding: const pw.EdgeInsets.all(ocptShootingPlanCellPaddingPt),
@@ -199,7 +201,8 @@ abstract final class OcptShootingPlanGridSections {
         ),
       );
 
-  /// A grid row's own leading label cell — indented and muted for a locations grid's own nested
+  /// Build a grid row's own leading label cell — indented and muted for a locations grid's own
+  /// nested
   /// `Perso.` row.
   static pw.Widget gridRowLabelCell({
     required OcptScriptPagePainter painter,
@@ -223,7 +226,8 @@ abstract final class OcptShootingPlanGridSections {
     ),
   );
 
-  /// One grid data cell. Deliberately **not** [OcptShootingPlanPageParts.textCell]: a blank cell
+  /// Build one grid data cell. Deliberately **not** [OcptShootingPlanPageParts.textCell]: a blank
+  /// cell
   /// here means "not applicable to this column" (a location's row against a slot shot somewhere
   /// else, an element's row against a day it is not needed on), not a missing value, so it prints
   /// truly empty rather than substituting [ocptScheduleEmptyValue].
@@ -244,7 +248,7 @@ abstract final class OcptShootingPlanGridSections {
     ),
   );
 
-  /// Adds one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
+  /// Add one landscape page per chunk of [chunks] to [pdfDocument], each carrying every one of
   /// [rows] over that chunk's own day columns — or a single note page when [chunks] or [rows] is
   /// empty. Mirrors [addGridPages] over [OcptShootingDay] columns rather than
   /// [OcptShootingPlanGridColumn] ones: the elements grid's own columns are days, not slots, so it
@@ -290,7 +294,8 @@ abstract final class OcptShootingPlanGridSections {
     }
   }
 
-  /// One landscape elements-grid page: the running head, the grid's own title, then its table — a
+  /// Build one landscape elements-grid page: the running head, the grid's own title, then its table
+  /// — a
   /// single header row (the day tag over each column, unlike [gridPage]'s own two: **the elements
   /// grid's own columns are days, not slots**, so there is no second, slot-label row to draw), then
   /// [rows] — an [OcptShootingPlanElementsGridCategoryBand] painted as its own full band row and an

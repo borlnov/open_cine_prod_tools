@@ -17,8 +17,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptScheduleService` forwards to; see `OcptScheduleDaysOps`.
 abstract final class OcptScheduleConvocationsOps {
-  /// Adds [personId] as holding [positionId] (or, when the catalogue has nothing that fits,
-  /// [customLabel]) during slot [slotId], appended at the end of its current crew, and returns the
+  /// Add [personId] as holding [positionId] (or, when the catalogue has nothing that fits,
+  /// [customLabel]) during slot [slotId], appended at the end of its current crew, and return the
   /// freshly generated id of the assignment — no more than the link itself: this person's arrival,
   /// readiness band and departure are read off every slot they are linked to (ADR 0018), never
   /// seeded or typed here.
@@ -101,7 +101,7 @@ abstract final class OcptScheduleConvocationsOps {
     return id;
   }
 
-  /// Updates the fields of crew assignment [crewMemberId] in [database] that are passed as
+  /// Update the fields of crew assignment [crewMemberId] in [database] that are passed as
   /// something other than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change
   /// through slot reordering and [removeSlotCrewMember].
   ///
@@ -148,7 +148,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Tombstones crew assignment [crewMemberId].
+  /// Tombstone crew assignment [crewMemberId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -184,8 +184,8 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Convokes role [roleId] during slot [slotId], appended at the end of its current cast, and
-  /// returns the id of the convocation — no more than the link itself: this role's arrival,
+  /// Convoke role [roleId] during slot [slotId], appended at the end of its current cast, and
+  /// return the id of the convocation — no more than the link itself: this role's arrival,
   /// readiness band and departure are read off every slot it is linked to (ADR 0018), never seeded
   /// or typed here.
   ///
@@ -265,7 +265,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Updates the fields of cast convocation [castRoleId] in [database] that are passed as something
+  /// Update the fields of cast convocation [castRoleId] in [database] that are passed as something
   /// other than [Value.absent]. Never touches `sortKey`, `roleId` or `isDeleted`: those only change
   /// through slot reordering, [addSlotCastRole] and [removeSlotCastRole].
   ///
@@ -304,7 +304,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Tombstones cast convocation [castRoleId].
+  /// Tombstone cast convocation [castRoleId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -340,7 +340,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Adds a guest to slot [slotId], appended at the end of its current guests, and returns the
+  /// Add a guest to slot [slotId], appended at the end of its current guests, and return the
   /// freshly generated id of the attendance — no more than the link itself: this guest's arrival
   /// and departure are read off every slot they are linked to (ADR 0018), never seeded or typed
   /// here.
@@ -401,7 +401,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Updates the fields of guest attendance [guestId] in [database] that are passed as something
+  /// Update the fields of guest attendance [guestId] in [database] that are passed as something
   /// other than [Value.absent]. Never touches `sortKey` or `isDeleted`: the first is allocated
   /// once, at insertion — nothing reorders a slot's guests, there being no order worth arguing
   /// about between two people watching the same afternoon — and the second only changes through
@@ -462,7 +462,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Tombstones guest attendance [guestId].
+  /// Tombstone guest attendance [guestId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -498,8 +498,8 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Names candidacy [roleCandidateId] on audition block [blockId], appended at the end of that
-  /// block's own candidacies, and returns the id of the convocation — the one that already said so
+  /// Name candidacy [roleCandidateId] on audition block [blockId], appended at the end of that
+  /// block's own candidacies, and return the id of the convocation — the one that already said so
   /// when there was one, a freshly generated one otherwise. No more than the link itself: this
   /// candidate's arrival, PAT band and departure are read off every audition block naming them
   /// (ADR 0018 as ADR 0024 applies it), never seeded or typed here.
@@ -591,7 +591,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Updates the fields of candidate convocation [blockCandidateId] in [database] that are passed
+  /// Update the fields of candidate convocation [blockCandidateId] in [database] that are passed
   /// as something other than [Value.absent]. Never touches `sortKey`, `roleCandidateId` or
   /// `isDeleted`: those only change through `addBlockCandidate`, [reorderBlockCandidate] and
   /// [removeBlockCandidate].
@@ -632,7 +632,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Moves candidate convocation [blockCandidateId] to [newPosition] (0-based) among its own
+  /// Move candidate convocation [blockCandidateId] to [newPosition] (0-based) among its own
   /// block's candidacies, by giving it a `sortKey` sitting between the two it lands between there.
   /// Writes **exactly one row**, exactly as `reorderBlock` does.
   ///
@@ -693,7 +693,7 @@ abstract final class OcptScheduleConvocationsOps {
     });
   }
 
-  /// Tombstones candidate convocation [blockCandidateId].
+  /// Tombstone candidate convocation [blockCandidateId].
   ///
   /// **Touches neither the block nor the candidacy**: the audition stays exactly where it is and
   /// says what the day still plans to do at that hour, and the `role_candidates` row outlives the

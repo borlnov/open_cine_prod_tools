@@ -127,7 +127,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// Whether a stream has a listener, so the `events` socket should be open.
   bool _socketWanted;
 
-  /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
+  /// Get a broadcast stream emitting one event per opaque ping the relay's `events` WebSocket
+  /// sends.
   ///
   /// Connecting starts once either this stream or [presenceStream] gets its first listener, and
   /// stops once both have no listener left, so an unpaired or idle transport never holds a socket
@@ -149,7 +150,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return controller.stream;
   }
 
-  /// A broadcast stream emitting every frame the `events` WebSocket receives other than the literal
+  /// Get a broadcast stream emitting every frame the `events` WebSocket receives other than the
+  /// literal
   /// [_newWorkFrame] — a peer's own opaque presence payload, sent through its
   /// [OcptRemoteStorage.sendPresence].
   ///
@@ -169,7 +171,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return controller.stream;
   }
 
-  /// Creates a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
+  /// Create a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
   /// every request with [token].
   ///
   /// [enrolmentSecret] is only ever needed the first time this project is pushed to a relay that
@@ -275,7 +277,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
   });
 
-  /// Writes [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
+  /// Write [opaquePayload] to the `events` socket for the relay to rebroadcast to this project's
   /// other subscribers (`OcptRelayServer._rebroadcastToPeers`).
   ///
   /// Silently dropped, never thrown, when the socket is not currently connected — disconnected or
@@ -319,7 +321,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _connectEventsSocket();
   }
 
-  /// Tears down the socket once neither [newWorkStream] nor [presenceStream] has a listener left —
+  /// Tear down the socket once neither [newWorkStream] nor [presenceStream] has a listener left —
   /// called from each controller's `onCancel` and from [dispose], which forces it regardless of
   /// listeners since the transport itself is going away.
   void _stopWatchingEvents() {
@@ -369,7 +371,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     );
   }
 
-  /// Routes one inbound `events` frame: the literal [_newWorkFrame] ping to [newWorkStream], and
+  /// Route one inbound `events` frame: the literal [_newWorkFrame] ping to [newWorkStream], and
   /// every other text frame — a peer's opaque presence payload — to [presenceStream]. Never
   /// inspects a non-ping frame beyond telling it apart from the ping itself; a non-text frame (the
   /// relay never sends one) is dropped rather than routed anywhere.
@@ -384,7 +386,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
   }
 
-  /// Reacts to [socket] going down (from either end): reconnects only when [socket] is still the
+  /// React to [socket] going down (from either end): reconnects only when [socket] is still the
   /// transport's active one — a socket superseded by [_stopWatchingEvents] or a fresh
   /// [_connectEventsSocket] call reports its own demise here too late to matter, and must not
   /// schedule a second, redundant reconnect.
@@ -420,7 +422,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return httpUri.replace(scheme: httpUri.scheme == 'https' ? 'wss' : 'ws');
   }
 
-  /// Builds `<relayBaseUri>/projects/<projectId>/<suffix>`, joining paths explicitly rather than
+  /// Build `<relayBaseUri>/projects/<projectId>/<suffix>`, joining paths explicitly rather than
   /// through [Uri.resolve] — which would silently drop [relayBaseUri]'s last path segment when it
   /// does not already end in `/`.
   Uri _projectUri(String suffix) {
@@ -443,7 +445,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _contentTypeHeader: _contentTypeJson,
   };
 
-  /// Runs [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// Run [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
   /// it throws anything at all.
   ///
   /// This is the boundary with `package:http` and `dart:convert`, whose errors (a refused
@@ -466,7 +468,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return result;
   }
 
-  /// The [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx, or null when it
+  /// Get the [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx, or null
+  /// when it
   /// is one.
   OcptSyncError? _rejectionOf(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -476,7 +479,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
-  /// Releases every resource this transport holds: tears down the `events` WebSocket and its
+  /// Release every resource this transport holds: tears down the `events` WebSocket and its
   /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
   /// would, closes both streams' own broadcast controllers, and — only when this transport created
   /// its own [http.Client] rather than being handed one — closes that client too.

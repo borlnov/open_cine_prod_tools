@@ -33,15 +33,15 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
     onPage(OcptRoute.diagnostics, _createDiagnosticsPage);
   }
 
-  /// Callback to create the [OcptHomePage]
+  /// Create the [OcptHomePage]
   RoutePageDetails _createHomePage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptHomePage());
 
-  /// Callback to create the [OcptWorkspacePage]
+  /// Create the [OcptWorkspacePage]
   RoutePageDetails _createWorkspacePage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptWorkspacePage());
 
-  /// Callback to create the [OcptProjectSettingsPage]
+  /// Create the [OcptProjectSettingsPage]
   ///
   /// The route's `extra` names the section the page scrolls to when it opens, or is null for the
   /// page opened plainly.
@@ -52,23 +52,23 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
         ),
       );
 
-  /// Callback to create the [OcptSharingPage]
+  /// Create the [OcptSharingPage]
   RoutePageDetails _createSharingPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptSharingPage());
 
-  /// Callback to create the [OcptJoiningPage]
+  /// Create the [OcptJoiningPage]
   RoutePageDetails _createJoiningPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptJoiningPage());
 
-  /// Callback to create the [OcptRepointingPage]
+  /// Create the [OcptRepointingPage]
   RoutePageDetails _createRepointingPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptRepointingPage());
 
-  /// Callback to create the [OcptSettingsPage]
+  /// Create the [OcptSettingsPage]
   RoutePageDetails _createSettingsPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptSettingsPage());
 
-  /// Callback to create the third-party licenses page, listing everything
+  /// Create the third-party licenses page, listing everything
   /// [OcptGlobalManager]'s `ActLicensesManager` has fed into Flutter's `LicenseRegistry` by then.
   RoutePageDetails _createLicensesPage(BuildContext context, GoRouterState state) =>
       RoutePageDetails(
@@ -79,7 +79,7 @@ class OcptRoutesHelper extends AbstractRoutesHelper<OcptRoute> {
         ),
       );
 
-  /// Callback to create the [OcptDiagnosticsPage]
+  /// Create the [OcptDiagnosticsPage]
   RoutePageDetails _createDiagnosticsPage(BuildContext context, GoRouterState state) =>
       const RoutePageDetails(widget: OcptDiagnosticsPage());
 }

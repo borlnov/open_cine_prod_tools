@@ -67,7 +67,7 @@ abstract final class OcptProjectVersionsPayloadOps {
     'floor_plan_arrows',
   ];
 
-  /// Reads the whole state of the project in [database] into a payload, at [pageMargins].
+  /// Read the whole state of the project in [database] into a payload, at [pageMargins].
   ///
   /// One query per table, none of them filtering tombstones: a version that carried only the live
   /// rows would, on restore, resurrect everything the user had deleted since.
@@ -138,7 +138,7 @@ abstract final class OcptProjectVersionsPayloadOps {
     );
   }
 
-  /// Reads the version stamps of the rows the payload carries.
+  /// Read the version stamps of the rows the payload carries.
   ///
   /// Scoped by table rather than row by row, which comes to the same thing: a capture takes every
   /// row of [payloadTableNames], so every stamp of those tables describes a row the payload holds
@@ -150,7 +150,7 @@ abstract final class OcptProjectVersionsPayloadOps {
     database.ocptRowFieldVersionsTable,
   )..where((table) => table.targetTableName.isIn(payloadTableNames))).get();
 
-  /// Rewrites [payload]'s `people` rows — and the `person_positions`/`person_skills`/
+  /// Rewrite [payload]'s `people` rows — and the `person_positions`/`person_skills`/
   /// `person_unavailabilities`/`assets` rows hanging off them — for every person `local_erasures`
   /// names in [database], so no reader of a payload ever sees an erased person again: neither
   /// `OcptProjectVersionsRestoreOps.applyPayload` writing one back into the working copy, nor
@@ -325,7 +325,8 @@ abstract final class OcptProjectVersionsPayloadOps {
     );
   }
 
-  /// [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live row:
+  /// Build [row], blanked exactly as `OcptPeopleService.deletePerson`'s own erasure blanks a live
+  /// row:
   /// every column held something about the person except `id`, `sortKey`, `isDeleted` (set to true
   /// here rather than left alone) and `colorIndex`. `maxDailyPresenceMinutes` is blanked with the
   /// rest, being personal data of the same nature as `minorNotes`, and `commuteKmMilli`/

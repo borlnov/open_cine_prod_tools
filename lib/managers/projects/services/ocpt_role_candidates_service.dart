@@ -51,7 +51,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
   /// Class constructor
   const OcptRoleCandidatesService({required super.logger, required this.deviceId});
 
-  /// Loads every live candidacy of the project, grouped by `roleId`, each group in its own
+  /// Load every live candidacy of the project, grouped by `roleId`, each group in its own
   /// `sortKey` order — the casting director's own ranking of the people they have seen.
   ///
   /// Each row is joined with the person it names, taken from [people] rather than read again: the
@@ -85,8 +85,8 @@ class OcptRoleCandidatesService extends AbsOcptService {
     return candidatesByRoleId;
   }
 
-  /// Records that [personId] is a candidate for role [roleId], appended after that role's other
-  /// candidates, and returns the id of the candidacy — the one that already said so when there was
+  /// Record that [personId] is a candidate for role [roleId], appended after that role's other
+  /// candidates, and return the id of the candidacy — the one that already said so when there was
   /// one, a freshly generated one otherwise.
   ///
   /// A new candidacy starts at [OcptRoleCandidateStatus.spotted], the first step of the casting
@@ -165,7 +165,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   }
 
-  /// Updates the fields of candidacy [candidateId] that are passed as something other than
+  /// Update the fields of candidacy [candidateId] that are passed as something other than
   /// [Value.absent].
   ///
   /// Never touches `status`, `sortKey` or the tombstone: those only change through [setStatus],
@@ -207,7 +207,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   }
 
-  /// Moves candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
+  /// Move candidacy [candidateId] to [newPosition] (0-based) within role [roleId]'s own list, by
   /// giving it a `sortKey` sitting between the two candidacies it lands between. Writes **exactly
   /// one row**.
   ///
@@ -253,7 +253,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   }
 
-  /// Sets candidacy [candidateId]'s status to [status], keeping `roles.personId` in step with it.
+  /// Set candidacy [candidateId]'s status to [status], keeping `roles.personId` in step with it.
   ///
   /// **The one door every status change comes through**, [retainCandidate] and [unretainCandidate]
   /// included, so the two tables cannot end up disagreeing whichever gesture the user made:
@@ -332,7 +332,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   }
 
-  /// Retains candidacy [candidateId]: this person is the one cast in the part, and every other
+  /// Retain candidacy [candidateId]: this person is the one cast in the part, and every other
   /// candidate still in the running is turned down with the same gesture. [setStatus]'s retaining
   /// half, named for the decision the card's own status list makes.
   ///
@@ -346,7 +346,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     status: OcptRoleCandidateStatus.retained,
   );
 
-  /// Drops candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clears the part's
+  /// Drop candidacy [candidateId] back to [OcptRoleCandidateStatus.seen] and clear the part's
   /// casting with it. [retainCandidate]'s mirror on the cast column, and only there.
   ///
   /// The candidacy itself stays exactly where it was in the list, with its date and its notes: the
@@ -365,7 +365,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
   }) =>
       setStatus(database: database, candidateId: candidateId, status: OcptRoleCandidateStatus.seen);
 
-  /// Removes candidacy [candidateId]: this person is no longer among the people seen for the part.
+  /// Remove candidacy [candidateId]: this person is no longer among the people seen for the part.
   ///
   /// **The `people` row is never touched** — a person outlives a candidacy — and neither is any
   /// other candidacy of the role. `roles.personId` is cleared when the candidacy being removed was
@@ -416,7 +416,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every `role_candidates` row naming role [roleId], the cascade
+  /// Tombstone every `role_candidates` row naming role [roleId], the cascade
   /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
   ///
   /// The **people** these rows named are of course untouched, exactly as the elements a role's
@@ -452,7 +452,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     }
   }
 
-  /// Tombstones every `role_candidates` row naming person [personId] **and blanks its notes**: the
+  /// Tombstone every `role_candidates` row naming person [personId] **and blanks its notes**: the
   /// cascade `OcptPeopleService.deletePerson` reaches for, this table being the one link table that
   /// holds something about a person rather than only ids.
   ///
@@ -489,7 +489,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     }
   }
 
-  /// Turns down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
+  /// Turn down every live candidacy of role [roleId] other than [exceptCandidateId] that was still
   /// a lead — the "the part is cast, and the others did not get it" half of [setStatus].
   ///
   /// **The closed ones are left exactly as they are.** Somebody who declined, or who was
@@ -536,7 +536,7 @@ class OcptRoleCandidatesService extends AbsOcptService {
     }
   }
 
-  /// Writes [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
+  /// Write [personId] — a person, or null to leave the part uncast — into role [roleId]'s own
   /// `personId` column.
   ///
   /// The one place this service touches `roles`, and it goes straight to the table rather than
@@ -567,7 +567,8 @@ class OcptRoleCandidatesService extends AbsOcptService {
     );
   }
 
-  /// Every live `role_candidates` row of the project — or of role [roleId] alone when one is given
+  /// Get every live `role_candidates` row of the project — or of role [roleId] alone when one is
+  /// given
   /// — ordered by `sortKey`.
   Future<List<OcptRoleCandidateRow>> _liveCandidateRows({
     required OcptProjectDatabase database,

@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// The JSON shape of the breakdown and shooting schedule rows in a version's payload: one
 /// serializer and one parser per table, mirroring its columns.
 abstract final class OcptVersionScheduleJson {
-  /// Serializes one `breakdown_tags` row.
+  /// Serialize one `breakdown_tags` row.
   static Map<String, dynamic> breakdownTagToJson(OcptBreakdownTagRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sceneIdKey: row.sceneId,
@@ -30,7 +30,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `breakdown_tags` row.
+  /// Parse one `breakdown_tags` row.
   static OcptBreakdownTagRow breakdownTagFromJson(Map<String, dynamic> json) => OcptBreakdownTagRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sceneId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sceneIdKey),
@@ -52,7 +52,7 @@ abstract final class OcptVersionScheduleJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `scene_breakdowns` row.
+  /// Serialize one `scene_breakdowns` row.
   static Map<String, dynamic> sceneBreakdownToJson(OcptSceneBreakdownRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sceneIdKey: row.sceneId,
@@ -61,7 +61,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `scene_breakdowns` row.
+  /// Parse one `scene_breakdowns` row.
   static OcptSceneBreakdownRow sceneBreakdownFromJson(Map<String, dynamic> json) =>
       OcptSceneBreakdownRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -75,7 +75,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_days` row.
+  /// Serialize one `shooting_days` row.
   static Map<String, dynamic> shootingDayToJson(OcptShootingDayRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.dateKey: row.date.toIso8601String(),
@@ -87,7 +87,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_days` row.
+  /// Parse one `shooting_days` row.
   static OcptShootingDayRow shootingDayFromJson(Map<String, dynamic> json) => OcptShootingDayRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     date: OcptVersionJsonReader.readDateTime(json, OcptVersionJsonProductionKeys.dateKey),
@@ -106,7 +106,7 @@ abstract final class OcptVersionScheduleJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `shooting_slots` row.
+  /// Serialize one `shooting_slots` row.
   static Map<String, dynamic> shootingSlotToJson(OcptShootingSlotRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.shootingDayIdKey: row.shootingDayId,
@@ -121,7 +121,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_slots` row.
+  /// Parse one `shooting_slots` row.
   static OcptShootingSlotRow shootingSlotFromJson(Map<String, dynamic> json) => OcptShootingSlotRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     shootingDayId: OcptVersionJsonReader.readString(
@@ -147,7 +147,7 @@ abstract final class OcptVersionScheduleJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `shooting_slot_crew` row.
+  /// Serialize one `shooting_slot_crew` row.
   static Map<String, dynamic> shootingSlotCrewToJson(OcptShootingSlotCrewRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.slotIdKey: row.slotId,
@@ -159,7 +159,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_slot_crew` row.
+  /// Parse one `shooting_slot_crew` row.
   static OcptShootingSlotCrewRow shootingSlotCrewFromJson(Map<String, dynamic> json) =>
       OcptShootingSlotCrewRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -172,7 +172,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_slot_cast` row.
+  /// Serialize one `shooting_slot_cast` row.
   static Map<String, dynamic> shootingSlotCastToJson(OcptShootingSlotCastRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.slotIdKey: row.slotId,
@@ -182,7 +182,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_slot_cast` row.
+  /// Parse one `shooting_slot_cast` row.
   static OcptShootingSlotCastRow shootingSlotCastFromJson(Map<String, dynamic> json) =>
       OcptShootingSlotCastRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -193,7 +193,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_day_blocks` row.
+  /// Serialize one `shooting_day_blocks` row.
   static Map<String, dynamic> shootingDayBlockToJson(OcptShootingDayBlockRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.shootingDayIdKey: row.shootingDayId,
@@ -210,7 +210,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_day_blocks` row.
+  /// Parse one `shooting_day_blocks` row.
   static OcptShootingDayBlockRow shootingDayBlockFromJson(Map<String, dynamic> json) =>
       OcptShootingDayBlockRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -241,7 +241,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_block_candidates` row.
+  /// Serialize one `shooting_block_candidates` row.
   static Map<String, dynamic> shootingBlockCandidateToJson(OcptShootingBlockCandidateRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.blockIdKey: row.blockId,
@@ -251,7 +251,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_block_candidates` row.
+  /// Parse one `shooting_block_candidates` row.
   static OcptShootingBlockCandidateRow shootingBlockCandidateFromJson(Map<String, dynamic> json) =>
       OcptShootingBlockCandidateRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -265,7 +265,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_slot_guests` row.
+  /// Serialize one `shooting_slot_guests` row.
   static Map<String, dynamic> shootingSlotGuestToJson(OcptShootingSlotGuestRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.slotIdKey: row.slotId,
@@ -277,7 +277,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_slot_guests` row.
+  /// Parse one `shooting_slot_guests` row.
   static OcptShootingSlotGuestRow shootingSlotGuestFromJson(Map<String, dynamic> json) =>
       OcptShootingSlotGuestRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -290,7 +290,7 @@ abstract final class OcptVersionScheduleJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shooting_day_events` row.
+  /// Serialize one `shooting_day_events` row.
   static Map<String, dynamic> shootingDayEventToJson(OcptShootingDayEventRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.shootingDayIdKey: row.shootingDayId,
@@ -301,7 +301,7 @@ abstract final class OcptVersionScheduleJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shooting_day_events` row.
+  /// Parse one `shooting_day_events` row.
   static OcptShootingDayEventRow shootingDayEventFromJson(Map<String, dynamic> json) =>
       OcptShootingDayEventRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),

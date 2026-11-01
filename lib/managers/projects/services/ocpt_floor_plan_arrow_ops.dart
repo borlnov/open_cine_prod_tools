@@ -13,10 +13,10 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptFloorPlanService` forwards to; see `OcptFloorPlanReadOps`.
 abstract final class OcptFloorPlanArrowOps {
-  /// Adds a new [kind] arrow on set [setId] — creating its plan row if it doesn't exist yet
-  /// ([OcptFloorPlanRows.ensurePlan]) — belonging to shot [shotId] (always set — an arrow is always one shot's own
-  /// movement, `OcptFloorPlanArrowsTable`'s own doc comment), from [fromSymbolId] to [toSymbolId],
-  /// and returns its freshly generated id.
+  /// Add a new [kind] arrow on set [setId] — creating its plan row if it doesn't exist yet
+  /// ([OcptFloorPlanRows.ensurePlan]) — belonging to shot [shotId] (always set — an arrow is always
+  /// one shot's own movement, `OcptFloorPlanArrowsTable`'s own doc comment), from [fromSymbolId] to
+  /// [toSymbolId], and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<String?> addArrow({
@@ -64,7 +64,7 @@ abstract final class OcptFloorPlanArrowOps {
     return id;
   }
 
-  /// Updates arrow [arrowId]'s label.
+  /// Update arrow [arrowId]'s label.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<void> setArrowLabel({
@@ -99,7 +99,7 @@ abstract final class OcptFloorPlanArrowOps {
     });
   }
 
-  /// Updates arrow [arrowId]'s bezier control point — `(ctrlXM, ctrlYM)`, in metres — bending it
+  /// Update arrow [arrowId]'s bezier control point — `(ctrlXM, ctrlYM)`, in metres — bending it
   /// into a curve, or straightening it back out by writing both `const Value(null)`. Writes only
   /// these two columns.
   ///
@@ -139,7 +139,7 @@ abstract final class OcptFloorPlanArrowOps {
     });
   }
 
-  /// Tombstones arrow [arrowId].
+  /// Tombstone arrow [arrowId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///

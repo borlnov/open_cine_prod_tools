@@ -75,24 +75,24 @@ class OcptFloorPlanService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// Forwards to [OcptFloorPlanReadOps.loadFloorPlans].
+  /// Forward to [OcptFloorPlanReadOps.loadFloorPlans].
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => OcptFloorPlanReadOps.loadFloorPlans(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId].
+  /// Forward to [OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId].
   Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsByProjectSetId({
     required OcptProjectDatabase database,
   }) => OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId(database: database);
 
-  /// Forwards to [OcptFloorPlanReadOps.liveSetIdsWithPlan].
+  /// Forward to [OcptFloorPlanReadOps.liveSetIdsWithPlan].
   Future<Set<String>> liveSetIdsWithPlan({
     required OcptProjectDatabase database,
     required Iterable<String> setIds,
   }) => OcptFloorPlanReadOps.liveSetIdsWithPlan(database: database, setIds: setIds);
 
-  /// Sets Resources set [setId]'s underlay to the file at [path], framed at
+  /// Set Resources set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: creates the plan row if it doesn't exist yet
   /// ([OcptFloorPlanRows.ensurePlan]), tombstones its previous underlay `assets` row (if any) and mints a fresh one.
   ///
@@ -154,7 +154,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Clears set [setId]'s underlay: tombstones its `assets` row (if any) and blanks its frame. A
+  /// Clear set [setId]'s underlay: tombstones its `assets` row (if any) and blanks its frame. A
   /// no-op while the plan doesn't exist yet or already carries no underlay.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -199,7 +199,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Updates set [setId]'s underlay **frame** — its centre, size and/or rotation, whichever is
+  /// Update set [setId]'s underlay **frame** — its centre, size and/or rotation, whichever is
   /// passed as something other than [Value.absent] — through a single guarded write that touches
   /// no `assets` row at all. A no-op while the plan doesn't exist yet or carries no underlay
   /// (`underlayAssetId == null`): there is nothing to re-frame.
@@ -252,9 +252,9 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Places a new symbol of [layer] on Resources set [setId] — creating its plan row if it doesn't
-  /// exist yet ([OcptFloorPlanRows.ensurePlan]) — appended after the set's current last symbol of that layer, and
-  /// returns its freshly generated id.
+  /// Place a new symbol of [layer] on Resources set [setId] — creating its plan row if it doesn't
+  /// exist yet ([OcptFloorPlanRows.ensurePlan]) — appended after the set's current last symbol of
+  /// that layer, and return its freshly generated id.
   ///
   /// **Enforces the scope invariant**: the scope [sceneId]/[shotId] derive
   /// (`ocptFloorPlanScopeOf`) must be one [_allowedScopesOf] allows for [layer], or this throws an
@@ -411,7 +411,7 @@ class OcptFloorPlanService extends AbsOcptService {
     return id;
   }
 
-  /// Updates symbol [symbolId]'s position, rotation, footprint, field of view (angle and reach),
+  /// Update symbol [symbolId]'s position, rotation, footprint, field of view (angle and reach),
   /// label and/or set-element shape, whichever is passed as something other than [Value.absent] —
   /// a move writes `xM`/`yM`, a rotate writes `rotationDeg`, a resize writes `widthM`/`heightM`,
   /// [fovReachM] writes a camera's own wedge reach (its tip handle), [setElementShape] switches a
@@ -481,7 +481,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Tombstones symbol [symbolId], every live scene-scope override of it, and every arrow touching
+  /// Tombstone symbol [symbolId], every live scene-scope override of it, and every arrow touching
   /// any of them — whose [OcptFloorPlanArrow.fromSymbolId] or [OcptFloorPlanArrow.toSymbolId] names
   /// it — in one transaction.
   ///
@@ -546,7 +546,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Tombstones a set-scope symbol **everywhere**: [symbolId] itself (or, when [symbolId] names a
+  /// Tombstone a set-scope symbol **everywhere**: [symbolId] itself (or, when [symbolId] names a
   /// scene-scope override instead, the set-scope original it overrides — resolved through its own
   /// `overridesSymbolId`) and every live scene-scope override of it, in every sequence, plus every
   /// arrow touching any of them — the "Delete everywhere" branch of the extended delete
@@ -625,7 +625,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptFloorPlanArrowOps.addArrow].
+  /// Forward to [OcptFloorPlanArrowOps.addArrow].
   Future<String?> addArrow({
     required OcptProjectDatabase database,
     required String setId,
@@ -645,7 +645,7 @@ class OcptFloorPlanService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptFloorPlanArrowOps.setArrowLabel].
+  /// Forward to [OcptFloorPlanArrowOps.setArrowLabel].
   Future<void> setArrowLabel({
     required OcptProjectDatabase database,
     required String arrowId,
@@ -657,7 +657,7 @@ class OcptFloorPlanService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptFloorPlanArrowOps.updateArrowCurve].
+  /// Forward to [OcptFloorPlanArrowOps.updateArrowCurve].
   Future<void> updateArrowCurve({
     required OcptProjectDatabase database,
     required String arrowId,
@@ -671,11 +671,11 @@ class OcptFloorPlanService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptFloorPlanArrowOps.deleteArrow].
+  /// Forward to [OcptFloorPlanArrowOps.deleteArrow].
   Future<void> deleteArrow({required OcptProjectDatabase database, required String arrowId}) =>
       OcptFloorPlanArrowOps.deleteArrow(database: database, arrowId: arrowId, deviceId: deviceId);
 
-  /// Forwards to [OcptFloorPlanCascadeOps.duplicateSet].
+  /// Forward to [OcptFloorPlanCascadeOps.duplicateSet].
   Future<void> duplicateSet({
     required OcptProjectDatabase database,
     required String sourceSetId,
@@ -687,7 +687,7 @@ class OcptFloorPlanService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptFloorPlanCascadeOps.copyShotBlocking].
+  /// Forward to [OcptFloorPlanCascadeOps.copyShotBlocking].
   Future<void> copyShotBlocking({
     required OcptProjectDatabase database,
     required String sourceSetId,
@@ -703,7 +703,7 @@ class OcptFloorPlanService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfShot].
+  /// Forward to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfShot].
   Future<void> tombstoneFloorPlanRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -714,7 +714,7 @@ class OcptFloorPlanService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Forwards to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfSet].
+  /// Forward to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfSet].
   Future<void> tombstoneFloorPlanRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
@@ -725,7 +725,7 @@ class OcptFloorPlanService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Masks [original] for one sequence ([sceneId]) or one shot ([shotId]) alone — exactly one of
+  /// Mask [original] for one sequence ([sceneId]) or one shot ([shotId]) alone — exactly one of
   /// the two is non-null — a hidden override: sets `isHidden` on [existingOverride] when one
   /// already exists, or places one copied from [original]'s own geometry otherwise. What the
   /// extended delete confirmation's alternative branch ("Remove from sequence n"/"Remove from
@@ -766,7 +766,7 @@ class OcptFloorPlanService extends AbsOcptService {
     );
   }
 
-  /// Writes [decision]'s geometry (every field it carries, the others left as they are) onto the
+  /// Write [decision]'s geometry (every field it carries, the others left as they are) onto the
   /// original symbol it names when [onEveryScope] is true, or onto an override of it for
   /// [targetSceneId] / [targetShotId] otherwise: [existingOverride] updated when there is one, a
   /// new override copied from [original] and moved by the decision when not.
@@ -820,7 +820,7 @@ class OcptFloorPlanService extends AbsOcptService {
     return true;
   }
 
-  /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
+  /// Throw an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
   /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless
   /// [hasOverride] is true: that layer is never natively shot-scope, only ever a shot override of
   /// a scene-scope symbol. See this class's own doc comment for why this is the one place the
@@ -851,7 +851,7 @@ class OcptFloorPlanService extends AbsOcptService {
     }
   }
 
-  /// The scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
+  /// Get the scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
   /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
   /// another here rather than silently landing in whichever branch happens to be listed last.
   ///

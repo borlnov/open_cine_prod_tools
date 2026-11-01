@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_people_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_roles_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders a whole resources catalogue into the bytes of an XLSX workbook, one sheet per tab.
+/// Render a whole resources catalogue into the bytes of an XLSX workbook, one sheet per tab.
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
@@ -55,7 +55,8 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
   /// Class constructor
   const OcptResourcesXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the resources catalogue of the project named
+  /// Get the `.xlsx` file name to suggest when exporting the resources catalogue of the project
+  /// named
   /// [projectName], with [suffix] appended so it can never collide with the shot list workbook's
   /// own name (`"$projectName.xlsx"`), mirroring `OcptScenarioCoveragePdfService.coverageFileName`.
   String xlsxFileName({required String projectName, required String suffix}) {
@@ -67,8 +68,8 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
         : "$projectName - $trimmedSuffix.$extension";
   }
 
-  /// Builds the workbook holding [snapshot]'s whole resources catalogue, titled and headed with
-  /// [labels], and returns its bytes.
+  /// Build the workbook holding [snapshot]'s whole resources catalogue, titled and headed with
+  /// [labels], and return its bytes.
   ///
   /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
   /// caller reports as a failed export: `excel_community` returns null there rather than throwing
@@ -174,10 +175,10 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// [name] if it holds anything other than whitespace, [fallback] otherwise.
+  /// Get [name] if it holds anything other than whitespace, [fallback] otherwise.
   String _sheetNameOr(String name, String fallback) => name.trim().isEmpty ? fallback : name;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
   /// up with the named sheet plus an empty `Sheet1` next to it. A no-op when the default sheet
   /// already carries that name.
   void _renameDefaultSheet(Excel excel, String sheetName) {
@@ -189,7 +190,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Appends [sheet]'s single header row, one cell per value of [columns], and emboldens it.
+  /// Append [sheet]'s single header row, one cell per value of [columns], and embolden it.
   void _appendHeaderRow<T>(Sheet sheet, List<T> columns, String Function(T column) headerOf) {
     final headerRowIndex = sheet.maxRows;
     sheet.appendRow([for (final column in columns) TextCellValue(headerOf(column))]);
@@ -203,7 +204,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Every role's name of [roles], grouped by its cast member's person id — a person may hold
+  /// Get every role's name of [roles], grouped by its cast member's person id — a person may hold
   /// several roles, and an uncast role contributes to nobody's row.
   Map<String, List<String>> _roleNamesByPersonId(List<OcptRole> roles) {
     final result = <String, List<String>>{};
@@ -217,7 +218,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     return result;
   }
 
-  /// The cell [column] holds for [person], or null to leave it empty.
+  /// Get the cell [column] holds for [person], or null to leave it empty.
   CellValue? _personCellOf({
     required OcptPeopleXlsxColumn column,
     required OcptPerson person,
@@ -276,7 +277,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     OcptPeopleXlsxColumn.notes => _textOrNull(person.notes),
   };
 
-  /// The text [person]'s crew positions read as in one cell: each assignment's own label — the
+  /// Get the text [person]'s crew positions read as in one cell: each assignment's own label — the
   /// catalogue's localized one when it names a stable position, the free label otherwise — joined
   /// with " · ", mirroring how the person sheet itself joins them.
   String _positionsTextOf({required OcptPerson person, required OcptResourcesXlsxLabels labels}) =>
@@ -288,7 +289,8 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
           )
           .join(" · ");
 
-  /// The text [person]'s unavailabilities read as in one cell: one description per row — its date
+  /// Get the text [person]'s unavailabilities read as in one cell: one description per row — its
+  /// date
   /// range, its slot (with a custom window's own hours) and, when given, its reason — joined into
   /// the single cell the sheet has room for.
   String _unavailabilitiesTextOf({
@@ -310,7 +312,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
       })
       .join("; ");
 
-  /// The cell [column] holds for [role], or null to leave it empty.
+  /// Get the cell [column] holds for [role], or null to leave it empty.
   CellValue? _roleCellOf({
     required OcptRolesXlsxColumn column,
     required OcptRole role,
@@ -326,7 +328,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     OcptRolesXlsxColumn.castingNotes => _textOrNull(role.castingNotes),
   };
 
-  /// The cell [column] holds for [location]'s row of [set] (null on its no-set row), or null to
+  /// Get the cell [column] holds for [location]'s row of [set] (null on its no-set row), or null to
   /// leave it empty.
   CellValue? _locationCellOf({
     required OcptLocationsXlsxColumn column,
@@ -375,7 +377,8 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     OcptLocationsXlsxColumn.notes => _textOrNull(location.notes),
   };
 
-  /// The text [location]'s availability windows read as in one cell: one description per window —
+  /// Get the text [location]'s availability windows read as in one cell: one description per window
+  /// —
   /// its date range, the days of the week it covers within it, its slot (with a custom window's own
   /// hours), whether it is free or conditional, and, when given, its note — joined into the single
   /// cell the sheet has room for.
@@ -400,7 +403,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
       })
       .join("; ");
 
-  /// The days of the week [mask] covers, named through [labels]: the one word
+  /// Get the days of the week [mask] covers, named through [labels]: the one word
   /// [OcptResourcesXlsxLabels.everyDayLabel] when it narrows the range to nothing in particular,
   /// the covered days' own names in `DateTime`'s order otherwise.
   ///
@@ -418,13 +421,13 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     ].where((label) => label.isNotEmpty).join(", ");
   }
 
-  /// The scenes named by [sceneIds], through [labels], joined for a set's own column.
+  /// Get the scenes named by [sceneIds], through [labels], joined for a set's own column.
   String _joinSceneLabels({
     required OcptResourcesXlsxLabels labels,
     required List<String> sceneIds,
   }) => sceneIds.map(labels.sceneLabelOf).where((label) => label.isNotEmpty).join(", ");
 
-  /// The cell [column] holds for [element], or null to leave it empty.
+  /// Get the cell [column] holds for [element], or null to leave it empty.
   CellValue? _elementCellOf({
     required OcptElementsXlsxColumn column,
     required OcptElement element,
@@ -462,7 +465,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     OcptElementsXlsxColumn.notes => _textOrNull(element.notes),
   };
 
-  /// The text [element]'s scene links read as in one cell: each scene's own label, with its
+  /// Get the text [element]'s scene links read as in one cell: each scene's own label, with its
   /// quantity and notes for that scene alone in parentheses when either is given, joined into the
   /// single cell the sheet has room for.
   String _sceneLinksTextOf({
@@ -479,7 +482,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
       })
       .join("; ");
 
-  /// [startDate]–[endDate], or just [startDate] when the range is a single day.
+  /// Get [startDate]–[endDate], or just [startDate] when the range is a single day.
   String _dateRangeOf(DateTime startDate, DateTime endDate) {
     final isSameDay =
         startDate.year == endDate.year &&
@@ -489,7 +492,7 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     return isSameDay ? _isoDate(startDate) : "${_isoDate(startDate)}–${_isoDate(endDate)}";
   }
 
-  /// The label of [slot], with [startMinute]–[endMinute] appended when [slot] is
+  /// Get the label of [slot], with [startMinute]–[endMinute] appended when [slot] is
   /// [OcptDayPartSlot.custom].
   String _slotTextOf({
     required OcptDayPartSlot slot,
@@ -505,18 +508,18 @@ class OcptResourcesXlsxExportService extends AbsOcptService {
     return "$label (${_hoursOf(startMinute)}–${_hoursOf(endMinute)})";
   }
 
-  /// [date] as `yyyy-MM-dd`: unambiguous and locale-free, for the composite summary cells that
+  /// Get [date] as `yyyy-MM-dd`: unambiguous and locale-free, for the composite summary cells that
   /// otherwise have no `Tr` (or even a locale) to format a date with.
   String _isoDate(DateTime date) =>
       "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
       "${date.day.toString().padLeft(2, '0')}";
 
-  /// [minutesFromMidnight] as `HH:mm`.
+  /// Get [minutesFromMidnight] as `HH:mm`.
   String _hoursOf(int minutesFromMidnight) =>
       "${(minutesFromMidnight ~/ 60).toString().padLeft(2, '0')}:"
       "${(minutesFromMidnight % 60).toString().padLeft(2, '0')}";
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 }

@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart'
 /// The JSON shape of the screenplay, scene, shot, storyboard and floor plan rows in a version's
 /// payload: one serializer and one parser per table, mirroring its columns.
 abstract final class OcptVersionShotListJson {
-  /// Serializes one `screenplays` row.
+  /// Serialize one `screenplays` row.
   static Map<String, dynamic> screenplayToJson(OcptScreenplayRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.titleKey: row.title,
@@ -27,7 +27,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `screenplays` row.
+  /// Parse one `screenplays` row.
   static OcptScreenplayRow screenplayFromJson(Map<String, dynamic> json) => OcptScreenplayRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     title: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.titleKey),
@@ -38,7 +38,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `scenes` row.
+  /// Serialize one `scenes` row.
   static Map<String, dynamic> sceneToJson(OcptSceneRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.screenplayIdKey: row.screenplayId,
@@ -50,7 +50,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `scenes` row.
+  /// Parse one `scenes` row.
   static OcptSceneRow sceneFromJson(Map<String, dynamic> json) => OcptSceneRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     screenplayId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.screenplayIdKey),
@@ -62,7 +62,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `shots` row.
+  /// Serialize one `shots` row.
   static Map<String, dynamic> shotToJson(OcptShotRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.screenplayIdKey: row.screenplayId,
@@ -92,7 +92,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shots` row.
+  /// Parse one `shots` row.
   static OcptShotRow shotFromJson(Map<String, dynamic> json) => OcptShotRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     screenplayId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.screenplayIdKey),
@@ -136,7 +136,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `shot_characters` row.
+  /// Serialize one `shot_characters` row.
   static Map<String, dynamic> shotCharacterToJson(OcptShotCharacterRow row) => {
     OcptVersionJsonKeys.shotIdKey: row.shotId,
     OcptVersionJsonProductionKeys.roleIdKey: row.roleId,
@@ -145,7 +145,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shot_characters` row, from payload format 3 on — see `OcptProjectVersionCodec`'s
+  /// Parse one `shot_characters` row, from payload format 3 on — see `OcptProjectVersionCodec`'s
   /// payload walk, whose doc comment for why an older payload never reaches this at all.
   static OcptShotCharacterRow shotCharacterFromJson(Map<String, dynamic> json) =>
       OcptShotCharacterRow(
@@ -156,7 +156,7 @@ abstract final class OcptVersionShotListJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `shot_coverages` row.
+  /// Serialize one `shot_coverages` row.
   static Map<String, dynamic> shotCoverageToJson(OcptShotCoverageRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.shotIdKey: row.shotId,
@@ -167,7 +167,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `shot_coverages` row.
+  /// Parse one `shot_coverages` row.
   static OcptShotCoverageRow shotCoverageFromJson(Map<String, dynamic> json) => OcptShotCoverageRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     shotId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.shotIdKey),
@@ -181,7 +181,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `storyboard_panels` row.
+  /// Serialize one `storyboard_panels` row.
   static Map<String, dynamic> storyboardPanelToJson(OcptStoryboardPanelRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.shotIdKey: row.shotId,
@@ -191,7 +191,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `storyboard_panels` row.
+  /// Parse one `storyboard_panels` row.
   static OcptStoryboardPanelRow storyboardPanelFromJson(Map<String, dynamic> json) =>
       OcptStoryboardPanelRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -205,7 +205,7 @@ abstract final class OcptVersionShotListJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `storyboard_annotations` row.
+  /// Serialize one `storyboard_annotations` row.
   static Map<String, dynamic> storyboardAnnotationToJson(OcptStoryboardAnnotationRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.panelIdKey: row.panelId,
@@ -219,7 +219,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `storyboard_annotations` row.
+  /// Parse one `storyboard_annotations` row.
   static OcptStoryboardAnnotationRow storyboardAnnotationFromJson(Map<String, dynamic> json) =>
       OcptStoryboardAnnotationRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -238,7 +238,7 @@ abstract final class OcptVersionShotListJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `floor_plan_sets` row.
+  /// Serialize one `floor_plan_sets` row.
   static Map<String, dynamic> floorPlanSetToJson(OcptFloorPlanSetRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.underlayAssetIdKey: row.underlayAssetId,
@@ -250,7 +250,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `floor_plan_sets` row.
+  /// Parse one `floor_plan_sets` row.
   static OcptFloorPlanSetRow floorPlanSetFromJson(Map<String, dynamic> json) => OcptFloorPlanSetRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     underlayAssetId: OcptVersionJsonReader.readNullableString(
@@ -280,7 +280,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `floor_plan_symbols` row.
+  /// Serialize one `floor_plan_symbols` row.
   static Map<String, dynamic> floorPlanSymbolToJson(OcptFloorPlanSymbolRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.setIdKey: row.setId,
@@ -302,7 +302,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `floor_plan_symbols` row.
+  /// Parse one `floor_plan_symbols` row.
   static OcptFloorPlanSymbolRow floorPlanSymbolFromJson(
     Map<String, dynamic> json,
   ) => OcptFloorPlanSymbolRow(
@@ -349,7 +349,7 @@ abstract final class OcptVersionShotListJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `floor_plan_arrows` row.
+  /// Serialize one `floor_plan_arrows` row.
   static Map<String, dynamic> floorPlanArrowToJson(OcptFloorPlanArrowRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.setIdKey: row.setId,
@@ -363,7 +363,7 @@ abstract final class OcptVersionShotListJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `floor_plan_arrows` row.
+  /// Parse one `floor_plan_arrows` row.
   static OcptFloorPlanArrowRow floorPlanArrowFromJson(
     Map<String, dynamic> json,
   ) => OcptFloorPlanArrowRow(

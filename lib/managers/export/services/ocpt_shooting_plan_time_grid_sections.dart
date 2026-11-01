@@ -32,7 +32,8 @@ abstract final class OcptShootingPlanTimeGridSections {
   // Ten-minute day grid
   // ---------------------------------------------------------------------------------------------
 
-  /// [dayId]'s own [OcptShootingDayAgendaGrid], built from [plan]'s resolved timelines and events —
+  /// Get [dayId]'s own [OcptShootingDayAgendaGrid], built from [plan]'s resolved timelines and
+  /// events —
   /// the one place this service turns those into the grid's own pure input types.
   ///
   /// A shot block's own tile caption is its shot's own code (`shot.code`), never its full row of
@@ -94,7 +95,7 @@ abstract final class OcptShootingPlanTimeGridSections {
     return OcptShootingDayAgendaGrid.of(columns: columns, events: events);
   }
 
-  /// One day's own ten-minute grid page: the running head, the day's own title with
+  /// Build one day's own ten-minute grid page: the running head, the day's own title with
   /// [OcptShootingPlanLabels.tenMinuteGridSectionTitle] appended, then the grid itself, or
   /// [OcptShootingPlanLabels.emptyDayScheduleNote] on a day with no live slot at all.
   ///
@@ -160,7 +161,8 @@ abstract final class OcptShootingPlanTimeGridSections {
     );
   }
 
-  /// The grid's own body: an [OcptShootingDayAgendaEventPlacement.beforeGrid] event's own band
+  /// Build the grid's own body: an [OcptShootingDayAgendaEventPlacement.beforeGrid] event's own
+  /// band
   /// first, then one [pw.Table] per run of rows uninterrupted by an `.inGrid` one — a header row
   /// (the slot labels) leading every one of them so a page reached after a break still says which
   /// column is which slot — then every `.afterGrid` event's own band last, or
@@ -289,7 +291,8 @@ abstract final class OcptShootingPlanTimeGridSections {
     return widgets;
   }
 
-  /// The grid's own leading column cell: [minute] formatted through `ocptFormatDayMinute`, printed
+  /// Build the grid's own leading column cell: [minute] formatted through `ocptFormatDayMinute`,
+  /// printed
   /// on every row — the same figure the tile cells inside that row's own band read their exact
   /// clock from, but rounded to this row's own ten-minute mark rather than a block's own exact one.
   static pw.Widget tenMinuteGridHourCell({
@@ -307,7 +310,8 @@ abstract final class OcptShootingPlanTimeGridSections {
     ),
   );
 
-  /// One slot column's own cell for [row]: a blank, borderless space while [tile] is null (that
+  /// Build one slot column's own cell for [row]: a blank, borderless space while [tile] is null
+  /// (that
   /// slot has nothing placed on this row — a gap between two blocks, or a row before the slot's own
   /// call), otherwise a bordered rectangle carrying [tile]'s own caption and exact clock on its
   /// first row alone, its top and bottom border switched on only where [row] is that tile's own
@@ -354,7 +358,8 @@ abstract final class OcptShootingPlanTimeGridSections {
     );
   }
 
-  /// The grid's own full-width event marker, breaking the table it interrupts into two — mirrors
+  /// Build the grid's own full-width event marker, breaking the table it interrupts into two —
+  /// mirrors
   /// [OcptShootingPlanDaySections.crewNoteBandWidget]'s own `minWidth: double.infinity` trick,
   /// `pw.Table` having no column a single widget could span instead.
   static pw.Widget tenMinuteGridEventWidget({

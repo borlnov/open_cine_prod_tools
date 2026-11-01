@@ -6,7 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path/path.dart' as p;
 
-/// Shows the native "save as" dialog and resolves the path the user picked.
+/// Show the native "save as" dialog and resolve the path the user picked.
 ///
 /// Pure Flutter-plugin wrapper around `package:file_selector`'s [getSaveLocation]: it's owned by
 /// `OcptExportManager` as a public final field, reached through the manager rather than
@@ -15,7 +15,7 @@ class OcptSaveLocationService extends AbsOcptService {
   /// Class constructor
   const OcptSaveLocationService({required super.logger});
 
-  /// Shows the native save dialog, pre-filled with [suggestedFileName] and restricted to
+  /// Show the native save dialog, pre-filled with [suggestedFileName] and restricted to
   /// [extensions] (labelled [fileTypeLabel] in the dialog's type filter), opening in
   /// [initialDirectory] when given.
   ///
@@ -51,7 +51,7 @@ class OcptSaveLocationService extends AbsOcptService {
     return pickedPath;
   }
 
-  /// Shows the native "choose a folder" dialog and resolves the path the user picked, opening in
+  /// Show the native "choose a folder" dialog and resolve the path the user picked, opening in
   /// [initialDirectory] when given.
   ///
   /// The named call sheets are the one export of this app that does not write a single file: there

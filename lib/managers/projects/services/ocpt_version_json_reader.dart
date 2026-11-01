@@ -23,22 +23,23 @@ abstract final class OcptVersionJsonReader {
   /// so one decode never sees another's.
   static String? _firstReadFailure;
 
-  /// The first thing a field reader found wrong since the last [reset], or null while all is well.
+  /// Get the first thing a field reader found wrong since the last [reset], or null while all is
+  /// well.
   static String? get firstReadFailure => _firstReadFailure;
 
-  /// Forgets any recorded failure: `OcptProjectVersionCodec.decode` calls it on entry and on exit,
+  /// Forget any recorded failure: `OcptProjectVersionCodec.decode` calls it on entry and on exit,
   /// so one decode never sees another's.
   static void reset() => _firstReadFailure = null;
 
-  /// Records [reason] as the failure of the payload being decoded, unless one is already, and
-  /// answers [neutral].
+  /// Record [reason] as the failure of the payload being decoded, unless one is already, and answer
+  /// [neutral].
   static T unreadable<T>(String reason, T neutral) {
     _firstReadFailure ??= reason;
 
     return neutral;
   }
 
-  /// The list of JSON objects stored at [key] in [json].
+  /// Get the list of JSON objects stored at [key] in [json].
   static List<Map<String, dynamic>> readRows(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! List) {
@@ -54,7 +55,7 @@ abstract final class OcptVersionJsonReader {
     ];
   }
 
-  /// The JSON object stored at [key] in [json].
+  /// Get the JSON object stored at [key] in [json].
   static Map<String, dynamic> readObject(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! Map<String, dynamic>) {
@@ -64,11 +65,11 @@ abstract final class OcptVersionJsonReader {
     return value;
   }
 
-  /// The non-null string stored at [key] in [json].
+  /// Get the non-null string stored at [key] in [json].
   static String readString(Map<String, dynamic> json, String key) =>
       readNullableString(json, key) ?? unreadable("'$key' is missing", "");
 
-  /// The string stored at [key] in [json], or null when the column it mirrors was null.
+  /// Get the string stored at [key] in [json], or null when the column it mirrors was null.
   static String? readNullableString(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value == null) {
@@ -82,11 +83,11 @@ abstract final class OcptVersionJsonReader {
     return value;
   }
 
-  /// The non-null integer stored at [key] in [json].
+  /// Get the non-null integer stored at [key] in [json].
   static int readInt(Map<String, dynamic> json, String key) =>
       readNullableInt(json, key) ?? unreadable("'$key' is missing", 0);
 
-  /// The integer stored at [key] in [json], or null when the column it mirrors was null.
+  /// Get the integer stored at [key] in [json], or null when the column it mirrors was null.
   static int? readNullableInt(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value == null) {
@@ -100,7 +101,7 @@ abstract final class OcptVersionJsonReader {
     return value;
   }
 
-  /// The non-null boolean stored at [key] in [json].
+  /// Get the non-null boolean stored at [key] in [json].
   static bool readBool(Map<String, dynamic> json, String key) {
     final value = json[key];
     if (value is! bool) {
@@ -110,7 +111,8 @@ abstract final class OcptVersionJsonReader {
     return value;
   }
 
-  /// The non-null boolean stored at [key] in [json], or `false` when [key] is altogether absent —
+  /// Get the non-null boolean stored at [key] in [json], or `false` when [key] is altogether absent
+  /// —
   /// for a non-nullable column added mid schema-version-4 development cycle whose own SQL default
   /// is `false` ([OcptVersionJsonProductionKeys.isHiddenKey]): an older format-4 payload written
   /// before the column existed reads back at that very default instead of failing, the same
@@ -124,7 +126,7 @@ abstract final class OcptVersionJsonReader {
     return readBool(json, key);
   }
 
-  /// The boolean stored at [key] in [json], or null when the column it mirrors was null — the
+  /// Get the boolean stored at [key] in [json], or null when the column it mirrors was null — the
   /// tri-state `people.isTransportAutonomous` is the one column of the schema that needs this.
   static bool? readNullableBool(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -139,7 +141,7 @@ abstract final class OcptVersionJsonReader {
     return value;
   }
 
-  /// The non-null number stored at [key] in [json], as a double.
+  /// Get the non-null number stored at [key] in [json], as a double.
   ///
   /// A whole margin written as `1` by an older build (or by a hand-edited file) reads back as an
   /// `int`, so this accepts any [num] rather than only what `jsonEncode` writes for a double.
@@ -152,7 +154,7 @@ abstract final class OcptVersionJsonReader {
     return value.toDouble();
   }
 
-  /// The number stored at [key] in [json], as a double, or null when the column it mirrors was
+  /// Get the number stored at [key] in [json], as a double, or null when the column it mirrors was
   /// null — `locations.latitude`/`longitude` before a location has been pinned on a map.
   static double? readNullableDouble(Map<String, dynamic> json, String key) {
     final value = json[key];
@@ -167,12 +169,13 @@ abstract final class OcptVersionJsonReader {
     return value.toDouble();
   }
 
-  /// The non-null date and time stored at [key] in [json], as an ISO 8601 string.
+  /// Get the non-null date and time stored at [key] in [json], as an ISO 8601 string.
   static DateTime readDateTime(Map<String, dynamic> json, String key) =>
       DateTime.tryParse(readString(json, key)) ??
       unreadable("'$key' isn't an ISO 8601 date", DateTime.fromMillisecondsSinceEpoch(0));
 
-  /// The date and time stored at [key] in [json], as an ISO 8601 string, or null when the column
+  /// Get the date and time stored at [key] in [json], as an ISO 8601 string, or null when the
+  /// column
   /// it mirrors was null.
   static DateTime? readNullableDateTime(Map<String, dynamic> json, String key) {
     final value = readNullableString(json, key);
@@ -183,7 +186,7 @@ abstract final class OcptVersionJsonReader {
     return DateTime.tryParse(value) ?? unreadable("'$key' isn't an ISO 8601 date", null);
   }
 
-  /// The non-null enum value stored at [key] in [json], looked up by name in [valuesByName].
+  /// Get the non-null enum value stored at [key] in [json], looked up by name in [valuesByName].
   static T readEnum<T extends Enum>(
     Map<String, dynamic> json,
     String key,
@@ -192,7 +195,7 @@ abstract final class OcptVersionJsonReader {
       readNullableEnum(json, key, valuesByName) ??
       unreadable("'$key' is missing", valuesByName.values.first);
 
-  /// The enum value stored at [key] in [json], or null when the column it mirrors was null.
+  /// Get the enum value stored at [key] in [json], or null when the column it mirrors was null.
   static T? readNullableEnum<T extends Enum>(
     Map<String, dynamic> json,
     String key,

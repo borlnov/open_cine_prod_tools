@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 ///
 /// Stateless, so a call takes the database it writes to and the services it needs.
 abstract final class OcptProjectVersionsRestoreOps {
-  /// Writes [payload] over the project in [database], from inside
+  /// Write [payload] over the project in [database], from inside
   /// `OcptProjectVersionsService.restoreVersion`'s transaction.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectVersionsService.restoreIsAnEdit}
@@ -576,7 +576,7 @@ abstract final class OcptProjectVersionsRestoreOps {
     await stamps.flush(database);
   }
 
-  /// Writes [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
+  /// Write [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
   /// so the modes find the version's state exactly where they usually find the working copy's.
   ///
   /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
@@ -715,7 +715,7 @@ abstract final class OcptProjectVersionsRestoreOps {
     });
   });
 
-  /// Snapshots the text of every screenplay [payload] is about to overwrite in [database].
+  /// Snapshot the text of every screenplay [payload] is about to overwrite in [database].
   ///
   /// This is what a restore owes the merge rather than the user (see [OcptSnapshotReason.restore]),
   /// and it has to happen before a single character of `screenplays.fountainText` changes. Only the
@@ -752,7 +752,7 @@ abstract final class OcptProjectVersionsRestoreOps {
     }
   }
 
-  /// Restores one table of a payload: [payloadRows] are written over whatever [table] currently
+  /// Restore one table of a payload: [payloadRows] are written over whatever [table] currently
   /// holds in [database], and whatever it holds beyond them is tombstoned.
   ///
   /// The three cases, each stamped through [stamps] unless the table is one no merge ever sees (see

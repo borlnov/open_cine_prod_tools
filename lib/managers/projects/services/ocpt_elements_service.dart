@@ -68,7 +68,7 @@ class OcptElementsService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// Loads every live element of [database], in `sortKey` order, each joined with the live
+  /// Load every live element of [database], in `sortKey` order, each joined with the live
   /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order), the
   /// live `role_elements` ones (in the cast's own `sortKey` order) and with the photo it
   /// references.
@@ -111,8 +111,8 @@ class OcptElementsService extends AbsOcptService {
     ];
   }
 
-  /// Creates a new element named [name], of [category] and [sourceKind], in [database], appended
-  /// at the end of the catalogue, and returns its freshly generated id.
+  /// Create a new element named [name], of [category] and [sourceKind], in [database], appended at
+  /// the end of the catalogue, and return its freshly generated id.
   ///
   /// The element's code is generated here rather than left empty (`ocptElementCodeOf`, numbered
   /// within [category] from the codes the catalogue already carries): every element gets one
@@ -173,7 +173,7 @@ class OcptElementsService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of element [elementId] in [database] that are passed as something other
+  /// Update the fields of element [elementId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderElement] and [deleteElement].
   ///
@@ -260,7 +260,7 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// Tombstones element [elementId] in [database] and both kinds of link onto it — the
+  /// Tombstone element [elementId] in [database] and both kinds of link onto it — the
   /// `scene_elements` ones and the `role_elements` ones — along with it.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -328,8 +328,8 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// References the file at [path] as element [elementId]'s photo, replacing whichever file it
-  /// referenced before, and returns the freshly generated id of the `assets` row.
+  /// Reference the file at [path] as element [elementId]'s photo, replacing whichever file it
+  /// referenced before, and return the freshly generated id of the `assets` row.
   ///
   /// The replaced photo's row is tombstoned in the same transaction, for the reason
   /// `OcptPeopleService.setPersonPhoto` gives: an element has one photo, so a row nothing points at
@@ -381,7 +381,7 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// Drops element [elementId]'s reference to its photo: the `assets` row is tombstoned and
+  /// Drop element [elementId]'s reference to its photo: the `assets` row is tombstoned and
   /// `photoAssetId` goes back to null. The file itself is never touched.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -418,7 +418,7 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// Moves element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
+  /// Move element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two elements it lands between. Writes
   /// **exactly one row**.
   ///
@@ -463,7 +463,7 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptElementsSceneLinkOps.addSceneElement].
+  /// Forward to [OcptElementsSceneLinkOps.addSceneElement].
   Future<String?> addSceneElement({
     required OcptProjectDatabase database,
     required String sceneId,
@@ -479,7 +479,7 @@ class OcptElementsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptElementsSceneLinkOps.updateSceneElement].
+  /// Forward to [OcptElementsSceneLinkOps.updateSceneElement].
   Future<void> updateSceneElement({
     required OcptProjectDatabase database,
     required String id,
@@ -493,11 +493,11 @@ class OcptElementsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptElementsSceneLinkOps.removeSceneElement].
+  /// Forward to [OcptElementsSceneLinkOps.removeSceneElement].
   Future<void> removeSceneElement({required OcptProjectDatabase database, required String id}) =>
       OcptElementsSceneLinkOps.removeSceneElement(database: database, id: id, deviceId: deviceId);
 
-  /// Forwards to [OcptElementsRoleLinkOps.addRoleElement].
+  /// Forward to [OcptElementsRoleLinkOps.addRoleElement].
   Future<String?> addRoleElement({
     required OcptProjectDatabase database,
     required String roleId,
@@ -511,7 +511,7 @@ class OcptElementsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptElementsRoleLinkOps.updateRoleElement].
+  /// Forward to [OcptElementsRoleLinkOps.updateRoleElement].
   Future<void> updateRoleElement({
     required OcptProjectDatabase database,
     required String id,
@@ -523,11 +523,11 @@ class OcptElementsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptElementsRoleLinkOps.removeRoleElement].
+  /// Forward to [OcptElementsRoleLinkOps.removeRoleElement].
   Future<void> removeRoleElement({required OcptProjectDatabase database, required String id}) =>
       OcptElementsRoleLinkOps.removeRoleElement(database: database, id: id, deviceId: deviceId);
 
-  /// Forwards to [OcptElementsRoleLinkOps.tombstoneRoleLinksOfRole].
+  /// Forward to [OcptElementsRoleLinkOps.tombstoneRoleLinksOfRole].
   Future<void> tombstoneRoleLinksOfRole({
     required OcptProjectDatabase database,
     required String roleId,
@@ -538,7 +538,7 @@ class OcptElementsService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Forwards to [OcptElementsSceneLinkOps.tombstoneSceneElementsOfScenes].
+  /// Forward to [OcptElementsSceneLinkOps.tombstoneSceneElementsOfScenes].
   Future<void> tombstoneSceneElementsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,
@@ -549,19 +549,20 @@ class OcptElementsService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Forwards to [OcptElementsSceneLinkOps.sceneElementsOfScene].
+  /// Forward to [OcptElementsSceneLinkOps.sceneElementsOfScene].
   Future<List<OcptSceneElementRow>> sceneElementsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
   }) => OcptElementsSceneLinkOps.sceneElementsOfScene(database: database, sceneId: sceneId);
 
-  /// Forwards to [OcptElementsSceneLinkOps.propsOfScene].
+  /// Forward to [OcptElementsSceneLinkOps.propsOfScene].
   Future<List<OcptScenePropSummary>> propsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
   }) => OcptElementsSceneLinkOps.propsOfScene(database: database, sceneId: sceneId);
 
-  /// The code element [elementId] is given as [category] is written onto it: a freshly generated
+  /// Get the code element [elementId] is given as [category] is written onto it: a freshly
+  /// generated
   /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
   /// there is nothing to rewrite.
   ///
@@ -599,7 +600,7 @@ class OcptElementsService extends AbsOcptService {
     );
   }
 
-  /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
+  /// Tombstone whichever `assets` row element [elementId] currently names as its photo, if any.
   /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
   /// caller's own instance.
   Future<void> _tombstoneElementPhoto({
@@ -619,7 +620,7 @@ class OcptElementsService extends AbsOcptService {
     await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
   }
 
-  /// The live `scene_elements` links of every element of [elementIds], keyed by element id and
+  /// Get the live `scene_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the screenplay's own scene order.
   ///
   /// Ordered by the scene rather than by anything the link carries: `scene_elements` has no
@@ -667,7 +668,7 @@ class OcptElementsService extends AbsOcptService {
     return linksByElementId;
   }
 
-  /// The live `role_elements` links of every element of [elementIds], keyed by element id and
+  /// Get the live `role_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the cast's own `sortKey` order.
   ///
   /// Ordered by the role rather than by anything the link carries, for the reason
@@ -717,7 +718,7 @@ class OcptElementsService extends AbsOcptService {
     return linksByElementId;
   }
 
-  /// Every live element row of [database], ordered by `sortKey`.
+  /// Get every live element row of [database], ordered by `sortKey`.
   Future<List<OcptElementRow>> _liveElementRows(OcptProjectDatabase database) =>
       (database.select(database.ocptElementsTable)
             ..where((table) => table.isDeleted.not())

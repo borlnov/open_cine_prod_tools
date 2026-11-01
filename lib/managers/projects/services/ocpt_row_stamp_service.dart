@@ -8,14 +8,14 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_diff.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_version.dart';
 
-/// Resolves the device id a domain service's own writes stamp with, once per write rather than
+/// Resolve the device id a domain service's own writes stamp with, once per write rather than
 /// baked in at construction: `OcptPropertiesManager.loadOrCreateDeviceId` is the only
 /// implementation the app ships, injected into a service exactly the way it already takes every
 /// other collaborator — a constructor parameter, defaulting to nothing so a caller can never
 /// forget to wire it — and a test hands in a fixed id instead.
 typedef OcptDeviceIdGetter = Future<String> Function();
 
-/// Writes a row into a synchronised table and stamps exactly the columns it actually changed, from
+/// Write a row into a synchronised table and stamp exactly the columns it actually changed, from
 /// inside an already-open transaction.
 ///
 /// This is the row-stamping machinery of `docs/adr/0010-sync-ready-data-model-prerequisites.md`,
@@ -69,7 +69,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
     : _pending = <OcptRowFieldVersionsTableCompanion>[],
       _clock = clock;
 
-  /// Raises this device's clock to at least the version each of [floorStamps] carries, through
+  /// Raise this device's clock to at least the version each of [floorStamps] carries, through
   /// [ocptMergedRowStampFloor].
   ///
   /// This is what a restore uses to fold the version's own stamps in as a floor, never as a value
@@ -86,7 +86,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
     }
   }
 
-  /// Writes every stamp handed out since this instance was seeded into [database].
+  /// Write every stamp handed out since this instance was seeded into [database].
   Future<void> flush(OcptProjectDatabase database) async {
     if (_pending.isEmpty) {
       return;
@@ -97,7 +97,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
     );
   }
 
-  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
+  /// Stamp [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
   /// of them carrying [_version], this instance's single shared tick.
   void _stamp({
     required TableInfo<Table, DataClass> table,
@@ -119,7 +119,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
     }
   }
 
-  /// Seeds a new instance from the highest version [database] currently holds anywhere in
+  /// Seed a new instance from the highest version [database] currently holds anywhere in
   /// `row_field_versions`, to be written by [deviceId].
   ///
   /// This alone is everything an ordinary domain-service write needs: the clock starts at or above
@@ -138,8 +138,8 @@ class OcptRowStampService extends AbsWithLifeCycle {
     return OcptRowStampService._(deviceId: deviceId, clock: row?.read(maxVersion) ?? 0);
   }
 
-  /// Writes [next] into [table] of [database], in place of [current] — or as a fresh row when
-  /// [current] is `null` — and, when [stamps] is given, stamps exactly the columns that changed
+  /// Write [next] into [table] of [database], in place of [current] — or as a fresh row when
+  /// [current] is `null` — and, when [stamps] is given, stamp exactly the columns that changed
   /// under [rowId].
   ///
   /// [current] being `null` means every column [next] carries is new, so every one of them is
@@ -174,7 +174,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
     stamps?._stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
   }
 
-  /// [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —
+  /// Get [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —
   /// which every generated row class provides as `toCompanion(false)` but which, like the
   /// `Insertable` cast it replaces, [DataClass] itself doesn't declare, so calling it generically
   /// still needs a dynamic invocation.

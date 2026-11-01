@@ -432,14 +432,15 @@ class OcptProjectsServices {
          deviceId: _resolveDeviceId(propertiesManager),
        );
 
-  /// The [OcptDeviceIdGetter] every stamping service this manager builds is given:
+  /// Get the [OcptDeviceIdGetter] every stamping service this manager builds is given:
   /// [propertiesManager] when the constructor received one (a test's own double), [globalGetIt]'s
   /// singleton otherwise — the same fallback `_propertiesManager` itself resolves, repeated here
   /// rather than read off that field because a constructor initializer list cannot see `this`.
   static OcptDeviceIdGetter _resolveDeviceId(OcptPropertiesManager? propertiesManager) =>
       (propertiesManager ?? globalGetIt().get<OcptPropertiesManager>()).loadOrCreateDeviceId;
 
-  /// The [OcptStoryboardService] every place this manager builds one needs, built fresh each time
+  /// Get the [OcptStoryboardService] every place this manager builds one needs, built fresh each
+  /// time
   /// for the same reason [_resolveDeviceId] is repeated rather than read off a field: a constructor
   /// initializer list cannot see `this`, so nothing already being initialized can be shared.
   static OcptStoryboardService _buildStoryboardService(
@@ -454,7 +455,7 @@ class OcptProjectsServices {
     deviceId: _resolveDeviceId(propertiesManager),
   );
 
-  /// The [OcptFloorPlanService] every place this manager builds one needs. See
+  /// Get the [OcptFloorPlanService] every place this manager builds one needs. See
   /// [_buildStoryboardService]'s own doc comment for why this is a static factory rather than a
   /// shared field.
   static OcptFloorPlanService _buildFloorPlanService(
@@ -469,7 +470,8 @@ class OcptProjectsServices {
     deviceId: _resolveDeviceId(propertiesManager),
   );
 
-  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
+  /// Get the sub-logger named [category] of [logger]: the one logger each service this manager
+  /// builds
   /// is handed.
   static LogsHelper _sub(LogsHelper logger, String category) =>
       logger.createSubLogger(subCategory: category);

@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 /// The export of the shooting schedule's documents: the call sheets, the shooting plan, the day out
 /// of days, the one-line schedule and the sides.
 abstract final class OcptScheduleExportOps {
-  /// Renders one general call sheet per day of [dayIds] via [callSheetPdfService] and writes every
+  /// Render one general call sheet per day of [dayIds] via [callSheetPdfService] and write every
   /// one of them into a folder the user picks.
   ///
   /// This is the one export of this app that writes more than one file, so it shows the native
@@ -104,8 +104,8 @@ abstract final class OcptScheduleExportOps {
     );
   }
 
-  /// Renders one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
-  /// writes every one of them into a folder the user picks — a call sheet being a document about a
+  /// Render one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
+  /// write every one of them into a folder the user picks — a call sheet being a document about a
   /// day, so a recipient convoked on two of [dayIds] gets two files, one for each.
   ///
   /// The loop is over each day's **own** convocations, filtered by [convocationKeys], never over
@@ -205,7 +205,7 @@ abstract final class OcptScheduleExportOps {
     );
   }
 
-  /// Renders the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and shows the
+  /// Render the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and show the
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds (the day titles, the
@@ -258,8 +258,8 @@ abstract final class OcptScheduleExportOps {
     );
   }
 
-  /// Builds the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
-  /// [shootingPlanXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
+  /// [shootingPlanXlsxExportService] and show the native save dialog to write it out.
   ///
   /// [labels] carries every localized string the five sheets themselves hold and [fileTypeLabel]
   /// the one the native dialog needs — this manager has no `Tr` of its own. Unlike
@@ -287,7 +287,7 @@ abstract final class OcptScheduleExportOps {
     shareAnchor: shareAnchor,
   );
 
-  /// Renders the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and shows
+  /// Render the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and show
   /// the native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds (the column dates, the code
@@ -330,7 +330,7 @@ abstract final class OcptScheduleExportOps {
     );
   }
 
-  /// Renders the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and shows the
+  /// Render the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and show the
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds (the day titles, the column
@@ -372,7 +372,7 @@ abstract final class OcptScheduleExportOps {
     );
   }
 
-  /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
+  /// Render [dayId]'s own sides booklet via [sidesPdfService] and show the native save dialog to
   /// write it out.
   ///
   /// [documents] is a parameter rather than something this manager reads off the open project, for

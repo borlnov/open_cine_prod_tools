@@ -84,7 +84,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   /// Class constructor
   const OcptProjectVersionCodec({required super.logger});
 
-  /// Serializes [payload] into the JSON text stored in `project_versions.payload`, stamped with
+  /// Serialize [payload] into the JSON text stored in `project_versions.payload`, stamped with
   /// [currentPayloadFormat].
   String encode(OcptProjectVersionPayload payload) => jsonEncode({
     OcptVersionJsonKeys.payloadFormatKey: currentPayloadFormat,
@@ -260,7 +260,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     },
   });
 
-  /// Parses [payloadJson], the text stored in `project_versions.payload`.
+  /// Parse [payloadJson], the text stored in `project_versions.payload`.
   ///
   /// Format 3 is the first to actually need an upgrade step: it drops `characterName` from
   /// `shot_characters` in favour of `roleId`
@@ -308,7 +308,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     return result;
   }
 
-  /// The SHA-256 hex digest of [payload]'s canonical *content* — the primitive
+  /// Get the SHA-256 hex digest of [payload]'s canonical *content* — the primitive
   /// `OcptProjectVersionsService` builds both "is the working copy the same as this version?" and
   /// a restore's deduplicated safety version on top of. Stored on the row as
   /// `project_versions.contentDigest`, never inside [payload] itself: it describes the payload
@@ -644,7 +644,8 @@ class OcptProjectVersionCodec extends AbsOcptService {
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
   }
 
-  /// The walk of [decode], whose exceptions [decode] turns into a status: reads [payloadJson] and
+  /// Get the walk of [decode], whose exceptions [decode] turns into a status: reads [payloadJson]
+  /// and
   /// answers the status of the first thing found wrong, or the payload itself.
   ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _decodeUnguarded(
     String payloadJson,
@@ -680,7 +681,8 @@ class OcptProjectVersionCodec extends AbsOcptService {
     return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
   }
 
-  /// The [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when it is
+  /// Get the [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when
+  /// it is
   /// null, the first thing a field reader found wrong.
   ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _malformed(
     String? reason,
@@ -691,7 +693,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
     return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
   }
 
-  /// [rows], sorted by [primaryKeyOf] and each turned into a JSON map (through the same
+  /// Get [rows], sorted by [primaryKeyOf] and each turned into a JSON map (through the same
   /// `OcptVersionShotListJson.screenplayToJson`-shaped serializer [encode] itself uses, so an enum
   /// column comes out as the plain string `jsonEncode` can write rather than the `TypeConverter`'s
   /// own Dart value) whose keys are themselves sorted — the two orderings [contentDigest] needs to

@@ -20,6 +20,6 @@ class OcptCourierPrimeFontsLoader {
   /// Class constructor
   OcptCourierPrimeFontsLoader();
 
-  /// Loads (once) and returns the embedded Courier Prime font set.
+  /// Load (once) and return the embedded Courier Prime font set.
   Future<OcptCourierPrimeFonts> load() => _future ??= OcptCourierPrimeFonts.load();
 }

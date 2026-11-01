@@ -93,7 +93,7 @@ class OcptShotListService extends AbsOcptService {
     await floorPlanService.initLifeCycle();
   }
 
-  /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
+  /// Load the whole shot list of [screenplayId] in [database]: every scene, in order, with its
   /// shots, followed by the orphan group if the screenplay has any orphaned shot.
   ///
   /// Runs exactly three queries against `shots`, `shot_characters` and `shot_coverages` (a shot
@@ -222,8 +222,8 @@ class OcptShotListService extends AbsOcptService {
     return OcptShotListSnapshot.build(screenplayId: screenplayId, sequences: sequences);
   }
 
-  /// Creates a new shot in scene [sceneId] of screenplay [screenplayId] in [database], appended at
-  /// the end of the scene's current shots, and returns its freshly generated id.
+  /// Create a new shot in scene [sceneId] of screenplay [screenplayId] in [database], appended at
+  /// the end of the scene's current shots, and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   ///
@@ -288,7 +288,7 @@ class OcptShotListService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of the shot [shotId] in [database] that are passed as something other than
+  /// Update the fields of the shot [shotId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches [shotId]'s `sortKey`, `sceneId` or `orphanedHeading`: those are
   /// only ever changed by [reorderShot] and [detachShotsFromDeletedScenes].
   ///
@@ -361,7 +361,7 @@ class OcptShotListService extends AbsOcptService {
     });
   }
 
-  /// Writes [rawValue] onto the free-text column of shot [shotId] that [field] names, through
+  /// Write [rawValue] onto the free-text column of shot [shotId] that [field] names, through
   /// [updateShot]. [OcptShotListEditableField.estimatedDuration] is not a text column: its typed
   /// text has to be parsed first, so the caller writes it through [updateShot] itself and this
   /// writes nothing for it.
@@ -396,7 +396,7 @@ class OcptShotListService extends AbsOcptService {
     }
   }
 
-  /// Sets difficulty [axis] of shot [shotId] to [value], through [updateShot].
+  /// Set difficulty [axis] of shot [shotId] to [value], through [updateShot].
   Future<void> updateDifficulty({
     required OcptProjectDatabase database,
     required String shotId,
@@ -415,7 +415,7 @@ class OcptShotListService extends AbsOcptService {
     }
   }
 
-  /// Tombstones the shot [shotId] in [database], its attached characters and coverage ranges along
+  /// Tombstone the shot [shotId] in [database], its attached characters and coverage ranges along
   /// with it, and its storyboard panels (and their
   /// annotations and image `assets` rows, through [storyboardService]) and its floor plan
   /// shot-layer symbols and arrows (through [floorPlanService]) — a deleted shot drops its
@@ -491,7 +491,7 @@ class OcptShotListService extends AbsOcptService {
     });
   }
 
-  /// Moves the shot [shotId] to [newPosition] (0-based) within its own group (its scene, or the
+  /// Move the shot [shotId] to [newPosition] (0-based) within its own group (its scene, or the
   /// orphan group), by giving it a `sortKey` sitting between the two shots it lands between.
   ///
   /// This writes **exactly one row**, whatever the size of the group and however far the shot
@@ -538,7 +538,7 @@ class OcptShotListService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptShotListCharacterOps.attachCharacter].
+  /// Forward to [OcptShotListCharacterOps.attachCharacter].
   Future<void> attachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
@@ -550,7 +550,7 @@ class OcptShotListService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptShotListCharacterOps.detachCharacter].
+  /// Forward to [OcptShotListCharacterOps.detachCharacter].
   Future<void> detachCharacter({
     required OcptProjectDatabase database,
     required String shotId,
@@ -562,7 +562,7 @@ class OcptShotListService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptShotListCascadeOps.detachShotsFromDeletedScenes].
+  /// Forward to [OcptShotListCascadeOps.detachShotsFromDeletedScenes].
   Future<void> detachShotsFromDeletedScenes({
     required OcptProjectDatabase database,
     required List<OcptSceneRow> scenesAboutToBeDeleted,
@@ -573,7 +573,7 @@ class OcptShotListService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Forwards to [OcptShotListCascadeOps.tombstoneShotsOfScreenplay].
+  /// Forward to [OcptShotListCascadeOps.tombstoneShotsOfScreenplay].
   Future<List<String>> tombstoneShotsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -586,32 +586,32 @@ class OcptShotListService extends AbsOcptService {
     floorPlanService: floorPlanService,
   );
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctShotSizes].
+  /// Forward to [OcptShotListSuggestionOps.distinctShotSizes].
   Future<List<String>> distinctShotSizes({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => OcptShotListSuggestionOps.distinctShotSizes(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctFramings].
+  /// Forward to [OcptShotListSuggestionOps.distinctFramings].
   Future<List<String>> distinctFramings({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => OcptShotListSuggestionOps.distinctFramings(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctCameraMoves].
+  /// Forward to [OcptShotListSuggestionOps.distinctCameraMoves].
   Future<List<String>> distinctCameraMoves({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) =>
       OcptShotListSuggestionOps.distinctCameraMoves(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctLenses].
+  /// Forward to [OcptShotListSuggestionOps.distinctLenses].
   Future<List<String>> distinctLenses({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => OcptShotListSuggestionOps.distinctLenses(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctRecordingFormats].
+  /// Forward to [OcptShotListSuggestionOps.distinctRecordingFormats].
   Future<List<String>> distinctRecordingFormats({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -620,13 +620,13 @@ class OcptShotListService extends AbsOcptService {
     screenplayId: screenplayId,
   );
 
-  /// Forwards to [OcptShotListSuggestionOps.distinctSounds].
+  /// Forward to [OcptShotListSuggestionOps.distinctSounds].
   Future<List<String>> distinctSounds({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) => OcptShotListSuggestionOps.distinctSounds(database: database, screenplayId: screenplayId);
 
-  /// Forwards to [OcptShotListSuggestionOps.loadFieldSuggestions].
+  /// Forward to [OcptShotListSuggestionOps.loadFieldSuggestions].
   Future<OcptShotFieldSuggestions> loadFieldSuggestions({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -635,7 +635,7 @@ class OcptShotListService extends AbsOcptService {
     screenplayId: screenplayId,
   );
 
-  /// Forwards to [OcptShotListCharacterOps.resolveOrCreateRoleId].
+  /// Forward to [OcptShotListCharacterOps.resolveOrCreateRoleId].
   Future<String?> resolveOrCreateRoleId({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -647,7 +647,7 @@ class OcptShotListService extends AbsOcptService {
     roleIndexService: roleIndexService,
   );
 
-  /// Builds the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
+  /// Build the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
   /// screenplay's scenes is [sceneIndex], prefixed with [episodeNumber] through
   /// `ocptSceneDisplayNumberOf`.
   ///

@@ -16,20 +16,22 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_needs_resources_ba
 /// `lib/ui/`.
 const String ocptBudgetExportEmptyValue = "—";
 
-/// [cents] formatted with [currencyCode]'s own symbol and grouping — `NumberFormat.simpleCurrency`,
+/// Get [cents] formatted with [currencyCode]'s own symbol and grouping —
+/// `NumberFormat.simpleCurrency`,
 /// the same formula the mode's own `ocptBudgetAmountLabel` reads an amount with on screen. Restated
 /// here rather than imported for the same reason [ocptBudgetExportEmptyValue] is: that formatter
 /// lives in `lib/ui/widgets/helpers/`, out of reach of a service under `lib/managers/`.
 String ocptBudgetExportAmountLabel(int cents, String currencyCode) =>
     NumberFormat.simpleCurrency(name: currencyCode).format(cents / 100);
 
-/// [quantityMilli] written back as the figure somebody typed — `1500` is `1.5`, `1484000` is
+/// Get [quantityMilli] written back as the figure somebody typed — `1500` is `1.5`, `1484000` is
 /// `1,484` — mirroring `ocptBudgetQuantityLabel`'s own formula for the reason
 /// [ocptBudgetExportAmountLabel]'s own doc comment gives.
 String ocptBudgetExportQuantityLabel(int quantityMilli) =>
     NumberFormat("#,##0.###").format(quantityMilli / 1000);
 
-/// The moment [exportDate] was produced, as `yyyy-MM-dd HH:mm` — deliberately not locale-formatted,
+/// Get the moment [exportDate] was produced, as `yyyy-MM-dd HH:mm` — deliberately not
+/// locale-formatted,
 /// mirroring `ocptScheduleGeneratedAtStamp`'s own reasoning: a stamp two documents of the same run
 /// disagree about would be worse than one that reads the same in every language this app ships in.
 String ocptBudgetExportGeneratedAtStamp(DateTime exportDate) =>
@@ -37,7 +39,7 @@ String ocptBudgetExportGeneratedAtStamp(DateTime exportDate) =>
     "${exportDate.day.toString().padLeft(2, '0')} ${exportDate.hour.toString().padLeft(2, '0')}:"
     "${exportDate.minute.toString().padLeft(2, '0')}";
 
-/// [total]'s own amount, formatted through [ocptBudgetExportAmountLabel] — or, whenever
+/// Get [total]'s own amount, formatted through [ocptBudgetExportAmountLabel] — or, whenever
 /// [OcptBudgetCoveredTotal.isComplete] is false, [coverageReadOutTemplate] with its own
 /// `{amount}`/`{coveredCount}`/`{totalCount}` placeholders filled in, mirroring
 /// `tr.budgetCostTrackingCoverageReadOut`'s own reading: the amount that figure covers is never
@@ -59,7 +61,8 @@ String ocptBudgetExportCoveredAmountText({
       .replaceAll("{totalCount}", "${total.lineCount}");
 }
 
-/// The financing-plan and financial-report PDFs' own three-way verdict over [balance] — "no quote
+/// Get the financing-plan and financial-report PDFs' own three-way verdict over [balance] — "no
+/// quote
 /// yet" for a quote with no line at all, "balanced" once the financing plan covers it, or
 /// [shortfallMessageTemplate] with its own `{amount}` placeholder filled in with how far short it
 /// falls — reading `ocptBudgetNeedsResourcesBalanceOf` honestly: a plain `resources >= needs`

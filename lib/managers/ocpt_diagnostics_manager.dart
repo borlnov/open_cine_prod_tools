@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
 /// the oldest entry first.
 const ocptDiagnosticsBufferCap = 500;
 
-/// Builds the [OcptDiagnosticsManager] instance registered by the global manager.
+/// Build the [OcptDiagnosticsManager] instance registered by the global manager.
 class OcptDiagnosticsManagerBuilder extends AbsLifeCycleFactory<OcptDiagnosticsManager> {
   /// Class constructor
   const OcptDiagnosticsManagerBuilder() : super(OcptDiagnosticsManager.new);
@@ -59,15 +59,15 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// the logger, but neither the buffer nor the stream.
   bool _isDisposed;
 
-  /// Every entry recorded so far, oldest first, capped at [ocptDiagnosticsBufferCap] — an
+  /// Get every entry recorded so far, oldest first, capped at [ocptDiagnosticsBufferCap] — an
   /// unmodifiable view, so a caller can never mutate this manager's own buffer directly.
   List<OcptDiagnosticsEntry> get entries => _entries.value;
 
-  /// Emits the full, oldest-first entry list every time it changes ([record]/[clear]) — never its
+  /// Emit the full, oldest-first entry list every time it changes ([record]/[clear]) — never its
   /// current value at subscription time (see this class's own doc comment).
   Stream<List<OcptDiagnosticsEntry>> get entriesStream => _entries.valueStream;
 
-  /// Builds a manager with an empty buffer.
+  /// Build a manager with an empty buffer.
   OcptDiagnosticsManager()
     : _logger = buildOcptLogsHelper(_loggerCategory),
       _isDisposed = false,
@@ -76,8 +76,8 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
         emitUnchangedValue: true,
       );
 
-  /// Appends one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
-  /// exceeded, and broadcasts the updated list on [entriesStream].
+  /// Append one entry to the buffer, dropping the oldest one once [ocptDiagnosticsBufferCap] is
+  /// exceeded, and broadcast the updated list on [entriesStream].
   ///
   /// Also forwards the entry to this manager's logger, at the level [category]/[level] map to,
   /// prefixed with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
@@ -121,13 +121,13 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Empties the buffer and broadcasts the (now empty) list on [entriesStream] — what
+  /// Empty the buffer and broadcast the (now empty) list on [entriesStream] — what
   /// `OcptDiagnosticsLogList`'s own "clear" button calls.
   void clear() {
     _store([]);
   }
 
-  /// Forwards one entry to [_logger].
+  /// Forward one entry to [_logger].
   void _forwardToLogger({
     required OcptDiagnosticsCategory category,
     required OcptDiagnosticsLevel level,
@@ -149,7 +149,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Replaces the buffer by [updated] and broadcasts it, unless this manager is disposed.
+  /// Replace the buffer by [updated] and broadcast it, unless this manager is disposed.
   void _store(List<OcptDiagnosticsEntry> updated) {
     if (_isDisposed) {
       // The keeper's stream is closed, and writing to it would throw.
@@ -159,7 +159,7 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
     _entries.value = List.unmodifiable(updated);
   }
 
-  /// Records [message] against [category]/[level] through the registered [OcptDiagnosticsManager]
+  /// Record [message] against [category]/[level] through the registered [OcptDiagnosticsManager]
   /// — the guarded call site every instrumented manager/bloc uses, exactly
   /// `OcptSyncSession._logWarning`'s own reasoning: this no-ops, rather than throwing, whenever no
   /// global manager instance exists at all, or one exists but [OcptDiagnosticsManager] itself was

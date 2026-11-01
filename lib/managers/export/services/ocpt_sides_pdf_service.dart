@@ -49,7 +49,7 @@ const double _pageIdentityWidthInches = 1.2;
 /// schedule PDF export prints its own small labels in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 
-/// Renders a day's own sides: the pages of the screenplay it plays, extracted from the composed
+/// Render a day's own sides: the pages of the screenplay it plays, extracted from the composed
 /// script and reprinted through the real screenplay layout — a side is only useful if it looks
 /// like the script, so it is a slice of the very typeset the crew already knows, never a
 /// re-typeset excerpt.
@@ -74,14 +74,14 @@ class OcptSidesPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptSidesPdfService].
+  /// Create an [OcptSidesPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptSidesPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the sides of [dayId], within [plan].
+  /// Get the `.pdf` file name to suggest when exporting the sides of [dayId], within [plan].
   ///
   /// `"<project> - <suffix> - <dayTag>.pdf"`, e.g. `My Movie - sides - D3.pdf`; a blank [labels]'
   /// own [OcptSidesLabels.fileNameSuffix] drops that segment, exactly as its siblings' own suffix
@@ -109,7 +109,7 @@ class OcptSidesPdfService extends AbsOcptService {
     return "${parts.join(" - ")}.pdf";
   }
 
-  /// Renders [dayId]'s own sides booklet, returning the PDF's bytes.
+  /// Render [dayId]'s own sides booklet, returning the PDF's bytes.
   ///
   /// [documents] is one composed run per episode, **in the order the booklet chains them in**: a
   /// screenplay may only ever be composed against its own text, so there is one
@@ -246,7 +246,8 @@ class OcptSidesPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The running head and running foot drawn over one script page, in the page's own coordinate
+  /// Build the running head and running foot drawn over one script page, in the page's own
+  /// coordinate
   /// system (points from its top-left corner, which is what every geometry accessor of
   /// [OcptScriptPagePainter] returns) — the two lines every torn-off page of this booklet needs to
   /// say which day it belongs to and which issue of it this is.
@@ -285,7 +286,7 @@ class OcptSidesPdfService extends AbsOcptService {
     ),
   ];
 
-  /// A running-head/running-foot line starting at [painter]'s own left margin, bounded to the
+  /// Build a running-head/running-foot line starting at [painter]'s own left margin, bounded to the
   /// printable width less [reservedRightInches], so a long line wraps inside the page rather than
   /// spilling under whatever else its own row carries.
   ///
@@ -309,7 +310,8 @@ class OcptSidesPdfService extends AbsOcptService {
     ),
   );
 
-  /// A running-head line ending at [painter]'s own right margin — the same band the painter's own
+  /// Build a running-head line ending at [painter]'s own right margin — the same band the painter's
+  /// own
   /// page-number annotation is right-aligned into.
   pw.Widget _rightAlignedRunningText({
     required OcptScriptPagePainter painter,
@@ -324,7 +326,8 @@ class OcptSidesPdfService extends AbsOcptService {
     ),
   );
 
-  /// The running head's own left-hand line: the document's own title, then the printed day's tag
+  /// Get the running head's own left-hand line: the document's own title, then the printed day's
+  /// tag
   /// and — while [OcptSidesLabels.dayTitle] is non-empty — its own title, `" — "`-joined, and
   /// finally — while [screenplayId] resolves a non-empty label through
   /// [OcptSidesLabels.episodeLabelOf] — that episode's own name, `" · "`-joined onto whatever came
@@ -356,7 +359,7 @@ class OcptSidesPdfService extends AbsOcptService {
     return episodeLabel.isEmpty ? base : "$base · $episodeLabel";
   }
 
-  /// The running head's own right-hand line: [sidesPage]'s identity. A
+  /// Get the running head's own right-hand line: [sidesPage]'s identity. A
   /// [OcptSidesPresentation.scriptPages] page prints the **screenplay's own page number** — the
   /// whole point of a side, since a reader holding one can find the same page in the full script —
   /// and a [OcptSidesPresentation.packed] page, which reproduces no single script page, prints its
@@ -375,14 +378,15 @@ class OcptSidesPdfService extends AbsOcptService {
     return "${pageIndex + 1} / $pageCount";
   }
 
-  /// The shared text style every running-head and running-foot line is drawn with.
+  /// Build the shared text style every running-head and running-foot line is drawn with.
   pw.TextStyle _runningStyle(OcptScriptPagePainter painter) => pw.TextStyle(
     font: painter.fonts.regular,
     fontSize: _runningTextFontSizePt,
     color: _mutedColor,
   );
 
-  /// A single portrait note page: the running head and foot exactly as every other page carries
+  /// Build a single portrait note page: the running head and foot exactly as every other page
+  /// carries
   /// them, then [OcptSidesLabels.emptyDayNote] alone — what a day whose scenes fold down to no page
   /// at all prints in place of the whole booklet, so a readable document still comes out of the
   /// export rather than an empty file nobody can open.

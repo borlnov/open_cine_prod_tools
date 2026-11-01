@@ -59,7 +59,7 @@ class OcptCallSheetDayRow {
   /// **Never** the block's own private `notes`, which this document never prints at all.
   final List<String> crewNotes;
 
-  /// Whether this is a milestone row rather than a run of shot blocks.
+  /// Tell whether this is a milestone row rather than a run of shot blocks.
   bool get isMilestone => milestoneCaption != null;
 
   /// Create a row from its parts, for the factories below.
@@ -76,7 +76,7 @@ class OcptCallSheetDayRow {
     required this.crewNotes,
   });
 
-  /// Builds a row starting a new run of shot blocks, seeded with [crewNote]'s own printable crew
+  /// Build a row starting a new run of shot blocks, seeded with [crewNote]'s own printable crew
   /// note, if it has one.
   factory OcptCallSheetDayRow.shotRun({
     required String slotId,
@@ -100,7 +100,7 @@ class OcptCallSheetDayRow {
     crewNotes: crewNote.trim().isEmpty ? [] : [crewNote.trim()],
   );
 
-  /// Builds a full-width milestone row, carrying the numbers of the roles its own band expects
+  /// Build a full-width milestone row, carrying the numbers of the roles its own band expects
   /// ([ocptScheduleBlockRoleNumbersOf]) — empty for every kind but a hair-and-make-up band — and
   /// its own block's printable crew note, if it has one.
   factory OcptCallSheetDayRow.milestone({
@@ -250,7 +250,7 @@ class OcptCallSheetToBringRow {
   const OcptCallSheetToBringRow({required this.element, required this.sceneNumbers});
 }
 
-/// Turns [orderedEntries] into the printed rows of the main table: a run of consecutive
+/// Turn [orderedEntries] into the printed rows of the main table: a run of consecutive
 /// [OcptShootingBlockKind.shot] blocks on the same slot and the same scene collapses into one
 /// [OcptCallSheetDayRow], every other kind prints its own [OcptCallSheetDayRow.milestone].
 List<OcptCallSheetDayRow> ocptCallSheetBuildDayRows({
@@ -326,7 +326,8 @@ List<OcptCallSheetDayRow> ocptCallSheetBuildDayRows({
   return rows;
 }
 
-/// The caption a non-shot [block] prints: its own free-text label when it has one, then whatever
+/// Get the caption a non-shot [block] prints: its own free-text label when it has one, then
+/// whatever
 /// that kind of block names — a sequence's heading for a hold or a rehearsal, the parts an audition
 /// sees, each as its own `<number> · <name>` — or [OcptCallSheetLabels.blockKindLabelOf] as the
 /// final fallback.
@@ -349,7 +350,8 @@ String ocptCallSheetCaptionOf({
   blockKindLabelOf: labels.blockKindLabelOf,
 );
 
-/// The day's own cast table rows: one per role the day **calls for** — every role convoked on one
+/// Get the day's own cast table rows: one per role the day **calls for** — every role convoked on
+/// one
 /// of its live slots, and every role a shot placed on it plays — the scenes each of them shoots
 /// today read off [orderedEntries]' own shot blocks.
 ///
@@ -450,7 +452,8 @@ List<OcptCallSheetCastRow> ocptCallSheetCastRowsOfDay({
   return rows;
 }
 
-/// The subset of [ownSlotEntries] a named sheet addressed to [convocation] actually prints: what
+/// Get the subset of [ownSlotEntries] a named sheet addressed to [convocation] actually prints:
+/// what
 /// its recipient is **in**, rather than everything happening on the units they are on.
 ///
 /// A sheet is what one person reads down to know their own day, and an actor handed the whole
@@ -534,7 +537,8 @@ List<OcptOrderedScheduleEntry> ocptCallSheetEntriesOfRecipient({
   ];
 }
 
-/// The audition rows of [orderedEntries]: one per candidacy every [OcptShootingBlockKind.audition]
+/// Get the audition rows of [orderedEntries]: one per candidacy every
+/// [OcptShootingBlockKind.audition]
 /// block names, in the timetable's own resolved order and, within a block, in its candidacies' own
 /// `sortKey` order — each carrying that block's hours, the part being seen and who is being seen
 /// for it. A block naming nobody yet still prints **one** row, carrying its hour alone: the day

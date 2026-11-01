@@ -4,7 +4,7 @@
 
 import 'package:act_logger_manager/act_logger_manager.dart';
 
-/// Builds the [LogsHelper] a manager, a BLoC or any other class that logs owns for [category].
+/// Build the [LogsHelper] a manager, a BLoC or any other class that logs owns for [category].
 ///
 /// A class owns exactly one of these, built from its own `static const _loggerCategory`; a service
 /// never calls this and is handed a sub-logger by its owner instead.

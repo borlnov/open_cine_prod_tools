@@ -31,7 +31,8 @@ abstract final class OcptShootingPlanDaySections {
   // Detailed day agenda
   // ---------------------------------------------------------------------------------------------
 
-  /// One day's own detailed agenda: its title, its location(s), its per-slot hours, its own events
+  /// Build one day's own detailed agenda: its title, its location(s), its per-slot hours, its own
+  /// events
   /// next to them, the sets used, then the interleaved timetable — the milestones as prose and the
   /// shot runs as tables, a block's own [OcptShootingDayBlock.crewNote] printed under its row —
   /// and, trailing it, the day's own guest table.
@@ -105,7 +106,7 @@ abstract final class OcptShootingPlanDaySections {
     );
   }
 
-  /// A section's own small, muted heading.
+  /// Build a section's own small, muted heading.
   static pw.Widget daySectionTitle({
     required OcptScriptPagePainter painter,
     required String text,
@@ -118,7 +119,8 @@ abstract final class OcptShootingPlanDaySections {
     ),
   );
 
-  /// [locations]' own name and address, one line each, or a single [ocptScheduleEmptyValue] line
+  /// Build [locations]' own name and address, one line each, or a single [ocptScheduleEmptyValue]
+  /// line
   /// when there is none.
   static List<pw.Widget> locationLines({
     required OcptScriptPagePainter painter,
@@ -136,7 +138,8 @@ abstract final class OcptShootingPlanDaySections {
     ];
   }
 
-  /// One line per live slot: its own label, the call time (its resolved start) and the estimated
+  /// Build one line per live slot: its own label, the call time (its resolved start) and the
+  /// estimated
   /// end (its resolved end, or [ocptScheduleEmptyValue] while it carries no block yet).
   static List<pw.Widget> hoursLines({
     required OcptScriptPagePainter painter,
@@ -170,7 +173,8 @@ abstract final class OcptShootingPlanDaySections {
     ];
   }
 
-  /// One line per [locations] entry: its own name, then the sets used there that day, comma-joined
+  /// Build one line per [locations] entry: its own name, then the sets used there that day,
+  /// comma-joined
   /// — or [ocptScheduleEmptyValue] when no slot at that location named one.
   static List<pw.Widget> setsLines({
     required OcptScriptPagePainter painter,
@@ -207,7 +211,7 @@ abstract final class OcptShootingPlanDaySections {
     ];
   }
 
-  /// [names], sorted and comma-joined, or [ocptScheduleEmptyValue] while it is null or empty.
+  /// Get [names], sorted and comma-joined, or [ocptScheduleEmptyValue] while it is null or empty.
   static String joinedOrEmpty(Set<String>? names) {
     if (names == null || names.isEmpty) {
       return ocptScheduleEmptyValue;
@@ -216,7 +220,7 @@ abstract final class OcptShootingPlanDaySections {
     return sorted.join(", ");
   }
 
-  /// The day's own events section: [OcptShootingPlanLabels.eventsSectionTitle] then one bold
+  /// Build the day's own events section: [OcptShootingPlanLabels.eventsSectionTitle] then one bold
   /// `HH:mm — <label>` line per event, its own free-form note beneath in a muted second line when
   /// it carries one.
   ///
@@ -257,7 +261,7 @@ abstract final class OcptShootingPlanDaySections {
     ],
   );
 
-  /// The day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the shape
+  /// Build the day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — the shape
   /// `OcptCallSheetPdfService._guestsSection` already gives a day's guests, and for the same
   /// reason: a guest is owed an arrival and a departure and never a PAT band (ADR 0018), so there
   /// is no fourth column here to leave blank for one. Never called on a day with no guest at all —
@@ -300,7 +304,8 @@ abstract final class OcptShootingPlanDaySections {
     ],
   );
 
-  /// One [guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
+  /// Build one [guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own
+  /// note(s)
   /// on a muted second line when they carry any — mirrors
   /// `OcptCallSheetPdfService._guestReasonCell`.
   static pw.Widget guestReasonCell({
@@ -333,7 +338,8 @@ abstract final class OcptShootingPlanDaySections {
     ),
   );
 
-  /// A full-width band naming a shot run's own crew note — printed the moment a run is interrupted
+  /// Build a full-width band naming a shot run's own crew note — printed the moment a run is
+  /// interrupted
   /// by a block that carries one, since a `pw.Table` row cannot itself span the page width a note
   /// deserves. Mirrors `OcptCallSheetPdfService._crewNoteBandWidget`, minus its own list of several
   /// notes: here it is always exactly the one block's own, [dayTimetableWidgets] calling this the
@@ -353,7 +359,8 @@ abstract final class OcptShootingPlanDaySections {
     ),
   );
 
-  /// The day's own interleaved timetable: a run of consecutive [OcptShootingBlockKind.shot] blocks
+  /// Build the day's own interleaved timetable: a run of consecutive [OcptShootingBlockKind.shot]
+  /// blocks
   /// becomes one shot table, every other block becomes its own prose milestone line — or
   /// [OcptShootingPlanLabels.emptyDayScheduleNote] when [orderedEntries] is empty (no slot, or no
   /// block on any of them).
@@ -440,7 +447,8 @@ abstract final class OcptShootingPlanDaySections {
     ];
   }
 
-  /// A non-shot block's own prose line (`De 16h45 à 17h15 : …`), or `<from> <start> : <caption>`
+  /// Build a non-shot block's own prose line (`De 16h45 à 17h15 : …`), or
+  /// `<from> <start> : <caption>`
   /// when [endMinute] is null — a milestone whose block resolves to zero duration, or a slot with
   /// nothing placed on it yet — then [rolesLine] beneath it when the band expects anybody
   /// ([ocptScheduleBlockRoleNumbersLine], null for every band that doesn't), then [crewNote] on its
@@ -496,7 +504,8 @@ abstract final class OcptShootingPlanDaySections {
     );
   }
 
-  /// One run of consecutive shot blocks, as an `Hours / Plan / Valeur de plan / Move. / Cadre /
+  /// Build one run of consecutive shot blocks, as an
+  /// `Hours / Plan / Valeur de plan / Move. / Cadre / Commentaire / Perso.`
   /// Commentaire / Perso.` table — the hours column reading each row's own resolved start over its
   /// resolved end, off the very [OcptOrderedScheduleEntry] the row was placed from, never a stored
   /// anchor and never taken modulo anything (a night run crossing midnight prints past `23:59`
@@ -549,7 +558,7 @@ abstract final class OcptShootingPlanDaySections {
     ],
   );
 
-  /// The role names of every one of [shot]'s own [OcptShot.characters] matched against [roles]
+  /// Get the role names of every one of [shot]'s own [OcptShot.characters] matched against [roles]
   /// (through `normalizeCharacterName`, the same join every reader of a shot's characters uses), or
   /// [ocptScheduleEmptyValue] when none matched.
   static String roleNamesOf(OcptShot shot, List<OcptRole> roles) {

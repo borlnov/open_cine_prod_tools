@@ -337,7 +337,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
         castTo: _castPageMargins,
       );
 
-  /// The id identifying this replica of the app, minting and storing one the first time it is
+  /// Get the id identifying this replica of the app, minting and storing one the first time it is
   /// asked for and returning the very same one on every later call and every later launch.
   ///
   /// A device id is what tells one replica of a project from another
@@ -357,7 +357,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     return minted;
   }
 
-  /// Whether the project identified by [projectId] should start hosting its own relay again
+  /// Tell whether the project identified by [projectId] should start hosting its own relay again
   /// automatically the next time it is opened — the local, per-device, never-synchronised
   /// "réhéberger ce projet au démarrage" preference the hosting panel's checkbox toggles.
   ///
@@ -368,7 +368,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   Future<bool> loadHostOnLaunch(String projectId) async =>
       await SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).load() ?? false;
 
-  /// Stores whether [projectId] should auto-host on the next open — see [loadHostOnLaunch].
+  /// Store whether [projectId] should auto-host on the next open — see [loadHostOnLaunch].
   Future<void> setHostOnLaunch({required String projectId, required bool value}) =>
       SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).store(value);
 
@@ -392,7 +392,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     await recentProjects.store(updated);
   }
 
-  /// Updates the entry at [oldPath] to [newPath], keeping its name, `lastOpenedAt` and episode
+  /// Update the entry at [oldPath] to [newPath], keeping its name, `lastOpenedAt` and episode
   /// count, and its position in the list — a move is a change of address, not a fresh open. Does
   /// nothing if [oldPath] isn't in [recentProjects] at all.
   Future<void> updateRecentProjectPath({required String oldPath, required String newPath}) async {
@@ -407,7 +407,7 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     await recentProjects.store(updated);
   }
 
-  /// The local-storage key [projectId]'s own "host on launch" flag is stored under.
+  /// Get the local-storage key [projectId]'s own "host on launch" flag is stored under.
   static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
 
   /// Parse the [value] stored in the local storage to the list of recent projects.

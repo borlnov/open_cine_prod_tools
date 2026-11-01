@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 /// ordinary sync rather than this timer.
 const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 
-/// Keeps one project's replica converging against one relay for as long as it runs — the driver
+/// Keep one project's replica converging against one relay for as long as it runs — the driver
 /// `OcptSyncManager.startSyncSession` hands back so a paired project keeps itself in sync for as
 /// long as it is open, with no further attention from anything above it. This class does not decide
 /// *when* a project should be syncing — the workspace does that explicitly, once it opens or closes
@@ -109,19 +109,20 @@ class OcptSyncSession {
   /// Whether the session is started.
   bool _isRunning;
 
-  /// This session's current status. [statusStream] never replays it to a new listener — read this
+  /// Get this session's current status. [statusStream] never replays it to a new listener — read
+  /// this
   /// first to seed a fresh subscriber, exactly as this class's own doc comment says.
   OcptSyncStatus get status => _status;
 
-  /// Emits every status this session moves through from the moment a listener subscribes onward —
+  /// Emit every status this session moves through from the moment a listener subscribes onward —
   /// never its current value at subscription time (see [status] and this class's own doc comment).
   Stream<OcptSyncStatus> get statusStream => _statusController.stream;
 
-  /// Every [OcptScreenplayMergeConflict] raised by any run since this session started, oldest
+  /// Get every [OcptScreenplayMergeConflict] raised by any run since this session started, oldest
   /// first.
   List<OcptScreenplayMergeConflict> get conflicts => List.unmodifiable(_conflicts);
 
-  /// True once [start] has run and [stop] has not been called since.
+  /// Tell whether [start] has run and [stop] has not been called since.
   bool get isRunning => _isRunning;
 
   /// Class constructor
@@ -143,8 +144,8 @@ class OcptSyncSession {
        _isRunning = false,
        _logger = logger;
 
-  /// Runs an initial sync, then subscribes to [storage]'s [OcptRemoteStorage.newWorkStream] and
-  /// starts the [pushInterval] timer.
+  /// Run an initial sync, then subscribe to [storage]'s [OcptRemoteStorage.newWorkStream] and start
+  /// the [pushInterval] timer.
   ///
   /// The initial sync runs and settles first, so a listener attached right after this returns
   /// never races it: [status] already reflects that first run's own outcome, subscribing and
@@ -164,8 +165,8 @@ class OcptSyncSession {
     return OcptSyncSessionStatus.ok;
   }
 
-  /// Cancels the [pushInterval] timer and the [OcptRemoteStorage.newWorkStream] subscription, and
-  /// closes [statusStream] — nothing this session holds outlives this call. Safe to call more than
+  /// Cancel the [pushInterval] timer and the [OcptRemoteStorage.newWorkStream] subscription, and
+  /// close [statusStream] — nothing this session holds outlives this call. Safe to call more than
   /// once, and safe to call before [start] ever ran.
   Future<void> stop() async {
     _isRunning = false;
@@ -178,10 +179,10 @@ class OcptSyncSession {
     }
   }
 
-  /// Runs [OcptChangesetService.syncOnce] once, on demand — what the status indicator's tap calls.
+  /// Run [OcptChangesetService.syncOnce] once, on demand — what the status indicator's tap calls.
   Future<void> syncNow() => _runSyncOnce();
 
-  /// Reacts to a [OcptRemoteStorage.newWorkStream] ping: only [OcptChangesetService.pullAndApply]
+  /// React to a [OcptRemoteStorage.newWorkStream] ping: only [OcptChangesetService.pullAndApply]
   /// runs, since a ping means another replica pushed something, not that this one has anything new
   /// of its own to push — [pushInterval]'s own timer is what pushes this replica's own edits.
   Future<void> _runPullOnly() async {
@@ -215,7 +216,7 @@ class OcptSyncSession {
     }
   }
 
-  /// Moves this session to the status [result] stands for: in sync with its conflicts collected,
+  /// Move this session to the status [result] stands for: in sync with its conflicts collected,
   /// an error carrying the relay's own message when the relay refused the call, or offline when the
   /// transport could not reach it.
   Future<void> _settle(
@@ -243,7 +244,7 @@ class OcptSyncSession {
     await _goOffline(result.status, null, failureLabel: failureLabel);
   }
 
-  /// Logs [error] as what knocked this session offline, and moves it to
+  /// Log [error] as what knocked this session offline, and move it to
   /// [OcptSyncStatusOffline] with however many edits are still waiting to be pushed.
   Future<void> _goOffline(
     Object error,
@@ -255,7 +256,7 @@ class OcptSyncSession {
     _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
   }
 
-  /// [OcptChangesetService.countUnpushedEdits] against [database], or null when even that cheap
+  /// Get [OcptChangesetService.countUnpushedEdits] against [database], or null when even that cheap
   /// read itself failed — an [OcptSyncStatusOffline] with no count is still a valid status, per its
   /// own doc comment.
   Future<int?> _pendingEditCountOrNull() async {
@@ -286,7 +287,7 @@ class OcptSyncSession {
     _logDiagnostics(status);
   }
 
-  /// Records the [error] that has just knocked this session offline into the device-local
+  /// Record the [error] that has just knocked this session offline into the device-local
   /// diagnostics buffer — the message alone, since the stack trace stays in the file log
   /// ([_logger]) — but **only on the way into** offline, not while it stays there. The offline
   /// status itself logs every push interval it fails on; its cause is logged once, so the
@@ -306,7 +307,7 @@ class OcptSyncSession {
     );
   }
 
-  /// Records [status]'s own transition into the device-local diagnostics buffer — one line per
+  /// Record [status]'s own transition into the device-local diagnostics buffer — one line per
   /// status this session moves through, so a "why did syncing stop" question can be answered from
   /// the very device it stopped on.
   void _logDiagnostics(OcptSyncStatus status) {

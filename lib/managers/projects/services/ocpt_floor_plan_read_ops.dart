@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 ///
 /// What `OcptFloorPlanService` forwards to; that service documents the floor plan model whole.
 abstract final class OcptFloorPlanReadOps {
-  /// Loads every live Resources set linked (`scene_sets`) to a live scene of screenplay
+  /// Load every live Resources set linked (`scene_sets`) to a live scene of screenplay
   /// [screenplayId], each carrying its resolved underlay path and its live symbols and arrows,
   /// keyed by scene id — a sequence's floor-plan tabs are exactly its own live links, in the
   /// Resources mode's own display order (`sets.sortKey`), and the very same [OcptFloorPlanSet] is
@@ -122,7 +122,8 @@ abstract final class OcptFloorPlanReadOps {
     return OcptFloorPlanSnapshot.build(screenplayId: screenplayId, setsBySceneId: setsBySceneId);
   }
 
-  /// The **set-scope** symbols (`sceneId` and `shotId` both null) of every live Resources set of
+  /// Get the **set-scope** symbols (`sceneId` and `shotId` both null) of every live Resources set
+  /// of
   /// [database], keyed by set id — a project-wide read, unlike [loadFloorPlans]'s own
   /// per-screenplay one, used only to draw a lightweight thumbnail of a set's own décor, for the
   /// empty-state gallery: no scene/shot-scope symbol, no
@@ -144,7 +145,8 @@ abstract final class OcptFloorPlanReadOps {
     return bySetId;
   }
 
-  /// The ids of [setIds] that hold a live `floor_plan_sets` row — a plan that "exists" in the sense
+  /// Get the ids of [setIds] that hold a live `floor_plan_sets` row — a plan that "exists" in the
+  /// sense
   /// the Resources location sheet's own set line reads: a
   /// light read of ids alone, never a whole plan's worth of symbols and arrows, since the sheet
   /// only ever needs to know whether one is there at all.
@@ -171,7 +173,7 @@ abstract final class OcptFloorPlanReadOps {
     };
   }
 
-  /// Every live scene id of screenplay [screenplayId].
+  /// Get every live scene id of screenplay [screenplayId].
   static Future<List<String>> _liveSceneIdsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -182,7 +184,7 @@ abstract final class OcptFloorPlanReadOps {
     return rows.map((row) => row.id).toList(growable: false);
   }
 
-  /// The resolved absolute path of every live `assets` row of [assetIds], keyed by id. See
+  /// Get the resolved absolute path of every live `assets` row of [assetIds], keyed by id. See
   /// `OcptStoryboardService._liveAssetPathsById`'s own doc comment for why a missing entry is a
   /// normal state.
   static Future<Map<String, String>> _liveAssetPathsById({

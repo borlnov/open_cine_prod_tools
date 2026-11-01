@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// Builds the [OcptFileLoggingManager] instance registered by the global manager.
+/// Build the [OcptFileLoggingManager] instance registered by the global manager.
 class OcptFileLoggingManagerBuilder extends AbsLifeCycleFactory<OcptFileLoggingManager> {
   /// Class constructor
   const OcptFileLoggingManagerBuilder() : super(OcptFileLoggingManager.new);
@@ -24,7 +24,7 @@ class OcptFileLoggingManagerBuilder extends AbsLifeCycleFactory<OcptFileLoggingM
   Iterable<Type> dependsOn() => [LoggerManager, OcptConfigManager];
 }
 
-/// Resolves the absolute path of the directory [OcptFileLoggingManager] writes its rotating log
+/// Resolve the absolute path of the directory [OcptFileLoggingManager] writes its rotating log
 /// files under, once file logging is enabled — the per-platform application support directory's
 /// own `logs` subfolder by default; a test injects one pointing at a temporary directory instead.
 Future<String> _defaultLogDirectoryPath() async {
@@ -33,11 +33,12 @@ Future<String> _defaultLogDirectoryPath() async {
   return p.join(supportDirectory.path, 'logs');
 }
 
-/// Whether this is a desktop platform — the only one [OcptFileLoggingManager] writes a log file on.
+/// Tell whether this is a desktop platform — the only one [OcptFileLoggingManager] writes a log
+/// file on.
 /// Android and iOS are the mobile pair; every other target (Linux, Windows, macOS) is desktop.
 bool _defaultIsDesktopPlatform() => !(Platform.isAndroid || Platform.isIOS);
 
-/// Turns the `logs.file.*` configuration read by [OcptConfigManager] into a registered
+/// Turn the `logs.file.*` configuration read by [OcptConfigManager] into a registered
 /// [OcptFileExternalLogger], so a crash still leaves a log file behind — the file itself has no
 /// UI-facing affordance yet; [logFilePath] is the seam a later "open the log file" action reads.
 ///
@@ -72,20 +73,21 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// The registered file logger, or null while file logging is disabled or its setup failed.
   OcptFileExternalLogger? _fileLogger;
 
-  /// The rotating log file's own path, once file logging is enabled and set up; null while
+  /// Get the rotating log file's own path, once file logging is enabled and set up; null while
   /// disabled by config or after a setup failure.
   String? get logFilePath => _fileLogger?.logFilePath;
 
-  /// The config manager this manager reads `logs.file.*` from — resolved through `globalGetIt()`
+  /// Get the config manager this manager reads `logs.file.*` from — resolved through
+  /// `globalGetIt()`
   /// the first time it is actually needed, unless one was injected in the constructor.
   OcptConfigManager get _config => _configManager ??= globalGetIt().get<OcptConfigManager>();
 
-  /// The logger manager this manager registers its file logger against — resolved through
+  /// Get the logger manager this manager registers its file logger against — resolved through
   /// `globalGetIt()` the first time it is actually needed, unless one was injected in the
   /// constructor.
   LoggerManager get _logging => _loggerManager ??= globalGetIt().get<LoggerManager>();
 
-  /// Creates the manager.
+  /// Create the manager.
   ///
   /// [configManager] and [loggerManager] are stored nullable and resolved lazily through
   /// [_config]/[_logging], exactly the pattern `OcptRelayHostManager`'s own constructor documents:

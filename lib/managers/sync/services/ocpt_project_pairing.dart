@@ -22,7 +22,7 @@ class OcptProjectPairing extends Equatable {
   /// Class constructor
   const OcptProjectPairing({required this.relayBaseUri, required this.token});
 
-  /// Class properties
+  /// Get the class properties
   @override
   List<Object?> get props => [relayBaseUri, token];
 }

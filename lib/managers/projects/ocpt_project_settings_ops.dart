@@ -8,14 +8,14 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
-/// Reads and writes the settings the open project keeps in its `project_info` row: the page format,
+/// Read and write the settings the open project keeps in its `project_info` row: the page format,
 /// the currency, the minimum rest, the screenplay language, the default VAT rate and the two
 /// catering prices.
 ///
 /// Stateless, so every call takes the project it works on; a null project is the "nothing is open"
 /// case each method answers on its own.
 abstract final class OcptProjectSettingsOps {
-  /// Loads the page format stored in the `currentProject`'s `project_info` table, or null if no
+  /// Load the page format stored in the `currentProject`'s `project_info` table, or null if no
   /// project is currently open.
   ///
   /// This lives here (rather than in the editor's UI layer) so reading the project database stays
@@ -33,7 +33,7 @@ abstract final class OcptProjectSettingsOps {
     return info?.pageFormat;
   }
 
-  /// Updates the page format stored in the `currentProject`'s `project_info` table. Does nothing if
+  /// Update the page format stored in the `currentProject`'s `project_info` table. Does nothing if
   /// no project is currently open.
   ///
   /// This is the first write to `project_info` after the project is created: `createProject` seeds
@@ -53,7 +53,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(pageFormat: Value(format)));
   }
 
-  /// Loads the ISO 4217 currency code stored in the `currentProject`'s `project_info` table, or
+  /// Load the ISO 4217 currency code stored in the `currentProject`'s `project_info` table, or
   /// null if no project is currently open.
   ///
   /// Modelled on [loadCurrentProjectPageFormat]: reading the project database stays confined to
@@ -71,7 +71,7 @@ abstract final class OcptProjectSettingsOps {
     return info?.currencyCode;
   }
 
-  /// Updates the currency code stored in the `currentProject`'s `project_info` table. Does nothing
+  /// Update the currency code stored in the `currentProject`'s `project_info` table. Does nothing
   /// if no project is currently open.
   ///
   /// Modelled on [saveCurrentProjectPageFormat]: [code] is a property of the project, not of the
@@ -91,7 +91,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(currencyCode: Value(code)));
   }
 
-  /// Loads the minimum rest, in minutes, stored in the `currentProject`'s `project_info` table, or
+  /// Load the minimum rest, in minutes, stored in the `currentProject`'s `project_info` table, or
   /// null.
   ///
   /// The two reasons for a null answer are indistinguishable here, exactly as
@@ -111,8 +111,8 @@ abstract final class OcptProjectSettingsOps {
     return info?.minimumRestMinutes;
   }
 
-  /// Updates the minimum rest, in minutes, stored in the `currentProject`'s `project_info` table,
-  /// or clears it when [minutes] is null — a production that decides it no longer wants to record
+  /// Update the minimum rest, in minutes, stored in the `currentProject`'s `project_info` table, or
+  /// clear it when [minutes] is null — a production that decides it no longer wants to record
   /// one is as real a gesture as setting it. Does nothing if no project is currently open.
   ///
   /// Modelled on [saveCurrentProjectCurrencyCode], with one difference the column's own nullability
@@ -134,7 +134,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(minimumRestMinutes: Value(minutes)));
   }
 
-  /// Loads the screenplay language stored in the `currentProject`'s `project_info` table, or null.
+  /// Load the screenplay language stored in the `currentProject`'s `project_info` table, or null.
   ///
   /// The two reasons for a null answer are indistinguishable here, exactly as
   /// [loadCurrentProjectMinimumRestMinutes]'s are: no project is open, or one is and nobody has
@@ -153,8 +153,8 @@ abstract final class OcptProjectSettingsOps {
     return info?.screenplayLanguage;
   }
 
-  /// Updates the screenplay language stored in the `currentProject`'s `project_info` table, or
-  /// clears it when [language] is null — a writer who decides the checker should stay off this
+  /// Update the screenplay language stored in the `currentProject`'s `project_info` table, or clear
+  /// it when [language] is null — a writer who decides the checker should stay off this
   /// screenplay is making as real a choice as picking one of the two bundled languages. Does
   /// nothing if no project is currently open.
   ///
@@ -177,7 +177,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(screenplayLanguage: Value(language)));
   }
 
-  /// Loads the default VAT rate, in basis points, stored in the `currentProject`'s `project_info`
+  /// Load the default VAT rate, in basis points, stored in the `currentProject`'s `project_info`
   /// table, or null.
   ///
   /// The two reasons for a null answer are indistinguishable here, exactly as
@@ -197,8 +197,8 @@ abstract final class OcptProjectSettingsOps {
     return info?.defaultVatRateBasisPoints;
   }
 
-  /// Updates the default VAT rate, in basis points, stored in the `currentProject`'s `project_info`
-  /// table, or clears it when [basisPoints] is null — a production putting the rate back to "not
+  /// Update the default VAT rate, in basis points, stored in the `currentProject`'s `project_info`
+  /// table, or clear it when [basisPoints] is null — a production putting the rate back to "not
   /// recorded" is as real a gesture as setting it (`OcptProjectSettingsBudgetSection`'s `No rate`
   /// button). Does nothing if no project is currently open.
   ///
@@ -221,7 +221,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(defaultVatRateBasisPoints: Value(basisPoints)));
   }
 
-  /// Loads the price of one meal, in cents, stored in the `currentProject`'s `project_info` table,
+  /// Load the price of one meal, in cents, stored in the `currentProject`'s `project_info` table,
   /// or null — the same "nobody has said" reading [loadCurrentProjectDefaultVatRateBasisPoints]
   /// gets.
   static Future<int?> loadCurrentProjectMealPriceCents({
@@ -237,8 +237,8 @@ abstract final class OcptProjectSettingsOps {
     return info?.mealPriceCents;
   }
 
-  /// Updates the price of one meal, in cents, stored in the `currentProject`'s `project_info`
-  /// table, or clears it when [cents] is null. Does nothing if no project is currently open.
+  /// Update the price of one meal, in cents, stored in the `currentProject`'s `project_info` table,
+  /// or clear it when [cents] is null. Does nothing if no project is currently open.
   ///
   /// Modelled on [saveCurrentProjectDefaultVatRateBasisPoints]: [cents] is written whichever it is,
   /// including null.
@@ -257,7 +257,7 @@ abstract final class OcptProjectSettingsOps {
         .write(OcptProjectInfoTableCompanion(mealPriceCents: Value(cents)));
   }
 
-  /// Loads the price of the buffet, in cents, stored in the `currentProject`'s `project_info`
+  /// Load the price of the buffet, in cents, stored in the `currentProject`'s `project_info`
   /// table, or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named
   /// after the column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's
   /// schema-number rule); the UI names this figure the buffet, or craft services, never a snack.**
@@ -274,8 +274,8 @@ abstract final class OcptProjectSettingsOps {
     return info?.snackPriceCents;
   }
 
-  /// Updates the price of the buffet, in cents, stored in the `currentProject`'s `project_info`
-  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
+  /// Update the price of the buffet, in cents, stored in the `currentProject`'s `project_info`
+  /// table, or clear it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
   /// [loadCurrentProjectSnackPriceCents]'s own doc comment for why this keeps the column's name.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}

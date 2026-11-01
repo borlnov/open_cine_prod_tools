@@ -16,8 +16,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptScheduleService` forwards to; see `OcptScheduleDaysOps`.
 abstract final class OcptScheduleSlotsOps {
-  /// Creates a new slot inside day [shootingDayId], appended at the end of its current slots,
-  /// anchored **by its start** at [anchorMinute], and returns its freshly generated id.
+  /// Create a new slot inside day [shootingDayId], appended at the end of its current slots,
+  /// anchored **by its start** at [anchorMinute], and return its freshly generated id.
   ///
   /// A new slot is always start-anchored at a typed hour, which is the only anchor a slot could
   /// have before schema version 14 and the only one that needs nothing else to already exist:
@@ -74,7 +74,7 @@ abstract final class OcptScheduleSlotsOps {
     });
   }
 
-  /// Updates the fields of slot [slotId] in [database] that are passed as something other than
+  /// Update the fields of slot [slotId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderSlot] and [deleteSlot], nor the anchor trio, which is [setSlotAnchor]'s alone — the
   /// three columns are one fact between them, and a method that let a caller write any one of them
@@ -123,8 +123,8 @@ abstract final class OcptScheduleSlotsOps {
     });
   }
 
-  /// Pins slot [slotId]'s [edge] to a typed [minute], or to the **opposite** edge of
-  /// [sourceSlotId], and returns whether anything was written.
+  /// Pin slot [slotId]'s [edge] to a typed [minute], or to the **opposite** edge of [sourceSlotId],
+  /// and return whether anything was written.
   ///
   /// **Exactly one of [minute]/[sourceSlotId] must be given**: they are the two halves of one
   /// discriminator (see `OcptShootingSlotsTable`), and a call passing both, or neither, writes
@@ -201,7 +201,7 @@ abstract final class OcptScheduleSlotsOps {
     });
   }
 
-  /// Moves slot [slotId] to [newPosition] (0-based) within its own day's slots, by giving it a
+  /// Move slot [slotId] to [newPosition] (0-based) within its own day's slots, by giving it a
   /// `sortKey` sitting between the two slots it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -251,7 +251,7 @@ abstract final class OcptScheduleSlotsOps {
     });
   }
 
-  /// Tombstones slot [slotId] in [database], and its crew, cast, guest and candidate rows along
+  /// Tombstone slot [slotId] in [database], and its crew, cast, guest and candidate rows along
   /// with it — a guest, and a candidate seen for a part, is convoked by the slot exactly as a crew
   /// member or a role is, so they go with them.
   ///
@@ -398,7 +398,7 @@ abstract final class OcptScheduleSlotsOps {
     });
   }
 
-  /// Turns every live slot of [slot]'s own day that reads [slot]'s edge into one anchored by a
+  /// Turn every live slot of [slot]'s own day that reads [slot]'s edge into one anchored by a
   /// **typed** hour: the very hour it was reading at the moment of the call. Called by [deleteSlot]
   /// before anything is tombstoned — see its own doc comment.
   static Future<void> _freezeDependentsOf({

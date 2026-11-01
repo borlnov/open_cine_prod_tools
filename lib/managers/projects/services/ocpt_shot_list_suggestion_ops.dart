@@ -11,7 +11,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 ///
 /// What `OcptShotListService` forwards to; see `OcptShotListCharacterOps`.
 abstract final class OcptShotListSuggestionOps {
-  /// Every distinct, non-empty value of `shots.shotSize` across screenplay [screenplayId], for the
+  /// Get every distinct, non-empty value of `shots.shotSize` across screenplay [screenplayId], for
+  /// the
   /// field's project-wide suggestion list.
   static Future<List<String>> distinctShotSizes({
     required OcptProjectDatabase database,
@@ -22,7 +23,8 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.shotSize,
   );
 
-  /// Every distinct, non-empty value of `shots.framing` across screenplay [screenplayId], for the
+  /// Get every distinct, non-empty value of `shots.framing` across screenplay [screenplayId], for
+  /// the
   /// field's project-wide suggestion list.
   static Future<List<String>> distinctFramings({
     required OcptProjectDatabase database,
@@ -33,7 +35,8 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.framing,
   );
 
-  /// Every distinct, non-empty value of `shots.cameraMove` across screenplay [screenplayId], for
+  /// Get every distinct, non-empty value of `shots.cameraMove` across screenplay [screenplayId],
+  /// for
   /// the field's project-wide suggestion list.
   static Future<List<String>> distinctCameraMoves({
     required OcptProjectDatabase database,
@@ -44,7 +47,7 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.cameraMove,
   );
 
-  /// Every distinct, non-empty value of `shots.lens` across screenplay [screenplayId], for the
+  /// Get every distinct, non-empty value of `shots.lens` across screenplay [screenplayId], for the
   /// field's project-wide suggestion list.
   static Future<List<String>> distinctLenses({
     required OcptProjectDatabase database,
@@ -55,7 +58,8 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.lens,
   );
 
-  /// Every distinct, non-empty value of `shots.recordingFormat` across screenplay [screenplayId],
+  /// Get every distinct, non-empty value of `shots.recordingFormat` across screenplay
+  /// [screenplayId],
   /// for the field's project-wide suggestion list.
   static Future<List<String>> distinctRecordingFormats({
     required OcptProjectDatabase database,
@@ -66,7 +70,7 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.recordingFormat,
   );
 
-  /// Every distinct, non-empty value of `shots.sound` across screenplay [screenplayId], for the
+  /// Get every distinct, non-empty value of `shots.sound` across screenplay [screenplayId], for the
   /// field's project-wide suggestion list.
   static Future<List<String>> distinctSounds({
     required OcptProjectDatabase database,
@@ -77,7 +81,8 @@ abstract final class OcptShotListSuggestionOps {
     column: (table) => table.sound,
   );
 
-  /// Every free-text field's suggestion list, scoped to screenplay [screenplayId]: what has already
+  /// Get every free-text field's suggestion list, scoped to screenplay [screenplayId]: what has
+  /// already
   /// been entered elsewhere in *this* screenplay, not the whole project's.
   static Future<OcptShotFieldSuggestions> loadFieldSuggestions({
     required OcptProjectDatabase database,
@@ -94,7 +99,7 @@ abstract final class OcptShotListSuggestionOps {
     sounds: await distinctSounds(database: database, screenplayId: screenplayId),
   );
 
-  /// Collects the distinct, non-empty values of a single free-text column of `shots` across
+  /// Collect the distinct, non-empty values of a single free-text column of `shots` across
   /// screenplay [screenplayId], sorted alphabetically.
   static Future<List<String>> _distinctValuesOf({
     required OcptProjectDatabase database,

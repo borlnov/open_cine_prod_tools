@@ -15,8 +15,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptScheduleService` forwards to; see `OcptScheduleDaysOps`.
 abstract final class OcptScheduleBlocksOps {
-  /// Places shot [shotId] inside slot [slotId], at [atPosition] within that slot's own timetable
-  /// (or appended at the end when null), and returns the id of the freshly created block placing
+  /// Place shot [shotId] inside slot [slotId], at [atPosition] within that slot's own timetable (or
+  /// appended at the end when null), and return the id of the freshly created block placing
   /// it. The day it lands on is read off [slotId]'s own row, so a block can never name a day its
   /// slot doesn't belong to.
   ///
@@ -83,7 +83,7 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Tombstones block [blockId], whatever its [OcptShootingBlockKind] — a shot block, a milestone,
+  /// Tombstone block [blockId], whatever its [OcptShootingBlockKind] — a shot block, a milestone,
   /// a `hold` or an `audition` — **and the candidacies an audition names along with it**. Removing
   /// a shot's placement, now that a shot may carry several, means naming the block it sits in and
   /// calling this — there is no operation keyed by shot any more.
@@ -133,8 +133,8 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Creates a new block inside slot [slotId], at [atPosition] within that slot's own timetable (or
-  /// appended at the end when null), and returns its freshly generated id. The day it belongs to is
+  /// Create a new block inside slot [slotId], at [atPosition] within that slot's own timetable (or
+  /// appended at the end when null), and return its freshly generated id. The day it belongs to is
   /// read off [slotId]'s own row.
   ///
   /// **[kind] must not be [OcptShootingBlockKind.shot].** [placeShot] is the only writer of a shot
@@ -222,7 +222,7 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Updates the fields of block [blockId] in [database] that are passed as something other than
+  /// Update the fields of block [blockId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `shotId`, `sortKey` or `isDeleted`: those only change through
   /// [placeShot], block reordering/moving and [deleteBlock].
   ///
@@ -326,7 +326,7 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, by giving it
+  /// Move block [blockId] to [newPosition] (0-based) within its own slot's timetable, by giving it
   /// a `sortKey` sitting between the two blocks it lands between there. Writes **exactly one row**.
   ///
   /// **`sortKey` stays day-wide** — these tables have no per-slot scope of their own, so a key
@@ -381,7 +381,7 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Moves block [blockId] to slot [targetSlotId], at [newPosition] (0-based) within that slot's
+  /// Move block [blockId] to slot [targetSlotId], at [newPosition] (0-based) within that slot's
   /// own timetable, by giving it a `sortKey` sitting between the two blocks it lands between there.
   /// Writes **exactly one row**: both the block's `slotId` and its `shootingDayId` — read off
   /// [targetSlotId]'s own row, so a block can never end up pointing at a day its slot doesn't
@@ -445,7 +445,7 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Tombstones every live `shooting_day_blocks` row placing any of [shotIds]:
+  /// Tombstone every live `shooting_day_blocks` row placing any of [shotIds]:
   /// `OcptScreenplayService`'s episode-delete cascade, once its own shot list service has handed it
   /// the ids of the shots going with the episode. **The day, its slots, its convocations and its
   /// every other block are untouched** — the schedule is the production's, not any one episode's
@@ -485,7 +485,7 @@ abstract final class OcptScheduleBlocksOps {
     }
   }
 
-  /// Whether a block of [kind] names a sequence through `shooting_day_blocks.sceneId`: a
+  /// Tell whether a block of [kind] names a sequence through `shooting_day_blocks.sceneId`: a
   /// [OcptShootingBlockKind.hold] reserves one's time, a [OcptShootingBlockKind.rehearsal] works
   /// it, and no other kind has anything to say about a sequence.
   ///

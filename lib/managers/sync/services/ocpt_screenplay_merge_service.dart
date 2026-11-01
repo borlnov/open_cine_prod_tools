@@ -53,7 +53,7 @@ class OcptScreenplayMergeService extends AbsOcptService {
     required this.deviceId,
   });
 
-  /// Merges [incomingText] into the screenplay [screenplayId]'s current text on [fileDatabase],
+  /// Merge [incomingText] into the screenplay [screenplayId]'s current text on [fileDatabase],
   /// writing a clean result back and returning `null`, or leaving the text untouched and returning
   /// the [OcptScreenplayMergeConflict] to record when the two sides overlap. See this class's own
   /// doc comment for the full algorithm.
@@ -111,7 +111,7 @@ class OcptScreenplayMergeService extends AbsOcptService {
     }
   }
 
-  /// Writes [mergedText] back as the screenplay [screenplayId]'s new text, through
+  /// Write [mergedText] back as the screenplay [screenplayId]'s new text, through
   /// `OcptScreenplayService.reconcileScreenplayText`, seeding and flushing its own
   /// [OcptRowStampService] around one transaction — nested inside
   /// `OcptMergeService.applyChangeset`'s own already-open `defer_foreign_keys` transaction when
@@ -138,7 +138,8 @@ class OcptScreenplayMergeService extends AbsOcptService {
     await stamps.flush(fileDatabase);
   });
 
-  /// The nearest common ancestor text for screenplay [screenplayId]'s merge, or `null` when none
+  /// Get the nearest common ancestor text for screenplay [screenplayId]'s merge, or `null` when
+  /// none
   /// can be found at all.
   ///
   /// **Heuristic:** the most recently created live (non-pruned) `screenplay_snapshots` row for

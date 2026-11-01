@@ -10,12 +10,12 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_preview_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 
-/// Enters the read-only preview of one of the open project's versions.
+/// Enter the read-only preview of one of the open project's versions.
 ///
 /// The swap of the project on screen is the manager's state, which this class has no access to: it
 /// reports it through `onPreviewed`, at the point the old behaviour set it.
 abstract final class OcptProjectPreviewOps {
-  /// Enters the read-only preview of the version [versionId] of the `currentProject`: the version's
+  /// Enter the read-only preview of the version [versionId] of the `currentProject`: the version's
   /// payload is hydrated into an in-memory database, and *that* is what `currentProject` hands the
   /// modes from now on.
   ///

@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_snapshot_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
-/// Turns an open project into snapshot bytes and back, the one piece
+/// Turn an open project into snapshot bytes and back, the one piece
 /// `OcptRemoteStorage.uploadSnapshot`/`fetchLatestSnapshot` need before either can actually be
 /// called: the join flow, the first append to an empty relay and a restore's publish all need a
 /// project turned into bytes and back.
@@ -36,7 +36,7 @@ class OcptSnapshotService extends AbsOcptService {
   /// Get the directory the working directories of a build or an apply are created in.
   final Directory Function() _temporaryDirectory;
 
-  /// Creates a service using [packageService] to read and write the portable package a snapshot's
+  /// Create a service using [packageService] to read and write the portable package a snapshot's
   /// bytes actually are.
   ///
   /// [temporaryDirectory] is injectable so a test can point the scratch files this service writes
@@ -53,7 +53,7 @@ class OcptSnapshotService extends AbsOcptService {
            ),
        _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
 
-  /// Packages the project at [projectFilePath] and returns it as snapshot bytes, paired with the
+  /// Package the project at [projectFilePath] and return it as snapshot bytes, paired with the
   /// descriptor an `OcptRemoteStorage.uploadSnapshot` call carries alongside them.
   ///
   /// [projectName] and [appVersion] are handed in by the caller, exactly as
@@ -109,7 +109,7 @@ class OcptSnapshotService extends AbsOcptService {
     }
   }
 
-  /// Materialises [bytes] as a new project under [parentDirectoryPath], and returns the `.ocpt`
+  /// Materialise [bytes] as a new project under [parentDirectoryPath], and return the `.ocpt`
   /// path it landed at.
   ///
   /// [bytes] is written to a scratch package file and unpacked exactly as a colleague's `.ocptz`
@@ -159,7 +159,7 @@ class OcptSnapshotService extends AbsOcptService {
     }
   }
 
-  /// Deletes [directory] and everything under it, reporting a failure without raising it.
+  /// Delete [directory] and everything under it, reporting a failure without raising it.
   ///
   /// This runs in a `finally`, where throwing would replace whatever actually went wrong with a
   /// complaint about a temporary folder — [OcptProjectPackageService]'s own equivalent does the

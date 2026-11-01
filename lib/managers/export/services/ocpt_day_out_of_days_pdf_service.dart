@@ -54,7 +54,7 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 /// legibility deciding the other's.
 const int _maxDayColumnsPerPage = 12;
 
-/// Renders the *Day Out of Days*: one row per role the printed range convokes, one column per day
+/// Render the *Day Out of Days*: one row per role the printed range convokes, one column per day
 /// of that range, a code in every cell of a role's own span, and a trailing count of the days it
 /// works and the days it is held.
 ///
@@ -85,14 +85,14 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptDayOutOfDaysPdfService].
+  /// Create an [OcptDayOutOfDaysPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptDayOutOfDaysPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the *Day Out of Days* of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the *Day Out of Days* of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - day out of days.pdf`); a blank one falls back to the project name alone, exactly
@@ -100,7 +100,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   String dayOutOfDaysFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the *Day Out of Days* of [dayIds] (in the order given), returning the PDF's bytes.
+  /// Render the *Day Out of Days* of [dayIds] (in the order given), returning the PDF's bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as its two sibling
   /// services read a missing day: nothing this app writes can produce one, but a hand-edited file
@@ -181,17 +181,19 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The [OcptScriptPagePainter] every page is drawn through, sharing this session's font cache.
+  /// Get the [OcptScriptPagePainter] every page is drawn through, sharing this session's font
+  /// cache.
   Future<OcptScriptPagePainter> _painterFor(OcptPageSetup pageSetup) async =>
       OcptScriptPagePainter(metrics: pageSetup.toMetrics(), fonts: await fontsLoader.load());
 
-  /// [plan]'s own cast, in role-number order — the order the rows are drawn in, and the order the
+  /// Get [plan]'s own cast, in role-number order — the order the rows are drawn in, and the order
+  /// the
   /// shot list, the call sheets and the shooting plan already list a cast in. Sorted on a copy: the
   /// snapshot's own list is shared with every other reader of it.
   List<OcptRole> _orderedRolesOf(OcptSchedulePlanSnapshot plan) =>
       [...plan.roles]..sort((a, b) => a.number.compareTo(b.number));
 
-  /// [role]'s own printable label — `<number> · <name>`, the same shape
+  /// Get [role]'s own printable label — `<number> · <name>`, the same shape
   /// `OcptShootingPlanPdfService`'s own crew-and-cast grid gives a role's row, falling back to
   /// [OcptDayOutOfDaysLabels.unnamedRoleLabel] while the part carries no name.
   String _roleLabelOf(OcptRole role, OcptDayOutOfDaysLabels labels) {
@@ -203,7 +205,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   // Pages
   // ---------------------------------------------------------------------------------------------
 
-  /// The document's own title page: its name, the `"<title>" de <director>` line, and the moment
+  /// Build the document's own title page: its name, the `"<title>" de <director>` line, and the
+  /// moment
   /// the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
@@ -242,7 +245,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     ),
   );
 
-  /// A single-note landscape page: the running head, the document's own title, then [text] alone —
+  /// Build a single-note landscape page: the running head, the document's own title, then [text]
+  /// alone —
   /// what a range with no live day, or one convoking nobody, prints in place of its table.
   pw.MultiPage _notePage({
     required OcptScriptPagePainter painter,
@@ -272,7 +276,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     ],
   );
 
-  /// One landscape table page: the running head, the title, then the table itself — a two-line
+  /// Build one landscape table page: the running head, the title, then the table itself — a
+  /// two-line
   /// column header per day (its tag over its date), one row per role of [table], and the two
   /// trailing count columns.
   ///
@@ -351,7 +356,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     );
   }
 
-  /// The legend printed under the last chunk of the table: one line per code, its own letter then
+  /// Build the legend printed under the last chunk of the table: one line per code, its own letter
+  /// then
   /// what it means — the document is read by people who never asked for its conventions, and a grid
   /// of two-letter codes with nothing to read them by is a grid of two-letter codes.
   pw.Widget _legend({
@@ -381,7 +387,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   // Cells
   // ---------------------------------------------------------------------------------------------
 
-  /// One day's own column header: its day tag over its short date, the date muted under it.
+  /// Build one day's own column header: its day tag over its short date, the date muted under it.
   pw.Widget _dayHeaderCell({
     required OcptScriptPagePainter painter,
     required OcptDayOutOfDaysLabels labels,
@@ -413,7 +419,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     );
   }
 
-  /// One of the two trailing count columns' own header.
+  /// Build one of the two trailing count columns' own header.
   pw.Widget _headerCell({required OcptScriptPagePainter painter, required String text}) =>
       pw.Padding(
         padding: const pw.EdgeInsets.all(_cellPaddingPt),
@@ -424,7 +430,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
         ),
       );
 
-  /// A row's own leading label cell (a role, or the table's own corner header).
+  /// Build a row's own leading label cell (a role, or the table's own corner header).
   pw.Widget _rowLabelCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -440,7 +446,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     ),
   );
 
-  /// One code cell: [code]'s own letter, or a **truly empty** cell outside the role's own span —
+  /// Build one code cell: [code]'s own letter, or a **truly empty** cell outside the role's own
+  /// span —
   /// never [ocptScheduleEmptyValue], which everywhere else in this app's schedule exports means "a
   /// value that has none". A day before a role joins the shoot is not a missing figure; it is a day
   /// this document deliberately says nothing about.
@@ -457,7 +464,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     ),
   );
 
-  /// One trailing count cell — a figure the whole printed range answers for, never the chunk's own
+  /// Build one trailing count cell — a figure the whole printed range answers for, never the
+  /// chunk's own
   /// (the class doc comment).
   pw.Widget _countCell({required OcptScriptPagePainter painter, required int value}) => pw.Padding(
     padding: const pw.EdgeInsets.all(_cellPaddingPt),
@@ -472,7 +480,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   // Small shared drawing helpers
   // ---------------------------------------------------------------------------------------------
 
-  /// The running head naming the project and the document on the left, [versionLine] on the right,
+  /// Build the running head naming the project and the document on the left, [versionLine] on the
+  /// right,
   /// over a thin rule — handed to every page's own `header:` callback rather than to its `build:`
   /// list, for the reason `OcptShootingPlanPageParts.runningHead`'s own doc comment gives: a
   /// `build:` child is drawn once per flow, a `header:` one on every page that flow overflows onto.
@@ -511,7 +520,8 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     ],
   );
 
-  /// The portrait `pdf` page format the title page is drawn on — the same margin convention every
+  /// Get the portrait `pdf` page format the title page is drawn on — the same margin convention
+  /// every
   /// other schedule export uses (`marginRightPt` standing in for the bottom margin too,
   /// [OcptScriptPagePainter] having none of its own).
   PdfPageFormat _portraitPageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
@@ -523,7 +533,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
     marginBottom: painter.marginRightPt,
   );
 
-  /// The landscape `pdf` page format every table page is drawn on — [painter]'s own width and
+  /// Get the landscape `pdf` page format every table page is drawn on — [painter]'s own width and
   /// height swapped, its margins otherwise read the same way [_portraitPageFormat] does.
   PdfPageFormat _landscapePageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageHeightPt,
@@ -535,7 +545,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
   );
 }
 
-/// [days] split into chunks of at most [chunkSize], in order — empty when [days] itself is. The
+/// Get [days] split into chunks of at most [chunkSize], in order — empty when [days] itself is. The
 /// same rule `OcptShootingPlanPdfService` paginates its own summary grids by, over this document's
 /// own day columns and its own [_maxDayColumnsPerPage].
 List<List<OcptShootingDay>> _chunkDays(List<OcptShootingDay> days, int chunkSize) {

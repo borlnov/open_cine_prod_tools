@@ -29,7 +29,7 @@ import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:uuid/uuid.dart';
 
-/// Resolves every address a hosted relay could be advertised on, on the local network — the seam
+/// Resolve every address a hosted relay could be advertised on, on the local network — the seam
 /// [OcptRelayHostManager] resolves through by default with [NetworkInterface.list], and a test
 /// replaces with a fixed list of [InternetAddress]es it cannot otherwise construct one of. The
 /// first entry (when any) is what [OcptRelayHostManager.startHosting] advertises by default; the
@@ -55,7 +55,7 @@ const _virtualInterfaceMarkers = [
   'loopback',
 ];
 
-/// Ranks [candidates] — every non-loopback IPv4 address this machine's network interfaces offer,
+/// Rank [candidates] — every non-loopback IPv4 address this machine's network interfaces offer,
 /// paired with the interface's own name — so the address a phone on the same LAN can actually reach
 /// comes first, ahead of a VPN or virtual adapter's own address that [NetworkInterface.list] may
 /// otherwise report first (a `10.5.0.2` tunnel, a WSL `172.20.x` bridge): a hosting panel that
@@ -98,7 +98,7 @@ List<InternetAddress> rankLanAddresses(
   return [...primary, ...plain, ...virtual];
 }
 
-/// Opens the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
+/// Open the [OcptRelayStore] [OcptRelayHostManager.startHosting] serves — the seam a test
 /// replaces to pre-seed the very store the live server ends up holding (a test cannot otherwise
 /// reach into a store `startHosting` opens for itself), by returning an in-memory
 /// `OcptRelayStore(':memory:')` it keeps its own reference to. Defaults to `OcptRelayStore.new`.
@@ -112,7 +112,7 @@ typedef OcptRelayStoreFactory = OcptRelayStore Function(String path);
 /// field lets a person choose another.
 const ocptDefaultInAppHostingPort = 47600;
 
-/// Builds the [OcptRelayHostManager] instance registered by the global manager.
+/// Build the [OcptRelayHostManager] instance registered by the global manager.
 class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManager> {
   /// Class constructor
   const OcptRelayHostManagerBuilder() : super(OcptRelayHostManager.new);
@@ -127,7 +127,7 @@ class OcptRelayHostManagerBuilder extends AbsLifeCycleFactory<OcptRelayHostManag
   ];
 }
 
-/// Owns the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
+/// Own the lifecycle of **one** in-process relay — one `OcptRelayServer` over one
 /// `OcptRelayStore` — at a time, for the "Héberger sur ce poste" sharing mode
 /// (`docs/architecture/sync.md`): a small team's own laptop, on set or as the producer/director
 /// hub, being the relay instead of a separate deployment.
@@ -195,27 +195,28 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// The id of the project being hosted, or null while nothing is hosted.
   String? _hostedProjectId;
 
-  /// This manager's current host state. [stateStream] never replays it to a new listener — read
+  /// Get this manager's current host state. [stateStream] never replays it to a new listener — read
   /// this first to seed a fresh subscriber, exactly as this class's own doc comment says.
   OcptRelayHostState get state => _state.value;
 
-  /// Emits every host state this manager moves through from the moment a listener subscribes
+  /// Emit every host state this manager moves through from the moment a listener subscribes
   /// onward — never its current value at subscription time (see [state]).
   Stream<OcptRelayHostState> get stateStream => _state.valueStream;
 
-  /// The id of the project currently being hosted, or null when nothing is.
+  /// Get the id of the project currently being hosted, or null when nothing is.
   String? get hostedProjectId => _hostedProjectId;
 
-  /// The project's hosting enrolment secret, resolved lazily through `globalGetIt()` the first
+  /// Get the project's hosting enrolment secret, resolved lazily through `globalGetIt()` the first
   /// time it is actually needed — see this class's own constructor doc comment for why.
   OcptSecretsManager get _secrets => _secretsManager ??= globalGetIt().get<OcptSecretsManager>();
 
-  /// The pairing/sync engine [startHosting] self-seeds this replica through, resolved lazily
+  /// Get the pairing/sync engine [startHosting] self-seeds this replica through, resolved lazily
   /// through `globalGetIt()` the first time it is actually needed — see this class's own
   /// constructor doc comment for why.
   OcptSyncManager get _sync => _syncManager ??= globalGetIt().get<OcptSyncManager>();
 
-  /// The per-project "host on launch" flag [maybeAutoStartHosting] reads, resolved lazily through
+  /// Get the per-project "host on launch" flag [maybeAutoStartHosting] reads, resolved lazily
+  /// through
   /// `globalGetIt()` the first time it is actually needed — see this class's own constructor doc
   /// comment for why.
   OcptPropertiesManager get _properties =>
@@ -279,14 +280,14 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
          emitUnchangedValue: true,
        );
 
-  /// Every non-loopback IPv4 address this machine's own network interfaces currently offer,
+  /// Get every non-loopback IPv4 address this machine's own network interfaces currently offer,
   /// straight off [_lanAddressResolver] — re-callable so the hosting panel's own address dropdown
   /// can re-detect a network switch (a Wi-Fi hop, a cable plugged in) on a fresh view entry,
   /// without restarting hosting to do it: the socket already binds [InternetAddress.anyIPv4] by
   /// default, so every one of these addresses already reaches it.
   Future<List<InternetAddress>> availableLanAddresses() => _lanAddressResolver();
 
-  /// Starts hosting [database]'s own project (whose file sits at [projectFilePath]): opens a relay
+  /// Start hosting [database]'s own project (whose file sits at [projectFilePath]): opens a relay
   /// store beside the project file, serves it, makes this replica the relay's own first member
   /// over `localhost`, and reports [OcptRelayHostOnline] once all of that is up.
   ///
@@ -430,7 +431,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Stops the currently hosted relay, if any: ends the self-seeded sync session, closes the
+  /// Stop the currently hosted relay, if any: ends the self-seeded sync session, closes the
   /// socket and the store, and reports [OcptRelayHostStopped]. Safe to call when nothing is
   /// hosting.
   ///
@@ -448,7 +449,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Reconciles the **live** hosted store — never a second, separately opened handle onto
+  /// Reconcile the **live** hosted store — never a second, separately opened handle onto
   /// `relay.sqlite` while [OcptRelayServer] already holds it — with the upstream relay named by
   /// [invite] (typically the production's prep relay, reached through an `ocpt://join` invite
   /// scanned or pasted into the hosting panel's "Réconcilier amont…" action): push what this
@@ -503,7 +504,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     return outcome;
   }
 
-  /// The manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
+  /// Run the manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a
   /// project-open caller (`OcptWorkspaceBloc`) hands this the project it just opened, and this
   /// starts hosting it again only when both hold: the project is paired — has a relay-side id, so
   /// [OcptSyncManager.loadPairedProjectId] returns one; a never-paired project was never hosted, so
@@ -552,7 +553,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Publishes the hosted project as online once the relay is bound and [startHosting] has paired
+  /// Publish the hosted project as online once the relay is bound and [startHosting] has paired
   /// the project to it: resolves the address other devices reach this machine on and moves to
   /// [OcptRelayHostOnline].
   Future<void> _goOnline({
@@ -582,7 +583,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Tears down whatever [startHosting] already opened, logs why it could not finish, and reports
+  /// Tear down whatever [startHosting] already opened, log why it could not finish, and report
   /// [OcptRelayHostFailed] with [error]'s own text: a bring-up failure is a state to render, not an
   /// exception to propagate.
   ///
@@ -602,7 +603,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     _setState(OcptRelayHostFailed('Could not start hosting: $error'));
   }
 
-  /// Ends the self-seeded sync session, then closes [_httpServer] and [_store] and clears every
+  /// End the self-seeded sync session, then close [_httpServer] and [_store] and clear every
   /// field they left behind, without touching [state] — the caller decides what state follows a
   /// teardown ([stopHosting]'s [OcptRelayHostStopped], or [startHosting]'s own
   /// [OcptRelayHostFailed] on a failed bring-up).
@@ -626,7 +627,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and
+  /// Get every non-loopback IPv4 address of this machine's own network interfaces, deduplicated and
   /// ranked by [rankLanAddresses] so the address most likely reachable from a phone on the same LAN
   /// comes first, ahead of a VPN or virtual adapter's own address (a `10.5.0.2` tunnel, a WSL
   /// `172.20.x` bridge) that [NetworkInterface.list] may otherwise list first —

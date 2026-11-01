@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:uuid/uuid.dart';
 
-/// Loads and saves a screenplay's Fountain text, taking safety snapshots along the way, and owns
+/// Load and save a screenplay's Fountain text, taking safety snapshots along the way, and own
 /// the episode CRUD — **there is no twelfth service**:
 /// `docs/adr/0019-one-project-several-episodes.md` settles that a `screenplays` row *is* an
 /// episode, so the service that already owns screenplays owns episodes too,
@@ -122,7 +122,7 @@ class OcptScreenplayService extends AbsOcptService {
     await _scheduleService.initLifeCycle();
   }
 
-  /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
+  /// Load the current Fountain text of the screenplay [screenplayId] in [database].
   Future<String> loadScreenplayText({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -134,7 +134,7 @@ class OcptScreenplayService extends AbsOcptService {
     return row.fountainText;
   }
 
-  /// Takes the project-open safety snapshot of the screenplay [screenplayId] in [database]: unlike
+  /// Take the project-open safety snapshot of the screenplay [screenplayId] in [database]: unlike
   /// [snapshotBeforeRestore], nothing has already opened a transaction or seeded an
   /// [OcptRowStampService] around this call, so [_snapshotCurrentText] seeds and flushes its own.
   ///
@@ -152,7 +152,7 @@ class OcptScreenplayService extends AbsOcptService {
     stamps: null,
   );
 
-  /// Takes the safety snapshot of the screenplay [screenplayId] in [database] that a project
+  /// Take the safety snapshot of the screenplay [screenplayId] in [database] that a project
   /// version's restore owes the merge, right before that restore writes the version's own text
   /// over it.
   ///
@@ -178,7 +178,7 @@ class OcptScreenplayService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// Saves [fountainText] as the new text of the screenplay [screenplayId] in [database].
+  /// Save [fountainText] as the new text of the screenplay [screenplayId] in [database].
   ///
   /// This is the user path onto [reconcileScreenplayText] — see its own doc comment for what the
   /// reconciliation actually does. All this method adds on top: refusing the write outright when
@@ -216,8 +216,8 @@ class OcptScreenplayService extends AbsOcptService {
     });
   }
 
-  /// Overwrites the screenplay [screenplayId]'s stored text with [fountainText] in [database] and
-  /// reruns everything that depends on it — the shared core of every screenplay text write in the
+  /// Overwrite the screenplay [screenplayId]'s stored text with [fountainText] in [database] and
+  /// rerun everything that depends on it — the shared core of every screenplay text write in the
   /// app, on **both** of its callers:
   ///
   /// - [saveScreenplayText], the user path: called from inside its own transaction, behind its own
@@ -312,14 +312,14 @@ class OcptScreenplayService extends AbsOcptService {
     await _pruneSnapshots(database: database, screenplayId: screenplayId, stamps: stamps);
   }
 
-  /// Loads every live episode of the project in [database] — every live `screenplays` row — in
+  /// Load every live episode of the project in [database] — every live `screenplays` row — in
   /// `sortKey` order.
   Future<List<OcptEpisode>> loadEpisodes({required OcptProjectDatabase database}) async {
     final rows = await _liveEpisodeRows(database: database);
     return rows.map(OcptEpisode.fromRow).toList(growable: false);
   }
 
-  /// Creates a new, empty episode in [database], appended after the last live episode, and returns
+  /// Create a new, empty episode in [database], appended after the last live episode, and return
   /// its freshly generated id — the project settings page's "add an episode" action.
   ///
   /// A fresh `sortKey` is allocated through `ocptFractionalKeyBetween`, appending it at the tail of
@@ -372,7 +372,7 @@ class OcptScreenplayService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of episode [screenplayId] in [database] that are passed as something other
+  /// Update the fields of episode [screenplayId] in [database] that are passed as something other
   /// than [Value.absent].
   ///
   /// Never touches `sortKey` ([reorderEpisode] owns it), `fountainText` or `updatedAt`
@@ -414,7 +414,7 @@ class OcptScreenplayService extends AbsOcptService {
     });
   }
 
-  /// Moves episode [screenplayId] to [newPosition] (0-based) among the project's live episodes, by
+  /// Move episode [screenplayId] to [newPosition] (0-based) among the project's live episodes, by
   /// giving it a `sortKey` sitting between the two episodes it lands between. Writes **exactly one
   /// row**, following `OcptRoleIndexService.reorderRole`'s own shape.
   ///
@@ -470,12 +470,12 @@ class OcptScreenplayService extends AbsOcptService {
     });
   }
 
-  /// Tombstones episode [screenplayId] and everything it alone owns — its safety snapshots, its
+  /// Tombstone episode [screenplayId] and everything it alone owns — its safety snapshots, its
   /// scenes, its shots and their coverage, its breakdown (tags, scene statuses, and — through the
   /// elements and locations services `OcptBreakdownService` itself holds — the
   /// `scene_elements`/`scene_sets` links its scenes carried), the `shooting_day_blocks` rows
   /// placing any of its shots, and the `role_episodes` links naming it — in one transaction, and
-  /// returns whether it did.
+  /// return whether it did.
   ///
   /// **What is left alone is just as much the point**
   /// (`docs/adr/0019-one-project-several-episodes.md`): the people, the locations, the elements and
@@ -591,8 +591,8 @@ class OcptScreenplayService extends AbsOcptService {
     });
   }
 
-  /// Snapshots the text the screenplay [screenplayId] currently holds in [database], tagged
-  /// [reason], and prunes the older snapshots — both within one transaction.
+  /// Snapshot the text the screenplay [screenplayId] currently holds in [database], tagged
+  /// [reason], and prune the older snapshots — both within one transaction.
   ///
   /// [operation] is what the preview guard names in the log when it refuses the write. [stamps] is
   /// `null` for [snapshotOnProjectOpen], which has nothing else seeded yet, so a fresh
@@ -631,8 +631,8 @@ class OcptScreenplayService extends AbsOcptService {
     });
   }
 
-  /// Inserts a new snapshot row for [screenplayId] in [database], capturing [fountainText], and
-  /// stamps every column of it through [stamps].
+  /// Insert a new snapshot row for [screenplayId] in [database], capturing [fountainText], and
+  /// stamp every column of it through [stamps].
   Future<void> _createSnapshot({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -659,7 +659,7 @@ class OcptScreenplayService extends AbsOcptService {
     );
   }
 
-  /// Prunes the snapshots of [screenplayId] in [database] beyond the
+  /// Prune the snapshots of [screenplayId] in [database] beyond the
   /// [maxSnapshotsPerScreenplay] most recent ones, stamping each pruned row through [stamps].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -696,7 +696,8 @@ class OcptScreenplayService extends AbsOcptService {
     }
   }
 
-  /// Every live episode (`screenplays` row) of the project in [database], in `sortKey` order — the
+  /// Get every live episode (`screenplays` row) of the project in [database], in `sortKey` order —
+  /// the
   /// read every episode CRUD method above builds its plan from, exactly as
   /// `OcptRoleIndexService._liveRoleRows` does for the cast.
   Future<List<OcptScreenplayRow>> _liveEpisodeRows({required OcptProjectDatabase database}) =>

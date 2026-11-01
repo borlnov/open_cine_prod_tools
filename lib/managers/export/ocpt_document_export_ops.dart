@@ -34,7 +34,7 @@ import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 /// The export of the screenplay, the shot list, the storyboard and floor plans, the resources and
 /// the script breakdown: each one renders its document and hands the bytes to the write funnel.
 abstract final class OcptDocumentExportOps {
-  /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
+  /// Show the native save dialog and write [fountainText] to the chosen `.fountain` file.
   ///
   /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]
   /// is the selected episode's own tag, resolved by the caller (this manager has no `Tr` of its
@@ -62,7 +62,7 @@ abstract final class OcptDocumentExportOps {
     shareAnchor: shareAnchor,
   );
 
-  /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
+  /// Render [document] into a PDF via [pdfExportService] and show the native save dialog to
   /// write it out.
   ///
   /// [fileTypeLabel] is the localized label passed to the native dialog's type filter. [episodeTag]
@@ -103,7 +103,7 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Builds the XLSX workbook of [snapshot] via [shotListXlsxExportService] and shows the native
+  /// Build the XLSX workbook of [snapshot] via [shotListXlsxExportService] and show the native
   /// save dialog to write it out.
   ///
   /// [labels] carries every localized string the sheet itself holds (its name, its headers, the
@@ -133,8 +133,8 @@ abstract final class OcptDocumentExportOps {
     shareAnchor: shareAnchor,
   );
 
-  /// Renders the scenario coverage of [snapshot] over [document] via [scenarioCoveragePdfService]
-  /// and shows the native save dialog to write it out.
+  /// Render the scenario coverage of [snapshot] over [document] via [scenarioCoveragePdfService]
+  /// and show the native save dialog to write it out.
   ///
   /// [screenplayText] must be the very text [document] was parsed from and [snapshot]'s scenes were
   /// indexed against — a coverage range addresses it by character offset. [labels] carries every
@@ -188,8 +188,8 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Renders the storyboard of [snapshot]/[storyboardSnapshot] via [storyboardPdfService] and
-  /// shows the native save dialog to write it out.
+  /// Render the storyboard of [snapshot]/[storyboardSnapshot] via [storyboardPdfService] and show
+  /// the native save dialog to write it out.
   ///
   /// [shotsPerPage] and [includeFloorPlansAfterEachSequence] are the dialog's own options;
   /// [floorPlanSnapshot] and [floorPlanLabels] are required exactly when the toggle is on, so the
@@ -240,7 +240,7 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Renders the floor plans of [snapshot]/[floorPlanSnapshot] via [floorPlanPdfService] and shows
+  /// Render the floor plans of [snapshot]/[floorPlanSnapshot] via [floorPlanPdfService] and show
   /// the native save dialog to write it out — no options dialog of its own, the page format coming
   /// from [pageSetup] (`OcptShotListState.pageSetup`), mirroring the shot list workbook's own
   /// `Export XLSX` button.
@@ -284,8 +284,8 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Builds the resources catalogue's four-sheet XLSX workbook of [snapshot] via
-  /// [resourcesXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the resources catalogue's four-sheet XLSX workbook of [snapshot] via
+  /// [resourcesXlsxExportService] and show the native save dialog to write it out.
   ///
   /// [labels] carries every localized string the four sheets themselves hold, and [fileTypeLabel]
   /// is the localized label passed to the native dialog's type filter — this manager has no `Tr`
@@ -310,7 +310,7 @@ abstract final class OcptDocumentExportOps {
     shareAnchor: shareAnchor,
   );
 
-  /// Renders the contact list of [snapshot] via [contactListPdfService] and shows the native save
+  /// Render the contact list of [snapshot] via [contactListPdfService] and show the native save
   /// dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds (the section titles, the
@@ -351,7 +351,7 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Renders the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and shows the
+  /// Render the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and show the
   /// native save dialog to write them out.
   ///
   /// [document] is the screenplay [snapshot]'s scenes were indexed against, read for each scene's
@@ -402,8 +402,8 @@ abstract final class OcptDocumentExportOps {
     );
   }
 
-  /// Builds the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
-  /// and shows the native save dialog to write it out.
+  /// Build the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
+  /// and show the native save dialog to write it out.
   ///
   /// [document] is the screenplay [snapshot]'s scenes were indexed against, read for each scene's
   /// own length alone, exactly as [exportBreakdownSheets] reads it — see

@@ -107,34 +107,34 @@ class OcptFloorPlanPageLayout {
   /// "logical pixel" read as a page point).
   final double pixelsPerMetre;
 
-  /// The zoom [pixelsPerMetre] corresponds to, for `ocpt_floor_plan_geometry.dart`'s own
+  /// Get the zoom [pixelsPerMetre] corresponds to, for `ocpt_floor_plan_geometry.dart`'s own
   /// zoom-keyed rules ([ocptFloorPlanScaleBarLengthM]).
   double get zoom => pixelsPerMetre / ocptFloorPlanBasePixelsPerMetre;
 
-  /// The reference silhouette's own radius, in points, at [pixelsPerMetre].
+  /// Get the reference silhouette's own radius, in points, at [pixelsPerMetre].
   double get silhouetteRadiusPt => ocptFloorPlanCharacterFootprintM * pixelsPerMetre / 2;
 
-  /// The reference silhouette's own centre, in graphics space, bottom-right of the page.
+  /// Get the reference silhouette's own centre, in graphics space, bottom-right of the page.
   Offset get silhouetteCentreGraphics => Offset(
     widthPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
     heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
   );
 
-  /// The scale bar's own length, in metres, at [zoom] (`ocptFloorPlanScaleBarLengthM`).
+  /// Get the scale bar's own length, in metres, at [zoom] (`ocptFloorPlanScaleBarLengthM`).
   double get scaleBarLengthM => ocptFloorPlanScaleBarLengthM(zoom: zoom, targetPixelLength: 72);
 
-  /// The scale bar's own top-down Y — just above the reference silhouette.
+  /// Get the scale bar's own top-down Y — just above the reference silhouette.
   double get scaleBarTopDown =>
       heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt * 2 - 10;
 
-  /// The scale bar's own right edge, in top-down X (and graphics X, the two coinciding on this
+  /// Get the scale bar's own right edge, in top-down X (and graphics X, the two coinciding on this
   /// axis since no flip ever touches X).
   double get scaleBarRightTopDown => widthPt - ocptFloorPlanSilhouetteMarginPt;
 
-  /// The scale bar's own left edge.
+  /// Get the scale bar's own left edge.
   double get scaleBarLeftTopDown => scaleBarRightTopDown - _scaleBarLengthPt;
 
-  /// The scale bar's own length, in points.
+  /// Get the scale bar's own length, in points.
   double get _scaleBarLengthPt => ocptFloorPlanMetresToPixels(metres: scaleBarLengthM, zoom: zoom);
 
   /// Class constructor
@@ -146,7 +146,7 @@ class OcptFloorPlanPageLayout {
     required this.pixelsPerMetre,
   });
 
-  /// Builds the layout [sheet] is drawn under, fit to a page of [widthPt] × [heightPt].
+  /// Build the layout [sheet] is drawn under, fit to a page of [widthPt] × [heightPt].
   factory OcptFloorPlanPageLayout.of({
     required OcptFloorPlanSheet sheet,
     required double widthPt,
@@ -228,19 +228,20 @@ class OcptFloorPlanPageLayout {
     );
   }
 
-  /// The screen point, in this page's own top-down space, `(xM, yM)` maps to — the fit-to-page
+  /// Get the screen point, in this page's own top-down space, `(xM, yM)` maps to — the fit-to-page
   /// sibling of `ocptFloorPlanScreenPointOf`'s own canvas-centred convention.
   Offset topDownPointOf(double xM, double yM) => Offset(
     widthPt / 2 + (xM - centerXM) * pixelsPerMetre,
     heightPt / 2 + (yM - centerYM) * pixelsPerMetre,
   );
 
-  /// [topDown] converted into `PdfGraphics`'s own bottom-up space — the one flip every raw canvas
+  /// Get [topDown] converted into `PdfGraphics`'s own bottom-up space — the one flip every raw
+  /// canvas
   /// call in this file applies, and the only one (see this class's own doc comment).
   Offset graphicsOf(Offset topDown) => Offset(topDown.dx, heightPt - topDown.dy);
 }
 
-/// [sheet]'s own symbols, minus the two kinds of ghost the canvas alone draws
+/// Get [sheet]'s own symbols, minus the two kinds of ghost the canvas alone draws
 /// ([OcptFloorPlanSymbolShape.isOverriddenOriginalGhost]/`.isHiddenOverrideGhost`) — the PDF prints
 /// the **effective** plan: an override draws normally, in its
 /// own place, a hidden element is simply omitted, and neither ghost nor pin badge ever reaches the

@@ -26,7 +26,8 @@ import 'package:pdf/widgets.dart' as pw;
 ///
 /// Stateless widget builders over a page painter, shared by the general and the named sheet.
 abstract final class OcptCallSheetTableSections {
-  /// The day's own time bands — one line per slot, then the day's own PAT band (the widest span
+  /// Build the day's own time bands — one line per slot, then the day's own PAT band (the widest
+  /// span
   /// over every convocation that has one), then each `meal` block's own band.
   static pw.Widget timeBandsSection({
     required OcptScriptPagePainter painter,
@@ -129,7 +130,8 @@ abstract final class OcptCallSheetTableSections {
   // Main table
   // ---------------------------------------------------------------------------------------------
 
-  /// The day's main table, interleaved with full-width milestone rows and, under a row that carries
+  /// Build the day's main table, interleaved with full-width milestone rows and, under a row that
+  /// carries
   /// one, a full-width crew-note band — or [OcptCallSheetLabels.emptyDayNote] when [rows] is empty
   /// (no slot, or no block on any of them).
   ///
@@ -189,7 +191,7 @@ abstract final class OcptCallSheetTableSections {
     );
   }
 
-  /// A full-width band naming a shot run's own crew note(s) — printed the moment
+  /// Build a full-width band naming a shot run's own crew note(s) — printed the moment
   /// [mainTableSection]'s own composition closes a table chunk on a row that carries one, since the
   /// `pw.Table` row itself cannot span the page width a note deserves. Drawn like
   /// [milestoneRowWidget]'s own container but **without** its [ocptCallSheetBandColor] fill, so a
@@ -215,7 +217,8 @@ abstract final class OcptCallSheetTableSections {
     ),
   );
 
-  /// One run of consecutive [OcptCallSheetDayRow.shotRun] rows, as a `SEQ / PLANS / EFFET / DÉCORS
+  /// Build one run of consecutive [OcptCallSheetDayRow.shotRun] rows, as a
+  /// `SEQ / PLANS / EFFET / DÉCORS / RÔLES`
   /// / RÔLES` table — see [ocptCallSheetMainColumnWidths] for why the reference's own `RÉSUMÉ`
   /// column is not among them.
   static pw.Widget mainTable({
@@ -262,7 +265,8 @@ abstract final class OcptCallSheetTableSections {
     ],
   );
 
-  /// A full-width band naming a non-shot block and its own time band — under it, the roles that
+  /// Build a full-width band naming a non-shot block and its own time band — under it, the roles
+  /// that
   /// band expects, on a line of their own behind the `RÔLES` label the main table already heads its
   /// own column with ([ocptScheduleBlockRoleNumbersLine]), then the block's own crew note, if it
   /// has one. A band expecting nobody and carrying no note prints the one time-band line alone. The
@@ -325,7 +329,7 @@ abstract final class OcptCallSheetTableSections {
   // Cast table, crew list, cast-and-extras list — day-wide, on both sheets
   // ---------------------------------------------------------------------------------------------
 
-  /// The day's own cast table: `RÔLE / COMÉDIEN / SEQ / ARRIVÉE / PAT`.
+  /// Build the day's own cast table: `RÔLE / COMÉDIEN / SEQ / ARRIVÉE / PAT`.
   static pw.Widget castTableSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -391,7 +395,7 @@ abstract final class OcptCallSheetTableSections {
     ],
   );
 
-  /// The crew list, the cast-and-extras list or the day's own candidates list — the same
+  /// Build the crew list, the cast-and-extras list or the day's own candidates list — the same
   /// `NOM / <second column> / TEL. / MAIL / HORAIRES` shape for all three, since all three answer
   /// the one question a directory exists for: who is on this day, under what, and how do I reach
   /// them.
@@ -449,7 +453,8 @@ abstract final class OcptCallSheetTableSections {
     ],
   );
 
-  /// The day's own audition table (`HORAIRES / RÔLE / CANDIDAT`): one row per candidacy an audition
+  /// Build the day's own audition table (`HORAIRES / RÔLE / CANDIDAT`): one row per candidacy an
+  /// audition
   /// block names, in the running order the timetable resolved, saying at what hour which part is
   /// being seen and by whom.
   ///
@@ -506,7 +511,8 @@ abstract final class OcptCallSheetTableSections {
     ],
   );
 
-  /// The day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — a guest never carries a PAT
+  /// Build the day's own trailing guest table (`NOM / MOTIF / HORAIRES`) — a guest never carries a
+  /// PAT
   /// band (ADR 0018), so unlike [peopleListSection] this table has no `PAT` column to leave blank
   /// for one at all. Printed after the cast-and-extras list on both sheets, the shape the
   /// `Convocations` dock panel's own trailing guest group already gives guests, and for the same
@@ -550,7 +556,8 @@ abstract final class OcptCallSheetTableSections {
     ],
   );
 
-  /// One [guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
+  /// Build one [guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own
+  /// note(s)
   /// on a muted second line when they carry any — the same shape
   /// [OcptCallSheetHeaderSections.contactsBlock]'s own contact entries print a phone number under a
   /// position in.
@@ -585,7 +592,7 @@ abstract final class OcptCallSheetTableSections {
   // Small shared drawing helpers
   // ---------------------------------------------------------------------------------------------
 
-  /// One section's own small, muted heading.
+  /// Build one section's own small, muted heading.
   static pw.Widget sectionTitle({required OcptScriptPagePainter painter, required String title}) =>
       pw.Text(
         title.toUpperCase(),
@@ -596,14 +603,14 @@ abstract final class OcptCallSheetTableSections {
         ),
       );
 
-  /// A block of free text.
+  /// Build a block of free text.
   static pw.Widget noteWidget({required OcptScriptPagePainter painter, required String text}) =>
       pw.Text(
         text,
         style: pw.TextStyle(font: painter.fonts.regular, fontSize: ocptCallSheetBodyFontSizePt),
       );
 
-  /// One table cell holding [text].
+  /// Build one table cell holding [text].
   static pw.Widget textCell({
     required OcptScriptPagePainter painter,
     required String text,

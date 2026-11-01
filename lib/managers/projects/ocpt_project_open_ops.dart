@@ -25,13 +25,13 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
 import 'package:uuid/uuid.dart';
 
-/// Creates a project file and opens an existing one, and decides whether a file's format lets it be
+/// Create a project file and open an existing one, and decide whether a file's format lets it be
 /// opened at all.
 ///
 /// Stateless: the manager keeps the "busy" guard around each call and owns the open project, which
 /// these methods report through `onCreated` / `onOpened` at the point the old behaviour set it.
 abstract final class OcptProjectOpenOps {
-  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
+  /// Create a new project named [name] at [filePath], seed it with a single empty screenplay —
   /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
   /// defaults, so a project made today looks exactly like one that came through the schema version
   /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
@@ -91,7 +91,7 @@ abstract final class OcptProjectOpenOps {
     return result;
   }
 
-  /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
+  /// Open the project stored at [filePath], register it in the recent projects list, and makes
   /// it the `OcptProjectsManager.currentProject`.
   ///
   /// If a project is already open, it's closed first — but only once the file's own format has been
@@ -159,7 +159,7 @@ abstract final class OcptProjectOpenOps {
     return result;
   }
 
-  /// The body of [createProject], whose exceptions it turns into [OcptProjectStatus.ioError]:
+  /// Run the body of [createProject], whose exceptions it turns into [OcptProjectStatus.ioError]:
   /// everything that can fail, in order. [onDatabaseOpened] hands the database over as soon as it
   /// exists, so the caller can close it if a later step throws.
   static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _createProjectFile({
@@ -236,7 +236,8 @@ abstract final class OcptProjectOpenOps {
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
   }
 
-  /// The body of [openProject], whose exceptions it turns into a status: everything that can fail,
+  /// Run the body of [openProject], whose exceptions it turns into a status: everything that can
+  /// fail,
   /// in order. [onDatabaseOpened] hands the database over as soon as it exists, so the caller can
   /// close it if a later step throws.
   static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _openProjectFile({
@@ -327,7 +328,7 @@ abstract final class OcptProjectOpenOps {
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
   }
 
-  /// Answers whether the file at [filePath] may be handed to drift, and takes the backup when a
+  /// Answer whether the file at [filePath] may be handed to drift, and take the backup when a
   /// migration is going ahead: `status` is null to go on, or the status to report back instead;
   /// `isMigrating` tells `OcptProjectsManager.openProject` whether drift is about to run a real
   /// `onUpgrade` on this file, which is what decides whether the writer identity gets stamped once
@@ -388,14 +389,14 @@ abstract final class OcptProjectOpenOps {
     }
   }
 
-  /// Returns the default [OcptPageFormat] for a newly created project, based on the platform's
+  /// Return the default [OcptPageFormat] for a newly created project, based on the platform's
   /// current locale: [OcptPageFormat.a4] for French, [OcptPageFormat.usLetter] otherwise.
   static OcptPageFormat _defaultPageFormatForPlatformLocale() {
     final languageCode = PlatformDispatcher.instance.locale.languageCode;
     return languageCode == "fr" ? OcptPageFormat.a4 : OcptPageFormat.usLetter;
   }
 
-  /// Returns the default currency code for a newly created project, guessed from the platform's
+  /// Return the default currency code for a newly created project, guessed from the platform's
   /// current locale (e.g. `fr_FR` suggests `EUR`, `en_US` suggests `USD`) through `intl`'s own
   /// locale-to-currency table, falling back to the schema's own default (`EUR`) when `intl` can't
   /// name one for the locale — a Dart platform locale that carries no region at all, say.
@@ -405,7 +406,7 @@ abstract final class OcptProjectOpenOps {
       ).currencyName ??
       ocptDefaultCurrencyCode;
 
-  /// Returns the default [OcptScreenplayLanguage] for a newly created project: the language the
+  /// Return the default [OcptScreenplayLanguage] for a newly created project: the language the
   /// **app's own UI** is running in (`_appLanguageCode`), or **null** when no dictionary is bundled
   /// for it.
   ///

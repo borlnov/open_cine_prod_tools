@@ -18,7 +18,8 @@ abstract final class OcptShootingPlanPageParts {
   // Small shared drawing helpers
   // ---------------------------------------------------------------------------------------------
 
-  /// The running head naming the project and the document on the left, [versionLine] on the right,
+  /// Build the running head naming the project and the document on the left, [versionLine] on the
+  /// right,
   /// over a thin rule — the same shape `OcptCallSheetPdfService._page` draws inline, factored out
   /// here since every page kind of this service (title, grid, day agenda, note) opens with it.
   ///
@@ -66,14 +67,15 @@ abstract final class OcptShootingPlanPageParts {
     ],
   );
 
-  /// A block of free text.
+  /// Build a block of free text.
   static pw.Widget noteWidget({required OcptScriptPagePainter painter, required String text}) =>
       pw.Text(
         text,
         style: pw.TextStyle(font: painter.fonts.regular, fontSize: ocptShootingPlanBodyFontSizePt),
       );
 
-  /// One table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank — unlike
+  /// Build one table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank —
+  /// unlike
   /// [OcptShootingPlanGridSections.gridDataCell], a shot table cell always names a specific field
   /// of a specific shot, so a blank one *is* a missing value.
   static pw.Widget textCell({
@@ -91,7 +93,8 @@ abstract final class OcptShootingPlanPageParts {
     ),
   );
 
-  /// The portrait `pdf` page format every title page, note page and day agenda is drawn on — the
+  /// Get the portrait `pdf` page format every title page, note page and day agenda is drawn on —
+  /// the
   /// same margin convention `OcptCallSheetPdfService._page` uses (`marginRightPt` standing in for
   /// the bottom margin too, [OcptScriptPagePainter] having none of its own).
   static PdfPageFormat portraitPageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
@@ -103,7 +106,8 @@ abstract final class OcptShootingPlanPageParts {
     marginBottom: painter.marginRightPt,
   );
 
-  /// The landscape `pdf` page format every summary grid page is drawn on — [painter]'s own width
+  /// Get the landscape `pdf` page format every summary grid page is drawn on — [painter]'s own
+  /// width
   /// and height swapped, its margins otherwise read the same way [portraitPageFormat] does.
   static PdfPageFormat landscapePageFormat(OcptScriptPagePainter painter) => PdfPageFormat(
     painter.pageHeightPt,

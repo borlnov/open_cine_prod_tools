@@ -63,12 +63,12 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// Returns the language code of the locale the app's own UI is running in (`fr`, `en`…). The
+/// Return the language code of the locale the app's own UI is running in (`fr`, `en`…). The
 /// type of [OcptProjectsManager]'s injectable seam over [LocalesManager] — see that class's
 /// constructor for why a test wants to be able to replace it.
 typedef OcptAppLanguageCodeGetter = String Function();
 
-/// Builds the [OcptProjectsManager] instance registered by the global manager.
+/// Build the [OcptProjectsManager] instance registered by the global manager.
 class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager> {
   /// Class constructor
   const OcptProjectsManagerBuilder() : super(OcptProjectsManager.new);
@@ -78,7 +78,7 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
   Iterable<Type> dependsOn() => [LoggerManager, OcptPropertiesManager, LocalesManager];
 }
 
-/// Owns the project the user currently has open, and every operation that creates, opens or
+/// Own the project the user currently has open, and every operation that creates, opens or
 /// closes one.
 ///
 /// Every Open Cine Prod Tools project is a single `.ocpt` SQLite file (an [OcptProjectDatabase]);
@@ -254,7 +254,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// be freely settable back to null whenever it's closed.
   late final ValueKeeperWithStream<OcptOpenProjectModel?> _currentProject;
 
-  /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
+  /// Get the running build's own app version — see [_appVersion]'s own doc comment for where it
+  /// comes
   /// from and why it defaults the way it does.
   ///
   /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
@@ -264,13 +265,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// stamp into a project file.
   String get appVersion => _appVersion;
 
-  /// The project currently open, or null if none is.
+  /// Get the project currently open, or null if none is.
   OcptOpenProjectModel? get currentProject => _currentProject.value;
 
-  /// Emits the project currently open (or null) every time it changes.
+  /// Emit the project currently open (or null) every time it changes.
   Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
 
-  /// Whether any mode currently reports changes that haven't reached the database yet.
+  /// Tell whether any mode currently reports changes that haven't reached the database yet.
   bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
 
   /// Class constructor
@@ -382,7 +383,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _logger.i("The projects manager started");
   }
 
-  /// The app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't already
+  /// Get the app's own projects folder, Documents/OpenCineProdTools, creating it if it doesn't
+  /// already
   /// exist: what [suggestedProjectsDirectory] proposes until a dialog has landed a project
   /// elsewhere, and where [newProjectsDirectory] puts one on desktop.
   Future<Directory> getDefaultProjectsDirectory() async {
@@ -398,7 +400,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectsDirectory;
   }
 
-  /// Where a new project's `.ocpt` lands when no dialog lets the user choose — [createProject]'s
+  /// Tell where a new project's `.ocpt` lands when no dialog lets the user choose —
+  /// [createProject]'s
   /// callers turn it into an actual file path through [freeNewProjectFilePath], which never names
   /// a file already there.
   ///
@@ -413,7 +416,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return getDefaultProjectsDirectory();
   }
 
-  /// The first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
+  /// Get the first free `.ocpt` path for a project named [name] inside [newProjectsDirectory] — see
   /// [ocptFreeFilePath] for the numbering a name already taken there is given.
   Future<String> freeNewProjectFilePath(String name) async {
     final directory = await newProjectsDirectory();
@@ -426,7 +429,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// The folder a native save-file or folder-picker dialog opens in when creating, importing,
+  /// Get the folder a native save-file or folder-picker dialog opens in when creating, importing,
   /// joining or moving a project on desktop: [OcptPropertiesManager.lastProjectsDirectory]'s own
   /// folder, when it is still there, or [getDefaultProjectsDirectory] the very first time, or again
   /// once a remembered folder has since been deleted from under the app.
@@ -439,12 +442,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return (await getDefaultProjectsDirectory()).path;
   }
 
-  /// Remembers [directoryPath] as the folder [suggestedProjectsDirectory] proposes next time —
+  /// Remember [directoryPath] as the folder [suggestedProjectsDirectory] proposes next time —
   /// called after every create, import, join and move that actually lands a project there.
   Future<void> rememberProjectsDirectory(String directoryPath) =>
       _propertiesManager.lastProjectsDirectory.store(directoryPath);
 
-  /// Creates a new project named [name] at [filePath], seeds it with a single empty screenplay —
+  /// Create a new project named [name] at [filePath], seed it with a single empty screenplay —
   /// episode 1 (`number: 1`), given a real first `sortKey` rather than left at the column
   /// defaults, so a project made today looks exactly like one that came through the schema version
   /// 18 migration (`docs/adr/0019-one-project-several-episodes.md`) — registers it in the recent
@@ -476,7 +479,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Reads which format the project file at [filePath] is in, and what that means for this build,
+  /// Read which format the project file at [filePath] is in, and what that means for this build,
   /// without opening it as a project.
   ///
   /// What every door into a project file asks before it goes through: the home page's `Open…`, a
@@ -491,7 +494,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         appVersion: _appVersion,
       );
 
-  /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
+  /// Open the project stored at [filePath], register it in the recent projects list, and makes
   /// it the [currentProject].
   Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
     required String filePath,
@@ -521,37 +524,37 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Loads the page format stored in the [currentProject]'s `project_info` table, or null if no
+  /// Load the page format stored in the [currentProject]'s `project_info` table, or null if no
   /// project is currently open.
   Future<OcptPageFormat?> loadCurrentProjectPageFormat() =>
       OcptProjectSettingsOps.loadCurrentProjectPageFormat(project: currentProject);
 
-  /// Updates the page format stored in the [currentProject]'s `project_info` table. Does nothing if
+  /// Update the page format stored in the [currentProject]'s `project_info` table. Does nothing if
   /// no project is currently open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectPageFormat(OcptPageFormat format) =>
       OcptProjectSettingsOps.saveCurrentProjectPageFormat(project: currentProject, format: format);
 
-  /// Loads the ISO 4217 currency code stored in the [currentProject]'s `project_info` table, or
+  /// Load the ISO 4217 currency code stored in the [currentProject]'s `project_info` table, or
   /// null if no project is currently open.
   Future<String?> loadCurrentProjectCurrencyCode() =>
       OcptProjectSettingsOps.loadCurrentProjectCurrencyCode(project: currentProject);
 
-  /// Updates the currency code stored in the [currentProject]'s `project_info` table. Does nothing
+  /// Update the currency code stored in the [currentProject]'s `project_info` table. Does nothing
   /// if no project is currently open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectCurrencyCode(String code) =>
       OcptProjectSettingsOps.saveCurrentProjectCurrencyCode(project: currentProject, code: code);
 
-  /// Loads the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
+  /// Load the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
   /// null.
   Future<int?> loadCurrentProjectMinimumRestMinutes() =>
       OcptProjectSettingsOps.loadCurrentProjectMinimumRestMinutes(project: currentProject);
 
-  /// Updates the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table,
-  /// or clears it when [minutes] is null — a production that decides it no longer wants to record
+  /// Update the minimum rest, in minutes, stored in the [currentProject]'s `project_info` table, or
+  /// clear it when [minutes] is null — a production that decides it no longer wants to record
   /// one is as real a gesture as setting it. Does nothing if no project is currently open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -561,12 +564,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         minutes: minutes,
       );
 
-  /// Loads the screenplay language stored in the [currentProject]'s `project_info` table, or null.
+  /// Load the screenplay language stored in the [currentProject]'s `project_info` table, or null.
   Future<OcptScreenplayLanguage?> loadCurrentProjectScreenplayLanguage() =>
       OcptProjectSettingsOps.loadCurrentProjectScreenplayLanguage(project: currentProject);
 
-  /// Updates the screenplay language stored in the [currentProject]'s `project_info` table, or
-  /// clears it when [language] is null — a writer who decides the checker should stay off this
+  /// Update the screenplay language stored in the [currentProject]'s `project_info` table, or clear
+  /// it when [language] is null — a writer who decides the checker should stay off this
   /// screenplay is making as real a choice as picking one of the two bundled languages. Does
   /// nothing if no project is currently open.
   ///
@@ -577,13 +580,13 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         language: language,
       );
 
-  /// Loads the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
+  /// Load the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
   /// table, or null.
   Future<int?> loadCurrentProjectDefaultVatRateBasisPoints() =>
       OcptProjectSettingsOps.loadCurrentProjectDefaultVatRateBasisPoints(project: currentProject);
 
-  /// Updates the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [basisPoints] is null — a production putting the rate back to "not
+  /// Update the default VAT rate, in basis points, stored in the [currentProject]'s `project_info`
+  /// table, or clear it when [basisPoints] is null — a production putting the rate back to "not
   /// recorded" is as real a gesture as setting it (`OcptProjectSettingsBudgetSection`'s `No rate`
   /// button). Does nothing if no project is currently open.
   ///
@@ -594,14 +597,14 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         basisPoints: basisPoints,
       );
 
-  /// Loads the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
+  /// Load the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
   /// or null — the same "nobody has said" reading [loadCurrentProjectDefaultVatRateBasisPoints]
   /// gets.
   Future<int?> loadCurrentProjectMealPriceCents() =>
       OcptProjectSettingsOps.loadCurrentProjectMealPriceCents(project: currentProject);
 
-  /// Updates the price of one meal, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [cents] is null. Does nothing if no project is currently open.
+  /// Update the price of one meal, in cents, stored in the [currentProject]'s `project_info` table,
+  /// or clear it when [cents] is null. Does nothing if no project is currently open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> saveCurrentProjectMealPriceCents(int? cents) =>
@@ -610,15 +613,15 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         cents: cents,
       );
 
-  /// Loads the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
+  /// Load the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
   /// table, or null — [loadCurrentProjectMealPriceCents]'s sibling, read the same way. **Named
   /// after the column it reads, `project_info.snackPriceCents`, kept for the schema (ADR 0007's
   /// schema-number rule); the UI names this figure the buffet, or craft services, never a snack.**
   Future<int?> loadCurrentProjectSnackPriceCents() =>
       OcptProjectSettingsOps.loadCurrentProjectSnackPriceCents(project: currentProject);
 
-  /// Updates the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
-  /// table, or clears it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
+  /// Update the price of the buffet, in cents, stored in the [currentProject]'s `project_info`
+  /// table, or clear it when [cents] is null — [saveCurrentProjectMealPriceCents]'s sibling. See
   /// [loadCurrentProjectSnackPriceCents]'s own doc comment for why this keeps the column's name.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -628,7 +631,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         cents: cents,
       );
 
-  /// Lists the [currentProject]'s versions, newest first, or an empty list if no project is open.
+  /// List the [currentProject]'s versions, newest first, or an empty list if no project is open.
   ///
   /// {@template open_cine_prod_tools.OcptProjectsManager.versionOperations}
   /// The version operations live here rather than being called on [projectVersionsService]
@@ -649,8 +652,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return projectVersionsService.listVersions(database: project.fileDatabase);
   }
 
-  /// Captures the [currentProject] as a new version named [name], with the user's [note], and
-  /// returns it. Returns null if no project is open.
+  /// Capture the [currentProject] as a new version named [name], with the user's [note], and return
+  /// it. Returns null if no project is open.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectsManager.versionOperations}
   Future<OcptProjectVersion?> createProjectVersion({
@@ -672,7 +675,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Renames the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
+  /// Rename the version [versionId] of the [currentProject] to [name], replacing its [note]. Does
   /// nothing if no project is open.
   ///
   /// Unlike every other version operation, this one is left available while a version is being
@@ -698,7 +701,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Measures the [currentProject]'s working copy exactly as
+  /// Measure the [currentProject]'s working copy exactly as
   /// [OcptProjectVersionsService.captureWorkingCopyState] does, or null if no project is open.
   ///
   /// Also null while a version is being previewed, for the same reason [createProjectVersion] is
@@ -719,7 +722,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Deletes the version [versionId] of the [currentProject]. Does nothing if no project is open,
+  /// Delete the version [versionId] of the [currentProject]. Does nothing if no project is open,
   /// or if [versionId] is the version currently being previewed.
   ///
   /// Refusing to delete the previewed version is a matter of the open project's state rather than
@@ -745,7 +748,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     await projectVersionsService.deleteVersion(database: project.fileDatabase, id: versionId);
   }
 
-  /// Puts the [currentProject] back into the state the version [versionId] captured, keeping the
+  /// Put the [currentProject] back into the state the version [versionId] captured, keeping the
   /// state it leaves behind as a version of its own named [safetyVersionName] — unless that state
   /// already matches the version the working copy currently descends from, in which case
   /// [OcptProjectVersionsService.restoreVersion] skips it rather than mint a duplicate of a card
@@ -798,8 +801,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return result.status;
   }
 
-  /// Registers [reporter], which answers whether the caller holds changes that haven't reached the
-  /// database yet, and returns the callback that unregisters it.
+  /// Register [reporter], which answers whether the caller holds changes that haven't reached the
+  /// database yet, and return the callback that unregisters it.
   ///
   /// A mode's bloc registers itself when it mounts and calls the returned callback when it closes.
   /// This exists for [previewVersion] alone: entering a preview swaps the database every edit is
@@ -811,7 +814,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return () => _unsavedChangesReporters.remove(reporter);
   }
 
-  /// Enters the read-only preview of the version [versionId] of the [currentProject]: the version's
+  /// Enter the read-only preview of the version [versionId] of the [currentProject]: the version's
   /// payload is hydrated into an in-memory database, and *that* is what [currentProject] hands the
   /// modes from now on.
   Future<ResultWithStatus<OcptProjectPreviewStatus, OcptOpenProjectModel>> previewVersion(
@@ -825,7 +828,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     onPreviewed: (previewedProject) => _currentProject.value = previewedProject,
   );
 
-  /// Leaves the read-only preview, putting the working copy back on screen. Does nothing if no
+  /// Leave the read-only preview, putting the working copy back on screen. Does nothing if no
   /// project is open or if none is being previewed.
   ///
   /// The model is re-emitted *before* the preview database is closed, so every mode has already
@@ -844,7 +847,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _logger.i("Left the preview of a project version");
   }
 
-  /// Stats every file the project stored at [projectFilePath] references, without writing
+  /// Stat every file the project stored at [projectFilePath] references, without writing
   /// anything.
   ///
   /// The question a package export asks before it writes: a referenced file that is gone does not
@@ -857,8 +860,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   OcptProjectPackagePreflight? scanProjectPackageAssets({required String projectFilePath}) =>
       projectPackageService.scanAssets(projectFilePath: projectFilePath);
 
-  /// Writes the project stored at [projectFilePath] out as a portable package at
-  /// [packageFilePath], and reports what travelled.
+  /// Write the project stored at [projectFilePath] out as a portable package at [packageFilePath],
+  /// and report what travelled.
   ///
   /// [projectName] is the display name the package carries, resolved by the caller — from
   /// [currentProject] for an open project, from the recent entry for a card on the home page.
@@ -880,8 +883,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     exportedAt: DateTime.now(),
   );
 
-  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
-  /// reports what landed.
+  /// Unpack the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// report what landed.
   ///
   /// **It does not open the project it just unpacked.** The `.ocpt` this writes may be at any
   /// schema version — a package carries the database exactly as it was exported, unmigrated (see
@@ -896,7 +899,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         parentDirectoryPath: parentDirectoryPath,
       );
 
-  /// Closes the [currentProject], disposing its database handle. Does nothing if no project is
+  /// Close the [currentProject], disposing its database handle. Does nothing if no project is
   /// open.
   Future<void> closeCurrentProject() => OcptProjectEpisodeOps.closeProject(
     project: currentProject,
@@ -906,7 +909,7 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     onClosed: () => _currentProject.value = null,
   );
 
-  /// Updates the recent-projects entry for the [currentProject] so it carries the episode count
+  /// Update the recent-projects entry for the [currentProject] so it carries the episode count
   /// the project holds right now. Does nothing when no project is open.
   Future<void> recordCurrentProjectEpisodeCount() =>
       OcptProjectEpisodeOps.recordOpenProjectEpisodeCount(
@@ -915,8 +918,8 @@ class OcptProjectsManager extends AbsWithLifeCycle {
         propertiesManager: _propertiesManager,
       );
 
-  /// Moves the [currentProject]'s file to [newFilePath] — the project settings page's own `Move…`
-  /// action — and keeps it the [currentProject] there.
+  /// Move the [currentProject]'s file to [newFilePath] — the project settings page's own `Move…`
+  /// action — and keep it the [currentProject] there.
   Future<ResultWithStatus<OcptProjectMoveStatus, OcptOpenProjectModel>> moveCurrentProject({
     required String newFilePath,
   }) => OcptProjectMoveOps.moveProject(
@@ -928,12 +931,12 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     rememberProjectsDirectory: rememberProjectsDirectory,
   );
 
-  /// The app-wide page margins a version is measured and restored against, falling back to the
+  /// Get the app-wide page margins a version is measured and restored against, falling back to the
   /// standard ones while the user has never set any.
   Future<FountainPageMargins> _loadPageMargins() async =>
       await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
 
-  /// The default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
+  /// Get the default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
   /// [LocalesManager] holds it.
   ///
   /// Resolved through [globalGetIt] at call time rather than when this manager is built, so

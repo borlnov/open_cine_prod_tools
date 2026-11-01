@@ -52,7 +52,7 @@ class OcptStoryboardService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// Loads every live panel of screenplay [screenplayId]'s shots, each carrying its resolved image
+  /// Load every live panel of screenplay [screenplayId]'s shots, each carrying its resolved image
   /// path and its live annotations, keyed by shot id.
   ///
   /// Runs one query per table (`storyboard_panels`, `storyboard_annotations`, `assets`), joined in
@@ -112,8 +112,8 @@ class OcptStoryboardService extends AbsOcptService {
     return OcptStoryboardSnapshot(screenplayId: screenplayId, panelsByShotId: panelsByShotId);
   }
 
-  /// Creates a new panel on shot [shotId] in [database], appended after its current last panel, and
-  /// returns its freshly generated id. No image yet — [replacePanelImage] is what imports one.
+  /// Create a new panel on shot [shotId] in [database], appended after its current last panel, and
+  /// return its freshly generated id. No image yet — [replacePanelImage] is what imports one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async {
@@ -149,7 +149,7 @@ class OcptStoryboardService extends AbsOcptService {
     return id;
   }
 
-  /// Replaces panel [panelId]'s image with the file at [path]: tombstones its previous image
+  /// Replace panel [panelId]'s image with the file at [path]: tombstones its previous image
   /// `assets` row (if it had one) and mints a fresh one, re-pointing `imageAssetId` — the panel's
   /// own [panelId] never changes, so its annotations and its stamps stay attached to it.
   ///
@@ -198,7 +198,7 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Moves panel [panelId] to [newPosition] (0-based) within its own shot's panels, by giving it a
+  /// Move panel [panelId] to [newPosition] (0-based) within its own shot's panels, by giving it a
   /// `sortKey` sitting between the two panels it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -242,7 +242,7 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Updates panel [panelId]'s free comment.
+  /// Update panel [panelId]'s free comment.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updatePanelComment({
@@ -273,7 +273,7 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Tombstones panel [panelId], its annotations and its image `assets` row (if it had one), in one
+  /// Tombstone panel [panelId], its annotations and its image `assets` row (if it had one), in one
   /// transaction.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -291,8 +291,8 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Adds a mark of [kind] to panel [panelId] at the normalised point/segment
-  /// `(x1, y1)`-`(x2, y2)`, appended after the panel's current last mark, and returns its freshly
+  /// Add a mark of [kind] to panel [panelId] at the normalised point/segment `(x1, y1)`-`(x2, y2)`,
+  /// appended after the panel's current last mark, and return its freshly
   /// generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -343,7 +343,7 @@ class OcptStoryboardService extends AbsOcptService {
     return id;
   }
 
-  /// Updates annotation [annotationId]'s geometry and/or text, whichever is passed as something
+  /// Update annotation [annotationId]'s geometry and/or text, whichever is passed as something
   /// other than [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -389,7 +389,7 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Tombstones annotation [annotationId].
+  /// Tombstone annotation [annotationId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -423,7 +423,7 @@ class OcptStoryboardService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every panel of shot [shotId] — its annotations and its image `assets` row along
+  /// Tombstone every panel of shot [shotId] — its annotations and its image `assets` row along
   /// with each one — for `OcptShotListService.deleteShot`'s and `.tombstoneShotsOfScreenplay`'s own
   /// cascade.
   ///
@@ -444,7 +444,7 @@ class OcptStoryboardService extends AbsOcptService {
     }
   }
 
-  /// Tombstones panel [panelId]'s annotations, then the panel itself and its image `assets` row (if
+  /// Tombstone panel [panelId]'s annotations, then the panel itself and its image `assets` row (if
   /// any) — the write body [deletePanel] and [tombstonePanelsOfShot] share, taking [stamps] as
   /// given by whichever transaction is already open around it. [panel] may be passed to skip the
   /// lookup when the caller already has the row (as [tombstonePanelsOfShot] does).
@@ -489,7 +489,7 @@ class OcptStoryboardService extends AbsOcptService {
     );
   }
 
-  /// Every live shot id of screenplay [screenplayId].
+  /// Get every live shot id of screenplay [screenplayId].
   Future<List<String>> _liveShotIdsOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
@@ -500,7 +500,7 @@ class OcptStoryboardService extends AbsOcptService {
     return rows.map((row) => row.id).toList(growable: false);
   }
 
-  /// The resolved absolute path of every live `assets` row of [assetIds], keyed by id — a row
+  /// Get the resolved absolute path of every live `assets` row of [assetIds], keyed by id — a row
   /// [assetIds] names but that no longer exists, or is tombstoned, is simply absent from the map,
   /// which is how a caller reads "file reference gone" the same way an unresolved path already
   /// reads (ADR 0013).
@@ -518,7 +518,7 @@ class OcptStoryboardService extends AbsOcptService {
     return {for (final row in rows) row.id: row.path};
   }
 
-  /// Every live panel row of shot [shotId], ordered by `sortKey`.
+  /// Get every live panel row of shot [shotId], ordered by `sortKey`.
   Future<List<OcptStoryboardPanelRow>> _panelRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -528,7 +528,7 @@ class OcptStoryboardService extends AbsOcptService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Reads back the live panel row [panelId], or null if it doesn't exist or has been tombstoned.
+  /// Read back the live panel row [panelId], or null if it doesn't exist or have been tombstoned.
   Future<OcptStoryboardPanelRow?> _livePanelRowOrNull({
     required OcptProjectDatabase database,
     required String panelId,
@@ -536,7 +536,7 @@ class OcptStoryboardService extends AbsOcptService {
     database.ocptStoryboardPanelsTable,
   )..where((table) => table.id.equals(panelId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live annotation row of panel [panelId], ordered by `sortKey`.
+  /// Get every live annotation row of panel [panelId], ordered by `sortKey`.
   Future<List<OcptStoryboardAnnotationRow>> _annotationRowsOfPanel({
     required OcptProjectDatabase database,
     required String panelId,

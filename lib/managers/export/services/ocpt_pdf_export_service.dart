@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_script_page_p
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// Renders a parsed [FountainDocument] into a paginated, Courier-Prime-embedded screenplay PDF.
+/// Render a parsed [FountainDocument] into a paginated, Courier-Prime-embedded screenplay PDF.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -28,7 +28,7 @@ class OcptPdfExportService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptPdfExportService].
+  /// Create an [OcptPdfExportService].
   ///
   /// Deliberately not `const` (unlike the sibling `OcptFountainIoService`): this service loads its
   /// fonts through [fontsLoader], whose cache is mutable state. Pass the manager's own loader so
@@ -37,14 +37,14 @@ class OcptPdfExportService extends AbsOcptService {
   OcptPdfExportService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the project named [projectName], mirroring
+  /// Get the `.pdf` file name to suggest when exporting the project named [projectName], mirroring
   /// `OcptFountainIoService.fountainFileName`. [episodeTag] is the selected episode's own tag,
   /// present only while the open project holds more than one episode — see
   /// `ocptExportFileNameOf`'s own doc comment.
   String pdfFileName({required String projectName, String? episodeTag}) =>
       ocptExportFileNameOf(projectName: projectName, episodeTag: episodeTag, extension: "pdf");
 
-  /// Renders [document] into a complete screenplay PDF, returning its bytes.
+  /// Render [document] into a complete screenplay PDF, returning its bytes.
   ///
   /// [pageSetup] supplies both the physical page geometry (via [OcptPageSetup.toMetrics]) and,
   /// indirectly, the body's pagination (which depends on that same geometry). [includeTitlePage]

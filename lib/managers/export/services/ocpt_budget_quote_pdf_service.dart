@@ -54,7 +54,7 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
   3: pw.FlexColumnWidth(1.2),
 };
 
-/// Renders the quote: the full CNC nomenclature, poste by poste with its own lines, each poste's
+/// Render the quote: the full CNC nomenclature, poste by poste with its own lines, each poste's
 /// own subtotal, then the project's own grand total.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
@@ -81,14 +81,14 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptBudgetQuotePdfService].
+  /// Create an [OcptBudgetQuotePdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptBudgetQuotePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the quote of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the quote of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - quote.pdf`); a blank one falls back to the project name alone, exactly as
@@ -96,7 +96,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
   String quoteFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the quote of [snapshot]'s own postes, in [taxBasis], returning the PDF's bytes.
+  /// Render the quote of [snapshot]'s own postes, in [taxBasis], returning the PDF's bytes.
   ///
   /// [elementNameById] names every breakdown element a quote line prices (`OcptBudgetLine
   /// .elementId`) — see the class doc comment. [exportDate] is the moment the title page's own
@@ -150,7 +150,8 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The document's own body: the tax-basis caption, one section per poste, then the project's own
+  /// Build the document's own body: the tax-basis caption, one section per poste, then the
+  /// project's own
   /// grand total.
   List<pw.Widget> _body({
     required OcptScriptPagePainter painter,
@@ -204,7 +205,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ];
   }
 
-  /// One poste's own section: its heading, its own table of lines (or [OcptBudgetQuoteLabels
+  /// Build one poste's own section: its heading, its own table of lines (or [OcptBudgetQuoteLabels
   /// .noLinesLabel] while it holds none), then its own subtotal.
   pw.Widget _posteSection({
     required OcptScriptPagePainter painter,
@@ -297,7 +298,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     );
   }
 
-  /// One quote line's own row: its label (with the element it prices under it, when it prices
+  /// Build one quote line's own row: its label (with the element it prices under it, when it prices
   /// one, and [inKindLineMarker] appended when it is a counterpart line minted from an in-kind
   /// contribution — `OcptBudgetLine.inKindResourceId` not null), its quantity and unit, its unit
   /// price, and its own total in [taxBasis]. **Prints exactly the same figures a counterpart line
@@ -366,7 +367,8 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     );
   }
 
-  /// [line]'s own total, read in [taxBasis] — [ocptBudgetLineTotalCents] converted individually,
+  /// Get [line]'s own total, read in [taxBasis] — [ocptBudgetLineTotalCents] converted
+  /// individually,
   /// never summed first, mirroring `ocptBudgetTotalOf`'s own inner reading for the including-tax
   /// case and `ocptBudgetLineExcludingTaxTotalCents` for the excluding-tax one.
   int? _lineAmountCentsInBasis(
@@ -383,7 +385,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     projectVatRateBasisPoints: projectVatRateBasisPoints,
   );
 
-  /// [money]'s own amount, read in [taxBasis] — the single place this service picks between
+  /// Get [money]'s own amount, read in [taxBasis] — the single place this service picks between
   /// [ocptExcludingTaxAmountCentsOf] and [ocptIncludingTaxAmountCentsOf], both of them
   /// `lib/models/rules/ocpt_budget_vat.dart`'s own "null, never zero" readings.
   int? _amountInBasisCentsOf(
@@ -394,7 +396,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
       ? ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: projectVatRateBasisPoints)
       : ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: projectVatRateBasisPoints);
 
-  /// One header cell of a poste's own table.
+  /// Build one header cell of a poste's own table.
   pw.Widget _headerCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -408,7 +410,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ),
   );
 
-  /// One right-aligned amount cell.
+  /// Build one right-aligned amount cell.
   pw.Widget _amountCell({required OcptScriptPagePainter painter, required String text}) =>
       pw.Padding(
         padding: const pw.EdgeInsets.all(_cellPaddingPt),
@@ -419,7 +421,8 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
         ),
       );
 
-  /// A right-aligned `<label>: <text>` line — a poste's own subtotal, or the project's own grand
+  /// Build a right-aligned `<label>: <text>` line — a poste's own subtotal, or the project's own
+  /// grand
   /// total.
   pw.Widget _totalRow({
     required OcptScriptPagePainter painter,
@@ -437,7 +440,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ),
   );
 
-  /// The document's own title page: its name and the moment the export was run.
+  /// Build the document's own title page: its name and the moment the export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
     required OcptBudgetQuoteLabels labels,
@@ -467,14 +470,16 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ),
   );
 
-  /// A block of free text — the note standing in for the whole document on a project with no poste
+  /// Build a block of free text — the note standing in for the whole document on a project with no
+  /// poste
   /// at all.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
   );
 
-  /// The running head every page of the document carries: the project and the document's own name
+  /// Build the running head every page of the document carries: the project and the document's own
+  /// name
   /// on the left, [versionLine] on the right, over a rule — mirroring
   /// `OcptContactListPdfService._runningHead` exactly.
   pw.Widget _runningHead({
@@ -512,7 +517,8 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ],
   );
 
-  /// The portrait `pdf` page format every page is drawn on, mirroring `OcptContactListPdfService`'s
+  /// Get the portrait `pdf` page format every page is drawn on, mirroring
+  /// `OcptContactListPdfService`'s
   /// own margin convention (`marginRightPt` standing in for the bottom margin too,
   /// [OcptScriptPagePainter] having none of its own).
   PdfPageFormat _pageFormat(OcptScriptPagePainter painter) => PdfPageFormat(

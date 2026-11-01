@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:uuid/uuid.dart';
 
-/// Turns a replica's own un-pushed local edits into a changeset and appends it to a relay
-/// ([pushLocalEdits]), and applies every changeset a relay holds that this replica hasn't seen yet
+/// Turn a replica's own un-pushed local edits into a changeset and append it to a relay
+/// ([pushLocalEdits]), and apply every changeset a relay holds that this replica hasn't seen yet
 /// ([pullAndApply]) — the outbound and inbound halves of the changeset engine
 /// (`docs/architecture/sync.md`). [syncOnce] is the two run back to back, which is what makes two
 /// replicas pointed at the same [OcptRemoteStorage] converge.
@@ -43,8 +43,8 @@ class OcptChangesetService extends AbsOcptService {
     await mergeService.initLifeCycle();
   }
 
-  /// Generates the un-pushed local edits of [database] for [deviceId] and appends them to
-  /// [storage] as one changeset, then advances [relayId]'s own `outboxHighWaterMark` so the same
+  /// Generate the un-pushed local edits of [database] for [deviceId] and append them to [storage]
+  /// as one changeset, then advance [relayId]'s own `outboxHighWaterMark` so the same
   /// edit is never sent to it twice.
   ///
   /// "Un-pushed" means every `row_field_versions` stamp this device itself wrote
@@ -162,8 +162,8 @@ class OcptChangesetService extends AbsOcptService {
     return const StatusWithExtraInfo(status: OcptRemoteStorageStatus.ok);
   }
 
-  /// Applies every changeset [relayId] holds that this replica hasn't read yet to [database]'s
-  /// own file, and advances [relayId]'s `lastAppliedSequence` past every one of them.
+  /// Apply every changeset [relayId] holds that this replica hasn't read yet to [database]'s own
+  /// file, and advance [relayId]'s `lastAppliedSequence` past every one of them.
   ///
   /// This is a replica catching up: it reads [relayId]'s current `sync_relay_cursors.
   /// lastAppliedSequence` (`0` when this replica has never pulled from it before), asks [storage]
@@ -215,7 +215,8 @@ class OcptChangesetService extends AbsOcptService {
     return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: conflicts);
   }
 
-  /// [pushLocalEdits] followed by [pullAndApply], against the very same [relayId]: what a replica
+  /// Run [pushLocalEdits] followed by [pullAndApply], against the very same [relayId]: what a
+  /// replica
   /// runs to both publish what it changed and absorb what everyone else did, in one call. Returns
   /// whatever [pullAndApply] returns — [pushLocalEdits] never merges anything inbound, so it never
   /// raises a conflict of its own.
@@ -238,7 +239,8 @@ class OcptChangesetService extends AbsOcptService {
     return pullAndApply(database: database, storage: storage, relayId: relayId);
   }
 
-  /// How many of [deviceId]'s own `row_field_versions` stamps against [database] have not been
+  /// Count how many of [deviceId]'s own `row_field_versions` stamps against [database] have not
+  /// been
   /// pushed to [relayId] yet — i.e. carry a version higher than [relayId]'s current
   /// `outboxHighWaterMark`.
   ///
@@ -264,7 +266,8 @@ class OcptChangesetService extends AbsOcptService {
     return stamps.length;
   }
 
-  /// [relayId]'s current `outboxHighWaterMark` against [database], as [pushLocalEdits] itself would
+  /// Get [relayId]'s current `outboxHighWaterMark` against [database], as [pushLocalEdits] itself
+  /// would
   /// read it, wrapped as an [OcptSequenceNumber] — [OcptSequenceNumber.zero] when this replica has
   /// appended nothing to [relayId] yet.
   ///
@@ -279,7 +282,7 @@ class OcptChangesetService extends AbsOcptService {
     required String relayId,
   }) async => OcptSequenceNumber(await _outboxHighWaterMark(database: database, relayId: relayId));
 
-  /// [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]
+  /// Get [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]
   /// when this replica has never pulled anything from it yet.
   Future<OcptSequenceNumber> _lastAppliedSequence({
     required OcptProjectDatabase database,
@@ -292,7 +295,7 @@ class OcptChangesetService extends AbsOcptService {
     return OcptSequenceNumber(row?.lastAppliedSequence ?? 0);
   }
 
-  /// Upserts [relayId]'s `sync_relay_cursors` row so its `lastAppliedSequence` reads [sequence],
+  /// Upsert [relayId]'s `sync_relay_cursors` row so its `lastAppliedSequence` reads [sequence],
   /// leaving `outboxHighWaterMark` — the unrelated write-side cursor — untouched.
   Future<void> _advanceLastAppliedSequence({
     required OcptProjectDatabase database,
@@ -307,7 +310,7 @@ class OcptChangesetService extends AbsOcptService {
         ),
       );
 
-  /// [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
+  /// Get [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
   /// never pushed anything to it yet.
   Future<int> _outboxHighWaterMark({
     required OcptProjectDatabase database,
@@ -320,7 +323,7 @@ class OcptChangesetService extends AbsOcptService {
     return row?.outboxHighWaterMark ?? 0;
   }
 
-  /// Upserts [relayId]'s `sync_relay_cursors` row so its `outboxHighWaterMark` reads
+  /// Upsert [relayId]'s `sync_relay_cursors` row so its `outboxHighWaterMark` reads
   /// [highWaterMark], leaving `lastAppliedSequence` — the unrelated read-side cursor — untouched.
   Future<void> _advanceOutboxHighWaterMark({
     required OcptProjectDatabase database,
@@ -335,7 +338,8 @@ class OcptChangesetService extends AbsOcptService {
         ),
       );
 
-  /// [table]'s current row named [rowId] out of [database], as its own raw SQL cell values keyed
+  /// Get [table]'s current row named [rowId] out of [database], as its own raw SQL cell values
+  /// keyed
   /// by SQL column name — tombstones included, no filter applied, and never run through a drift
   /// data class's `toJson()` (see `OcptFieldStamp`'s own doc comment for why) — by matching [rowId]
   /// against [table]'s own primary key through `ocptCompositeRowStampKeySqlExpression` rather than

@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
-/// Reads what format a project file is in **before anything opens it**, and keeps the copy a
+/// Read what format a project file is in **before anything opens it**, and keep the copy a
 /// migration is answered with.
 ///
 /// Opening a `.ocpt` written by another build is not a neutral act. A file from an *older* build is
@@ -38,7 +38,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
   /// Class constructor
   const OcptProjectFileCompatibilityService({required super.logger});
 
-  /// Reads the format of the project file at [filePath] without opening it as a project, and says
+  /// Read the format of the project file at [filePath] without opening it as a project, and say
   /// what that means for a build writing [appSchemaVersion] as [appVersion].
   ///
   /// The verdict is decided over the **pair** of the file's own schema version and writer identity
@@ -130,7 +130,8 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return compatibility;
   }
 
-  /// Where the copy of the project file at [filePath], still in format [fileSchemaVersion], is to
+  /// Tell where the copy of the project file at [filePath], still in format [fileSchemaVersion], is
+  /// to
   /// be kept: beside the original, named after it, and free.
   ///
   /// A counter is appended rather than an existing backup overwritten — a project migrated twice
@@ -154,7 +155,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return candidate;
   }
 
-  /// Writes the copy of the project file at [filePath] to [backupPath], and says whether it is
+  /// Write the copy of the project file at [filePath] to [backupPath], and say whether it is
   /// there.
   ///
   /// `VACUUM INTO` rather than a file copy, for the reason `OcptProjectPackageService` gives: it
@@ -187,7 +188,8 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return isWritten;
   }
 
-  /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
+  /// Get the decision function ADR 0029 states: compares the pair (file schema, file writer)
+  /// against
   /// (this build's schema, this build's version) once [fileSchemaVersion] is already known to be a
   /// real one ([fileSchemaVersion] `> 0`).
   OcptProjectFileVerdict _verdictFor({
@@ -222,7 +224,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return OcptProjectFileVerdict.foreignDevBuild;
   }
 
-  /// The app version stamped into [database]'s `project_info` when the project was created, or
+  /// Get the app version stamped into [database]'s `project_info` when the project was created, or
   /// null when there is no such row to read.
   ///
   /// The table is asked for rather than assumed: this runs against a file at *any* format,
@@ -243,7 +245,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return rows.first["app_version_at_creation"] as String?;
   }
 
-  /// The app version stamped into [database]'s `project_info.migrated_by_app_version` — the
+  /// Get the app version stamped into [database]'s `project_info.migrated_by_app_version` — the
   /// file's writer identity — or null when there is no such column or row to read.
   ///
   /// Guarded exactly like [_appVersionAtCreation]: this runs against a file at *any* format,
@@ -272,7 +274,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return rows.first["migrated_by_app_version"] as String?;
   }
 
-  /// The `PRAGMA user_version` of [database]: the schema version the file states about itself.
+  /// Get the `PRAGMA user_version` of [database]: the schema version the file states about itself.
   int _userVersion(Database database) =>
       database.select("PRAGMA user_version").first.values.first! as int;
 }

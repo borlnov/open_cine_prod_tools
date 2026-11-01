@@ -74,7 +74,7 @@ import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
 
-/// Builds the [OcptExportManager] instance registered by the global manager.
+/// Build the [OcptExportManager] instance registered by the global manager.
 class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
   /// Class constructor
   const OcptExportManagerBuilder() : super(OcptExportManager.new);
@@ -84,7 +84,7 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
   Iterable<Type> dependsOn() => [LoggerManager, FileSelectorManager, PlatformManager];
 }
 
-/// Owns everything about getting a screenplay in and out of the app as a plain `.fountain` file or
+/// Own everything about getting a screenplay in and out of the app as a plain `.fountain` file or
 /// a PDF, the project's shot list out of it as an XLSX workbook, its scenario coverage as an
 /// annotated screenplay PDF, its storyboard and its floor plans each as their own PDF, its
 /// resources catalogue as a second, four-sheet XLSX workbook, its breakdown as one printed sheet
@@ -213,7 +213,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     platformManager: _platformManager,
   );
 
-  /// Whether the write funnel shows the native save dialog or hands the bytes to [shareService]'s
+  /// Tell whether the write funnel shows the native save dialog or hands the bytes to
+  /// [shareService]'s
   /// OS share sheet — `file_selector`'s `getSaveLocation`/`getDirectoryPath` having no Android or
   /// iOS implementation.
   ///
@@ -374,7 +375,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     _logger.i("The export manager started");
   }
 
-  /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
+  /// Show the native save dialog and write [fountainText] to the chosen `.fountain` file.
   Future<OcptExportOutcome?> exportFountain({
     required String fountainText,
     required String projectName,
@@ -391,7 +392,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     fountainIoService: fountainIoService,
   );
 
-  /// Renders [document] into a PDF via [pdfExportService] and shows the native save dialog to
+  /// Render [document] into a PDF via [pdfExportService] and show the native save dialog to
   /// write it out.
   Future<OcptExportOutcome?> exportPdf({
     required FountainDocument document,
@@ -415,7 +416,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     pdfExportService: pdfExportService,
   );
 
-  /// Builds the XLSX workbook of [snapshot] via [shotListXlsxExportService] and shows the native
+  /// Build the XLSX workbook of [snapshot] via [shotListXlsxExportService] and show the native
   /// save dialog to write it out.
   Future<OcptExportOutcome?> exportShotListXlsx({
     required OcptShotListSnapshot snapshot,
@@ -435,8 +436,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     shotListXlsxExportService: shotListXlsxExportService,
   );
 
-  /// Renders the scenario coverage of [snapshot] over [document] via [scenarioCoveragePdfService]
-  /// and shows the native save dialog to write it out.
+  /// Render the scenario coverage of [snapshot] over [document] via [scenarioCoveragePdfService]
+  /// and show the native save dialog to write it out.
   Future<OcptExportOutcome?> exportScenarioCoverage({
     required FountainDocument document,
     required String screenplayText,
@@ -469,8 +470,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     scenarioCoveragePdfService: scenarioCoveragePdfService,
   );
 
-  /// Renders the storyboard of [snapshot]/[storyboardSnapshot] via [storyboardPdfService] and
-  /// shows the native save dialog to write it out.
+  /// Render the storyboard of [snapshot]/[storyboardSnapshot] via [storyboardPdfService] and show
+  /// the native save dialog to write it out.
   Future<OcptExportOutcome?> exportStoryboard({
     required OcptShotListSnapshot snapshot,
     required OcptStoryboardSnapshot storyboardSnapshot,
@@ -501,7 +502,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     storyboardPdfService: storyboardPdfService,
   );
 
-  /// Renders the floor plans of [snapshot]/[floorPlanSnapshot] via [floorPlanPdfService] and shows
+  /// Render the floor plans of [snapshot]/[floorPlanSnapshot] via [floorPlanPdfService] and show
   /// the native save dialog to write it out — no options dialog of its own, the page format coming
   /// from [pageSetup] (`OcptShotListState.pageSetup`), mirroring the shot list workbook's own
   /// `Export XLSX` button.
@@ -527,8 +528,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     floorPlanPdfService: floorPlanPdfService,
   );
 
-  /// Builds the resources catalogue's four-sheet XLSX workbook of [snapshot] via
-  /// [resourcesXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the resources catalogue's four-sheet XLSX workbook of [snapshot] via
+  /// [resourcesXlsxExportService] and show the native save dialog to write it out.
   Future<OcptExportOutcome?> exportResourcesXlsx({
     required OcptResourcesSnapshot snapshot,
     required OcptResourcesXlsxLabels labels,
@@ -545,7 +546,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     resourcesXlsxExportService: resourcesXlsxExportService,
   );
 
-  /// Renders the contact list of [snapshot] via [contactListPdfService] and shows the native save
+  /// Render the contact list of [snapshot] via [contactListPdfService] and show the native save
   /// dialog to write it out.
   Future<OcptExportOutcome?> exportContactList({
     required OcptResourcesSnapshot snapshot,
@@ -567,7 +568,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     contactListPdfService: contactListPdfService,
   );
 
-  /// Renders the quote of [snapshot] via [budgetQuotePdfService] and shows the native save dialog
+  /// Render the quote of [snapshot] via [budgetQuotePdfService] and show the native save dialog
   /// to write it out.
   Future<OcptExportOutcome?> exportBudgetQuote({
     required OcptBudgetSnapshot snapshot,
@@ -593,7 +594,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     budgetQuotePdfService: budgetQuotePdfService,
   );
 
-  /// Renders the financing plan of [snapshot] via [budgetFinancingPlanPdfService] and shows the
+  /// Render the financing plan of [snapshot] via [budgetFinancingPlanPdfService] and show the
   /// native save dialog to write it out.
   Future<OcptExportOutcome?> exportBudgetFinancingPlan({
     required OcptBudgetSnapshot snapshot,
@@ -615,8 +616,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     budgetFinancingPlanPdfService: budgetFinancingPlanPdfService,
   );
 
-  /// Builds the cash journal's own XLSX workbook of [snapshot] via
-  /// [budgetCashJournalXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the cash journal's own XLSX workbook of [snapshot] via
+  /// [budgetCashJournalXlsxExportService] and show the native save dialog to write it out.
   Future<OcptExportOutcome?> exportBudgetCashJournalXlsx({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,
@@ -635,7 +636,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     budgetCashJournalXlsxExportService: budgetCashJournalXlsxExportService,
   );
 
-  /// Renders the financial report of [snapshot] via [budgetFinancialReportPdfService] and shows the
+  /// Render the financial report of [snapshot] via [budgetFinancialReportPdfService] and show the
   /// native save dialog to write it out.
   Future<OcptExportOutcome?> exportBudgetFinancialReport({
     required OcptBudgetSnapshot snapshot,
@@ -657,7 +658,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     budgetFinancialReportPdfService: budgetFinancialReportPdfService,
   );
 
-  /// Renders the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and shows the
+  /// Render the breakdown sheets of [snapshot] via [breakdownSheetsPdfService] and show the
   /// native save dialog to write them out.
   Future<OcptExportOutcome?> exportBreakdownSheets({
     required FountainDocument document,
@@ -687,8 +688,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     breakdownSheetsPdfService: breakdownSheetsPdfService,
   );
 
-  /// Builds the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
-  /// and shows the native save dialog to write it out.
+  /// Build the breakdown's two-sheet XLSX workbook of [snapshot] via [breakdownXlsxExportService]
+  /// and show the native save dialog to write it out.
   Future<OcptExportOutcome?> exportBreakdownXlsx({
     required FountainDocument document,
     required OcptBreakdownSnapshot snapshot,
@@ -711,7 +712,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     breakdownXlsxExportService: breakdownXlsxExportService,
   );
 
-  /// Renders one general call sheet per day of [dayIds] via [callSheetPdfService] and writes every
+  /// Render one general call sheet per day of [dayIds] via [callSheetPdfService] and write every
   /// one of them into a folder the user picks.
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -733,8 +734,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     callSheetPdfService: callSheetPdfService,
   );
 
-  /// Renders one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
-  /// writes every one of them into a folder the user picks — a call sheet being a document about a
+  /// Render one named call sheet per (convocation × day) of [dayIds] via [callSheetPdfService] and
+  /// write every one of them into a folder the user picks — a call sheet being a document about a
   /// day, so a recipient convoked on two of [dayIds] gets two files, one for each.
   Future<OcptCallSheetExportResult?> exportNamedCallSheets({
     required OcptSchedulePlanSnapshot plan,
@@ -758,7 +759,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     callSheetPdfService: callSheetPdfService,
   );
 
-  /// Renders the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and shows the
+  /// Render the whole-shoot shooting plan of [dayIds] via [shootingPlanPdfService] and show the
   /// native save dialog to write it out.
   Future<OcptExportOutcome?> exportShootingPlan({
     required OcptSchedulePlanSnapshot plan,
@@ -792,8 +793,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     shootingPlanPdfService: shootingPlanPdfService,
   );
 
-  /// Builds the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
-  /// [shootingPlanXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the whole-shoot shooting plan's own five-sheet XLSX workbook of [dayIds] via
+  /// [shootingPlanXlsxExportService] and show the native save dialog to write it out.
   Future<OcptExportOutcome?> exportShootingPlanXlsx({
     required OcptSchedulePlanSnapshot plan,
     required List<String> dayIds,
@@ -812,7 +813,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     shootingPlanXlsxExportService: shootingPlanXlsxExportService,
   );
 
-  /// Renders the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and shows
+  /// Render the cast's own *Day Out of Days* over [dayIds] via [dayOutOfDaysPdfService] and show
   /// the native save dialog to write it out.
   Future<OcptExportOutcome?> exportDayOutOfDays({
     required OcptSchedulePlanSnapshot plan,
@@ -836,7 +837,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     dayOutOfDaysPdfService: dayOutOfDaysPdfService,
   );
 
-  /// Renders the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and shows the
+  /// Render the one-line schedule over [dayIds] via [oneLineSchedulePdfService] and show the
   /// native save dialog to write it out.
   Future<OcptExportOutcome?> exportOneLineSchedule({
     required OcptSchedulePlanSnapshot plan,
@@ -860,7 +861,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     oneLineSchedulePdfService: oneLineSchedulePdfService,
   );
 
-  /// Renders [dayId]'s own sides booklet via [sidesPdfService] and shows the native save dialog to
+  /// Render [dayId]'s own sides booklet via [sidesPdfService] and show the native save dialog to
   /// write it out.
   Future<OcptExportOutcome?> exportSides({
     required OcptSchedulePlanSnapshot plan,
@@ -888,7 +889,7 @@ class OcptExportManager extends AbsWithLifeCycle {
     sidesPdfService: sidesPdfService,
   );
 
-  /// Shows the native open dialog, reads the picked screenplay file and returns it as Fountain
+  /// Show the native open dialog, read the picked screenplay file and return it as Fountain
   /// text.
   ///
   /// The dialog accepts the three formats of [OcptScriptImportService.importableExtensions]: a
@@ -935,7 +936,8 @@ class OcptExportManager extends AbsWithLifeCycle {
     );
   }
 
-  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
+  /// Get the sub-logger named [category] of [logger]: the one logger each service this manager
+  /// builds
   /// is handed.
   static LogsHelper _sub(LogsHelper logger, String category) =>
       logger.createSubLogger(subCategory: category);

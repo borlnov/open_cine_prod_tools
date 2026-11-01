@@ -64,7 +64,7 @@ const Map<int, pw.TableColumnWidth> _targetColumnWidths = {
   2: pw.FlexColumnWidth(2),
 };
 
-/// Renders a project's breakdown sheets: one sheet per scene, carrying that scene's number and
+/// Render a project's breakdown sheets: one sheet per scene, carrying that scene's number and
 /// heading, how far its breakdown has got, its length, its own breakdown notes, everything tagged
 /// in it grouped by category, and what it still has to find.
 ///
@@ -85,14 +85,14 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptBreakdownSheetsPdfService].
+  /// Create an [OcptBreakdownSheetsPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptBreakdownSheetsPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the breakdown sheets of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the breakdown sheets of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - breakdown.pdf`); a blank one falls back to the project name alone rather than
@@ -111,7 +111,7 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     extension: "pdf",
   );
 
-  /// Renders the breakdown sheets of [snapshot], returning the PDF's bytes.
+  /// Render the breakdown sheets of [snapshot], returning the PDF's bytes.
   ///
   /// [document] is the screenplay [snapshot]'s scenes were indexed against: it is read for one
   /// thing only, each scene's length in page eighths, which is a fact about the typeset screenplay
@@ -185,7 +185,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// One scene's whole sheet, in the order it is read: the scene's title and heading, its meta
+  /// Build one scene's whole sheet, in the order it is read: the scene's title and heading, its
+  /// meta
   /// band, its own breakdown notes, everything tagged in it grouped by category, and what it still
   /// has to find.
   List<pw.Widget> _sceneWidgets({
@@ -268,7 +269,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     ];
   }
 
-  /// One sheet's [pw.MultiPage], carrying the running head naming the project and the document,
+  /// Build one sheet's [pw.MultiPage], carrying the running head naming the project and the
+  /// document,
   /// then [children].
   ///
   /// A flowing page rather than one of [OcptScriptPagePainter]'s absolutely positioned ones: a
@@ -307,7 +309,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     ],
   );
 
-  /// The scene's length, in the eighths notation assistant directors write on a breakdown sheet:
+  /// Get the scene's length, in the eighths notation assistant directors write on a breakdown
+  /// sheet:
   /// `5/8` under a page, `2` on two whole pages, `1 4/8` in between.
   ///
   /// A numeral rather than a translated string, which is why [OcptBreakdownSheetsLabels] carries
@@ -334,7 +337,7 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     return whole == 0 ? "$eighths/8" : "$whole $eighths/8";
   }
 
-  /// The band of boxed `(label, value)` [cells] under a sheet's heading, laid side by side.
+  /// Build the band of boxed `(label, value)` [cells] under a sheet's heading, laid side by side.
   ///
   /// The cells size themselves rather than being stretched to a common height: a flowing page lays
   /// its children out with no height to stretch against, and asking for one there measures as
@@ -378,7 +381,7 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     ],
   );
 
-  /// One section's own small, muted heading.
+  /// Build one section's own small, muted heading.
   pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) =>
       pw.Text(
         title.toUpperCase(),
@@ -389,14 +392,16 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
         ),
       );
 
-  /// A block of free text — a scene's own breakdown notes, or the note standing in for a table
+  /// Build a block of free text — a scene's own breakdown notes, or the note standing in for a
+  /// table
   /// there is nothing to fill.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
   );
 
-  /// The full-width band introducing one category's own table: its colour swatch, its label and how
+  /// Build the full-width band introducing one category's own table: its colour swatch, its label
+  /// and how
   /// many targets it holds.
   ///
   /// A band between two tables rather than a row inside one, for the reason the coverage export's
@@ -439,7 +444,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     ),
   );
 
-  /// The header row every group's table below is read against, printed once above the first band.
+  /// Build the header row every group's table below is read against, printed once above the first
+  /// band.
   ///
   /// A table of its own rather than a row inside each group's, exactly as the coverage export's own
   /// legend prints it: a group band splits the tables into one per category, and repeating the
@@ -462,7 +468,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     ],
   );
 
-  /// The table of the targets of [targets] falling under [bucket], alphabetised by name — the very
+  /// Build the table of the targets of [targets] falling under [bucket], alphabetised by name — the
+  /// very
   /// order the mode's own scene inspector groups them in, so the printed sheet and the screen read
   /// the same way.
   ///
@@ -510,7 +517,8 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     );
   }
 
-  /// The name of [target]'s owner, or [_emptyValue] while it has none — a role or a set never has
+  /// Get the name of [target]'s owner, or [_emptyValue] while it has none — a role or a set never
+  /// has
   /// one, and an element's own `ownerPersonId` may be unset or may name somebody the address book
   /// no longer holds (an erased person, whose row the erasure tombstoned).
   String _ownerNameOf({
@@ -524,7 +532,7 @@ class OcptBreakdownSheetsPdfService extends AbsOcptService {
     return owner?.displayName ?? _emptyValue;
   }
 
-  /// One table cell holding [text], in the tables' shared padding.
+  /// Build one table cell holding [text], in the tables' shared padding.
   pw.Widget _textCell({
     required OcptScriptPagePainter painter,
     required String text,

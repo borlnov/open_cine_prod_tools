@@ -73,7 +73,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     await _assetsService.initLifeCycle();
   }
 
-  /// Loads every live entry of [database], in `date` order, `sortKey` breaking a tie between two
+  /// Load every live entry of [database], in `date` order, `sortKey` breaking a tie between two
   /// entries recorded on the same day.
   Future<List<OcptBudgetEntry>> loadEntries({required OcptProjectDatabase database}) async {
     final rows =
@@ -88,7 +88,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     return [for (final row in rows) OcptBudgetEntry.fromRow(row)];
   }
 
-  /// Loads every live commitment of [database], in `dueDate` order with the undated ones **last**,
+  /// Load every live commitment of [database], in `dueDate` order with the undated ones **last**,
   /// `sortKey` breaking a tie between two commitments sharing a due date (or sharing no due date at
   /// all).
   ///
@@ -113,7 +113,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     return [for (final row in rows) OcptBudgetCommitment.fromRow(row)];
   }
 
-  /// Loads every live voucher of [database] — `OcptAssetKind.receipt`, `assets.budgetEntryId`
+  /// Load every live voucher of [database] — `OcptAssetKind.receipt`, `assets.budgetEntryId`
   /// naming the journal entry it evidences — keyed by that entry's own id.
   ///
   /// **At most one per entry**, mirroring `OcptLocationsService.loadLocations`' own
@@ -135,8 +135,8 @@ class OcptBudgetJournalService extends AbsOcptService {
     };
   }
 
-  /// Creates a new journal entry dated [date], appended at the end of the journal's own flat
-  /// `sortKey` order, and returns its freshly generated id.
+  /// Create a new journal entry dated [date], appended at the end of the journal's own flat
+  /// `sortKey` order, and return its freshly generated id.
   ///
   /// Mints `OcptBudgetEntriesTable.voucherNumber` itself, through [_nextVoucherNumber]: the caller
   /// never types one in for a fresh entry, only [updateEntry] can change it afterwards.
@@ -200,7 +200,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Updates the fields of entry [entryId] in [database] that are passed as something other than
+  /// Update the fields of entry [entryId] in [database] that are passed as something other than
   /// [Value.absent], [voucherNumber] included: unlike `OcptBudgetLinesTable`'s `posteId`, a
   /// voucher number is exactly the kind of field a user is expected to retype once the number
   /// [createEntry] minted doesn't match the paper trail (a supplier's own reference, say). Never
@@ -263,7 +263,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Moves entry [entryId] to [newPosition] (0-based) within the journal's own flat `sortKey`
+  /// Move entry [entryId] to [newPosition] (0-based) within the journal's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two entries it lands between. Writes
   /// **exactly one row**.
   ///
@@ -311,7 +311,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Tombstones entry [entryId] and, in the same transaction, tombstones every live `assets` row
+  /// Tombstone entry [entryId] and, in the same transaction, tombstone every live `assets` row
   /// naming it as its `OcptAssetKind.receipt` ([_tombstoneEntryReceipt]): the voucher goes with the
   /// entry it stood for, exactly as `OcptElementsService` tombstones an element's photo alongside
   /// the element.
@@ -352,7 +352,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// References the file at [path] as journal entry [entryId]'s own voucher, replacing whichever
+  /// Reference the file at [path] as journal entry [entryId]'s own voucher, replacing whichever
   /// receipt it referenced before — tombstoned in the same transaction, since an entry has at most
   /// one voucher and a row nothing points at any more is not history worth keeping, it is an
   /// orphan. Mirrors `OcptLocationsService.setPermitDocument`; see that method's own doc comment
@@ -393,7 +393,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Drops journal entry [entryId]'s own reference to its voucher: the `assets` row is tombstoned.
+  /// Drop journal entry [entryId]'s own reference to its voucher: the `assets` row is tombstoned.
   /// The file itself is never touched.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -414,8 +414,8 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Creates a new commitment against [posteId], appended at the end of the commitment list's own
-  /// flat `sortKey` order, and returns its freshly generated id.
+  /// Create a new commitment against [posteId], appended at the end of the commitment list's own
+  /// flat `sortKey` order, and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createCommitment({
@@ -466,7 +466,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of commitment [commitmentId] in [database] that are passed as something
+  /// Update the fields of commitment [commitmentId] in [database] that are passed as something
   /// other than [Value.absent]. **Settlement is never written here any more** — it is read off
   /// `budget_entries.commitmentId`, not stored on this row at all: writing a payment is
   /// [OcptBudgetJournalService.createEntry] naming this commitment, and undoing one is clearing
@@ -533,7 +533,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Moves commitment [commitmentId] to [newPosition] (0-based) within the commitment list's own
+  /// Move commitment [commitmentId] to [newPosition] (0-based) within the commitment list's own
   /// flat `sortKey` order, by giving it a `sortKey` sitting between the two commitments it lands
   /// between. Writes **exactly one row**.
   ///
@@ -581,7 +581,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Tombstones commitment [commitmentId]. Nothing else in the schema ever names a commitment, so
+  /// Tombstone commitment [commitmentId]. Nothing else in the schema ever names a commitment, so
   /// unlike [deleteEntry] there is no dangling reference to clear.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -617,7 +617,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
+  /// Tombstone every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
   /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and
   /// [clearEntryReceipt] (dropping one outright). Unguarded, like `OcptLocationsService
   /// ._tombstonePermitDocument`: every caller has already refused the write on a previewed
@@ -636,7 +636,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     }
   }
 
-  /// The next voucher number [createEntry] mints: one above the highest number parsed off any
+  /// Get the next voucher number [createEntry] mints: one above the highest number parsed off any
   /// `budget_entries.voucherNumber` matching [_voucherNumberPattern] in [database], **tombstones
   /// included** — a number is never reused once handed out, even once the entry it named has since
   /// been deleted, so a fresh voucher never collides with one a paper trail elsewhere still names.
@@ -661,14 +661,14 @@ class OcptBudgetJournalService extends AbsOcptService {
     return _voucherNumberOf(highest + 1);
   }
 
-  /// Every live entry row of [database], ordered by `sortKey`.
+  /// Get every live entry row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetEntryRow>> _liveEntryRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetEntriesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live entry row [entryId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live entry row [entryId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetEntryRow?> _liveEntryRowOrNull({
     required OcptProjectDatabase database,
     required String entryId,
@@ -676,14 +676,15 @@ class OcptBudgetJournalService extends AbsOcptService {
     database.ocptBudgetEntriesTable,
   )..where((table) => table.id.equals(entryId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live commitment row of [database], ordered by `sortKey`.
+  /// Get every live commitment row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetCommitmentRow>> _liveCommitmentRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetCommitmentsTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live commitment row [commitmentId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live commitment row [commitmentId], or null if it doesn't exist or has been
+  /// tombstoned.
   Future<OcptBudgetCommitmentRow?> _liveCommitmentRowOrNull({
     required OcptProjectDatabase database,
     required String commitmentId,
@@ -691,7 +692,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     database.ocptBudgetCommitmentsTable,
   )..where((table) => table.id.equals(commitmentId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// [number], formatted as [_voucherNumberPrefix] followed by three digits at least — `J-001`,
+  /// Get [number], formatted as [_voucherNumberPrefix] followed by three digits at least — `J-001`,
   /// `J-002`, …, growing past three digits (`J-1000`) rather than wrapping once a project needs a
   /// fourth.
   static String _voucherNumberOf(int number) =>

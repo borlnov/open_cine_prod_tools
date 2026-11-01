@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// Renders the whole shoot's own shooting plan: an optional title page, the four summary grids —
+/// Render the whole shoot's own shooting plan: an optional title page, the four summary grids —
 /// locations, sequences, crew and cast, each crossing every printed day's own slots, and the
 /// elements grid crossing every printed **day** instead — and then one detailed agenda per day,
 /// hour by hour.
@@ -92,14 +92,14 @@ class OcptShootingPlanPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptShootingPlanPdfService].
+  /// Create an [OcptShootingPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptShootingPlanPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the shooting plan of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the shooting plan of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - shooting plan.pdf`); a blank one falls back to the project name alone, exactly as
@@ -107,7 +107,7 @@ class OcptShootingPlanPdfService extends AbsOcptService {
   String shootingPlanFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the shooting plan of [dayIds] (in the order given), returning the PDF's bytes.
+  /// Render the shooting plan of [dayIds] (in the order given), returning the PDF's bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as
   /// `OcptCallSheetPdfService` reads a missing day: nothing this app writes can produce one, but a
@@ -269,7 +269,8 @@ class OcptShootingPlanPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The [OcptScriptPagePainter] every page is drawn through, sharing this session's font cache.
+  /// Get the [OcptScriptPagePainter] every page is drawn through, sharing this session's font
+  /// cache.
   Future<OcptScriptPagePainter> _painterFor(OcptPageSetup pageSetup) async =>
       OcptScriptPagePainter(metrics: pageSetup.toMetrics(), fonts: await fontsLoader.load());
 
@@ -277,7 +278,8 @@ class OcptShootingPlanPdfService extends AbsOcptService {
   // Title page and empty-document note
   // ---------------------------------------------------------------------------------------------
 
-  /// The document's own title page: its name, the `"<title>" de <director>` line, and the date the
+  /// Build the document's own title page: its name, the `"<title>" de <director>` line, and the
+  /// date the
   /// export was run.
   pw.Page _titlePage({
     required OcptScriptPagePainter painter,
@@ -323,7 +325,8 @@ class OcptShootingPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// A single-note portrait page: the running head, then [text] alone — what a range with no live
+  /// Build a single-note portrait page: the running head, then [text] alone — what a range with no
+  /// live
   /// day at all, or an empty grid, prints in place of its own content.
   pw.MultiPage _notePage({
     required OcptScriptPagePainter painter,

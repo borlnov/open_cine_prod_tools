@@ -24,9 +24,9 @@ import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/ui/pages/fatal_error_page.dart';
 
-/// Owns every manager registered in the app and drives their life cycle.
+/// Own every manager registered in the app and drive their life cycle.
 class OcptGlobalManager extends AbsUiGlobalManager {
-  /// Returns the singleton instance, creating it on first access.
+  /// Return the singleton instance, creating it on first access.
   static OcptGlobalManager get instance {
     if (AbsGlobalManager.instance == null) {
       AbsGlobalManager.setInstance = OcptGlobalManager._create();
@@ -35,7 +35,7 @@ class OcptGlobalManager extends AbsUiGlobalManager {
     return AbsGlobalManager.instance! as OcptGlobalManager;
   }
 
-  /// Creates the singleton instance.
+  /// Create the singleton instance.
   OcptGlobalManager._create() : super.create();
 
   /// {@macro act_global_manager.AbsGlobalManager.registerManagers}

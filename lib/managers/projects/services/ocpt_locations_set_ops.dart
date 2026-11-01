@@ -16,8 +16,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptLocationsService` forwards to; that service documents the locations model whole.
 abstract final class OcptLocationsSetOps {
-  /// Creates a new set named [name] inside location [locationId], appended at the end of that
-  /// location's sets, and returns its freshly generated id.
+  /// Create a new set named [name] inside location [locationId], appended at the end of that
+  /// location's sets, and return its freshly generated id.
   ///
   /// The set's code is generated here and nowhere else (`ocptSetCodeOf`, the first letters no live
   /// set of the **project** already carries), exactly as `OcptElementsService.createElement`
@@ -69,7 +69,7 @@ abstract final class OcptLocationsSetOps {
     return id;
   }
 
-  /// Updates the fields of set [setId] in [database] that are passed as something other than
+  /// Update the fields of set [setId] in [database] that are passed as something other than
   /// [Value.absent].
   ///
   /// `code` is not among them, and neither is `locationId`, for the same kind of reason: a set's
@@ -112,7 +112,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Moves set [setId] to location [locationId], appended at the end of that location's sets.
+  /// Move set [setId] to location [locationId], appended at the end of that location's sets.
   ///
   /// The one column [updateSet] deliberately does not write: a set's location is what it *is*, not
   /// one of its fields, and a set moves as a whole — it leaves the sheet it was being edited on.
@@ -166,7 +166,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Tombstones set [setId] in [database], the `scene_sets` links onto it and its floor plan
+  /// Tombstone set [setId] in [database], the `scene_sets` links onto it and its floor plan
   /// (`floorPlanService.tombstoneFloorPlanRowsOfSet` — its own plan row, symbols and arrows) along
   /// with it.
   ///
@@ -224,7 +224,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Creates a new set named [name], in the same location as [sourceSetId], and returns its freshly
+  /// Create a new set named [name], in the same location as [sourceSetId], and return its freshly
   /// generated id — the "mint a Resources set" half of "duplicate this set", which
   /// `OcptShotListBloc` puts together with
   /// `OcptFloorPlanService.duplicateSet` (copying the plan) and [assignSceneToSet] (linking it to
@@ -258,7 +258,7 @@ abstract final class OcptLocationsSetOps {
     );
   }
 
-  /// Duplicates set [sourceSetId] into a fresh Resources set named [name] — in the same location,
+  /// Duplicate set [sourceSetId] into a fresh Resources set named [name] — in the same location,
   /// its plan's own set-scope symbols copied, linked to scene [sceneId] — as **one atomic
   /// operation**, run inside a single transaction: the three
   /// steps [createSiblingSet]/`floorPlanService.duplicateSet`/[assignSceneToSet]
@@ -327,7 +327,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Moves set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving
+  /// Move set [setId] to [newPosition] (0-based) within location [locationId]'s sets, by giving
   /// it a `sortKey` sitting between the two sets it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -376,7 +376,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Says scene [sceneId] is also shot in set [setId], and returns the id of the link.
+  /// Say scene [sceneId] is also shot in set [setId], and return the id of the link.
   ///
   /// A scene may be shot in **several** sets (see `OcptSceneSetsTable`), so this adds a link beside
   /// the ones the scene already carries rather than moving it: dropping a set is
@@ -443,7 +443,7 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// Removes the link saying scene [sceneId] is shot in set [setId], leaving whatever other sets
+  /// Remove the link saying scene [sceneId] is shot in set [setId], leaving whatever other sets
   /// that scene is shot in alone. A no-op when there is no such live link.
   ///
   /// Takes the two ids the caller has rather than the link's own: the set sheet lists a scene, and
@@ -490,7 +490,8 @@ abstract final class OcptLocationsSetOps {
     });
   }
 
-  /// The id of set [setId]'s own **first** live linked scene, in screenplay order — episode order
+  /// Get the id of set [setId]'s own **first** live linked scene, in screenplay order — episode
+  /// order
   /// first (`screenplays.sortKey`), then that episode's own scene order (`scenes.position`) — and
   /// the id of the episode (screenplay) it belongs to, or null while [setId] carries no live link
   /// at all. What the Resources location sheet's own `Open in shot list`
@@ -537,7 +538,7 @@ abstract final class OcptLocationsSetOps {
     return (sceneId: first.id, screenplayId: first.screenplayId);
   }
 
-  /// Tombstones every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this
+  /// Tombstone every live `scene_sets` row naming any of [sceneIds]: `scene_sets` is this
   /// service's table, not `OcptBreakdownService`'s, so its own cascade
   /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
   /// writing the table itself — the set these links point at is, of course, untouched.

@@ -29,7 +29,7 @@ class OcptCourierPrimeFonts {
   /// The bold-italic variant.
   final pw.Font boldItalic;
 
-  /// Creates an [OcptCourierPrimeFonts].
+  /// Create an [OcptCourierPrimeFonts].
   const OcptCourierPrimeFonts({
     required this.regular,
     required this.bold,
@@ -37,7 +37,8 @@ class OcptCourierPrimeFonts {
     required this.boldItalic,
   });
 
-  /// The font variant matching [bold]/[italic], mirroring how a [FountainStyledRun]'s own flags
+  /// Build the font variant matching [bold]/[italic], mirroring how a [FountainStyledRun]'s own
+  /// flags
   /// combine.
   pw.Font variant({required bool bold, required bool italic}) {
     if (bold && italic) {
@@ -52,7 +53,7 @@ class OcptCourierPrimeFonts {
     return regular;
   }
 
-  /// Reads the 4 Courier Prime TTFs from the asset bundle and decodes each into a `pw.Font`.
+  /// Read the 4 Courier Prime TTFs from the asset bundle and decode each into a `pw.Font`.
   ///
   /// The `flutter: fonts:` block in `pubspec.yaml` makes these usable as an on-screen `TextStyle`
   /// family, but does not put their raw bytes within reach of `rootBundle.load`; that requires the

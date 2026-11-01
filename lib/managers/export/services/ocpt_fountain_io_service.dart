@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_export_file_name.dart';
 import 'package:path/path.dart' as p;
 
-/// Converts a `.fountain` file's bytes to and from the plain Fountain text stored as a
+/// Convert a `.fountain` file's bytes to and from the plain Fountain text stored as a
 /// screenplay's source of truth.
 ///
 /// This is pure text/bytes logic with no I/O of its own (no dialog, no file system access): it's
@@ -32,7 +32,7 @@ class OcptFountainIoService extends AbsOcptService {
   /// Class constructor
   const OcptFountainIoService({required super.logger});
 
-  /// Decodes the bytes of a `.fountain` file into its source text.
+  /// Decode the bytes of a `.fountain` file into its source text.
   ///
   /// Decodes as UTF-8, allowing malformed sequences rather than throwing on a file this app
   /// didn't write, strips a leading byte-order mark if present, and normalises `\r\n` and `\r`
@@ -47,7 +47,7 @@ class OcptFountainIoService extends AbsOcptService {
     return text.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
   }
 
-  /// Encodes [fountainText] into the bytes of a `.fountain` file.
+  /// Encode [fountainText] into the bytes of a `.fountain` file.
   ///
   /// UTF-8, with a trailing newline appended if [fountainText] doesn't already end with one.
   Uint8List encodeFountainText(String fountainText) {
@@ -55,7 +55,7 @@ class OcptFountainIoService extends AbsOcptService {
     return Uint8List.fromList(utf8.encode(withTrailingNewline));
   }
 
-  /// The project name to suggest for a screenplay being imported from [sourceFileName].
+  /// Get the project name to suggest for a screenplay being imported from [sourceFileName].
   ///
   /// Uses [fountainText]'s title page `Title:` entry when there is one, the base name of
   /// [sourceFileName] otherwise; either way, the result is sanitised into a legal file name,
@@ -73,7 +73,7 @@ class OcptFountainIoService extends AbsOcptService {
     return sanitizedBaseName ?? _fallbackProjectName;
   }
 
-  /// The `.fountain` file name to suggest when exporting the project named [projectName].
+  /// Get the `.fountain` file name to suggest when exporting the project named [projectName].
   /// [episodeTag] is the selected episode's own tag, present only while the open project holds more
   /// than one episode — see `ocptExportFileNameOf`'s own doc comment.
   String fountainFileName({required String projectName, String? episodeTag}) =>
@@ -83,7 +83,7 @@ class OcptFountainIoService extends AbsOcptService {
         extension: fountainFileExtension,
       );
 
-  /// Trims [value], collapses internal whitespace, and drops characters illegal in file names.
+  /// Trim [value], collapse internal whitespace, and drop characters illegal in file names.
   ///
   /// Returns null if nothing usable is left, so the caller can fall back to
   /// [_fallbackProjectName].

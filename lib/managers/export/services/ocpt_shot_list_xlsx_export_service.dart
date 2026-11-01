@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders a whole shot list into the bytes of an XLSX workbook.
+/// Render a whole shot list into the bytes of an XLSX workbook.
 ///
 /// This is pure in-memory workbook building with no I/O of its own (no dialog, no file system
 /// access): it's owned by `OcptExportManager` and exposed as a public final field, reached through
@@ -42,7 +42,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
   /// Class constructor
   const OcptShotListXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the shot list of the project named
+  /// Get the `.xlsx` file name to suggest when exporting the shot list of the project named
   /// [projectName]. [episodeTag] is the selected episode's own tag, present only while the open
   /// project holds more than one episode — see `ocptExportFileNameOf`'s own doc comment.
   String xlsxFileName({required String projectName, String? episodeTag}) => ocptExportFileNameOf(
@@ -51,8 +51,8 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     extension: xlsxFileExtension,
   );
 
-  /// Builds the workbook holding [snapshot]'s whole shot list, titled and headed with [labels],
-  /// and returns its bytes.
+  /// Build the workbook holding [snapshot]'s whole shot list, titled and headed with [labels], and
+  /// return its bytes.
   ///
   /// Answers [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the
   /// caller reports as a failed export: `excel_community` returns null there rather than throwing
@@ -85,12 +85,13 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// The name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when it
+  /// Get the name to give the workbook's single sheet: [labels]'s own, or [fallbackSheetName] when
+  /// it
   /// holds nothing but whitespace.
   String _sheetNameOf(OcptShotListXlsxLabels labels) =>
       labels.sheetName.trim().isEmpty ? fallbackSheetName : labels.sheetName;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], so the workbook ends up
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], so the workbook ends up
   /// with exactly one sheet rather than the named one plus an empty `Sheet1` next to it.
   ///
   /// A no-op when the default sheet already carries that name, which is also what `rename` itself
@@ -104,7 +105,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Appends the sheet's single header row, one cell per [OcptShotListXlsxColumn], and emboldens
+  /// Append the sheet's single header row, one cell per [OcptShotListXlsxColumn], and embolden
   /// it.
   void _appendHeaderRow(Sheet sheet, OcptShotListXlsxLabels labels) {
     final headerRowIndex = sheet.maxRows;
@@ -121,7 +122,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Appends [sequence]'s separator row, then one row per shot it holds. [placementsByShotId] is
+  /// Append [sequence]'s separator row, then one row per shot it holds. [placementsByShotId] is
   /// [OcptShotListSnapshot.placementsByShotId], keyed by shot id onto every block that places it.
   void _appendSequenceRows({
     required Sheet sheet,
@@ -148,7 +149,8 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// The cell [column] holds for [shot], or null to leave it empty. [placements] is [shot]'s own
+  /// Get the cell [column] holds for [shot], or null to leave it empty. [placements] is [shot]'s
+  /// own
   /// entry of [OcptShotListSnapshot.placementsByShotId], empty while it hasn't been placed on any
   /// day yet.
   ///
@@ -184,7 +186,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     OcptShotListXlsxColumn.locationNotes => _textOrNull(shot.locationNotes),
   };
 
-  /// The set of [shot]: the heading of the scene [sequence] is built from, or the heading that
+  /// Get the set of [shot]: the heading of the scene [sequence] is built from, or the heading that
   /// scene had when it was deleted for a shot of the orphan group — a sequence *is* a screenplay
   /// scene, so its set is never stored on the shot itself.
   String? _setOf({required OcptShotSequence sequence, required OcptShot shot}) =>
@@ -193,7 +195,8 @@ class OcptShotListXlsxExportService extends AbsOcptService {
         OcptOrphanShotSequence() => shot.orphanedHeading,
       };
 
-  /// The cell holding a shot's estimated duration [milliseconds], written `mm:ss` as the app shows
+  /// Get the cell holding a shot's estimated duration [milliseconds], written `mm:ss` as the app
+  /// shows
   /// it (both halves on two digits, so a column of durations reads as one column here too), or
   /// null while the shot has no estimate yet.
   ///
@@ -213,11 +216,11 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     return TextCellValue("$minutes:$seconds");
   }
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 
-  /// The cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller
+  /// Get the cell holding [placements]'s read-out — mirroring `ocptShotPlacementLabel` for a caller
   /// with no `BuildContext`: `D3 · 2026-08-04` (the day's printed rank then its calendar date) when
   /// every placement lands on the same day, the day tags alone joined with `, ` (`D3, D5`) when
   /// they don't, or null for a shot the schedule carries no placement for at all — exactly like any
@@ -258,7 +261,7 @@ class OcptShotListXlsxExportService extends AbsOcptService {
     );
   }
 
-  /// [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
+  /// Get [date] as `yyyy-MM-dd`, mirroring `OcptResourcesXlsxExportService._isoDate`.
   String _isoDate(DateTime date) =>
       "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-"
       "${date.day.toString().padLeft(2, '0')}";

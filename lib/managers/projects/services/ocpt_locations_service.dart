@@ -80,7 +80,7 @@ class OcptLocationsService extends AbsOcptService {
     await floorPlanService.initLifeCycle();
   }
 
-  /// Loads every live location of [database], in `sortKey` order, each joined with its live
+  /// Load every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
   /// start-date order, the order they are read in rather than one the user chose) and with the
   /// document its `permitAssetId` resolves to.
@@ -158,7 +158,7 @@ class OcptLocationsService extends AbsOcptService {
     ];
   }
 
-  /// Loads every live scene of screenplay [screenplayId] in [database], in source order.
+  /// Load every live scene of screenplay [screenplayId] in [database], in source order.
   ///
   /// The resources mode reads these to offer them for a set (see [assignSceneToSet]) and to name
   /// the ones a set already holds. This service is where the read lives because `scene_sets` is
@@ -183,7 +183,7 @@ class OcptLocationsService extends AbsOcptService {
     return [for (final row in rows) OcptSceneRef.fromRow(row: row, episodeNumber: episodeNumber)];
   }
 
-  /// Creates a new location named [name] in [database], appended at the end, and returns its
+  /// Create a new location named [name] in [database], appended at the end, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -236,7 +236,7 @@ class OcptLocationsService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of location [locationId] in [database] that are passed as something other
+  /// Update the fields of location [locationId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderLocation] and [deleteLocation].
   ///
@@ -316,7 +316,7 @@ class OcptLocationsService extends AbsOcptService {
     });
   }
 
-  /// Tombstones location [locationId] in [database], its sets, the `scene_sets` links onto those
+  /// Tombstone location [locationId] in [database], its sets, the `scene_sets` links onto those
   /// sets, each set's own floor plan (`floorPlanService.tombstoneFloorPlanRowsOfSet`), its
   /// availability windows, and the `assets` rows it owns (its scouting photos and its permit
   /// document) along with it.
@@ -422,7 +422,7 @@ class OcptLocationsService extends AbsOcptService {
     });
   }
 
-  /// Moves location [locationId] to [newPosition] (0-based), by giving it a `sortKey` sitting
+  /// Move location [locationId] to [newPosition] (0-based), by giving it a `sortKey` sitting
   /// between the two locations it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -466,7 +466,7 @@ class OcptLocationsService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptLocationsSetOps.createSet].
+  /// Forward to [OcptLocationsSetOps.createSet].
   Future<String?> createSet({
     required OcptProjectDatabase database,
     required String locationId,
@@ -478,7 +478,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Creates a new set named [name] and says scene [sceneId] is shot in it, in one transaction.
+  /// Create a new set named [name] and say scene [sceneId] is shot in it, in one transaction.
   ///
   /// [locationId] names the place holding it. Passing null creates **a location of its own**, named
   /// [name] too, for the reason `OcptBreakdownService.createSetAndTag` gives from the other side: a
@@ -521,7 +521,7 @@ class OcptLocationsService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptLocationsSetOps.updateSet].
+  /// Forward to [OcptLocationsSetOps.updateSet].
   Future<void> updateSet({
     required OcptProjectDatabase database,
     required String setId,
@@ -535,7 +535,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.moveSetToLocation].
+  /// Forward to [OcptLocationsSetOps.moveSetToLocation].
   Future<void> moveSetToLocation({
     required OcptProjectDatabase database,
     required String setId,
@@ -547,7 +547,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.deleteSet].
+  /// Forward to [OcptLocationsSetOps.deleteSet].
   Future<void> deleteSet({required OcptProjectDatabase database, required String setId}) =>
       OcptLocationsSetOps.deleteSet(
         database: database,
@@ -556,7 +556,7 @@ class OcptLocationsService extends AbsOcptService {
         floorPlanService: floorPlanService,
       );
 
-  /// Forwards to [OcptLocationsSetOps.createSiblingSet].
+  /// Forward to [OcptLocationsSetOps.createSiblingSet].
   Future<String?> createSiblingSet({
     required OcptProjectDatabase database,
     required String sourceSetId,
@@ -568,7 +568,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.duplicateSetForScene].
+  /// Forward to [OcptLocationsSetOps.duplicateSetForScene].
   Future<String?> duplicateSetForScene({
     required OcptProjectDatabase database,
     required String sourceSetId,
@@ -583,7 +583,7 @@ class OcptLocationsService extends AbsOcptService {
     floorPlanService: floorPlanService,
   );
 
-  /// Forwards to [OcptLocationsSetOps.reorderSet].
+  /// Forward to [OcptLocationsSetOps.reorderSet].
   Future<void> reorderSet({
     required OcptProjectDatabase database,
     required String locationId,
@@ -597,7 +597,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.assignSceneToSet].
+  /// Forward to [OcptLocationsSetOps.assignSceneToSet].
   Future<String?> assignSceneToSet({
     required OcptProjectDatabase database,
     required String sceneId,
@@ -609,7 +609,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.removeSceneFromSet].
+  /// Forward to [OcptLocationsSetOps.removeSceneFromSet].
   Future<void> removeSceneFromSet({
     required OcptProjectDatabase database,
     required String sceneId,
@@ -621,13 +621,13 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsSetOps.firstLinkedSceneOf].
+  /// Forward to [OcptLocationsSetOps.firstLinkedSceneOf].
   Future<({String sceneId, String screenplayId})?> firstLinkedSceneOf({
     required OcptProjectDatabase database,
     required String setId,
   }) => OcptLocationsSetOps.firstLinkedSceneOf(database: database, setId: setId);
 
-  /// Forwards to [OcptLocationsReferenceOps.addAvailability].
+  /// Forward to [OcptLocationsReferenceOps.addAvailability].
   Future<String?> addAvailability({
     required OcptProjectDatabase database,
     required String locationId,
@@ -653,7 +653,7 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsReferenceOps.updateAvailability].
+  /// Forward to [OcptLocationsReferenceOps.updateAvailability].
   Future<void> updateAvailability({
     required OcptProjectDatabase database,
     required String id,
@@ -679,11 +679,11 @@ class OcptLocationsService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptLocationsReferenceOps.removeAvailability].
+  /// Forward to [OcptLocationsReferenceOps.removeAvailability].
   Future<void> removeAvailability({required OcptProjectDatabase database, required String id}) =>
       OcptLocationsReferenceOps.removeAvailability(database: database, id: id, deviceId: deviceId);
 
-  /// Forwards to [OcptLocationsReferenceOps.addLocationPhoto].
+  /// Forward to [OcptLocationsReferenceOps.addLocationPhoto].
   Future<String?> addLocationPhoto({
     required OcptProjectDatabase database,
     required String locationId,
@@ -698,7 +698,7 @@ class OcptLocationsService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptLocationsReferenceOps.setPermitDocument].
+  /// Forward to [OcptLocationsReferenceOps.setPermitDocument].
   Future<String?> setPermitDocument({
     required OcptProjectDatabase database,
     required String locationId,
@@ -713,7 +713,7 @@ class OcptLocationsService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptLocationsReferenceOps.clearPermitDocument].
+  /// Forward to [OcptLocationsReferenceOps.clearPermitDocument].
   Future<void> clearPermitDocument({
     required OcptProjectDatabase database,
     required String locationId,
@@ -724,7 +724,7 @@ class OcptLocationsService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptLocationsSetOps.tombstoneSceneSetsOfScenes].
+  /// Forward to [OcptLocationsSetOps.tombstoneSceneSetsOfScenes].
   Future<void> tombstoneSceneSetsOfScenes({
     required OcptProjectDatabase database,
     required List<String> sceneIds,

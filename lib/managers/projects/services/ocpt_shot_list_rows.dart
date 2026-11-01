@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// Stateless, so a call takes the database it reads from, the same shape every service's own
 /// private query helpers have.
 abstract final class OcptShotListRows {
-  /// Reads back the shot row [shotId], throwing if it doesn't exist or has been tombstoned.
+  /// Read back the shot row [shotId], throwing if it doesn't exist or have been tombstoned.
   static Future<OcptShotRow> getShotRow({
     required OcptProjectDatabase database,
     required String shotId,
@@ -19,7 +19,7 @@ abstract final class OcptShotListRows {
     database.ocptShotsTable,
   )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingle();
 
-  /// Reads back the shot row [shotId], or null if it doesn't exist or has been tombstoned: the
+  /// Read back the shot row [shotId], or null if it doesn't exist or have been tombstoned: the
   /// non-throwing sibling of [getShotRow], for a write that is a silent no-op on a stale id
   /// rather than a bug.
   static Future<OcptShotRow?> liveShotRowOrNull({
@@ -29,7 +29,8 @@ abstract final class OcptShotListRows {
     database.ocptShotsTable,
   )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live shot row of screenplay [screenplayId] belonging to the group [sceneId] identifies
+  /// Get every live shot row of screenplay [screenplayId] belonging to the group [sceneId]
+  /// identifies
   /// (a real scene, or the orphan group when [sceneId] is null), ordered by `sortKey`.
   static Future<List<OcptShotRow>> shotRowsOfGroup({
     required OcptProjectDatabase database,
@@ -49,7 +50,7 @@ abstract final class OcptShotListRows {
         .get();
   }
 
-  /// Every live shot id of screenplay [screenplayId], across every scene and the orphan group
+  /// Get every live shot id of screenplay [screenplayId], across every scene and the orphan group
   /// alike.
   static Future<List<String>> shotIdsOfScreenplay({
     required OcptProjectDatabase database,
@@ -61,7 +62,7 @@ abstract final class OcptShotListRows {
     return rows.map((row) => row.id).toList(growable: false);
   }
 
-  /// Every live character row of shot [shotId], ordered by `sortKey`.
+  /// Get every live character row of shot [shotId], ordered by `sortKey`.
   static Future<List<OcptShotCharacterRow>> characterRowsOfShot({
     required OcptProjectDatabase database,
     required String shotId,
@@ -71,7 +72,8 @@ abstract final class OcptShotListRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The `{shotId, roleId}` row, **tombstoned or not**, or null if that pair was never attached at
+  /// Get the `{shotId, roleId}` row, **tombstoned or not**, or null if that pair was never attached
+  /// at
   /// all: the one read that has to see through tombstones, since the primary key it looks up is
   /// what an insertion would collide with.
   static Future<OcptShotCharacterRow?> characterRow({
@@ -82,7 +84,7 @@ abstract final class OcptShotListRows {
     database.ocptShotCharactersTable,
   )..where((table) => table.shotId.equals(shotId) & table.roleId.equals(roleId))).getSingleOrNull();
 
-  /// Whether role [roleId] names a live row of [database] — the guard `attachCharacter` takes
+  /// Tell whether role [roleId] names a live row of [database] — the guard `attachCharacter` takes
   /// against being handed a role id that doesn't (or no longer) exist, since a roleId-native caller
   /// is trusted for the id's shape but not for its liveness.
   static Future<bool> liveRoleExists({

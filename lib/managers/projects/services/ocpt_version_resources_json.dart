@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 /// dictionary words and field version rows in a version's payload: one serializer and one parser
 /// per table, mirroring its columns.
 abstract final class OcptVersionResourcesJson {
-  /// Serializes one `people` row.
+  /// Serialize one `people` row.
   static Map<String, dynamic> personToJson(OcptPersonRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -62,7 +62,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonProductionKeys.mileageRateIdKey: row.mileageRateId,
   };
 
-  /// Parses one `people` row.
+  /// Parse one `people` row.
   static OcptPersonRow personFromJson(Map<String, dynamic> json) => OcptPersonRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -140,7 +140,7 @@ abstract final class OcptVersionResourcesJson {
     ),
   );
 
-  /// Serializes one `person_positions` row.
+  /// Serialize one `person_positions` row.
   static Map<String, dynamic> personPositionToJson(OcptPersonPositionRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.personIdKey: row.personId,
@@ -150,7 +150,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `person_positions` row.
+  /// Parse one `person_positions` row.
   static OcptPersonPositionRow personPositionFromJson(Map<String, dynamic> json) =>
       OcptPersonPositionRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -161,7 +161,7 @@ abstract final class OcptVersionResourcesJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `person_skills` row.
+  /// Serialize one `person_skills` row.
   static Map<String, dynamic> personSkillToJson(OcptPersonSkillRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.personIdKey: row.personId,
@@ -170,7 +170,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `person_skills` row.
+  /// Parse one `person_skills` row.
   static OcptPersonSkillRow personSkillFromJson(Map<String, dynamic> json) => OcptPersonSkillRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     personId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.personIdKey),
@@ -179,7 +179,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `person_unavailabilities` row.
+  /// Serialize one `person_unavailabilities` row.
   static Map<String, dynamic> personUnavailabilityToJson(OcptPersonUnavailabilityRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.personIdKey: row.personId,
@@ -192,7 +192,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `person_unavailabilities` row.
+  /// Parse one `person_unavailabilities` row.
   static OcptPersonUnavailabilityRow personUnavailabilityFromJson(Map<String, dynamic> json) =>
       OcptPersonUnavailabilityRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -213,7 +213,7 @@ abstract final class OcptVersionResourcesJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `roles` row.
+  /// Serialize one `roles` row.
   static Map<String, dynamic> roleToJson(OcptRoleRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.nameKey: row.name,
@@ -226,7 +226,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.castingNotesKey: row.castingNotes,
   };
 
-  /// Parses one `roles` row.
+  /// Parse one `roles` row.
   static OcptRoleRow roleFromJson(Map<String, dynamic> json) => OcptRoleRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     name: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.nameKey),
@@ -246,7 +246,7 @@ abstract final class OcptVersionResourcesJson {
     castingNotes: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.castingNotesKey),
   );
 
-  /// Serializes one `role_episodes` row: the same shape of link row `scene_sets` is
+  /// Serialize one `role_episodes` row: the same shape of link row `scene_sets` is
   /// ([sceneSetToJson]) — id, two foreign keys, tombstone, no `sortKey`, since which episodes name
   /// a role is an unordered set of answers rather than a list the user reorders
   /// (`OcptRoleEpisodesTable`'s own doc comment).
@@ -257,7 +257,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `role_episodes` row.
+  /// Parse one `role_episodes` row.
   static OcptRoleEpisodeRow roleEpisodeFromJson(Map<String, dynamic> json) => OcptRoleEpisodeRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     roleId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.roleIdKey),
@@ -265,7 +265,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `project_dictionary_words` row: id, the word as it was typed, tombstone — no
+  /// Serialize one `project_dictionary_words` row: id, the word as it was typed, tombstone — no
   /// `sortKey`, for the reason `OcptProjectDictionaryWordsTable`'s own doc comment gives (an
   /// unordered set a writer builds up, not a list they arrange).
   static Map<String, dynamic> projectDictionaryWordToJson(OcptProjectDictionaryWordRow row) => {
@@ -274,7 +274,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `project_dictionary_words` row.
+  /// Parse one `project_dictionary_words` row.
   static OcptProjectDictionaryWordRow projectDictionaryWordFromJson(Map<String, dynamic> json) =>
       OcptProjectDictionaryWordRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -282,7 +282,7 @@ abstract final class OcptVersionResourcesJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `locations` row.
+  /// Serialize one `locations` row.
   static Map<String, dynamic> locationToJson(OcptLocationRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.nameKey: row.name,
@@ -310,7 +310,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `locations` row.
+  /// Parse one `locations` row.
   static OcptLocationRow locationFromJson(Map<String, dynamic> json) => OcptLocationRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     name: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.nameKey),
@@ -351,7 +351,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `location_availabilities` row.
+  /// Serialize one `location_availabilities` row.
   static Map<String, dynamic> locationAvailabilityToJson(OcptLocationAvailabilityRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.locationIdKey: row.locationId,
@@ -366,7 +366,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `location_availabilities` row.
+  /// Parse one `location_availabilities` row.
   static OcptLocationAvailabilityRow locationAvailabilityFromJson(Map<String, dynamic> json) =>
       OcptLocationAvailabilityRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -393,7 +393,7 @@ abstract final class OcptVersionResourcesJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `sets` row.
+  /// Serialize one `sets` row.
   static Map<String, dynamic> setToJson(OcptSetRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.locationIdKey: row.locationId,
@@ -404,7 +404,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `sets` row.
+  /// Parse one `sets` row.
   static OcptSetRow setFromJson(Map<String, dynamic> json) => OcptSetRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     locationId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.locationIdKey),
@@ -415,7 +415,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `scene_sets` row.
+  /// Serialize one `scene_sets` row.
   static Map<String, dynamic> sceneSetToJson(OcptSceneSetRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sceneIdKey: row.sceneId,
@@ -423,7 +423,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `scene_sets` row.
+  /// Parse one `scene_sets` row.
   static OcptSceneSetRow sceneSetFromJson(Map<String, dynamic> json) => OcptSceneSetRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sceneId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sceneIdKey),
@@ -431,7 +431,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `elements` row.
+  /// Serialize one `elements` row.
   static Map<String, dynamic> elementToJson(OcptElementRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
@@ -456,7 +456,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.photoAssetIdKey: row.photoAssetId,
   };
 
-  /// Parses one `elements` row.
+  /// Parse one `elements` row.
   static OcptElementRow elementFromJson(Map<String, dynamic> json) => OcptElementRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
@@ -514,7 +514,7 @@ abstract final class OcptVersionResourcesJson {
     ),
   );
 
-  /// Serializes one `scene_elements` row.
+  /// Serialize one `scene_elements` row.
   static Map<String, dynamic> sceneElementToJson(OcptSceneElementRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sceneIdKey: row.sceneId,
@@ -524,7 +524,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `scene_elements` row.
+  /// Parse one `scene_elements` row.
   static OcptSceneElementRow sceneElementFromJson(Map<String, dynamic> json) => OcptSceneElementRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sceneId: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sceneIdKey),
@@ -534,7 +534,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `role_elements` row.
+  /// Serialize one `role_elements` row.
   static Map<String, dynamic> roleElementToJson(OcptRoleElementRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.roleIdKey: row.roleId,
@@ -543,7 +543,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `role_elements` row.
+  /// Parse one `role_elements` row.
   static OcptRoleElementRow roleElementFromJson(Map<String, dynamic> json) => OcptRoleElementRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     roleId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.roleIdKey),
@@ -552,7 +552,7 @@ abstract final class OcptVersionResourcesJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
   );
 
-  /// Serializes one `role_candidates` row.
+  /// Serialize one `role_candidates` row.
   static Map<String, dynamic> roleCandidateToJson(OcptRoleCandidateRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonProductionKeys.roleIdKey: row.roleId,
@@ -564,7 +564,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
   };
 
-  /// Parses one `role_candidates` row.
+  /// Parse one `role_candidates` row.
   static OcptRoleCandidateRow roleCandidateFromJson(Map<String, dynamic> json) =>
       OcptRoleCandidateRow(
         id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
@@ -584,7 +584,7 @@ abstract final class OcptVersionResourcesJson {
         isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
       );
 
-  /// Serializes one `assets` row.
+  /// Serialize one `assets` row.
   static Map<String, dynamic> assetToJson(OcptAssetRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.kindKey: row.kind.name,
@@ -601,7 +601,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonProductionKeys.validUntilKey: row.validUntil?.toIso8601String(),
   };
 
-  /// Parses one `assets` row.
+  /// Parse one `assets` row.
   static OcptAssetRow assetFromJson(Map<String, dynamic> json) => OcptAssetRow(
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     kind: OcptVersionJsonReader.readEnum(
@@ -634,7 +634,7 @@ abstract final class OcptVersionResourcesJson {
     ),
   );
 
-  /// Serializes one `row_field_versions` row.
+  /// Serialize one `row_field_versions` row.
   static Map<String, dynamic> rowFieldVersionToJson(OcptRowFieldVersionRow row) => {
     OcptVersionJsonProductionKeys.tableNameKey: row.targetTableName,
     OcptVersionJsonProductionKeys.rowIdKey: row.rowId,
@@ -643,7 +643,7 @@ abstract final class OcptVersionResourcesJson {
     OcptVersionJsonProductionKeys.deviceIdKey: row.deviceId,
   };
 
-  /// Parses one `row_field_versions` row.
+  /// Parse one `row_field_versions` row.
   static OcptRowFieldVersionRow rowFieldVersionFromJson(Map<String, dynamic> json) =>
       OcptRowFieldVersionRow(
         targetTableName: OcptVersionJsonReader.readString(

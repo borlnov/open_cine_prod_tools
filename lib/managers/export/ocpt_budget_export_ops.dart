@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 /// The export of the budget mode's four documents: each one renders its document and hands the
 /// bytes to the write funnel.
 abstract final class OcptBudgetExportOps {
-  /// Renders the quote of [snapshot] via [budgetQuotePdfService] and shows the native save dialog
+  /// Render the quote of [snapshot] via [budgetQuotePdfService] and show the native save dialog
   /// to write it out.
   ///
   /// [elementNameById] names every breakdown element a quote line prices
@@ -65,7 +65,7 @@ abstract final class OcptBudgetExportOps {
     );
   }
 
-  /// Renders the financing plan of [snapshot] via [budgetFinancingPlanPdfService] and shows the
+  /// Render the financing plan of [snapshot] via [budgetFinancingPlanPdfService] and show the
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one
@@ -103,8 +103,8 @@ abstract final class OcptBudgetExportOps {
     );
   }
 
-  /// Builds the cash journal's own XLSX workbook of [snapshot] via
-  /// [budgetCashJournalXlsxExportService] and shows the native save dialog to write it out.
+  /// Build the cash journal's own XLSX workbook of [snapshot] via
+  /// [budgetCashJournalXlsxExportService] and show the native save dialog to write it out.
   ///
   /// [linkLabelByEntryId] is the "what this entry settles" column's own text, keyed by
   /// `OcptBudgetEntry.id` and resolved by the caller — this manager has no `Tr` of its own, and
@@ -134,7 +134,7 @@ abstract final class OcptBudgetExportOps {
     shareAnchor: shareAnchor,
   );
 
-  /// Renders the financial report of [snapshot] via [budgetFinancialReportPdfService] and shows the
+  /// Render the financial report of [snapshot] via [budgetFinancialReportPdfService] and show the
   /// native save dialog to write it out.
   ///
   /// [labels] carries every localized string the document itself holds and [fileTypeLabel] the one

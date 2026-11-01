@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
-/// Reads and writes the **portable project package**: the project database plus every file it
+/// Read and write the **portable project package**: the project database plus every file it
 /// references, as one archive somebody can send.
 ///
 /// A `.ocpt` holds no bytes — a headshot, a scouting photo, a filming permit and a signed release
@@ -81,7 +81,7 @@ class OcptProjectPackageService extends AbsOcptService {
   /// Class constructor
   const OcptProjectPackageService({required super.logger});
 
-  /// Stats every file the project at [projectFilePath] references, without writing anything.
+  /// Stat every file the project at [projectFilePath] references, without writing anything.
   ///
   /// The question a package export asks before it writes a byte: continuing is the ordinary answer
   /// and skipping is honest, but it is never silent. Returns null when the file cannot be read as a
@@ -114,7 +114,7 @@ class OcptProjectPackageService extends AbsOcptService {
     return preflight;
   }
 
-  /// Writes the project at [projectFilePath] as a package at [packageFilePath], and says what
+  /// Write the project at [projectFilePath] as a package at [packageFilePath], and say what
   /// travelled.
   ///
   /// [projectName] is the project's display name, [appVersion] the version of the app writing this,
@@ -196,8 +196,8 @@ class OcptProjectPackageService extends AbsOcptService {
     return result;
   }
 
-  /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
-  /// says what landed.
+  /// Unpack the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
+  /// say what landed.
   ///
   /// This never opens the unpacked `.ocpt` through drift — see this class's own doc comment for
   /// why — so it never migrates the file it just wrote either. The caller opens it afterwards
@@ -247,7 +247,7 @@ class OcptProjectPackageService extends AbsOcptService {
     }
   }
 
-  /// Streams [manifest] and the staged database into the zip at [packageFilePath], followed by
+  /// Stream [manifest] and the staged database into the zip at [packageFilePath], followed by
   /// every file [OcptProjectPackageManifest.assets] names.
   ///
   /// Each file is added through `ZipFileEncoder.addFile`, which reads it as a stream: the two
@@ -276,7 +276,7 @@ class OcptProjectPackageService extends AbsOcptService {
     }
   }
 
-  /// Unpacks [archive], already decoded out of the package at [packageFilePath], into a new folder
+  /// Unpack [archive], already decoded out of the package at [packageFilePath], into a new folder
   /// inside [parentDirectoryPath].
   ///
   /// Split out of [readPackage] so that every way out of the unpacking — the four refusals, the
@@ -383,7 +383,7 @@ class OcptProjectPackageService extends AbsOcptService {
     return result;
   }
 
-  /// Reads and parses [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
+  /// Read and parse [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
   /// the JSON object the manifest is always written as.
   ///
   /// [OcptProjectPackageManifest.fromJson] is tolerant of a missing field (it may be reading an
@@ -413,7 +413,7 @@ class OcptProjectPackageService extends AbsOcptService {
     return OcptProjectPackageManifest.fromJson(upgraded);
   }
 
-  /// [json], a manifest read at [packageFormat], upgraded step by step up to
+  /// Get [json], a manifest read at [packageFormat], upgraded step by step up to
   /// [ocptCurrentPackageFormat] through [_packageManifestUpgrades] — a no-op today, since that map
   /// is still empty (see its own doc comment).
   ///
@@ -433,7 +433,7 @@ class OcptProjectPackageService extends AbsOcptService {
     return upgraded;
   }
 
-  /// Streams every file [archive] holds — except its manifest — onto disk under
+  /// Stream every file [archive] holds — except its manifest — onto disk under
   /// [destinationDirectory], `project.ocpt` landing at [projectFilePath] and every other entry at
   /// its own relative path underneath.
   ///
@@ -475,7 +475,7 @@ class OcptProjectPackageService extends AbsOcptService {
     return null;
   }
 
-  /// Rewrites the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
+  /// Rewrite the unpacked `.ocpt` at [projectFilePath] so every `assets` row [assets] names points
   /// at the absolute path the file now sits at under [destinationDirectory], keyed off `assetId` —
   /// never off a drift schema, exactly as [_planAndRewriteAssets] rewrites the staged copy on the
   /// way out.
@@ -513,7 +513,8 @@ class OcptProjectPackageService extends AbsOcptService {
     }
   }
 
-  /// [entryName] — a `/`-separated path as a zip entry always names one — turned into a path built
+  /// Get [entryName] — a `/`-separated path as a zip entry always names one — turned into a path
+  /// built
   /// with the platform's own separator, under [destinationDirectoryPath].
   ///
   /// A zip entry is `/`-separated on every platform that wrote it, Windows included; joining it
@@ -523,7 +524,7 @@ class OcptProjectPackageService extends AbsOcptService {
   String _nativePathForEntry(String destinationDirectoryPath, String entryName) =>
       p.joinAll([destinationDirectoryPath, ...p.posix.split(entryName)]);
 
-  /// Whether [candidatePath] resolves to somewhere inside [destinationPath] once both are
+  /// Tell whether [candidatePath] resolves to somewhere inside [destinationPath] once both are
   /// canonicalised — the zip-slip guard [_unpackEntries] checks before writing a single byte of
   /// any entry.
   ///
@@ -532,7 +533,7 @@ class OcptProjectPackageService extends AbsOcptService {
   bool _isWithinDestination(String destinationPath, String candidatePath) =>
       p.isWithin(p.canonicalize(destinationPath), p.canonicalize(candidatePath));
 
-  /// Takes every erased person back out of the staged copy's version payloads, and empties
+  /// Take every erased person back out of the staged copy's version payloads, and empty
   /// `local_erasures`.
   ///
   /// A version payload is never rewritten once captured — that rule is about the **project file**,
@@ -584,7 +585,7 @@ class OcptProjectPackageService extends AbsOcptService {
     staged.execute("DELETE FROM local_erasures");
   }
 
-  /// Decides what travels, and rewrites the staged copy's `assets` rows onto their entry inside the
+  /// Decide what travels, and rewrite the staged copy's `assets` rows onto their entry inside the
   /// package.
   ///
   /// A row whose file is gone is left exactly as it was: the import has to be able to report *which
@@ -608,7 +609,7 @@ class OcptProjectPackageService extends AbsOcptService {
     }
   }
 
-  /// Every live `assets` row of [database], or none at all when the table is not part of that
+  /// Get every live `assets` row of [database], or none at all when the table is not part of that
   /// file's schema yet.
   List<({String id, String path, String label})> _liveAssetRows(Database database) {
     if (!_hasTable(database, "assets")) {
@@ -627,13 +628,13 @@ class OcptProjectPackageService extends AbsOcptService {
     ];
   }
 
-  /// Whether the file an `assets` row references is still where the row says.
+  /// Tell whether the file an `assets` row references is still where the row says.
   ///
   /// An empty path is not a file that moved: it is a row an erasure blanked, and there is nothing
   /// there to look for or to report.
   bool _referencedFileExists(String path) => path.isNotEmpty && File(path).existsSync();
 
-  /// Whether [database] holds a table called [name].
+  /// Tell whether [database] holds a table called [name].
   ///
   /// A package can be built from a project file at any schema version, so every table this service
   /// touches beyond `assets` is asked for rather than assumed.
@@ -642,11 +643,11 @@ class OcptProjectPackageService extends AbsOcptService {
     [name],
   ).isNotEmpty;
 
-  /// The `PRAGMA user_version` of [database]: the schema version the file states about itself.
+  /// Get the `PRAGMA user_version` of [database]: the schema version the file states about itself.
   int _userVersion(Database database) =>
       database.select("PRAGMA user_version").first.values.first! as int;
 
-  /// Runs [action] against [path] opened **read-only**, and closes it whatever happens.
+  /// Run [action] against [path] opened **read-only**, and close it whatever happens.
   ///
   /// Read-only is a promise rather than a precaution: an export must never write to the project it
   /// is copying — not a page, not a WAL checkpoint, not a `user_version`. SQLite reads through
@@ -661,7 +662,7 @@ class OcptProjectPackageService extends AbsOcptService {
     }
   }
 
-  /// Deletes [directory] and everything under it, reporting a failure without raising it.
+  /// Delete [directory] and everything under it, reporting a failure without raising it.
   ///
   /// This runs in a `finally`, where throwing would replace whatever actually went wrong with a
   /// complaint about a temporary folder.

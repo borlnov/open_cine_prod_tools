@@ -41,8 +41,8 @@ class OcptExportWriteService extends AbsOcptService {
   }) : _saveLocationService = saveLocationService,
        _shareService = shareService;
 
-  /// Shows the native save dialog and writes [bytes] to the chosen location — or, on
-  /// [PlatformManager.isMobile], writes them to a `path_provider` temporary file and hands that to
+  /// Show the native save dialog and write [bytes] to the chosen location — or, on
+  /// [PlatformManager.isMobile], write them to a `path_provider` temporary file and hand that to
   /// `shareService` instead, [shareAnchor] anchoring the popover it opens as on an iPad or a Mac.
   ///
   /// Returns [OcptExportSaved] with the written path, [OcptExportShared] once the bytes were handed
@@ -85,7 +85,7 @@ class OcptExportWriteService extends AbsOcptService {
     return outcome;
   }
 
-  /// [writeToPickedLocation] for a workbook an XLSX service has just built.
+  /// Run [writeToPickedLocation] for a workbook an XLSX service has just built.
   ///
   /// A workbook that could not be encoded is logged and answered as [OcptExportFailed], before any
   /// save dialog is shown: the caller words it as a failed export, not a cancellation.
@@ -111,7 +111,7 @@ class OcptExportWriteService extends AbsOcptService {
     );
   }
 
-  /// [writeToPickedLocation]'s mobile branch: writes [bytes] to [fileName] under
+  /// Get [writeToPickedLocation]'s mobile branch: writes [bytes] to [fileName] under
   /// [OcptShareService.temporaryDirectory] and hands that file to `shareService`, anchored at
   /// [shareAnchor].
   ///
@@ -148,7 +148,7 @@ class OcptExportWriteService extends AbsOcptService {
     return outcome;
   }
 
-  /// Writes [bytes] to `[folderPath]/[fileName]`, returning whether it succeeded — logged on
+  /// Write [bytes] to `[folderPath]/[fileName]`, returning whether it succeeded — logged on
   /// failure, exactly like [writeToPickedLocation]'s own write.
   Future<bool> writeBytesInFolder({
     required String folderPath,
@@ -173,7 +173,7 @@ class OcptExportWriteService extends AbsOcptService {
     return isWritten;
   }
 
-  /// Resolves the folder `exportGeneralCallSheets`/`exportNamedCallSheets` write into: the folder
+  /// Resolve the folder `exportGeneralCallSheets`/`exportNamedCallSheets` write into: the folder
   /// the user picks through the native "choose a folder" dialog on desktop, or a `path_provider`
   /// temporary directory on mobile, where there is no such dialog to show at all.
   Future<String?> resolveCallSheetFolder({required String confirmButtonText}) async {
@@ -184,7 +184,7 @@ class OcptExportWriteService extends AbsOcptService {
     return _saveLocationService.pickDirectory(confirmButtonText: confirmButtonText);
   }
 
-  /// Finishes a call sheet run: on mobile, hands every file in [written] to the OS share sheet
+  /// Finish a call sheet run: on mobile, hands every file in [written] to the OS share sheet
   /// together, in the one gesture, anchored at [shareAnchor] — rather than leaving them sitting in
   /// the temporary folder [resolveCallSheetFolder] wrote them into. A no-op on desktop, and when
   /// [written] is empty (nothing came out of the run to share).
@@ -210,7 +210,7 @@ class OcptExportWriteService extends AbsOcptService {
     );
   }
 
-  /// [fileName], suffixed with `-2`, `-3`… while [written] or [failed] already holds it.
+  /// Get [fileName], suffixed with `-2`, `-3`… while [written] or [failed] already holds it.
   ///
   /// Two convoked people sharing one display name — or, far more likely, two whose name is still
   /// blank and which therefore both fall back to the same label — would otherwise be handed the
@@ -232,7 +232,7 @@ class OcptExportWriteService extends AbsOcptService {
     }
   }
 
-  /// The name a named call sheet's own file is built from for [convocation]: the person's own
+  /// Get the name a named call sheet's own file is built from for [convocation]: the person's own
   /// display name for a crew or cast recipient, the **candidate's** own for a candidacy — read
   /// through `plan.roleCandidateById`, the candidacy being what points at the person — and the
   /// role's own name for an uncast role, which names nobody else.

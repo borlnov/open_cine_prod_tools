@@ -120,7 +120,7 @@ class OcptPeopleService extends AbsOcptService {
     await roleCandidatesService.initLifeCycle();
   }
 
-  /// Loads every live person of [database], in `sortKey` order, each joined with its live
+  /// Load every live person of [database], in `sortKey` order, each joined with its live
   /// [OcptPersonPosition]s, [OcptPersonSkill]s and [OcptPersonUnavailability]s, and with the two
   /// files it references — the photo and the signed image rights release.
   ///
@@ -195,8 +195,8 @@ class OcptPeopleService extends AbsOcptService {
     ];
   }
 
-  /// Creates a new, blank person in [database], appended at the end of the address book, and
-  /// returns its freshly generated id.
+  /// Create a new, blank person in [database], appended at the end of the address book, and return
+  /// its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createPerson({required OcptProjectDatabase database}) async {
@@ -255,7 +255,7 @@ class OcptPeopleService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of person [personId] in [database] that are passed as something other than
+  /// Update the fields of person [personId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderPerson] and [deletePerson].
   ///
@@ -361,7 +361,7 @@ class OcptPeopleService extends AbsOcptService {
     });
   }
 
-  /// Erases person [personId] from [database]:
+  /// Erase person [personId] from [database]:
   /// tombstones the row and blanks its personal columns in the same write — see
   /// [_erasureCompanion] for exactly which ones — then records the erasure in `local_erasures`, the
   /// local, never-synchronised table that lets a later version restore refuse to resurrect this
@@ -485,7 +485,7 @@ class OcptPeopleService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptPeopleAssetOps.setPersonPhoto].
+  /// Forward to [OcptPeopleAssetOps.setPersonPhoto].
   Future<String?> setPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
@@ -500,7 +500,7 @@ class OcptPeopleService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptPeopleAssetOps.clearPersonPhoto].
+  /// Forward to [OcptPeopleAssetOps.clearPersonPhoto].
   Future<void> clearPersonPhoto({
     required OcptProjectDatabase database,
     required String personId,
@@ -511,7 +511,7 @@ class OcptPeopleService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptPeopleAssetOps.setImageRightsDocument].
+  /// Forward to [OcptPeopleAssetOps.setImageRightsDocument].
   Future<String?> setImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
@@ -526,7 +526,7 @@ class OcptPeopleService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Forwards to [OcptPeopleAssetOps.clearImageRightsDocument].
+  /// Forward to [OcptPeopleAssetOps.clearImageRightsDocument].
   Future<void> clearImageRightsDocument({
     required OcptProjectDatabase database,
     required String personId,
@@ -537,7 +537,7 @@ class OcptPeopleService extends AbsOcptService {
     assetsService: assetsService,
   );
 
-  /// Moves person [personId] to [newPosition] (0-based) within the address book, by giving it a
+  /// Move person [personId] to [newPosition] (0-based) within the address book, by giving it a
   /// `sortKey` sitting between the two people it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -581,7 +581,7 @@ class OcptPeopleService extends AbsOcptService {
     });
   }
 
-  /// Forwards to [OcptPeopleDetailOps.addPosition].
+  /// Forward to [OcptPeopleDetailOps.addPosition].
   Future<String?> addPosition({
     required OcptProjectDatabase database,
     required String personId,
@@ -595,7 +595,7 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.updatePosition].
+  /// Forward to [OcptPeopleDetailOps.updatePosition].
   Future<void> updatePosition({
     required OcptProjectDatabase database,
     required String id,
@@ -609,11 +609,11 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.removePosition].
+  /// Forward to [OcptPeopleDetailOps.removePosition].
   Future<void> removePosition({required OcptProjectDatabase database, required String id}) =>
       OcptPeopleDetailOps.removePosition(database: database, id: id, deviceId: deviceId);
 
-  /// Forwards to [OcptPeopleDetailOps.reorderPositions].
+  /// Forward to [OcptPeopleDetailOps.reorderPositions].
   Future<void> reorderPositions({
     required OcptProjectDatabase database,
     required String personId,
@@ -625,7 +625,7 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.addSkill].
+  /// Forward to [OcptPeopleDetailOps.addSkill].
   Future<String?> addSkill({
     required OcptProjectDatabase database,
     required String personId,
@@ -637,7 +637,7 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.updateSkill].
+  /// Forward to [OcptPeopleDetailOps.updateSkill].
   Future<void> updateSkill({
     required OcptProjectDatabase database,
     required String id,
@@ -645,11 +645,11 @@ class OcptPeopleService extends AbsOcptService {
   }) =>
       OcptPeopleDetailOps.updateSkill(database: database, id: id, label: label, deviceId: deviceId);
 
-  /// Forwards to [OcptPeopleDetailOps.removeSkill].
+  /// Forward to [OcptPeopleDetailOps.removeSkill].
   Future<void> removeSkill({required OcptProjectDatabase database, required String id}) =>
       OcptPeopleDetailOps.removeSkill(database: database, id: id, deviceId: deviceId);
 
-  /// Forwards to [OcptPeopleDetailOps.reorderSkills].
+  /// Forward to [OcptPeopleDetailOps.reorderSkills].
   Future<void> reorderSkills({
     required OcptProjectDatabase database,
     required String personId,
@@ -661,7 +661,7 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.addUnavailability].
+  /// Forward to [OcptPeopleDetailOps.addUnavailability].
   Future<String?> addUnavailability({
     required OcptProjectDatabase database,
     required String personId,
@@ -683,7 +683,7 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.updateUnavailability].
+  /// Forward to [OcptPeopleDetailOps.updateUnavailability].
   Future<void> updateUnavailability({
     required OcptProjectDatabase database,
     required String id,
@@ -705,11 +705,11 @@ class OcptPeopleService extends AbsOcptService {
     deviceId: deviceId,
   );
 
-  /// Forwards to [OcptPeopleDetailOps.removeUnavailability].
+  /// Forward to [OcptPeopleDetailOps.removeUnavailability].
   Future<void> removeUnavailability({required OcptProjectDatabase database, required String id}) =>
       OcptPeopleDetailOps.removeUnavailability(database: database, id: id, deviceId: deviceId);
 
-  /// Every live person row of [database], ordered by `sortKey`.
+  /// Get every live person row of [database], ordered by `sortKey`.
   Future<List<OcptPersonRow>> _liveRows(OcptProjectDatabase database) =>
       (database.select(database.ocptPeopleTable)
             ..where((table) => table.isDeleted.not())

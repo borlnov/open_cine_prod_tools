@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 /// Stateless, so a call takes the database it reads from, the same shape every service's own
 /// private query helpers have.
 abstract final class OcptScheduleRows {
-  /// Reads back the day row [dayId], throwing if it doesn't exist or has been tombstoned.
+  /// Read back the day row [dayId], throwing if it doesn't exist or have been tombstoned.
   static Future<OcptShootingDayRow> getDayRow({
     required OcptProjectDatabase database,
     required String dayId,
@@ -27,7 +27,7 @@ abstract final class OcptScheduleRows {
     database.ocptShootingDaysTable,
   )..where((table) => table.id.equals(dayId) & table.isDeleted.not())).getSingle();
 
-  /// Reads back the slot row [slotId], throwing if it doesn't exist or has been tombstoned.
+  /// Read back the slot row [slotId], throwing if it doesn't exist or have been tombstoned.
   static Future<OcptShootingSlotRow> getSlotRow({
     required OcptProjectDatabase database,
     required String slotId,
@@ -35,7 +35,7 @@ abstract final class OcptScheduleRows {
     database.ocptShootingSlotsTable,
   )..where((table) => table.id.equals(slotId) & table.isDeleted.not())).getSingle();
 
-  /// Reads back the block row [blockId], throwing if it doesn't exist or has been tombstoned.
+  /// Read back the block row [blockId], throwing if it doesn't exist or have been tombstoned.
   static Future<OcptShootingDayBlockRow> getBlockRow({
     required OcptProjectDatabase database,
     required String blockId,
@@ -43,7 +43,7 @@ abstract final class OcptScheduleRows {
     database.ocptShootingDayBlocksTable,
   )..where((table) => table.id.equals(blockId) & table.isDeleted.not())).getSingle();
 
-  /// Every live day row of the **project** — a shooting day belongs to no one episode
+  /// Get every live day row of the **project** — a shooting day belongs to no one episode
   /// (`docs/adr/0019-one-project-several-episodes.md`), the schedule being shared across every
   /// screenplay it holds — ordered by `date` ascending then `sortKey` ascending: chronologically,
   /// `sortKey` breaking the tie between two days sharing one date (a second unit), the order
@@ -57,7 +57,7 @@ abstract final class OcptScheduleRows {
             ]))
           .get();
 
-  /// Every live slot row of day [dayId], ordered by `sortKey`.
+  /// Get every live slot row of day [dayId], ordered by `sortKey`.
   static Future<List<OcptShootingSlotRow>> liveSlotRows({
     required OcptProjectDatabase database,
     required String dayId,
@@ -67,7 +67,7 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live `person_positions` row of [personId], ordered by `sortKey` — what
+  /// Get every live `person_positions` row of [personId], ordered by `sortKey` — what
   /// `addSlotCrewMember` reads to pre-fill a fresh crew row's position, written exactly as
   /// `OcptPeopleService._positionRowsOfPerson` is.
   static Future<List<OcptPersonPositionRow>> livePositionRowsOfPerson({
@@ -79,7 +79,7 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live crew row of slot [slotId], ordered by `sortKey`.
+  /// Get every live crew row of slot [slotId], ordered by `sortKey`.
   static Future<List<OcptShootingSlotCrewRow>> liveCrewRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
@@ -89,7 +89,7 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live cast row of slot [slotId], ordered by `sortKey`.
+  /// Get every live cast row of slot [slotId], ordered by `sortKey`.
   static Future<List<OcptShootingSlotCastRow>> liveCastRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
@@ -99,7 +99,8 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live block row of slot [slotId], ordered by `sortKey` — that slot's own timetable order.
+  /// Get every live block row of slot [slotId], ordered by `sortKey` — that slot's own timetable
+  /// order.
   static Future<List<OcptShootingDayBlockRow>> liveBlockRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
@@ -109,7 +110,7 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live guest row of slot [slotId], ordered by `sortKey`.
+  /// Get every live guest row of slot [slotId], ordered by `sortKey`.
   static Future<List<OcptShootingSlotGuestRow>> liveGuestRowsOfSlot({
     required OcptProjectDatabase database,
     required String slotId,
@@ -119,7 +120,7 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live candidate row of block [blockId], ordered by `sortKey`.
+  /// Get every live candidate row of block [blockId], ordered by `sortKey`.
   static Future<List<OcptShootingBlockCandidateRow>> liveCandidateRowsOfBlock({
     required OcptProjectDatabase database,
     required String blockId,
@@ -129,7 +130,8 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live block row of day [dayId], ordered by `sortKey` — the whole day's timetable, across
+  /// Get every live block row of day [dayId], ordered by `sortKey` — the whole day's timetable,
+  /// across
   /// its slots, which is what a day-wide cascade has to reach.
   static Future<List<OcptShootingDayBlockRow>> liveBlockRowsOfDay({
     required OcptProjectDatabase database,
@@ -140,7 +142,8 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live event row of day [dayId], ordered by `sortKey` — the tiebreak `loadSchedule` falls
+  /// Get every live event row of day [dayId], ordered by `sortKey` — the tiebreak `loadSchedule`
+  /// falls
   /// back on once two events share a `minute`.
   static Future<List<OcptShootingDayEventRow>> liveEventRowsOfDay({
     required OcptProjectDatabase database,
@@ -151,7 +154,8 @@ abstract final class OcptScheduleRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Day [dayId]'s own computed timelines, one chain per live slot (ADR 0015, amended twice), read
+  /// Get day [dayId]'s own computed timelines, one chain per live slot (ADR 0015, amended twice),
+  /// read
   /// straight out of [database].
   ///
   /// This service computes them for one reason only: `deleteSlot` has to know the hour a dependent
@@ -215,7 +219,7 @@ abstract final class OcptScheduleRows {
     );
   }
 
-  /// Tombstones every `shooting_block_candidates` row hanging off [blockIds], and does nothing at
+  /// Tombstone every `shooting_block_candidates` row hanging off [blockIds], and do nothing at
   /// all when that list is empty.
   ///
   /// The cascade a block's own deletion owes its candidacies, written once because three callers

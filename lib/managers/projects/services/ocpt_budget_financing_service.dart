@@ -35,13 +35,13 @@ class OcptBudgetFinancingService extends AbsOcptService {
   /// Class constructor
   const OcptBudgetFinancingService({required super.logger, required this.deviceId});
 
-  /// Loads every live resource of [database], in `sortKey` order.
+  /// Load every live resource of [database], in `sortKey` order.
   Future<List<OcptBudgetResource>> loadResources({required OcptProjectDatabase database}) async {
     final rows = await _liveResourceRows(database);
     return [for (final row in rows) OcptBudgetResource.fromRow(row)];
   }
 
-  /// Creates a new resource named [label], appended at the end of the financing plan, and returns
+  /// Create a new resource named [label], appended at the end of the financing plan, and return
   /// its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -84,7 +84,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of resource [resourceId] in [database] that are passed as something other
+  /// Update the fields of resource [resourceId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderResource] and [deleteResource].
   ///
@@ -133,7 +133,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Moves resource [resourceId] to [newPosition] (0-based) within the financing plan's own flat
+  /// Move resource [resourceId] to [newPosition] (0-based) within the financing plan's own flat
   /// `sortKey` order, by giving it a `sortKey` sitting between the two resources it lands between.
   /// Writes **exactly one row**.
   ///
@@ -178,7 +178,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Tombstones resource [resourceId].
+  /// Tombstone resource [resourceId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -210,7 +210,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Loads every live mileage rate of [database], in `sortKey` order.
+  /// Load every live mileage rate of [database], in `sortKey` order.
   Future<List<OcptBudgetMileageRate>> loadMileageRates({
     required OcptProjectDatabase database,
   }) async {
@@ -218,7 +218,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     return [for (final row in rows) OcptBudgetMileageRate.fromRow(row)];
   }
 
-  /// Creates a new mileage rate named [label], appended at the end of the list, and returns its
+  /// Create a new mileage rate named [label], appended at the end of the list, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -257,7 +257,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of mileage rate [rateId] in [database] that are passed as something other
+  /// Update the fields of mileage rate [rateId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderMileageRate] and [deleteMileageRate].
   ///
@@ -296,7 +296,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Moves mileage rate [rateId] to [newPosition] (0-based) within the list's own flat `sortKey`
+  /// Move mileage rate [rateId] to [newPosition] (0-based) within the list's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two rates it lands between. Writes
   /// **exactly one row**.
   ///
@@ -340,7 +340,7 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Tombstones mileage rate [rateId].
+  /// Tombstone mileage rate [rateId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -372,14 +372,14 @@ class OcptBudgetFinancingService extends AbsOcptService {
     });
   }
 
-  /// Every live resource row of [database], ordered by `sortKey`.
+  /// Get every live resource row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetResourceRow>> _liveResourceRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetResourcesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live resource row [resourceId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live resource row [resourceId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetResourceRow?> _liveResourceRowOrNull({
     required OcptProjectDatabase database,
     required String resourceId,
@@ -387,14 +387,14 @@ class OcptBudgetFinancingService extends AbsOcptService {
     database.ocptBudgetResourcesTable,
   )..where((table) => table.id.equals(resourceId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live mileage rate row of [database], ordered by `sortKey`.
+  /// Get every live mileage rate row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetMileageRateRow>> _liveMileageRateRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetMileageRatesTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live mileage rate row [rateId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live mileage rate row [rateId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetMileageRateRow?> _liveMileageRateRowOrNull({
     required OcptProjectDatabase database,
     required String rateId,

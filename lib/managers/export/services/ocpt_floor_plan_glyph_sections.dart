@@ -16,7 +16,8 @@ import 'package:pdf/pdf.dart';
 ///
 /// Stateless painters over a page layout.
 abstract final class OcptFloorPlanGlyphSections {
-  /// A character's own filled disc, in its own derived colour (`ocptFloorPlanCharacterColourOf` —
+  /// Paint a character's own filled disc, in its own derived colour
+  /// (`ocptFloorPlanCharacterColourOf` —
   /// resolved once, into [OcptFloorPlanSymbolShape.colorArgb], by `OcptFloorPlanSheet`), never
   /// white: a [ocptFloorPlanCharacterDiscFillAlpha] fill with a [ocptFloorPlanCharacterStrokeWidth]
   /// stroke, both in that same colour, plus a facing indicator (a short rim notch and two forward
@@ -84,7 +85,8 @@ abstract final class OcptFloorPlanGlyphSections {
     canvas.strokePath();
   }
 
-  /// A camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is set, its
+  /// Paint a camera's own body, lens and, while [OcptFloorPlanSymbolShape.cameraFovWedgeDeg] is
+  /// set, its
   /// field-of-view wedge — a cone [OcptFloorPlanSymbolShape.cameraFovWedgeReachM] **deep** (its own
   /// axial height, falling back to [ocptFloorPlanPdfCameraFovWedgeLengthM] when null), spanning
   /// that angle at that fixed depth (its far chord's own half-width is `depth * tan(halfAngle)`, so
@@ -167,7 +169,8 @@ abstract final class OcptFloorPlanGlyphSections {
       ..strokePath();
   }
 
-  /// A light/projector's own body, barn doors and a warm beam [ocptFloorPlanLightBeamLengthM] long,
+  /// Paint a light/projector's own body, barn doors and a warm beam [ocptFloorPlanLightBeamLengthM]
+  /// long,
   /// pointing the symbol's own "up" (see [OcptFloorPlanShapeSections.localPointGraphics]'s own doc
   /// comment).
   static void paintLightGlyph({
@@ -232,7 +235,7 @@ abstract final class OcptFloorPlanGlyphSections {
       ..strokePath();
   }
 
-  /// A décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
+  /// Paint a décor symbol's own typed primitive: [OcptFloorPlanSetElementShape.wall] a thick filled
   /// segment, [OcptFloorPlanSetElementShape.door] an open-sided frame plus its own swing arc,
   /// [OcptFloorPlanSetElementShape.furniture] a filled, stroked rectangle in its own colour
   /// (today's generic look, kept for this one shape — the previous, undifferentiated footprint this
@@ -312,7 +315,8 @@ abstract final class OcptFloorPlanGlyphSections {
     }
   }
 
-  /// A door's own frame — its opening rect, tinted; three of its own four sides (the fourth is the
+  /// Paint a door's own frame — its opening rect, tinted; three of its own four sides (the fourth
+  /// is the
   /// opening); and its swing arc, a quarter circle traced from its own hinge (the rect's own
   /// bottom-left corner pre-rotation, [points]`[3]`) with a short polyline rather than
   /// `PdfGraphics.bezierArc` (an SVG-style arc whose parameters this simple quarter-turn does not

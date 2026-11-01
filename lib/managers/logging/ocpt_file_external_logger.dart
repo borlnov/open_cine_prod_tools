@@ -13,13 +13,13 @@ import 'package:path/path.dart' as p;
 /// [OcptFileExternalLogger.logFilePath] always points at.
 const _latestLogFileName = 'ocpt.log';
 
-/// Converts a [LogsLevel] to the `logger` package's own [Level].
+/// Convert a [LogsLevel] to the `logger` package's own [Level].
 ///
 /// Mirrors `act_logger_manager`'s own `ExtLogsLevel.toLoggerLevel` extension, which is not part of
 /// that package's public API (its barrel file does not export `ext_logs_level.dart`), so the
 /// conversion is duplicated here rather than reaching into its `src/`.
 extension _ToLoggerLevel on LogsLevel {
-  /// The `logger` package [Level] equivalent to this [LogsLevel].
+  /// Get the `logger` package [Level] equivalent to this [LogsLevel].
   Level get toLoggerLevel => switch (this) {
     LogsLevel.all => Level.all,
     LogsLevel.trace => Level.trace,
@@ -32,7 +32,7 @@ extension _ToLoggerLevel on LogsLevel {
   };
 }
 
-/// Converts a `logger` package [Level] back to a [LogsLevel] — the reverse of [_ToLoggerLevel],
+/// Convert a `logger` package [Level] back to a [LogsLevel] — the reverse of [_ToLoggerLevel],
 /// used only to format a line's level marker. [OcptFileExternalLogger] never itself hands the
 /// `logger` package a deprecated [Level] (`verbose`, `wtf`, `nothing`), so those fall through to
 /// the wildcard rather than being matched by name.
@@ -64,13 +64,13 @@ class _OcptFileLogMessage {
   const _OcptFileLogMessage({required this.message, required this.categories});
 }
 
-/// Filters by [minLevel] alone, with no release-mode gating unlike the console logger's own
+/// Filter by [minLevel] alone, with no release-mode gating unlike the console logger's own
 /// filter: a crash-survivable file is exactly what a release build most needs.
 class _OcptFileLogFilter extends LogFilter {
-  /// The minimum [LogsLevel] this filter lets through.
+  /// Get the minimum [LogsLevel] this filter lets through.
   LogsLevel get minLevel => _logsLevelFromLoggerLevel(level ?? Level.all);
 
-  /// Sets the minimum [LogsLevel] this filter lets through.
+  /// Set the minimum [LogsLevel] this filter lets through.
   set minLevel(LogsLevel value) => level = value.toLoggerLevel;
 
   /// Class constructor
@@ -83,7 +83,7 @@ class _OcptFileLogFilter extends LogFilter {
   bool shouldLog(LogEvent event) => level == null || event.level.index >= level!.index;
 }
 
-/// Formats each line the same way `act_logger_manager`'s own `DefaultLogPrinter` formats a
+/// Format each line the same way `act_logger_manager`'s own `DefaultLogPrinter` formats a
 /// console line, through the public `LogFormatUtility.formatLogMessages`.
 class _OcptFileLogPrinter extends LogPrinter {
   /// {@macro logger.LogPrinter.log}
@@ -134,7 +134,7 @@ class OcptFileExternalLogger
   /// The log filter used to filter the log messages based on their level.
   late final _OcptFileLogFilter _logFilter;
 
-  /// The path of the file currently being written to — what an "open the log file" affordance
+  /// Get the path of the file currently being written to — what an "open the log file" affordance
   /// would open.
   String get logFilePath => p.join(logDirectoryPath, _latestLogFileName);
 
@@ -146,7 +146,7 @@ class OcptFileExternalLogger
   @override
   set minLevel(LogsLevel value) => _logFilter.minLevel = value;
 
-  /// Creates a file external logger writing under [logDirectoryPath], starting at [minLevel].
+  /// Create a file external logger writing under [logDirectoryPath], starting at [minLevel].
   ///
   /// [logDirectoryPath] is injectable so a test can point it at a temporary directory instead of
   /// the real per-platform application support directory `OcptFileLoggingManager` resolves it

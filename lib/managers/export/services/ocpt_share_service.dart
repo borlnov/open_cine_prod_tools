@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Hands an export's bytes to the OS share sheet — mobile's only avenue for getting them anywhere,
+/// Hand an export's bytes to the OS share sheet — mobile's only avenue for getting them anywhere,
 /// `file_selector`'s `getSaveLocation`/`getDirectoryPath` having no Android or iOS implementation.
 ///
 /// Pure `package:path_provider`/`package:share_plus` wrapper, owned by `OcptExportManager` as a
@@ -20,10 +20,10 @@ class OcptShareService extends AbsOcptService {
   /// Class constructor
   const OcptShareService({required super.logger});
 
-  /// Resolves a writable, per-run temporary directory the share sheet's own files are staged into.
+  /// Resolve a writable, per-run temporary directory the share sheet's own files are staged into.
   Future<Directory> temporaryDirectory() => getTemporaryDirectory();
 
-  /// Shows the OS share sheet for the files at [paths], all in the one gesture.
+  /// Show the OS share sheet for the files at [paths], all in the one gesture.
   ///
   /// [sharePositionOrigin] anchors the popover the share sheet opens as on an iPad or a Mac; the OS
   /// call throws there without one, which is why every `OcptExportManager` export method threads

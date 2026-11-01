@@ -25,7 +25,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// Renders the floor plans of a shot list: per sequence, per linked set, one page per shot that has
+/// Render the floor plans of a shot list: per sequence, per linked set, one page per shot that has
 /// a camera placed on it — the set drawn in that shot's own focus, no ghosts — or, for a set no
 /// shot has a camera on, one page of its bare décor.
 ///
@@ -62,14 +62,14 @@ class OcptFloorPlanPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptFloorPlanPdfService].
+  /// Create an [OcptFloorPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptFloorPlanPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the floor plans of [projectName]. See
+  /// Get the `.pdf` file name to suggest when exporting the floor plans of [projectName]. See
   /// `OcptScenarioCoveragePdfService.coverageFileName`'s own doc comment for [suffix] and
   /// [episodeTag].
   String floorPlansFileName({
@@ -83,7 +83,7 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     extension: "pdf",
   );
 
-  /// Renders the floor plans of [snapshot]/[floorPlanSnapshot], returning the PDF's bytes.
+  /// Render the floor plans of [snapshot]/[floorPlanSnapshot], returning the PDF's bytes.
   ///
   /// [pageSetup] supplies the page geometry (and, through it, the Courier Prime the running head
   /// and every label print in). The orphan group contributes nothing: a floor plan's tabs come
@@ -118,7 +118,8 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// Every page [sequence]'s own linked sets print, in tab order — one page per shot with a camera,
+  /// Get every page [sequence]'s own linked sets print, in tab order — one page per shot with a
+  /// camera,
   /// or one bare-décor page for a set with none.
   ///
   /// Public so `OcptStoryboardPdfService` can append the very same pages after a sequence's own
@@ -155,7 +156,8 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     return pages;
   }
 
-  /// The pages [floorPlanSet] itself contributes: one per shot of [sequence] holding a live camera
+  /// Get the pages [floorPlanSet] itself contributes: one per shot of [sequence] holding a live
+  /// camera
   /// on it, in the sequence's own order, or exactly one bare-décor page when none does.
   /// [underlayImage] is the set's own underlay, already resolved by [pagesOfSequence], or null
   /// while it has none placed or its file could not be read/decoded — the same image (or absence)
@@ -219,7 +221,8 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     ];
   }
 
-  /// [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file, or
+  /// Get [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file,
+  /// or
   /// cannot be decoded — the same normal state (ADR 0013) `OcptStoryboardPdfService` reads a
   /// panel's own image through.
   Future<pw.MemoryImage?> _readImageOrNull(String? path) async {
@@ -242,7 +245,8 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     return image;
   }
 
-  /// One page: the running head, the sequence/set title band, the shot's own key information (or
+  /// Build one page: the running head, the sequence/set title band, the shot's own key information
+  /// (or
   /// the bare-décor note), then [sheet] drawn to fill the rest of the page.
   ///
   /// The canvas area is a [pw.Stack] over one shared layout ([OcptFloorPlanPageLayout]): the
@@ -342,7 +346,7 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     );
   }
 
-  /// The running head every page carries: the project and the document's own name.
+  /// Build the running head every page carries: the project and the document's own name.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required OcptFloorPlanLabels labels,
@@ -356,7 +360,8 @@ class OcptFloorPlanPdfService extends AbsOcptService {
     ),
   );
 
-  /// [shot]'s own key-information line: its code, then every field [labels] names, dash-separated.
+  /// Get [shot]'s own key-information line: its code, then every field [labels] names,
+  /// dash-separated.
   String _keyInfoLineOf(OcptFloorPlanLabels labels, OcptShot shot) {
     final cast = shot.characters.isEmpty ? "—" : shot.characters.join(", ");
     return "${shot.code}  ·  ${labels.shotSizeLabel}: ${_orDash(shot.shotSize)}  ·  "
@@ -367,6 +372,6 @@ class OcptFloorPlanPdfService extends AbsOcptService {
         "${labels.castLabel}: $cast  ·  ${labels.labelOfStatus(shot.status)}";
   }
 
-  /// [value] if it holds anything other than whitespace, an em dash otherwise.
+  /// Get [value] if it holds anything other than whitespace, an em dash otherwise.
   String _orDash(String value) => value.trim().isEmpty ? "—" : value;
 }

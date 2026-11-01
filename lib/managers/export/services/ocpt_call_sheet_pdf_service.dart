@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// Renders a shooting day's call sheet — the general one, following the reference `.docx` section
+/// Render a shooting day's call sheet — the general one, following the reference `.docx` section
 /// by section, and the named one, one per convoked person or uncast role.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
@@ -104,18 +104,18 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptCallSheetPdfService].
+  /// Create an [OcptCallSheetPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptCallSheetPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name of the general call sheet of day [dayNumber] (`FDS-J2.pdf`).
+  /// Get the `.pdf` file name of the general call sheet of day [dayNumber] (`FDS-J2.pdf`).
   String callSheetFileName({required OcptCallSheetLabels labels, required int dayNumber}) =>
       "${labels.fileNamePrefix}-${labels.dayTagPrefix}$dayNumber.pdf";
 
-  /// The `.pdf` file name of the named call sheet of day [dayNumber] for [personName]
+  /// Get the `.pdf` file name of the named call sheet of day [dayNumber] for [personName]
   /// (`FDS-J2-Elisa-Mabit.pdf`).
   ///
   /// [personName] is sanitized through [ocptCallSheetSafeFileNamePart] — diacritics folded, unsafe
@@ -136,7 +136,7 @@ class OcptCallSheetPdfService extends AbsOcptService {
     return suffix.isEmpty ? "$base.pdf" : "$base-$suffix.pdf";
   }
 
-  /// Renders the general call sheet of [dayId]: the whole day's own paperwork, following the
+  /// Render the general call sheet of [dayId]: the whole day's own paperwork, following the
   /// reference `.docx` section by section (§A of the reference note this service was built
   /// against).
   ///
@@ -318,7 +318,7 @@ class OcptCallSheetPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// Renders the named call sheet of [convocation] on [dayId]: the same day header, their own
+  /// Render the named call sheet of [convocation] on [dayId]: the same day header, their own
   /// arrival/PAT/departure band, their own "to bring" section, the crew note, the day's own events,
   /// the location(s) and blocks of their own slots alone, the sun block, the key contacts — then
   /// the day's own cast table, crew list, cast-and-extras list and trailing guest table, exactly as
@@ -575,7 +575,8 @@ class OcptCallSheetPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// The sections [generateGeneralCallSheet] builds in this exact order, up to and including the
+  /// Build the sections [generateGeneralCallSheet] builds in this exact order, up to and including
+  /// the
   /// sun block, over widget builders every one of which is shared with [generateNamedCallSheet] too
   /// (the title block, the day heading, the crew note, the day's own events, the location(s) and
   /// the sun block): only the *composition* differs between the two generators, called out inline
@@ -658,11 +659,13 @@ class OcptCallSheetPdfService extends AbsOcptService {
     ),
   ];
 
-  /// The [OcptScriptPagePainter] every sheet is drawn through, sharing this session's font cache.
+  /// Get the [OcptScriptPagePainter] every sheet is drawn through, sharing this session's font
+  /// cache.
   Future<OcptScriptPagePainter> _painterFor(OcptPageSetup pageSetup) async =>
       OcptScriptPagePainter(metrics: pageSetup.toMetrics(), fonts: await fontsLoader.load());
 
-  /// One sheet's own [pw.MultiPage], carrying the running head naming the project and the document,
+  /// Build one sheet's own [pw.MultiPage], carrying the running head naming the project and the
+  /// document,
   /// then [children] — the same shape `OcptBreakdownSheetsPdfService._sheetPage` uses, for the same
   /// reason: a busy day's own sheet is free to run onto a second page rather than print off the
   /// bottom of the first.

@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_plan_xlsx_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_xlsx_export_status.dart';
 
-/// Renders the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
+/// Render the whole shoot's own shooting plan into the bytes of an XLSX workbook: the same four
 /// summary grids `OcptShootingPlanPdfService` prints as landscape pages — `Locations`, `Sequences`,
 /// `Crew and cast`, `Elements` — as one sheet each, plus a fifth, `Chronology`, one row per block
 /// over the whole printed range in shooting order. The reference document *is* a spreadsheet the
@@ -73,7 +73,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
   /// Class constructor
   const OcptShootingPlanXlsxExportService({required super.logger});
 
-  /// The `.xlsx` file name to suggest when exporting the shooting plan of the project named
+  /// Get the `.xlsx` file name to suggest when exporting the shooting plan of the project named
   /// [projectName], with [suffix] appended, mirroring
   /// `OcptResourcesXlsxExportService.xlsxFileName`.
   String xlsxFileName({required String projectName, required String suffix}) {
@@ -85,7 +85,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
         : "$projectName - $trimmedSuffix.$extension";
   }
 
-  /// Builds the workbook of [plan] over [dayIds], titled and headed with [labels], and returns its
+  /// Build the workbook of [plan] over [dayIds], titled and headed with [labels], and return its
   /// bytes.
   ///
   /// A [dayIds] entry naming no live day of [plan] is silently skipped, exactly as
@@ -162,10 +162,10 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     return ResultWithStatus(status: OcptXlsxExportStatus.ok, value: Uint8List.fromList(bytes));
   }
 
-  /// [name] if it holds anything other than whitespace, [fallback] otherwise.
+  /// Get [name] if it holds anything other than whitespace, [fallback] otherwise.
   String _sheetNameOr(String name, String fallback) => name.trim().isEmpty ? fallback : name;
 
-  /// Renames the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
+  /// Rename the sheet [Excel.createExcel] starts from to [sheetName], so the workbook doesn't end
   /// up with the named sheet plus an empty `Sheet1` next to it. A no-op when the default sheet
   /// already carries that name.
   void _renameDefaultSheet(Excel excel, String sheetName) {
@@ -177,7 +177,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     excel.rename(defaultSheetName, sheetName);
   }
 
-  /// Emboldens every cell of row [rowIndex], from column 0 up to (but excluding) [columnCount].
+  /// Embolden every cell of row [rowIndex], from column 0 up to (but excluding) [columnCount].
   void _boldRow(Sheet sheet, int rowIndex, int columnCount) {
     for (var columnIndex = 0; columnIndex < columnCount; columnIndex++) {
       sheet
@@ -188,7 +188,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Writes one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
+  /// Write one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
   /// into [sheet]: a bold day-tag row (a day's tag printed once above the first of its own slot
   /// columns, mirroring `OcptShootingPlanGridSections.gridPage`'s own header), a bold slot-label
   /// row, then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent
@@ -231,7 +231,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Writes the elements summary grid into [sheet]: a bold day header row (one column per
+  /// Write the elements summary grid into [sheet]: a bold day header row (one column per
   /// [OcptShootingPlanGrids.dayColumns] entry, unlike the three slot-shaped grids' own two-row
   /// header, this grid having no second, slot-label row to draw), then [rows] — an
   /// [OcptShootingPlanElementsGridCategoryBand] as its own bold, single-cell row and an
@@ -263,7 +263,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Writes the `Chronology` sheet into [sheet]: one header row, then one row per block of every
+  /// Write the `Chronology` sheet into [sheet]: one header row, then one row per block of every
   /// live day of [dayIds], in the order given, each day's own blocks in shooting order
   /// (`ocptOrderedScheduleEntriesOfDay`) — see the class doc comment for why that walk is read
   /// rather than reimplemented, and for why a day with no live slot at all contributes no row.
@@ -295,7 +295,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     }
   }
 
-  /// Appends [sheet]'s single header row, one cell per value of [columns], and emboldens it —
+  /// Append [sheet]'s single header row, one cell per value of [columns], and embolden it —
   /// mirrors `OcptBreakdownXlsxExportService._appendHeaderRow`.
   void _appendHeaderRow<T>(Sheet sheet, List<T> columns, String Function(T column) headerOf) {
     final headerRowIndex = sheet.maxRows;
@@ -303,7 +303,8 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     _boldRow(sheet, headerRowIndex, columns.length);
   }
 
-  /// The cell [column] holds for [ordered]'s own row of the `Chronology` sheet, scoped to [day].
+  /// Get the cell [column] holds for [ordered]'s own row of the `Chronology` sheet, scoped to
+  /// [day].
   CellValue? _chronologyCellOf({
     required OcptShootingPlanXlsxColumn column,
     required OcptShootingDay day,
@@ -332,7 +333,8 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     };
   }
 
-  /// [block]'s own shot's code, or null while [block] is not a [OcptShootingBlockKind.shot] one, or
+  /// Get [block]'s own shot's code, or null while [block] is not a [OcptShootingBlockKind.shot]
+  /// one, or
   /// names a shot [plan] no longer holds.
   String? _shotCodeOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {
@@ -341,7 +343,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     return plan.shotById(block.shotId!)?.code;
   }
 
-  /// The heading of the sequence [block] concerns: a [OcptShootingBlockKind.shot] block's own
+  /// Get the heading of the sequence [block] concerns: a [OcptShootingBlockKind.shot] block's own
   /// shot's scene, a [OcptShootingBlockKind.hold] block's own [OcptShootingDayBlock.sceneId] — the
   /// column [ocptScheduleBlockCaptionOf] itself reads for a hold's own caption — or null for every
   /// other kind, which concerns no sequence at all.
@@ -355,13 +357,13 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     return sceneId == null ? null : plan.headingBySceneId[sceneId];
   }
 
-  /// [slot]'s own set name, or null while it names none.
+  /// Get [slot]'s own set name, or null while it names none.
   String? _setNameOf(OcptShootingSlot slot, OcptSchedulePlanSnapshot plan) {
     final setId = slot.setId;
     return setId == null ? null : plan.setById[setId]?.name;
   }
 
-  /// The role names of every one of [block]'s own shot's `characters` matched against
+  /// Get the role names of every one of [block]'s own shot's `characters` matched against
   /// [plan]'s own roles (through `normalizeCharacterName`, the same join
   /// `OcptShootingPlanDaySections.roleNamesOf` uses for the day agenda's own `Perso.` column), or
   /// null for a block that is not a [OcptShootingBlockKind.shot] one or matches no role at all.
@@ -390,7 +392,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
     return sorted.join(", ");
   }
 
-  /// A text cell holding [value], or null when it is null or holds nothing but whitespace.
+  /// Get a text cell holding [value], or null when it is null or holds nothing but whitespace.
   CellValue? _textOrNull(String? value) =>
       value == null || value.trim().isEmpty ? null : TextCellValue(value);
 }

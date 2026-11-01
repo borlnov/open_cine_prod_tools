@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_coverage_range.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_check_reason.dart';
 import 'package:uuid/uuid.dart';
 
-/// Adds, removes and clears a shot's scenario coverage ranges, and keeps them honest against the
+/// Add, remove and clear a shot's scenario coverage ranges, and keep them honest against the
 /// screenplay's actual text.
 ///
 /// **Digest.** `coveredTextDigest` columns store [digestOf] a range's exact covered substring: the
@@ -46,8 +46,8 @@ class OcptShotCoverageService extends AbsOcptService {
   /// Class constructor
   const OcptShotCoverageService({required super.logger, required this.deviceId});
 
-  /// Adds a coverage range covering the scene-relative `[startOffset, endOffset)` of scene
-  /// [sceneId] to shot [shotId], **merged with every range of that shot it joins**, and returns
+  /// Add a coverage range covering the scene-relative `[startOffset, endOffset)` of scene [sceneId]
+  /// to shot [shotId], **merged with every range of that shot it joins**, and return
   /// the id of the range that ends up holding it.
   ///
   /// [sceneText] is scene [sceneId]'s own current text, the string the offsets are relative to: it
@@ -167,7 +167,7 @@ class OcptShotCoverageService extends AbsOcptService {
     return id;
   }
 
-  /// Removes the single coverage range [rangeId].
+  /// Remove the single coverage range [rangeId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -198,7 +198,7 @@ class OcptShotCoverageService extends AbsOcptService {
     });
   }
 
-  /// Removes every coverage range of shot [shotId]: the inspector's `Clear all` action.
+  /// Remove every coverage range of shot [shotId]: the inspector's `Clear all` action.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -234,7 +234,7 @@ class OcptShotCoverageService extends AbsOcptService {
     });
   }
 
-  /// Re-checks every coverage range of screenplay [screenplayId] against [currentFountainText] (the
+  /// Re-check every coverage range of screenplay [screenplayId] against [currentFountainText] (the
   /// text just saved, after `OcptSceneIndexService.reconcile` has refreshed the scenes'
   /// `charStart`/`charEnd` from it), flagging the owning shot of any range that disagrees.
   ///
@@ -356,7 +356,7 @@ class OcptShotCoverageService extends AbsOcptService {
     });
   }
 
-  /// Clears `needsCheck`/`checkReason` on shot [shotId] and re-stamps every one of its coverage
+  /// Clear `needsCheck`/`checkReason` on shot [shotId] and re-stamp every one of its coverage
   /// ranges' digests to [currentFountainText], so the shot goes quiet until the next real change.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -414,7 +414,8 @@ class OcptShotCoverageService extends AbsOcptService {
     });
   }
 
-  /// The ids of every shot (other than [excludingShotId], when given) that has a coverage range of
+  /// Get the ids of every shot (other than [excludingShotId], when given) that has a coverage range
+  /// of
   /// scene [sceneId] overlapping the scene-relative `[startOffset, endOffset)` range — the
   /// inspector's "also covered by" set for a block or sub-range of one.
   Future<List<String>> shotIdsCoveringRange({
@@ -442,10 +443,10 @@ class OcptShotCoverageService extends AbsOcptService {
     return overlappingShotIds.toList(growable: false);
   }
 
-  /// The hex SHA-256 digest of [text]'s UTF-8 bytes.
+  /// Get the hex SHA-256 digest of [text]'s UTF-8 bytes.
   static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 
-  /// Whether [range] disagrees with [sceneText] (its owning scene's current, already-sliced
+  /// Tell whether [range] disagrees with [sceneText] (its owning scene's current, already-sliced
   /// text): either it no longer fits inside `[0, sceneText.length)` at all, or the substring it
   /// covers no longer digests to [OcptShotCoverageRange.coveredTextDigest].
   ///
@@ -464,7 +465,7 @@ class OcptShotCoverageService extends AbsOcptService {
     return digestOf(coveredSubstring) != range.coveredTextDigest;
   }
 
-  /// Whether two scene-relative ranges join: they overlap, they touch end to end, or the only
+  /// Tell whether two scene-relative ranges join: they overlap, they touch end to end, or the only
   /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
   /// is not worth keeping two ranges apart over.
   static bool _joins({
@@ -487,7 +488,7 @@ class OcptShotCoverageService extends AbsOcptService {
     return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
   }
 
-  /// Sets `reasonByShotId[shotId]` to [reason], unless it already holds
+  /// Set `reasonByShotId[shotId]` to [reason], unless it already holds
   /// [OcptShotCheckReason.coverageOutOfBounds]: that reason always wins over
   /// [OcptShotCheckReason.coveredTextChanged] when a shot has ranges disagreeing for both causes.
   static void _upgradeReason(

@@ -27,7 +27,7 @@ const double _titleFontSizePt = 24;
 /// The title page's credit/author/contact/draft-date font size, in points.
 const double _titleMetaFontSizePt = ocptScriptBodyFontSizePt;
 
-/// Draws the pages a screenplay document itself is made of — its title page and its composed
+/// Draw the pages a screenplay document itself is made of — its title page and its composed
 /// script pages — into `pdf` package pages.
 ///
 /// Every PDF this app exports that contains a screenplay goes through this one painter, so the
@@ -47,25 +47,25 @@ class OcptScriptPagePainter {
   /// The Courier Prime variants the body text is drawn with.
   final OcptCourierPrimeFonts fonts;
 
-  /// The page's full width, in points.
+  /// Get the page's full width, in points.
   double get pageWidthPt => metrics.pageWidthInches * ocptPdfPointsPerInch;
 
-  /// The page's full height, in points.
+  /// Get the page's full height, in points.
   double get pageHeightPt => metrics.pageHeightInches * ocptPdfPointsPerInch;
 
-  /// The distance, in points, from the page's top edge to the first printed row.
+  /// Get the distance, in points, from the page's top edge to the first printed row.
   double get marginTopPt => metrics.marginTopInches * ocptPdfPointsPerInch;
 
-  /// The distance, in points, from the page's left edge to the printable area.
+  /// Get the distance, in points, from the page's left edge to the printable area.
   double get marginLeftPt => metrics.marginLeftInches * ocptPdfPointsPerInch;
 
-  /// The distance, in points, from the page's right edge to the printable area.
+  /// Get the distance, in points, from the page's right edge to the printable area.
   double get marginRightPt => metrics.marginRightInches * ocptPdfPointsPerInch;
 
-  /// The vertical distance, in points, between two consecutive printed rows.
+  /// Get the vertical distance, in points, between two consecutive printed rows.
   double get lineHeightPt => ocptScriptLineHeightPt;
 
-  /// The width, in points, of one Courier column.
+  /// Get the width, in points, of one Courier column.
   ///
   /// The nominal pitch [FountainScriptComposer] wrapped every line to, not Courier Prime's own
   /// advance width (0.5996 em, a shade narrower): a column position derived from it therefore
@@ -73,17 +73,18 @@ class OcptScriptPagePainter {
   /// of a point over a full 60-column line.
   double get columnWidthPt => ocptPdfPointsPerInch / metrics.charsPerInch;
 
-  /// The `pdf` page format of a script page: the physical sheet with no margins of its own, since
+  /// Get the `pdf` page format of a script page: the physical sheet with no margins of its own,
+  /// since
   /// every line on it is absolutely positioned.
   PdfPageFormat get scriptPageFormat => PdfPageFormat(pageWidthPt, pageHeightPt);
 
   /// Class constructor
   const OcptScriptPagePainter({required this.metrics, required this.fonts});
 
-  /// The distance, in points, from the page's top edge to the top of the printed row [row].
+  /// Get the distance, in points, from the page's top edge to the top of the printed row [row].
   double rowTopPt(int row) => marginTopPt + row * lineHeightPt;
 
-  /// The distance, in points, from the page's left edge to the 0-based [column] of [line]'s own
+  /// Get the distance, in points, from the page's left edge to the 0-based [column] of [line]'s own
   /// printed text.
   ///
   /// Resolves the line's alignment the same way the drawn [pw.RichText] does — a centered or
@@ -101,7 +102,7 @@ class OcptScriptPagePainter {
     return textLeftPt + column * columnWidthPt;
   }
 
-  /// The width, in points, of the box one [FountainScriptLine] of [lineType] is drawn in.
+  /// Get the width, in points, of the box one [FountainScriptLine] of [lineType] is drawn in.
   ///
   /// Derived from [FountainElementLayout.maxWidthColumns] rather than from
   /// [FountainElementLayout.maxWidthInches], so the box is measured in the very unit
@@ -115,7 +116,7 @@ class OcptScriptPagePainter {
   double lineBoxWidthPt(FountainLineType lineType) =>
       _elementLayoutFor(lineType).maxWidthColumns * columnWidthPt;
 
-  /// Builds the leading title [pw.Page] from [titlePage]'s metadata: title centered in the
+  /// Build the leading title [pw.Page] from [titlePage]'s metadata: title centered in the
   /// upper-to-middle area, credit and authors below it, contact at the bottom-left and draft date
   /// at the bottom-right. Falls back to a single centered [projectName] when [titlePage] is null or
   /// has no usable [FountainTitlePage.title] — the option to include a title page at all is handled
@@ -212,7 +213,7 @@ class OcptScriptPagePainter {
     );
   }
 
-  /// Builds one script [pw.Page] from a paginated [page], absolutely positioning every line rather
+  /// Build one script [pw.Page] from a paginated [page], absolutely positioning every line rather
   /// than flowing them, since that is what lets a page number and both-margin scene numbers land at
   /// their own row's exact Y coordinate alongside the line itself.
   ///
@@ -263,7 +264,8 @@ class OcptScriptPagePainter {
     );
   }
 
-  /// The widgets one printed [line] at [row] draws: its text, and the scene numbers printed in
+  /// Build the widgets one printed [line] at [row] draws: its text, and the scene numbers printed
+  /// in
   /// both margins opposite it when [includeSceneNumbers] is on and it carries one.
   List<pw.Widget> _lineWidgets({
     required FountainScriptLine line,
@@ -319,7 +321,7 @@ class OcptScriptPagePainter {
     return widgets;
   }
 
-  /// Turns [runs] into the [pw.TextSpan]s of one [FountainScriptLine], each carrying the Courier
+  /// Turn [runs] into the [pw.TextSpan]s of one [FountainScriptLine], each carrying the Courier
   /// Prime variant matching [blockStyle]'s bold/italic composed with the run's own bold/italic
   /// flags, and an underline decoration when [FountainStyledRun.isUnderline] is set.
   ///
@@ -346,14 +348,15 @@ class OcptScriptPagePainter {
         ),
   ];
 
-  /// Maps a [FountainLayoutAlignment] to the matching `pdf`-package [pw.TextAlign].
+  /// Map a [FountainLayoutAlignment] to the matching `pdf`-package [pw.TextAlign].
   pw.TextAlign _textAlignFor(FountainLayoutAlignment alignment) => switch (alignment) {
     FountainLayoutAlignment.left => pw.TextAlign.left,
     FountainLayoutAlignment.center => pw.TextAlign.center,
     FountainLayoutAlignment.right => pw.TextAlign.right,
   };
 
-  /// The [FountainElementLayout] [metrics] uses for [lineType], so a line's box width for alignment
+  /// Get the [FountainElementLayout] [metrics] uses for [lineType], so a line's box width for
+  /// alignment
   /// purposes matches exactly the width [FountainScriptComposer] already wrapped it to.
   ///
   /// [FountainLineType.blank] (a spacer line) and the non-printing types that never reach this

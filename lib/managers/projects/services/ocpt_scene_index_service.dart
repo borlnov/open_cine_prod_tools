@@ -28,7 +28,7 @@ class _ParsedScene {
   const _ParsedScene({required this.heading, required this.charStart, required this.charEnd});
 }
 
-/// Reconciles the `scenes` table of a screenplay against a freshly parsed [FountainDocument].
+/// Reconcile the `scenes` table of a screenplay against a freshly parsed [FountainDocument].
 ///
 /// {@macro open_cine_prod_tools.OcptSceneIndexService.stability}
 ///
@@ -48,7 +48,7 @@ class OcptSceneIndexService extends AbsOcptService {
   /// Class constructor
   const OcptSceneIndexService({required super.logger});
 
-  /// Reconciles the `scenes` table of [screenplayId] in [database] against the scene headings of
+  /// Reconcile the `scenes` table of [screenplayId] in [database] against the scene headings of
   /// [document].
   ///
   /// The matching happens in three passes, each only considering rows/headings that the previous
@@ -123,7 +123,7 @@ class OcptSceneIndexService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every live scene of [screenplayId] and returns the ids it tombstoned, the cascade
+  /// Tombstone every live scene of [screenplayId] and return the ids it tombstoned, the cascade
   /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
   /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs
   /// these ids in hand before it can tombstone any of them.
@@ -153,7 +153,7 @@ class OcptSceneIndexService extends AbsOcptService {
     return ids;
   }
 
-  /// Builds the ordered list of [_ParsedScene] for [document], computing each scene's character
+  /// Build the ordered list of [_ParsedScene] for [document], computing each scene's character
   /// range as spanning from its heading's start offset to the next scene heading's start offset
   /// (or the end of the document's source text for the last scene).
   static List<_ParsedScene> _buildParsedScenes(FountainDocument document) {
@@ -171,7 +171,7 @@ class OcptSceneIndexService extends AbsOcptService {
     ];
   }
 
-  /// Runs the three matching passes described in [reconcile] and returns the resulting plan.
+  /// Run the three matching passes described in [reconcile] and return the resulting plan.
   static _SceneMatchPlan _matchScenes({
     required List<OcptSceneRow> existingRows,
     required List<_ParsedScene> parsedScenes,

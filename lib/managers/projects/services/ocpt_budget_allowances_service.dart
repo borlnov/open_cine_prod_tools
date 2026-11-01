@@ -30,13 +30,13 @@ class OcptBudgetAllowancesService extends AbsOcptService {
   /// Class constructor
   const OcptBudgetAllowancesService({required super.logger, required this.deviceId});
 
-  /// Loads every live defrayal of [database], in `sortKey` order.
+  /// Load every live defrayal of [database], in `sortKey` order.
   Future<List<OcptBudgetAllowance>> loadAllowances({required OcptProjectDatabase database}) async {
     final rows = await _liveAllowanceRows(database);
     return [for (final row in rows) OcptBudgetAllowance.fromRow(row)];
   }
 
-  /// Creates a new defrayal, appended at the end of the list, and returns its freshly generated id.
+  /// Create a new defrayal, appended at the end of the list, and return its freshly generated id.
   ///
   /// Every field but the ordering is taken as passed rather than left to a default: this row is
   /// only ever minted from a dialog the user has already filled in, unlike a resource, which is
@@ -91,7 +91,7 @@ class OcptBudgetAllowancesService extends AbsOcptService {
     return id;
   }
 
-  /// Updates the fields of defrayal [allowanceId] in [database] that are passed as something other
+  /// Update the fields of defrayal [allowanceId] in [database] that are passed as something other
   /// than [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [reorderAllowance] and [deleteAllowance].
   ///
@@ -147,7 +147,7 @@ class OcptBudgetAllowancesService extends AbsOcptService {
     });
   }
 
-  /// Moves defrayal [allowanceId] to [newPosition] (0-based) within the list's own flat `sortKey`
+  /// Move defrayal [allowanceId] to [newPosition] (0-based) within the list's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two rows it lands between. Writes
   /// **exactly one row**.
   ///
@@ -192,7 +192,7 @@ class OcptBudgetAllowancesService extends AbsOcptService {
     });
   }
 
-  /// Tombstones defrayal [allowanceId].
+  /// Tombstone defrayal [allowanceId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -224,14 +224,14 @@ class OcptBudgetAllowancesService extends AbsOcptService {
     });
   }
 
-  /// Every live defrayal row of [database], in `sortKey` order.
+  /// Get every live defrayal row of [database], in `sortKey` order.
   Future<List<OcptBudgetAllowanceRow>> _liveAllowanceRows(OcptProjectDatabase database) =>
       (database.select(database.ocptBudgetAllowancesTable)
             ..where((table) => table.isDeleted.equals(false))
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// The live defrayal row [allowanceId], or null if it doesn't exist or has been tombstoned.
+  /// Get the live defrayal row [allowanceId], or null if it doesn't exist or has been tombstoned.
   Future<OcptBudgetAllowanceRow?> _liveAllowanceRowOrNull({
     required OcptProjectDatabase database,
     required String allowanceId,

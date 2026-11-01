@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
 
-/// Applies an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
+/// Apply an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
 /// the changeset engine (`docs/architecture/sync.md`), and the one that actually makes two replicas
 /// converge — `OcptChangesetService.pushLocalEdits` only ever reads a project, this is what writes
 /// one back.
@@ -68,10 +68,10 @@ class OcptMergeService extends AbsOcptService {
     await screenplayMergeService?.initLifeCycle();
   }
 
-  /// Applies every field stamp [changeset] carries to [fileDatabase], row group by row group, in
-  /// one transaction with `PRAGMA defer_foreign_keys = ON` — a changeset can legitimately arrive in
-  /// an order that violates a foreign key part way through (ADR 0010), exactly the situation
-  /// `OcptProjectVersionsService.restoreVersion` already defers the same way — and returns every
+  /// Apply every field stamp [changeset] carries to [fileDatabase], row group by row group, in one
+  /// transaction with `PRAGMA defer_foreign_keys = ON` — a changeset can legitimately arrive in an
+  /// order that violates a foreign key part way through (ADR 0010), exactly the situation
+  /// `OcptProjectVersionsService.restoreVersion` already defers the same way — and return every
   /// [OcptScreenplayMergeConflict] a screenplay text merge raised along the way, for the caller to
   /// record (this service only collects them; it never resolves one).
   Future<List<OcptScreenplayMergeConflict>> applyChangeset({
@@ -122,7 +122,7 @@ class OcptMergeService extends AbsOcptService {
     });
   }
 
-  /// Applies every incoming stamp of one `(tableName, rowId)` group: separates a `screenplays`
+  /// Apply every incoming stamp of one `(tableName, rowId)` group: separates a `screenplays`
   /// row's `fountainText` stamp out first, when [screenplayMergeService] is configured — that
   /// column is never gated by [ocptIncomingStampWins] at all, since **merging combines, it does not
   /// replace-if-newer**: two independent edits made at the same Lamport tick from two different
@@ -193,7 +193,7 @@ class OcptMergeService extends AbsOcptService {
     );
   }
 
-  /// Overlays [winners] onto [table]'s row [rowId] in [database] and advances `row_field_versions`
+  /// Overlay [winners] onto [table]'s row [rowId] in [database] and advance `row_field_versions`
   /// for exactly those columns — the generic per-column resolution every synchronised column but
   /// `screenplays.fountainText` goes through.
   Future<void> _applyGenericWinners({
@@ -242,7 +242,8 @@ class OcptMergeService extends AbsOcptService {
     );
   }
 
-  /// Every local `row_field_versions` stamp already recorded for [tableName]'s row [rowId], keyed
+  /// Get every local `row_field_versions` stamp already recorded for [tableName]'s row [rowId],
+  /// keyed
   /// by its own `columnName` — what [_applyRowGroup] compares each incoming stamp against.
   Future<Map<String, OcptRowFieldVersionRow>> _localStamps({
     required OcptProjectDatabase database,
@@ -256,7 +257,7 @@ class OcptMergeService extends AbsOcptService {
     return {for (final row in rows) row.columnName: row};
   }
 
-  /// Writes [merged] — a complete row of [table], keyed by its columns' own SQL names, each value
+  /// Write [merged] — a complete row of [table], keyed by its columns' own SQL names, each value
   /// already the raw SQL cell value `OcptFieldStamp` itself carries (see its own doc comment) —
   /// back through a raw, parametrised `INSERT ... ON CONFLICT DO UPDATE`, naming every column by
   /// its own SQL name and its own primary key for the `ON CONFLICT` target: the generic upsert this
@@ -304,7 +305,8 @@ class OcptMergeService extends AbsOcptService {
     );
   }
 
-  /// [table]'s current row named [rowId], as its own raw SQL cell values keyed by SQL column name
+  /// Get [table]'s current row named [rowId], as its own raw SQL cell values keyed by SQL column
+  /// name
   /// (see `OcptChangesetService`'s own reader for why this reads raw rather than through a drift
   /// data class's `toJson()`), or `null` when this replica has never seen that row before — unlike
   /// `OcptChangesetService`'s own reader, a missing row is the ordinary case here, not a bug: it is

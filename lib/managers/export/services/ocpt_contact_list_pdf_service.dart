@@ -95,7 +95,7 @@ class _CrewRow {
 /// One group of the crew table: its own band label, and the rows it holds.
 typedef _ContactGroup = (String label, List<_ContactRow> rows);
 
-/// Renders a project's contact list: the crew, grouped by department, then the cast, one row per
+/// Render a project's contact list: the crew, grouped by department, then the cast, one row per
 /// role — the whole-production directory a production circulates once at the start of a shoot,
 /// distinct from a call sheet's own two directories, which are scoped to one day.
 ///
@@ -121,14 +121,14 @@ class OcptContactListPdfService extends AbsOcptService {
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
 
-  /// Creates an [OcptContactListPdfService].
+  /// Create an [OcptContactListPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptContactListPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
-  /// The `.pdf` file name to suggest when exporting the contact list of [projectName].
+  /// Get the `.pdf` file name to suggest when exporting the contact list of [projectName].
   ///
   /// [suffix] is the localized word telling this document apart from the other PDFs the app writes
   /// (`My Movie - contacts.pdf`); a blank one falls back to the project name alone rather than
@@ -137,7 +137,7 @@ class OcptContactListPdfService extends AbsOcptService {
   String contactListFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Renders the contact list of [snapshot], returning the PDF's bytes.
+  /// Render the contact list of [snapshot], returning the PDF's bytes.
   ///
   /// [pageSetup] supplies the page geometry. [exportDate] is the moment the running head's own
   /// version line prints (`Version 2026-08-08 14:32`, through [ocptScheduleGeneratedAtStamp]),
@@ -215,7 +215,7 @@ class OcptContactListPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// Every crew row of [snapshot], one per `person_positions` assignment — a person holding two
+  /// Get every crew row of [snapshot], one per `person_positions` assignment — a person holding two
   /// positions therefore contributes two rows, one under each — grouped by department in
   /// [OcptCrewDepartment.values] order (a department holding nothing is left out entirely) and,
   /// last, the trailing group for a free-label position or one naming a catalogue entry retired
@@ -296,7 +296,8 @@ class OcptContactListPdfService extends AbsOcptService {
     return groups;
   }
 
-  /// Every cast row of [snapshot], one per role in its own display order (role-number order): the
+  /// Get every cast row of [snapshot], one per role in its own display order (role-number order):
+  /// the
   /// actor's own name, phone and e-mail, or all three blank for an uncast role, which [_contactRow]
   /// then prints as an em dash.
   List<_ContactRow> _castRowsOf(OcptResourcesSnapshot snapshot) {
@@ -313,7 +314,8 @@ class OcptContactListPdfService extends AbsOcptService {
     ];
   }
 
-  /// [groups] flattened into the rows a single flowing `pw.Table` draws: a full-width band row
+  /// Build [groups] flattened into the rows a single flowing `pw.Table` draws: a full-width band
+  /// row
   /// naming the department (never repeated across a page break — the elements grid's own category
   /// band states why: several bands would stack into a heading that lies), then that group's own
   /// contact rows.
@@ -324,7 +326,8 @@ class OcptContactListPdfService extends AbsOcptService {
     ],
   ];
 
-  /// One table shared by the crew and the cast sections: a header row (`NAME / POSITION / PHONE /
+  /// Build one table shared by the crew and the cast sections: a header row
+  /// (`NAME / POSITION / PHONE / EMAIL`)
   /// EMAIL`) marked `repeat: true` — a page torn off this document still says which column is
   /// which — then [rows].
   pw.Widget _peopleTable({
@@ -352,7 +355,8 @@ class OcptContactListPdfService extends AbsOcptService {
     ],
   );
 
-  /// One full-width band row naming a crew group, [text] alone in the name column, the other three
+  /// Build one full-width band row naming a crew group, [text] alone in the name column, the other
+  /// three
   /// left blank.
   pw.TableRow _bandRow({required OcptScriptPagePainter painter, required String text}) =>
       pw.TableRow(
@@ -365,7 +369,7 @@ class OcptContactListPdfService extends AbsOcptService {
         ],
       );
 
-  /// One ordinary row of either table.
+  /// Build one ordinary row of either table.
   pw.TableRow _contactRow({required OcptScriptPagePainter painter, required _ContactRow contact}) =>
       pw.TableRow(
         children: [
@@ -376,7 +380,7 @@ class OcptContactListPdfService extends AbsOcptService {
         ],
       );
 
-  /// The document's own [pw.MultiPage], carrying [children] under a running head naming the
+  /// Build the document's own [pw.MultiPage], carrying [children] under a running head naming the
   /// project, the document and [versionLine] — drawn through `header:` rather than as a body child,
   /// so it repeats on every page this flows onto, exactly as `OcptShootingPlanPdfService`'s own
   /// pages state the same rule for the same reason: a page torn off a contact list has to say what
@@ -409,7 +413,8 @@ class OcptContactListPdfService extends AbsOcptService {
     build: (context) => children,
   );
 
-  /// The running head every page of the document carries: the project and the document's own name
+  /// Build the running head every page of the document carries: the project and the document's own
+  /// name
   /// on the left, [versionLine] on the right, over a rule.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
@@ -446,7 +451,7 @@ class OcptContactListPdfService extends AbsOcptService {
     ],
   );
 
-  /// One section's own small, muted heading.
+  /// Build one section's own small, muted heading.
   pw.Widget _sectionTitle({required OcptScriptPagePainter painter, required String title}) =>
       pw.Text(
         title.toUpperCase(),
@@ -457,13 +462,15 @@ class OcptContactListPdfService extends AbsOcptService {
         ),
       );
 
-  /// A block of free text — the note standing in for the whole document on an empty catalogue.
+  /// Build a block of free text — the note standing in for the whole document on an empty
+  /// catalogue.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _bodyFontSizePt),
   );
 
-  /// One table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank — a
+  /// Build one table cell holding [text], substituting [ocptScheduleEmptyValue] when it is blank —
+  /// a
   /// person's own missing phone or e-mail, or the three blank fields an uncast role's row carries.
   pw.Widget _textCell({
     required OcptScriptPagePainter painter,

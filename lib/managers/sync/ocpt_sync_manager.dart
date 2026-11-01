@@ -37,7 +37,7 @@ import 'package:open_cine_prod_tools/types/ocpt_sync_session_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:uuid/uuid.dart';
 
-/// Builds the [OcptSyncManager] instance registered by the global manager.
+/// Build the [OcptSyncManager] instance registered by the global manager.
 class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
   /// Class constructor
   const OcptSyncManagerBuilder() : super(OcptSyncManager.new);
@@ -52,7 +52,7 @@ class OcptSyncManagerBuilder extends AbsLifeCycleFactory<OcptSyncManager> {
   ];
 }
 
-/// Owns a project's own side of the changeset engine (`docs/architecture/sync.md`): turning local
+/// Own a project's own side of the changeset engine (`docs/architecture/sync.md`): turning local
 /// writes into changesets and applying incoming ones, per-column merge, the screenplay's own
 /// three-way text merge, and the transport those changesets and snapshots travel over.
 ///
@@ -120,7 +120,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// [_presenceRoster], cancelled when the service stops.
   StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
 
-  /// The service reading and writing a project's own relay pairing — what [pairProjectToRelay]
+  /// Get the service reading and writing a project's own relay pairing — what [pairProjectToRelay]
   /// saves the freshly minted pairing through before it ever talks to the relay.
   ///
   /// Built lazily, from `globalGetIt()`'s own [OcptSecretsManager], the first time it is actually
@@ -133,15 +133,18 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// `ocpt_sync_manager_snapshot_test.dart` already does for [joinFromRelay].
   OcptPairingService get pairingService => _pairingService ??= _buildPairingService();
 
-  /// This project's current sync session, or null when none is running — see [startSyncSession].
+  /// Get this project's current sync session, or null when none is running — see
+  /// [startSyncSession].
   OcptSyncSession? get syncSession => _syncSession;
 
-  /// The running session's current status, or null when no session is running. The session's own
+  /// Get the running session's current status, or null when no session is running. The session's
+  /// own
   /// status stream never replays this to a new listener — read this first to seed a fresh
   /// subscriber, exactly as `OcptSyncSession.status`'s own doc comment says.
   OcptSyncStatus? get syncStatus => _syncSession?.status;
 
-  /// The sync status across the whole session lifecycle: the running session's status, then null
+  /// Get the sync status across the whole session lifecycle: the running session's status, then
+  /// null
   /// once it stops. Unlike the running session's own status stream, which is null when no session
   /// runs, it never goes null-*valued* to mean "no stream": it is one stream that outlives every
   /// session, so a widget subscribing to it once (seeded with [syncStatus]) keeps reflecting the
@@ -152,19 +155,19 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
   // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
   // https://github.com/borlnov/open_cine_prod_tools/issues/116
-  /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
+  /// Get every screenplay merge conflict the running session has raised so far, oldest first, or an
   /// empty list when no session is running.
   List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];
 
-  /// The running presence service's current roster, or null when none is running.
+  /// Get the running presence service's current roster, or null when none is running.
   /// [presenceRosterStream] never replays this to a new listener — read this first to seed a fresh
   /// subscriber, exactly as [syncStatus]'s own doc comment says.
   OcptPresenceRoster? get presenceRoster => _presenceService?.roster;
 
-  /// The running presence service's own roster stream, or null when none is running.
+  /// Get the running presence service's own roster stream, or null when none is running.
   Stream<OcptPresenceRoster>? get presenceRosterStream => _presenceService?.rosterStream;
 
-  /// The presence roster across the whole session lifecycle — the presence counterpart of
+  /// Get the presence roster across the whole session lifecycle — the presence counterpart of
   /// [syncStatusChanges], and what the workspace's own presence indicator listens to for the same
   /// reason. Seed a fresh subscriber with [presenceRoster].
   Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRoster.valueStream;
@@ -248,7 +251,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _logger.i("The sync manager started");
   }
 
-  /// Opens the relay transport [pairing] describes, for [projectId].
+  /// Open the relay transport [pairing] describes, for [projectId].
   ///
   /// [enrolmentSecret] is only ever needed the first time [projectId] is pushed to a relay that
   /// has never heard of it — see [OcptRelayRemoteStorage]'s own constructor doc comment for why a
@@ -265,8 +268,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     enrolmentSecret: enrolmentSecret,
   );
 
-  /// Pairs [projectId] to the relay at [relayBaseUri], pushes this replica's own edits to create it
-  /// there, publishes a first snapshot so a joiner can bootstrap, and starts the ongoing sync
+  /// Pair [projectId] to the relay at [relayBaseUri], push this replica's own edits to create it
+  /// there, publish a first snapshot so a joiner can bootstrap, and start the ongoing sync
   /// session — the create-and-share orchestration the Partager screen's "pair and create on the
   /// relay" action calls, returning the invite that screen renders as a QR code.
   ///
@@ -361,9 +364,9 @@ class OcptSyncManager extends AbsWithLifeCycle {
     );
   }
 
-  /// Re-points [projectId] at a new relay (typically the on-set relay), reusing its **existing**
-  /// project token, pushes this replica's own edits to create it there, publishes a fresh snapshot
-  /// so the next joiner bootstraps against [relayBaseUri], and restarts the ongoing sync session —
+  /// Re-point [projectId] at a new relay (typically the on-set relay), reusing its **existing**
+  /// project token, push this replica's own edits to create it there, publish a fresh snapshot so
+  /// the next joiner bootstraps against [relayBaseUri], and restart the ongoing sync session —
   /// the "Changer de relais" flow's own orchestration.
   ///
   /// This is [pairProjectToRelay] with exactly one difference: it never mints a token. Where
@@ -473,7 +476,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
-  /// Packages the project at [projectFilePath] as a snapshot and uploads it to [storage].
+  /// Package the project at [projectFilePath] as a snapshot and upload it to [storage].
   ///
   /// This is what lets a joiner bootstrap against an otherwise-empty relay
   /// (the first device to append uploads a snapshot) and what a restore publishes through instead
@@ -519,7 +522,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
-  /// Fetches [storage]'s latest snapshot and materialises it as a new project under
+  /// Fetch [storage]'s latest snapshot and materialise it as a new project under
   /// [parentDirectoryPath], pairing that new project with the relay [storage] talks to before
   /// handing back the `.ocpt` path it landed at.
   ///
@@ -595,7 +598,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return ResultWithStatus(status: OcptSyncFlowStatus.ok, value: projectFilePath);
   }
 
-  /// Starts keeping [projectId] in sync against [storage], replacing whatever session was running
+  /// Start keeping [projectId] in sync against [storage], replacing whatever session was running
   /// before ([stopSyncSession] runs first, so calling this twice in a row is always safe).
   ///
   /// This is called **explicitly** by whoever decides a project should be syncing right now — the
@@ -671,7 +674,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _logger.i("A sync session started for project $projectId");
   }
 
-  /// Unpairs [projectId] from whatever relay it was synced through — the Partager screen's own
+  /// Unpair [projectId] from whatever relay it was synced through — the Partager screen's own
   /// "stop sharing" action, once the page's own `OcptConfirmDialog` has confirmed it.
   ///
   /// [stopSyncSession] first, since a session kept running against a pairing whose token has just
@@ -687,7 +690,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     await pairingService.clearPairing(database: database, projectId: projectId);
   }
 
-  /// The relay-side project id [database]'s own single `sync_pairings` row carries, or null when
+  /// Get the relay-side project id [database]'s own single `sync_pairings` row carries, or null
+  /// when
   /// the project is not paired to any relay yet — the read `OcptRelayHostManager` uses to decide
   /// between re-pointing an already-paired project at its own hosted relay and pairing a
   /// never-paired one afresh.
@@ -702,8 +706,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return row?.projectId;
   }
 
-  /// Stops the current sync session, if any — cancels its timer and its `newWorkStream`
-  /// subscription and closes its status stream — and disposes the current presence service
+  /// Stop the current sync session, if any — cancels its timer and its `newWorkStream` subscription
+  /// and close its status stream — and dispose the current presence service
   /// alongside it, if any (which stops it). Safe to call with no session (or presence service) running.
   ///
   /// Closes the manager-level [syncStatusChanges]/[presenceRosterChanges] out with a null, so an
@@ -732,7 +736,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     }
   }
 
-  /// Runs a sync right now against the running session, on demand — what the status indicator's
+  /// Run a sync right now against the running session, on demand — what the status indicator's
   /// tap calls. Answers [OcptSyncSessionStatus.notRunning] when no session is running.
   Future<OcptSyncSessionStatus> syncNow() async {
     final session = _syncSession;
@@ -745,12 +749,12 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return OcptSyncSessionStatus.ok;
   }
 
-  /// Tells the running presence service this replica's own [mode] just changed, so it reaches
+  /// Tell the running presence service this replica's own [mode] just changed, so it reaches
   /// every peer on the very next heartbeat rather than waiting for the current one to age. Does
   /// nothing when no presence service is running.
   void updatePresenceMode(OcptWorkspaceMode mode) => _presenceService?.updateMode(mode);
 
-  /// Builds the lazily created [pairingService] and initialises it.
+  /// Build the lazily created [pairingService] and initialise it.
   ///
   /// The getter cannot wait, so the initialisation is not awaited: the service's own
   /// `initLifeCycle()` does nothing today, and one that ever does must be built eagerly instead.
@@ -763,14 +767,14 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return service;
   }
 
-  /// The [OcptSyncFlowStatus] a failed [OcptRemoteStorageStatus] stands for.
+  /// Get the [OcptSyncFlowStatus] a failed [OcptRemoteStorageStatus] stands for.
   OcptSyncFlowStatus _flowStatusOf(OcptRemoteStorageStatus status) => switch (status) {
     OcptRemoteStorageStatus.ok => OcptSyncFlowStatus.ok,
     OcptRemoteStorageStatus.rejected => OcptSyncFlowStatus.rejected,
     OcptRemoteStorageStatus.unreachable => OcptSyncFlowStatus.unreachable,
   };
 
-  /// The relay-side project id a freshly materialised snapshot already carries in its own
+  /// Get the relay-side project id a freshly materialised snapshot already carries in its own
   /// `sync_pairings` row — see [joinFromRelay]'s own doc comment for why that row is there at all.
   ///
   /// Read directly off the table rather than through [OcptPairingService.loadPairing]: that method
@@ -785,7 +789,7 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return row?.projectId;
   }
 
-  /// The stable id [changesetService] keys a pairing's own delivery cursor by
+  /// Get the stable id [changesetService] keys a pairing's own delivery cursor by
   /// (`sync_relay_cursors.relayId`): [pairing]'s relay base URL, stringified.
   ///
   /// This has to stay stable for as long as a project is paired with the same relay — restarting or

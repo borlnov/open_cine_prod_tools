@@ -22,7 +22,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.dart';
 import 'package:uuid/uuid.dart';
 
-/// Creates, lists, deletes and restores a project's named versions: the production history the user
+/// Create, lists, delete and restore a project's named versions: the production history the user
 /// drives from the workspace's `Versions` dock tab.
 ///
 /// {@macro open_cine_prod_tools.OcptProjectVersionsTable.versusSnapshots}
@@ -59,7 +59,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     await _screenplayService.initLifeCycle();
   }
 
-  /// Lists every version of the project in [database], newest first.
+  /// List every version of the project in [database], newest first.
   ///
   /// Deliberately does **not** deserialize any payload: a card renders from the counters stored
   /// with the version, and a payload is hundreds of kilobytes.
@@ -76,7 +76,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     ];
   }
 
-  /// Captures the current state of the project in [database] as a new version named [name], with
+  /// Capture the current state of the project in [database] as a new version named [name], with
   /// the user's [note], and makes it the version the working copy descends from.
   ///
   /// [appVersion] and [deviceId] are recorded on the row for provenance; [pageMargins] completes
@@ -109,7 +109,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     ),
   );
 
-  /// Renames the version [id] of the project in [database] to [name], replacing its [note].
+  /// Rename the version [id] of the project in [database] to [name], replacing its [note].
   ///
   /// A plain update of the two columns, unlike every other version operation: it reads nothing
   /// about the project's *data*, only writes to the version's own row, so — unlike restoring or
@@ -126,7 +126,7 @@ class OcptProjectVersionsService extends AbsOcptService {
         .write(OcptProjectVersionsTableCompanion(name: Value(name), note: Value(note)));
   }
 
-  /// Loads the single version [id] of the project in [database], or null if it has no such
+  /// Load the single version [id] of the project in [database], or null if it has no such
   /// version.
   ///
   /// Reads the card's columns alone, deliberately leaving `payload` in the file: this is what the
@@ -160,7 +160,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     );
   }
 
-  /// Reads and decodes the payload of the version [id] of the project in [database].
+  /// Read and decode the payload of the version [id] of the project in [database].
   ///
   /// This is the one read that does deserialize a payload, and it exists for the two operations
   /// that need the state itself rather than the card: entering a version's preview, and restoring
@@ -204,7 +204,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     );
   }
 
-  /// Writes [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
+  /// Write [payload] into [database], an empty [OcptProjectDatabase.memory] opened for a preview,
   /// so the modes find the version's state exactly where they usually find the working copy's.
   ///
   /// [projectInfo] is the working copy's own header: the preview keeps the project's name, its
@@ -227,7 +227,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     payload: payload,
   );
 
-  /// Measures the working copy of the project in [database] exactly as a stored version would be,
+  /// Measure the working copy of the project in [database] exactly as a stored version would be,
   /// at [pageMargins], without writing anything: the counters a working-copy card shows, and
   /// whether that content actually differs from the version it descends from.
   ///
@@ -241,7 +241,7 @@ class OcptProjectVersionsService extends AbsOcptService {
   }) async =>
       (await _captureWorkingCopySnapshot(database: database, pageMargins: pageMargins)).state;
 
-  /// Puts the project in [database] back into the state the version [id] captured, and makes it the
+  /// Put the project in [database] back into the state the version [id] captured, and makes it the
   /// version the working copy descends from.
   ///
   /// This is the one destructive operation of the app that isn't a file deletion, so everything it
@@ -384,7 +384,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     return ResultWithStatus(status: OcptProjectRestoreStatus.ok, value: payload.pageSetup);
   }
 
-  /// Deletes the version [id] of the project in [database], clearing the project header's pointer
+  /// Delete the version [id] of the project in [database], clearing the project header's pointer
   /// first when it is the one being deleted.
   ///
   /// This is a **real** `delete()`, and the only one left in the app: `project_versions` is local
@@ -414,7 +414,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     logger.i("The project version $id was deleted");
   }
 
-  /// Writes [payload] as a new version row named [name], with the user's [note], and makes it the
+  /// Write [payload] as a new version row named [name], with the user's [note], and makes it the
   /// version the working copy descends from.
   ///
   /// The half of [createVersion] that doesn't capture: shared with [restoreVersion]'s safety
@@ -466,7 +466,7 @@ class OcptProjectVersionsService extends AbsOcptService {
     );
   }
 
-  /// Reads the `contentDigest` column alone of the version [id] of the project in [database], or
+  /// Read the `contentDigest` column alone of the version [id] of the project in [database], or
   /// null when that version doesn't exist, or exists but carries no digest, which [restoreVersion]
   /// and [captureWorkingCopyState] both treat as "unknown" rather than assume it matches anything.
   Future<String?> _loadContentDigest({
@@ -484,7 +484,8 @@ class OcptProjectVersionsService extends AbsOcptService {
     return row?.read(table.contentDigest);
   }
 
-  /// The shared half of [captureWorkingCopyState]: everything it reports, plus the payload it was
+  /// Run the shared half of [captureWorkingCopyState]: everything it reports, plus the payload it
+  /// was
   /// measured from, which only [restoreVersion] needs — to write it out as a safety version without
   /// capturing the project a second time.
   Future<_OcptWorkingCopySnapshot> _captureWorkingCopySnapshot({

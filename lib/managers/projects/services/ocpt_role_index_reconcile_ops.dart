@@ -17,7 +17,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptRoleIndexService` forwards to; that service documents the role index whole.
 abstract final class OcptRoleIndexReconcileOps {
-  /// Reconciles the `roles` table of the project against the whole screenplay cast of [document]
+  /// Reconcile the `roles` table of the project against the whole screenplay cast of [document]
   /// (`screenplayCharactersOf(document.blocks)`, already normalised, deduplicated and in
   /// first-appearance order) — every character cued in dialogue, together with every one only ever
   /// introduced in capitals in the action — which is [screenplayId]'s own parsed text. It also

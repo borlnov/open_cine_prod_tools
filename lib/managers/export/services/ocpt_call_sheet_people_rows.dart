@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_day_minute.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_code.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 
-/// The day's own candidates list: **one row per candidacy** the day sees
+/// Get the day's own candidates list: **one row per candidacy** the day sees
 /// ([OcptDayConvocation.roleCandidateIds]), carrying the person's name, the part they are coming to
 /// be seen for, their phone, their email and their arrival – departure band.
 ///
@@ -85,7 +85,7 @@ List<OcptCallSheetPeopleListEntry> ocptCallSheetCandidateListEntries({
   return entries;
 }
 
-/// A named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
+/// Get a named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
 /// [personId] — already sorted by category then by name — paired with the scene numbers of
 /// [dayEntries]' own shot blocks that play a scene each element is linked to, mirroring how
 /// [ocptCallSheetCastRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both
@@ -117,7 +117,7 @@ List<OcptCallSheetToBringRow> ocptCallSheetToBringRowsOfDay({
   ];
 }
 
-/// The scene numbers of [dayEntries]' own shot blocks whose scene is one of [element]'s own
+/// Get the scene numbers of [dayEntries]' own shot blocks whose scene is one of [element]'s own
 /// [OcptElement.sceneLinks], sorted — the join [ocptCallSheetToBringRowsOfDay] prints on each of
 /// its rows.
 List<String> ocptCallSheetSceneNumbersForElement({
@@ -141,7 +141,8 @@ List<String> ocptCallSheetSceneNumbersForElement({
   return sceneNumbers.toList()..sort();
 }
 
-/// Every crew contact of [dayId], across every live slot, deduplicated by (person, position label)
+/// Get every crew contact of [dayId], across every live slot, deduplicated by (person, position
+/// label)
 /// — a person linked to two slots under the same position prints once, not twice.
 List<OcptCallSheetCrewContact> ocptCallSheetCrewContactsOfDay({
   required OcptSchedulePlanSnapshot plan,
@@ -180,7 +181,7 @@ List<OcptCallSheetCrewContact> ocptCallSheetCrewContactsOfDay({
   return contacts;
 }
 
-/// The crew list's own rows: one per distinct person of [crewContacts], their own positions
+/// Get the crew list's own rows: one per distinct person of [crewContacts], their own positions
 /// comma-joined, their own arrival – departure band read off [convocations].
 List<OcptCallSheetPeopleListEntry> ocptCallSheetCrewListEntries({
   required List<OcptCallSheetCrewContact> crewContacts,
@@ -213,7 +214,7 @@ List<OcptCallSheetPeopleListEntry> ocptCallSheetCrewListEntries({
   return entries;
 }
 
-/// The cast-and-extras list's own rows: one per [castRows] entry, the actor's own name (or
+/// Get the cast-and-extras list's own rows: one per [castRows] entry, the actor's own name (or
 /// [OcptCallSheetLabels.unnamedPersonLabel] for an uncast role) and the role's own number and name
 /// as its position column.
 ///
@@ -242,7 +243,8 @@ List<OcptCallSheetPeopleListEntry> ocptCallSheetCastListEntries({
   return entries;
 }
 
-/// [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a slot
+/// Get [convocation]'s own PAT band, or [ocptScheduleEmptyValue] while it has none — ADR 0018: a
+/// slot
 /// with no shooting block gives no band at all, and this is never fabricated.
 String ocptCallSheetPatCellOf(OcptDayConvocation? convocation) {
   if (convocation == null) {
@@ -256,7 +258,7 @@ String ocptCallSheetPatCellOf(OcptDayConvocation? convocation) {
   return "${ocptFormatDayMinute(start)} – ${ocptFormatDayMinute(end)}";
 }
 
-/// The role numbers of every role whose character is in one of [row]'s own
+/// Get the role numbers of every role whose character is in one of [row]'s own
 /// [OcptCallSheetDayRow.shots], among [roles] — matched the way the app already matches a shot's
 /// own characters to a role everywhere else, through `normalizeCharacterName`.
 String ocptCallSheetRolesLabelOf(OcptCallSheetDayRow row, List<OcptRole> roles) {
@@ -282,7 +284,8 @@ String ocptCallSheetRolesLabelOf(OcptCallSheetDayRow row, List<OcptRole> roles) 
   return sorted.map((role) => "${role.number}").join(", ");
 }
 
-/// One time-band line (`<label> : 16:45 – 22:45`), or `<label> : 16:45` when [endMinute] is null —
+/// Get one time-band line (`<label> : 16:45 – 22:45`), or `<label> : 16:45` when [endMinute] is
+/// null —
 /// a milestone whose block resolves to zero duration, or a slot with nothing placed on it yet.
 String ocptCallSheetTimeBandLine({
   required String label,
@@ -296,7 +299,8 @@ String ocptCallSheetTimeBandLine({
   return "$label : $start – ${ocptFormatDayMinute(endMinute)}";
 }
 
-/// The Google Maps URL built from [location]'s own coordinates, or null while it has none — the app
+/// Get the Google Maps URL built from [location]'s own coordinates, or null while it has none — the
+/// app
 /// holds no map-link column of its own and makes no network call to build one (§A.8 of the
 /// reference note this service was built against).
 String? ocptCallSheetMapsUrlOf(OcptLocation location) {
@@ -308,7 +312,8 @@ String? ocptCallSheetMapsUrlOf(OcptLocation location) {
   return "https://www.google.com/maps?q=$latitude,$longitude";
 }
 
-/// [convocation]'s own display name: the person's — a candidate being a person like any other, so
+/// Get [convocation]'s own display name: the person's — a candidate being a person like any other,
+/// so
 /// there is nothing extra to resolve — the uncast role's, or
 /// [OcptCallSheetLabels.unnamedPersonLabel] while neither names anybody printable.
 String ocptCallSheetConvocationDisplayNameOf(
@@ -335,7 +340,8 @@ String ocptCallSheetConvocationDisplayNameOf(
   return labels.unnamedPersonLabel;
 }
 
-/// **Everything the day asks of [convocation]**, comma-joined: the positions they crew under, the
+/// Get **everything the day asks of [convocation]**, comma-joined: the positions they crew under,
+/// the
 /// parts they play, and the parts they are coming to be seen for — or, for an uncast convocation,
 /// the role it names and nothing else.
 ///
@@ -408,7 +414,7 @@ String ocptCallSheetConvocationPositionsLabel({
   return parts.join(", ");
 }
 
-/// Turns [value] into a safe fragment of a file name: diacritics folded (through
+/// Turn [value] into a safe fragment of a file name: diacritics folded (through
 /// [ocptCallSheetFileNameDiacriticsFold], case kept), unsafe characters
 /// ([ocptCallSheetUnsafeFileNameChars]) dropped, runs of whitespace turned into a single dash, and
 /// any leading/trailing dash trimmed.

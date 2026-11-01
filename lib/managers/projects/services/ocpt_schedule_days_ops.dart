@@ -32,7 +32,7 @@ abstract final class OcptScheduleDaysOps {
   /// The minute a day's first slot is given by [createDay]: 08:00.
   static const _defaultStartMinute = 480;
 
-  /// Loads the whole shooting schedule of the project in [database]: every live day, in `sortKey`
+  /// Load the whole shooting schedule of the project in [database]: every live day, in `sortKey`
   /// order, joined with its live slots (each carrying its own live crew, cast and guests), its live
   /// blocks (each carrying the live candidacies it sees) and its live events.
   ///
@@ -163,7 +163,7 @@ abstract final class OcptScheduleDaysOps {
     );
   }
 
-  /// For every shot of the project placed in the schedule, every block that places it — which
+  /// Get, for every shot of the project placed in the schedule, every block that places it — which
   /// day it sits on and that day's rank and date — keyed by shot id, each list ordered by
   /// `dayNumber` ascending, which is chronological order (days are ranked by date, then by
   /// `sortKey` between two sharing one), and, within a day, in the order the query itself returns,
@@ -230,7 +230,7 @@ abstract final class OcptScheduleDaysOps {
     return placementsByShotId;
   }
 
-  /// Creates a new shooting day of the project dated [date], appended at the end, and returns its
+  /// Create a new shooting day of the project dated [date], appended at the end, and return its
   /// freshly generated id.
   ///
   /// **Mints one slot with it.** A day has at least one convocation window — see
@@ -282,7 +282,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Updates the fields of day [dayId] in [database] that are passed as something other than
+  /// Update the fields of day [dayId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: `sortKey` is only allocated once, at
   /// insertion (breaking a tie between two days sharing one [date] — the order of the days
   /// themselves is [date]'s own, not a stored fact anybody can move), and `isDeleted` only through
@@ -333,7 +333,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Tombstones day [dayId] in [database], and along with it: its slots, their crew, cast, guest
+  /// Tombstone day [dayId] in [database], and along with it: its slots, their crew, cast, guest
   /// and candidate rows, its blocks, and its own events — everything hanging off it, in one
   /// transaction, exactly as `OcptLocationsService.deleteLocation` tombstones a location's sets and
   /// their links.
@@ -459,7 +459,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Creates a new day dated [date], appended at the end of the project's days, carrying copies of
+  /// Create a new day dated [date], appended at the end of the project's days, carrying copies of
   /// [sourceDayId]'s live slots, their live crew, their live cast and their live guests — fresh
   /// ids, fresh `sortKey`s, everything else copied verbatim. Returns the new day's id.
   ///
@@ -659,7 +659,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Creates a new event on day [dayId], appended at the end of its current events, and returns its
+  /// Create a new event on day [dayId], appended at the end of its current events, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -704,7 +704,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Updates the fields of event [eventId] in [database] that are passed as something other than
+  /// Update the fields of event [eventId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
   /// [deleteDayEvent] — there is no reorder method, an event's order being its own [minute].
   ///
@@ -749,7 +749,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Tombstones event [eventId].
+  /// Tombstone event [eventId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -785,7 +785,7 @@ abstract final class OcptScheduleDaysOps {
     });
   }
 
-  /// Inserts the default first slot a brand new day is never without: an empty label, anchored by
+  /// Insert the default first slot a brand new day is never without: an empty label, anchored by
   /// its start at [_defaultStartMinute]. Shared by [createDay] and [duplicateDay]'s empty-source
   /// fallback.
   static Future<void> _insertDefaultSlot({
@@ -813,7 +813,8 @@ abstract final class OcptScheduleDaysOps {
     );
   }
 
-  /// The hour [slot]'s own anchored edge was reading in [timelines] — what a link that cannot be
+  /// Get the hour [slot]'s own anchored edge was reading in [timelines] — what a link that cannot
+  /// be
   /// carried across freezes into a typed anchor, so the copy still says the same thing about time
   /// as the slot it was copied from.
   ///

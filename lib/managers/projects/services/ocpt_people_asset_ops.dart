@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 ///
 /// What `OcptPeopleService` forwards to; that service documents the address book whole.
 abstract final class OcptPeopleAssetOps {
-  /// References the file at [path] as person [personId]'s photo, replacing whichever file they
-  /// referenced before, and returns the freshly generated id of the `assets` row.
+  /// Reference the file at [path] as person [personId]'s photo, replacing whichever file they
+  /// referenced before, and return the freshly generated id of the `assets` row.
   ///
   /// The replaced photo's row is tombstoned in the same transaction: a person has one photo, so a
   /// row nothing points at any more is not history worth keeping — it is an orphan. That is
@@ -44,7 +44,7 @@ abstract final class OcptPeopleAssetOps {
     companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
   );
 
-  /// Drops person [personId]'s reference to their photo: the `assets` row is tombstoned and
+  /// Drop person [personId]'s reference to their photo: the `assets` row is tombstoned and
   /// `photoAssetId` goes back to null. The file itself is never touched.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -65,8 +65,8 @@ abstract final class OcptPeopleAssetOps {
     companionOf: (assetId) => OcptPeopleTableCompanion(photoAssetId: Value(assetId)),
   );
 
-  /// References the file at [path] as person [personId]'s signed image rights release, replacing
-  /// whichever document they referenced before, and returns the freshly generated id of the
+  /// Reference the file at [path] as person [personId]'s signed image rights release, replacing
+  /// whichever document they referenced before, and return the freshly generated id of the
   /// `assets` row.
   ///
   /// **This writes the reference alone and never `imageRightsStatus`.** Attaching a scan is not the
@@ -95,7 +95,7 @@ abstract final class OcptPeopleAssetOps {
     companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
   );
 
-  /// Drops person [personId]'s reference to their signed image rights release: the `assets` row is
+  /// Drop person [personId]'s reference to their signed image rights release: the `assets` row is
   /// tombstoned and `imageRightsAssetId` goes back to null. The file itself is never touched, and
   /// neither is `imageRightsStatus` — see [setImageRightsDocument].
   ///
@@ -117,7 +117,7 @@ abstract final class OcptPeopleAssetOps {
     companionOf: (assetId) => OcptPeopleTableCompanion(imageRightsAssetId: Value(assetId)),
   );
 
-  /// The body [setPersonPhoto] and [setImageRightsDocument] share: tombstone whichever row the
+  /// Run the body [setPersonPhoto] and [setImageRightsDocument] share: tombstone whichever row the
   /// column named, mint a new one of [kind], and point the column at it, all in one transaction.
   ///
   /// [currentAssetIdOf] reads the column out of the person's row and [companionOf] writes it back;
@@ -180,7 +180,8 @@ abstract final class OcptPeopleAssetOps {
     });
   }
 
-  /// The body [clearPersonPhoto] and [clearImageRightsDocument] share. See [_setPersonAsset] for
+  /// Run the body [clearPersonPhoto] and [clearImageRightsDocument] share. See [_setPersonAsset]
+  /// for
   /// what [currentAssetIdOf] and [companionOf] are.
   static Future<void> _clearPersonAsset({
     required OcptDeviceIdGetter deviceId,
@@ -225,7 +226,7 @@ abstract final class OcptPeopleAssetOps {
     });
   }
 
-  /// Tombstones whichever `assets` row [currentAssetIdOf] reads off person [personId], if any.
+  /// Tombstone whichever `assets` row [currentAssetIdOf] reads off person [personId], if any.
   /// Leaves the column alone: both callers write it themselves. Stamps through [stamps] — the
   /// caller's own instance.
   static Future<void> _tombstonePersonAsset({

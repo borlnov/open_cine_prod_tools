@@ -14,8 +14,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptElementsService` forwards to; that service documents the elements catalogue whole.
 abstract final class OcptElementsSceneLinkOps {
-  /// Links scene [sceneId] to element [elementId], with an optional per-scene [quantity] override
-  /// and [notes], and returns the id of the link — the one that already said so when there was one,
+  /// Link scene [sceneId] to element [elementId], with an optional per-scene [quantity] override
+  /// and [notes], and return the id of the link — the one that already said so when there was one,
   /// a freshly generated one otherwise.
   ///
   /// Adding a scene the element already carries is a no-op rather than a second row, and a link
@@ -91,7 +91,7 @@ abstract final class OcptElementsSceneLinkOps {
     });
   }
 
-  /// Updates the fields of scene ↔ element link [id] in [database] that are passed as something
+  /// Update the fields of scene ↔ element link [id] in [database] that are passed as something
   /// other than [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -130,7 +130,7 @@ abstract final class OcptElementsSceneLinkOps {
     });
   }
 
-  /// Removes the scene ↔ element link [id].
+  /// Remove the scene ↔ element link [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -166,7 +166,7 @@ abstract final class OcptElementsSceneLinkOps {
     });
   }
 
-  /// Tombstones every live `scene_elements` row naming any of [sceneIds]: `scene_elements` is this
+  /// Tombstone every live `scene_elements` row naming any of [sceneIds]: `scene_elements` is this
   /// service's table, not `OcptBreakdownService`'s, so its own cascade
   /// (`OcptBreakdownService.tombstoneBreakdownOfScenes`) reaches for this narrow helper rather than
   /// writing the table itself — the element these links point at is, of course, untouched.
@@ -202,7 +202,7 @@ abstract final class OcptElementsSceneLinkOps {
     }
   }
 
-  /// Every live `scene_elements` row of scene [sceneId].
+  /// Get every live `scene_elements` row of scene [sceneId].
   static Future<List<OcptSceneElementRow>> sceneElementsOfScene({
     required OcptProjectDatabase database,
     required String sceneId,
@@ -210,7 +210,7 @@ abstract final class OcptElementsSceneLinkOps {
     database.ocptSceneElementsTable,
   )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
 
-  /// Scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
+  /// Get scene [sceneId]'s own breakdown props (category [OcptElementCategory.prop] alone), each
   /// carrying its own effective quantity — the floor plans palette's own `Sequence` group chips. In
   /// the catalogue's own `sortKey` order.
   static Future<List<OcptScenePropSummary>> propsOfScene({
@@ -242,7 +242,7 @@ abstract final class OcptElementsSceneLinkOps {
     ];
   }
 
-  /// One [OcptScenePropSummary], resolving its own effective quantity: [sceneElementRow]'s own
+  /// Get one [OcptScenePropSummary], resolving its own effective quantity: [sceneElementRow]'s own
   /// override when it isn't empty, [elementRow]'s own catalogue quantity otherwise.
   static OcptScenePropSummary _scenePropSummaryOf({
     required OcptSceneElementRow sceneElementRow,

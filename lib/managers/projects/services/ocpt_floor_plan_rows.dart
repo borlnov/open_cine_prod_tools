@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 /// Stateless, so a call takes the database it works on, the same shape every service's own private
 /// query helpers have.
 abstract final class OcptFloorPlanRows {
-  /// Creates the plan row of Resources set [setId] if none exists yet, from inside the caller's
+  /// Create the plan row of Resources set [setId] if none exists yet, from inside the caller's
   /// own transaction and stamping through its own [stamps] — **idempotent**, and safe under
   /// concurrent replicas: the plan's own row id **is** [setId] (`OcptFloorPlanSetsTable`'s own doc
   /// comment), so two devices that each place the first symbol on the same set while offline
@@ -42,7 +42,7 @@ abstract final class OcptFloorPlanRows {
     );
   }
 
-  /// Reads back the live plan row of Resources set [setId], or null if it doesn't exist yet or has
+  /// Read back the live plan row of Resources set [setId], or null if it doesn't exist yet or have
   /// been tombstoned.
   static Future<OcptFloorPlanSetRow?> livePlanRowOrNull({
     required OcptProjectDatabase database,
@@ -51,7 +51,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptFloorPlanSetsTable,
   )..where((table) => table.id.equals(setId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live symbol row of set [setId].
+  /// Get every live symbol row of set [setId].
   static Future<List<OcptFloorPlanSymbolRow>> symbolRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
@@ -59,7 +59,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptFloorPlanSymbolsTable,
   )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
 
-  /// Every live symbol row of set [setId] on layer [layer], ordered by `sortKey` — what a new
+  /// Get every live symbol row of set [setId] on layer [layer], ordered by `sortKey` — what a new
   /// symbol of that layer is appended after.
   static Future<List<OcptFloorPlanSymbolRow>> symbolRowsOfSetAndLayer({
     required OcptProjectDatabase database,
@@ -76,7 +76,7 @@ abstract final class OcptFloorPlanRows {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Reads back the live symbol row [symbolId], or null if it doesn't exist or has been tombstoned.
+  /// Read back the live symbol row [symbolId], or null if it doesn't exist or have been tombstoned.
   static Future<OcptFloorPlanSymbolRow?> liveSymbolRowOrNull({
     required OcptProjectDatabase database,
     required String symbolId,
@@ -84,7 +84,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptFloorPlanSymbolsTable,
   )..where((table) => table.id.equals(symbolId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Reads back the live shot row [shotId], or null if it doesn't exist or has been tombstoned —
+  /// Read back the live shot row [shotId], or null if it doesn't exist or have been tombstoned —
   /// `placeSymbol`'s own way of checking a shot-scope override's own shot belongs to the sequence
   /// its target scene-scope symbol does.
   static Future<OcptShotRow?> liveShotRowOrNull({
@@ -94,7 +94,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptShotsTable,
   )..where((table) => table.id.equals(shotId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Every live arrow row of set [setId].
+  /// Get every live arrow row of set [setId].
   static Future<List<OcptFloorPlanArrowRow>> arrowRowsOfSet({
     required OcptProjectDatabase database,
     required String setId,
@@ -102,7 +102,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptFloorPlanArrowsTable,
   )..where((table) => table.setId.equals(setId) & table.isDeleted.not())).get();
 
-  /// Reads back the live arrow row [arrowId], or null if it doesn't exist or has been tombstoned.
+  /// Read back the live arrow row [arrowId], or null if it doesn't exist or have been tombstoned.
   static Future<OcptFloorPlanArrowRow?> liveArrowRowOrNull({
     required OcptProjectDatabase database,
     required String arrowId,
@@ -110,7 +110,7 @@ abstract final class OcptFloorPlanRows {
     database.ocptFloorPlanArrowsTable,
   )..where((table) => table.id.equals(arrowId) & table.isDeleted.not())).getSingleOrNull();
 
-  /// Tombstones every live arrow whose [OcptFloorPlanArrow.fromSymbolId] or
+  /// Tombstone every live arrow whose [OcptFloorPlanArrow.fromSymbolId] or
   /// [OcptFloorPlanArrow.toSymbolId] equals [symbolId] — the write body `deleteSymbol` and
   /// `tombstoneFloorPlanRowsOfShot` share.
   static Future<void> tombstoneArrowsTouchingSymbol({

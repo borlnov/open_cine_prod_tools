@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 /// sync error, [OcptRemoteStorageStatus.unreachable] for everything else the transport hit — and
 /// leave what to do about it (go offline, report an error) to the caller.
 abstract interface class OcptRemoteStorage {
-  /// Emits an event whenever new work — a changeset or a snapshot appended by another replica —
+  /// Emit an event whenever new work — a changeset or a snapshot appended by another replica —
   /// becomes available.
   ///
   /// Nothing about an event is meaningful beyond its arrival: a listener reacts by calling
@@ -33,7 +33,7 @@ abstract interface class OcptRemoteStorage {
   /// another replica's writes may emit nothing at all.
   Stream<void> get newWorkStream;
 
-  /// Emits every opaque frame another replica sent through its own [sendPresence], in arrival
+  /// Emit every opaque frame another replica sent through its own [sendPresence], in arrival
   /// order.
   ///
   /// Exactly as opaque to this interface as [sendPresence]'s own payload — this stream carries
@@ -42,7 +42,7 @@ abstract interface class OcptRemoteStorage {
   /// [newWorkStream] does in that case.
   Stream<String> get presenceStream;
 
-  /// Appends [envelope] to the project's changeset log and returns the sequence number the
+  /// Append [envelope] to the project's changeset log and return the sequence number the
   /// transport assigned it.
   ///
   /// The assigned sequence number is a delivery cursor only — per ADR 0010, a merge never reads it
@@ -52,7 +52,7 @@ abstract interface class OcptRemoteStorage {
     OcptChangesetEnvelope envelope,
   );
 
-  /// Returns every changeset appended after [cursor], oldest first.
+  /// Return every changeset appended after [cursor], oldest first.
   ///
   /// Returns an empty list, never an error, when [cursor] already names the last position in the
   /// log — a replica catching up after being offline calls this once and gets everything it
@@ -61,7 +61,7 @@ abstract interface class OcptRemoteStorage {
     OcptSequenceNumber cursor,
   );
 
-  /// Stores [bytes] under [descriptor], making it the transport's latest snapshot.
+  /// Store [bytes] under [descriptor], making it the transport's latest snapshot.
   ///
   /// [descriptor] and [bytes] are opaque to this interface beyond [descriptor]'s own fields: what
   /// [bytes] decodes to, and how [OcptSnapshotDescriptor.contentDigest] was computed, is entirely
@@ -71,12 +71,12 @@ abstract interface class OcptRemoteStorage {
     Uint8List bytes,
   );
 
-  /// Returns the transport's latest snapshot, paired with its own descriptor, or a successful
+  /// Return the transport's latest snapshot, paired with its own descriptor, or a successful
   /// answer with no value when no snapshot has ever been uploaded.
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot();
 
-  /// Sends [opaquePayload] to this project's other replicas, over the same channel [newWorkStream]
+  /// Send [opaquePayload] to this project's other replicas, over the same channel [newWorkStream]
   /// listens on.
   ///
   /// [opaquePayload] is exactly that to this interface — a string this transport moves without

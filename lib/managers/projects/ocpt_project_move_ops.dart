@@ -11,14 +11,14 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_move_status.dart';
 import 'package:path/path.dart' as p;
 
-/// Moves the open project's file to a new location: the copy, the swap onto the copy, and the
+/// Move the open project's file to a new location: the copy, the swap onto the copy, and the
 /// clean-up of the old file and of the relay sidecar beside it.
 ///
 /// The swap changes the manager's state, which this class has no access to: it reports it through
 /// [moveProject]'s `onSwapped` callback, at the point the old behaviour set it.
 abstract final class OcptProjectMoveOps {
-  /// Moves the `currentProject`'s file to [newFilePath] — the project settings page's own `Move…`
-  /// action — and keeps it the `currentProject` there.
+  /// Move the `currentProject`'s file to [newFilePath] — the project settings page's own `Move…`
+  /// action — and keep it the `currentProject` there.
   ///
   /// Refused with [OcptProjectMoveStatus.noProjectOpen] when no project is open or the open one
   /// sits under a read-only version preview, and with [OcptProjectMoveStatus.fileAlreadyExists]
@@ -140,7 +140,7 @@ abstract final class OcptProjectMoveOps {
     return ResultWithStatus(status: OcptProjectMoveStatus.ok, value: movedProject);
   }
 
-  /// Moves the `<oldPath minus its extension>.relay.sqlite` sidecar an in-app-hosted relay leaves
+  /// Move the `<oldPath minus its extension>.relay.sqlite` sidecar an in-app-hosted relay leaves
   /// beside a project file, along with its own `-wal`/`-shm` companions, to sit beside [newPath]
   /// instead — a no-op when [oldPath] has no such sidecar at all.
   ///
@@ -187,7 +187,7 @@ abstract final class OcptProjectMoveOps {
     }
   }
 
-  /// Deletes [path] and its SQLite `-wal`/`-shm` companions, if any of the three exist. A failure
+  /// Delete [path] and its SQLite `-wal`/`-shm` companions, if any of the three exist. A failure
   /// deleting any of them is only ever logged, never thrown: by the time this runs the project has
   /// already been moved to its new file, and a leftover fragment of the old one is a cosmetic
   /// annoyance, not a reason to report the move itself as failed.
@@ -197,7 +197,7 @@ abstract final class OcptProjectMoveOps {
     }
   }
 
-  /// Deletes [path] if it exists, logging rather than throwing on failure.
+  /// Delete [path] if it exists, logging rather than throwing on failure.
   static Future<void> deleteFileIfExists(String path, {required LogsHelper logger}) async {
     try {
       final file = File(path);

@@ -18,7 +18,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptLocationsService` forwards to; see `OcptLocationsSetOps`.
 abstract final class OcptLocationsReferenceOps {
-  /// Adds an availability window to location [locationId], and returns its freshly generated id.
+  /// Add an availability window to location [locationId], and return its freshly generated id.
   ///
   /// [endDate] is clamped up to [startDate] rather than refused, and [weekdays] falls back to
   /// [ocptEveryWeekdayMask] when it covers no day at all: both are slips of a control, and the
@@ -73,7 +73,7 @@ abstract final class OcptLocationsReferenceOps {
     return id;
   }
 
-  /// Updates the fields of availability window [id] that are passed as something other than
+  /// Update the fields of availability window [id] that are passed as something other than
   /// [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -127,7 +127,7 @@ abstract final class OcptLocationsReferenceOps {
     });
   }
 
-  /// Removes availability window [id].
+  /// Remove availability window [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -163,8 +163,8 @@ abstract final class OcptLocationsReferenceOps {
     });
   }
 
-  /// References the file at [path] as a scouting photo of location [locationId], appended at the
-  /// end of its photos, and returns the freshly generated id of the `assets` row.
+  /// Reference the file at [path] as a scouting photo of location [locationId], appended at the end
+  /// of its photos, and return the freshly generated id of the `assets` row.
   ///
   /// **No byte of the file is read, copied or written here** — see
   /// `docs/adr/0013-binary-assets-referenced-by-path.md` and `OcptAssetsTable`'s own doc comment:
@@ -212,8 +212,8 @@ abstract final class OcptLocationsReferenceOps {
     });
   }
 
-  /// References the file at [path] as location [locationId]'s filming permit document, replacing
-  /// whichever document it referenced before, and returns the freshly generated id of the `assets`
+  /// Reference the file at [path] as location [locationId]'s filming permit document, replacing
+  /// whichever document it referenced before, and return the freshly generated id of the `assets`
   /// row.
   ///
   /// The replaced document's row is tombstoned in the same transaction: a location has one permit
@@ -272,7 +272,7 @@ abstract final class OcptLocationsReferenceOps {
     });
   }
 
-  /// Drops location [locationId]'s reference to its filming permit document: the `assets` row is
+  /// Drop location [locationId]'s reference to its filming permit document: the `assets` row is
   /// tombstoned and `permitAssetId` goes back to null. The file itself is never touched.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -316,7 +316,7 @@ abstract final class OcptLocationsReferenceOps {
     });
   }
 
-  /// Tombstones whichever `assets` row location [locationId] currently names as its permit
+  /// Tombstone whichever `assets` row location [locationId] currently names as its permit
   /// document, if any. Leaves `permitAssetId` alone: both callers write it themselves. Stamps
   /// through [stamps] — the caller's own instance.
   static Future<void> _tombstonePermitDocument({

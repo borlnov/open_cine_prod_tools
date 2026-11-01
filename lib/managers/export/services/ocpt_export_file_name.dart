@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The suggested file name for an export:
+/// Get the suggested file name for an export:
 /// `<projectName>[ - <suffix>][ - <episodeTag>].<extension>`.
 ///
 /// [suffix] and [episodeTag] are each dropped — rather than leaving a dangling `" - "` — while

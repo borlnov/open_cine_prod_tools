@@ -16,7 +16,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptFloorPlanService` forwards to; see `OcptFloorPlanReadOps`.
 abstract final class OcptFloorPlanCascadeOps {
-  /// Copies Resources set [sourceSetId]'s own live **set-scope** symbols (`sceneId` and `shotId`
+  /// Copy Resources set [sourceSetId]'s own live **set-scope** symbols (`sceneId` and `shotId`
   /// both null — the set's own décor, never a scene's re-dressing nor a shot's blocking) onto set
   /// [destinationSetId]'s plan, as independent copies (fresh ids, never links), creating that
   /// destination plan if it doesn't exist yet ([OcptFloorPlanRows.ensurePlan]).
@@ -82,7 +82,7 @@ abstract final class OcptFloorPlanCascadeOps {
     });
   }
 
-  /// Copies shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
+  /// Copy shot [sourceShotId]'s own live shot-layer symbols (cameras, characters, lights — never
   /// props any more, now that the scope matrix confines a prop to scene scope) and the arrows drawn
   /// between two of them, from set [sourceSetId] onto shot [destinationShotId] of set
   /// [destinationSetId] — the same set for a same-set copy, a different one for a copy across sets
@@ -190,7 +190,7 @@ abstract final class OcptFloorPlanCascadeOps {
     });
   }
 
-  /// Tombstones shot [shotId]'s own shot-layer symbols and every arrow it carries — every arrow
+  /// Tombstone shot [shotId]'s own shot-layer symbols and every arrow it carries — every arrow
   /// whose own `shotId` names it, and, defensively, every arrow touching one of the symbols being
   /// removed — for `OcptShotListService.deleteShot`'s and `.tombstoneShotsOfScreenplay`'s own
   /// cascade.
@@ -243,7 +243,7 @@ abstract final class OcptFloorPlanCascadeOps {
     }
   }
 
-  /// Tombstones Resources set [setId]'s own plan row (if any — a set nothing has ever been drawn
+  /// Tombstone Resources set [setId]'s own plan row (if any — a set nothing has ever been drawn
   /// on has none to tombstone), its symbols and its arrows, in one pass —
   /// `OcptLocationsService.deleteSet`'s and `.deleteLocation`'s own cascade. Removing a set's
   /// **link** to a scene (`OcptLocationsService

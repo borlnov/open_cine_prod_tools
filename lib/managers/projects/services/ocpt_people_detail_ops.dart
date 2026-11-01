@@ -14,8 +14,8 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptPeopleService` forwards to; see `OcptPeopleAssetOps`.
 abstract final class OcptPeopleDetailOps {
-  /// Adds a crew position assignment to person [personId], appended after their current positions,
-  /// and returns its freshly generated id.
+  /// Add a crew position assignment to person [personId], appended after their current positions,
+  /// and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<String?> addPosition({
@@ -57,7 +57,7 @@ abstract final class OcptPeopleDetailOps {
     return id;
   }
 
-  /// Updates the fields of position assignment [id] in [database] that are passed as something
+  /// Update the fields of position assignment [id] in [database] that are passed as something
   /// other than [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -99,7 +99,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Removes position assignment [id].
+  /// Remove position assignment [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -135,7 +135,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Reorders person [personId]'s positions to [orderedIds], which must be a permutation of their
+  /// Reorder person [personId]'s positions to [orderedIds], which must be a permutation of their
   /// currently attached positions' ids. Only the ones that actually have to move are written.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -175,7 +175,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Adds a skill to person [personId], appended after their current skills, and returns its
+  /// Add a skill to person [personId], appended after their current skills, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -216,7 +216,7 @@ abstract final class OcptPeopleDetailOps {
     return id;
   }
 
-  /// Updates skill [id]'s label.
+  /// Update skill [id]'s label.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<void> updateSkill({
@@ -251,7 +251,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Removes skill [id].
+  /// Remove skill [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -287,7 +287,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Reorders person [personId]'s skills to [orderedIds], which must be a permutation of their
+  /// Reorder person [personId]'s skills to [orderedIds], which must be a permutation of their
   /// currently attached skills' ids. Only the ones that actually have to move are written.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -327,7 +327,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Adds an unavailability to person [personId], and returns its freshly generated id.
+  /// Add an unavailability to person [personId], and return its freshly generated id.
   ///
   /// [endDate] is clamped up to [startDate] rather than refused: a range that ends before it
   /// starts is a slip of a date picker, and the caller has nothing useful to do with an error.
@@ -376,7 +376,7 @@ abstract final class OcptPeopleDetailOps {
     return id;
   }
 
-  /// Updates the fields of unavailability [id] that are passed as something other than
+  /// Update the fields of unavailability [id] that are passed as something other than
   /// [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -426,7 +426,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Removes unavailability [id].
+  /// Remove unavailability [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -462,7 +462,7 @@ abstract final class OcptPeopleDetailOps {
     });
   }
 
-  /// Every live position row of person [personId], ordered by `sortKey`.
+  /// Get every live position row of person [personId], ordered by `sortKey`.
   static Future<List<OcptPersonPositionRow>> _positionRowsOfPerson({
     required OcptProjectDatabase database,
     required String personId,
@@ -472,7 +472,7 @@ abstract final class OcptPeopleDetailOps {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Every live skill row of person [personId], ordered by `sortKey`.
+  /// Get every live skill row of person [personId], ordered by `sortKey`.
   static Future<List<OcptPersonSkillRow>> _skillRowsOfPerson({
     required OcptProjectDatabase database,
     required String personId,

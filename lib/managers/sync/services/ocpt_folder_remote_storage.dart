@@ -66,13 +66,13 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   @override
   Stream<String> get presenceStream => const Stream.empty();
 
-  /// The subdirectory holding the changeset files.
+  /// Get the subdirectory holding the changeset files.
   Directory get _changesetsDir => Directory(p.join(directory.path, _changesetsDirName));
 
-  /// The subdirectory holding the snapshot files.
+  /// Get the subdirectory holding the snapshot files.
   Directory get _snapshotsDir => Directory(p.join(directory.path, _snapshotsDirName));
 
-  /// Creates a transport rooted at [directory]. Neither [directory] nor its two subdirectories
+  /// Create a transport rooted at [directory]. Neither [directory] nor its two subdirectories
   /// need to exist yet — every method that writes creates what it needs first.
   OcptFolderRemoteStorage(this.directory);
 
@@ -175,7 +175,7 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   @override
   void sendPresence(String opaquePayload) {}
 
-  /// Runs [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
+  /// Run [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
   /// it throws anything at all: the file system and `dart:convert` are third-party boundaries, and
   /// a directory that cannot be read is the same thing to a caller as a relay that cannot be heard.
   Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
@@ -194,7 +194,7 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     return result;
   }
 
-  /// The highest sequence number already written under [changesetsDir], or
+  /// Get the highest sequence number already written under [changesetsDir], or
   /// [OcptSequenceNumber.zero] when it holds none — so that [append] always has a value to call
   /// `next()` on.
   Future<OcptSequenceNumber> _highestSequenceNumber(Directory changesetsDir) async {
@@ -209,7 +209,7 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     return highest;
   }
 
-  /// Every changeset file directly under [changesetsDir], sorted by name — which, given
+  /// Get every changeset file directly under [changesetsDir], sorted by name — which, given
   /// [_changesetFileName]'s fixed-width zero-padding, is the same order as by sequence number.
   Future<List<File>> _sortedChangesetFiles(Directory changesetsDir) async {
     final entries = await changesetsDir
@@ -222,11 +222,12 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     return entries;
   }
 
-  /// The file name a changeset at [sequence] is written under.
+  /// Get the file name a changeset at [sequence] is written under.
   String _changesetFileName(OcptSequenceNumber sequence) =>
       '${sequence.value.toString().padLeft(_sequenceNumberWidth, '0')}$_changesetFileExtension';
 
-  /// The sequence number [file]'s own name encodes, or null when it does not parse as one — which
+  /// Get the sequence number [file]'s own name encodes, or null when it does not parse as one —
+  /// which
   /// a well-formed transport directory never produces, but a hand-edited or foreign one might.
   OcptSequenceNumber? _sequenceNumberOfChangesetFile(File file) {
     final value = int.tryParse(p.basenameWithoutExtension(file.path));

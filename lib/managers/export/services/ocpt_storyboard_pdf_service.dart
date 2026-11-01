@@ -88,7 +88,7 @@ const double _annotationHeadLengthPt = 7;
 /// The angle, in radians, an arrow annotation's head strokes open at.
 const double _annotationHeadAnglePt = 0.45;
 
-/// Renders the storyboard of a shot list: per sequence, a header band, then per shot a row — its
+/// Render the storyboard of a shot list: per sequence, a header band, then per shot a row — its
 /// key information beside its frames, printed at a common height and their own derived aspect
 /// ratios, each frame's annotations drawn over it, its comment underneath.
 ///
@@ -125,7 +125,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
   /// The service the floor plan sheets are drawn through, when appended after a sequence.
   final OcptFloorPlanPdfService floorPlanPdfService;
 
-  /// Creates an [OcptStoryboardPdfService].
+  /// Create an [OcptStoryboardPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font
   /// cache, and its own [floorPlanPdfService] so the two documents' shared font cache and shared
@@ -164,7 +164,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     await floorPlanPdfService.initLifeCycle();
   }
 
-  /// The `.pdf` file name to suggest when exporting the storyboard of [projectName]. See
+  /// Get the `.pdf` file name to suggest when exporting the storyboard of [projectName]. See
   /// `OcptScenarioCoveragePdfService.coverageFileName`'s own doc comment for [suffix] and
   /// [episodeTag].
   String storyboardFileName({
@@ -178,7 +178,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     extension: "pdf",
   );
 
-  /// Renders the storyboard of [snapshot]/[storyboardSnapshot], returning the PDF's bytes.
+  /// Render the storyboard of [snapshot]/[storyboardSnapshot], returning the PDF's bytes.
   ///
   /// [shotsPerPage] is how many shot rows print before a fresh page starts (clamped to at least
   /// 1); a sequence with more shots than that spans several pages, its own header band repeated at
@@ -242,7 +242,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// Reads every referenced panel image once, ahead of building the page widgets — a `pw.Document`
+  /// Read every referenced panel image once, ahead of building the page widgets — a `pw.Document`
   /// is built synchronously, so every file this render touches is read up front rather than from
   /// inside a widget's own `build`.
   ///
@@ -261,7 +261,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     return result;
   }
 
-  /// [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file, or
+  /// Get [path]'s bytes decoded as a `pw.MemoryImage`, or null when [path] is null, names no file,
+  /// or
   /// cannot be decoded.
   Future<pw.MemoryImage?> _readImageOrNull(String? path) async {
     if (path == null) {
@@ -284,7 +285,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     return image;
   }
 
-  /// [shots] split into chunks of at most [size], in order.
+  /// Get [shots] split into chunks of at most [size], in order.
   List<List<OcptShot>> _chunked(List<OcptShot> shots, int size) {
     final chunks = <List<OcptShot>>[];
     for (var start = 0; start < shots.length; start += size) {
@@ -293,7 +294,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     return chunks;
   }
 
-  /// One page (a `pw.MultiPage`, so a chunk whose rows still overflow it flows onto a continuation
+  /// Build one page (a `pw.MultiPage`, so a chunk whose rows still overflow it flows onto a
+  /// continuation
   /// page rather than clipping): the running head, [sequence]'s own header band, then one row per
   /// shot of [shots].
   pw.MultiPage _buildChunkPage({
@@ -330,7 +332,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     ],
   );
 
-  /// The running head every page carries: the project and the document's own name.
+  /// Build the running head every page carries: the project and the document's own name.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
     required OcptStoryboardLabels labels,
@@ -340,7 +342,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     style: pw.TextStyle(font: painter.fonts.regular, fontSize: _headFontSizePt, color: _mutedColor),
   );
 
-  /// The full-width band introducing [sequence]'s own rows.
+  /// Build the full-width band introducing [sequence]'s own rows.
   pw.Widget _sequenceBand({
     required OcptScriptPagePainter painter,
     required OcptStoryboardLabels labels,
@@ -355,7 +357,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     ),
   );
 
-  /// One shot row: its key-information block, then its frames (or the "no panel" note) at a
+  /// Build one shot row: its key-information block, then its frames (or the "no panel" note) at a
   /// common height and their own derived aspect ratios.
   pw.Widget _shotRow({
     required OcptScriptPagePainter painter,
@@ -402,7 +404,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     );
   }
 
-  /// The key-information block leading a shot row: its code and status, then its shot size,
+  /// Build the key-information block leading a shot row: its code and status, then its shot size,
   /// framing, camera move, lens, recording format and attached cast.
   pw.Widget _keyInfoBlock({
     required OcptScriptPagePainter painter,
@@ -439,7 +441,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     ),
   );
 
-  /// One `label: value` line of the key-information block, omitted entirely when [value] is
+  /// Build one `label: value` line of the key-information block, omitted entirely when [value] is
   /// blank — a block naming every field it holds nothing for would read as noisier than the read
   /// it is meant to shorten.
   pw.Widget _infoLine(OcptScriptPagePainter painter, String label, String value) {
@@ -456,7 +458,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     );
   }
 
-  /// A dashed-bordered placeholder frame — a shot with no panel, or a panel whose image could not
+  /// Build a dashed-bordered placeholder frame — a shot with no panel, or a panel whose image could
+  /// not
   /// be read.
   pw.Widget _placeholderFrame({
     required OcptScriptPagePainter painter,
@@ -480,7 +483,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     ),
   );
 
-  /// One panel's own frame: its image (or the placeholder, when [image] is null) with its
+  /// Build one panel's own frame: its image (or the placeholder, when [image] is null) with its
   /// annotations drawn over it, its comment underneath.
   pw.Widget _panelFrame({
     required OcptScriptPagePainter painter,
@@ -535,7 +538,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
     );
   }
 
-  /// Draws every arrow's shaft and head, and every label's own anchor dot, over a frame of [size],
+  /// Draw every arrow's shaft and head, and every label's own anchor dot, over a frame of [size],
   /// from the very same shared pure rule `OcptStoryboardAnnotationOverlayPainter` reads,
   /// `ocptStoryboardAnnotationPointOf`
   /// (`lib/models/rules/ocpt_storyboard_annotation_geometry.dart`) — see this class's own doc
@@ -581,7 +584,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     }
   }
 
-  /// One [pw.Positioned] [pw.Text] per non-empty label annotation, at the very same normalised
+  /// Build one [pw.Positioned] [pw.Text] per non-empty label annotation, at the very same
+  /// normalised
   /// point [_paintAnnotationMarks] draws its anchor dot at — a `pw.Positioned` measures its own
   /// `left`/`top` from the frame's own top-left corner, exactly the stored convention's own origin,
   /// so no flip is needed here (unlike every `PdfGraphics` call, which is not a widget and measures
@@ -597,7 +601,7 @@ class OcptStoryboardPdfService extends AbsOcptService {
         _labelCaption(annotation, widthPt, heightPt, painter),
   ];
 
-  /// One label annotation's own caption, positioned at its own normalised anchor.
+  /// Build one label annotation's own caption, positioned at its own normalised anchor.
   pw.Widget _labelCaption(
     OcptStoryboardAnnotation annotation,
     double widthPt,
@@ -620,7 +624,8 @@ class OcptStoryboardPdfService extends AbsOcptService {
     );
   }
 
-  /// One arrow annotation: a shaft from [tail] to [head], solid or [dashed], and a small filled
+  /// Paint one arrow annotation: a shaft from [tail] to [head], solid or [dashed], and a small
+  /// filled
   /// arrowhead at [head].
   void _paintArrow(
     PdfGraphics canvas,

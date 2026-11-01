@@ -12,7 +12,7 @@ import 'package:uuid/uuid.dart';
 ///
 /// What `OcptElementsService` forwards to; see `OcptElementsSceneLinkOps`.
 abstract final class OcptElementsRoleLinkOps {
-  /// Links role [roleId] to element [elementId], with optional [notes], and returns the id of the
+  /// Link role [roleId] to element [elementId], with optional [notes], and return the id of the
   /// link — the one that already said so when there was one, a freshly generated one otherwise.
   ///
   /// `addSceneElement`'s sibling and follows exactly its rules: a pair the role already carries is
@@ -83,7 +83,7 @@ abstract final class OcptElementsRoleLinkOps {
     });
   }
 
-  /// Updates the notes of role ↔ element link [id] in [database].
+  /// Update the notes of role ↔ element link [id] in [database].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<void> updateRoleElement({
@@ -118,7 +118,7 @@ abstract final class OcptElementsRoleLinkOps {
     });
   }
 
-  /// Removes the role ↔ element link [id].
+  /// Remove the role ↔ element link [id].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
@@ -154,7 +154,7 @@ abstract final class OcptElementsRoleLinkOps {
     });
   }
 
-  /// Tombstones every `role_elements` row naming role [roleId], the cascade
+  /// Tombstone every `role_elements` row naming role [roleId], the cascade
   /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
   ///
   /// **Unguarded**, exactly as `OcptAssetsService`'s own cascades are: its only caller has already

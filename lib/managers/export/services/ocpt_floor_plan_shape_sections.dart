@@ -23,7 +23,8 @@ import 'package:pdf/widgets.dart' as pw;
 ///
 /// Stateless painters over a page layout.
 abstract final class OcptFloorPlanShapeSections {
-  /// The underlay's own real image: a [pw.Positioned], unrotated rect sized and centred at its
+  /// Build the underlay's own real image: a [pw.Positioned], unrotated rect sized and centred at
+  /// its
   /// stored metres frame (mapped through [layout]), wrapped in a [pw.Transform.rotate] for
   /// [OcptFloorPlanUnderlayShape.rotationDeg] — mirroring `OcptFloorPlanCanvas
   /// ._buildUnderlayVisual`'s own `Positioned` + `Transform.rotate` around an unrotated rect
@@ -56,7 +57,7 @@ abstract final class OcptFloorPlanShapeSections {
     );
   }
 
-  /// Draws [sheet]'s own arrows, symbol footprints, scale bar and reference silhouette onto
+  /// Draw [sheet]'s own arrows, symbol footprints, scale bar and reference silhouette onto
   /// [canvas] — every shape [layout] places, none of its captions (see `_buildPage`'s own doc
   /// comment for why those are separate [pw.Text] widgets instead). The underlay's own schematic
   /// frame is drawn here too, but only while [hasUnderlayImage] is false: a real image, drawn as
@@ -84,7 +85,8 @@ abstract final class OcptFloorPlanShapeSections {
     paintScaleAndSilhouette(canvas: canvas, layout: layout);
   }
 
-  /// One [pw.Positioned] caption per symbol that carries one, placed near the symbol's own mapped
+  /// Build one [pw.Positioned] caption per symbol that carries one, placed near the symbol's own
+  /// mapped
   /// centre: a camera's own derived number/letter ([OcptFloorPlanSymbolShape.cameraLabel], when
   /// set) as a filled pill in the camera's own colour — the printed equivalent of
   /// `OcptFloorPlanCanvasPainter._paintCameraLabelPill` — every other symbol's own free
@@ -114,7 +116,8 @@ abstract final class OcptFloorPlanShapeSections {
         ),
   ];
 
-  /// A camera's own derived [cameraLabel] (`3A`), as a filled pill in [colorArgb] — the mockup's
+  /// Build a camera's own derived [cameraLabel] (`3A`), as a filled pill in [colorArgb] — the
+  /// mockup's
   /// own filled-pill style, white bold text on the camera's own colour.
   static pw.Widget cameraLabelPill({
     required String cameraLabel,
@@ -136,7 +139,7 @@ abstract final class OcptFloorPlanShapeSections {
     ),
   );
 
-  /// The scale bar's own printed length, positioned just above the bar [layout] placed.
+  /// Build the scale bar's own printed length, positioned just above the bar [layout] placed.
   static pw.Widget scaleBarLabelOverlay({
     required OcptFloorPlanPageLayout layout,
     required OcptScriptPagePainter painter,
@@ -149,14 +152,15 @@ abstract final class OcptFloorPlanShapeSections {
     ),
   );
 
-  /// [child] positioned at [topDown] — a `pw.Positioned` measures its own `left`/`top` from the
+  /// Build [child] positioned at [topDown] — a `pw.Positioned` measures its own `left`/`top` from
+  /// the
   /// stack's own top-left corner, exactly the convention every `topDownPointOf` in this file
   /// already computes in, so no flip is needed here (unlike every `PdfGraphics` call, which is not
   /// a widget and measures its own Y from the page's bottom).
   static pw.Widget positionedTopDown(Offset topDown, pw.Widget child) =>
       pw.Positioned(left: topDown.dx, top: topDown.dy, child: child);
 
-  /// The underlay's own frame, drawn as a schematic rectangle — the fallback for a missing or
+  /// Paint the underlay's own frame, drawn as a schematic rectangle — the fallback for a missing or
   /// undecodable underlay file (see this class's own doc comment).
   static void paintUnderlayFrame({
     required PdfGraphics canvas,
@@ -182,7 +186,7 @@ abstract final class OcptFloorPlanShapeSections {
     );
   }
 
-  /// One symbol's own glyph — [OcptFloorPlanSymbolShape.glyphKind] names which
+  /// Paint one symbol's own glyph — [OcptFloorPlanSymbolShape.glyphKind] names which
   /// (a character's own disc, a camera's own body/lens/wedge, a light's own body/beam, or a décor
   /// primitive), drawn from the very same shape data `OcptFloorPlanCanvasPainter` reads, so the
   /// printed page and the screen agree. Its caption is a separate [pw.Text] overlay (see
@@ -212,7 +216,7 @@ abstract final class OcptFloorPlanShapeSections {
     }
   }
 
-  /// `(localXM, localYM)` — metres in [symbol]'s own local frame, `(0, 0)` its own centre,
+  /// Get `(localXM, localYM)` — metres in [symbol]'s own local frame, `(0, 0)` its own centre,
   /// unrotated, the sign convention [rotatedRectCorners] already uses (negative Y is the symbol's
   /// own "front"/"up", matching `OcptFloorPlanCanvasPainter`'s own `canvas.rotate` convention) —
   /// rotated by [symbol]'s own [OcptFloorPlanSymbolShape.rotationDeg], translated to its own
@@ -233,7 +237,7 @@ abstract final class OcptFloorPlanShapeSections {
     return layout.graphicsOf(layout.topDownPointOf(worldXM, worldYM));
   }
 
-  /// One arrow: a quadratic bezier shaft through [OcptFloorPlanArrowShape.ctrlXM]/
+  /// Paint one arrow: a quadratic bezier shaft through [OcptFloorPlanArrowShape.ctrlXM]/
   /// [OcptFloorPlanArrowShape.ctrlYM] when set (converted to the cubic bezier `PdfGraphics.curveTo`
   /// draws, through the standard quadratic-to-cubic control-point formula `cp = end + 2/3 *
   /// (quadraticControl - end)`), a straight shaft otherwise, with a small filled arrowhead at its
@@ -298,7 +302,7 @@ abstract final class OcptFloorPlanShapeSections {
       ..fillPath();
   }
 
-  /// The scale bar and the reference silhouette, bottom-right of the canvas — the printed
+  /// Paint the scale bar and the reference silhouette, bottom-right of the canvas — the printed
   /// equivalent of `ocpt_floor_plan_canvas_painter.dart`'s always-on pair, at the zoom [layout]
   /// fitted the set's own shapes at. The scale bar's own length is a separate [pw.Text] overlay
   /// (see `_buildPage`'s own doc comment for why).
@@ -329,7 +333,7 @@ abstract final class OcptFloorPlanShapeSections {
       ..strokePath();
   }
 
-  /// The four corners, in metres, of a footprint [widthM] × [heightM] centred at
+  /// Get the four corners, in metres, of a footprint [widthM] × [heightM] centred at
   /// `(centreXM, centreYM)` and rotated by [rotationDeg] — the screen convention every floor plan
   /// renderer shares (clockwise, Y growing downward — `ocpt_floor_plan_canvas_painter.dart`'s own
   /// `canvas.rotate`), reproduced here rather than imported from that Flutter widget file, which
@@ -358,7 +362,7 @@ abstract final class OcptFloorPlanShapeSections {
     ];
   }
 
-  /// Fills then strokes the closed polygon [points] (already in the canvas's own graphics space).
+  /// Fill then strokes the closed polygon [points] (already in the canvas's own graphics space).
   static void fillAndStrokePolygon({
     required PdfGraphics canvas,
     required List<Offset> points,

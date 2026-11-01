@@ -26,7 +26,7 @@ class OcptProjectDictionaryService extends AbsOcptService {
   /// Class constructor
   const OcptProjectDictionaryService({required super.logger, required this.deviceId});
 
-  /// The live words of this project's dictionary, sorted case-insensitively (ties broken by the
+  /// Get the live words of this project's dictionary, sorted case-insensitively (ties broken by the
   /// exact text, so the ordering is deterministic), tombstones filtered out.
   Future<List<String>> loadWords({required OcptProjectDatabase database}) async {
     final rows = await database.select(database.ocptProjectDictionaryWordsTable).get();
@@ -43,7 +43,7 @@ class OcptProjectDictionaryService extends AbsOcptService {
     return words;
   }
 
-  /// Teaches [word] to this project's dictionary, on a user's own "Add to the project's
+  /// Teach [word] to this project's dictionary, on a user's own "Add to the project's
   /// dictionary" gesture — never on an "Ignore this word" one, which is session-only and reaches
   /// `OcptSpellCheckManager` alone (`docs/architecture/screenplay.md`).
   ///
@@ -123,7 +123,7 @@ class OcptProjectDictionaryService extends AbsOcptService {
     });
   }
 
-  /// Removes [word] from this project's dictionary, on a user's own gesture in the project
+  /// Remove [word] from this project's dictionary, on a user's own gesture in the project
   /// settings page's dictionary dialog.
   ///
   /// Matches **case-insensitively**, tombstoning every live row it finds — never deleting one.

@@ -7,12 +7,12 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 
-/// Closes the open project and keeps the recent-projects entry's episode count truthful.
+/// Close the open project and keep the recent-projects entry's episode count truthful.
 ///
 /// Stateless: the open project itself is the manager's state, which `closeProject` reports
 /// clearing through `onClosed`, at the point the old behaviour cleared it.
 abstract final class OcptProjectEpisodeOps {
-  /// Closes the `currentProject`, disposing its database handle. Does nothing if no project is
+  /// Close the `currentProject`, disposing its database handle. Does nothing if no project is
   /// open.
   ///
   /// A project closed while a version is being previewed disposes both of its connections: the
@@ -56,7 +56,7 @@ abstract final class OcptProjectEpisodeOps {
     logger.i("A project was closed: ${project.primaryScreenplayId}");
   }
 
-  /// Updates the recent-projects entry for the `currentProject` so it carries the episode count
+  /// Update the recent-projects entry for the `currentProject` so it carries the episode count
   /// the project holds right now. Does nothing when no project is open.
   ///
   /// `closeCurrentProject` records that count on the way out too, but only a session that *leaves*
@@ -88,7 +88,7 @@ abstract final class OcptProjectEpisodeOps {
     );
   }
 
-  /// Updates the recent-projects entry for [path], if it is still in the list, so it carries
+  /// Update the recent-projects entry for [path], if it is still in the list, so it carries
   /// [episodeCount] rather than whichever count was recorded when the project was opened.
   ///
   /// Left untouched, rather than created, when [path] isn't in the list at all — e.g. it was

@@ -15,13 +15,13 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 
-/// Builds a payload out of the JSON object a version's row stores: every table's rows through its
+/// Build a payload out of the JSON object a version's row stores: every table's rows through its
 /// own parser, and the two settings objects.
 ///
 /// The walk is `OcptProjectVersionCodec.decode`'s: it never throws on a bad field, it records the
 /// first one in `OcptVersionJsonReader` and answers neutral values so the walk can finish.
 abstract final class OcptVersionPayloadJson {
-  /// Builds the payload described by [json], written at [payloadFormat].
+  /// Build the payload described by [json], written at [payloadFormat].
   ///
   /// [payloadFormat] drives two branches. For `payloadFormat < 3`, `shotCharacters` is read as
   /// empty rather than through [OcptVersionShotListJson.shotCharacterFromJson] — a pre-3 payload's

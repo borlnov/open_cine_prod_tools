@@ -21,7 +21,7 @@ const ocptDefaultPresenceHeartbeatInterval = Duration(seconds: 5);
 /// dropped frame alone never flickers a peer out.
 const ocptDefaultPresencePeerTimeout = Duration(seconds: 12);
 
-/// The default [OcptPresenceService.clock]: the wall clock. A test hands in its own so a peer's
+/// Get the default [OcptPresenceService.clock]: the wall clock. A test hands in its own so a peer's
 /// ageing past [OcptPresenceService.peerTimeout] can be driven deterministically instead of
 /// waiting on real time.
 DateTime _systemClock() => DateTime.now();
@@ -39,9 +39,9 @@ class _SeenPeer {
   _SeenPeer({required this.frame, required this.lastSeen});
 }
 
-/// Keeps one project's presence roster converging against its peers for as long as it runs — the
+/// Keep one project's presence roster converging against its peers for as long as it runs — the
 /// client-side half of the avatar cluster the presence indicator renders, over the very same
-/// [OcptRemoteStorage] a project's `OcptChangesetService` already pushes and pulls through.
+/// [OcptRemoteStorage] a project's `OcptChangesetService` already pushes and pull through.
 ///
 /// This class heartbeats this replica's own [OcptPresenceFrame] every [heartbeatInterval] via
 /// [OcptRemoteStorage.sendPresence], listens to [OcptRemoteStorage.presenceStream] for every peer
@@ -93,15 +93,16 @@ class OcptPresenceService extends AbsOcptService {
   /// The controller behind [rosterStream].
   final StreamController<OcptPresenceRoster> _rosterController;
 
-  /// The current roster — see this class's own doc comment for why a caller reads this once before
+  /// Get the current roster — see this class's own doc comment for why a caller reads this once
+  /// before
   /// ever listening to [rosterStream].
   OcptPresenceRoster get roster => _buildRoster();
 
-  /// Emits every roster this service moves through from the moment a listener subscribes onward —
+  /// Emit every roster this service moves through from the moment a listener subscribes onward —
   /// never its current value at subscription time (see [roster] and this class's own doc comment).
   Stream<OcptPresenceRoster> get rosterStream => _rosterController.stream;
 
-  /// This replica's own current frame — [_heartbeatCounter] only actually advances when
+  /// Get this replica's own current frame — [_heartbeatCounter] only actually advances when
   /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or,
   /// before [start] has ever run, the frame it would send first).
   OcptPresenceFrame get _selfFrame => OcptPresenceFrame(
@@ -131,8 +132,8 @@ class OcptPresenceService extends AbsOcptService {
        _rosterController = StreamController<OcptPresenceRoster>.broadcast(),
        platform = platform ?? Platform.operatingSystem;
 
-  /// Subscribes to [storage]'s [OcptRemoteStorage.presenceStream], sends this replica's first
-  /// heartbeat, and starts the [heartbeatInterval] timer that keeps sending it and sweeps stale
+  /// Subscribe to [storage]'s [OcptRemoteStorage.presenceStream], send this replica's first
+  /// heartbeat, and start the [heartbeatInterval] timer that keeps sending it and sweeps stale
   /// peers. Throws [StateError] when this service is already running — call [stop] first to
   /// restart it.
   Future<void> start() async {
@@ -150,8 +151,8 @@ class OcptPresenceService extends AbsOcptService {
     });
   }
 
-  /// Cancels the [heartbeatInterval] timer and the [OcptRemoteStorage.presenceStream] subscription,
-  /// and closes [rosterStream] — nothing this service holds outlives this call. Safe to call more
+  /// Cancel the [heartbeatInterval] timer and the [OcptRemoteStorage.presenceStream] subscription,
+  /// and close [rosterStream] — nothing this service holds outlives this call. Safe to call more
   /// than once, and safe to call before [start] ever ran.
   Future<void> stop() async {
     _isRunning = false;
@@ -164,8 +165,8 @@ class OcptPresenceService extends AbsOcptService {
     }
   }
 
-  /// Sets this replica's own current mode and sends a heartbeat immediately, so a mode change
-  /// shows on peers at once rather than waiting for the next [heartbeatInterval] tick, then emits a
+  /// Set this replica's own current mode and send a heartbeat immediately, so a mode change shows
+  /// on peers at once rather than waiting for the next [heartbeatInterval] tick, then emit a
   /// fresh [roster] — this replica's own frame just changed.
   void updateMode(OcptWorkspaceMode? mode) {
     _currentMode = mode;
@@ -173,7 +174,7 @@ class OcptPresenceService extends AbsOcptService {
     _emitRoster();
   }
 
-  /// Parses [raw] into a [OcptPresenceFrame] and records it, unless it is malformed (dropped, never
+  /// Parse [raw] into a [OcptPresenceFrame] and record it, unless it is malformed (dropped, never
   /// thrown) or carries this replica's own [deviceId] (the relay never echoes a sender's own frame
   /// back to it, but this is defensive rather than load-bearing).
   void _handleInboundFrame(String raw) {
@@ -191,7 +192,7 @@ class OcptPresenceService extends AbsOcptService {
     _emitRoster();
   }
 
-  /// Drops every peer whose [_SeenPeer.lastSeen] is older than [peerTimeout], and emits a fresh
+  /// Drop every peer whose [_SeenPeer.lastSeen] is older than [peerTimeout], and emit a fresh
   /// [roster] only when at least one actually was.
   void _sweepStalePeers() {
     final now = clock();
@@ -207,14 +208,14 @@ class OcptPresenceService extends AbsOcptService {
     _emitRoster();
   }
 
-  /// Advances [_heartbeatCounter] and sends this replica's own current frame through
+  /// Advance [_heartbeatCounter] and send this replica's own current frame through
   /// [OcptRemoteStorage.sendPresence].
   void _sendHeartbeat() {
     _heartbeatCounter++;
     storage.sendPresence(jsonEncode(_selfFrame.toJson()));
   }
 
-  /// This replica first, then every peer [_peers] still holds, sorted by device id for a stable
+  /// Get this replica first, then every peer [_peers] still holds, sorted by device id for a stable
   /// order.
   OcptPresenceRoster _buildRoster() {
     final peerFrames = _peers.values.map((seenPeer) => seenPeer.frame).toList()
