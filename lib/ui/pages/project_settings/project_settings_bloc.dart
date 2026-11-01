@@ -6,6 +6,7 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -58,7 +59,8 @@ typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 /// (`AGENTS.md`, "Dependencies never reference their dependents"). This bloc also stops and
 /// restarts the sync session around the move for the very same reason
 /// (`OcptProjectsManager.moveCurrentProject`'s own doc comment).
-class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
+class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
+    with MixinAsyncInitBloc<OcptProjectSettingsState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "project_settings_bloc";
 
@@ -105,9 +107,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
        _hostManagerOverride = hostManager,
        _propertiesManagerOverride = propertiesManager,
        _launchFolder = launchFolder ?? launchUrl,
-       super(const OcptProjectSettingsState.init()) {
-    add(const OcptProjectSettingsLoadRequestedEvent());
-  }
+       super(const OcptProjectSettingsState.init());
 
   /// The current project's database. The route that reaches this page is guarded exactly like the
   /// workspace's own, so a project is always open by the time an episode mutation runs.
@@ -117,7 +117,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   /// environment actually registered one, or null otherwise — resolved lazily on every access
   /// rather than eagerly in the constructor, exactly as `OcptWorkspaceBloc._syncManager` is and for
   /// the same reason: this page's own widget tests build a bare `OcptProjectSettingsBloc()` with no
-  /// reason to ever register an export manager, and [_onLoadRequested]/[_onMoveRequested] simply
+  /// reason to ever register an export manager, and [initAsyncBloc]/[_onMoveRequested] simply
   /// treat its absence as "desktop, nothing hosted" rather than crash.
   OcptExportManager? get _exportManager {
     final override = _exportManagerOverride;
@@ -188,7 +188,6 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptProjectSettingsLoadRequestedEvent>(_onLoadRequested);
     on<OcptProjectSettingsShowInFolderRequestedEvent>(_onShowInFolderRequested);
     on<OcptProjectSettingsShowInFolderFailureDismissedEvent>(_onShowInFolderFailureDismissed);
     on<OcptProjectSettingsMoveRequestedEvent>(_onMoveRequested);
@@ -214,16 +213,19 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
     on<OcptProjectSettingsMileageRateDeletionConfirmedEvent>(_onMileageRateDeletionConfirmed);
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
   /// Loads the current project's currency, page format, minimum rest, screenplay language,
   /// episodes and learned dictionary words.
   ///
   /// The route that reaches this page is guarded exactly like the workspace's own: a project is
   /// always open by the time this runs. The fallbacks below only ever matter if that guard were
   /// ever bypassed, and mirror the ones every other reader of these two properties already uses.
-  Future<void> _onLoadRequested(
-    OcptProjectSettingsLoadRequestedEvent event,
-    Emitter<OcptProjectSettingsState> emitter,
-  ) async {
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptProjectSettingsState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     final projectFilePath = _projectsManager.currentProject!.path;
     final isMobile = _exportManager?.isMobile ?? false;
     final isMoveWithheldByHosting = await _isHostingOnlineForCurrentProject();
@@ -246,7 +248,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
       database: _database,
     );
 
-    emitter(
+    emit(
       state.copyWith(
         isLoading: false,
         projectFilePath: projectFilePath,
@@ -273,7 +275,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState> {
   }
 
   /// Whether an in-app-hosted relay is currently online for the very project this page is open on
-  /// — what [_onLoadRequested] withholds `Move…` for, since a hosted relay keeps this project's
+  /// — what [initAsyncBloc] withholds `Move…` for, since a hosted relay keeps this project's
   /// `.relay.sqlite` sidecar open (`OcptProjectsManager.moveCurrentProject`'s own doc comment
   /// explains why the manager itself cannot check this).
   ///

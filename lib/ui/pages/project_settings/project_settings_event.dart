@@ -12,14 +12,6 @@ sealed class OcptProjectSettingsEvent extends BlocEventForMixin {
   const OcptProjectSettingsEvent();
 }
 
-/// Requests loading the current project's currency and page format into the page.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptProjectSettingsLoadRequestedEvent extends OcptProjectSettingsEvent {
-  /// Class constructor
-  const OcptProjectSettingsLoadRequestedEvent();
-}
-
 /// Reports that the user picked a different currency in the picker.
 class OcptProjectSettingsCurrencyChangedEvent extends OcptProjectSettingsEvent {
   /// The ISO 4217 code the user picked.
