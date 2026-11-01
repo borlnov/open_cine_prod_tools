@@ -471,6 +471,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
+    var isTextSaved = false;
     try {
       final project = result.value!;
       await _projectsManager.screenplayService.saveScreenplayText(
@@ -479,6 +480,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
         fountainText: imported.fountainText,
         snapshotReason: OcptSnapshotReason.import,
       );
+      isTextSaved = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a fountain file into a project: "
@@ -487,6 +489,9 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
         stackTrace,
       );
       emitter(state.copyWithFailure(error: OcptProjectStatus.ioError));
+    }
+
+    if (!isTextSaved) {
       return;
     }
 

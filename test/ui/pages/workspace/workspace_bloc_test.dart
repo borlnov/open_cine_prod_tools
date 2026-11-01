@@ -120,6 +120,9 @@ class _RecordingSyncManager extends OcptSyncManager {
       );
 
   bool startSyncSessionCalled = false;
+
+  /// Whether [startSyncSession] throws once it has recorded its call.
+  bool isStartFailing = false;
   bool stopSyncSessionCalled = false;
   String? startedProjectId;
 
@@ -143,6 +146,9 @@ class _RecordingSyncManager extends OcptSyncManager {
   }) async {
     startSyncSessionCalled = true;
     startedProjectId = projectId;
+    if (isStartFailing) {
+      throw StateError('the relay is unreachable');
+    }
   }
 
   @override
@@ -167,6 +173,9 @@ class _RecordingHostManager extends OcptRelayHostManager {
   final OcptRelayHostState? stateAfterAutoStart;
 
   bool maybeAutoStartCalled = false;
+
+  /// Whether [maybeAutoStartHosting] throws once it has recorded its call.
+  bool isAutoStartFailing = false;
   bool stopHostingCalled = false;
 
   @override
@@ -181,6 +190,9 @@ class _RecordingHostManager extends OcptRelayHostManager {
     required String deviceId,
   }) async {
     maybeAutoStartCalled = true;
+    if (isAutoStartFailing) {
+      throw StateError('the relay cannot be bound');
+    }
     if (stateAfterAutoStart != null) {
       stateToReport = stateAfterAutoStart!;
     }
@@ -522,6 +534,49 @@ void main() {
 
     expect(syncManager.startSyncSessionCalled, isTrue);
     expect(syncManager.startedProjectId, "project-abc");
+    await bloc.close();
+  });
+
+  test('a sync session that fails to start leaves the workspace loaded', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
+
+    final syncManager = _RecordingSyncManager(pairingService: pairingService)
+      ..isStartFailing = true;
+    final bloc = buildBloc(syncManager: syncManager);
+
+    final state = await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
+
+    expect(syncManager.startSyncSessionCalled, isTrue);
+    expect(state.isLoading, isFalse);
+    await bloc.close();
+  });
+
+  test('hosting that fails to auto-start leaves the ordinary session start to run', () async {
+    final project = projectsManager.currentProject!;
+    await pairingService.savePairing(
+      database: project.fileDatabase,
+      projectId: "project-abc",
+      relayBaseUri: Uri.parse("https://relay.example.org/"),
+      token: "token-1",
+    );
+
+    final syncManager = _RecordingSyncManager(pairingService: pairingService);
+    final hostManager = _RecordingHostManager(stateToReport: const OcptRelayHostStopped())
+      ..isAutoStartFailing = true;
+    final bloc = buildBloc(syncManager: syncManager, hostManager: hostManager);
+
+    await waitForState(bloc, (state) => !state.isLoading);
+    await pumpEventQueue();
+
+    expect(hostManager.maybeAutoStartCalled, isTrue);
+    expect(syncManager.startSyncSessionCalled, isTrue);
     await bloc.close();
   });
 

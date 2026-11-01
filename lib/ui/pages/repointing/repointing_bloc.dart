@@ -97,35 +97,33 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
       if (row == null) {
         _logger.e('Switching the project to another relay failed: it has no existing pairing');
         emitter(state.copyWithRepointFailed());
-        return;
+      } else {
+        final deviceId = await _propertiesManager.loadOrCreateDeviceId();
+        final repointed = await _syncManager.repointProjectToRelay(
+          database: database,
+          projectId: row.projectId,
+          projectFilePath: project.path,
+          projectName: project.name,
+          appVersion: _projectsManager.appVersion,
+          relayBaseUri: event.relayBaseUri,
+          enrolmentSecret: event.enrolmentSecret,
+          deviceId: deviceId,
+        );
+        if (!repointed.status.isSuccess) {
+          // The relay's answer can name its address, so only the status is logged.
+          _logger.e('Switching the project to another relay failed: ${repointed.status.name}');
+          emitter(state.copyWithRepointFailed());
+        } else {
+          emitter(
+            state.copyWithRepointed(
+              enrolment: OcptRelayEnrolment(
+                relayBaseUri: event.relayBaseUri,
+                enrolmentSecret: event.enrolmentSecret,
+              ),
+            ),
+          );
+        }
       }
-
-      final deviceId = await _propertiesManager.loadOrCreateDeviceId();
-      final repointed = await _syncManager.repointProjectToRelay(
-        database: database,
-        projectId: row.projectId,
-        projectFilePath: project.path,
-        projectName: project.name,
-        appVersion: _projectsManager.appVersion,
-        relayBaseUri: event.relayBaseUri,
-        enrolmentSecret: event.enrolmentSecret,
-        deviceId: deviceId,
-      );
-      if (!repointed.status.isSuccess) {
-        // The relay's answer can name its address, so only the status is logged.
-        _logger.e('Switching the project to another relay failed: ${repointed.status.name}');
-        emitter(state.copyWithRepointFailed());
-        return;
-      }
-
-      emitter(
-        state.copyWithRepointed(
-          enrolment: OcptRelayEnrolment(
-            relayBaseUri: event.relayBaseUri,
-            enrolmentSecret: event.enrolmentSecret,
-          ),
-        ),
-      );
     } catch (error, stackTrace) {
       // The error can name the relay's address, so only its type is logged.
       _logger.e(

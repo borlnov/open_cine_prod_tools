@@ -403,26 +403,23 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     try {
       final database = project.fileDatabase;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-      if (row == null) {
-        return;
-      }
+      if (row != null) {
+        final pairing = await syncManager.pairingService.loadPairing(
+          database: database,
+          projectId: row.projectId,
+        );
 
-      final pairing = await syncManager.pairingService.loadPairing(
-        database: database,
-        projectId: row.projectId,
-      );
-      if (pairing == null) {
-        return;
+        if (pairing != null) {
+          final deviceId = await propertiesManager.loadOrCreateDeviceId();
+          await syncManager.startSyncSession(
+            projectId: row.projectId,
+            database: database,
+            deviceId: deviceId,
+            relayId: OcptSyncManager.relayIdFor(pairing),
+            storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+          );
+        }
       }
-
-      final deviceId = await propertiesManager.loadOrCreateDeviceId();
-      await syncManager.startSyncSession(
-        projectId: row.projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: OcptSyncManager.relayIdFor(pairing),
-        storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
-      );
     } catch (error, stackTrace) {
       _logger.w(
         "Could not restart the sync session after moving the project: ${error.runtimeType}",

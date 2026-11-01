@@ -135,10 +135,9 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
         // The relay's answer can name its address, so only the status is logged.
         _logger.e('Pairing the project with a relay failed: ${paired.status.name}');
         emitter(state.copyWithPairingFailed());
-        return;
+      } else {
+        emitter(state.copyWithPaired(invite: paired.value));
       }
-
-      emitter(state.copyWithPaired(invite: paired.value));
     } catch (error, stackTrace) {
       // The error can name the relay's address, so only its type is logged.
       _logger.e('Pairing the project with a relay failed: ${error.runtimeType}', null, stackTrace);

@@ -110,6 +110,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
+    this.shouldThrowOnRepoint = false,
   }) : _pairing = pairingService,
        super(
          pairingService: pairingService,
@@ -122,6 +123,9 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   final OcptPairingService _pairing;
 
   final bool shouldFailToOpenTransport;
+
+  /// Whether [repointProjectToRelay] throws instead of answering a status.
+  final bool shouldThrowOnRepoint;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(
@@ -184,6 +188,9 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String enrolmentSecret,
     required String deviceId,
   }) async {
+    if (shouldThrowOnRepoint) {
+      throw StateError('The relay could not be reached');
+    }
     if (shouldFailToOpenTransport) {
       return const StatusWithExtraInfo(status: OcptSyncFlowStatus.unreachable);
     }
@@ -371,6 +378,38 @@ void main() {
     // already saved by [workingManager] above.
     final bloc = buildBloc(
       _FakeTransportSyncManager(pairingService: pairingService, shouldFailToOpenTransport: true),
+    );
+    await pumpEventQueue();
+
+    bloc.add(
+      OcptRepointingRequestedEvent(
+        relayBaseUri: newRelayBaseUri,
+        enrolmentSecret: "onset-enrolment-secret",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(bloc.state.isRepointing, isFalse);
+    expect(bloc.state.repointFailed, isTrue);
+    expect(bloc.state.enrolment, isNull);
+  });
+
+  test("a repoint that throws surfaces repointFailed too", () async {
+    final workingManager = _FakeTransportSyncManager(pairingService: pairingService);
+    await workingManager.pairProjectToRelay(
+      database: projectsManager.currentProject!.fileDatabase,
+      projectId: "project-abc",
+      projectFilePath: projectsManager.currentProject!.path,
+      projectName: "My Movie",
+      appVersion: "0.1.0",
+      relayBaseUri: initialRelayBaseUri,
+      enrolmentSecret: "prep-enrolment-secret",
+      deviceId: "device-1",
+    );
+    await workingManager.stopSyncSession();
+
+    final bloc = buildBloc(
+      _FakeTransportSyncManager(pairingService: pairingService, shouldThrowOnRepoint: true),
     );
     await pumpEventQueue();
 

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/sync/ocpt_sync_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_relay_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_uri_query.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_relay_invite.dart';
 import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_diagnostics_level.dart';
@@ -160,10 +161,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     if (uri == null) {
       return 'not a URI (${rawText.trim().length} chars)';
     }
-    final Map<String, String> query;
-    try {
-      query = uri.queryParameters;
-    } on FormatException {
+    final query = ocptQueryParametersOrNull(uri);
+    if (query == null) {
       // A percent-escape that is not valid UTF-8 parses as a URI but throws on this read.
       return 'scheme=${uri.scheme} host=${uri.host} params=[unreadable]';
     }
@@ -204,96 +203,105 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     );
 
     try {
-      final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
-      if (_cancelled) {
-        return;
-      }
-      if (parentDirectoryPath == null) {
-        // The user cancelled the desktop folder picker.
-        emitter(state.copyToIdle());
-        return;
-      }
-
-      final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
-      final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
-      final ResultWithStatus<OcptSyncFlowStatus, String> joined;
-      try {
-        emitter(state.copyWithDownloading());
-        OcptDiagnosticsManager.log(
-          category: OcptDiagnosticsCategory.join,
-          message: 'downloading: project=${invite.projectId}',
-        );
-        joined = await _syncManager.joinFromRelay(
-          storage: storage,
-          parentDirectoryPath: parentDirectoryPath,
-          pairingService: _syncManager.pairingService,
-          relayBaseUri: invite.relayBaseUri,
-          token: invite.token,
-        );
-      } finally {
-        if (storage is OcptRelayRemoteStorage) {
-          storage.dispose();
-        }
-      }
-      if (_cancelled) {
-        return;
-      }
-      final projectFilePath = joined.value;
-      if (!joined.status.isSuccess || projectFilePath == null) {
-        // The relay's answer can name its address, so only the status is logged.
-        _logger.e('Joining a project failed: ${joined.status.name}');
-        OcptDiagnosticsManager.log(
-          category: OcptDiagnosticsCategory.join,
-          level: OcptDiagnosticsLevel.error,
-          message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
-          logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
-        );
-        emitter(state.copyWithJoinFailed());
-        return;
-      }
-
-      emitter(state.copyWithOpening());
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.join,
-        message: 'opening: project=${invite.projectId}',
-      );
-      final result = await _projectsManager.openProject(filePath: projectFilePath);
-      if (_cancelled) {
-        return;
-      }
-      if (!result.status.isSuccess) {
-        OcptDiagnosticsManager.log(
-          category: OcptDiagnosticsCategory.join,
-          level: OcptDiagnosticsLevel.error,
-          message: 'failed to open joined project: project=${invite.projectId}',
-        );
-        emitter(state.copyWithJoinFailed());
-        return;
-      }
-
-      if (!_exportManager.isMobile) {
-        await _projectsManager.rememberProjectsDirectory(parentDirectoryPath);
-      }
-
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.join,
-        message: 'succeeded: project=${invite.projectId}',
-      );
-      emitter(state.copyWithJoinSucceeded());
+      await _runJoin(invite, destinationConfirmButtonText, emitter);
     } catch (error, stackTrace) {
-      if (_cancelled) {
-        return;
+      if (!_cancelled) {
+        // The error can name the relay's address or a folder, so only its type is logged.
+        _logger.e('Joining a project failed: ${error.runtimeType}', null, stackTrace);
+        OcptDiagnosticsManager.log(
+          category: OcptDiagnosticsCategory.join,
+          level: OcptDiagnosticsLevel.error,
+          message: 'failed: project=${invite.projectId} $error',
+          logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
+        );
+        emitter(state.copyWithJoinFailed());
       }
-      // The error can name the relay's address or a folder, so only its type is logged.
-      _logger.e('Joining a project failed: ${error.runtimeType}', null, stackTrace);
+    }
+  }
+
+  /// The steps of [_join], whose exceptions [_join] turns into [OcptJoiningState.joinFailed]. Stops
+  /// silently at the first step that finds [_cancelled] set.
+  Future<void> _runJoin(
+    OcptRelayInvite invite,
+    String destinationConfirmButtonText,
+    Emitter<OcptJoiningState> emitter,
+  ) async {
+    final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
+    if (_cancelled) {
+      return;
+    }
+    if (parentDirectoryPath == null) {
+      // The user cancelled the desktop folder picker.
+      emitter(state.copyToIdle());
+      return;
+    }
+
+    final pairing = OcptProjectPairing(relayBaseUri: invite.relayBaseUri, token: invite.token);
+    final storage = _syncManager.openRelayRemoteStorage(pairing, invite.projectId);
+    final ResultWithStatus<OcptSyncFlowStatus, String> joined;
+    try {
+      emitter(state.copyWithDownloading());
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        message: 'downloading: project=${invite.projectId}',
+      );
+      joined = await _syncManager.joinFromRelay(
+        storage: storage,
+        parentDirectoryPath: parentDirectoryPath,
+        pairingService: _syncManager.pairingService,
+        relayBaseUri: invite.relayBaseUri,
+        token: invite.token,
+      );
+    } finally {
+      if (storage is OcptRelayRemoteStorage) {
+        storage.dispose();
+      }
+    }
+    if (_cancelled) {
+      return;
+    }
+    final projectFilePath = joined.value;
+    if (!joined.status.isSuccess || projectFilePath == null) {
+      // The relay's answer can name its address, so only the status is logged.
+      _logger.e('Joining a project failed: ${joined.status.name}');
       OcptDiagnosticsManager.log(
         category: OcptDiagnosticsCategory.join,
         level: OcptDiagnosticsLevel.error,
-        message: 'failed: project=${invite.projectId} $error',
-        logMessage: 'failed: project=${invite.projectId} ${error.runtimeType}',
+        message: 'failed: project=${invite.projectId} ${joined.extraInfo ?? joined.status}',
+        logMessage: 'failed: project=${invite.projectId} ${joined.status.name}',
       );
       emitter(state.copyWithJoinFailed());
+      return;
     }
+
+    emitter(state.copyWithOpening());
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.join,
+      message: 'opening: project=${invite.projectId}',
+    );
+    final result = await _projectsManager.openProject(filePath: projectFilePath);
+    if (_cancelled) {
+      return;
+    }
+    if (!result.status.isSuccess) {
+      OcptDiagnosticsManager.log(
+        category: OcptDiagnosticsCategory.join,
+        level: OcptDiagnosticsLevel.error,
+        message: 'failed to open joined project: project=${invite.projectId}',
+      );
+      emitter(state.copyWithJoinFailed());
+      return;
+    }
+
+    if (!_exportManager.isMobile) {
+      await _projectsManager.rememberProjectsDirectory(parentDirectoryPath);
+    }
+
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.join,
+      message: 'succeeded: project=${invite.projectId}',
+    );
+    emitter(state.copyWithJoinSucceeded());
   }
 
   /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker dialog

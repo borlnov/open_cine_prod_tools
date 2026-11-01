@@ -214,6 +214,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     }
 
     final wasOnline = hostManager.state is OcptRelayHostOnline;
+    var isFreshStart = false;
     try {
       await hostManager.maybeAutoStartHosting(
         database: project.fileDatabase,
@@ -223,16 +224,16 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
         deviceId: await _propertiesManager.loadOrCreateDeviceId(),
       );
 
-      return !wasOnline && hostManager.state is OcptRelayHostOnline;
+      isFreshStart = !wasOnline && hostManager.state is OcptRelayHostOnline;
     } catch (error, stackTrace) {
       _logger.w(
         "Could not auto-start hosting for the open project: ${error.runtimeType}",
         null,
         stackTrace,
       );
-
-      return false;
     }
+
+    return isFreshStart;
   }
 
   /// Starts the open project's own sync session when it is paired to a relay, and does nothing at
@@ -254,26 +255,23 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     try {
       final database = project.fileDatabase;
       final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-      if (row == null) {
-        return;
-      }
+      if (row != null) {
+        final pairing = await syncManager.pairingService.loadPairing(
+          database: database,
+          projectId: row.projectId,
+        );
 
-      final pairing = await syncManager.pairingService.loadPairing(
-        database: database,
-        projectId: row.projectId,
-      );
-      if (pairing == null) {
-        return;
+        if (pairing != null) {
+          final deviceId = await _propertiesManager.loadOrCreateDeviceId();
+          await syncManager.startSyncSession(
+            projectId: row.projectId,
+            database: database,
+            deviceId: deviceId,
+            relayId: OcptSyncManager.relayIdFor(pairing),
+            storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
+          );
+        }
       }
-
-      final deviceId = await _propertiesManager.loadOrCreateDeviceId();
-      await syncManager.startSyncSession(
-        projectId: row.projectId,
-        database: database,
-        deviceId: deviceId,
-        relayId: OcptSyncManager.relayIdFor(pairing),
-        storage: syncManager.openRelayRemoteStorage(pairing, row.projectId),
-      );
     } catch (error, stackTrace) {
       _logger.w(
         "Could not start the sync session for the open project: ${error.runtimeType}",

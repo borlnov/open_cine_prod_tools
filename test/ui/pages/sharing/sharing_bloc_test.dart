@@ -107,6 +107,7 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
+    this.shouldThrowOnPair = false,
   }) : _pairing = pairingService,
        super(
          pairingService: pairingService,
@@ -119,6 +120,9 @@ class _FakeTransportSyncManager extends OcptSyncManager {
   final OcptPairingService _pairing;
 
   final bool shouldFailToOpenTransport;
+
+  /// Whether [pairProjectToRelay] throws instead of answering a status.
+  final bool shouldThrowOnPair;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(
@@ -149,6 +153,9 @@ class _FakeTransportSyncManager extends OcptSyncManager {
     required String enrolmentSecret,
     required String deviceId,
   }) async {
+    if (shouldThrowOnPair) {
+      throw StateError('The relay could not be reached');
+    }
     if (shouldFailToOpenTransport) {
       return const ResultWithStatus(status: OcptSyncFlowStatus.unreachable);
     }
@@ -359,6 +366,25 @@ void main() {
   test("a pairing failure surfaces pairingFailed and leaves the project unpaired", () async {
     final bloc = buildBloc(
       _FakeTransportSyncManager(pairingService: pairingService, shouldFailToOpenTransport: true),
+    );
+    await pumpEventQueue();
+
+    bloc.add(
+      OcptSharingPairRequestedEvent(
+        relayBaseUri: relayBaseUri,
+        enrolmentSecret: "enrolment-secret",
+      ),
+    );
+    await pumpEventQueue();
+
+    expect(bloc.state.isPairing, isFalse);
+    expect(bloc.state.pairingFailed, isTrue);
+    expect(bloc.state.invite, isNull);
+  });
+
+  test("a pairing that throws surfaces pairingFailed too", () async {
+    final bloc = buildBloc(
+      _FakeTransportSyncManager(pairingService: pairingService, shouldThrowOnPair: true),
     );
     await pumpEventQueue();
 

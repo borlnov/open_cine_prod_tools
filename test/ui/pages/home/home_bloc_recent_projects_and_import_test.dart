@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_imported_fountain_model.dart';
+import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_status.dart';
@@ -29,6 +31,28 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'home_bloc_test_doubles.dart';
+
+/// A projects manager that closes the database of every project it creates, so the first write
+/// into that project fails.
+class _ClosedAfterCreateProjectsManager extends TestProjectsManager {
+  /// Class constructor
+  _ClosedAfterCreateProjectsManager({
+    required super.directory,
+    super.propertiesManager,
+    super.appLanguageCode,
+  });
+
+  @override
+  Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> createProject({
+    required String name,
+    required String filePath,
+  }) async {
+    final result = await super.createProject(name: name, filePath: filePath);
+    await result.value?.database.close();
+
+    return result;
+  }
+}
 
 void main() {
   late OcptPropertiesManager propertiesManager;
@@ -149,6 +173,42 @@ void main() {
       (state) => state.recentProjects.any((entry) => entry.project.path == filePath),
     );
     expect(state.recentProjects.single.project.name, "Joined");
+
+    await bloc.close();
+  });
+
+  test('an import whose text cannot be written into the new project fails with ioError', () async {
+    final failingManager = _ClosedAfterCreateProjectsManager(
+      directory: tempDir,
+      propertiesManager: propertiesManager,
+      appLanguageCode: () => "en",
+    );
+    await failingManager.initLifeCycle();
+    final routerManager = RecordingRouterManager();
+    final bloc = OcptHomeBloc(
+      propertiesManager: propertiesManager,
+      projectsManager: failingManager,
+      routerManager: routerManager,
+      fileSelectorManager: const FileSelectorManager(),
+      exportManager: FakeExportManager(
+        importResult: const OcptImportedFountainModel(
+          fountainText: "INT. HOUSE - DAY\n\nAction.\n",
+          sourceFileName: "draft.fountain",
+        ),
+      ),
+    );
+
+    bloc.add(
+      const OcptHomeImportScreenplayRequestedEvent(
+        screenplayFileTypeLabel: "Screenplay",
+        projectFileTypeLabel: "Project",
+      ),
+    );
+    await waitForState(bloc, (state) => state.isBusy);
+    final state = await waitForState(bloc, (state) => !state.isBusy);
+
+    expect(state.error, OcptProjectStatus.ioError);
+    expect(routerManager.pushedRoute, isNull);
 
     await bloc.close();
   });

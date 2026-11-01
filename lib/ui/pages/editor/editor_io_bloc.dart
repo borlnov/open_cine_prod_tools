@@ -92,20 +92,18 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
         episodeTag: event.episodeTag,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptEditorIoNotice(
-            kind: OcptEditorIoNoticeKind.exportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // A null outcome is the user cancelling the save dialog: nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptEditorIoNotice(
+              kind: OcptEditorIoNoticeKind.exportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the screenplay of project "
@@ -147,20 +145,18 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
         episodeTag: event.episodeTag,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptEditorIoNotice(
-            kind: OcptEditorIoNoticeKind.pdfExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // A null outcome is the user cancelling the save dialog: nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptEditorIoNotice(
+              kind: OcptEditorIoNoticeKind.pdfExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the screenplay of project "
@@ -214,24 +210,22 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     }
 
     try {
-      if (!await modeBloc.flushAllPendingWrites()) {
-        return;
+      if (await modeBloc.flushAllPendingWrites()) {
+        await _screenplayService.saveScreenplayText(
+          database: project.database,
+          screenplayId: modeBloc.screenplayIdOf(project),
+          fountainText: imported.fountainText,
+          snapshotReason: OcptSnapshotReason.import,
+        );
+
+        await addToModeAndWait(OcptEditorImportedTextAppliedEvent(text: imported.fountainText));
+
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
+          ),
+        );
       }
-
-      await _screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: modeBloc.screenplayIdOf(project),
-        fountainText: imported.fountainText,
-        snapshotReason: OcptSnapshotReason.import,
-      );
-
-      await addToModeAndWait(OcptEditorImportedTextAppliedEvent(text: imported.fountainText));
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to import a fountain file into project "
