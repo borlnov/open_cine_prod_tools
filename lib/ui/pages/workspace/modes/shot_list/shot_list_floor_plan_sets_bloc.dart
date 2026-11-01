@@ -217,7 +217,7 @@ class OcptShotListFloorPlanSetsBloc
         return;
       }
 
-      emitter(state.copyWith(propsOfSelectedSequence: props));
+      emitter(state.copyWithSequenceProps(props: props));
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read the props of sequence ${event.sequenceId} of "
@@ -226,7 +226,7 @@ class OcptShotListFloorPlanSetsBloc
         stackTrace,
       );
       // The props kept meanwhile belong to another sequence: none is better than a wrong one.
-      emitter(state.copyWith(propsOfSelectedSequence: const []));
+      emitter(state.copyWithSequencePropsCleared());
     }
   }
 
@@ -290,7 +290,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -330,7 +330,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -342,7 +342,7 @@ class OcptShotListFloorPlanSetsBloc
   ) async {
     final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
       ..[OcptShotListSetNameEditKey(setId: event.setId)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
 
     restartDebounce(
       _fieldEditDebounce,
@@ -388,7 +388,7 @@ class OcptShotListFloorPlanSetsBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithUnlinkedSetEdits(
           // Taken now, not before the unlink: a keystroke typed meanwhile is not the set's.
           pendingFieldEdits: Map.of(state.pendingFieldEdits)..removeWhere((key, _) => isOfSet(key)),
         ),
@@ -400,7 +400,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -445,7 +445,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -481,7 +481,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -492,7 +492,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanZoomChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanZoom: event.zoom));
+    emitter(state.copyWithZoom(zoom: event.zoom));
   }
 
   /// Picks the sequence layer a placed set element lands on. A view preference.
@@ -500,7 +500,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanActiveLayerChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanActiveLayer: event.layer));
+    emitter(state.copyWithActiveLayer(layer: event.layer));
   }
 
   /// Picks the décor primitive a `setElement` placement carries. A view preference.
@@ -508,7 +508,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanActiveSetElementShapeChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanActiveSetElementShape: event.shape));
+    emitter(state.copyWithActiveSetElementShape(shape: event.shape));
   }
 
   /// Picks the scope a `setElement` placement lands at. A view preference.
@@ -516,7 +516,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanActiveSetElementScopeChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanActiveSetElementScope: event.scope));
+    emitter(state.copyWithActiveSetElementScope(scope: event.scope));
   }
 
   /// Picks the label a `prop` placement carries. A view preference.
@@ -524,7 +524,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanActiveLabelChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanActiveLabel: event.label));
+    emitter(state.copyWithActiveLabel(label: event.label));
   }
 
   /// Toggles the visibility of sequence layer `event.layer` on the floor plans canvas. A view
@@ -537,7 +537,7 @@ class OcptShotListFloorPlanSetsBloc
     if (!hidden.remove(event.layer)) {
       hidden.add(event.layer);
     }
-    emitter(state.copyWith(floorPlanHiddenLayers: hidden));
+    emitter(state.copyWithHiddenLayers(hiddenLayers: hidden));
   }
 
   /// Toggles the selected set's underlay visibility on the floor plans canvas. A view preference;
@@ -546,7 +546,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanUnderlayVisibilityToggledEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(isFloorPlanUnderlayHidden: !state.isFloorPlanUnderlayHidden));
+    emitter(state.copyWithUnderlayVisibilityToggled());
   }
 
   /// Picks a file through the native "open" dialog, filtered to JPEG and PNG
@@ -586,7 +586,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -647,7 +647,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -672,7 +672,7 @@ class OcptShotListFloorPlanSetsBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyToWriteFailed());
     }
   }
 
@@ -718,7 +718,7 @@ class OcptShotListFloorPlanSetsBloc
     if (!hidden.remove(event.symbolId)) {
       hidden.add(event.symbolId);
     }
-    emitter(state.copyWith(floorPlanHiddenCameraSymbolIds: hidden));
+    emitter(state.copyWithHiddenCameraSymbols(symbolIds: hidden));
   }
 
   /// Toggles the onion skin's own previous or next ghost. A view preference.
@@ -726,13 +726,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanOnionSkinToggledEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(
-      event.isPrevious
-          ? state.copyWith(
-              isFloorPlanOnionSkinPreviousShown: !state.isFloorPlanOnionSkinPreviousShown,
-            )
-          : state.copyWith(isFloorPlanOnionSkinNextShown: !state.isFloorPlanOnionSkinNextShown),
-    );
+    emitter(state.copyWithOnionSkinToggled(isPrevious: event.isPrevious));
   }
 
   /// Sets the onion skin's own ghost opacity, clamped to a visible range. A view preference.
@@ -740,7 +734,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanOnionSkinOpacityChangedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(floorPlanOnionSkinOpacity: event.opacity.clamp(0.05, 1.0)));
+    emitter(state.copyWithOnionSkinOpacity(opacity: event.opacity.clamp(0.05, 1.0)));
   }
 
   /// Toggles the metrics overlay. A view preference.
@@ -748,7 +742,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanMetricsToggledEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(isFloorPlanMetricsShown: !state.isFloorPlanMetricsShown));
+    emitter(state.copyWithMetricsToggled());
   }
 
   /// Dismisses the transient write error currently shown.
@@ -756,7 +750,7 @@ class OcptShotListFloorPlanSetsBloc
     OcptShotListFloorPlanSetsWriteErrorDismissedEvent event,
     Emitter<OcptShotListFloorPlanSetsState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 
   /// Writes every pending set name once the debounce elapses with no further typing.
@@ -792,7 +786,7 @@ class OcptShotListFloorPlanSetsBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -803,7 +797,7 @@ class OcptShotListFloorPlanSetsBloc
         OcptShotListReloadScope.locations,
       });
       emitter(
-        state.copyWith(
+        state.copyWithFlushedFieldEdits(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,
@@ -818,8 +812,7 @@ class OcptShotListFloorPlanSetsBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
-          hasWriteError: true,
+        state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
             current: state.pendingFieldEdits,
             written: pending,

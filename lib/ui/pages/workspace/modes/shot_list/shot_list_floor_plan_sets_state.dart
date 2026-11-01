@@ -190,6 +190,97 @@ class OcptShotListFloorPlanSetsState extends BlocStateForMixin<OcptShotListFloor
     hasWriteError: hasWriteError ?? this.hasWriteError,
   );
 
+  /// Copies this state with [props] as the props of the selected sequence.
+  OcptShotListFloorPlanSetsState copyWithSequenceProps({
+    required List<OcptScenePropSummary> props,
+  }) => copyWith(propsOfSelectedSequence: props);
+
+  /// Copies this state with no prop for the selected sequence.
+  OcptShotListFloorPlanSetsState copyWithSequencePropsCleared() =>
+      copyWith(propsOfSelectedSequence: const []);
+
+  /// Copies this state with [pendingFieldEdits] as the set names waiting in the debounce, a
+  /// keystroke later.
+  OcptShotListFloorPlanSetsState copyWithTypedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with [pendingFieldEdits] as what is still pending once an unlinked set's
+  /// own edits are gone.
+  OcptShotListFloorPlanSetsState copyWithUnlinkedSetEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with no field edit left pending.
+  OcptShotListFloorPlanSetsState copyWithFieldEditsCleared() =>
+      copyWith(pendingFieldEdits: const {});
+
+  /// Copies this state with [pendingFieldEdits] as what the write that just landed left pending.
+  OcptShotListFloorPlanSetsState copyWithFlushedFieldEdits({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the write error raised, [pendingFieldEdits] being what the failed
+  /// flush left pending.
+  OcptShotListFloorPlanSetsState copyToFlushFailed({
+    required Map<OcptShotListPendingEditKey, String> pendingFieldEdits,
+  }) => copyWith(hasWriteError: true, pendingFieldEdits: pendingFieldEdits);
+
+  /// Copies this state with the canvas zoom settled at [zoom].
+  OcptShotListFloorPlanSetsState copyWithZoom({required double zoom}) =>
+      copyWith(floorPlanZoom: zoom);
+
+  /// Copies this state with [layer] as the layer a placed set element lands on.
+  OcptShotListFloorPlanSetsState copyWithActiveLayer({required OcptFloorPlanLayer layer}) =>
+      copyWith(floorPlanActiveLayer: layer);
+
+  /// Copies this state with [shape] as the décor primitive a placement carries.
+  OcptShotListFloorPlanSetsState copyWithActiveSetElementShape({
+    required OcptFloorPlanSetElementShape shape,
+  }) => copyWith(floorPlanActiveSetElementShape: shape);
+
+  /// Copies this state with [scope] as the scope a set element placement lands at.
+  OcptShotListFloorPlanSetsState copyWithActiveSetElementScope({
+    required OcptFloorPlanScope scope,
+  }) => copyWith(floorPlanActiveSetElementScope: scope);
+
+  /// Copies this state with [label] as the label a prop placement carries.
+  OcptShotListFloorPlanSetsState copyWithActiveLabel({required String label}) =>
+      copyWith(floorPlanActiveLabel: label);
+
+  /// Copies this state with [hiddenLayers] as the layers hidden on the canvas.
+  OcptShotListFloorPlanSetsState copyWithHiddenLayers({
+    required Set<OcptFloorPlanLayer> hiddenLayers,
+  }) => copyWith(floorPlanHiddenLayers: hiddenLayers);
+
+  /// Copies this state with the selected set's underlay visibility flipped.
+  OcptShotListFloorPlanSetsState copyWithUnderlayVisibilityToggled() =>
+      copyWith(isFloorPlanUnderlayHidden: !isFloorPlanUnderlayHidden);
+
+  /// Copies this state with [symbolIds] as the camera symbols hidden on the canvas.
+  OcptShotListFloorPlanSetsState copyWithHiddenCameraSymbols({required Set<String> symbolIds}) =>
+      copyWith(floorPlanHiddenCameraSymbolIds: symbolIds);
+
+  /// Copies this state with the onion skin's previous ghost flipped when [isPrevious], its next
+  /// ghost otherwise.
+  OcptShotListFloorPlanSetsState copyWithOnionSkinToggled({required bool isPrevious}) => isPrevious
+      ? copyWith(isFloorPlanOnionSkinPreviousShown: !isFloorPlanOnionSkinPreviousShown)
+      : copyWith(isFloorPlanOnionSkinNextShown: !isFloorPlanOnionSkinNextShown);
+
+  /// Copies this state with [opacity] as the onion skin's ghost opacity.
+  OcptShotListFloorPlanSetsState copyWithOnionSkinOpacity({required double opacity}) =>
+      copyWith(floorPlanOnionSkinOpacity: opacity);
+
+  /// Copies this state with the metrics overlay flipped.
+  OcptShotListFloorPlanSetsState copyWithMetricsToggled() =>
+      copyWith(isFloorPlanMetricsShown: !isFloorPlanMetricsShown);
+
+  /// Copies this state with the write error raised.
+  OcptShotListFloorPlanSetsState copyToWriteFailed() => copyWith(hasWriteError: true);
+
+  /// Copies this state with the write error dismissed.
+  OcptShotListFloorPlanSetsState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
+
   /// Object properties
   @override
   List<Object?> get props => [
