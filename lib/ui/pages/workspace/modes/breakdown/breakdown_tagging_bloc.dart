@@ -390,6 +390,10 @@ class OcptBreakdownTaggingBloc
     required OcptBreakdownTargetKind targetKind,
     required String targetId,
   }) async {
+    // Stored before the read, not during the selection: the read puts the tag in the mode's state,
+    // and a store awaited after it would leave the popover open on a tag that is already painted.
+    await modeBloc.persistInspectorAsLastRightDockTab();
+
     if (!await modeBloc.reload({OcptBreakdownReloadScope.snapshot})) {
       return;
     }

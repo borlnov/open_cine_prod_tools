@@ -102,6 +102,10 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// The manager used to load and persist the mode's dock fractions and last right dock tab.
   final OcptPropertiesManager _propertiesManager;
 
+  /// The last right dock tab this bloc stored itself, so a tab persisted ahead of its selection is
+  /// not stored a second time when the selection runs: the state only carries it after the emit.
+  OcptBreakdownRightDockTab? _storedLastRightDockTab;
+
   /// The router manager used to navigate back to the home page when leaving the workspace.
   final OcptRouterManager _routerManager;
 
@@ -603,12 +607,20 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
 
   /// Persists [tab] as the mode's last right dock tab, unless it already is.
   Future<void> _persistLastRightDockTab(OcptBreakdownRightDockTab tab) async {
-    if (state.lastRightDockTab == tab) {
+    if (state.lastRightDockTab == tab || _storedLastRightDockTab == tab) {
       return;
     }
 
     await _propertiesManager.breakdownLastRightDockTab.store(tab);
+    _storedLastRightDockTab = tab;
   }
+
+  /// Persists the `Inspector` tab as the last right dock tab ahead of a selection of a target that
+  /// will land the user on it, for a caller that reads the snapshot again before it makes that
+  /// selection: the store is awaited here, so nothing is left to wait for between the read and the
+  /// selection, and the state they emit is not split by it.
+  Future<void> persistInspectorAsLastRightDockTab() =>
+      _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(

@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_local_storage_manager/act_local_storage_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
@@ -32,6 +33,41 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 class _RecordingRouterManager extends OcptRouterManager {
   @override
   void pop<Y extends Object?>([Y? result]) {}
+}
+
+/// A last right dock tab item whose store takes a moment, as a slow disk does, and that counts the
+/// stores it was asked for and those that finished.
+// ignore: must_be_immutable
+class _SlowTabItem extends SharedPrefsItemWithParser<OcptBreakdownRightDockTab, String> {
+  /// How many stores were asked for.
+  int started = 0;
+
+  /// How many stores finished.
+  int finished = 0;
+
+  _SlowTabItem()
+    : super(
+        "BREAKDOWN_LAST_RIGHT_DOCK_TAB",
+        parser: (value) => OcptBreakdownRightDockTab.values.asNameMap()[value],
+        castTo: (value) => value.name,
+      );
+
+  @override
+  Future<bool> store(OcptBreakdownRightDockTab? value) async {
+    started++;
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    final success = await super.store(value);
+    finished++;
+    return success;
+  }
+}
+
+/// A properties manager whose last right dock tab is stored slowly.
+class _SlowPropertiesManager extends OcptPropertiesManager {
+  final _SlowTabItem _slowTab = _SlowTabItem();
+
+  @override
+  _SlowTabItem get breakdownLastRightDockTab => _slowTab;
 }
 
 void main() {
@@ -875,6 +911,45 @@ void main() {
       await taggingBloc.close();
       await bloc.close();
     });
+
+    test(
+      "has stored the Inspector tab before the mode paints the tag, whatever the disk's speed",
+      () async {
+        await propertiesManager.breakdownLastRightDockTab.store(OcptBreakdownRightDockTab.versions);
+        await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
+        final slowProperties = _SlowPropertiesManager();
+        final bloc = OcptBreakdownBloc(
+          projectsManager: projectsManager,
+          propertiesManager: slowProperties,
+          routerManager: _RecordingRouterManager(),
+          exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        );
+        final taggingBloc = buildTagging(bloc);
+        final loaded = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
+        final sceneId = loaded.scenes.single.id;
+        await closeRange(taggingBloc, sceneId);
+
+        try {
+          taggingBloc.add(
+            const OcptBreakdownPopoverSetCreationRequestedEvent(locationId: null, name: "Maison"),
+          );
+          await waitForState(bloc, (state) => state.taggedTargetCount == 1);
+
+          // The popover is still open when the tag shows, but nothing slow is left to wait for.
+          expect(slowProperties.breakdownLastRightDockTab.finished, 1);
+
+          await waitForState(taggingBloc, (state) => state.pendingTagRange == null);
+          expect(slowProperties.breakdownLastRightDockTab.started, 1);
+          expect(bloc.state.lastRightDockTab, OcptBreakdownRightDockTab.inspector);
+        } finally {
+          await propertiesManager.breakdownLastRightDockTab.store(
+            OcptBreakdownRightDockTab.inspector,
+          );
+          await taggingBloc.close();
+          await bloc.close();
+        }
+      },
+    );
 
     test("stays open when the mode cannot read the snapshot after the tag was written", () async {
       await writeScreenplay("INT. HOUSE - DAY\n\nA lamp sits on the desk.\n");
