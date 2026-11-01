@@ -68,9 +68,6 @@ class OcptResourcesPeopleBloc
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// The `lostEditsEpoch` of the mode state this bloc last reacted to.
-  int _lastLostEditsEpoch;
-
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
@@ -89,8 +86,10 @@ class OcptResourcesPeopleBloc
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).peopleService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
-       _lastLostEditsEpoch = modeBloc.state.lostEditsEpoch,
-       super(const OcptResourcesPeopleState.init(), modeBloc: modeBloc);
+       super(
+         OcptResourcesPeopleState.init(lastLostEditsEpoch: modeBloc.state.lostEditsEpoch),
+         modeBloc: modeBloc,
+       );
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -135,15 +134,12 @@ class OcptResourcesPeopleBloc
     Emitter<OcptResourcesPeopleState> emitter,
   ) async {
     final lostEditsEpoch = event.modeState.lostEditsEpoch;
-    if (lostEditsEpoch <= _lastLostEditsEpoch) {
+    if (lostEditsEpoch <= state.lastLostEditsEpoch) {
       return;
     }
 
-    _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
-    if (state.pendingFieldEdits.isNotEmpty) {
-      emitter(state.copyWithFieldEditsCleared());
-    }
+    emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
   /// Creates a new, blank person at the end of the address book, reads the catalogue again and

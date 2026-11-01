@@ -52,8 +52,8 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
   );
 
   /// Copies this state as loaded from the open project: the catalogue and everything read beside
-  /// it replaced, the four selections cleared and the selection moved with the cause
-  /// [OcptResourcesSelectionCause.load].
+  /// it replaced, the four selections cleared, the pending reveal request consumed and the
+  /// selection moved with the cause [OcptResourcesSelectionCause.load].
   ///
   /// No version is previewed when [previewedVersionId] is null.
   OcptResourcesState copyToLoaded({
@@ -80,6 +80,7 @@ extension OcptResourcesStateCopiesExtension on OcptResourcesState {
     forceSelectedRoleIdValue: true,
     forceSelectedLocationIdValue: true,
     forceSelectedElementIdValue: true,
+    forcePendingRevealRequestValue: true,
     leftDockFraction: leftDockFraction,
     rightDockFraction: rightDockFraction,
     selectionEpoch: selectionEpoch + 1,

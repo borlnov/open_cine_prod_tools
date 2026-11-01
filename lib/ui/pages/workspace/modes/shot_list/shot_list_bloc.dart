@@ -137,13 +137,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// routine path.
   final String? _selectedEpisodeId;
 
-  /// What this mode should land on once its very first load resolves, handed down by
-  /// `OcptShotListMode` from its own constructor — the Resources location sheet's own `Open in
-  /// shot list`, mirroring `OcptResourcesBloc
-  /// ._pendingRevealRequest`. Nulled the moment [_load] applies it, so it can never
-  /// re-apply itself on a later reload (a version preview entered or left, say).
-  OcptShotListRevealRequest? _pendingRevealRequest;
-
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -163,7 +156,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     OcptShotListRevealRequest? revealRequest,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
        _selectedEpisodeId = selectedEpisodeId,
-       _pendingRevealRequest = revealRequest,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
@@ -171,7 +163,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
        _shotListService =
            shotListService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).shotListService,
-       super(OcptShotListState.init()) {
+       super(OcptShotListState.init(revealRequest: revealRequest)) {
     _reader = OcptShotListReader(
       projectsManager: _projectsManager,
       propertiesManager: _propertiesManager,
@@ -393,8 +385,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       final roles = await _reader.loadRoles(project);
       final suggestions = await _reader.loadSuggestions(project);
 
-      final revealRequest = _pendingRevealRequest;
-      _pendingRevealRequest = null;
+      final revealRequest = state.pendingRevealRequest;
       final revealedSequenceId = ocptRevealedSequenceIdOf(
         revealRequest: revealRequest,
         snapshot: snapshot,

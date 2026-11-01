@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
@@ -185,6 +186,10 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
   /// Every scene of [snapshot], in source order (empty while nothing is loaded).
   List<OcptBreakdownScene> get scenes => snapshot?.scenes ?? const [];
 
@@ -352,6 +357,7 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
@@ -383,7 +389,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -446,6 +453,8 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) {
     final nextSnapshot = snapshot ?? (forceSnapshotValue ? null : this.snapshot);
     final nextScreenplayText = screenplayText ?? this.screenplayText;
@@ -508,6 +517,11 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
       projectPackageNotice:
           projectPackageNotice ??
           (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+      projectPackagePendingExportTarget:
+          projectPackagePendingExportTarget ??
+          (forceProjectPackagePendingExportTargetValue
+              ? null
+              : this.projectPackagePendingExportTarget),
     );
   }
 
@@ -550,11 +564,15 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Copies this state with the catalogue [snapshot] read again, which moves the reload epoch.

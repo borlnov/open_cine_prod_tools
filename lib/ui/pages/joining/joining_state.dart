@@ -46,12 +46,24 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
   /// navigating to the workspace on its own (`OcptJoiningOpenRequestedEvent`).
   final bool joinSucceeded;
 
+  /// Whether the user cancelled the join in flight, set by `OcptJoiningCancelledEvent`'s handler
+  /// and checked by the join after every `await` along its path, to bail out — without navigating
+  /// and without reporting success — the moment the user asks to cancel. Cleared the moment a new
+  /// join starts.
+  ///
+  /// This is a best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight
+  /// snapshot fetch or materialisation already under way, so a cancelled join may still finish
+  /// writing a `.ocpt` to disk after this flag is set — that file is simply never opened or shown,
+  /// which is an acceptable cost for how rarely a cancel lands mid-write.
+  final bool isCancelled;
+
   /// Class constructor
   const OcptJoiningState({
     required this.isJoining,
     required this.joinFailed,
     this.joinStep,
     this.joinSucceeded = false,
+    this.isCancelled = false,
   });
 
   /// The initial state, shown before the user has submitted anything.
@@ -59,7 +71,8 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     : isJoining = false,
       joinFailed = false,
       joinStep = null,
-      joinSucceeded = false;
+      joinSucceeded = false,
+      isCancelled = false;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -73,11 +86,13 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     OcptJoinStep? joinStep,
     bool forceJoinStepValue = false,
     bool? joinSucceeded,
+    bool? isCancelled,
   }) => OcptJoiningState(
     isJoining: isJoining ?? this.isJoining,
     joinFailed: joinFailed ?? this.joinFailed,
     joinStep: joinStep ?? (forceJoinStepValue ? null : this.joinStep),
     joinSucceeded: joinSucceeded ?? this.joinSucceeded,
+    isCancelled: isCancelled ?? this.isCancelled,
   );
 
   /// Copies this state with the scanned code flagged as not being a valid invite.
@@ -88,11 +103,16 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     isJoining: true,
     joinFailed: false,
     joinSucceeded: false,
+    isCancelled: false,
     joinStep: OcptJoinStep.connecting,
   );
 
   /// Copies this state back to idle: no join under way and no step shown.
   OcptJoiningState copyToIdle() => copyWith(isJoining: false, forceJoinStepValue: true);
+
+  /// Copies this state back to idle with the join in flight marked as cancelled by the user.
+  OcptJoiningState copyToCancelled() =>
+      copyWith(isJoining: false, forceJoinStepValue: true, isCancelled: true);
 
   /// Copies this state with the join at its downloading step.
   OcptJoiningState copyWithDownloading() => copyWith(joinStep: OcptJoinStep.downloading);
@@ -113,5 +133,12 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
-  List<Object?> get props => [...super.props, isJoining, joinFailed, joinStep, joinSucceeded];
+  List<Object?> get props => [
+    ...super.props,
+    isJoining,
+    joinFailed,
+    joinStep,
+    joinSucceeded,
+    isCancelled,
+  ];
 }

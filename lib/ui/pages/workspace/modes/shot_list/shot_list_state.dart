@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -16,6 +17,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
@@ -225,6 +227,18 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
+  /// What this mode should land on once its very first load resolves, handed down by
+  /// `OcptShotListMode` from its own constructor — the Resources location sheet's own `Open in
+  /// shot list`.
+  ///
+  /// Consumed — set back to null — by that first load, so it can never re-apply itself on a later
+  /// reload (a version preview entered or left, say).
+  final OcptShotListRevealRequest? pendingRevealRequest;
+
   /// Class constructor
   const OcptShotListState({
     required this.isLoading,
@@ -263,10 +277,12 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
+    required this.pendingRevealRequest,
   });
 
   /// Init class constructor
-  OcptShotListState.init()
+  OcptShotListState.init({OcptShotListRevealRequest? revealRequest})
     : isLoading = true,
       title = "",
       snapshot = null,
@@ -302,7 +318,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null,
+      pendingRevealRequest = revealRequest;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -368,6 +386,10 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
+    OcptShotListRevealRequest? pendingRevealRequest,
+    bool forcePendingRevealRequestValue = false,
   }) => OcptShotListState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -432,6 +454,13 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
+    pendingRevealRequest:
+        pendingRevealRequest ?? (forcePendingRevealRequestValue ? null : this.pendingRevealRequest),
   );
 
   /// Whether any of the given pieces of data read from the project database is a new value, i.e.
@@ -494,11 +523,15 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Copies this state with the data a reload read, each given part replacing its counterpart.
@@ -542,7 +575,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   );
 
   /// Copies this state as loaded from the open project: everything read from it, the preferences
-  /// restored and the first selection made, whose cause is [OcptShotListSelectionCause.load].
+  /// restored and the first selection made, whose cause is [OcptShotListSelectionCause.load]. The
+  /// pending reveal request is consumed.
   ///
   /// Each selection goes back to null when its argument is, and so does the previewed version id
   /// when [previewedVersion] is.
@@ -593,6 +627,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     centreView: centreView,
     screenplayCharacters: screenplayCharacters,
     suggestions: suggestions,
+    forcePendingRevealRequestValue: true,
     reloadEpoch: reloadEpoch + 1,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptShotListSelectionCause.load,
@@ -784,5 +819,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     selectionEpoch,
     selectionCause,
     selectionTargetId,
+    pendingRevealRequest,
   ];
 }

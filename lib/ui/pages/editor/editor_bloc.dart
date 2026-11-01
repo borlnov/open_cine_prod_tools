@@ -117,9 +117,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Whether [disposeLifeCycle] has started.
   bool _isDisposing;
 
-  /// The id given to the next [OcptEditorJumpRequest], increased after each one.
-  int _nextJumpRequestId;
-
   /// Unregisters this bloc's unsaved-changes reporter, called when it is disposed.
   late final void Function() _unregisterUnsavedChangesReporter;
 
@@ -149,7 +146,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     String? selectedEpisodeId,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
        _isDisposing = false,
-       _nextJumpRequestId = 0,
        _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -547,11 +543,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorSceneJumpRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(
-      state.copyWithJumpRequest(
-        jumpRequest: OcptEditorJumpRequest(charOffset: event.charOffset, id: _nextJumpRequestId++),
-      ),
-    );
+    emitter(state.copyWithSceneJumpRequested(charOffset: event.charOffset));
   }
 
   /// Toggles the scene panel's visibility.

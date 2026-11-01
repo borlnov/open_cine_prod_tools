@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_file_compatibility.dart
 import 'package:open_cine_prod_tools/models/ocpt_project_package_import_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_recent_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_file_verdict.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_status.dart';
@@ -82,6 +83,10 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
   /// The status of the last project package import that failed, or null if none did (or it was
   /// already dismissed).
   ///
@@ -117,6 +122,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     this.pendingFileCompatibility,
     this.projectPackagePendingExport,
     this.projectPackageNotice,
+    this.projectPackagePendingExportTarget,
     this.projectPackageImportError,
     this.projectPackageImportReport,
     this.screenplayImportError,
@@ -130,6 +136,7 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
       pendingFileCompatibility = null,
       projectPackagePendingExport = null,
       projectPackageNotice = null,
+      projectPackagePendingExportTarget = null,
       projectPackageImportError = null,
       projectPackageImportReport = null,
       screenplayImportError = null;
@@ -153,6 +160,8 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
     OcptProjectPackageStatus? projectPackageImportError,
     bool forceProjectPackageImportErrorValue = false,
     OcptProjectPackageImportReport? projectPackageImportReport,
@@ -171,6 +180,11 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
     projectPackageImportError:
         projectPackageImportError ??
         (forceProjectPackageImportErrorValue ? null : this.projectPackageImportError),
@@ -189,11 +203,15 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Copies this state with the [recentProjects] list read again.

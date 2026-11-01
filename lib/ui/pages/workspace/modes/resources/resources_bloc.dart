@@ -120,15 +120,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// The service used to read the physical elements catalogue.
   final OcptElementsService _elementsService;
 
-  /// What the first load should open on, handed over by the mode that sent the user here, or null
-  /// to open on the mode's own default.
-  ///
-  /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
-  /// load goes through the very same method (entering or leaving a version preview calls
-  /// [reloadFromProjectDatabase], which is [_load]), and re-applying it there would yank the user
-  /// back to a record they may well have navigated away from.
-  OcptResourcesRevealRequest? _pendingRevealRequest;
-
   /// The episode this bloc reads and writes, handed down by `OcptResourcesMode` from
   /// `OcptWorkspaceBloc.state.selectedEpisodeId` at construction time — safe to capture once rather
   /// than watch, since `OcptWorkspacePage` remounts this whole bloc on every episode switch (see
@@ -161,7 +152,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRevealRequest? revealRequest,
     String? selectedEpisodeId,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _pendingRevealRequest = revealRequest,
        _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -182,7 +172,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       super(OcptResourcesState.init());
+       super(OcptResourcesState.init(revealRequest: revealRequest));
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -357,8 +347,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         ],
       );
 
-      final revealRequest = _pendingRevealRequest;
-      _pendingRevealRequest = null;
+      final revealRequest = state.pendingRevealRequest;
 
       emitter(
         _revealed(

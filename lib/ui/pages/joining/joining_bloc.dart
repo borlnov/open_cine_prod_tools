@@ -80,21 +80,11 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     OcptRouterManager? routerManager,
     OcptExportManager? exportManager,
   }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _cancelled = false,
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _routerManager = routerManager ?? globalGetIt().get<OcptRouterManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptJoiningState.init());
-
-  /// Set by [_onCancelled] and checked by [_join] after every `await` along the join path, to bail
-  /// out — without navigating and without reporting success — the moment the user asks to cancel.
-  ///
-  /// This is a best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight
-  /// snapshot fetch or materialisation already under way, so a cancelled join may still finish
-  /// writing a `.ocpt` to disk after this flag is set — that file is simply never opened or shown,
-  /// which is an acceptable cost for how rarely a cancel lands mid-write.
-  bool _cancelled;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -182,9 +172,9 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   /// page's own success state to pick up; it, not this method, is what eventually navigates
   /// (see [_onOpenRequested]).
   ///
-  /// [_cancelled] is checked after every `await`: once [_onCancelled] has set it, this bails out
-  /// silently — no further state change, no navigation — rather than reporting either success or
-  /// failure for a join the user has already walked away from.
+  /// [OcptJoiningState.isCancelled] is checked after every `await`: once [_onCancelled] has set it,
+  /// this bails out silently — no further state change, no navigation — rather than reporting
+  /// either success or failure for a join the user has already walked away from.
   ///
   /// A cancelled destination picker is a silent no-op, exactly like every other import/export of
   /// this app treats one; any other failure — the relay unreachable, an invalid token, a corrupted
@@ -195,7 +185,6 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     String destinationConfirmButtonText,
     Emitter<OcptJoiningState> emitter,
   ) async {
-    _cancelled = false;
     emitter(state.copyWithJoinStarted());
     OcptDiagnosticsManager.log(
       category: OcptDiagnosticsCategory.join,
@@ -207,7 +196,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     try {
       await _runJoin(invite, destinationConfirmButtonText, emitter);
     } catch (error, stackTrace) {
-      if (!_cancelled) {
+      if (!state.isCancelled) {
         // The error can name the relay's address or a folder, so only its type is logged.
         _logger.e('Joining a project failed: ${error.runtimeType}', null, stackTrace);
         OcptDiagnosticsManager.log(
@@ -222,14 +211,14 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
   }
 
   /// The steps of [_join], whose exceptions [_join] turns into [OcptJoiningState.joinFailed]. Stops
-  /// silently at the first step that finds [_cancelled] set.
+  /// silently at the first step that finds [OcptJoiningState.isCancelled] set.
   Future<void> _runJoin(
     OcptRelayInvite invite,
     String destinationConfirmButtonText,
     Emitter<OcptJoiningState> emitter,
   ) async {
     final parentDirectoryPath = await _resolveParentDirectoryPath(destinationConfirmButtonText);
-    if (_cancelled) {
+    if (state.isCancelled) {
       return;
     }
     if (parentDirectoryPath == null) {
@@ -259,7 +248,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
         storage.dispose();
       }
     }
-    if (_cancelled) {
+    if (state.isCancelled) {
       return;
     }
     final projectFilePath = joined.value;
@@ -282,7 +271,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
       message: 'opening: project=${invite.projectId}',
     );
     final result = await _projectsManager.openProject(filePath: projectFilePath);
-    if (_cancelled) {
+    if (state.isCancelled) {
       return;
     }
     if (!result.status.isSuccess) {
@@ -349,14 +338,13 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     await _routerManager.replace(OcptRoute.workspace);
   }
 
-  /// Marks the in-flight join as abandoned — see [_cancelled]'s own doc comment for what this can
-  /// and cannot actually stop — and returns the page to its idle state.
+  /// Marks the in-flight join as abandoned — see [OcptJoiningState.isCancelled]'s own doc comment
+  /// for what this can and cannot actually stop — and returns the page to its idle state.
   Future<void> _onCancelled(
     OcptJoiningCancelledEvent event,
     Emitter<OcptJoiningState> emitter,
   ) async {
     OcptDiagnosticsManager.log(category: OcptDiagnosticsCategory.join, message: 'cancelled');
-    _cancelled = true;
-    emitter(state.copyToIdle());
+    emitter(state.copyToCancelled());
   }
 }

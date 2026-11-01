@@ -94,25 +94,6 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// thing this has to make sense of.
   bool _isWritingProjectPackage = false;
 
-  /// The target the pre-flight question is currently about, from the moment it found a missing
-  /// file until [OcptProjectPackageExportConfirmedEvent] uses it — null the rest of the time.
-  ///
-  /// [OcptProjectPackageExportConfirmedEvent] deliberately does not carry the target again: the
-  /// mode or the page resolves it from the very question it just showed, and a bloc holding a
-  /// **resolved word** across that wait (the way the confirmed event still carries `fileTypeLabel`
-  /// fresh, rather than reusing what the request brought) would be holding something that could
-  /// have changed under it — a locale can flip mid-dialog, a save dialog's own label with it. A
-  /// file path is not that: it is a fact about which project this export is for, settled the
-  /// moment the question was raised, so remembering it here rather than re-resolving it is safe in
-  /// a way re-resolving `fileTypeLabel` would not be.
-  ///
-  /// Cleared once [_onExportConfirmed] has read it (the question answered) and, defensively,
-  /// whenever a notice is emitted (the question reported on) — never by
-  /// [_onMissingFilesAskDismissed], which the mode/page dispatches the instant the pending state is
-  /// read, well before the user has actually answered the dialog it is about to open: clearing the
-  /// target there would lose it before [_onExportConfirmed] ever gets to use it.
-  OcptProjectPackageTarget? _pendingProjectPackageExportTarget;
-
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
@@ -175,8 +156,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
 
     if (!preflight.isComplete) {
-      _pendingProjectPackageExportTarget = target;
-      emitter(state.copyWithPackagePreflightAsked(preflight: preflight));
+      emitter(state.copyWithPackagePreflightAsked(preflight: preflight, target: target));
       return;
     }
 
@@ -201,7 +181,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// The pre-flight is not run again: it was run a moment ago and answered, and a file that
   /// vanished in between is reported by the write itself, whose own report is what the manifest
   /// carries to the other machine. The target it writes is the one [_onExportRequested] stored for
-  /// this very question — see [_pendingProjectPackageExportTarget].
+  /// this very question — see [MixinOcptProjectPackageState.projectPackagePendingExportTarget].
   Future<void> _onExportConfirmed(
     OcptProjectPackageExportConfirmedEvent event,
     Emitter<S> emitter,
@@ -210,11 +190,12 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
       return;
     }
 
-    final target = _pendingProjectPackageExportTarget;
-    _pendingProjectPackageExportTarget = null;
+    final target = state.projectPackagePendingExportTarget;
     if (target == null) {
       return;
     }
+
+    emitter(state.copyWithPackageExportTargetConsumed());
 
     await _writePackage(emitter, fileTypeLabel: event.fileTypeLabel, target: target);
   }
@@ -370,11 +351,10 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   ///
   /// The two always move together: whatever the outcome, the pre-flight's question has been
   /// answered by the time there is something to report, and a question outliving its own export
-  /// would reopen on the next state change. [_pendingProjectPackageExportTarget] is cleared here
-  /// too, defensively — by the time this runs it is already null on every path that ever set it,
+  /// would reopen on the next state change. The pending export target is cleared here too,
+  /// defensively — by the time this runs it is already null on every path that ever set it,
   /// [_onExportConfirmed] having consumed it first.
   void _emitNotice(Emitter<S> emitter, OcptProjectPackageNotice notice) {
-    _pendingProjectPackageExportTarget = null;
     emitter(state.copyWithPackageNoticed(notice: notice));
   }
 }

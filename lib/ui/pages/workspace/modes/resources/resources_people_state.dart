@@ -17,17 +17,30 @@ class OcptResourcesPeopleState extends BlocStateForMixin<OcptResourcesPeopleStat
   /// flush.
   final Map<(String, OcptPersonField), String> pendingFieldEdits;
 
+  /// The `lostEditsEpoch` of the mode state this bloc last reacted to, so a mode state that still
+  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when the
+  /// bloc is built: a view built after the mode lost edits has nothing to drop.
+  final int lastLostEditsEpoch;
+
   /// Class constructor
-  const OcptResourcesPeopleState({required this.pendingFieldEdits});
+  const OcptResourcesPeopleState({
+    required this.pendingFieldEdits,
+    required this.lastLostEditsEpoch,
+  });
 
   /// Builds the state of a bloc that holds no pending edit.
-  const OcptResourcesPeopleState.init() : pendingFieldEdits = const {};
+  const OcptResourcesPeopleState.init({this.lastLostEditsEpoch = 0}) : pendingFieldEdits = const {};
 
   /// Copies this state, replacing [pendingFieldEdits] when given — always replaced wholesale, the
   /// caller computing the full next map.
   @override
-  OcptResourcesPeopleState copyWith({Map<(String, OcptPersonField), String>? pendingFieldEdits}) =>
-      OcptResourcesPeopleState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
+  OcptResourcesPeopleState copyWith({
+    Map<(String, OcptPersonField), String>? pendingFieldEdits,
+    int? lastLostEditsEpoch,
+  }) => OcptResourcesPeopleState(
+    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
+    lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
+  );
 
   /// Copies this state with every pending field edit dropped.
   OcptResourcesPeopleState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
@@ -49,7 +62,12 @@ class OcptResourcesPeopleState extends BlocStateForMixin<OcptResourcesPeopleStat
     required Map<(String, OcptPersonField), String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
+  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// reacted to, the mode having said that writing them failed somewhere.
+  OcptResourcesPeopleState copyWithFieldEditsLost({required int lostEditsEpoch}) =>
+      copyWith(pendingFieldEdits: const {}, lastLostEditsEpoch: lostEditsEpoch);
+
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, pendingFieldEdits];
+  List<Object?> get props => [...super.props, pendingFieldEdits, lastLostEditsEpoch];
 }

@@ -71,9 +71,6 @@ class OcptResourcesElementsBloc
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// The `lostEditsEpoch` of the mode state this bloc last reacted to.
-  int _lastLostEditsEpoch;
-
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
@@ -92,8 +89,10 @@ class OcptResourcesElementsBloc
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
-       _lastLostEditsEpoch = modeBloc.state.lostEditsEpoch,
-       super(const OcptResourcesElementsState.init(), modeBloc: modeBloc);
+       super(
+         OcptResourcesElementsState.init(lastLostEditsEpoch: modeBloc.state.lostEditsEpoch),
+         modeBloc: modeBloc,
+       );
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -132,15 +131,12 @@ class OcptResourcesElementsBloc
     Emitter<OcptResourcesElementsState> emitter,
   ) async {
     final lostEditsEpoch = event.modeState.lostEditsEpoch;
-    if (lostEditsEpoch <= _lastLostEditsEpoch) {
+    if (lostEditsEpoch <= state.lastLostEditsEpoch) {
       return;
     }
 
-    _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
-    if (state.pendingElementFieldEdits.isNotEmpty) {
-      emitter(state.copyWithFieldEditsCleared());
-    }
+    emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
   /// Creates a new, blank element of `event.category` at the end of the catalogue, reads the

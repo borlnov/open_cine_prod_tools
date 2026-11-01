@@ -24,14 +24,20 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
   /// pending edits (see `OcptSetField`). Rides the same debounce as [pendingLocationFieldEdits].
   final Map<(String, OcptSetField), String> pendingSetFieldEdits;
 
+  /// The `lostEditsEpoch` of the mode state this bloc last reacted to, so a mode state that still
+  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when the
+  /// bloc is built: a view built after the mode lost edits has nothing to drop.
+  final int lastLostEditsEpoch;
+
   /// Class constructor
   const OcptResourcesLocationsState({
     required this.pendingLocationFieldEdits,
     required this.pendingSetFieldEdits,
+    required this.lastLostEditsEpoch,
   });
 
   /// Builds the state of a bloc that holds no pending edit.
-  const OcptResourcesLocationsState.init()
+  const OcptResourcesLocationsState.init({this.lastLostEditsEpoch = 0})
     : pendingLocationFieldEdits = const {},
       pendingSetFieldEdits = const {};
 
@@ -41,9 +47,11 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
   OcptResourcesLocationsState copyWith({
     Map<(String, OcptLocationField), String>? pendingLocationFieldEdits,
     Map<(String, OcptSetField), String>? pendingSetFieldEdits,
+    int? lastLostEditsEpoch,
   }) => OcptResourcesLocationsState(
     pendingLocationFieldEdits: pendingLocationFieldEdits ?? this.pendingLocationFieldEdits,
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
+    lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
   /// Copies this state with every pending field edit dropped, of the locations and of their sets.
@@ -85,7 +93,20 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     required Map<(String, OcptSetField), String> pendingSetFieldEdits,
   }) => copyWith(pendingSetFieldEdits: pendingSetFieldEdits);
 
+  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// reacted to, the mode having said that writing them failed somewhere.
+  OcptResourcesLocationsState copyWithFieldEditsLost({required int lostEditsEpoch}) => copyWith(
+    pendingLocationFieldEdits: const {},
+    pendingSetFieldEdits: const {},
+    lastLostEditsEpoch: lostEditsEpoch,
+  );
+
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, pendingLocationFieldEdits, pendingSetFieldEdits];
+  List<Object?> get props => [
+    ...super.props,
+    pendingLocationFieldEdits,
+    pendingSetFieldEdits,
+    lastLostEditsEpoch,
+  ];
 }

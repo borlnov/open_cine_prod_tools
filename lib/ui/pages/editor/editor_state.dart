@@ -7,6 +7,7 @@ import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
@@ -206,6 +207,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
+
   /// Whether the right dock's formatted-preview tab exists at all right now.
   ///
   /// Two states have no use for it, for the same reason: what the centre already shows *is* the
@@ -265,6 +270,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
@@ -302,7 +308,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -363,6 +370,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => OcptEditorState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -412,6 +421,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -453,11 +467,15 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Copies this state as loaded when no project is open: the document and the display preferences
@@ -565,10 +583,16 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   OcptEditorState copyWithCurrentLine({required int currentLine}) =>
       copyWith(currentLine: currentLine);
 
-  /// Copies this state with a [jumpRequest] for the editing surface, which moves the selection
-  /// epoch.
-  OcptEditorState copyWithJumpRequest({required OcptEditorJumpRequest jumpRequest}) =>
-      copyWith(jumpRequest: jumpRequest, selectionEpoch: selectionEpoch + 1);
+  /// Copies this state with a jump request for the editing surface to move the caret to
+  /// [charOffset], which moves the selection epoch.
+  ///
+  /// The request is given the id after the last one made, so two requests for the same offset still
+  /// differ and the page applies both: [jumpRequest] is never cleared once set, so the state itself
+  /// is the counter.
+  OcptEditorState copyWithSceneJumpRequested({required int charOffset}) => copyWith(
+    jumpRequest: OcptEditorJumpRequest(charOffset: charOffset, id: (jumpRequest?.id ?? -1) + 1),
+    selectionEpoch: selectionEpoch + 1,
+  );
 
   /// Copies this state with the scene panel shown or hidden.
   OcptEditorState copyWithScenePanelVisibility({required bool isScenePanelVisible}) =>

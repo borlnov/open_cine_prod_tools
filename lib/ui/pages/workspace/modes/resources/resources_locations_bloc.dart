@@ -78,9 +78,6 @@ class OcptResourcesLocationsBloc
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// The `lostEditsEpoch` of the mode state this bloc last reacted to.
-  int _lastLostEditsEpoch;
-
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
@@ -103,8 +100,10 @@ class OcptResourcesLocationsBloc
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).assetsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
-       _lastLostEditsEpoch = modeBloc.state.lostEditsEpoch,
-       super(const OcptResourcesLocationsState.init(), modeBloc: modeBloc);
+       super(
+         OcptResourcesLocationsState.init(lastLostEditsEpoch: modeBloc.state.lostEditsEpoch),
+         modeBloc: modeBloc,
+       );
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -149,15 +148,12 @@ class OcptResourcesLocationsBloc
     Emitter<OcptResourcesLocationsState> emitter,
   ) async {
     final lostEditsEpoch = event.modeState.lostEditsEpoch;
-    if (lostEditsEpoch <= _lastLostEditsEpoch) {
+    if (lostEditsEpoch <= state.lastLostEditsEpoch) {
       return;
     }
 
-    _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
-    if (state.pendingLocationFieldEdits.isNotEmpty || state.pendingSetFieldEdits.isNotEmpty) {
-      emitter(state.copyWithFieldEditsCleared());
-    }
+    emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
   /// Creates a new, blank location at the end of the list, reads the catalogue again and selects

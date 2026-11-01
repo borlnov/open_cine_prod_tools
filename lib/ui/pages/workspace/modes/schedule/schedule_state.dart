@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -208,6 +209,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
   /// [snapshot] joined with [shotListSnapshots]/[episodes]/[locations]/[roles]/[people] into the
   /// day-level facts the mode reads (`OcptSchedulePlanSnapshot`'s own doc comment) — null exactly
@@ -528,6 +533,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
@@ -568,7 +574,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -635,6 +642,8 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => OcptScheduleState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -701,6 +710,11 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -769,11 +783,15 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Object properties

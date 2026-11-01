@@ -68,9 +68,6 @@ class OcptResourcesRolesBloc
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// The `lostEditsEpoch` of the mode state this bloc last reacted to.
-  int _lastLostEditsEpoch;
-
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
@@ -91,8 +88,10 @@ class OcptResourcesRolesBloc
            roleCandidatesService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).roleCandidatesService,
        _fieldEditDebounce = fieldEditDebounce,
-       _lastLostEditsEpoch = modeBloc.state.lostEditsEpoch,
-       super(const OcptResourcesRolesState.init(), modeBloc: modeBloc);
+       super(
+         OcptResourcesRolesState.init(lastLostEditsEpoch: modeBloc.state.lostEditsEpoch),
+         modeBloc: modeBloc,
+       );
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
@@ -128,15 +127,12 @@ class OcptResourcesRolesBloc
     Emitter<OcptResourcesRolesState> emitter,
   ) async {
     final lostEditsEpoch = event.modeState.lostEditsEpoch;
-    if (lostEditsEpoch <= _lastLostEditsEpoch) {
+    if (lostEditsEpoch <= state.lastLostEditsEpoch) {
       return;
     }
 
-    _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
-    if (state.pendingRoleFieldEdits.isNotEmpty || state.pendingCandidateFieldEdits.isNotEmpty) {
-      emitter(state.copyWithFieldEditsCleared());
-    }
+    emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
   /// Adds a hand-added role of `event.kind` at the end of the cast, reads the catalogue again and

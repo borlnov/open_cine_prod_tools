@@ -15,19 +15,30 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
   /// present, so typing is never overwritten by a reload triggered by an unrelated write.
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
+  /// The `lostEditsEpoch` of the mode state this bloc last reacted to, so a mode state that still
+  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when the
+  /// bloc is built: a view built after the mode lost edits has nothing to drop.
+  final int lastLostEditsEpoch;
+
   /// Class constructor
-  const OcptResourcesElementsState({required this.pendingElementFieldEdits});
+  const OcptResourcesElementsState({
+    required this.pendingElementFieldEdits,
+    required this.lastLostEditsEpoch,
+  });
 
   /// Builds the state of a bloc that holds no pending edit.
-  const OcptResourcesElementsState.init() : pendingElementFieldEdits = const {};
+  const OcptResourcesElementsState.init({this.lastLostEditsEpoch = 0})
+    : pendingElementFieldEdits = const {};
 
   /// Copies this state, replacing [pendingElementFieldEdits] when given — always replaced
   /// wholesale, the caller computing the full next map.
   @override
   OcptResourcesElementsState copyWith({
     Map<(String, OcptElementField), String>? pendingElementFieldEdits,
+    int? lastLostEditsEpoch,
   }) => OcptResourcesElementsState(
     pendingElementFieldEdits: pendingElementFieldEdits ?? this.pendingElementFieldEdits,
+    lastLostEditsEpoch: lastLostEditsEpoch ?? this.lastLostEditsEpoch,
   );
 
   /// Copies this state with every pending field edit dropped.
@@ -52,7 +63,12 @@ class OcptResourcesElementsState extends BlocStateForMixin<OcptResourcesElements
     required Map<(String, OcptElementField), String> pendingElementFieldEdits,
   }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
 
+  /// Copies this state with every pending field edit dropped and [lostEditsEpoch] as the epoch
+  /// reacted to, the mode having said that writing them failed somewhere.
+  OcptResourcesElementsState copyWithFieldEditsLost({required int lostEditsEpoch}) =>
+      copyWith(pendingElementFieldEdits: const {}, lastLostEditsEpoch: lostEditsEpoch);
+
   /// Object properties
   @override
-  List<Object?> get props => [...super.props, pendingElementFieldEdits];
+  List<Object?> get props => [...super.props, pendingElementFieldEdits, lastLostEditsEpoch];
 }

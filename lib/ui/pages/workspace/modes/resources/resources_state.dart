@@ -11,6 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_removed_role_alert.dart';
@@ -19,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_collision_alert.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_ref.dart';
+import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
@@ -145,6 +147,15 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// episodes must land the shot list mode on the right one.
   final ({String episodeId, String sceneId, String setId})? pendingShotListReveal;
 
+  /// What the first load should open on, handed over by the mode that sent the user here, or null
+  /// to open on the mode's own default.
+  ///
+  /// Consumed — set back to null — by that first load, so it is applied exactly once: every later
+  /// load goes through the very same method (entering or leaving a version preview reloads from the
+  /// project database), and re-applying it there would yank the user back to a record they may
+  /// well have navigated away from.
+  final OcptResourcesRevealRequest? pendingRevealRequest;
+
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   @override
   final int reloadEpoch;
@@ -196,6 +207,10 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
   /// Every person of [snapshot], in display order (empty while nothing is loaded).
   List<OcptPerson> get people => snapshot?.people ?? const [];
@@ -386,6 +401,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.rightDockFraction,
     required this.hasWriteError,
     required this.pendingShotListReveal,
+    required this.pendingRevealRequest,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.selectionCause,
@@ -399,10 +415,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
   });
 
   /// Init class constructor
-  OcptResourcesState.init()
+  OcptResourcesState.init({OcptResourcesRevealRequest? revealRequest})
     : isLoading = true,
       title = "",
       currencyCode = "",
@@ -423,6 +440,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
       hasWriteError = false,
       pendingShotListReveal = null,
+      pendingRevealRequest = revealRequest,
       reloadEpoch = 0,
       selectionEpoch = 0,
       selectionCause = OcptResourcesSelectionCause.none,
@@ -435,7 +453,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       versionPendingRenameId = null,
       projectVersionNotice = null,
       projectPackagePendingExport = null,
-      projectPackageNotice = null;
+      projectPackageNotice = null,
+      projectPackagePendingExportTarget = null;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -477,6 +496,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool? hasWriteError,
     ({String episodeId, String sceneId, String setId})? pendingShotListReveal,
     bool forcePendingShotListRevealValue = false,
+    OcptResourcesRevealRequest? pendingRevealRequest,
+    bool forcePendingRevealRequestValue = false,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptResourcesSelectionCause? selectionCause,
@@ -498,6 +519,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => OcptResourcesState(
     isLoading: isLoading ?? this.isLoading,
     title: title ?? this.title,
@@ -524,6 +547,8 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     pendingShotListReveal:
         pendingShotListReveal ??
         (forcePendingShotListRevealValue ? null : this.pendingShotListReveal),
+    pendingRevealRequest:
+        pendingRevealRequest ?? (forcePendingRevealRequestValue ? null : this.pendingRevealRequest),
     reloadEpoch:
         reloadEpoch ??
         (snapshot != null ||
@@ -556,6 +581,11 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
   );
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
@@ -597,11 +627,15 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Object properties
@@ -628,6 +662,7 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     rightDockFraction,
     hasWriteError,
     pendingShotListReveal,
+    pendingRevealRequest,
     reloadEpoch,
     selectionEpoch,
     selectionCause,

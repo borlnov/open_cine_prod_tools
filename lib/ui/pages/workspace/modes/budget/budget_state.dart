@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
+import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
@@ -250,6 +251,10 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
   @override
   final OcptProjectPackageNotice? projectPackageNotice;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
+  @override
+  final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
   /// The page setup the mode's own three PDF exports are pre-filled with: the open project's own
   /// page format, paired with the app-wide margins preference — loaded exactly as
@@ -504,6 +509,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.projectVersionNotice,
     required this.projectPackagePendingExport,
     required this.projectPackageNotice,
+    required this.projectPackagePendingExportTarget,
     required this.pageSetup,
   });
 
@@ -543,6 +549,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       projectVersionNotice = null,
       projectPackagePendingExport = null,
       projectPackageNotice = null,
+      projectPackagePendingExportTarget = null,
       pageSetup = const OcptPageSetup.standard();
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
@@ -603,6 +610,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
     OcptPageSetup? pageSetup,
   }) => OcptBudgetState(
     isLoading: isLoading ?? this.isLoading,
@@ -650,6 +659,11 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         (forceProjectPackagePendingExportValue ? null : this.projectPackagePendingExport),
     projectPackageNotice:
         projectPackageNotice ?? (forceProjectPackageNoticeValue ? null : this.projectPackageNotice),
+    projectPackagePendingExportTarget:
+        projectPackagePendingExportTarget ??
+        (forceProjectPackagePendingExportTargetValue
+            ? null
+            : this.projectPackagePendingExportTarget),
     pageSetup: pageSetup ?? this.pageSetup,
   );
 
@@ -692,11 +706,15 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool forceProjectPackagePendingExportValue = false,
     OcptProjectPackageNotice? projectPackageNotice,
     bool forceProjectPackageNoticeValue = false,
+    OcptProjectPackageTarget? projectPackagePendingExportTarget,
+    bool forceProjectPackagePendingExportTargetValue = false,
   }) => copyWith(
     projectPackagePendingExport: projectPackagePendingExport,
     forceProjectPackagePendingExportValue: forceProjectPackagePendingExportValue,
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
+    projectPackagePendingExportTarget: projectPackagePendingExportTarget,
+    forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
   /// Object properties
