@@ -52,6 +52,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
@@ -74,6 +75,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_share_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_view_effects.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_version_create_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -121,9 +123,15 @@ class OcptBudgetMode extends StatelessWidget {
     // `Tr` — see `OcptBudgetBloc`'s own doc comment.
     final seed = ocptBudgetCncPosteSeeds(Tr.of(context));
 
-    return BlocProvider(
-      create: (context) => OcptBudgetBloc(seed: seed),
-      child: const _BudgetView(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => OcptBudgetBloc(seed: seed)),
+        BlocProvider(
+          lazy: false,
+          create: (context) => OcptBudgetExportBloc(modeBloc: context.read<OcptBudgetBloc>()),
+        ),
+      ],
+      child: const OcptBudgetViewEffects(child: _BudgetView()),
     );
   }
 }
@@ -326,7 +334,7 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     final tr = Tr.of(context);
-    context.read<OcptBudgetBloc>().add(
+    context.read<OcptBudgetExportBloc>().add(
       OcptBudgetQuoteExportRequestedEvent(
         options: options,
         labels: ocptBudgetQuoteLabelsOf(context),
@@ -356,7 +364,7 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     final tr = Tr.of(context);
-    context.read<OcptBudgetBloc>().add(
+    context.read<OcptBudgetExportBloc>().add(
       OcptBudgetFinancingPlanExportRequestedEvent(
         options: options,
         labels: ocptBudgetFinancingPlanLabelsOf(context),
@@ -370,7 +378,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// dialog of its own, mirroring every other options-free export in the app.
   void _requestCashJournalExport(BuildContext context, OcptBudgetState state, Rect? shareAnchor) {
     final tr = Tr.of(context);
-    context.read<OcptBudgetBloc>().add(
+    context.read<OcptBudgetExportBloc>().add(
       OcptBudgetCashJournalExportRequestedEvent(
         labels: ocptBudgetCashJournalXlsxLabelsOf(context),
         linkLabelByEntryId: _linkLabelByEntryIdOf(state),
@@ -425,7 +433,7 @@ class _BudgetViewState extends State<_BudgetView> {
     }
 
     final tr = Tr.of(context);
-    context.read<OcptBudgetBloc>().add(
+    context.read<OcptBudgetExportBloc>().add(
       OcptBudgetFinancialReportExportRequestedEvent(
         options: options,
         labels: ocptBudgetFinancialReportLabelsOf(context),
@@ -2625,27 +2633,5 @@ class _BudgetViewState extends State<_BudgetView> {
         );
       context.read<OcptBudgetBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
-
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptBudgetBloc>().add(const OcptBudgetIoNoticeDismissedEvent());
-    }
-  }
-
-  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`,
-  /// [OcptBudgetIoNotice.wasShared] included.
-  String _ioNoticeMessage(BuildContext context, OcptBudgetIoNotice notice) {
-    final tr = Tr.of(context);
-
-    return switch (notice.kind) {
-      OcptBudgetIoNoticeKind.fileExportSucceeded =>
-        notice.wasShared
-            ? tr.exportSharedMessage
-            : tr.budgetExportFileSuccessMessage(notice.path ?? ""),
-      OcptBudgetIoNoticeKind.exportFailed => tr.budgetExportError,
-    };
   }
 }
