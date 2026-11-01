@@ -94,7 +94,7 @@ class OcptSettingsState extends BlocStateForMixin<OcptSettingsState>
     forceBrightnessValue: forceBrightnessValue,
   );
 
-  /// Copies this state with the day a week starts on set to [firstWeekday].
+  /// Copy this state with the day a week starts on set to [firstWeekday].
   OcptSettingsState copyWithFirstWeekday({required OcptFirstWeekday firstWeekday}) =>
       copyWith(firstWeekday: firstWeekday);
 

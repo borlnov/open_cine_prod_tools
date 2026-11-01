@@ -60,7 +60,8 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
   /// Whether the project token is currently shown in the clear.
   bool _isTokenVisible = false;
 
-  /// [OcptRelayInvite.token], masked to a fixed run of dots — never a partial reading of it, unlike
+  /// Get [OcptRelayInvite.token], masked to a fixed run of dots — never a partial reading of it,
+  /// unlike
   /// [OcptRelayInvite.toString]'s own log-friendly masking: nothing here is meant to narrow down
   /// what the hidden characters could be.
   String get _maskedToken => "•" * 24;
@@ -182,11 +183,11 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
     );
   }
 
-  /// Copies [text] to the clipboard — fire-and-forget, exactly like the screenplay editor's own
+  /// Copy [text] to the clipboard — fire-and-forget, exactly like the screenplay editor's own
   /// "Copy as Fountain" action.
   void _copyToClipboard(String text) => unawaited(Clipboard.setData(ClipboardData(text: text)));
 
-  /// Captures the QR card's own `RepaintBoundary` as a PNG and hands it to the native save dialog
+  /// Capture the QR card's own `RepaintBoundary` as a PNG and hand it to the native save dialog
   /// `FileSaverManager` opens — the same manager `OcptExportManager` builds every export's own save
   /// step on, so this stays consistent with "every export writes through a native save dialog"
   /// even though it isn't a project export.

@@ -6,7 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-/// Draws the image file at [path], or whatever [fallbackBuilder] returns when there is no file
+/// Draw the image file at [path], or whatever [fallbackBuilder] returns when there is no file
 /// there to draw.
 ///
 /// **The single place the app decides what a referenced image looks like.** Three surfaces show
@@ -82,7 +82,7 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
     );
   }
 
-  /// Whether [path] names a file that is there right now.
+  /// Tell whether [path] names a file that is there right now.
   static bool _fileExists(String? path) =>
       path != null && path.isNotEmpty && File(path).existsSync();
 }

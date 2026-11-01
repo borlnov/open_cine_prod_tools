@@ -56,7 +56,7 @@ class OcptTitlePageFieldLayout {
   /// body's own regular weight).
   final FontWeight? fontWeight;
 
-  /// Creates an [OcptTitlePageFieldLayout].
+  /// Create an [OcptTitlePageFieldLayout].
   const OcptTitlePageFieldLayout({
     required this.topGap,
     required this.left,
@@ -68,7 +68,7 @@ class OcptTitlePageFieldLayout {
   });
 }
 
-/// Returns [key]'s typesetting at [layout], mirroring the PDF exporter's own title page
+/// Return [key]'s typesetting at [layout], mirroring the PDF exporter's own title page
 /// (title/credit/authors centered in the upper-middle area; draft date right-aligned;
 /// contact/source left-aligned), including its bottom row: the PDF pins contact at the
 /// bottom-left and draft date at the bottom-right of the *same* row (a `Row(mainAxisAlignment:

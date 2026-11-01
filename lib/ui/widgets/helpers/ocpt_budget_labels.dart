@@ -50,7 +50,7 @@ const String _ocptBudgetQuantityDecimalComma = ",";
 /// `budget_lines.quantityMilli` stores.
 const int _ocptBudgetQuantityMilliPerUnit = 1000;
 
-/// [tr]'s localized label for one of `ocptBudgetCncPostes`' own ARB key names — the exhaustive
+/// Get [tr]'s localized label for one of `ocptBudgetCncPostes`' own ARB key names — the exhaustive
 /// switch `ocptCrewPositionLabel` already is for a crew position, here pairing every constant's own
 /// `labelKey`/`simpleLabelKey` with the `Tr` getter of the same name.
 ///
@@ -86,7 +86,7 @@ String _ocptBudgetCncPosteKeyLabel(Tr tr, String key) => switch (key) {
   _ => key,
 };
 
-/// [ocptBudgetCncPostes] resolved into the seed `OcptBudgetQuoteService.loadPostes` asks for,
+/// Get [ocptBudgetCncPostes] resolved into the seed `OcptBudgetQuoteService.loadPostes` asks for,
 /// through [_ocptBudgetCncPosteKeyLabel] — the one place a constant's `labelKey`/`simpleLabelKey`
 /// becomes a word, since neither `lib/constants/` nor the manager layer beneath it may see a `Tr`.
 ///
@@ -102,7 +102,7 @@ List<OcptBudgetPosteSeed> ocptBudgetCncPosteSeeds(Tr tr) => [
     ),
 ];
 
-/// [poste]'s own displayed name under the header's simplified/detailed switch —
+/// Get [poste]'s own displayed name under the header's simplified/detailed switch —
 /// `OcptBudgetCostTracking`'s own reading of [OcptBudgetPoste.simpleLabel]/[OcptBudgetPoste.label],
 /// lifted here so a second view (the cash journal's own poste column and filter caption) reads a
 /// poste's name exactly the same way rather than re-deriving the fallback itself: [isSimplified]
@@ -111,7 +111,8 @@ List<OcptBudgetPosteSeed> ocptBudgetCncPosteSeeds(Tr tr) => [
 String ocptBudgetPosteDisplayLabel(OcptBudgetPoste poste, {required bool isSimplified}) =>
     isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
 
-/// [status]'s own localized word — shared between the committed-spending view's own status badge
+/// Get [status]'s own localized word — shared between the committed-spending view's own status
+/// badge
 /// and the commitment dialog's own status picker, lifted here so both always agree on the wording
 /// rather than each resolving it independently.
 String ocptBudgetCommitmentStatusLabel(Tr tr, OcptBudgetCommitmentStatus status) =>
@@ -122,7 +123,8 @@ String ocptBudgetCommitmentStatusLabel(Tr tr, OcptBudgetCommitmentStatus status)
       OcptBudgetCommitmentStatus.declared => tr.budgetCommittedStatusDeclaredLabel,
     };
 
-/// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — from the
+/// Get [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — from
+/// the
 /// lightest step (a mere quote accepted) to the one nearest to being paid (declared).
 ///
 /// Reads [OcptBudgetCommitmentStatus.index] as the weight to paint: that enum's own doc comment
@@ -139,7 +141,7 @@ Color ocptBudgetCommitmentStatusAccentColor(
   OcptBudgetCommitmentStatus.declared => colorScheme.primary,
 };
 
-/// [kind]'s own localized word — the financing view's own group card headers, and the resource
+/// Get [kind]'s own localized word — the financing view's own group card headers, and the resource
 /// dialog's own group-kind picker, always reading the same three words.
 String ocptBudgetResourceGroupKindLabel(Tr tr, OcptBudgetResourceGroupKind kind) => switch (kind) {
   OcptBudgetResourceGroupKind.subsidy => tr.budgetFinancingGroupSubsidyLabel,
@@ -147,7 +149,8 @@ String ocptBudgetResourceGroupKindLabel(Tr tr, OcptBudgetResourceGroupKind kind)
   OcptBudgetResourceGroupKind.inKind => tr.budgetFinancingGroupInKindLabel,
 };
 
-/// [family]'s own localized word — the resources tree's own three family rows, in the order they
+/// Get [family]'s own localized word — the resources tree's own three family rows, in the order
+/// they
 /// draw: subsidies, contributions, takings.
 String ocptBudgetResourceFamilyLabel(Tr tr, OcptBudgetResourceFamily family) => switch (family) {
   OcptBudgetResourceFamily.subsidies => tr.budgetFinancingFamilySubsidiesLabel,
@@ -155,7 +158,8 @@ String ocptBudgetResourceFamilyLabel(Tr tr, OcptBudgetResourceFamily family) => 
   OcptBudgetResourceFamily.takings => tr.budgetFinancingFamilyTakingsLabel,
 };
 
-/// [status]'s own localized word **for a [kind] resource** — shared between the financing view's
+/// Get [status]'s own localized word **for a [kind] resource** — shared between the financing
+/// view's
 /// own status pill and the resource dialog's own status picker, lifted here for the very reason
 /// [ocptBudgetCommitmentStatusLabel] already is: both always agree on the wording rather than each
 /// resolving it independently.
@@ -189,7 +193,8 @@ String ocptBudgetResourceStatusLabel(
     tr.budgetFinancingStatusInKindConfirmedLabel,
 };
 
-/// [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex — mirroring
+/// Get [status]'s own accent colour, read off [colorScheme] alone — never a hard-coded hex —
+/// mirroring
 /// [ocptBudgetCommitmentStatusAccentColor]'s own reading: [OcptBudgetResourceStatus.index] already
 /// orders its three steps from the lightest (merely in play) to the one nearest to actually
 /// financing the production (held on paper), so this mirrors that declared order rather than
@@ -208,7 +213,7 @@ Color ocptBudgetResourceStatusAccentColor(
   OcptBudgetResourceStatus.confirmed => colorScheme.primary,
 };
 
-/// [kind]'s own localized word — the régie view's own defrayal table and its dialog, always
+/// Get [kind]'s own localized word — the régie view's own defrayal table and its dialog, always
 /// reading the same four words, mirroring [ocptBudgetResourceStatusLabel]'s own reason for living
 /// here.
 String ocptBudgetAllowanceKindLabel(Tr tr, OcptBudgetAllowanceKind kind) => switch (kind) {
@@ -218,7 +223,8 @@ String ocptBudgetAllowanceKindLabel(Tr tr, OcptBudgetAllowanceKind kind) => swit
   OcptBudgetAllowanceKind.other => tr.budgetAllowanceKindOtherLabel,
 };
 
-/// [kind]'s own localized word — the wording the provisioning writes onto the quote line it mints
+/// Get [kind]'s own localized word — the wording the provisioning writes onto the quote line it
+/// mints
 /// for that nature, and the one it compares against to tell a hand edit from a stale figure.
 ///
 /// **A defrayed meal and a catering meal read differently on purpose**: the first is what one
@@ -233,13 +239,15 @@ String ocptBudgetProvisionKindLabel(Tr tr, OcptBudgetProvisionKind kind) => swit
   OcptBudgetProvisionKind.otherAllowance => tr.budgetProvisionLineOtherLabel,
 };
 
-/// Every nature's own wording, as `ocptBudgetProvisionPlanOf` wants it handed in: a mode resolves
+/// Get every nature's own wording, as `ocptBudgetProvisionPlanOf` wants it handed in: a mode
+/// resolves
 /// every word and passes a labels map, no util of this app ever seeing a `Tr`.
 Map<OcptBudgetProvisionKind, String> ocptBudgetProvisionLabelsOf(Tr tr) => {
   for (final kind in OcptBudgetProvisionKind.values) kind: ocptBudgetProvisionKindLabel(tr, kind),
 };
 
-/// [status]'s own localized word — the sharing view's own `Takings received` card and the revenue
+/// Get [status]'s own localized word — the sharing view's own `Takings received` card and the
+/// revenue
 /// dialog's own status picker, always reading the same three words, mirroring
 /// [ocptBudgetResourceStatusLabel].
 String ocptBudgetRevenueStatusLabel(Tr tr, OcptBudgetRevenueStatus status) => switch (status) {
@@ -248,7 +256,7 @@ String ocptBudgetRevenueStatusLabel(Tr tr, OcptBudgetRevenueStatus status) => sw
   OcptBudgetRevenueStatus.invoiced => tr.budgetSharingRevenueStatusInvoicedLabel,
 };
 
-/// [status]'s own accent colour, read off [colorScheme] alone — mirrors
+/// Get [status]'s own accent colour, read off [colorScheme] alone — mirrors
 /// [ocptBudgetResourceStatusAccentColor]'s own reading, [OcptBudgetRevenueStatus.index] ordering
 /// its three values from the lightest step (merely announced) to the one nearest to being paid
 /// (invoiced).
@@ -259,7 +267,8 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
       OcptBudgetRevenueStatus.invoiced => colorScheme.primary,
     };
 
-/// [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the currency
+/// Get [cents] formatted as a **displayed** amount in [currencyCode]: grouped, carrying the
+/// currency
 /// symbol — `NumberFormat.simpleCurrency`, the precedent `OcptElementSheetSourcingCard` sets for
 /// reaching into `intl` rather than an ARB key.
 ///
@@ -271,13 +280,13 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
 String ocptBudgetAmountLabel(int cents, String currencyCode) =>
     NumberFormat.simpleCurrency(name: currencyCode).format(cents / 100);
 
-/// [quantityMilli] written back as the figure somebody typed: `1500` is `1.5`, `1484000` is
+/// Get [quantityMilli] written back as the figure somebody typed: `1500` is `1.5`, `1484000` is
 /// `1,484` (grouped, and the locale's own separators) — `budget_lines.quantityMilli`'s own display
 /// reading, the milli precision dropped past its last significant digit.
 String ocptBudgetQuantityLabel(int quantityMilli) =>
     _ocptBudgetQuantityFormat.format(quantityMilli / _ocptBudgetQuantityMilliPerUnit);
 
-/// Reads [text], typed into a quantity field, as a figure in thousandths — the app's one place that
+/// Read [text], typed into a quantity field, as a figure in thousandths — the app's one place that
 /// turns what somebody typed into `budget_lines.quantityMilli`, so the quote-line card can never
 /// disagree with [ocptBudgetQuantityLabel] about what `1,5` means.
 ///
@@ -302,13 +311,14 @@ int? ocptBudgetQuantityMilliOf(String text) {
   return (quantity * _ocptBudgetQuantityMilliPerUnit).round();
 }
 
-/// [permille] formatted as a **displayed** percentage: `400` reads `40%`, `455` reads `45.5%` —
+/// Get [permille] formatted as a **displayed** percentage: `400` reads `40%`, `455` reads `45.5%` —
 /// the sharing view's own `Share` column, over [ocptPermillePercentTextOf]'s own bare figure, a
 /// `%` sign appended the very same way [ocptBudgetAmountLabel] appends a currency symbol
 /// `ocptCostTextOf` never carries.
 String ocptBudgetSharePercentLabel(int permille) => "${ocptPermillePercentTextOf(permille)}%";
 
-/// A total's own coverage read-out template, still fully localizable and yet handed to the manager
+/// Get a total's own coverage read-out template, still fully localizable and yet handed to the
+/// manager
 /// layer as a plain string it can `.replaceAll` the real figures into
 /// (`lib/managers/export/services/ocpt_budget_pdf_shared.dart`'s own
 /// `ocptBudgetExportCoveredAmountText`, which no service under `lib/managers/` may ask `Tr` to
@@ -324,13 +334,15 @@ String ocptBudgetSharePercentLabel(int permille) => "${ocptPermillePercentTextOf
 String _ocptBudgetExportCoverageReadOutTemplate(Tr tr) =>
     tr.budgetExportCoverageReadOutTemplate("{amount}", "{coveredCount}", "{totalCount}");
 
-/// The needs/resources balance's own shortfall verdict template, still fully localizable — mirrors
+/// Get the needs/resources balance's own shortfall verdict template, still fully localizable —
+/// mirrors
 /// [_ocptBudgetExportCoverageReadOutTemplate]'s own reasoning and reused by both
 /// [ocptBudgetFinancingPlanLabelsOf] and [ocptBudgetFinancialReportLabelsOf].
 String _ocptBudgetExportBalanceShortfallMessageTemplate(Tr tr) =>
     tr.budgetExportBalanceShortfallMessageTemplate("{amount}");
 
-/// Every localized string the exported quote carries, resolved once here so `OcptBudgetMode` hands
+/// Get every localized string the exported quote carries, resolved once here so `OcptBudgetMode`
+/// hands
 /// the manager a labels object rather than a `Tr` it must never see (`AGENTS.md`).
 OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
   final tr = Tr.of(context);
@@ -354,7 +366,8 @@ OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
   );
 }
 
-/// Every localized string the exported financing plan carries — mirrors [ocptBudgetQuoteLabelsOf].
+/// Get every localized string the exported financing plan carries — mirrors
+/// [ocptBudgetQuoteLabelsOf].
 ///
 /// `groupTitles`/`statusLabels` reuse [ocptBudgetResourceGroupKindLabel]/
 /// [ocptBudgetResourceStatusLabel] rather than resolving their own words, so the exported document
@@ -397,7 +410,7 @@ OcptBudgetFinancingPlanLabels ocptBudgetFinancingPlanLabelsOf(BuildContext conte
   );
 }
 
-/// Every localized string the exported cash journal workbook carries — mirrors
+/// Get every localized string the exported cash journal workbook carries — mirrors
 /// [ocptBudgetQuoteLabelsOf].
 OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext context) {
   final tr = Tr.of(context);
@@ -416,7 +429,7 @@ OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext c
   );
 }
 
-/// Every localized string the exported financial report carries — mirrors
+/// Get every localized string the exported financial report carries — mirrors
 /// [ocptBudgetFinancingPlanLabelsOf], reusing the very same balance-verdict strings for the very
 /// same reason, and reusing `tr.budgetCostTrackingOffQuoteLabel` — the cost-tracking table's own
 /// off-quote row label — so the report never invents a second word for the very row the screen

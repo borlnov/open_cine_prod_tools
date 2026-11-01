@@ -63,7 +63,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   bool _isWritingProjectPackage = false;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
-  /// The manager owning the open project and the package service behind it.
+  /// Get the manager owning the open project and the package service behind it.
   ///
   /// Declared here and implemented by each mode's bloc, rather than resolved through [globalGetIt]
   /// by the mixin itself, so a bloc built with an explicitly injected manager (which is what every
@@ -73,7 +73,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   OcptProjectsManager get projectsManager;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  /// The manager whose [OcptExportManager.saveLocationService] shows the native save dialog on
+  /// Get the manager whose [OcptExportManager.saveLocationService] shows the native save dialog on
   /// desktop, and whose [OcptExportManager.shareService] hands the package to the OS share sheet on
   /// [OcptExportManager.isMobile] instead — `file_selector`'s `getSaveLocation` has no Android or
   /// iOS implementation.
@@ -86,7 +86,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   @protected
   OcptExportManager get exportManager;
 
-  /// Writes whatever the mode still holds outside the database — a pending autosave, a debounced
+  /// Write whatever the mode still holds outside the database — a pending autosave, a debounced
   /// field edit — before the project file is copied into a package.
   ///
   /// The same hook `MixinOcptProjectVersionsBloc` declares, with the same signature, so a mode
@@ -105,8 +105,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     on<OcptProjectPackageNoticeDismissedEvent>(_onNoticeDismissed);
   }
 
-  /// Resolves what this export is about, flushes whatever the caller still holds, scans the files
-  /// the project references, and either asks about the missing ones or writes the package straight
+  /// Resolve what this export is about, flush whatever the caller still holds, scan the files the
+  /// project references, and either ask about the missing ones or write the package straight
   /// away.
   ///
   /// [OcptProjectPackageExportRequestedEvent.target] wins when the caller named one (the home
@@ -163,12 +163,13 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     await _writePackage(emitter, fileTypeLabel: event.fileTypeLabel, target: target);
   }
 
-  /// The target an export defaults to when the request names none: the project currently open, or
+  /// Get the target an export defaults to when the request names none: the project currently open,
+  /// or
   /// null while none is.
   OcptProjectPackageTarget? _openProjectTarget(OcptOpenProjectModel? project) =>
       project == null ? null : OcptProjectPackageTarget(filePath: project.path, name: project.name);
 
-  /// Clears the missing-files question from the state, the mode having opened it.
+  /// Clear the missing-files question from the state, the mode having opened it.
   Future<void> _onMissingFilesAskDismissed(
     OcptProjectPackageMissingFilesAskDismissedEvent event,
     Emitter<S> emitter,
@@ -176,7 +177,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     emitter(state.copyWithPackagePreflightDismissed());
   }
 
-  /// Writes the package the user asked for despite the missing files.
+  /// Write the package the user asked for despite the missing files.
   ///
   /// The pre-flight is not run again: it was run a moment ago and answered, and a file that
   /// vanished in between is reported by the write itself, whose own report is what the manifest
@@ -200,7 +201,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     await _writePackage(emitter, fileTypeLabel: event.fileTypeLabel, target: target);
   }
 
-  /// Clears the transient package notice currently shown, if any.
+  /// Clear the transient package notice currently shown, if any.
   Future<void> _onNoticeDismissed(
     OcptProjectPackageNoticeDismissedEvent event,
     Emitter<S> emitter,
@@ -208,7 +209,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     emitter(state.copyWithPackageNoticeDismissed());
   }
 
-  /// Writes the package and reports what travelled — on desktop through the native save dialog
+  /// Write the package and report what travelled — on desktop through the native save dialog
   /// ([_writeAndSavePackage]), on mobile through the OS share sheet ([_writeAndSharePackage]),
   /// [OcptExportManager.isMobile] telling the two apart exactly as every other export of this app's
   /// write funnel does: `file_selector`'s `getSaveLocation` has no Android or iOS implementation at
@@ -244,8 +245,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     }
   }
 
-  /// Desktop: asks where to write the package through the native save dialog, writes it there, and
-  /// reports what travelled.
+  /// On desktop, ask where to write the package through the native save dialog, write it there, and
+  /// report what travelled.
   ///
   /// A cancelled save dialog is a silent no-op, exactly as it is for every other export of this
   /// app: the user closed a dialog they opened. A failure raises the transient notice, and a
@@ -283,7 +284,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     );
   }
 
-  /// Mobile: there is no save dialog to show at all, so this writes the package into a
+  /// Share the package on mobile: there is no save dialog to show at all, so this writes the
+  /// package into a
   /// `path_provider` temporary directory and hands it to [OcptExportManager.shareService]'s OS
   /// share sheet instead — the very same door [OcptExportManager]'s own write funnel already takes
   /// for every other export on mobile.
@@ -319,8 +321,8 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     );
   }
 
-  /// Writes the package at [packagePath] through [OcptProjectsManager.exportProjectPackage] and
-  /// returns its report, or emits [OcptProjectPackageNoticeKind.exportFailed] and returns null on
+  /// Write the package at [packagePath] through [OcptProjectsManager.exportProjectPackage] and
+  /// return its report, or emit [OcptProjectPackageNoticeKind.exportFailed] and return null on
   /// failure — the one write both [_writeAndSavePackage] and [_writeAndSharePackage] share, so a
   /// package failing to build is reported the same sentence whichever door it was asked through.
   Future<OcptProjectPackageExportReport?> _writePackageAt(
@@ -347,7 +349,7 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
     return report;
   }
 
-  /// Emits [notice], and clears any question left hanging along with it.
+  /// Emit [notice], and clear any question left hanging along with it.
   ///
   /// The two always move together: whatever the outcome, the pre-flight's question has been
   /// answered by the time there is something to report, and a question outliving its own export

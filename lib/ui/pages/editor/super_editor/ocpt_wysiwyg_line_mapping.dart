@@ -19,7 +19,8 @@ class OcptWysiwygLineMapping {
   /// following it), indexed by line number.
   final List<int> _nodeIndexByLine;
 
-  /// Builds the mapping for [sourceText] (only [OcptWysiwygCodec] does), given, in node order, each node's (already resolved, in
+  /// Build the mapping for [sourceText] (only [OcptWysiwygCodec] does), given, in node order, each
+  /// node's (already resolved, in
   /// the case of [OcptWysiwygCodec.encode]'s dialogue-group override) blank-line-before count, and
   /// the number of blank lines trailing the last node.
   OcptWysiwygLineMapping.build({
@@ -46,12 +47,12 @@ class OcptWysiwygLineMapping {
     }
   }
 
-  /// The 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
+  /// Get the 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
   /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.
   int lineOfNodeIndex(int nodeIndex) =>
       _lineByNodeIndex[nodeIndex.clamp(0, _lineByNodeIndex.length - 1)];
 
-  /// The 0-based node index owning the source line containing character offset [charOffset] of
+  /// Get the 0-based node index owning the source line containing character offset [charOffset] of
   /// this mapping's own source text, clamped to a valid line (out-of-range clamps to the text's
   /// length, i.e. the last line, the same convention the old `lineIndexForCharOffset` used). A
   /// blank line's offset snaps to the node immediately following it (or, if it's a trailing blank

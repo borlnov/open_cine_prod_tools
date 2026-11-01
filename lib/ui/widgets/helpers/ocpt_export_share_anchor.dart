@@ -4,7 +4,8 @@
 
 import 'package:flutter/widgets.dart';
 
-/// [context]'s own render box, in screen coordinates, or null when it has none yet (not laid out,
+/// Get [context]'s own render box, in screen coordinates, or null when it has none yet (not laid
+/// out,
 /// or already unmounted).
 ///
 /// This is the `Rect` `Share.shareXFiles` needs to anchor the OS share sheet's popover on an

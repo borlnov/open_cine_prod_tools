@@ -279,7 +279,7 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
     );
   }
 
-  /// Focuses [_findFocusNode] and selects the find field's whole content, once, the frame after
+  /// Focus [_findFocusNode] and select the find field's whole content, once, the frame after
   /// [OcptEditorFindBar.focusRequestId] changes to a value not yet applied.
   void _applyFocusRequestIfNeeded() {
     if (widget.focusRequestId == _lastAppliedFocusRequestId) {

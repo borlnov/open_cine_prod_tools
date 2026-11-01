@@ -12,7 +12,7 @@ sealed class OcptProjectSettingsEvent extends BlocEventForMixin {
   const OcptProjectSettingsEvent();
 }
 
-/// Reports that the user picked a different currency in the picker.
+/// Report that the user picked a different currency in the picker.
 class OcptProjectSettingsCurrencyChangedEvent extends OcptProjectSettingsEvent {
   /// The ISO 4217 code the user picked.
   final String currencyCode;
@@ -25,7 +25,7 @@ class OcptProjectSettingsCurrencyChangedEvent extends OcptProjectSettingsEvent {
   List<Object?> get props => [...super.props, currencyCode];
 }
 
-/// Reports that the user picked a different page format in the dropdown.
+/// Report that the user picked a different page format in the dropdown.
 class OcptProjectSettingsPageFormatChangedEvent extends OcptProjectSettingsEvent {
   /// The page format the user picked.
   final OcptPageFormat pageFormat;
@@ -38,7 +38,7 @@ class OcptProjectSettingsPageFormatChangedEvent extends OcptProjectSettingsEvent
   List<Object?> get props => [...super.props, pageFormat];
 }
 
-/// Reports that the user committed a new minimum rest, in minutes, or cleared it — [minutes] null
+/// Report that the user committed a new minimum rest, in minutes, or cleared it — [minutes] null
 /// meaning the field was submitted empty, a real gesture as much as typing a figure is.
 class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSettingsEvent {
   /// The newly committed minimum, in minutes, or null to clear it.
@@ -52,7 +52,7 @@ class OcptProjectSettingsMinimumRestMinutesChangedEvent extends OcptProjectSetti
   List<Object?> get props => [...super.props, minutes];
 }
 
-/// Reports that the user committed a new default VAT rate, in basis points, or cleared it —
+/// Report that the user committed a new default VAT rate, in basis points, or cleared it —
 /// whether by submitting the field empty, submitting it negative, or tapping the card's own
 /// `No rate` button; [basisPoints] null meaning "not recorded", a real gesture as much as recording
 /// `0` (an explicit exemption) is.
@@ -68,7 +68,7 @@ class OcptProjectSettingsDefaultVatRateBasisPointsChangedEvent extends OcptProje
   List<Object?> get props => [...super.props, basisPoints];
 }
 
-/// Reports that the user committed a new meal price, in cents, or cleared it — [cents] null meaning
+/// Report that the user committed a new meal price, in cents, or cleared it — [cents] null meaning
 /// the field was submitted empty, a real gesture as much as typing a figure is.
 class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsEvent {
   /// The newly committed price, in cents, or null to clear it.
@@ -82,7 +82,7 @@ class OcptProjectSettingsMealPriceCentsChangedEvent extends OcptProjectSettingsE
   List<Object?> get props => [...super.props, cents];
 }
 
-/// Reports that the user committed a new buffet price, in cents, or cleared it —
+/// Report that the user committed a new buffet price, in cents, or cleared it —
 /// [OcptProjectSettingsMealPriceCentsChangedEvent]'s sibling.
 class OcptProjectSettingsBuffetPriceCentsChangedEvent extends OcptProjectSettingsEvent {
   /// The newly committed price, in cents, or null to clear it.
@@ -96,7 +96,7 @@ class OcptProjectSettingsBuffetPriceCentsChangedEvent extends OcptProjectSetting
   List<Object?> get props => [...super.props, cents];
 }
 
-/// Reports that the user picked a different screenplay language in the dropdown, including "None"
+/// Report that the user picked a different screenplay language in the dropdown, including "None"
 /// (null) — a real gesture, turning the checker off for this screenplay, as much as picking one of
 /// the two bundled languages is.
 class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSettingsEvent {
@@ -111,7 +111,7 @@ class OcptProjectSettingsScreenplayLanguageChangedEvent extends OcptProjectSetti
   List<Object?> get props => [...super.props, screenplayLanguage];
 }
 
-/// Reports the words `OcptProjectDictionaryDialog` added and removed from its working copy —
+/// Report the words `OcptProjectDictionaryDialog` added and removed from its working copy —
 /// that dialog only reports, so this event is what actually applies the diff to the project's
 /// dictionary, through `OcptProjectDictionaryService` (`docs/architecture/foundations.md`).
 class OcptProjectSettingsDictionaryEditedEvent extends OcptProjectSettingsEvent {
@@ -133,13 +133,13 @@ class OcptProjectSettingsDictionaryEditedEvent extends OcptProjectSettingsEvent 
   List<Object?> get props => [...super.props, addedWords, removedWords];
 }
 
-/// Reports that the `Episodes` card's `+ Add` action was tapped, appending a new episode.
+/// Report that the `Episodes` card's `+ Add` action was tapped, appending a new episode.
 class OcptProjectSettingsEpisodeAddedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsEpisodeAddedEvent();
 }
 
-/// Reports that the user committed a new title for episode [screenplayId] — the empty string is a
+/// Report that the user committed a new title for episode [screenplayId] — the empty string is a
 /// legal title, read as "untitled" (`OcptEpisode.title`'s own doc comment), not a reversion.
 class OcptProjectSettingsEpisodeTitleChangedEvent extends OcptProjectSettingsEvent {
   /// The id of the episode (a `screenplays` row) whose title was committed.
@@ -159,7 +159,7 @@ class OcptProjectSettingsEpisodeTitleChangedEvent extends OcptProjectSettingsEve
   List<Object?> get props => [...super.props, screenplayId, title];
 }
 
-/// Reports that the user committed a new printed number for episode [screenplayId]. Carries no
+/// Report that the user committed a new printed number for episode [screenplayId]. Carries no
 /// uniqueness guarantee of its own — two episodes sharing a number is a state the user reaches by
 /// hand and repairs by hand (`docs/adr/0019-one-project-several-episodes.md`).
 class OcptProjectSettingsEpisodeNumberChangedEvent extends OcptProjectSettingsEvent {
@@ -180,7 +180,7 @@ class OcptProjectSettingsEpisodeNumberChangedEvent extends OcptProjectSettingsEv
   List<Object?> get props => [...super.props, screenplayId, number];
 }
 
-/// Reports that episode [screenplayId] was moved to [newPosition] (0-based, among the project's
+/// Report that episode [screenplayId] was moved to [newPosition] (0-based, among the project's
 /// live episodes) through the card's own `▲`/`▼` controls. Only `sortKey` is affected — the
 /// printed `number` is never renumbered by a reorder.
 class OcptProjectSettingsEpisodeMovedEvent extends OcptProjectSettingsEvent {
@@ -201,7 +201,7 @@ class OcptProjectSettingsEpisodeMovedEvent extends OcptProjectSettingsEvent {
   List<Object?> get props => [...super.props, screenplayId, newPosition];
 }
 
-/// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
+/// Report that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
 /// card), deleting episode [screenplayId].
 class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettingsEvent {
   /// The id of the episode (a `screenplays` row) to delete.
@@ -215,14 +215,14 @@ class OcptProjectSettingsEpisodeDeletionConfirmedEvent extends OcptProjectSettin
   List<Object?> get props => [...super.props, screenplayId];
 }
 
-/// Reports that the `Mileage rates` card's `Add a rate` action was tapped, appending a new,
+/// Report that the `Mileage rates` card's `Add a rate` action was tapped, appending a new,
 /// blank rate.
 class OcptProjectSettingsMileageRateAddedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsMileageRateAddedEvent();
 }
 
-/// Reports that the user committed a new label for mileage rate [rateId] — the empty string is a
+/// Report that the user committed a new label for mileage rate [rateId] — the empty string is a
 /// legal label, exactly as an episode's title is.
 class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSettingsEvent {
   /// The id of the mileage rate whose label was committed.
@@ -242,7 +242,7 @@ class OcptProjectSettingsMileageRateLabelChangedEvent extends OcptProjectSetting
   List<Object?> get props => [...super.props, rateId, label];
 }
 
-/// Reports that the user committed a new per-kilometre rate for mileage rate [rateId], in
+/// Report that the user committed a new per-kilometre rate for mileage rate [rateId], in
 /// thousandths of a cent.
 class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettingsEvent {
   /// The id of the mileage rate whose amount was committed.
@@ -262,13 +262,13 @@ class OcptProjectSettingsMileageRateAmountChangedEvent extends OcptProjectSettin
   List<Object?> get props => [...super.props, rateId, ratePerKmMilliCents];
 }
 
-/// Reports that the `Project file` card's own `Show in folder` action was tapped.
+/// Report that the `Project file` card's own `Show in folder` action was tapped.
 class OcptProjectSettingsShowInFolderRequestedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsShowInFolderRequestedEvent();
 }
 
-/// Reports that the `Project file` card's own `Move…` action was tapped: shows the native
+/// Report that the `Project file` card's own `Move…` action was tapped: shows the native
 /// save-file dialog, suggesting the project's current file name inside its current folder, and
 /// moves the project's file there once the user picks a destination.
 class OcptProjectSettingsMoveRequestedEvent extends OcptProjectSettingsEvent {
@@ -283,19 +283,19 @@ class OcptProjectSettingsMoveRequestedEvent extends OcptProjectSettingsEvent {
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
-/// Dismisses the `Show in folder` failure once the page has shown it.
+/// Dismiss the `Show in folder` failure once the page has shown it.
 class OcptProjectSettingsShowInFolderFailureDismissedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsShowInFolderFailureDismissedEvent();
 }
 
-/// Dismisses the transient move error currently shown, if any.
+/// Dismiss the transient move error currently shown, if any.
 class OcptProjectSettingsMoveErrorDismissedEvent extends OcptProjectSettingsEvent {
   /// Class constructor
   const OcptProjectSettingsMoveErrorDismissedEvent();
 }
 
-/// Reports that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
+/// Report that the user confirmed, through `OcptConfirmDialog` (opened by the page, never by the
 /// card), deleting mileage rate [rateId].
 ///
 /// This tombstones the row (`OcptBudgetFinancingService.deleteMileageRate`, ADR 0010) rather than

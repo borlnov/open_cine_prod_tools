@@ -51,7 +51,7 @@ class OcptSyncStatusIndicator extends StatelessWidget {
   /// Whether the caller forces the read-only state, or null to read it from the current project.
   final bool? _isReadOnly;
 
-  /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
+  /// Get [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
   ///
   /// Null is not an edge case this indicator merely tolerates: it is exactly the "no session
@@ -73,10 +73,10 @@ class OcptSyncStatusIndicator extends StatelessWidget {
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
-  /// The router manager: [_routerManager], or the one `globalGetIt()` holds.
+  /// Get the router manager: [_routerManager], or the one `globalGetIt()` holds.
   OcptRouterManager get _router => _routerManager ?? globalGetIt().get<OcptRouterManager>();
 
-  /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
+  /// Get [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
   /// manager environment registered one, or false otherwise — see [_sync]'s own doc comment for
   /// why a missing registration reads as the harmless case rather than a crash.
   bool get _readOnly {
@@ -320,7 +320,8 @@ class _OcptSyncStatusPanel extends StatelessWidget {
   }
 }
 
-/// [status]'s own label, shared by the badge and the panel's header so the two never say something
+/// Get [status]'s own label, shared by the badge and the panel's header so the two never say
+/// something
 /// different about the very same status.
 String _labelFor(Tr tr, OcptSyncStatus status) => switch (status) {
   OcptSyncStatusInSync() => tr.workspaceSyncStatusInSync,
@@ -332,7 +333,7 @@ String _labelFor(Tr tr, OcptSyncStatus status) => switch (status) {
   OcptSyncStatusError() => tr.workspaceSyncStatusError,
 };
 
-/// [status]'s own colour: the calm green of a shot already accepted for
+/// Get [status]'s own colour: the calm green of a shot already accepted for
 /// [OcptSyncStatusInSync] (reused generically here, exactly as the breakdown/schedule/resources
 /// labels already do), the app's one violet accent while [OcptSyncStatusSyncing], the app's amber
 /// "needs attention" colour for [OcptSyncStatusOffline], and `error` for [OcptSyncStatusError].

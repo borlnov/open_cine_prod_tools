@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_text_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_source_field.dart';
 
-/// Moves the caret of the raw source field and scrolls it into view: a scene jump, or the match the
+/// Move the caret of the raw source field and scroll it into view: a scene jump, or the match the
 /// find bar is on.
 class OcptEditorRawScroller {
   /// The controller holding the live source text and selection.
@@ -28,7 +28,7 @@ class OcptEditorRawScroller {
        _editorScrollController = editorScrollController,
        _editorFocusNode = editorFocusNode;
 
-  /// Places the raw controller's selection on [match] and scrolls it into view exactly as
+  /// Place the raw controller's selection on [match] and scroll it into view exactly as
   /// [applyJumpRequest] does ([scrollTo]) — deliberately does not focus
   /// [_editorFocusNode]: the find field must keep the keyboard focus while the user types a query
   /// or presses Next/Previous.
@@ -37,8 +37,8 @@ class OcptEditorRawScroller {
     scrollTo(match.start);
   }
 
-  /// Moves the editor caret to [charOffset], focuses the editor, scrolls the caret's line into view
-  /// ([scrollTo]), and lets the controller listener report the caret move to the bloc.
+  /// Move the editor caret to [charOffset], focus the editor, scroll the caret's line into view
+  /// ([scrollTo]), and let the controller listener report the caret move to the bloc.
   void applyJumpRequest(int charOffset) {
     final text = _textController.text;
     final clampedOffset = charOffset > text.length ? text.length : charOffset;
@@ -48,7 +48,7 @@ class OcptEditorRawScroller {
     scrollTo(clampedOffset);
   }
 
-  /// Scrolls the raw editor so the line holding [offset] sits a third of the way down its viewport.
+  /// Scroll the raw editor so the line holding [offset] sits a third of the way down its viewport.
   ///
   /// The line's position is **measured** off the field's own laid-out text
   /// ([_rawCaretContentTop]) rather than counted in newlines: an action or dialogue paragraph wraps
@@ -67,7 +67,7 @@ class OcptEditorRawScroller {
     _editorScrollController.jumpTo(target);
   }
 
-  /// The top of the caret at [offset] in the raw field's own scrollable content, read off the
+  /// Get the top of the caret at [offset] in the raw field's own scrollable content, read off the
   /// field's `RenderEditable` — or null while the field is not built or laid out.
   ///
   /// [_editorFocusNode] is attached inside the field's own `EditableText`, which is how the
@@ -89,7 +89,8 @@ class OcptEditorRawScroller {
     return caretRect.top + _editorScrollController.offset;
   }
 
-  /// The top of the line holding [offset], estimated from its newline count and the field's fixed
+  /// Get the top of the line holding [offset], estimated from its newline count and the field's
+  /// fixed
   /// line height: exact for unwrapped lines only — [_rawCaretContentTop]'s fallback.
   double _estimatedRawLineTop(int offset) {
     final text = _textController.text;

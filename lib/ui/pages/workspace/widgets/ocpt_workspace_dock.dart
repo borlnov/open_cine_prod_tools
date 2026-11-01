@@ -57,7 +57,7 @@ class OcptWorkspaceDock extends StatelessWidget {
     child: ColoredBox(color: Theme.of(context).colorScheme.surfaceContainerLow, child: child),
   );
 
-  /// Clamps [fraction] to the left dock's valid range for a row of [rowWidth]: at least
+  /// Clamp [fraction] to the left dock's valid range for a row of [rowWidth]: at least
   /// [leftMinWidth] pixels, at most [leftMaxFraction] of the row.
   ///
   /// Returns [fraction] unchanged when [rowWidth] isn't strictly positive (nothing to resolve
@@ -73,7 +73,7 @@ class OcptWorkspaceDock extends StatelessWidget {
     return fraction.clamp(minFraction, maxFraction);
   }
 
-  /// Clamps [fraction] to the right dock's valid range for a row of [rowWidth]: at least
+  /// Clamp [fraction] to the right dock's valid range for a row of [rowWidth]: at least
   /// [rightMinWidth] pixels, at most [rightMaxFraction] of the row.
   ///
   /// Returns [fraction] unchanged when [rowWidth] isn't strictly positive (nothing to resolve
@@ -89,7 +89,7 @@ class OcptWorkspaceDock extends StatelessWidget {
     return fraction.clamp(minFraction, maxFraction);
   }
 
-  /// Resolves [leftFraction] and [rightFraction] (each a fraction of [rowWidth]) to the pixel
+  /// Resolve [leftFraction] and [rightFraction] (each a fraction of [rowWidth]) to the pixel
   /// widths the left and right docks should actually be given, honouring [centreMinWidth]: when
   /// the row is too narrow for both docks at their clamped widths plus the centre floor, the
   /// right dock gives up width first, then the left one. A dock not currently visible

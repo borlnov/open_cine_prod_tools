@@ -7,12 +7,12 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Reads the scene numbers a styled editor's gutter shows off its document's node metadata.
+/// Read the scene numbers a styled editor's gutter shows off its document's node metadata.
 final class OcptStyledSceneNumberMetadata {
   /// Private constructor: this class only exposes static members.
   const OcptStyledSceneNumberMetadata._();
 
-  /// The scene number to show next to every scene-heading node currently in [document], keyed
+  /// Get the scene number to show next to every scene-heading node currently in [document], keyed
   /// by node id, read straight off each node's [ocptSceneNumberMetadataKey] metadata.
   ///
   /// By the time this is called (every build), that metadata is already correct: it was set by

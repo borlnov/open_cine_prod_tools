@@ -34,7 +34,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// The maximum width of the project settings page's content, matching the app-wide settings page.
 const _maxContentWidth = 720.0;
 
-/// Displays the settings of the currently open project: its currency, its screenplay page format
+/// Display the settings of the currently open project: its currency, its screenplay page format
 /// and the language its screenplays are written in.
 ///
 /// Reached from every production mode's own toolbar
@@ -59,7 +59,7 @@ class OcptProjectSettingsPage extends StatelessWidget {
   /// [OcptProjectSettingsReveal].
   final OcptProjectSettingsReveal? reveal;
 
-  /// Creates the project settings page.
+  /// Create the project settings page.
   const OcptProjectSettingsPage({this.reveal, super.key});
 
   /// Build the project settings page as a [BlocProvider].
@@ -216,7 +216,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
         },
       );
 
-  /// Schedules the scroll bringing [OcptProjectSettingsView.reveal]'s own section into view, once
+  /// Schedule the scroll bringing [OcptProjectSettingsView.reveal]'s own section into view, once
   /// the frame showing it has been laid out — nothing before that has a render object to scroll to.
   ///
   /// Does nothing at all for a page opened plainly, and never runs twice.
@@ -229,7 +229,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
   }
 
-  /// Scrolls [OcptProjectSettingsView.reveal]'s own section to the top of the page.
+  /// Scroll [OcptProjectSettingsView.reveal]'s own section to the top of the page.
   ///
   /// A section already fully on screen — the whole page fits a tall enough window — is left where
   /// it is by `ensureVisible` itself, which is the wanted answer: it is being looked at already.
@@ -251,13 +251,13 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Pops the page, handing [OcptProjectSettingsState.hasChanged] back to whichever mode pushed
+  /// Pop the page, handing [OcptProjectSettingsState.hasChanged] back to whichever mode pushed
   /// it.
   void _pop(OcptProjectSettingsState state) =>
       globalGetIt().get<OcptRouterManager>().pop<bool>(state.hasChanged);
 
-  /// States [OcptProjectSettingsState.isShowInFolderFailed] and
-  /// [OcptProjectSettingsState.moveError] the moment either appears, then dismisses it from the
+  /// State [OcptProjectSettingsState.isShowInFolderFailed] and [OcptProjectSettingsState.moveError]
+  /// the moment either appears, then dismiss it from the
   /// state — the same one-shot-notice shape the home page's own transient errors already follow.
   void _onStateChanged(BuildContext context, OcptProjectSettingsState state) {
     if (state.isShowInFolderFailed) {
@@ -284,7 +284,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     }
   }
 
-  /// Maps [status] to its localized, user-facing message, reusing the home page's own wording for
+  /// Map [status] to its localized, user-facing message, reusing the home page's own wording for
   /// the two outcomes a project's own creation can already fail with — an existing file at the
   /// destination, or a filesystem/database problem — since moving one can fail exactly the same
   /// two ways.
@@ -304,14 +304,14 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     };
   }
 
-  /// Dispatches the event that opens the project's own folder in the platform's file manager.
+  /// Dispatch the event that opens the project's own folder in the platform's file manager.
   void _onShowInFolderRequested(BuildContext context) {
     context.read<OcptProjectSettingsBloc>().add(
       const OcptProjectSettingsShowInFolderRequestedEvent(),
     );
   }
 
-  /// Dispatches the event that shows the native save-file dialog and moves the project's file
+  /// Dispatch the event that shows the native save-file dialog and moves the project's file
   /// there once the user picks a destination.
   void _onMoveRequested(BuildContext context) {
     context.read<OcptProjectSettingsBloc>().add(
@@ -319,21 +319,21 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Dispatches the event that writes the newly picked currency to the project.
+  /// Dispatch the event that writes the newly picked currency to the project.
   void _onCurrencyChanged(BuildContext context, String currencyCode) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsCurrencyChangedEvent(currencyCode: currencyCode),
     );
   }
 
-  /// Dispatches the event that writes the newly picked page format to the project.
+  /// Dispatch the event that writes the newly picked page format to the project.
   void _onPageFormatChanged(BuildContext context, OcptPageFormat pageFormat) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsPageFormatChangedEvent(pageFormat: pageFormat),
     );
   }
 
-  /// Dispatches the event that writes the newly picked screenplay language to the project,
+  /// Dispatch the event that writes the newly picked screenplay language to the project,
   /// including "None" (null).
   void _onScreenplayLanguageChanged(BuildContext context, OcptScreenplayLanguage? language) {
     context.read<OcptProjectSettingsBloc>().add(
@@ -341,7 +341,7 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Opens `OcptProjectDictionaryDialog` over [words], then dispatches whatever diff it reports —
+  /// Open `OcptProjectDictionaryDialog` over [words], then dispatch whatever diff it reports —
   /// the dialog only asks, this page applies it (`docs/architecture/foundations.md`),
   /// exactly the shape [_onEpisodeDeletionRequested] already follows for `OcptConfirmDialog`.
   ///
@@ -370,14 +370,14 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Dispatches the event that writes the newly committed minimum rest to the project.
+  /// Dispatch the event that writes the newly committed minimum rest to the project.
   void _onMinimumRestMinutesChanged(BuildContext context, int? minutes) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMinimumRestMinutesChangedEvent(minutes: minutes),
     );
   }
 
-  /// Dispatches the event that writes the newly committed default VAT rate to the project, or
+  /// Dispatch the event that writes the newly committed default VAT rate to the project, or
   /// clears it — whether that comes from the field's own submission or the card's `No rate` button.
   void _onDefaultVatRateBasisPointsChanged(BuildContext context, int? basisPoints) {
     context.read<OcptProjectSettingsBloc>().add(
@@ -385,49 +385,49 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Dispatches the event that writes the newly committed meal price to the project.
+  /// Dispatch the event that writes the newly committed meal price to the project.
   void _onMealPriceCentsChanged(BuildContext context, int? cents) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMealPriceCentsChangedEvent(cents: cents),
     );
   }
 
-  /// Dispatches the event that writes the newly committed buffet price to the project.
+  /// Dispatch the event that writes the newly committed buffet price to the project.
   void _onBuffetPriceCentsChanged(BuildContext context, int? cents) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsBuffetPriceCentsChangedEvent(cents: cents),
     );
   }
 
-  /// Dispatches the event that appends a new episode.
+  /// Dispatch the event that appends a new episode.
   void _onEpisodeAdded(BuildContext context) {
     context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsEpisodeAddedEvent());
   }
 
-  /// Dispatches the event that writes an episode's newly committed title.
+  /// Dispatch the event that writes an episode's newly committed title.
   void _onEpisodeTitleChanged(BuildContext context, String screenplayId, String title) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsEpisodeTitleChangedEvent(screenplayId: screenplayId, title: title),
     );
   }
 
-  /// Dispatches the event that writes an episode's newly committed printed number.
+  /// Dispatch the event that writes an episode's newly committed printed number.
   void _onEpisodeNumberChanged(BuildContext context, String screenplayId, int number) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsEpisodeNumberChangedEvent(screenplayId: screenplayId, number: number),
     );
   }
 
-  /// Dispatches the event that moves an episode to its newly picked position.
+  /// Dispatch the event that moves an episode to its newly picked position.
   void _onEpisodeMoved(BuildContext context, String screenplayId, int newPosition) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsEpisodeMovedEvent(screenplayId: screenplayId, newPosition: newPosition),
     );
   }
 
-  /// Asks `OcptConfirmDialog` whether [episode] really is to be deleted, naming it and stating
-  /// both what the deletion takes and what it leaves
-  /// (`docs/adr/0019-one-project-several-episodes.md`), then dispatches the deletion if the user
+  /// Ask `OcptConfirmDialog` whether [episode] really is to be deleted, naming it and stating both
+  /// what the deletion takes and what it leaves (`docs/adr/0019-one-project-several-episodes.md`),
+  /// then dispatch the deletion if the user
   /// confirmed it.
   ///
   /// The card's own delete action is never shown for the project's last live episode, so this is
@@ -453,19 +453,19 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     bloc.add(OcptProjectSettingsEpisodeDeletionConfirmedEvent(screenplayId: episode.id));
   }
 
-  /// Dispatches the event that appends a new, blank mileage rate.
+  /// Dispatch the event that appends a new, blank mileage rate.
   void _onMileageRateAdded(BuildContext context) {
     context.read<OcptProjectSettingsBloc>().add(const OcptProjectSettingsMileageRateAddedEvent());
   }
 
-  /// Dispatches the event that writes a mileage rate's newly committed label.
+  /// Dispatch the event that writes a mileage rate's newly committed label.
   void _onMileageRateLabelChanged(BuildContext context, String rateId, String label) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMileageRateLabelChangedEvent(rateId: rateId, label: label),
     );
   }
 
-  /// Dispatches the event that writes a mileage rate's newly committed per-kilometre amount.
+  /// Dispatch the event that writes a mileage rate's newly committed per-kilometre amount.
   void _onMileageRateAmountChanged(BuildContext context, String rateId, int ratePerKmMilliCents) {
     context.read<OcptProjectSettingsBloc>().add(
       OcptProjectSettingsMileageRateAmountChangedEvent(
@@ -475,8 +475,8 @@ class _OcptProjectSettingsViewState extends State<OcptProjectSettingsView> {
     );
   }
 
-  /// Asks `OcptConfirmDialog` whether [rate] really is to be deleted, naming it and stating that a
-  /// person who already names it will simply read no rate at all, then dispatches the deletion if
+  /// Ask `OcptConfirmDialog` whether [rate] really is to be deleted, naming it and stating that a
+  /// person who already names it will simply read no rate at all, then dispatch the deletion if
   /// the user confirmed it.
   Future<void> _onMileageRateDeletionRequested(
     BuildContext context,

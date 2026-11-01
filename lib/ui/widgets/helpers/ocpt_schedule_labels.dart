@@ -45,7 +45,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.da
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 
-/// The display label of shooting day status [status], read by the day list's own status column and
+/// Get the display label of shooting day status [status], read by the day list's own status column
+/// and
 /// the day inspector's status control.
 String ocptShootingDayStatusLabel(Tr tr, OcptShootingDayStatus status) => switch (status) {
   OcptShootingDayStatus.planned => tr.scheduleDayStatusPlanned,
@@ -53,7 +54,8 @@ String ocptShootingDayStatusLabel(Tr tr, OcptShootingDayStatus status) => switch
   OcptShootingDayStatus.cancelled => tr.scheduleDayStatusCancelled,
 };
 
-/// The colour shooting day status [status] is painted with, following the shot list's own status
+/// Get the colour shooting day status [status] is painted with, following the shot list's own
+/// status
 /// scale: [OcptShootingDayStatus.planned] is the neutral one, [OcptShootingDayStatus.cancelled]
 /// reads through the workspace's warning colour (a day that needs re-planning), and
 /// [OcptShootingDayStatus.shot] is the "already shot" green [OcptSpecificColors] carries.
@@ -68,7 +70,8 @@ Color ocptShootingDayStatusColor(BuildContext context, OcptShootingDayStatus sta
   };
 }
 
-/// The display label of block kind [kind], read by the strip agenda's own non-shot chips and, once
+/// Get the display label of block kind [kind], read by the strip agenda's own non-shot chips and,
+/// once
 /// built, the day view's timetable rows.
 String ocptShootingBlockKindLabel(Tr tr, OcptShootingBlockKind kind) => switch (kind) {
   OcptShootingBlockKind.shot => tr.scheduleBlockKindShot,
@@ -83,13 +86,15 @@ String ocptShootingBlockKindLabel(Tr tr, OcptShootingBlockKind kind) => switch (
   OcptShootingBlockKind.rehearsal => tr.scheduleBlockKindRehearsal,
 };
 
-/// The full display label of presence code [code], read by the presence grid's own cell tooltip.
+/// Get the full display label of presence code [code], read by the presence grid's own cell
+/// tooltip.
 String ocptPresenceCodeLabel(Tr tr, OcptPresenceCode code) => switch (code) {
   OcptPresenceCode.working => tr.presenceCodeLabelWorking,
   OcptPresenceCode.unavailable => tr.presenceCodeLabelUnavailable,
 };
 
-/// The single-letter pill label of presence code [code] — **not** the enum's own name, and not the
+/// Get the single-letter pill label of presence code [code] — **not** the enum's own name, and not
+/// the
 /// same letter in every language: the presence grid's own cell is too narrow for a word, so it
 /// prints the initial the reference paperwork's own language uses (`T`/`X` in French, for
 /// `travail`/`indisponible`; English gets its own initials rather than a translation of those).
@@ -98,7 +103,8 @@ String ocptPresenceCodeLetterLabel(Tr tr, OcptPresenceCode code) => switch (code
   OcptPresenceCode.unavailable => tr.presenceCodeLetterUnavailable,
 };
 
-/// The colour presence code [code] is painted with in the grid — two colours pulled off the ambient
+/// Get the colour presence code [code] is painted with in the grid — two colours pulled off the
+/// ambient
 /// theme rather than a bespoke palette, since a code is a state of one person on one day, not a
 /// category with its own identity to keep stable across exports the way a coverage colour or a
 /// breakdown category colour is.
@@ -111,14 +117,14 @@ Color ocptPresenceCodeColor(BuildContext context, OcptPresenceCode code) {
   };
 }
 
-/// The display label of agenda presentation [mode], read by the header's own segmented control.
+/// Get the display label of agenda presentation [mode], read by the header's own segmented control.
 String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch (mode) {
   OcptScheduleAgendaMode.strip => tr.scheduleAgendaModeStrip,
   OcptScheduleAgendaMode.week => tr.scheduleAgendaModeWeek,
   OcptScheduleAgendaMode.month => tr.scheduleAgendaModeMonth,
 };
 
-/// A day's printed rank, `D3`/`J3` — the shorthand the reference production documents this mode
+/// Get a day's printed rank, `D3`/`J3` — the shorthand the reference production documents this mode
 /// is modelled on use throughout.
 ///
 /// The letter is [Tr.scheduleDayTagPrefix], **localized**: the paperwork a crew reads is printed
@@ -126,7 +132,8 @@ String ocptScheduleAgendaModeLabel(Tr tr, OcptScheduleAgendaMode mode) => switch
 /// same as every other word on the page.
 String ocptScheduleDayTagLabel(Tr tr, int dayNumber) => "${tr.scheduleDayTagPrefix}$dayNumber";
 
-/// The colour a day (or, once built, a week/month cell) is tinted with, following its first slot's
+/// Get the colour a day (or, once built, a week/month cell) is tinted with, following its first
+/// slot's
 /// own location — the `Couleur par lieu` choice of the agenda's "Colour by" control.
 ///
 /// [location] is the day's own first live slot's location, resolved by the caller (a day with no
@@ -141,7 +148,7 @@ Color ocptScheduleDayLocationTint(BuildContext context, OcptLocation? location) 
   return Color(ocptCoverageColorAt(location.colorIndex));
 }
 
-/// The colour a day (or a week/month cell) is tinted with under
+/// Get the colour a day (or a week/month cell) is tinted with under
 /// [OcptScheduleAgendaColorMode.effect] — [ocptScheduleEffectColorOf] applied to [category], or the
 /// same neutral `outlineVariant` [ocptScheduleDayLocationTint] falls back to while [category] is
 /// null: a day with nothing placed, or whose placed shots carry nothing classifiable
@@ -154,13 +161,13 @@ Color ocptScheduleDayEffectTint(BuildContext context, OcptSceneEffectCategory? c
   return Color(ocptScheduleEffectColorOf(category));
 }
 
-/// The display label of "Colour by" segment [mode], read by the header's own segmented control.
+/// Get the display label of "Colour by" segment [mode], read by the header's own segmented control.
 String ocptScheduleAgendaColorModeLabel(Tr tr, OcptScheduleAgendaColorMode mode) => switch (mode) {
   OcptScheduleAgendaColorMode.location => tr.scheduleAgendaColorModeLocation,
   OcptScheduleAgendaColorMode.effect => tr.scheduleAgendaColorModeEffect,
 };
 
-/// The display label of legend entry [category], read by the header's own effect legend.
+/// Get the display label of legend entry [category], read by the header's own effect legend.
 String ocptSceneEffectCategoryLabel(Tr tr, OcptSceneEffectCategory category) => switch (category) {
   OcptSceneEffectCategory.interiorDay => tr.scheduleAgendaEffectLegendInteriorDay,
   OcptSceneEffectCategory.interiorNight => tr.scheduleAgendaEffectLegendInteriorNight,
@@ -169,7 +176,7 @@ String ocptSceneEffectCategoryLabel(Tr tr, OcptSceneEffectCategory category) => 
   OcptSceneEffectCategory.mixed => tr.scheduleAgendaEffectLegendMixed,
 };
 
-/// `08:00 – 18:00`, or an em dash while either bound is unset — the day list's own creneaux
+/// Get `08:00 – 18:00`, or an em dash while either bound is unset — the day list's own creneaux
 /// summary and the inspector's own PAT/estimated-end line share this reading.
 String ocptScheduleDayMinuteRangeLabel(int? startMinute, int? endMinute) {
   if (startMinute == null || endMinute == null) {
@@ -179,7 +186,8 @@ String ocptScheduleDayMinuteRangeLabel(int? startMinute, int? endMinute) {
   return "${ocptFormatDayMinute(startMinute)} – ${ocptFormatDayMinute(endMinute)}";
 }
 
-/// The icon a timetable row or the day view's own `+ Block` menu shows beside block kind [kind].
+/// Get the icon a timetable row or the day view's own `+ Block` menu shows beside block kind
+/// [kind].
 IconData ocptShootingBlockKindIcon(OcptShootingBlockKind kind) => switch (kind) {
   OcptShootingBlockKind.shot => Icons.videocam_outlined,
   OcptShootingBlockKind.preparation => Icons.build_outlined,
@@ -193,7 +201,7 @@ IconData ocptShootingBlockKindIcon(OcptShootingBlockKind kind) => switch (kind) 
   OcptShootingBlockKind.rehearsal => Icons.groups_outlined,
 };
 
-/// The sun/twilight summary line the day inspector and the day view's own summary band share:
+/// Get the sun/twilight summary line the day inspector and the day view's own summary band share:
 /// sunrise – sunset, then the civil twilight band, then the UTC offset they were computed with —
 /// or the "no coordinates" hint while [sunTimes] is null.
 String ocptScheduleSunTimesLine(Tr tr, OcptSunTimes? sunTimes) {
@@ -215,7 +223,8 @@ String ocptScheduleSunTimesLine(Tr tr, OcptSunTimes? sunTimes) {
   );
 }
 
-/// The first day of the week [date] falls in, at midnight, own time component dropped — the week
+/// Get the first day of the week [date] falls in, at midnight, own time component dropped — the
+/// week
 /// grid's own column range, the month grid's own first cell and the header's own week-navigation
 /// label share this one reading of "which week a date belongs to".
 ///
@@ -230,7 +239,7 @@ DateTime ocptScheduleStartOfWeek(DateTime date, OcptFirstWeekday firstWeekday) {
   return dayOnly.subtract(Duration(days: daysSinceStart));
 }
 
-/// `3 – 9 August 2026`, the week grid's own header label for the week starting on [weekStart] —
+/// Get `3 – 9 August 2026`, the week grid's own header label for the week starting on [weekStart] —
 /// both bounds' day-of-month, the (single) month and year read off the week's own **last** day,
 /// since a week crossing a month or a year boundary is still named after the one it ends in,
 /// mirroring how a call sheet dates a night shoot after the day it started on.
@@ -241,11 +250,11 @@ String ocptScheduleWeekRangeLabel(BuildContext context, DateTime weekStart) {
   return "${weekStart.day} – ${weekEnd.day} $monthYear";
 }
 
-/// `August 2026`, the month grid's own header label for the month [anyDateInMonth] falls in.
+/// Get `August 2026`, the month grid's own header label for the month [anyDateInMonth] falls in.
 String ocptScheduleMonthLabel(BuildContext context, DateTime anyDateInMonth) =>
     DateFormat.yMMMM(Localizations.localeOf(context).toString()).format(anyDateInMonth);
 
-/// `UTC+2`/`UTC-5`/`UTC` — how the sun times' own [Duration] offset
+/// Get `UTC+2`/`UTC-5`/`UTC` — how the sun times' own [Duration] offset
 /// (`OcptSunTimes.utcOffsetUsed`) is printed, so the day inspector can say which one a sunrise or
 /// sunset was computed with rather than leaving it implicit (ADR 0016).
 String ocptScheduleUtcOffsetLabel(Duration offset) {
@@ -262,7 +271,7 @@ String ocptScheduleUtcOffsetLabel(Duration offset) {
   return minutes == 0 ? "UTC$sign$hours" : "UTC$sign$hours:${minutes.toString().padLeft(2, "0")}";
 }
 
-/// `06:30 → 08:00–19:15 → 20:00`, the convocations panel's own card line reading arrival → PAT
+/// Get `06:30 → 08:00–19:15 → 20:00`, the convocations panel's own card line reading arrival → PAT
 /// band → departure — the whole of a day's call for one person or one uncast role, in one line, as
 /// a printed call sheet would.
 ///
@@ -281,7 +290,8 @@ String ocptScheduleConvocationBandLabel(OcptDayConvocation convocation) {
       "${ocptFormatDayMinute(convocation.departureMinute)}";
 }
 
-/// The convocations panel's own card title for [convocation]: [personById]'s own display name for
+/// Get the convocations panel's own card title for [convocation]: [personById]'s own display name
+/// for
 /// a person, [roleById]'s own name read through [Tr.scheduleConvocationsUncastRoleLabel] for an
 /// uncast role, [personById]'s own display name again for an address-book guest, the guest's own
 /// verbatim free name. Exactly one of [OcptDayConvocation.personId]/[OcptDayConvocation.roleId]/
@@ -328,7 +338,7 @@ String ocptScheduleConvocationTitle(
   return tr.scheduleConvocationsUncastRoleLabel(roleById[convocation.roleId]?.name ?? "");
 }
 
-/// The convocations panel's own card footer: every slot [convocation] is linked to
+/// Get the convocations panel's own card footer: every slot [convocation] is linked to
 /// ([OcptDayConvocation.slotIds]), by label, joined with " · " — the "where" behind the card's own
 /// arrival/PAT/departure line. A slot with no label of its own, or one [slotById] no longer holds
 /// (a stale id, which should not happen but is read defensively rather than crashing), reads as
@@ -342,14 +352,16 @@ String ocptScheduleConvocationSlotsLabel(
   for (final slotId in convocation.slotIds) _ocptConvocationSlotLabelOf(tr, slotById[slotId]),
 ].join(" · ");
 
-/// [slot]'s own label, or [Tr.scheduleInspectorUnnamedSlot] while it is empty or [slot] itself is
+/// Get [slot]'s own label, or [Tr.scheduleInspectorUnnamedSlot] while it is empty or [slot] itself
+/// is
 /// null — see [ocptScheduleConvocationSlotsLabel]'s own doc comment.
 String _ocptConvocationSlotLabelOf(Tr tr, OcptShootingSlot? slot) {
   final label = slot?.label ?? "";
   return label.isEmpty ? tr.scheduleInspectorUnnamedSlot : label;
 }
 
-/// The display name of whoever holds the `director` position in [people] — the address book's own
+/// Get the display name of whoever holds the `director` position in [people] — the address book's
+/// own
 /// declared `person_positions`, not a project column — or an empty string when nobody does.
 ///
 /// Read by [ocptCallSheetLabelsOf]/[ocptShootingPlanLabelsOf] to build the `directorLine` both
@@ -365,7 +377,7 @@ String ocptScheduleDirectorNameOf(List<OcptPerson> people) {
   return "";
 }
 
-/// The `directorLine` both `OcptCallSheetLabels` and `OcptShootingPlanLabels` carry:
+/// Get the `directorLine` both `OcptCallSheetLabels` and `OcptShootingPlanLabels` carry:
 /// [Tr.scheduleExportDirectorLine] naming whoever [ocptScheduleDirectorNameOf] finds among
 /// [people], or an empty string while nobody holds the position yet — the manager-layer PDF
 /// services print nothing rather than a guess (both classes' own `directorLine` doc comments).
@@ -374,7 +386,7 @@ String ocptScheduleDirectorLineOf(Tr tr, List<OcptPerson> people) {
   return name.isEmpty ? "" : tr.scheduleExportDirectorLine(name);
 }
 
-/// Builds every localized string the exported call sheets — general and named alike — carry.
+/// Build every localized string the exported call sheets — general and named alike — carry.
 ///
 /// The single bridge between the UI's `Tr` and `OcptCallSheetPdfService`, which runs in the manager
 /// layer and has no `BuildContext` of its own to resolve anything with — mirroring
@@ -474,7 +486,7 @@ OcptCallSheetLabels ocptCallSheetLabelsOf(
   );
 }
 
-/// Builds every localized string the exported shooting plan carries — mirrors
+/// Build every localized string the exported shooting plan carries — mirrors
 /// [ocptCallSheetLabelsOf] for the same reasons; see its own doc comment.
 ///
 /// [days] is resolved into [OcptShootingPlanLabels.dayTitles] through `DateFormat.MMMMEEEEd` (no
@@ -549,7 +561,7 @@ OcptShootingPlanLabels ocptShootingPlanLabelsOf(
   );
 }
 
-/// Builds every localized string the exported shooting plan **workbook** carries.
+/// Build every localized string the exported shooting plan **workbook** carries.
 ///
 /// The sibling of [ocptShootingPlanLabelsOf] for the second export the shooting plan offers
 /// (`OcptShootingPlanXlsxExportService`, which runs in the manager layer and has no `BuildContext`
@@ -610,7 +622,7 @@ OcptShootingPlanXlsxLabels ocptShootingPlanXlsxLabelsOf(BuildContext context) {
   );
 }
 
-/// Builds every localized string the exported *Day Out of Days* carries — mirrors
+/// Build every localized string the exported *Day Out of Days* carries — mirrors
 /// [ocptShootingPlanLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc comment.
 ///
 /// [days] is resolved into [OcptDayOutOfDaysLabels.dayDateLabels] through `DateFormat.Md` — the
@@ -653,7 +665,7 @@ OcptDayOutOfDaysLabels ocptDayOutOfDaysLabelsOf(
   );
 }
 
-/// The letter [code] is printed as in a *Day Out of Days* cell — `SW`, `W`, `WF`, `SWF` or `H`.
+/// Get the letter [code] is printed as in a *Day Out of Days* cell — `SW`, `W`, `WF`, `SWF` or `H`.
 String ocptDayOutOfDaysCodeLabel(Tr tr, OcptDayOutOfDaysCode code) => switch (code) {
   OcptDayOutOfDaysCode.startWork => tr.scheduleExportDayOutOfDaysStartWorkCode,
   OcptDayOutOfDaysCode.work => tr.scheduleExportDayOutOfDaysWorkCode,
@@ -662,7 +674,7 @@ String ocptDayOutOfDaysCodeLabel(Tr tr, OcptDayOutOfDaysCode code) => switch (co
   OcptDayOutOfDaysCode.hold => tr.scheduleExportDayOutOfDaysHoldCode,
 };
 
-/// What [code] means, as the *Day Out of Days*' own legend reads it out.
+/// Get what [code] means, as the *Day Out of Days*' own legend reads it out.
 String ocptDayOutOfDaysCodeDescription(Tr tr, OcptDayOutOfDaysCode code) => switch (code) {
   OcptDayOutOfDaysCode.startWork => tr.scheduleExportDayOutOfDaysStartWorkDescription,
   OcptDayOutOfDaysCode.work => tr.scheduleExportDayOutOfDaysWorkDescription,
@@ -671,7 +683,7 @@ String ocptDayOutOfDaysCodeDescription(Tr tr, OcptDayOutOfDaysCode code) => swit
   OcptDayOutOfDaysCode.hold => tr.scheduleExportDayOutOfDaysHoldDescription,
 };
 
-/// Builds every localized string the exported one-line schedule carries — mirrors
+/// Build every localized string the exported one-line schedule carries — mirrors
 /// [ocptShootingPlanLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc comment.
 ///
 /// [days] is resolved into [OcptOneLineScheduleLabels.dayTitles] through the very
@@ -704,7 +716,7 @@ OcptOneLineScheduleLabels ocptOneLineScheduleLabelsOf(
   );
 }
 
-/// Builds every localized string [day]'s own exported sides booklet carries — mirrors
+/// Build every localized string [day]'s own exported sides booklet carries — mirrors
 /// [ocptOneLineScheduleLabelsOf] for the same reasons; see [ocptCallSheetLabelsOf]'s own doc
 /// comment.
 ///
@@ -743,7 +755,8 @@ OcptSidesLabels ocptSidesLabelsOf(
   );
 }
 
-/// The sides export dialog's own label for [presentation] — what each of the two shapes a booklet
+/// Get the sides export dialog's own label for [presentation] — what each of the two shapes a
+/// booklet
 /// can take is called where the user picks between them.
 String ocptSidesPresentationLabel(Tr tr, OcptSidesPresentation presentation) =>
     switch (presentation) {
@@ -751,7 +764,7 @@ String ocptSidesPresentationLabel(Tr tr, OcptSidesPresentation presentation) =>
       OcptSidesPresentation.packed => tr.scheduleExportSidesPackedOption,
     };
 
-/// The alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
+/// Get the alerts panel's own title for an [OcptScheduleAlertKind] card — see that enum's own doc
 /// comment for exactly what each of the eleven rules claims.
 String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (kind) {
   OcptScheduleAlertKind.personUnavailable => tr.scheduleAlertKindPersonUnavailable,
@@ -766,7 +779,8 @@ String ocptScheduleAlertKindLabel(Tr tr, OcptScheduleAlertKind kind) => switch (
   OcptScheduleAlertKind.permitNotValid => tr.scheduleAlertKindPermitNotValid,
 };
 
-/// The alerts panel's own body sentence for [alert] — the one place an id or a raw minute figure
+/// Get the alerts panel's own body sentence for [alert] — the one place an id or a raw minute
+/// figure
 /// `lib/models/rules/ocpt_schedule_alerts.dart` carries is turned into a name or a formatted time,
 /// that file knowing neither by design (its own class doc comment).
 ///
@@ -848,20 +862,22 @@ String ocptScheduleAlertSentence(
     ),
 };
 
-/// [personId]'s own display name, or [Tr.resourcesUnnamedPerson] while [personById] holds nothing
+/// Get [personId]'s own display name, or [Tr.resourcesUnnamedPerson] while [personById] holds
+/// nothing
 /// for it (empty or missing) — see [ocptScheduleAlertSentence]'s own doc comment.
 String _ocptScheduleAlertPersonNameOf(Tr tr, Map<String, OcptPerson> personById, String personId) {
   final displayName = personById[personId]?.displayName ?? "";
   return displayName.isEmpty ? tr.resourcesUnnamedPerson : displayName;
 }
 
-/// [roleId]'s own name, or [Tr.resourcesRoleUnnamed] while [roleById] holds nothing for it.
+/// Get [roleId]'s own name, or [Tr.resourcesRoleUnnamed] while [roleById] holds nothing for it.
 String _ocptScheduleAlertRoleNameOf(Tr tr, Map<String, OcptRole> roleById, String roleId) {
   final name = roleById[roleId]?.name ?? "";
   return name.isEmpty ? tr.resourcesRoleUnnamed : name;
 }
 
-/// [locationId]'s own name, or [Tr.resourcesLocationUnnamed] while [locationById] holds nothing for
+/// Get [locationId]'s own name, or [Tr.resourcesLocationUnnamed] while [locationById] holds nothing
+/// for
 /// it.
 String _ocptScheduleAlertLocationNameOf(
   Tr tr,
@@ -872,7 +888,8 @@ String _ocptScheduleAlertLocationNameOf(
   return name.isEmpty ? tr.resourcesLocationUnnamed : name;
 }
 
-/// [block]'s own readable identity for the timeline-overrun sentence: a shot block reads as its own
+/// Get [block]'s own readable identity for the timeline-overrun sentence: a shot block reads as its
+/// own
 /// shot's code (falling back to the block kind's own label while the shot itself doesn't resolve),
 /// any other kind reads as its own free-text label (falling back to the block kind's own label
 /// while that is empty) — mirroring how a timetable row itself reads a block

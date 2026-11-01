@@ -88,7 +88,7 @@ class OcptEditorSpellCheckBloc
     on<OcptEditorSpellCheckDictionaryRefreshRequestedEvent>(_onDictionaryRefreshRequested);
   }
 
-  /// Starts afresh after a whole load: the document the caches and the underlines describe is gone.
+  /// Start afresh after a whole load: the document the caches and the underlines describe is gone.
   ///
   /// Both caches are dropped, because an episode switch, a version preview entering or leaving and
   /// the very first load all hand the passes a document built from a different Fountain source, and
@@ -124,7 +124,7 @@ class OcptEditorSpellCheckBloc
     unawaited(_reconcileSpellCheckLanguage());
   }
 
-  /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
+  /// Return up to five spelling suggestions for [word] — the answer the styled editor's
   /// right-click context menu awaits before it can show its suggestion entries at all
   /// (`docs/architecture/screenplay.md`). This is a plain method the page `await`s
   /// rather than a dispatched event, deliberately: an event has no channel back to its caller, and
@@ -144,7 +144,7 @@ class OcptEditorSpellCheckBloc
     return _spellCheckManager.suggestionsFor(word);
   }
 
-  /// Turns what the mode's state moved, other than a whole load, into a check or a dictionary
+  /// Turn what the mode's state moved, other than a whole load, into a check or a dictionary
   /// update.
   ///
   /// A new document asks for a raw pass exactly where `docs/architecture/screenplay.md` puts it: on
@@ -174,7 +174,7 @@ class OcptEditorSpellCheckBloc
     }
   }
 
-  /// Answers [OcptEditorSpellCheckSettingsChangedEvent].
+  /// Answer [OcptEditorSpellCheckSettingsChangedEvent].
   ///
   /// Switching off clears both sets of ranges right here, synchronously, rather than waiting for
   /// [_reconcileSpellCheckLanguage]'s own async tail: with the switch off, [_requestSpellCheck] never
@@ -193,7 +193,7 @@ class OcptEditorSpellCheckBloc
     unawaited(_reconcileSpellCheckLanguage());
   }
 
-  /// Answers [OcptEditorSpellCheckDictionaryRefreshRequestedEvent].
+  /// Answer [OcptEditorSpellCheckDictionaryRefreshRequestedEvent].
   ///
   /// The dictionary re-read is compared against the words pushed last with `setEquals` before
   /// pushing anything: this event fires on *every* settings-page change, including one that never
@@ -223,7 +223,7 @@ class OcptEditorSpellCheckBloc
     }
   }
 
-  /// Answers [OcptEditorSpellCheckRangesReportedEvent], the async tail of [_requestSpellCheck].
+  /// Answer [OcptEditorSpellCheckRangesReportedEvent], the async tail of [_requestSpellCheck].
   ///
   /// Drops the answer (a stale generation's answer is never painted,
   /// `docs/architecture/screenplay.md`) when: [OcptEditorSpellCheckRangesReportedEvent.generation]
@@ -254,7 +254,7 @@ class OcptEditorSpellCheckBloc
     emitter(state.copyWithRawRanges(ranges: event.ranges));
   }
 
-  /// Answers [OcptEditorStyledSpellCheckTextsReportedEvent], the styled mode's own counterpart to
+  /// Answer [OcptEditorStyledSpellCheckTextsReportedEvent], the styled mode's own counterpart to
   /// the raw mode's trigger: fires a check over `event.textsByNodeId` without
   /// awaiting the isolate round trip (an [Emitter] can't be used once this handler has returned),
   /// answered back as its own [OcptEditorStyledSpellCheckRangesReportedEvent].
@@ -293,7 +293,7 @@ class OcptEditorSpellCheckBloc
     _requestStyledSpellCheck(event.textsByNodeId);
   }
 
-  /// Fires a styled-mode spell-check request over [textsByNodeId], without awaiting the isolate
+  /// Fire a styled-mode spell-check request over [textsByNodeId], without awaiting the isolate
   /// round trip — the async tail this handler's callers can't stick around for arrives as its own
   /// [OcptEditorStyledSpellCheckRangesReportedEvent]. The body [_onStyledSpellCheckTextsReported]
   /// used to run inline before its own dedup/re-check needs ([_onWordIgnored]/[_onWordLearned])
@@ -341,7 +341,8 @@ class OcptEditorSpellCheckBloc
     );
   }
 
-  /// Re-issues a styled-mode check over the texts the styled editor last reported — used by [_onWordIgnored]/
+  /// Re-issue a styled-mode check over the texts the styled editor last reported — used by
+  /// [_onWordIgnored]/
   /// [_onWordLearned], whose own [OcptSpellCheckManager.ignoreWord]/[OcptSpellCheckManager
   /// .setLearnedWords] call already bumped the manager's generation, which is what makes
   /// [_requestStyledSpellCheck]'s own [_resetStyledSpellCheckCacheIfStale] treat every one of
@@ -358,7 +359,7 @@ class OcptEditorSpellCheckBloc
     _requestStyledSpellCheck(state.caches.lastStyledTexts);
   }
 
-  /// Answers [OcptEditorStyledSpellCheckRangesReportedEvent], the async tail of
+  /// Answer [OcptEditorStyledSpellCheckRangesReportedEvent], the async tail of
   /// [_onStyledSpellCheckTextsReported].
   ///
   /// Drops the answer under the same three conditions [_onSpellCheckRangesReported] does, minus the
@@ -384,7 +385,7 @@ class OcptEditorSpellCheckBloc
     emitter(state.copyWithStyledRanges(ranges: event.ranges));
   }
 
-  /// Answers [OcptEditorWordIgnoredEvent]: tells [OcptSpellCheckManager.ignoreWord] and re-issues a
+  /// Answer [OcptEditorWordIgnoredEvent]: tells [OcptSpellCheckManager.ignoreWord] and re-issues a
   /// check over both editing surfaces — the manager's own generation bump has just invalidated both
   /// spell-check caches, so [_requestSpellCheck] (raw) and [_reissueStyledSpellCheck] (styled) both
   /// re-send everything they have rather than skipping it as unchanged, which is what makes the
@@ -404,7 +405,7 @@ class OcptEditorSpellCheckBloc
     _reissueStyledSpellCheck();
   }
 
-  /// Answers [OcptEditorWordLearnedEvent]: teaches the event's word to the open project's
+  /// Answer [OcptEditorWordLearnedEvent]: teaches the event's word to the open project's
   /// dictionary through [_projectDictionaryService], reloads its word list and pushes it into
   /// [OcptSpellCheckManager.setLearnedWords], then re-issues a check over both editing surfaces for
   /// the identical reason [_onWordIgnored] does.
@@ -433,10 +434,10 @@ class OcptEditorSpellCheckBloc
     _reissueStyledSpellCheck();
   }
 
-  /// Loads or unloads `OcptSpellCheckManager`'s dictionary to match
+  /// Load or unload `OcptSpellCheckManager`'s dictionary to match
   /// `OcptEditorState.screenplayLanguage`/[OcptEditorState.isSpellCheckVisible] (the two
-  /// independent on/off switches of `docs/architecture/screenplay.md`: with either off, the
-  /// isolate stays unloaded and nothing is checked), then requests a fresh raw-mode pass so the
+  /// independent on/off switches of `docs/architecture/screenplay.md`: with either off, the isolate
+  /// stays unloaded and nothing is checked), then request a fresh raw-mode pass so the
   /// underlines catch up once a dictionary that needed loading has actually finished doing so.
   ///
   /// Never awaited by its own callers ([onModeStateChanged], [_onSettingsChanged]): `OcptSpellCheckManager.useLanguage` can take ~300 ms the first
@@ -454,7 +455,8 @@ class OcptEditorSpellCheckBloc
     _requestSpellCheck();
   }
 
-  /// Clears `OcptEditorSpellCheckCaches.raw` the first time it is asked to work under a different (language,
+  /// Clear `OcptEditorSpellCheckCaches.raw` the first time it is asked to work under a different
+  /// (language,
   /// visibility, manager generation) combination than the one it was last built under: a cached
   /// entry was found by a dictionary, ignore list or learned-word set that has since changed
   /// (`OcptSpellCheckManager.generation` bumps on every one of those), and keeping it around would
@@ -472,7 +474,7 @@ class OcptEditorSpellCheckBloc
     state.caches.rawKey = key;
   }
 
-  /// Clears `OcptEditorSpellCheckCaches.styled` the first time it is asked to work under a different
+  /// Clear `OcptEditorSpellCheckCaches.styled` the first time it is asked to work under a different
   /// (language, visibility, manager generation) combination than the one it was last built under —
   /// the styled mode's own counterpart to [_resetSpellCheckCacheIfStale], same reasoning.
   void _resetStyledSpellCheckCacheIfStale() {
@@ -488,7 +490,8 @@ class OcptEditorSpellCheckBloc
     state.caches.styledKey = key;
   }
 
-  /// Fires a raw-mode spell-check request over `modeBloc.state.document`'s prose blocks, without awaiting
+  /// Fire a raw-mode spell-check request over `modeBloc.state.document`'s prose blocks, without
+  /// awaiting
   /// the isolate round trip: the answer arrives later as its own
   /// [OcptEditorSpellCheckRangesReportedEvent], since an [Emitter] can't be used once the handler
   /// that called this has already returned (true of every caller: [_onModeState]'s own parse
@@ -572,7 +575,7 @@ class OcptEditorSpellCheckBloc
     );
   }
 
-  /// The screenplay's own prose blocks of [document], walked in source order and addressed by a
+  /// Get the screenplay's own prose blocks of [document], walked in source order and addressed by a
   /// dense 0-based index over just those blocks (a `FountainSceneHeading`, unchecked, is simply
   /// never given one — [_requestSpellCheck]'s cache is bounded by how many *checked* blocks the
   /// screenplay holds, not by its block count as a whole).
@@ -632,7 +635,7 @@ class OcptEditorSpellCheckBloc
 /// document-absolute ones.
 typedef _RawSpellCheckBlock = ({int index, String text, int startOffset});
 
-/// Drops every range of [misspellings] that falls inside one of [text]'s own
+/// Drop every range of [misspellings] that falls inside one of [text]'s own
 /// [ocptSpellCheckSkipSpansIn] spans — an inline authoring note or boneyard comment sitting inside
 /// a line of action or dialogue is scaffolding, not the script, per that function's own doc
 /// comment. [misspellings] and the spans it's tested against are both relative to the very same

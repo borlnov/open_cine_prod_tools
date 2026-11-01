@@ -22,7 +22,7 @@ class OcptWysiwygEncodeResult {
   /// [OcptWysiwygCodec.encode] result.
   final int titlePagePrefixLength;
 
-  /// Creates an [OcptWysiwygEncodeResult].
+  /// Create an [OcptWysiwygEncodeResult].
   const OcptWysiwygEncodeResult({
     required this.text,
     required this.mapping,

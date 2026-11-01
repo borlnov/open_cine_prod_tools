@@ -40,7 +40,7 @@ class OcptProjectDictionaryDialog extends StatefulWidget {
   @override
   State<OcptProjectDictionaryDialog> createState() => _OcptProjectDictionaryDialogState();
 
-  /// Shows the dialog and returns the words it ends up reporting as added and removed against
+  /// Show the dialog and return the words it ends up reporting as added and removed against
   /// [words] — see [_OcptProjectDictionaryDialogState._close] for exactly how that diff is
   /// computed. Not `barrierDismissible`: an outside click would otherwise skip the very diff logic
   /// [_OcptProjectDictionaryDialogState._close] exists to guarantee runs on every exit.
@@ -147,12 +147,12 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     );
   }
 
-  /// Re-filters the list on every keystroke of the filter field.
+  /// Re-filter the list on every keystroke of the filter field.
   void _onFilterChanged() {
     setState(() => _filterQuery = _filterController.text.trim().toLowerCase());
   }
 
-  /// Clears a standing duplicate error the moment the add field is touched again — the user is
+  /// Clear a standing duplicate error the moment the add field is touched again — the user is
   /// mid-correction, and the stale error would otherwise outlive the very keystroke fixing it.
   void _onAddTextChanged() {
     if (_addError != null) {
@@ -160,7 +160,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     }
   }
 
-  /// Drops [word] from the working copy and closes its own removal question.
+  /// Drop [word] from the working copy and close its own removal question.
   void _removeWord(String word) {
     setState(() {
       _words = List.of(_words)..remove(word);
@@ -168,8 +168,8 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     });
   }
 
-  /// Adds the add field's current text to the working copy, in its sorted place, and clears the
-  /// field — or refuses it, silently for a blank entry, with [_addError] for a case-insensitive
+  /// Add the add field's current text to the working copy, in its sorted place, and clear the field
+  /// — or refuse it, silently for a blank entry, with [_addError] for a case-insensitive
   /// duplicate.
   void _addWord() {
     final trimmed = _addController.text.trim();
@@ -190,7 +190,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     });
   }
 
-  /// Pops the dialog through the router manager (never `Navigator` directly), reporting the diff
+  /// Pop the dialog through the router manager (never `Navigator` directly), reporting the diff
   /// between [OcptProjectDictionaryDialog.words] and the working copy: `removed` is every original
   /// word no longer present, spelled exactly as it was, in the working copy; `added` is every
   /// working-copy word not present, spelled exactly as it now is, in the original list.
@@ -213,7 +213,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     globalGetIt().get<OcptRouterManager>().pop((added: added, removed: removed));
   }
 
-  /// Sorts [words] case-insensitively, ties broken by the exact text —
+  /// Sort [words] case-insensitively, tie broken by the exact text —
   /// `OcptProjectDictionaryService.loadWords`'s own ordering, reproduced here so the working copy
   /// never disagrees with what a reload from the service would show.
   static List<String> _sorted(List<String> words) => [...words]

@@ -34,7 +34,7 @@ import 'package:open_cine_prod_tools/ui/main_app/main_app_state.dart';
 /// device.
 const double _ocptMobileUiScale = 1.2;
 
-/// Builds the root [MaterialApp] shell of the application.
+/// Build the root [MaterialApp] shell of the application.
 ///
 /// The app locale and theme both follow the preferences persisted through
 /// [OcptGlobalManager]'s managers: [LocalesObserverWidget] and [OcptMainAppBloc] keep the wanted
@@ -51,7 +51,7 @@ const double _ocptMobileUiScale = 1.2;
 /// never called. Phones and tablets are told apart by the rotation-invariant shortest side, the
 /// same 600dp line the orientation policy and Android's `sw600dp` qualifier draw.
 class OcptMainAppUi extends StatelessWidget {
-  /// Creates the main app widget.
+  /// Create the main app widget.
   const OcptMainAppUi({super.key});
 
   /// Build the main app UI as a [ScreenUtilInit].
@@ -124,7 +124,7 @@ class _MainAppView extends StatelessWidget {
   }
 }
 
-/// Wraps every route the [MaterialApp.router] builds so no screen ever hides behind the platform's
+/// Wrap every route the [MaterialApp.router] builds so no screen ever hides behind the platform's
 /// system bars, while still letting the app paint edge to edge under them.
 ///
 /// Android 15 (`targetSdk` 35) draws apps edge to edge: the status bar and the navigation bar
@@ -200,7 +200,7 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
     );
   }
 
-  /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
+  /// Pin a phone to portrait and leave a tablet free to rotate on a mobile build.
   ///
   /// A phone has too little room to lay a production mode out in landscape, so it is kept upright;
   /// a tablet has the space, so every orientation stays available. The two are told apart by the

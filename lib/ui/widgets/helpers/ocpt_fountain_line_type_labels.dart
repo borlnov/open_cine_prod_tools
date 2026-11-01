@@ -24,7 +24,7 @@ const List<FountainLineType> ocptAssignableFountainLineTypes = [
   FountainLineType.pageBreak,
 ];
 
-/// The localized label of the Fountain line type [type], read from [tr].
+/// Get the localized label of the Fountain line type [type], read from [tr].
 ///
 /// Shared by the screenplay editor's block-type dropdown (`OcptEditorBlockTypeDropdown`, which
 /// never offers [FountainLineType.blank] as a manual choice) and the shot list's scenario coverage

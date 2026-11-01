@@ -93,7 +93,7 @@ class OcptSettingsAboutSection extends StatelessWidget {
     );
   }
 
-  /// Opens the GitHub repository URL in the system browser.
+  /// Open the GitHub repository URL in the system browser.
   ///
   /// This is fire-and-forget, UI-only navigation to an external application: it doesn't go
   /// through the router manager (which only handles in-app navigation) or the bloc.

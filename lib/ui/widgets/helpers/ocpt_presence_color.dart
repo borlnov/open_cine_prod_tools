@@ -22,7 +22,7 @@ const List<Color> ocptPresenceColorPalette = [
   Color(0xFF7B93D6), // periwinkle
 ];
 
-/// A colour deterministically derived from [deviceId], picked from [ocptPresenceColorPalette].
+/// Get a colour deterministically derived from [deviceId], picked from [ocptPresenceColorPalette].
 ///
 /// The same id always yields the same colour — the same one on every replica that ever sees it, and
 /// the same one across app restarts. That is why this hashes [deviceId]'s own code units (a fixed

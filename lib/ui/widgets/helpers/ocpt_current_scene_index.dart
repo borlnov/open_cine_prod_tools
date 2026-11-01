@@ -4,7 +4,7 @@
 
 import 'package:fountain_kit/fountain_kit.dart';
 
-/// The index, in [scenes] (in source order), of the scene containing [currentLine] (the last
+/// Get the index, in [scenes] (in source order), of the scene containing [currentLine] (the last
 /// scene starting at or before it), or null if [currentLine] precedes every scene (or [scenes] is
 /// empty).
 ///

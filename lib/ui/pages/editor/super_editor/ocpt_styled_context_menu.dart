@@ -79,7 +79,7 @@ final class OcptStyledContextMenu {
   /// [onSecondaryTapUp] when the menu opened — never refetched on every rebuild.
   List<String> _suggestions;
 
-  /// The misspelled word the last right-click landed on, or null when it didn't — read by the
+  /// Get the misspelled word the last right-click landed on, or null when it didn't — read by the
   /// owning widget's build to gate [OcptEditorContextMenu]'s spelling group.
   String? get misspelledWord => _misspelledWord;
 
@@ -87,10 +87,10 @@ final class OcptStyledContextMenu {
   /// never refetched on every rebuild.
   List<String> get suggestions => _suggestions;
 
-  /// Whether the owning widget is still mounted.
+  /// Tell whether the owning widget is still mounted.
   bool get mounted => _isMounted();
 
-  /// Whether [_composer]'s current selection is expanded, i.e. there is something for the
+  /// Tell whether [_composer]'s current selection is expanded, i.e. there is something for the
   /// right-click context menu's Cut/Copy entries to act on: read fresh on every the build, so it
   /// always reflects whatever [onSecondaryTapUp] just resolved before forcing that rebuild (see
   /// that method's own doc comment).
@@ -99,7 +99,8 @@ final class OcptStyledContextMenu {
     return selection != null && !selection.isCollapsed;
   }
 
-  /// The block type the right-click context menu's submenu should show as selected, or null when
+  /// Get the block type the right-click context menu's submenu should show as selected, or null
+  /// when
   /// the caret sits on no block that can be retyped — no selection at all, a node that isn't a
   /// `ParagraphNode`, or a title-page field (mirrors `applyBlockType`'s own guard, since picking a
   /// type from the submenu ultimately calls it). [OcptEditorContextMenu] also reads this null-ness
@@ -118,16 +119,16 @@ final class OcptStyledContextMenu {
     return OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   }
 
-  /// The document the menu acts on.
+  /// Get the document the menu acts on.
   MutableDocument get _document => _documentOf();
 
-  /// The editor executing the menu's requests.
+  /// Get the editor executing the menu's requests.
   Editor get _editor => _editorOf();
 
-  /// The composer holding the selection.
+  /// Get the composer holding the selection.
   MutableDocumentComposer get _composer => _composerOf();
 
-  /// Creates an [OcptStyledContextMenu].
+  /// Create an [OcptStyledContextMenu].
   OcptStyledContextMenu({
     required MutableDocument Function() documentOf,
     required Editor Function() editorOf,
@@ -155,7 +156,7 @@ final class OcptStyledContextMenu {
        _onWordIgnoredOf = onWordIgnoredOf,
        _onWordLearnedOf = onWordLearnedOf;
 
-  /// Resolves the document position under a right-click and opens [controller] there.
+  /// Resolve the document position under a right-click and open [controller] there.
   ///
   /// [details]' global position is converted to the document layout's own local coordinates through
   /// [DocumentLayout.getDocumentOffsetFromAncestorOffset] — a thin wrapper, on the pinned
@@ -242,7 +243,7 @@ final class OcptStyledContextMenu {
     controller.open(position: localPosition);
   }
 
-  /// The right-click context menu's suggestion entries: replaces
+  /// Handle the right-click context menu's suggestion entries: replaces
   /// [_misspelledNodeId]/[_misspelledRange] with [suggestion], through the
   /// very same [OcptReplaceNodeTextRequest] + [OcptStyledSearch.replaceMatchesInText] path
   /// `replaceCurrentMatch` already uses — a single [Editor.execute] call, so the edit and the
@@ -280,7 +281,7 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// The right-click context menu's "Ignore this word" entry: reports
+  /// Handle the right-click context menu's "Ignore this word" entry: reports
   /// [_misspelledWord] up through `OcptStyledScreenplayEditor.onWordIgnored` and hands
   /// focus back to the editor, same as every other menu entry. Never touches the document itself —
   /// the bloc's own re-check is what makes the underline disappear, once it answers.
@@ -292,7 +293,7 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// The right-click context menu's "Add to the project's dictionary" entry, the mirror of
+  /// Handle the right-click context menu's "Add to the project's dictionary" entry, the mirror of
   /// [ignoreWord] for `OcptStyledScreenplayEditor.onWordLearned`.
   void learnWord() {
     final word = _misspelledWord;
@@ -302,7 +303,7 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// Closes the right-click context menu when a left click lands anywhere on the document while it
+  /// Close the right-click context menu when a left click lands anywhere on the document while it
   /// is open, the way clicking away from a menu closes it everywhere else in the app.
   ///
   /// Only the primary button does this: the secondary button is what opens the menu in the first
@@ -318,7 +319,8 @@ final class OcptStyledContextMenu {
     controller.close();
   }
 
-  /// The right-click context menu's Copy entry: copies the current selection's Fountain source to
+  /// Handle the right-click context menu's Copy entry: copies the current selection's Fountain
+  /// source to
   /// the clipboard through [ocptCopySelectionToClipboard], the same helper the Ctrl+C key handler
   /// uses, so the payload is the exact same plain Fountain text whichever gesture asks for it.
   /// Hands focus back to the editor afterwards, same as `applyBlockType`.
@@ -332,7 +334,7 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// The right-click context menu's Cut entry: the same copy as [copySelection],
+  /// Handle the right-click context menu's Cut entry: the same copy as [copySelection],
   /// followed by deleting the selection, mirroring the Ctrl+X key handler.
   void cutSelection() {
     final selection = _composer.selection;
@@ -345,7 +347,8 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// The right-click context menu's Paste entry: [ocptPasteFountainClipboardContent], the same
+  /// Handle the right-click context menu's Paste entry: [ocptPasteFountainClipboardContent], the
+  /// same
   /// Fountain-aware paste the Ctrl+V key handler uses.
   void paste() {
     unawaited(
@@ -354,7 +357,7 @@ final class OcptStyledContextMenu {
     _focusNode.requestFocus();
   }
 
-  /// The right-click context menu's Select all entry: expands the selection across the whole
+  /// Handle the right-click context menu's Select all entry: expands the selection across the whole
   /// document, mirroring super_editor's own `CommonEditorOperations.selectAll`. A no-op on an empty
   /// document (which [_document] never actually is once the menu can open, but this mirrors that
   /// operation's own defensive guard).

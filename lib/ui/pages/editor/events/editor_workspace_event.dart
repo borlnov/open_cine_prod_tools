@@ -12,13 +12,13 @@ sealed class OcptEditorWorkspaceEvent extends OcptEditorEvent {
   const OcptEditorWorkspaceEvent();
 }
 
-/// Toggles the visibility of the scene panel.
+/// Toggle the visibility of the scene panel.
 class OcptEditorScenePanelToggledEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorScenePanelToggledEvent();
 }
 
-/// Selects a tab of the right dock, dispatched by the toolbar's preview/syntax buttons and by the
+/// Select a tab of the right dock, dispatched by the toolbar's preview/syntax buttons and by the
 /// dock's own tab row.
 ///
 /// Implements decision 3's toggle semantics: if [tab] is already the dock's active tab, the dock
@@ -39,7 +39,7 @@ class OcptEditorRightDockTabSelectedEvent extends OcptEditorWorkspaceEvent {
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Toggles the right dock as a whole, dispatched by the workspace toolbar's right dock toggle.
+/// Toggle the right dock as a whole, dispatched by the workspace toolbar's right dock toggle.
 ///
 /// An open dock closes, whichever tab it shows; a closed one reopens on
 /// `OcptEditorState.lastRightDockTab`, so the dock always comes back where the user left it.
@@ -50,7 +50,7 @@ class OcptEditorRightDockToggledEvent extends OcptEditorWorkspaceEvent {
   const OcptEditorRightDockToggledEvent();
 }
 
-/// Closes the right dock via its own × close button, whichever tab is currently active.
+/// Close the right dock via its own × close button, whichever tab is currently active.
 ///
 /// Just like [OcptEditorRightDockTabSelectedEvent], this is an explicit user action, so it also
 /// clears `OcptEditorState.autoClosedRightDockTab`.
@@ -59,7 +59,7 @@ class OcptEditorRightDockClosedEvent extends OcptEditorWorkspaceEvent {
   const OcptEditorRightDockClosedEvent();
 }
 
-/// Requests updating the editor's dock width fractions, persisting whichever of [left]/[right] is
+/// Request updating the editor's dock width fractions, persisting whichever of [left]/[right] is
 /// given.
 ///
 /// Dispatched once per drag gesture, on `onHorizontalDragEnd`, never per frame: the live drag
@@ -80,13 +80,13 @@ class OcptEditorDockFractionsChangedEvent extends OcptEditorWorkspaceEvent {
   List<Object?> get props => [...super.props, left, right];
 }
 
-/// Requests restoring both dock fractions to their defaults ("Reset panel layout").
+/// Request restoring both dock fractions to their defaults ("Reset panel layout").
 class OcptEditorDockLayoutResetEvent extends OcptEditorWorkspaceEvent {
   /// Class constructor
   const OcptEditorDockLayoutResetEvent();
 }
 
-/// Toggles the editing mode between the styled block editor and the raw text source.
+/// Toggle the editing mode between the styled block editor and the raw text source.
 ///
 /// The new mode is persisted through `OcptPropertiesManager.editorMode`, so it's restored the
 /// next time the editor is opened.
@@ -95,7 +95,7 @@ class OcptEditorModeToggledEvent extends OcptEditorWorkspaceEvent {
   const OcptEditorModeToggledEvent();
 }
 
-/// Toggles the "Word-like" page simulation on or off.
+/// Toggle the "Word-like" page simulation on or off.
 ///
 /// The new value is persisted through `OcptPropertiesManager.isPageSimulationEnabled`, so it's
 /// restored the next time the editor is opened.
@@ -104,7 +104,7 @@ class OcptEditorPageSimulationToggledEvent extends OcptEditorWorkspaceEvent {
   const OcptEditorPageSimulationToggledEvent();
 }
 
-/// Toggles whether the styled editor shows every scene heading's number in its left gutter.
+/// Toggle whether the styled editor shows every scene heading's number in its left gutter.
 ///
 /// The new value is persisted through `OcptPropertiesManager.styledSceneNumbersVisible`, so it's
 /// restored the next time the editor is opened.
@@ -113,7 +113,7 @@ class OcptEditorStyledSceneNumbersToggledEvent extends OcptEditorWorkspaceEvent 
   const OcptEditorStyledSceneNumbersToggledEvent();
 }
 
-/// Toggles whether this machine shows the spell-check underlines, in either editing mode (the `⋮`
+/// Toggle whether this machine shows the spell-check underlines, in either editing mode (the `⋮`
 /// menu's "Spell check" entry, directly below "Scene numbers").
 ///
 /// The new value is persisted through `OcptPropertiesManager.spellCheckVisible`, so it's restored
@@ -127,7 +127,7 @@ class OcptEditorSpellCheckToggledEvent extends OcptEditorWorkspaceEvent {
   const OcptEditorSpellCheckToggledEvent();
 }
 
-/// Requests updating the editor's page setup (page size and margins).
+/// Request updating the editor's page setup (page size and margins).
 ///
 /// [pageSetup] is persisted (format per-project, margins app-wide) and applied live to the
 /// preview and the styled page editor.

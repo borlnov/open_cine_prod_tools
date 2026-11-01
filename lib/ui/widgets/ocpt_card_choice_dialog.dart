@@ -147,7 +147,7 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog and returns the [OcptCardChoiceEntry.value] of the card the user picked, or
+  /// Show the dialog and return the [OcptCardChoiceEntry.value] of the card the user picked, or
   /// null if they cancelled it or picked no card at all.
   static Future<T?> show<T>(
     BuildContext context, {

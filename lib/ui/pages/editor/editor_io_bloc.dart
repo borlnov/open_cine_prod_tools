@@ -74,7 +74,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports the current screenplay to a `.fountain` file.
+  /// Export the current screenplay to a `.fountain` file.
   ///
   /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty, so the
   /// exported file matches exactly what the project stores. A cancelled save dialog is a silent
@@ -120,7 +120,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     }
   }
 
-  /// Exports the current screenplay to a PDF file.
+  /// Export the current screenplay to a PDF file.
   ///
   /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty, so the
   /// exported PDF matches exactly what the project stores. The document is re-parsed fresh from
@@ -173,7 +173,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     }
   }
 
-  /// Replaces the current screenplay text with the content of a picked screenplay file.
+  /// Replace the current screenplay text with the content of a picked screenplay file.
   ///
   /// The picked file may be a `.fountain`, an `.fdx` or a `.celtx`, the last two being converted
   /// to Fountain as they are read, so what replaces the text is Fountain either way.
@@ -242,7 +242,7 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
     }
   }
 
-  /// Clears the transient export/import notice currently shown, if any.
+  /// Clear the transient export/import notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptEditorIoNoticeDismissedEvent event,
     Emitter<OcptEditorIoState> emitter,

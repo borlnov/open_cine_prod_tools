@@ -16,15 +16,15 @@ class OcptReplaceNodeTextCommand extends EditCommand {
   /// The new text for the node.
   final AttributedText text;
 
-  /// This command's undo/redo behavior: grouped with other undoable edits, matching
+  /// Get this command's undo/redo behavior: grouped with other undoable edits, matching
   /// [OcptChangeNodeMetadataCommand].
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
 
-  /// Creates an [OcptReplaceNodeTextCommand].
+  /// Create an [OcptReplaceNodeTextCommand].
   const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});
 
-  /// Applies the text replacement to the document.
+  /// Apply the text replacement to the document.
   @override
   void execute(EditContext context, CommandExecutor executor) {
     final document = context.document;
@@ -35,7 +35,7 @@ class OcptReplaceNodeTextCommand extends EditCommand {
   }
 }
 
-/// The [EditRequestHandler] for [OcptReplaceNodeTextRequest], appended to the styled editor's
+/// Get the [EditRequestHandler] for [OcptReplaceNodeTextRequest], appended to the styled editor's
 /// `Editor.requestHandlers` list wherever its `Editor` is constructed (see
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptReplaceNodeTextRequestHandler(Editor editor, EditRequest request) =>

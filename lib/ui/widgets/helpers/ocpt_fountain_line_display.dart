@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word_block.dart';
 /// one string and one style.
 typedef OcptFountainDisplayRun = ({String text, FountainInlineStyle style});
 
-/// The **printed** text of every word of [block], in word order, with every Fountain marker
+/// Get the **printed** text of every word of [block], in word order, with every Fountain marker
 /// resolved away rather than shown: emphasis markers (`*`, `**`, `***`, `_`), the leading forcing
 /// character of a forced line, a scene heading's trailing `#N#`, and inline notes (`[[…]]`, never
 /// part of the printed screenplay).
@@ -51,7 +51,7 @@ List<List<OcptFountainDisplayRun>> ocptFountainWordDisplayRuns(OcptScriptWordBlo
   ];
 }
 
-/// Resolves [line]'s inline emphasis, marking each character's [styles] entry and hiding the
+/// Resolve [line]'s inline emphasis, marking each character's [styles] entry and hiding the
 /// emphasis markers themselves in [isVisible].
 ///
 /// A span's own text is already marker-free, so the markers are the characters its source range
@@ -92,7 +92,7 @@ void _applyInlineSpans({
   }
 }
 
-/// Hides the markers a whole line carries rather than a run inside it: the forcing character of a
+/// Hide the markers a whole line carries rather than a run inside it: the forcing character of a
 /// forced line, the closing `<` of centered text, and a scene heading's trailing `#N#`.
 ///
 /// A forcing character is only ever hidden where its line type says one may sit, so an action line
@@ -149,7 +149,7 @@ void _hideLineMarkers({
   }
 }
 
-/// Groups the visible characters of `line[startInLine:endInLine]` into consecutive runs of one
+/// Group the visible characters of `line[startInLine:endInLine]` into consecutive runs of one
 /// style each, skipping every character hidden by a marker.
 List<OcptFountainDisplayRun> _runsOf({
   required String line,

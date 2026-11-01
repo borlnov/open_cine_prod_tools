@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_con
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
-/// Applies the find/replace bar's state onto the editing surface that is live, and carries out its
+/// Apply the find/replace bar's state onto the editing surface that is live, and carry out its
 /// `Replace` and `Replace all`: each editing surface counts, highlights and replaces what it shows,
 /// and this is the page's half of that rule.
 ///
@@ -84,14 +84,14 @@ class OcptEditorSearchSync {
        _liveMode = liveMode,
        _navigateToMatch = navigateToMatch;
 
-  /// Applies [search] onto the live editing surface of [state], reporting the raw mode's count to
+  /// Apply [search] onto the live editing surface of [state], reporting the raw mode's count to
   /// [searchBloc], see [syncRaw] and [syncStyled].
   void sync(OcptEditorState state, OcptEditorSearchState search, OcptEditorSearchBloc searchBloc) {
     syncRaw(state, search, searchBloc);
     syncStyled(state, search);
   }
 
-  /// Reports the styled editor's match count to [searchBloc] when it genuinely changed, while the
+  /// Report the styled editor's match count to [searchBloc] when it genuinely changed, while the
   /// styled surface is the live one and the bar is open.
   ///
   /// The styled editor's own delegate recomputes matches reactively from the live document on every
@@ -114,9 +114,9 @@ class OcptEditorSearchSync {
     searchBloc.add(OcptEditorSearchMatchesReportedEvent(matchCount: matchCount));
   }
 
-  /// Recomputes [_textController]'s matches from its own live text whenever the find/replace bar
-  /// is open in raw mode, paints them through [_textController]'s own
-  /// [OcptEditorSearchTextController.updateMatches], reports the count to the bloc, and navigates
+  /// Recompute [_textController]'s matches from its own live text whenever the find/replace bar is
+  /// open in raw mode, paint them through [_textController]'s own
+  /// [OcptEditorSearchTextController.updateMatches], report the count to the bloc, and navigate
   /// the selection/scroll to the current match when the navigation target actually changed.
   ///
   /// Two separate signatures gate the two side effects this performs, both reset to null whenever
@@ -177,7 +177,7 @@ class OcptEditorSearchSync {
     }
   }
 
-  /// Recomputes and applies the styled mode's own half of the find/replace bar's wiring
+  /// Recompute and apply the styled mode's own half of the find/replace bar's wiring
   /// (`OcptStyledEditorController.updateSearch`), the counterpart to [syncRaw].
   ///
   /// Unlike [syncRaw], this has nothing to *report*: the styled editor's own delegate
@@ -219,7 +219,7 @@ class OcptEditorSearchSync {
     );
   }
 
-  /// Replaces the current match in raw mode with the replacement field's text, then selects
+  /// Replace the current match in raw mode with the replacement field's text, then select
   /// whichever match now starts at or after the end of what was just written — never simply the
   /// match that ends up at the same index, which a replacement that itself still matches the query
   /// (`MARIE` → `MARIE-JEANNE`, the scenario that puts replace in scope)
@@ -266,7 +266,7 @@ class OcptEditorSearchSync {
     );
   }
 
-  /// Replaces every match in raw mode with the replacement field's text, behind
+  /// Replace every match in raw mode with the replacement field's text, behind
   /// [OcptConfirmDialog] naming how many matches will be replaced (the repository rule: an
   /// irreversible action is always confirmed by a dialog, never an inline yes/no).
   Future<void> requestRawReplaceAll(BuildContext context, OcptEditorSearchState search) async {
@@ -308,8 +308,8 @@ class OcptEditorSearchSync {
     );
   }
 
-  /// Replaces the current match in styled mode (`OcptStyledEditorController.replaceCurrentMatch`),
-  /// then dispatches [OcptEditorSearchCurrentMatchSelectedEvent] with the index it returns — see
+  /// Replace the current match in styled mode (`OcptStyledEditorController.replaceCurrentMatch`),
+  /// then dispatch [OcptEditorSearchCurrentMatchSelectedEvent] with the index it returns — see
   /// that controller method's own doc comment for why this can't simply keep the previous index,
   /// the same reason [requestRawReplace] computes its own `nextIndex` by hand. A no-op (dispatches
   /// nothing) when the controller reports there's nothing left to select.
@@ -321,7 +321,7 @@ class OcptEditorSearchSync {
     searchBloc.add(OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex));
   }
 
-  /// Replaces every match in styled mode with the replacement field's text, behind
+  /// Replace every match in styled mode with the replacement field's text, behind
   /// [OcptConfirmDialog] naming how many matches will be replaced — the same repository rule
   /// [requestRawReplaceAll] follows, reusing the exact same dialog copy so a replace-all reads
   /// identically whichever editing mode triggered it.
@@ -349,7 +349,7 @@ class OcptEditorSearchSync {
     _styledEditorController.replaceAllMatches(search.replacement);
   }
 
-  /// The current find/replace query, built from [search], reused by every raw-mode search
+  /// Get the current find/replace query, built from [search], reused by every raw-mode search
   /// operation ([syncRaw], [requestRawReplace], [requestRawReplaceAll]) so none of them
   /// can drift from what the bar itself last reported.
   OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorSearchState search) => OcptEditorSearchQuery(

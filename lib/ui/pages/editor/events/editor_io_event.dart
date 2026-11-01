@@ -13,7 +13,7 @@ sealed class OcptEditorIoEvent extends OcptEditorEvent {
   const OcptEditorIoEvent();
 }
 
-/// Requests exporting the current screenplay to a `.fountain` file.
+/// Request exporting the current screenplay to a `.fountain` file.
 ///
 /// If the screenplay is dirty, it's saved first (tagged `OcptSnapshotReason.export`) so the
 /// exported file matches exactly what the project stores.
@@ -43,7 +43,7 @@ class OcptEditorExportRequestedEvent extends OcptEditorIoEvent {
   List<Object?> get props => [...super.props, fileTypeLabel, episodeTag, shareAnchor];
 }
 
-/// Requests exporting the current screenplay to a PDF file.
+/// Request exporting the current screenplay to a PDF file.
 ///
 /// If the screenplay is dirty, it's saved first (tagged `OcptSnapshotReason.export`) so the
 /// exported PDF matches exactly what the project stores. [options] carries the one-off
@@ -76,7 +76,7 @@ class OcptEditorExportPdfRequestedEvent extends OcptEditorIoEvent {
   List<Object?> get props => [...super.props, options, fileTypeLabel, episodeTag, shareAnchor];
 }
 
-/// Requests replacing the current screenplay text with the content of a picked screenplay file —
+/// Request replacing the current screenplay text with the content of a picked screenplay file —
 /// a `.fountain`, an `.fdx` or a `.celtx`.
 ///
 /// Dispatched only once the user confirmed the replacement in the import confirmation dialog.
@@ -92,7 +92,7 @@ class OcptEditorImportRequestedEvent extends OcptEditorIoEvent {
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
-/// Dismisses the transient export/import notice currently shown, if any.
+/// Dismiss the transient export/import notice currently shown, if any.
 class OcptEditorIoNoticeDismissedEvent extends OcptEditorIoEvent {
   /// Class constructor
   const OcptEditorIoNoticeDismissedEvent();

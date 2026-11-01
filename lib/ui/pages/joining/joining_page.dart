@@ -146,7 +146,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     },
   );
 
-  /// Asks the bloc to join from the invite link typed on the manual tab.
+  /// Ask the bloc to join from the invite link typed on the manual tab.
   void _onManualJoinRequested(String inviteLinkText) {
     _lastSubmissionFromScanner = false;
     context.read<OcptJoiningBloc>().add(
@@ -157,7 +157,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     );
   }
 
-  /// Asks the bloc to join from the invite the scanner decoded.
+  /// Ask the bloc to join from the invite the scanner decoded.
   void _onScanned(String scannedText) {
     // Optimistic: the code was successfully decoded, which is the whole of what "a valid
     // scan" means here — whether it turns out to be a valid invite at all is for the bloc to
@@ -174,7 +174,7 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     );
   }
 
-  /// Shows [OcptJoiningState.joinFailed]'s own snack bar, then dispatches the event that clears
+  /// Show [OcptJoiningState.joinFailed]'s own snack bar, then dispatch the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptSharingView`'s own `_onPairingFailed`.
   ///
   /// Also flashes the scanner frame red when the failed attempt came from a scan

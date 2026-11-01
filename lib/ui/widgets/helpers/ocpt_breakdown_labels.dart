@@ -30,14 +30,15 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// is free to mean this.
 const String ocptNewLocationMenuValue = "";
 
-/// The display label of the breakdown status [status], read by the scene panel's own status column.
+/// Get the display label of the breakdown status [status], read by the scene panel's own status
+/// column.
 String ocptBreakdownSceneStatusLabel(Tr tr, OcptBreakdownSceneStatus status) => switch (status) {
   OcptBreakdownSceneStatus.toDo => tr.breakdownSceneStatusToDo,
   OcptBreakdownSceneStatus.inProgress => tr.breakdownSceneStatusInProgress,
   OcptBreakdownSceneStatus.done => tr.breakdownSceneStatusDone,
 };
 
-/// The colour the breakdown status [status] is painted with.
+/// Get the colour the breakdown status [status] is painted with.
 ///
 /// Follows the shot list's own status scale: [OcptBreakdownSceneStatus.toDo] is the neutral one and
 /// reads through the colour scheme's own `onSurfaceVariant`, [OcptBreakdownSceneStatus.inProgress]
@@ -54,7 +55,7 @@ Color ocptBreakdownSceneStatusColor(BuildContext context, OcptBreakdownSceneStat
   };
 }
 
-/// The display label of legend key [key]: an element category's own label
+/// Get the display label of legend key [key]: an element category's own label
 /// ([ocptElementCategoryLabel]), or the fixed role/set label for the other two kinds.
 ///
 /// The single switch every legend-keyed label reads off — the category legend's own rows
@@ -66,12 +67,14 @@ String ocptBreakdownLegendKeyLabel(Tr tr, OcptBreakdownLegendKey key) => switch 
   OcptBreakdownTargetKind.set => tr.breakdownTargetKindSetLabel,
 };
 
-/// The tooltip label of a scene panel's bar [bucket]: delegates to [ocptBreakdownLegendKeyLabel]
+/// Get the tooltip label of a scene panel's bar [bucket]: delegates to
+/// [ocptBreakdownLegendKeyLabel]
 /// with the bucket's own key.
 String ocptBreakdownSceneBarBucketLabel(Tr tr, OcptBreakdownSceneBarBucket bucket) =>
     ocptBreakdownLegendKeyLabel(tr, (bucket.kind, bucket.category));
 
-/// The display label of element status [status], read by the target inspector's status chips and
+/// Get the display label of element status [status], read by the target inspector's status chips
+/// and
 /// the scene inspector's own status pills.
 ///
 /// Owned by this mode rather than `ocpt_resources_labels.dart`: the resources mode's own element
@@ -84,7 +87,7 @@ String ocptElementStatusLabel(Tr tr, OcptElementStatus status) => switch (status
   OcptElementStatus.confirmed => tr.breakdownElementStatusConfirmed,
 };
 
-/// Builds every localized string the exported breakdown sheets carry, for the [scenes] they are
+/// Build every localized string the exported breakdown sheets carry, for the [scenes] they are
 /// being built from.
 ///
 /// The single bridge between the UI's `Tr` and `OcptBreakdownSheetsPdfService`, which runs in the
@@ -130,7 +133,8 @@ OcptBreakdownSheetsLabels ocptBreakdownSheetsLabelsOf(Tr tr, List<OcptBreakdownS
       emptyDocumentNote: tr.breakdownExportSheetsEmptyDocumentNote,
     );
 
-/// The colour element status [status] is painted with, following the shot list's own status scale:
+/// Get the colour element status [status] is painted with, following the shot list's own status
+/// scale:
 /// [OcptElementStatus.toFind] is the neutral one, [OcptElementStatus.reserved] and
 /// [OcptElementStatus.beingMade] both read as in-progress work through the workspace's warning
 /// colour (reserved is promised, being made is under way — neither is in hand yet), and
@@ -146,7 +150,8 @@ Color ocptElementStatusColor(BuildContext context, OcptElementStatus status) {
   };
 }
 
-/// How a set is named wherever it is shown outside the location sheet that holds it: `Cuisine ·
+/// Tell how a set is named wherever it is shown outside the location sheet that holds it:
+/// `Cuisine · Maison des Martin`.
 /// Maison des Martin`.
 ///
 /// A set has no sheet of its own, so its own name is regularly not enough to tell it apart — two
@@ -159,7 +164,7 @@ String ocptBreakdownSetLabel(OcptSet set, Map<String, String> locationNameById) 
   return locationName == null || locationName.isEmpty ? set.name : "${set.name} · $locationName";
 }
 
-/// The header label of the exported breakdown workbook's `Scenes` sheet's column [column].
+/// Get the header label of the exported breakdown workbook's `Scenes` sheet's column [column].
 String ocptBreakdownScenesXlsxColumnLabel(Tr tr, OcptBreakdownScenesXlsxColumn column) =>
     switch (column) {
       OcptBreakdownScenesXlsxColumn.number => tr.breakdownXlsxScenesColumnNumber,
@@ -171,7 +176,7 @@ String ocptBreakdownScenesXlsxColumnLabel(Tr tr, OcptBreakdownScenesXlsxColumn c
       OcptBreakdownScenesXlsxColumn.notes => tr.breakdownXlsxScenesColumnNotes,
     };
 
-/// The header label of the exported breakdown workbook's `Breakdown` sheet's column [column].
+/// Get the header label of the exported breakdown workbook's `Breakdown` sheet's column [column].
 String ocptBreakdownEntriesXlsxColumnLabel(Tr tr, OcptBreakdownEntriesXlsxColumn column) =>
     switch (column) {
       OcptBreakdownEntriesXlsxColumn.sceneNumber => tr.breakdownXlsxEntriesColumnSceneNumber,
@@ -186,7 +191,7 @@ String ocptBreakdownEntriesXlsxColumnLabel(Tr tr, OcptBreakdownEntriesXlsxColumn
       OcptBreakdownEntriesXlsxColumn.passages => tr.breakdownXlsxEntriesColumnPassages,
     };
 
-/// Builds every localized string the exported breakdown workbook carries.
+/// Build every localized string the exported breakdown workbook carries.
 ///
 /// The sibling of [ocptBreakdownSheetsLabelsOf] for the second export the breakdown mode offers,
 /// and the same single bridge between the UI's `Tr` and `OcptBreakdownXlsxExportService`, which

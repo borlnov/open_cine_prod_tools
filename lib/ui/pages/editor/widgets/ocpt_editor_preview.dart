@@ -98,7 +98,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// scroll view's content (i.e. already including every margin/gap above it).
   List<double> _blockOffsets = const [];
 
-  /// The layout metrics matching the project's page setup.
+  /// Get the layout metrics matching the project's page setup.
   FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
 
   /// Scroll the preview to the current line after the frame when the line or the document changes.
@@ -188,12 +188,13 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     );
   }
 
-  /// The preview's content: paginated paper sheets, or the single continuous sheet, depending on
+  /// Build the preview's content: paginated paper sheets, or the single continuous sheet, depending
+  /// on
   /// [OcptEditorPreview.isPageSimulationEnabled].
   Widget _content(OcptEditorPreviewLayout layout) =>
       widget.isPageSimulationEnabled ? _paginatedPages(layout) : _paperPage(layout);
 
-  /// The simulated paper sheet: white, slightly elevated and rounded, always black-on-white
+  /// Build the simulated paper sheet: white, slightly elevated and rounded, always black-on-white
   /// regardless of the app theme, with the lazy block list scrolling inside it.
   Widget _paperPage(OcptEditorPreviewLayout layout) => Material(
     color: Colors.white,
@@ -209,7 +210,8 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     ),
   );
 
-  /// Distinct paper sheets, one per page in [_pages], separated by a gap: the preview panel's own
+  /// Build distinct paper sheets, one per page in [_pages], separated by a gap: the preview panel's
+  /// own
   /// backdrop (painted by [build], white in both themes) shows through the gap, while each sheet
   /// stays white regardless of theme.
   ///
@@ -252,7 +254,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     ),
   );
 
-  /// Recomputes [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
+  /// Recompute [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
   /// flag changed since the last build.
   void _refreshCaches(OcptEditorPreviewLayout layout) {
     final document = widget.document;
@@ -278,7 +280,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
   }
 
-  /// Computes [_blockOffsets] for the single-continuous-sheet rendering: a plain running sum of
+  /// Compute [_blockOffsets] for the single-continuous-sheet rendering: a plain running sum of
   /// each block's estimated height, starting after the page's top margin.
   void _refreshContinuousCaches(OcptEditorPreviewLayout layout) {
     _pages = const [];
@@ -292,7 +294,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     _blockOffsets = offsets;
   }
 
-  /// Splits [_blocks] into [_pages] and computes [_blockOffsets] for the paginated rendering.
+  /// Split [_blocks] into [_pages] and compute [_blockOffsets] for the paginated rendering.
   ///
   /// Blocks are greedily packed onto the current page while the running sum of
   /// [OcptEditorPreviewLayout.estimatedLineCount] — **plus the blank line that separates two
@@ -359,7 +361,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     _blockOffsets = offsets;
   }
 
-  /// Scrolls the page so the block containing the caret's line is visible.
+  /// Scroll the page so the block containing the caret's line is visible.
   ///
   /// If the target offset is already comfortably within the viewport, nothing moves (so plain
   /// typing doesn't make the preview twitch); otherwise the page animates to put the block near
@@ -397,7 +399,7 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     );
   }
 
-  /// Returns the index, in [_blocks], of the block containing the source [line] (or the closest
+  /// Return the index, in [_blocks], of the block containing the source [line] (or the closest
   /// block above it), or null if [line] precedes every block.
   int? _blockIndexForLine(int line) {
     int? candidate;

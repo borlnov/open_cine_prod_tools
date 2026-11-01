@@ -30,7 +30,7 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
   @override
   State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
 
-  /// Shows the dialog and returns the six field values the user applied, or null if they
+  /// Show the dialog and return the six field values the user applied, or null if they
   /// cancelled it.
   static Future<
     ({String title, String credit, String author, String draftDate, String contact, String source})?
@@ -139,7 +139,7 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     );
   }
 
-  /// Pops the dialog through the router manager, returning the six fields' current text,
+  /// Pop the dialog through the router manager, returning the six fields' current text,
   /// each trimmed.
   void _submit() {
     globalGetIt().get<OcptRouterManager>().pop((

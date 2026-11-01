@@ -67,7 +67,7 @@ class OcptProjectSettingsPageFormatSection extends StatelessWidget {
     );
   }
 
-  /// The localized label of [format], the same wording `OcptEditorPageSetupDialog` uses.
+  /// Get the localized label of [format], the same wording `OcptEditorPageSetupDialog` uses.
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,

@@ -34,7 +34,7 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
   /// The editor, already stripped of its implicit scrollbar.
   final Widget editor;
 
-  /// Creates an [OcptStyledPageSimulationSurface].
+  /// Create an [OcptStyledPageSimulationSurface].
   const OcptStyledPageSimulationSurface({
     super.key,
     required this.theme,

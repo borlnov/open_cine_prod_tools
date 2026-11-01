@@ -22,7 +22,7 @@ class OcptNewProjectNameDialog extends StatefulWidget {
   @override
   State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
 
-  /// Shows the dialog and returns the name entered by the user, or null if they cancelled it.
+  /// Show the dialog and return the name entered by the user, or null if they cancelled it.
   static Future<String?> show(BuildContext context) =>
       showDialog<String>(context: context, builder: (context) => const OcptNewProjectNameDialog());
 }
@@ -84,7 +84,7 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
     );
   }
 
-  /// Validates the entered name and, if it's valid, pops the dialog returning it.
+  /// Validate the entered name and, if it's valid, pop the dialog returning it.
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the trimmed name back to the [OcptNewProjectNameDialog.show]

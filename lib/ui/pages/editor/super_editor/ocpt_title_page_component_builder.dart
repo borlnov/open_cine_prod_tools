@@ -106,7 +106,7 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// for why that pattern is safe here). Absent for every node that isn't a field's first.
   final Map<String, String> _placeholderFieldKeyByNodeId;
 
-  /// Creates an [OcptTitlePageComponentBuilder].
+  /// Create an [OcptTitlePageComponentBuilder].
   OcptTitlePageComponentBuilder({
     required this.placeholders,
     required this.hintStyleBuilder,

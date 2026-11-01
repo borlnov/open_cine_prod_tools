@@ -74,7 +74,7 @@ class OcptHomeHeader extends StatelessWidget {
     );
   }
 
-  /// The wide layout: today's five actions side by side, unchanged.
+  /// Build the wide layout: today's five actions side by side, unchanged.
   List<Widget> _buildWideActions(Tr tr) => [
     IconButton(
       onPressed: onOpenSettings,
@@ -107,7 +107,8 @@ class OcptHomeHeader extends StatelessWidget {
     ),
   ];
 
-  /// The compact layout: every action collapses into a single overflow menu, and "New project"
+  /// Build the compact layout: every action collapses into a single overflow menu, and "New
+  /// project"
   /// itself is dropped — the home page shows it as a floating action button instead, which reaches
   /// further down a phone-sized screen than a header button would.
   List<Widget> _buildCompactActions(Tr tr) => [

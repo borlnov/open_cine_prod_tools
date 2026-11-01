@@ -10,7 +10,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_replace_n
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Ctrl+C / Cmd+C: copies the current selection to the system clipboard as plain Fountain source
+/// Handle Ctrl+C / Cmd+C: copies the current selection to the system clipboard as plain Fountain
+/// source
 /// text (through [OcptWysiwygCodec.encodeSelectionToFountain]) instead of super_editor's default
 /// `copyWhenCmdCIsPressed`, which serializes to plain text with no notion of block types at all.
 /// Mirrors that default's own shape exactly (including "a collapsed selection has nothing to
@@ -44,7 +45,8 @@ ExecutionInstruction ocptCopyToFountainClipboard({
   return ExecutionInstruction.haltExecution;
 }
 
-/// Ctrl+X / Cmd+X: the same Fountain-aware copy as [ocptCopyToFountainClipboard], followed by
+/// Handle Ctrl+X / Cmd+X: the same Fountain-aware copy as [ocptCopyToFountainClipboard], followed
+/// by
 /// deleting the selection, replacing super_editor's default `cutWhenCmdXIsPressed` for the same
 /// reason.
 ExecutionInstruction ocptCutToFountainClipboard({
@@ -71,7 +73,8 @@ ExecutionInstruction ocptCutToFountainClipboard({
   return ExecutionInstruction.haltExecution;
 }
 
-/// Ctrl+V / Cmd+V: replaces super_editor's default `pasteWhenCmdVIsPressed` (plain-text paste,
+/// Handle Ctrl+V / Cmd+V: replaces super_editor's default `pasteWhenCmdVIsPressed` (plain-text
+/// paste,
 /// no block types) with [ocptPasteFountainClipboardContent].
 ///
 /// **Why this doesn't need an IME-delta interceptor.** `OcptFountainTabInterceptor` exists
@@ -108,7 +111,7 @@ ExecutionInstruction ocptPasteFromFountainClipboard({
   return ExecutionInstruction.haltExecution;
 }
 
-/// Copies the Fountain source text of [selection] (via
+/// Copy the Fountain source text of [selection] (via
 /// [OcptWysiwygCodec.encodeSelectionToFountain]) to the system clipboard as plain text, shared by
 /// the Ctrl+C/Ctrl+X key handlers ([ocptCopyToFountainClipboard], [ocptCutToFountainClipboard]) and
 /// the styled editor's right-click context menu's Cut/Copy entries — one clipboard path however the
@@ -121,7 +124,8 @@ void ocptCopySelectionToClipboard({
   unawaited(Clipboard.setData(ClipboardData(text: fountainText)));
 }
 
-/// The paste logic behind [ocptPasteFromFountainClipboard], factored out as a standalone function
+/// Run the paste logic behind [ocptPasteFromFountainClipboard], factored out as a standalone
+/// function
 /// (rather than inlined in the keyboard action) so it can be reused verbatim by any other gesture
 /// that ends up needing the same "paste Fountain text at the caret" behavior.
 ///
@@ -200,7 +204,7 @@ Future<void> ocptPasteFountainClipboardContent({
   editor.endTransaction();
 }
 
-/// The requests pasting a single-node [fragment] at [offset] of [targetNode] applies: the
+/// Get the requests pasting a single-node [fragment] at [offset] of [targetNode] applies: the
 /// fragment's text is inserted in place, so [targetNode] keeps its own type — matching how typing
 /// a few characters never changes the block's classification either.
 List<EditRequest> _singleNodePasteRequests({
@@ -230,7 +234,8 @@ List<EditRequest> _singleNodePasteRequests({
   ];
 }
 
-/// The requests pasting a multi-node [fragmentNodes] at [offset] of [targetNode] applies: splits
+/// Get the requests pasting a multi-node [fragmentNodes] at [offset] of [targetNode] applies:
+/// splits
 /// [targetNode]'s text into a "before" and "after" half at [offset]. When [targetNode] has text of
 /// its own, `fragmentNodes.first`'s text is appended onto the "before" half in place, keeping
 /// [targetNode]'s id and every metadata entry — including its own type — untouched (see

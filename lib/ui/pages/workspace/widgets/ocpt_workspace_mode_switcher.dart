@@ -76,7 +76,8 @@ class OcptWorkspaceModeSwitcher extends StatelessWidget {
   }
 }
 
-/// [mode]'s short label — the one shown under its icon in the mode switcher, used as its tooltip
+/// Get [mode]'s short label — the one shown under its icon in the mode switcher, used as its
+/// tooltip
 /// base text there, and reused by the presence indicator's popover to name a peer's current mode
 /// so the two never disagree about what a mode is called.
 String ocptWorkspaceModeLabel(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
@@ -88,7 +89,7 @@ String ocptWorkspaceModeLabel(Tr tr, OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.budget => tr.workspaceModeBudget,
 };
 
-/// The icon shown above [mode]'s label.
+/// Get the icon shown above [mode]'s label.
 IconData _iconFor(OcptWorkspaceMode mode) => switch (mode) {
   OcptWorkspaceMode.screenplay => Icons.description_outlined,
   OcptWorkspaceMode.breakdown => Icons.fact_check_outlined,

@@ -62,7 +62,7 @@ class OcptHomeImportDialog extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog and returns the kind of import the user picked, or null if they cancelled it
+  /// Show the dialog and return the kind of import the user picked, or null if they cancelled it
   /// or picked no card at all.
   static Future<OcptHomeImportKind?> show(BuildContext context) => showDialog<OcptHomeImportKind>(
     context: context,

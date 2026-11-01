@@ -97,7 +97,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     on<OcptJoiningCancelledEvent>(_onCancelled);
   }
 
-  /// Parses the pasted invite link into an [OcptRelayInvite], then joins — or surfaces
+  /// Parse the pasted invite link into an [OcptRelayInvite], then join — or surface
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (an empty field or some
   /// other, unrelated text).
   ///
@@ -111,7 +111,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) => _joinFromRawText(event.inviteLinkText, event.destinationConfirmButtonText, emitter);
 
-  /// Parses the scanned QR text into an [OcptRelayInvite], then joins — or surfaces
+  /// Parse the scanned QR text into an [OcptRelayInvite], then join — or surface
   /// [OcptJoiningState.joinFailed] straight away when it isn't one at all (a QR aimed at some
   /// unrelated app).
   Future<void> _onInviteScanned(
@@ -119,8 +119,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     Emitter<OcptJoiningState> emitter,
   ) => _joinFromRawText(event.scannedText, event.destinationConfirmButtonText, emitter);
 
-  /// Parses [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual
-  /// and scan paths' shared destination — into an [OcptRelayInvite], then joins, or surfaces
+  /// Parse [rawText] — a pasted invite link or a scanned QR code's own decoded text, the manual and
+  /// scan paths' shared destination — into an [OcptRelayInvite], then join, or surface
   /// [OcptJoiningState.joinFailed] when it isn't one at all.
   Future<void> _joinFromRawText(
     String rawText,
@@ -143,7 +143,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     await _join(invite, destinationConfirmButtonText, emitter);
   }
 
-  /// A token-free description of what a rejected scan/paste actually held, for the diagnostics log:
+  /// Get a token-free description of what a rejected scan/paste actually held, for the diagnostics
+  /// log:
   /// the URI scheme and host, and which of the invite's own `r`/`p`/`t` query parameters were
   /// present (never their values — a token must never reach the log). This is what tells a rejected
   /// `ocpt://relay` enrolment QR (scanned in the wrong screen) apart from a genuinely malformed
@@ -166,7 +167,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     return 'scheme=${uri.scheme} host=${uri.host} params=[$present]';
   }
 
-  /// Runs the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),
+  /// Run the actual join against [invite]: picks a destination folder ([OcptJoinStep.connecting]),
   /// fetches and materialises the relay's latest snapshot there ([OcptJoinStep.downloading]), and
   /// opens the result ([OcptJoinStep.opening]) — leaving [OcptJoiningState.joinSucceeded] for the
   /// page's own success state to pick up; it, not this method, is what eventually navigates
@@ -210,7 +211,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     }
   }
 
-  /// The steps of [_join], whose exceptions [_join] turns into [OcptJoiningState.joinFailed]. Stops
+  /// Run the steps of [_join], whose exceptions [_join] turns into [OcptJoiningState.joinFailed].
+  /// Stops
   /// silently at the first step that finds [OcptJoiningState.isCancelled] set.
   Future<void> _runJoin(
     OcptRelayInvite invite,
@@ -295,7 +297,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     emitter(state.copyWithJoinSucceeded());
   }
 
-  /// Where the joined project's `.ocpt` lands: the folder picked in the native folder-picker dialog
+  /// Tell where the joined project's `.ocpt` lands: the folder picked in the native folder-picker
+  /// dialog
   /// on desktop (mirroring `OcptHomeBloc`'s own save-file dialog, suggested inside
   /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [confirmButtonText]'s own
   /// confirm button), or [OcptProjectsManager.newProjectsDirectory] with no dialog at all on
@@ -318,7 +321,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     );
   }
 
-  /// Clears [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.
+  /// Clear [OcptJoiningState.joinFailed] once the page has shown its own snack bar for it.
   Future<void> _onErrorDismissed(
     OcptJoiningErrorDismissedEvent event,
     Emitter<OcptJoiningState> emitter,
@@ -326,7 +329,7 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     emitter(state.copyWithFailureDismissed());
   }
 
-  /// Pushes the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
+  /// Push the workspace on the user's explicit "Ouvrir", once [OcptJoiningState.joinSucceeded] is
   /// true — through [OcptRouterManager.replace] rather than [OcptRouterManager.push], so the
   /// Rejoindre screen is replaced on the navigation stack instead of left underneath the workspace:
   /// a push there would mean the workspace's own Home/back returned to Rejoindre instead of the
@@ -338,8 +341,8 @@ class OcptJoiningBloc extends BlocForMixin<OcptJoiningState> {
     await _routerManager.replace(OcptRoute.workspace);
   }
 
-  /// Marks the in-flight join as abandoned — see [OcptJoiningState.isCancelled]'s own doc comment
-  /// for what this can and cannot actually stop — and returns the page to its idle state.
+  /// Mark the in-flight join as abandoned — see [OcptJoiningState.isCancelled]'s own doc comment
+  /// for what this can and cannot actually stop — and return the page to its idle state.
   Future<void> _onCancelled(
     OcptJoiningCancelledEvent event,
     Emitter<OcptJoiningState> emitter,

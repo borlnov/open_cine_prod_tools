@@ -141,7 +141,7 @@ class OcptWorkspaceReadOnlyBanner extends StatelessWidget {
     );
   }
 
-  /// The banner's headline: `Read only — <version name>`, followed by the user's own note when
+  /// Get the banner's headline: `Read only — <version name>`, followed by the user's own note when
   /// they wrote one, exactly as the mock-up reads it (`Read only — v3 — Before the seq. 1
   /// rewrite`).
   String _headline(Tr tr) => [

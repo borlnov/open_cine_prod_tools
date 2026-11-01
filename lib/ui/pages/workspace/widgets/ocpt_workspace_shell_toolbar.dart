@@ -83,7 +83,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : shell.overflowEntries,
   );
 
-  /// Builds the `⋮` overflow entries on a phone: the export, project-settings and help actions the
+  /// Build the `⋮` overflow entries on a phone: the export, project-settings and help actions the
   /// toolbar folded out of its own slots, above the mode's own
   /// [OcptWorkspaceShell.overflowEntries], separated from them by a divider when both groups are
   /// present.
@@ -105,7 +105,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     ];
   }
 
-  /// Builds the folded export / project-settings / help entries for [_buildPhoneOverflowEntries],
+  /// Build the folded export / project-settings / help entries for [_buildPhoneOverflowEntries],
   /// each rendered only when the mode wired its callback, in the same order they hold in the
   /// toolbar. Their labels reuse the controls' own strings, and each fires the very same callback
   /// its toolbar control does.
@@ -133,7 +133,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     ];
   }
 
-  /// Builds the toolbar's `Export` control, or null when the mode withheld it — no control is
+  /// Build the toolbar's `Export` control, or null when the mode withheld it — no control is
   /// rendered at all then, rather than a disabled one.
   ///
   /// Unlike the chrome's icon-only controls, this one carries its own label: an export is not the
@@ -182,7 +182,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     );
   }
 
-  /// Builds whatever fills the toolbar's episode slot: the selector for a project holding several
+  /// Build whatever fills the toolbar's episode slot: the selector for a project holding several
   /// episodes, the `Add an episode…` button for one holding a single one, or null for neither.
   ///
   /// The two guard themselves on [OcptWorkspaceShell.episodes]'s own length, so the order they are
@@ -203,7 +203,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
       _buildEpisodeSelector(context, isPhone) ??
       (isCompact ? null : _buildAddEpisodeAction(context));
 
-  /// Builds the toolbar's episode selector, or null when [OcptWorkspaceShell.onEpisodeSelected] is
+  /// Build the toolbar's episode selector, or null when [OcptWorkspaceShell.onEpisodeSelected] is
   /// null or [OcptWorkspaceShell.episodes] holds at most one — no control is rendered at all then,
   /// rather than a disabled one, exactly like [_buildExportAction].
   ///
@@ -298,7 +298,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     return isPhone ? button : Flexible(child: button);
   }
 
-  /// Builds the toolbar's `Add an episode…` button, or null when
+  /// Build the toolbar's `Add an episode…` button, or null when
   /// [OcptWorkspaceShell.onAddEpisodeRequested] is null or [OcptWorkspaceShell.episodes] holds
   /// anything other than exactly one.
   ///
@@ -360,7 +360,8 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     );
   }
 
-  /// The episode of [OcptWorkspaceShell.episodes] whose id is [id], or null while [id] is null or
+  /// Get the episode of [OcptWorkspaceShell.episodes] whose id is [id], or null while [id] is null
+  /// or
   /// names none of them — the moment right after the project's episodes changed under a stale
   /// selection, before the workspace bloc has re-resolved it.
   OcptEpisode? _episodeById(String? id) {
@@ -373,7 +374,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     return null;
   }
 
-  /// Builds the toolbar's dock toggles, left one first, skipping whichever side has no callback.
+  /// Build the toolbar's dock toggles, left one first, skipping whichever side has no callback.
   ///
   /// Both wear the same sidebar glyph, the right one mirrored, so the pair reads as one control
   /// per side of the workspace; the `iconButtonTheme` paints the open one with its accent wash.
@@ -417,7 +418,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     ];
   }
 
-  /// Builds the toolbar's save control — the button, or the same-sized spinner while
+  /// Build the toolbar's save control — the button, or the same-sized spinner while
   /// [OcptWorkspaceShell.isSaving] — or null when the mode has nothing to save.
   Widget? _buildSaveAction(BuildContext context) {
     final onSave = shell.onSave;
@@ -442,7 +443,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     );
   }
 
-  /// Builds the toolbar's project settings action, or null when the mode withheld it.
+  /// Build the toolbar's project settings action, or null when the mode withheld it.
   Widget? _buildProjectSettingsAction(BuildContext context) {
     final onProjectSettingsRequested = shell.onProjectSettingsRequested;
     if (onProjectSettingsRequested == null) {
@@ -457,7 +458,7 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
     );
   }
 
-  /// Builds the toolbar's `Help` action, or null when the mode withheld it.
+  /// Build the toolbar's `Help` action, or null when the mode withheld it.
   Widget? _buildHelpAction(BuildContext context) {
     final onHelpRequested = shell.onHelpRequested;
     if (onHelpRequested == null) {

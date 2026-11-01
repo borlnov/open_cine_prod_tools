@@ -68,7 +68,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   Future<void> _pendingOperations = Future.value();
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  /// The manager owning the open project, its version list and the preview state.
+  /// Get the manager owning the open project, its version list and the preview state.
   ///
   /// Declared here and implemented by each mode's bloc, rather than resolved through [globalGetIt]
   /// by the mixin itself, so a bloc built with an explicitly injected manager (which is what every
@@ -77,7 +77,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   @protected
   OcptProjectsManager get projectsManager;
 
-  /// Writes whatever the mode still holds outside the database — a pending autosave, a debounced
+  /// Write whatever the mode still holds outside the database — a pending autosave, a debounced
   /// field edit — before a preview swaps that database out from under it.
   ///
   /// Called with the current handler's [emitter], so the mode can report the write through its own
@@ -91,7 +91,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
-  /// Reads everything the mode shows from `OcptOpenProjectModel.database` again, after entering or
+  /// Read everything the mode shows from `OcptOpenProjectModel.database` again, after entering or
   /// leaving a preview replaced it.
   ///
   /// Normally the mode's own load handler, called directly with the current handler's `emitter`.
@@ -132,7 +132,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     add(const OcptProjectVersionsRefreshRequestedEvent());
   }
 
-  /// Runs [operation] only once every operation already queued through this has settled, and
+  /// Run [operation] only once every operation already queued through this has settled, and
   /// queues it in turn — the mixin's own way of making its handlers behave as if events were
   /// processed sequentially, which several of them (see the class doc comment) depend on.
   ///
@@ -151,13 +151,13 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     return result;
   }
 
-  /// Reloads the version list and the previewed version's id from the open project.
+  /// Reload the version list and the previewed version's id from the open project.
   Future<void> _onVersionsRefreshRequested(
     OcptProjectVersionsRefreshRequestedEvent event,
     Emitter<S> emitter,
   ) => _serialized(() => _emitVersions(emitter));
 
-  /// Captures the working copy as a new version, then reloads the list so the new card — the
+  /// Capture the working copy as a new version, then reload the list so the new card — the
   /// current one from now on — appears at its top.
   ///
   /// Deliberately refused while a version is being previewed: the capture reads the project file
@@ -193,7 +193,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await _emitVersions(emitter, notice: failure);
   });
 
-  /// Shows the inline delete confirmation of one card, replacing whichever answer any card was
+  /// Show the inline delete confirmation of one card, replacing whichever answer any card was
   /// already asking for.
   Future<void> _onVersionDeletionRequested(
     OcptProjectVersionDeletionRequestedEvent event,
@@ -202,7 +202,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithDeletionPending(versionId: event.versionId));
   }
 
-  /// Hides the inline delete confirmation currently shown.
+  /// Hide the inline delete confirmation currently shown.
   Future<void> _onVersionDeletionCancelled(
     OcptProjectVersionDeletionCancelledEvent event,
     Emitter<S> emitter,
@@ -210,7 +210,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithDeletionDismissed());
   }
 
-  /// Deletes a version for good, then reloads the list.
+  /// Delete a version for good, then reload the list.
   ///
   /// The confirmation is cleared whatever happens: a failed deletion leaves the card there, but
   /// not stuck on a confirmation the user already answered.
@@ -234,7 +234,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await _emitVersions(emitter, notice: failure);
   });
 
-  /// Shows the inline restore confirmation of one card, replacing whichever answer any card was
+  /// Show the inline restore confirmation of one card, replacing whichever answer any card was
   /// already asking for.
   Future<void> _onVersionRestoreRequested(
     OcptProjectVersionRestoreRequestedEvent event,
@@ -243,7 +243,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithRestorePending(versionId: event.versionId));
   }
 
-  /// Hides the inline restore confirmation currently shown.
+  /// Hide the inline restore confirmation currently shown.
   Future<void> _onVersionRestoreCancelled(
     OcptProjectVersionRestoreCancelledEvent event,
     Emitter<S> emitter,
@@ -251,7 +251,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithRestoreDismissed());
   }
 
-  /// Puts the whole project back into the state a version holds, then reloads everything the mode
+  /// Put the whole project back into the state a version holds, then reload everything the mode
   /// shows from the restored working copy.
   ///
   /// This is also what the read-only banner's `Start from this version` dispatches when the
@@ -290,7 +290,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await _emitVersions(emitter);
   });
 
-  /// Shows the inline rename form of one card, replacing whichever answer any card was already
+  /// Show the inline rename form of one card, replacing whichever answer any card was already
   /// asking for.
   Future<void> _onVersionRenameRequested(
     OcptProjectVersionRenameRequestedEvent event,
@@ -299,7 +299,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithRenamePending(versionId: event.versionId));
   }
 
-  /// Hides the inline rename form currently shown.
+  /// Hide the inline rename form currently shown.
   Future<void> _onVersionRenameCancelled(
     OcptProjectVersionRenameCancelledEvent event,
     Emitter<S> emitter,
@@ -307,7 +307,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithRenameDismissed());
   }
 
-  /// Renames a version's name and note, then reloads the list so its card reads the new ones.
+  /// Rename a version's name and note, then reload the list so its card reads the new ones.
   ///
   /// The rename form is cleared whatever happens, exactly as a delete's confirmation is: a failed
   /// rename leaves the card there, but not stuck on a form the user already submitted.
@@ -335,7 +335,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     await _emitVersions(emitter, notice: failure);
   });
 
-  /// Enters the read-only preview of a version: flushes whatever the mode still holds, asks the
+  /// Enter the read-only preview of a version: flushes whatever the mode still holds, asks the
   /// manager to swap the database, then reloads everything the mode shows from it.
   ///
   /// A failed preview leaves the working copy on screen (the manager guarantees it) and reports
@@ -381,7 +381,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithDeletionDismissed());
   });
 
-  /// Leaves the read-only preview and reloads everything the mode shows from the working copy.
+  /// Leave the read-only preview and reload everything the mode shows from the working copy.
   ///
   /// The working copy is captured again on the way, unthrottled: entering the preview cleared it,
   /// and nothing else would put it back — the tab showing its card is already the selected one, so
@@ -405,7 +405,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithDeletionDismissed());
   });
 
-  /// Clears the transient version notice currently shown, if any.
+  /// Clear the transient version notice currently shown, if any.
   Future<void> _onVersionNoticeDismissed(
     OcptProjectVersionNoticeDismissedEvent event,
     Emitter<S> emitter,
@@ -413,7 +413,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     emitter(state.copyWithVersionNoticeDismissed());
   }
 
-  /// Emits the version list, the previewed version's id and a fresh working-copy capture as the
+  /// Emit the version list, the previewed version's id and a fresh working-copy capture as the
   /// project now holds them, optionally alongside [notice].
   ///
   /// Every handler that actually changes the project ends here, so the panel is redrawn from the
@@ -453,7 +453,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     }
   }
 
-  /// Captures the working copy's live state through
+  /// Capture the working copy's live state through
   /// [OcptProjectsManager.captureWorkingCopyState], recording when it did so
   /// [_onWorkingCopyRefreshRequested]'s throttle has something to measure against.
   ///
@@ -477,7 +477,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     return workingCopy;
   }
 
-  /// Refreshes the working copy's own card alone, throttled to at most one real capture every
+  /// Refresh the working copy's own card alone, throttled to at most one real capture every
   /// [_workingCopyCaptureThrottle]: dispatched on a tab reselection or a save (see the mixin's own
   /// doc comment for exactly where each mode dispatches it), both of which can happen far more
   /// often than the whole-project read behind [OcptProjectsManager.captureWorkingCopyState] should
@@ -511,7 +511,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     }
   });
 
-  /// The notice reporting the failed restore [status] to the user.
+  /// Get the notice reporting the failed restore [status] to the user.
   ///
   /// [OcptProjectRestoreStatus.noProjectOpen] and [OcptProjectRestoreStatus.versionNotFound] read
   /// as the generic failure, for the reason [_noticeForPreviewStatus] gives about its own two.
@@ -522,7 +522,7 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
         _ => OcptProjectVersionNoticeKind.restoreFailed,
       };
 
-  /// The notice reporting the failed preview [status] to the user.
+  /// Get the notice reporting the failed preview [status] to the user.
   ///
   /// [OcptProjectPreviewStatus.noProjectOpen] and [OcptProjectPreviewStatus.versionNotFound] can
   /// only happen when the panel is showing a project or a version that is already gone, which the

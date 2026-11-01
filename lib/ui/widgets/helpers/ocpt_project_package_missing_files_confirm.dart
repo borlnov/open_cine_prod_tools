@@ -17,8 +17,8 @@ import 'package:path/path.dart' as p;
 /// that happen to agree.
 const ocptMissingAssetsSeparator = ", ";
 
-/// Asks whether to write the package even though [preflight] found files the project references
-/// and that are no longer there, and returns true if the user said to go on.
+/// Ask whether to write the package even though [preflight] found files the project references and
+/// that are no longer there, and return true if the user said to go on.
 ///
 /// Opened by the mode, never by a widget, exactly as every other question this app asks — and
 /// worded here rather than in each of the five modes, since what it asks about is the project
@@ -47,7 +47,8 @@ Future<bool?> ocptAskAboutMissingPackagedFiles(
   );
 }
 
-/// How [asset] is named in a list of missing files: its own label, or the file name its path ends
+/// Tell how [asset] is named in a list of missing files: its own label, or the file name its path
+/// ends
 /// on for a row that never got one.
 ///
 /// A row with no label is an ordinary state — a photo dropped in and never named — and the whole

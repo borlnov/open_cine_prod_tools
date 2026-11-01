@@ -5,7 +5,7 @@
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Maps every [FountainLineType] to the `NamedAttribution` stored under the `blockType` metadata
+/// Map every [FountainLineType] to the `NamedAttribution` stored under the `blockType` metadata
 /// key of the `ParagraphNode` typesetting that line in the styled editor, and back.
 ///
 /// super_editor's `Stylesheet` selects its rules by a block's `blockType` metadata (see
@@ -39,10 +39,10 @@ class OcptFountainLineAttributions {
   /// Private constructor: this class only exposes static members.
   const OcptFountainLineAttributions._();
 
-  /// The `blockType` attribution to store for a line classified as [type].
+  /// Get the `blockType` attribution to store for a line classified as [type].
   static NamedAttribution attributionOf(FountainLineType type) => _attributionsByType[type]!;
 
-  /// The [FountainLineType] a node was last classified as, read back from its `blockType`
+  /// Get the [FountainLineType] a node was last classified as, read back from its `blockType`
   /// metadata [value] (as returned by `DocumentNode.getMetadataValue("blockType")`).
   ///
   /// Falls back to [FountainLineType.action] when [value] isn't one of ours (e.g. a brand new

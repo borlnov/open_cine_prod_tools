@@ -31,7 +31,7 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
   @override
   State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();
 
-  /// Shows the dialog and returns the [OcptPdfExportOptions] the user applied, or null if they
+  /// Show the dialog and return the [OcptPdfExportOptions] the user applied, or null if they
   /// cancelled it.
   static Future<OcptPdfExportOptions?> show(
     BuildContext context, {
@@ -112,13 +112,13 @@ class _OcptEditorExportPdfOptionsDialogState extends State<OcptEditorExportPdfOp
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptPdfExportOptions].
+  /// Pop the dialog returning the resulting [OcptPdfExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

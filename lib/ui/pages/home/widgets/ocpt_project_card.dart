@@ -206,7 +206,7 @@ class OcptProjectCard extends StatelessWidget {
   }
 }
 
-/// Hashes [path] into a non-negative integer that is stable across app runs, Dart versions and
+/// Hash [path] into a non-negative integer that is stable across app runs, Dart versions and
 /// machines, unlike [Object.hashCode] (used here to pick a poster tint that must stay the same
 /// for a given project everywhere).
 int _stablePathHash(String path) {

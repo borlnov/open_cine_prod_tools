@@ -4,7 +4,7 @@
 
 import 'package:flutter/widgets.dart';
 
-/// Lays [page] out at its true [pageWidth] and, when [constraints] are narrower than that, scales
+/// Lay [page] out at its true [pageWidth] and, when [constraints] are narrower than that, scales
 /// the whole thing down to fit rather than letting it be squeezed.
 ///
 /// A page whose width is squeezed is not a smaller page: every block's `Styles.maxWidth` is an
@@ -31,7 +31,7 @@ class OcptStyledScaledToFit extends StatelessWidget {
   /// The page content to lay out at [pageWidth].
   final Widget page;
 
-  /// Creates an [OcptStyledScaledToFit].
+  /// Create an [OcptStyledScaledToFit].
   const OcptStyledScaledToFit({
     super.key,
     required this.constraints,

@@ -33,10 +33,10 @@ final class OcptStyledSpellCheckRanges {
   /// itself exposes no getter to ask that of.
   Map<String, List<SpellRange>> _lastRangesByNodeId;
 
-  /// The document the ranges address.
+  /// Get the document the ranges address.
   MutableDocument get _document => _documentOf();
 
-  /// Creates an [OcptStyledSpellCheckRanges].
+  /// Create an [OcptStyledSpellCheckRanges].
   OcptStyledSpellCheckRanges({required MutableDocument Function() documentOf})
     : styler = SpellingAndGrammarStyler(
         spellingErrorUnderlineStyle: const SquiggleUnderlineStyle(
@@ -46,7 +46,8 @@ final class OcptStyledSpellCheckRanges {
       _lastRangesByNodeId = const {},
       _documentOf = documentOf;
 
-  /// Every checkable node text currently in [_document]: a [ParagraphNode] whose classified line
+  /// Get every checkable node text currently in [_document]: a [ParagraphNode] whose classified
+  /// line
   /// type [ocptIsSpellCheckedLineType] accepts, and never a title-page field node
   /// ([OcptWysiwygCodec.isTitlePageNode]) — the prose-only rule of
   /// `docs/architecture/screenplay.md`, applied here in terms of the
@@ -80,7 +81,7 @@ final class OcptStyledSpellCheckRanges {
     return texts;
   }
 
-  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
+  /// Apply [rangesByNodeId] — the bloc's own answer, keyed by node id — to
   /// [styler], replacing whatever it held before: every node this widget could
   /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
   /// added only for a node id [rangesByNodeId] actually names.
@@ -127,7 +128,7 @@ final class OcptStyledSpellCheckRanges {
     }
   }
 
-  /// The misspelled range and word [position] falls inside, according to
+  /// Get the misspelled range and word [position] falls inside, according to
   /// [_lastRangesByNodeId], or null when it falls inside none of them — no misspelling
   /// under the tap, or spell-checking is off altogether (in which case that map is empty).
   ///

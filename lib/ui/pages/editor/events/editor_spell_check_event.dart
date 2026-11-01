@@ -11,7 +11,7 @@ sealed class OcptEditorSpellCheckEvent extends OcptEditorEvent {
   const OcptEditorSpellCheckEvent();
 }
 
-/// Reports the misspelled ranges found in the raw mode's Fountain source text, dispatched once
+/// Report the misspelled ranges found in the raw mode's Fountain source text, dispatched once
 /// `OcptSpellCheckManager.check`'s isolate round trip resolves.
 ///
 /// `OcptEditorBloc._onParseRequested` fires the check request without awaiting it (an `Emitter`
@@ -43,7 +43,7 @@ class OcptEditorSpellCheckRangesReportedEvent extends OcptEditorSpellCheckEvent 
   List<Object?> get props => [...super.props, generation, checkedText, ranges];
 }
 
-/// Reports the styled mode's current set of checkable node texts, the styled counterpart to the
+/// Report the styled mode's current set of checkable node texts, the styled counterpart to the
 /// raw mode's own parse-tick trigger.
 ///
 /// Dispatched by `editor_page.dart` whenever `OcptStyledEditorController
@@ -64,7 +64,7 @@ class OcptEditorStyledSpellCheckTextsReportedEvent extends OcptEditorSpellCheckE
   List<Object?> get props => [...super.props, textsByNodeId];
 }
 
-/// Reports the misspelled ranges found in the styled mode's checkable node texts, dispatched once
+/// Report the misspelled ranges found in the styled mode's checkable node texts, dispatched once
 /// `OcptSpellCheckManager.check`'s isolate round trip resolves — the styled counterpart to
 /// [OcptEditorSpellCheckRangesReportedEvent].
 ///
@@ -95,7 +95,7 @@ class OcptEditorStyledSpellCheckRangesReportedEvent extends OcptEditorSpellCheck
   List<Object?> get props => [...super.props, generation, ranges];
 }
 
-/// Reports that the styled editor's right-click "Ignore this word" entry was picked for [word].
+/// Report that the styled editor's right-click "Ignore this word" entry was picked for [word].
 ///
 /// Session-only (`docs/architecture/screenplay.md`): reaches `OcptSpellCheckManager.ignoreWord`
 /// alone, never `OcptProjectDictionaryService` — persisting an ignored word would silently build a
@@ -116,7 +116,7 @@ class OcptEditorWordIgnoredEvent extends OcptEditorSpellCheckEvent {
   List<Object?> get props => [...super.props, word];
 }
 
-/// Reports that the styled editor's right-click "Add to the project's dictionary" entry was
+/// Report that the styled editor's right-click "Add to the project's dictionary" entry was
 /// picked for [word].
 ///
 /// Persisted through `OcptProjectDictionaryService.learnWord` on the open project's database, the
@@ -136,7 +136,7 @@ class OcptEditorWordLearnedEvent extends OcptEditorSpellCheckEvent {
   List<Object?> get props => [...super.props, word];
 }
 
-/// Reports that the mode's spell-check switch or the project's screenplay language changed.
+/// Report that the mode's spell-check switch or the project's screenplay language changed.
 ///
 /// Dispatched by the bloc to itself when it sees either move in the mode's state; it isn't meant to
 /// be sent by widgets. Clears the underlines when spell-checking is now off, and drives the
@@ -146,7 +146,7 @@ class OcptEditorSpellCheckSettingsChangedEvent extends OcptEditorSpellCheckEvent
   const OcptEditorSpellCheckSettingsChangedEvent();
 }
 
-/// Requests reading the project's learned words again, after the project settings page might have
+/// Request reading the project's learned words again, after the project settings page might have
 /// changed them (a word un-learned in the project dictionary dialog, say).
 ///
 /// The words are pushed into the spell-check manager only when they differ from what was pushed

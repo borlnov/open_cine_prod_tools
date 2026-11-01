@@ -118,7 +118,7 @@ class OcptSharingView extends StatelessWidget {
     },
   );
 
-  /// [_platformManager]'s own `isDesktop`, or the one `globalGetIt()` holds when there is an
+  /// Get [_platformManager]'s own `isDesktop`, or the one `globalGetIt()` holds when there is an
   /// app-wide manager environment that actually registered one, or false otherwise — the segmented
   /// button (and the whole "Héberger sur ce poste" segment) never renders without a real desktop
   /// platform underneath it, whether that is because a mode's own widget test never registered one
@@ -136,7 +136,7 @@ class OcptSharingView extends StatelessWidget {
     return managers.isRegistered<PlatformManager>() && managers.get<PlatformManager>().isDesktop;
   }
 
-  /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
+  /// Get [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
   /// manager environment registered one, or false otherwise — see [_isDesktop]'s own doc comment
   /// for why a missing registration reads as the harmless case rather than a crash.
   bool _readOnly(BuildContext context) {
@@ -156,7 +156,8 @@ class OcptSharingView extends StatelessWidget {
     return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
   }
 
-  /// The remote-relay segment's own content — the existing ① Configure / ② Invite switch, entirely
+  /// Build the remote-relay segment's own content — the existing ① Configure / ② Invite switch,
+  /// entirely
   /// unchanged by this segment's addition.
   Widget _remoteBody(BuildContext context, OcptSharingState state) => switch (state.invite) {
     null => OcptSharingConfigureView(
@@ -172,7 +173,7 @@ class OcptSharingView extends StatelessWidget {
     ),
   };
 
-  /// Shows [OcptSharingState.pairingFailed]'s own snack bar, then dispatches the event that clears
+  /// Show [OcptSharingState.pairingFailed]'s own snack bar, then dispatch the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptEditorPage`'s own `hasSaveError` handling.
   void _onPairingFailed(BuildContext context, OcptSharingState state) {
     ScaffoldMessenger.of(context)
@@ -181,7 +182,7 @@ class OcptSharingView extends StatelessWidget {
     context.read<OcptSharingBloc>().add(const OcptSharingPairingErrorDismissedEvent());
   }
 
-  /// Asks `OcptConfirmDialog` whether sharing really is to stop, then dispatches the confirmed
+  /// Ask `OcptConfirmDialog` whether sharing really is to stop, then dispatch the confirmed
   /// event if the user agreed.
   Future<void> _onUnshareRequested(BuildContext context) async {
     final bloc = context.read<OcptSharingBloc>();

@@ -89,7 +89,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
   /// [disposeLifeCycle].
   StreamSubscription<OcptOpenProjectModel?>? _currentProjectSubscription;
 
-  /// [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
+  /// Get [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
   ///
   /// Unlike [_propertiesManager]/[_projectsManager], this is resolved lazily, on every access,
@@ -113,7 +113,8 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
-  /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily on every access for exactly the
   /// reasons [_syncManager]'s own doc comment gives: every other mode's widget test builds a bare
   /// [OcptWorkspaceBloc] with no reason to register a host manager, and [_maybeAutoStartHosting]
@@ -194,7 +195,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     _syncManager?.updatePresenceMode(mode);
   }
 
-  /// Re-hosts the open project when its own "host on launch" preference asks for it, returning
+  /// Re-host the open project when its own "host on launch" preference asks for it, returning
   /// whether hosting was **freshly** started by this call —
   /// [OcptRelayHostManager.maybeAutoStartHosting] itself no-ops on an unpaired project, an unset
   /// flag, or on mobile, and this additionally no-ops when no host manager is registered (every
@@ -237,7 +238,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     return isFreshStart;
   }
 
-  /// Starts the open project's own sync session when it is paired to a relay, and does nothing at
+  /// Start the open project's own sync session when it is paired to a relay, and do nothing at
   /// all otherwise — see this class's own doc comment for when this runs and why once is enough.
   ///
   /// A project counts as paired only when **both** halves of its pairing are still there (its own
@@ -282,7 +283,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     }
   }
 
-  /// Re-reads the open project's episodes after [OcptProjectsManager.currentProjectStream] emits
+  /// Re-read the open project's episodes after [OcptProjectsManager.currentProjectStream] emits
   /// (entering or leaving a project version preview swaps the database every mode reads through).
   ///
   /// The current selection is kept when it still names one of the freshly read episodes, and falls
@@ -315,7 +316,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     }
   }
 
-  /// Applies the episode picked from the toolbar's episode selector. Nothing else about the state
+  /// Apply the episode picked from the toolbar's episode selector. Nothing else about the state
   /// changes, and nothing is persisted — see [OcptWorkspaceState.selectedEpisodeId]'s own doc
   /// comment.
   Future<void> _onEpisodeSelected(
@@ -325,7 +326,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     emitter(state.copyWithSelectedEpisode(selectedEpisodeId: event.episodeId));
   }
 
-  /// The open project's live episodes, in `sortKey` order, or empty while no project is open.
+  /// Get the open project's live episodes, in `sortKey` order, or empty while no project is open.
   Future<List<OcptEpisode>> _loadEpisodes() async {
     final project = _projectsManager.currentProject;
     if (project == null) {
@@ -335,7 +336,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     return _projectsManager.screenplayService.loadEpisodes(database: project.database);
   }
 
-  /// Applies the mode selected from the bottom mode switcher, or by another mode sending the user
+  /// Apply the mode selected from the bottom mode switcher, or by another mode sending the user
   /// there. Not persisted: only a project switch resets the active mode, back to
   /// [OcptWorkspaceMode.screenplay] (see [initAsyncBloc]); nothing here needs to remember what
   /// this switch picked.
@@ -363,7 +364,7 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
     _syncManager?.updatePresenceMode(event.mode);
   }
 
-  /// Clears the reveal request the mode that was just opened reports having taken into account.
+  /// Clear the reveal request the mode that was just opened reports having taken into account.
   ///
   /// Nothing is persisted here: a reveal is a one-shot handover between two modes of one session,
   /// not a preference. Only the mode itself is ever persisted.

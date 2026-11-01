@@ -44,23 +44,24 @@ final class OcptStyledHistory {
   /// or a redo must not mark its own document change as one that invalidates the redo stack.
   bool _isApplyingHistory;
 
-  /// Whether [undo] or [redo] is currently applying a change, which is how the document listener
+  /// Tell whether [undo] or [redo] is currently applying a change, which is how the document
+  /// listener
   /// tells a restored document apart from an edit of the writer's.
   bool get isApplying => _isApplyingHistory;
 
-  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
+  /// Tell whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
   /// `Undo` entry has anything to offer.
   bool get canUndo => _editor.history.isNotEmpty;
 
-  /// Whether the last undone gesture can still be put back: there is one to put back, *and* no
+  /// Tell whether the last undone gesture can still be put back: there is one to put back, *and* no
   /// edit has been made since it was undone (see [_isRedoStackStale] for why the second half
   /// cannot be read off `Editor.future` alone).
   bool get canRedo => !_isRedoStackStale && _editor.future.isNotEmpty;
 
-  /// The editor whose history is undone and redone.
+  /// Get the editor whose history is undone and redone.
   Editor get _editor => _editorOf();
 
-  /// Creates an [OcptStyledHistory].
+  /// Create an [OcptStyledHistory].
   OcptStyledHistory({
     required Editor Function() editorOf,
     required void Function() syncSceneNumbers,
@@ -72,14 +73,14 @@ final class OcptStyledHistory {
        _syncSceneNumbers = syncSceneNumbers,
        _reportReadState = reportReadState;
 
-  /// Marks the redo stack as overtaken by an edit made since the last undo.
+  /// Mark the redo stack as overtaken by an edit made since the last undo.
   void markRedoStale() => _isRedoStackStale = true;
 
-  /// Clears the stale flag: a fresh `Editor` starts with an empty history and an empty future, so
+  /// Clear the stale flag: a fresh `Editor` starts with an empty history and an empty future, so
   /// nothing can be stale about a redo stack that does not exist yet.
   void reset() => _isRedoStackStale = false;
 
-  /// Runs [derivedPass] — any pass that writes back to the document what this widget *derived* from
+  /// Run [derivedPass] — any pass that writes back to the document what this widget *derived* from
   /// the writer's last gesture, rather than what the writer did — with [mergePolicy]'s settling
   /// flag raised, so every transaction it closes merges onto the gesture's own instead of becoming
   /// an undo step of its own.
@@ -89,7 +90,7 @@ final class OcptStyledHistory {
   /// synchronously inside `execute`.
   void runDerivedPass(void Function() derivedPass) => mergePolicy.runDerivedPass(derivedPass);
 
-  /// Takes back the writer's last gesture, plus everything this widget derived from it (see
+  /// Take back the writer's last gesture, plus everything this widget derived from it (see
   /// [OcptSettleMergePolicy] for what makes those one step).
   ///
   /// The staleness flag is lowered *before* the undo runs, not after: the document listener fires
@@ -104,7 +105,7 @@ final class OcptStyledHistory {
     _applyHistoryChange(_editor.undo);
   }
 
-  /// Puts back the last undone gesture, or does nothing at all when [canRedo] refuses.
+  /// Put back the last undone gesture, or do nothing at all when [canRedo] refuses.
   ///
   /// That refusal is the whole point of this method existing rather than `Editor.redo()` being
   /// bound straight to Ctrl+Shift+Z: replaying a transaction that a later edit has overtaken
@@ -117,9 +118,9 @@ final class OcptStyledHistory {
     _applyHistoryChange(_editor.redo);
   }
 
-  /// Runs [historyChange] — `Editor.undo` or `Editor.redo` — with [_isApplyingHistory] raised, so
-  /// the document change it makes is not mistaken for an edit of the writer's, renumbers the
-  /// scene headings inside that same window, then reports the fresh history state to the
+  /// Run [historyChange] — `Editor.undo` or `Editor.redo` — with [_isApplyingHistory] raised, so
+  /// the document change it makes is not mistaken for an edit of the writer's, renumber the scene
+  /// headings inside that same window, then report the fresh history state to the
   /// controller (a no-op when neither [canUndo] nor [canRedo] moved,
   /// `OcptStyledEditorController.updateReadState` only notifying on an actual change).
   ///

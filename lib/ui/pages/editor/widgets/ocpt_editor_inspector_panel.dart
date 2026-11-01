@@ -91,7 +91,8 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     );
   }
 
-  /// The estimated duration of [pageEighths] worth of screenplay, on the industry rule of one page
+  /// Get the estimated duration of [pageEighths] worth of screenplay, on the industry rule of one
+  /// page
   /// ≈ one minute, rounded to the nearest minute (never displayed as zero for a non-empty scene).
   static String _durationText(Tr tr, int pageEighths) {
     if (pageEighths <= 0) {
@@ -101,7 +102,7 @@ class OcptEditorInspectorPanel extends StatelessWidget {
     return tr.editorInspectorDurationEstimate(minutes < 1 ? 1 : minutes);
   }
 
-  /// The mixed-number page-eighths display assistant directors use: a whole page count, its
+  /// Get the mixed-number page-eighths display assistant directors use: a whole page count, its
   /// eighths remainder, or both, whichever [pageEighths] actually has.
   static String _pageLengthText(Tr tr, int pageEighths) {
     final whole = pageEighths ~/ 8;

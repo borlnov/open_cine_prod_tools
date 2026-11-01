@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 
-/// Overlays [child] — a production mode's own centre content — with a floating "add" affordance,
+/// Overlay [child] — a production mode's own centre content — with a floating "add" affordance,
 /// drawn only at a compact width.
 ///
 /// Below `ocptCompactWidthBreakpoint` the workspace shell's side docks reduce to edge drawers

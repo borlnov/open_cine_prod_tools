@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_unlink_counts.dart';
 
-/// The unlink dialog's own message: `The set's plan is kept.` alone, or followed by what leaves
+/// Get the unlink dialog's own message: `The set's plan is kept.` alone, or followed by what leaves
 /// the view — the cameras, characters and props [sequence] placed on [floorPlanSet], joined
 /// naturally, when there is at least one.
 String ocptFloorPlanUnlinkSetMessageOf(
@@ -40,7 +40,7 @@ String ocptFloorPlanUnlinkSetMessageOf(
       "${tr.shotListFloorPlanUnlinkCountMessage(total, list)}";
 }
 
-/// Joins [parts] the way a natural sentence would: the word alone for one, `A {conjunction} B`
+/// Join [parts] the way a natural sentence would: the word alone for one, `A {conjunction} B`
 /// for two, `A, B {conjunction} C` for three or more (no comma before the last part — the
 /// convention French and English share here) — a plain helper rather than an ICU message, since
 /// ICU has no construct for joining however many non-zero parts a caller hands in.

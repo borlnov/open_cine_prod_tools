@@ -58,10 +58,10 @@ class OcptSettleMergePolicy implements HistoryGroupingPolicy {
   /// writer's. Raised only by [runDerivedPass].
   bool _isSettling;
 
-  /// Creates an [OcptSettleMergePolicy].
+  /// Create an [OcptSettleMergePolicy].
   OcptSettleMergePolicy() : _isSettling = false;
 
-  /// Runs [derivedPass] with the settling flag raised, so every transaction it closes merges onto
+  /// Run [derivedPass] with the settling flag raised, so every transaction it closes merges onto
   /// the transaction that caused it instead of becoming an undo step of its own.
   ///
   /// Re-entrant on purpose (the flag is restored, not cleared): a settle pass can trigger a
@@ -77,7 +77,7 @@ class OcptSettleMergePolicy implements HistoryGroupingPolicy {
     }
   }
 
-  /// Merges every transaction closed during a derived pass onto the one before it; defers to
+  /// Merge every transaction closed during a derived pass onto the one before it; defers to
   /// [_writerGesturePolicies] for every other transaction.
   @override
   TransactionMerge shouldMergeLatestTransaction(

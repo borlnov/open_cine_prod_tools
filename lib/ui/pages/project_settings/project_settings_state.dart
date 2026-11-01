@@ -203,7 +203,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     hasChanged: hasChanged ?? this.hasChanged,
   );
 
-  /// Copies this state as loaded with the project's file location and settings.
+  /// Copy this state as loaded with the project's file location and settings.
   OcptProjectSettingsState copyToLoaded({
     required String projectFilePath,
     required bool isShowInFolderAvailable,
@@ -242,33 +242,33 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     dictionaryWords: dictionaryWords,
   );
 
-  /// Copies this state with the failure to show the file in its folder flagged.
+  /// Copy this state with the failure to show the file in its folder flagged.
   OcptProjectSettingsState copyWithShowInFolderFailed() => copyWith(isShowInFolderFailed: true);
 
-  /// Copies this state with the show-in-folder failure dismissed.
+  /// Copy this state with the show-in-folder failure dismissed.
   OcptProjectSettingsState copyWithShowInFolderFailureDismissed() =>
       copyWith(isShowInFolderFailed: false);
 
-  /// Copies this state with the failed move reported through [moveError].
+  /// Copy this state with the failed move reported through [moveError].
   OcptProjectSettingsState copyWithMoveError({required OcptProjectMoveStatus moveError}) =>
       copyWith(moveError: moveError);
 
-  /// Copies this state with the project file now at [projectFilePath] and any move error cleared.
+  /// Copy this state with the project file now at [projectFilePath] and any move error cleared.
   OcptProjectSettingsState copyWithMoved({required String projectFilePath}) =>
       copyWith(projectFilePath: projectFilePath, forceMoveErrorValue: true);
 
-  /// Copies this state with the move error dismissed.
+  /// Copy this state with the move error dismissed.
   OcptProjectSettingsState copyWithMoveErrorDismissed() => copyWith(forceMoveErrorValue: true);
 
-  /// Copies this state with the project's [currencyCode] edited.
+  /// Copy this state with the project's [currencyCode] edited.
   OcptProjectSettingsState copyWithCurrencyCode({required String currencyCode}) =>
       copyWith(currencyCode: currencyCode, hasChanged: true);
 
-  /// Copies this state with the project's [pageFormat] edited.
+  /// Copy this state with the project's [pageFormat] edited.
   OcptProjectSettingsState copyWithPageFormat({required OcptPageFormat pageFormat}) =>
       copyWith(pageFormat: pageFormat, hasChanged: true);
 
-  /// Copies this state with the minimum rest between two days edited, null when unset.
+  /// Copy this state with the minimum rest between two days edited, null when unset.
   OcptProjectSettingsState copyWithMinimumRestMinutes({required int? minimumRestMinutes}) =>
       copyWith(
         minimumRestMinutes: minimumRestMinutes,
@@ -276,7 +276,7 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
         hasChanged: true,
       );
 
-  /// Copies this state with the default VAT rate edited, null when unset.
+  /// Copy this state with the default VAT rate edited, null when unset.
   OcptProjectSettingsState copyWithDefaultVatRate({required int? defaultVatRateBasisPoints}) =>
       copyWith(
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -284,21 +284,21 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
         hasChanged: true,
       );
 
-  /// Copies this state with the price of a meal edited, null when unset.
+  /// Copy this state with the price of a meal edited, null when unset.
   OcptProjectSettingsState copyWithMealPrice({required int? mealPriceCents}) => copyWith(
     mealPriceCents: mealPriceCents,
     forceMealPriceCentsValue: mealPriceCents == null,
     hasChanged: true,
   );
 
-  /// Copies this state with the price of a buffet edited, null when unset.
+  /// Copy this state with the price of a buffet edited, null when unset.
   OcptProjectSettingsState copyWithBuffetPrice({required int? buffetPriceCents}) => copyWith(
     buffetPriceCents: buffetPriceCents,
     forceBuffetPriceCentsValue: buffetPriceCents == null,
     hasChanged: true,
   );
 
-  /// Copies this state with the screenplay language edited, null when unset.
+  /// Copy this state with the screenplay language edited, null when unset.
   OcptProjectSettingsState copyWithScreenplayLanguage({
     required OcptScreenplayLanguage? screenplayLanguage,
   }) => copyWith(
@@ -307,36 +307,36 @@ class OcptProjectSettingsState extends BlocStateForMixin<OcptProjectSettingsStat
     hasChanged: true,
   );
 
-  /// Copies this state with the project dictionary's [dictionaryWords] edited.
+  /// Copy this state with the project dictionary's [dictionaryWords] edited.
   OcptProjectSettingsState copyWithDictionaryWords({required List<String> dictionaryWords}) =>
       copyWith(dictionaryWords: dictionaryWords, hasChanged: true);
 
-  /// Copies this state with the [episodes] read again after an episode was added, which counts as
+  /// Copy this state with the [episodes] read again after an episode was added, which counts as
   /// a change only when [isAdded].
   OcptProjectSettingsState copyWithEpisodeAdded({
     required List<OcptEpisode> episodes,
     required bool isAdded,
   }) => copyWith(episodes: episodes, hasChanged: isAdded ? true : null);
 
-  /// Copies this state with the [episodes] read again after an episode was deleted, which counts
+  /// Copy this state with the [episodes] read again after an episode was deleted, which counts
   /// as a change only when [isDeleted].
   OcptProjectSettingsState copyWithEpisodeDeleted({
     required List<OcptEpisode> episodes,
     required bool isDeleted,
   }) => copyWith(episodes: episodes, hasChanged: isDeleted ? true : null);
 
-  /// Copies this state with the [episodes] read again after one was edited or moved.
+  /// Copy this state with the [episodes] read again after one was edited or moved.
   OcptProjectSettingsState copyWithEpisodesChanged({required List<OcptEpisode> episodes}) =>
       copyWith(episodes: episodes, hasChanged: true);
 
-  /// Copies this state with the [mileageRates] read again after a rate was added, which counts as a
+  /// Copy this state with the [mileageRates] read again after a rate was added, which counts as a
   /// change only when [isAdded].
   OcptProjectSettingsState copyWithMileageRateAdded({
     required List<OcptBudgetMileageRate> mileageRates,
     required bool isAdded,
   }) => copyWith(mileageRates: mileageRates, hasChanged: isAdded ? true : null);
 
-  /// Copies this state with the [mileageRates] read again after one was edited or deleted.
+  /// Copy this state with the [mileageRates] read again after one was edited or deleted.
   OcptProjectSettingsState copyWithMileageRatesChanged({
     required List<OcptBudgetMileageRate> mileageRates,
   }) => copyWith(mileageRates: mileageRates, hasChanged: true);

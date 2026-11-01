@@ -13,7 +13,7 @@ sealed class OcptHostingEvent extends BlocEventForMixin {
   const OcptHostingEvent();
 }
 
-/// Reports a new value off `OcptRelayHostManager.stateStream` — the bloc's own subscription to it
+/// Report a new value off `OcptRelayHostManager.stateStream` — the bloc's own subscription to it
 /// forwards every state the manager moves through as one of these.
 class OcptHostingHostStateChangedEvent extends OcptHostingEvent {
   /// The host state just reported.
@@ -27,7 +27,7 @@ class OcptHostingHostStateChangedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, hostState];
 }
 
-/// Reports a new value off `OcptSyncManager.presenceRosterStream` — the bloc's own subscription to
+/// Report a new value off `OcptSyncManager.presenceRosterStream` — the bloc's own subscription to
 /// it (kept alive only while hosting is online, since that stream itself is null otherwise)
 /// forwards every roster the sync manager moves through as one of these.
 class OcptHostingPresenceChangedEvent extends OcptHostingEvent {
@@ -42,7 +42,7 @@ class OcptHostingPresenceChangedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, presenceRoster];
 }
 
-/// Reports that the "Hébergement" switch was toggled: [start] is the value it was set to — true to
+/// Report that the "Hébergement" switch was toggled: [start] is the value it was set to — true to
 /// start hosting the current project, false to stop it.
 class OcptHostingStartStopRequestedEvent extends OcptHostingEvent {
   /// Whether hosting should start (true) or stop (false).
@@ -56,7 +56,7 @@ class OcptHostingStartStopRequestedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, start];
 }
 
-/// Reports that the "Réhéberger ce projet au démarrage" checkbox was toggled to [value].
+/// Report that the "Réhéberger ce projet au démarrage" checkbox was toggled to [value].
 class OcptHostingAutoRestartChangedEvent extends OcptHostingEvent {
   /// The checkbox's own new value.
   final bool value;
@@ -69,7 +69,7 @@ class OcptHostingAutoRestartChangedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, value];
 }
 
-/// Reports that the "Réconcilier amont…" action was run, with the invite text typed or pasted into
+/// Report that the "Réconcilier amont…" action was run, with the invite text typed or pasted into
 /// the panel's own inline field.
 class OcptHostingReconcileRequestedEvent extends OcptHostingEvent {
   /// The invite text to parse as an `ocpt://join` link, exactly as typed.
@@ -83,7 +83,7 @@ class OcptHostingReconcileRequestedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, inviteText];
 }
 
-/// Reports that the panel has shown `OcptHostingState.reconcileOutcome`'s own result line (or
+/// Report that the panel has shown `OcptHostingState.reconcileOutcome`'s own result line (or
 /// `OcptHostingState.reconcileInviteInvalid`'s own message), so the bloc clears both and a later
 /// rebuild doesn't show them again — the same one-shot-notice shape `OcptSharingBloc`'s own
 /// `OcptSharingPairingErrorDismissedEvent` already follows.
@@ -92,7 +92,7 @@ class OcptHostingReconcileDismissedEvent extends OcptHostingEvent {
   const OcptHostingReconcileDismissedEvent();
 }
 
-/// Reports that the hosting panel's own address dropdown picked a different advertised address —
+/// Report that the hosting panel's own address dropdown picked a different advertised address —
 /// [address] is one of `OcptHostingState.availableAddresses`. This never restarts hosting: the
 /// socket already binds every interface (`InternetAddress.anyIPv4`), so only what the QR codes
 /// encode changes.
@@ -108,7 +108,7 @@ class OcptHostingAdvertisedAddressChangedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, address];
 }
 
-/// Reports that the hosting panel's own port field was applied — [port] is what
+/// Report that the hosting panel's own port field was applied — [port] is what
 /// `OcptRelayHostManager.startHosting` re-binds to, unlike an advertised address change, since the
 /// socket itself has to be re-bound to move off the port it is already listening on.
 class OcptHostingPortChangeRequestedEvent extends OcptHostingEvent {
@@ -123,7 +123,7 @@ class OcptHostingPortChangeRequestedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, port];
 }
 
-/// Reports that the hosting panel's own QR-kind segmented button picked [kind].
+/// Report that the hosting panel's own QR-kind segmented button picked [kind].
 class OcptHostingQrKindChangedEvent extends OcptHostingEvent {
   /// The QR kind just picked.
   final OcptHostingQrKind kind;
@@ -136,7 +136,7 @@ class OcptHostingQrKindChangedEvent extends OcptHostingEvent {
   List<Object?> get props => [...super.props, kind];
 }
 
-/// Requests re-reading `OcptRelayHostManager.availableLanAddresses` — the hosting panel's own
+/// Request re-reading `OcptRelayHostManager.availableLanAddresses` — the hosting panel's own
 /// address dropdown dispatches this on becoming visible, so a network switch (a Wi-Fi hop, a cable
 /// plugged in) since the screen last loaded is re-detected without hosting having to restart.
 class OcptHostingAddressesRefreshRequestedEvent extends OcptHostingEvent {

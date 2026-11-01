@@ -38,7 +38,7 @@ class OcptWysiwygDecodeResult {
   /// must subtract this first.
   final int titlePagePrefixLength;
 
-  /// Creates an [OcptWysiwygDecodeResult].
+  /// Create an [OcptWysiwygDecodeResult].
   const OcptWysiwygDecodeResult({
     required this.document,
     required this.mapping,

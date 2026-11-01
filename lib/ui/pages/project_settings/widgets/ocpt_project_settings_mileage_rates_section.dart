@@ -167,7 +167,8 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
   /// [_lastReportedLabel] is.
   late int _lastReportedRatePerKmMilliCents = widget.rate.ratePerKmMilliCents;
 
-  /// [_OcptProjectSettingsMileageRateRow.rate]'s own rate written through [ocptMileageRateTextOf].
+  /// Get [_OcptProjectSettingsMileageRateRow.rate]'s own rate written through
+  /// [ocptMileageRateTextOf].
   String get _formattedRate => ocptMileageRateTextOf(widget.rate.ratePerKmMilliCents);
 
   /// Register [_onLabelFocusChanged] as a listener of [_labelFocusNode] and [_onRateFocusChanged]
@@ -240,21 +241,21 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     );
   }
 
-  /// Commits the label field's current text once it loses focus.
+  /// Commit the label field's current text once it loses focus.
   void _onLabelFocusChanged() {
     if (!_labelFocusNode.hasFocus) {
       _commitLabel();
     }
   }
 
-  /// Commits the rate field's current text once it loses focus.
+  /// Commit the rate field's current text once it loses focus.
   void _onRateFocusChanged() {
     if (!_rateFocusNode.hasFocus) {
       _commitRate();
     }
   }
 
-  /// Reports the label field's current text: any string is legal, the empty one included, exactly
+  /// Report the label field's current text: any string is legal, the empty one included, exactly
   /// as an episode's title is.
   void _commitLabel() {
     final text = _labelController.text;
@@ -264,7 +265,7 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
     }
   }
 
-  /// Parses the rate field's current text and reports it, in thousandths of a cent: an empty or
+  /// Parse the rate field's current text and report it, in thousandths of a cent: an empty or
   /// unparseable text reverts the field to whatever was last committed —
   /// `ratePerKmMilliCents` is never nullable, so there is no "clear" gesture here, only "not typed
   /// yet" reverting to the figure already stored.

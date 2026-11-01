@@ -88,7 +88,7 @@ class OcptRepointingView extends StatelessWidget {
     },
   );
 
-  /// Shows [OcptRepointingState.repointFailed]'s own snack bar, then dispatches the event that
+  /// Show [OcptRepointingState.repointFailed]'s own snack bar, then dispatch the event that
   /// clears it, so a later rebuild doesn't show it again — `OcptSharingView`'s own
   /// `_onPairingFailed`.
   void _onRepointFailed(BuildContext context, OcptRepointingState state) {

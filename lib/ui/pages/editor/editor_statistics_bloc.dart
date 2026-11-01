@@ -67,7 +67,7 @@ class OcptEditorStatisticsBloc
     on<OcptEditorStatisticsSceneRefreshRequestedEvent>(_onSceneRefreshRequested);
   }
 
-  /// Recomputes both counters at once and drops the pending debounce: the mode replaced what it
+  /// Recompute both counters at once and drop the pending debounce: the mode replaced what it
   /// shows (a load, an import, a title page rewrite, a new page setup).
   ///
   /// Does nothing while the mode has no document yet.
@@ -96,7 +96,7 @@ class OcptEditorStatisticsBloc
     );
   }
 
-  /// Turns what the mode's state moved, other than a reload, into a refresh of the scene's counters
+  /// Turn what the mode's state moved, other than a reload, into a refresh of the scene's counters
   /// and a restart of the script-wide debounce.
   void _onModeState(OcptEditorState next) {
     final previous = _previousModeState;
@@ -115,7 +115,7 @@ class OcptEditorStatisticsBloc
     }
   }
 
-  /// Recomputes the statistics of the scene the caret is in, from the mode's current state.
+  /// Recompute the statistics of the scene the caret is in, from the mode's current state.
   Future<void> _onSceneRefreshRequested(
     OcptEditorStatisticsSceneRefreshRequestedEvent event,
     Emitter<OcptEditorStatisticsState> emitter,
@@ -128,7 +128,7 @@ class OcptEditorStatisticsBloc
     emitter(state.copyWithCaretScene(sceneStatistics: sceneStatistics));
   }
 
-  /// Recomputes statistics from the mode's current document and page setup, once the statistics
+  /// Recompute statistics from the mode's current document and page setup, once the statistics
   /// debounce elapses. A no-op if nothing has been parsed yet.
   Future<void> _onStatisticsRecomputeRequested(
     OcptEditorStatisticsRecomputeRequestedEvent event,
@@ -147,7 +147,7 @@ class OcptEditorStatisticsBloc
     );
   }
 
-  /// Computes the statistics of the scene [modeState]'s caret is in, or null if it precedes every
+  /// Compute the statistics of the scene [modeState]'s caret is in, or null if it precedes every
   /// scene or nothing is parsed.
   FountainSceneStatistics? _sceneStatisticsOf(OcptEditorState modeState) {
     final document = modeState.document;

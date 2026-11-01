@@ -16,7 +16,7 @@ const _darkLogoAsset = SvgAsset("assets/branding/ocpt_logo_dark.svg");
 /// The path of the container-less variant of the mark, the one [OcptLogoGlyph] draws.
 const ocptLogoGlyphAssetPath = "assets/branding/ocpt_logo_glyph.svg";
 
-/// Returns the variant of the mark that suits [brightness]: the accent-filled square on a light
+/// Return the variant of the mark that suits [brightness]: the accent-filled square on a light
 /// surface, the hollow one on a dark surface, where a violet block would glare.
 ///
 /// This is what [OcptLogo] resolves against the ambient theme; it is exposed so the choice itself

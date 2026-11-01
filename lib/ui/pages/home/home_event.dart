@@ -10,7 +10,7 @@ sealed class OcptHomeEvent extends BlocEventForMixin {
   const OcptHomeEvent();
 }
 
-/// Requests the creation of a new project named [name].
+/// Request the creation of a new project named [name].
 ///
 /// On desktop this shows the native save-file dialog first, suggesting `<name>.ocpt` inside
 /// `OcptProjectsManager.suggestedProjectsDirectory` — the last folder a save dialog landed in, or
@@ -36,7 +36,7 @@ class OcptHomeCreateProjectRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, name, fileTypeLabel];
 }
 
-/// Requests opening a project, then navigating to the editor.
+/// Request opening a project, then navigating to the editor.
 ///
 /// If [filePath] is null, an open-file dialog filtered to project files is shown first to let the
 /// user pick one (the "Open…" action); otherwise [filePath] is opened directly, without a dialog
@@ -71,7 +71,7 @@ class OcptHomeOpenProjectRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, filePath, fileTypeLabel, allowMigration];
 }
 
-/// Requests opening the project at [filePath], then navigating to its Partager screen
+/// Request opening the project at [filePath], then navigating to its Partager screen
 /// (`OcptRoute.sharing`) instead of the workspace.
 ///
 /// Raised by a project card's own "Partager / Synchroniser…" overflow menu action: [filePath]
@@ -89,7 +89,7 @@ class OcptHomeShareProjectRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, filePath];
 }
 
-/// Requests navigating to the "Rejoindre un projet partagé" screen (`OcptRoute.joining`).
+/// Request navigating to the "Rejoindre un projet partagé" screen (`OcptRoute.joining`).
 ///
 /// Raised by the home page toolbar's own "Join a shared project…" action. Unlike
 /// [OcptHomeShareProjectRequestedEvent], this opens no project first — joining is how a project
@@ -99,7 +99,7 @@ class OcptHomeJoinSharedProjectRequestedEvent extends OcptHomeEvent {
   const OcptHomeJoinSharedProjectRequestedEvent();
 }
 
-/// Reports that the home page has stated what the probe found about a project file, which clears
+/// Report that the home page has stated what the probe found about a project file, which clears
 /// it from the state.
 ///
 /// The one-shot field is consumed the moment it has been acted on, exactly as every transient
@@ -110,7 +110,7 @@ class OcptHomeFileCompatibilityStatedEvent extends OcptHomeEvent {
   const OcptHomeFileCompatibilityStatedEvent();
 }
 
-/// Requests removing the recent project at [path] from the recent projects list.
+/// Request removing the recent project at [path] from the recent projects list.
 class OcptHomeRemoveRecentProjectRequestedEvent extends OcptHomeEvent {
   /// The path of the recent project to remove.
   final String path;
@@ -123,13 +123,13 @@ class OcptHomeRemoveRecentProjectRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, path];
 }
 
-/// Dismisses the transient error currently shown, if any.
+/// Dismiss the transient error currently shown, if any.
 class OcptHomeErrorDismissedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeErrorDismissedEvent();
 }
 
-/// Requests creating a new project seeded with the content of a picked screenplay file.
+/// Request creating a new project seeded with the content of a picked screenplay file.
 ///
 /// This shows an open-file dialog to pick the screenplay — a `.fountain`, an `.fdx` or a
 /// `.celtx`, the last two being converted to Fountain as they are read. On desktop, a save-file
@@ -162,13 +162,13 @@ class OcptHomeImportScreenplayRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, screenplayFileTypeLabel, projectFileTypeLabel];
 }
 
-/// Dismisses the transient screenplay import error currently shown, if any.
+/// Dismiss the transient screenplay import error currently shown, if any.
 class OcptHomeScreenplayImportErrorDismissedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeScreenplayImportErrorDismissedEvent();
 }
 
-/// Requests unpacking a picked portable project package (`.ocptz`) into a project of its own.
+/// Request unpacking a picked portable project package (`.ocptz`) into a project of its own.
 ///
 /// Picks the package through an open-file dialog, then a **parent folder** to create
 /// `<project name>/` inside — never a single file, since a package unpacks into a folder holding
@@ -197,13 +197,13 @@ class OcptHomeImportProjectPackageRequestedEvent extends OcptHomeEvent {
   List<Object?> get props => [...super.props, packageFileTypeLabel, destinationConfirmButtonText];
 }
 
-/// Dismisses the transient project package import error currently shown, if any.
+/// Dismiss the transient project package import error currently shown, if any.
 class OcptHomeProjectPackageImportErrorDismissedEvent extends OcptHomeEvent {
   /// Class constructor
   const OcptHomeProjectPackageImportErrorDismissedEvent();
 }
 
-/// Reports that the page has read the last project package import's report — the one-shot field
+/// Report that the page has read the last project package import's report — the one-shot field
 /// the page consumes to state the skipped files (if any) and then open the project itself — which
 /// clears it from the state.
 class OcptHomeProjectPackageImportReportDismissedEvent extends OcptHomeEvent {

@@ -30,11 +30,11 @@ class OcptStyledTitlePageMetrics {
   /// with no Draft date node.
   final double rowShift;
 
-  /// Creates an [OcptStyledTitlePageMetrics].
+  /// Create an [OcptStyledTitlePageMetrics].
   const OcptStyledTitlePageMetrics({required this.flowHeight, required this.rowShift});
 }
 
-/// Computes [document]'s title-page flow height at [metrics] — the real vertical space
+/// Compute [document]'s title-page flow height at [metrics] — the real vertical space
 /// `OcptFountainEditorStylesheet`'s title-page rule renders the sheet's title-page field nodes
 /// into, used by `computeOcptStyledPagination` to know exactly how much of page 1 they actually
 /// fill (rather than assuming they fill none of it, or all of it).

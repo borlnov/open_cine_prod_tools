@@ -5,7 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/ocpt_specific_colors.dart';
 
-/// The colour the workspace marks everything needing attention — but not broken — with: the shot
+/// Get the colour the workspace marks everything needing attention — but not broken — with: the
+/// shot
 /// list's ⚠ and its difficulties at or above the warning threshold, the read-only preview of a
 /// project version, and every callout the mock-up paints amber rather than red.
 ///

@@ -71,7 +71,7 @@ class OcptProjectSettingsCurrencySection extends StatelessWidget {
     );
   }
 
-  /// The label shown for [code] in the picker: the code itself and its symbol, e.g. `EUR — €`.
+  /// Get the label shown for [code] in the picker: the code itself and its symbol, e.g. `EUR — €`.
   ///
   /// Both come from `intl`'s own currency table rather than an ARB key: the codes are data, and
   /// `intl` already knows how to present them in every supported locale.

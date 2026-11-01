@@ -59,7 +59,7 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
   /// Class constructor
   OcptSearchMatchStyler() : _matchesByNodeId = const {};
 
-  /// Replaces the matches this styler paints and marks the phase dirty so `SuperEditor`
+  /// Replace the matches this styler paints and mark the phase dirty so `SuperEditor`
   /// re-runs it — unconditionally: `OcptStyledScreenplayEditor` only calls this when it has
   /// something new to report (a fresh recompute after an edit, or an explicit navigation), so
   /// there is no stale-call case worth guarding against here.
@@ -74,7 +74,7 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
     markDirty();
   }
 
-  /// Styles [viewModel] by replacing every component that carries at least one match with a
+  /// Style [viewModel] by replacing every component that carries at least one match with a
   /// highlighted copy, through [_applyMatches]; every other component is left untouched (not even
   /// copied), matching `SpellingAndGrammarStyler`'s own pattern.
   @override
@@ -92,7 +92,7 @@ class OcptSearchMatchStyler extends SingleColumnLayoutStylePhase {
     );
   }
 
-  /// Returns [previousViewModel] unchanged when it carries no match or isn't a text component
+  /// Return [previousViewModel] unchanged when it carries no match or isn't a text component
   /// (e.g. the title page's own field components, which do mix in [TextComponentViewModel], are
   /// still handled the same way as every other text block); otherwise returns a highlighted copy.
   SingleColumnLayoutComponentViewModel _applyMatches(

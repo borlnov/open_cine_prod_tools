@@ -68,7 +68,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shortcut_labels.dar
 ///
 /// The `OcptRouterManager` editor guard guarantees a project is open when this page is reached.
 class OcptEditorPage extends StatelessWidget {
-  /// Creates the editor page.
+  /// Create the editor page.
   const OcptEditorPage({super.key});
 
   /// Build the editor page as a [MultiBlocProvider].
@@ -237,7 +237,8 @@ class _EditorViewState extends State<_EditorView> {
     navigateToMatch: _rawScroller.navigateToMatch,
   );
 
-  /// Whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]) narrow enough to
+  /// Tell whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]) narrow enough
+  /// to
   /// force the styled editor as the only editing surface, and page simulation off, regardless of
   /// what [OcptEditorState.mode] and [OcptEditorState.isPageSimulationEnabled] are persisted as:
   /// raw source (and its own find/replace and spell-check wiring) and a real-size simulated page
@@ -253,7 +254,8 @@ class _EditorViewState extends State<_EditorView> {
   /// answers with the window's current width rather than a stale build-time snapshot.
   bool get _isPhoneWidth => ocptIsPhoneWidth(MediaQuery.sizeOf(context).width);
 
-  /// Whether the window this page is laid out in is narrow enough ([ocptIsCompactWidth]) that the
+  /// Tell whether the window this page is laid out in is narrow enough ([ocptIsCompactWidth]) that
+  /// the
   /// styled editor — forced on by [_isPhoneWidth], or simply the user's own live preference at any
   /// width — should carry its block hierarchy by style rather than by the real screenplay indents
   /// (see [OcptStyledScreenplayEditor.isCompact]): a tablet window has more
@@ -449,14 +451,14 @@ class _EditorViewState extends State<_EditorView> {
     ),
   );
 
-  /// The editing mode actually driving which surface is live and wired up:
+  /// Get the editing mode actually driving which surface is live and wired up:
   /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The
   /// user's own raw/styled toggle (the toolbar icon, Ctrl+Shift+M) is left untouched by this —
   /// it keeps persisting whatever the user picks, and widening the window back out returns to it.
   OcptEditorMode _liveMode(OcptEditorState state) =>
       _isPhoneWidth ? OcptEditorMode.styled : state.mode;
 
-  /// Whether page simulation is actually applied to the live editing surface:
+  /// Tell whether page simulation is actually applied to the live editing surface:
   /// [OcptEditorState.isPageSimulationEnabled], forced off at [_isPhoneWidth] for the same reason
   /// [_liveMode] forces the mode — a real-size simulated page has no room to be legible on a
   /// phone. The user's own toggle is left untouched the same way [_liveMode] leaves the mode
@@ -464,7 +466,7 @@ class _EditorViewState extends State<_EditorView> {
   bool _isPageSimulationLive(OcptEditorState state) =>
       state.isPageSimulationEnabled && !_isPhoneWidth;
 
-  /// Builds the screenplay's `⋮` overflow menu entries: undo and redo, import and replace, find,
+  /// Build the screenplay's `⋮` overflow menu entries: undo and redo, import and replace, find,
   /// find and replace, the page-simulation and scene-numbers toggles, page setup, title page, and
   /// resetting the panel layout.
   ///
@@ -567,17 +569,18 @@ class _EditorViewState extends State<_EditorView> {
     ];
   }
 
-  /// Sends the manual save request (toolbar button or Ctrl+S).
+  /// Send the manual save request (toolbar button or Ctrl+S).
   void _requestManualSave() {
     context.read<OcptEditorBloc>().add(const OcptEditorSaveRequestedEvent(isManual: true));
   }
 
-  /// Sends the mode toggle request (toolbar button or Ctrl+Shift+M).
+  /// Send the mode toggle request (toolbar button or Ctrl+Shift+M).
   void _toggleMode() {
     context.read<OcptEditorBloc>().add(const OcptEditorModeToggledEvent());
   }
 
-  /// What the editing surface [state] currently shows has left to take back and to put back: the
+  /// Get what the editing surface [state] currently shows has left to take back and to put back:
+  /// the
   /// raw field's own Flutter history in raw mode, the styled editor's `Editor` history in styled
   /// mode.
   ///
@@ -593,7 +596,7 @@ class _EditorViewState extends State<_EditorView> {
         )
       : (canUndo: _styledEditorController.canUndo, canRedo: _styledEditorController.canRedo);
 
-  /// Takes back the last gesture made in the surface [state] shows (the `⋮` menu's `Undo` entry),
+  /// Take back the last gesture made in the surface [state] shows (the `⋮` menu's `Undo` entry),
   /// which is what Ctrl+Z reaches inside that same surface on its own.
   void _requestUndo(OcptEditorState state) {
     if (_liveMode(state) == OcptEditorMode.raw) {
@@ -603,7 +606,7 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
-  /// Puts back the last gesture taken back in the surface [state] shows (the `⋮` menu's `Redo`
+  /// Put back the last gesture taken back in the surface [state] shows (the `⋮` menu's `Redo`
   /// entry); the styled editor refuses one a later edit has overtaken, exactly as its own
   /// Ctrl+Shift+Z does.
   void _requestRedo(OcptEditorState state) {
@@ -614,7 +617,7 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
-  /// Rebuilds the page when the raw field's undo history gained or lost something to take back or
+  /// Rebuild the page when the raw field's undo history gained or lost something to take back or
   /// put back, so the `⋮` menu's entries appear and vanish with it.
   ///
   /// The rebuild is deferred past the current frame when the notification lands in the middle of
@@ -636,7 +639,7 @@ class _EditorViewState extends State<_EditorView> {
     setState(() {});
   }
 
-  /// Opens the find/replace bar (Ctrl+F, Ctrl+H, or the `⋮` menu's `Find…` / `Find and replace…`
+  /// Open the find/replace bar (Ctrl+F, Ctrl+H, or the `⋮` menu's `Find…` / `Find and replace…`
   /// entries).
   ///
   /// A no-op while a project version is being previewed: the bar is withheld entirely then (there
@@ -651,19 +654,19 @@ class _EditorViewState extends State<_EditorView> {
     searchBloc.add(OcptEditorSearchOpenedEvent(withReplaceRow: withReplaceRow));
   }
 
-  /// Closes the find/replace bar (Escape).
+  /// Close the find/replace bar (Escape).
   void _requestCloseSearch() {
     context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchClosedEvent());
   }
 
-  /// Pushes both sets of spell-check ranges onto the live editing surface, see
+  /// Push both sets of spell-check ranges onto the live editing surface, see
   /// [_syncRawSpellCheck] and [_syncStyledSpellCheck].
   void _syncSpellCheck(OcptEditorState state, OcptEditorSpellCheckState spellState) {
     _syncRawSpellCheck(state, spellState);
     _syncStyledSpellCheck(state, spellState);
   }
 
-  /// Pushes [OcptEditorSpellCheckState.rawSpellCheckRanges] onto [_textController]'s own
+  /// Push [OcptEditorSpellCheckState.rawSpellCheckRanges] onto [_textController]'s own
   /// [OcptEditorSearchTextController.updateSpellCheckRanges], the raw mode's half of the rule
   /// that each editing surface paints what it shows.
   ///
@@ -682,7 +685,7 @@ class _EditorViewState extends State<_EditorView> {
     _textController.updateSpellCheckRanges(spellState.rawSpellCheckRanges);
   }
 
-  /// Pushes [OcptEditorSpellCheckState.styledSpellCheckRanges] onto [_styledEditorController]'s own
+  /// Push [OcptEditorSpellCheckState.styledSpellCheckRanges] onto [_styledEditorController]'s own
   /// [OcptStyledEditorController.updateSpellCheckRanges], the styled mode's own half of the rule
   /// that each editing surface paints what it shows — the raw mode's own counterpart is
   /// [_syncRawSpellCheck].
@@ -700,9 +703,9 @@ class _EditorViewState extends State<_EditorView> {
     _styledEditorController.updateSpellCheckRanges(spellState.styledSpellCheckRanges);
   }
 
-  /// Rebuilds the `⋮` menu's entries when the styled editor gained or lost something to undo or
-  /// redo, reports [_styledEditorController]'s own checkable spell-check texts to the bloc whenever
-  /// the styled editing surface is actually the live one, then reports its search match count too
+  /// Rebuild the `⋮` menu's entries when the styled editor gained or lost something to undo or
+  /// redo, report [_styledEditorController]'s own checkable spell-check texts to the bloc whenever
+  /// the styled editing surface is actually the live one, then report its search match count too
   /// — each exactly once per genuine change: the controller notifies its listeners for several
   /// unrelated reasons (a block-type or inline-style read-state refresh, either of the other two),
   /// and [_lastReportedStyledSpellCheckTexts] are what keep
@@ -747,7 +750,7 @@ class _EditorViewState extends State<_EditorView> {
     );
   }
 
-  /// Reports the controller's text and caret line changes to the bloc.
+  /// Report the controller's text and caret line changes to the bloc.
   void _onTextControllerChanged() {
     if (_isApplyingProgrammaticChange) {
       return;
@@ -767,7 +770,7 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
-  /// The 0-based line the caret is currently on (0 when there is no valid selection).
+  /// Get the 0-based line the caret is currently on (0 when there is no valid selection).
   int _caretLine() {
     final baseOffset = _textController.selection.baseOffset;
     if (baseOffset < 0) {
@@ -779,7 +782,7 @@ class _EditorViewState extends State<_EditorView> {
     return "\n".allMatches(text.substring(0, clampedOffset)).length;
   }
 
-  /// Applies bloc-driven effects onto the page: keeping the raw text controller in sync with any
+  /// Apply bloc-driven effects onto the page: keeping the raw text controller in sync with any
   /// text change that didn't originate from it (the initial load, or an edit made in styled
   /// mode), scene jump requests, the transient save error SnackBar, and the live dock fractions.
   ///
@@ -862,7 +865,7 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
-  /// Shows the outcome of an export or an import as a SnackBar, then dismisses it.
+  /// Show the outcome of an export or an import as a SnackBar, then dismiss it.
   void _onIoStateChanged(BuildContext context, OcptEditorIoState ioState) {
     final ioNotice = ioState.ioNotice;
     if (ioNotice != null) {

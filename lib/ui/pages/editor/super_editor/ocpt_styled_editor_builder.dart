@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_hi
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_title_page_guard_requests.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Builds the super_editor [Editor] of the styled screenplay editor over [document] and [composer]:
+/// Build the super_editor [Editor] of the styled screenplay editor over [document] and [composer]:
 /// super_editor's default request handlers, the title-page guard in front of them and the app's own
 /// metadata and text-replacement handlers after them, recording its undo history through
 /// [history].

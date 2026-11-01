@@ -10,7 +10,7 @@ sealed class OcptEditorSearchEvent extends OcptEditorEvent {
   const OcptEditorSearchEvent();
 }
 
-/// Opens the find/replace bar, dispatched by Ctrl+F ([withReplaceRow] false), Ctrl+H and the `⋮`
+/// Open the find/replace bar, dispatched by Ctrl+F ([withReplaceRow] false), Ctrl+H and the `⋮`
 /// menu's `Find and replace…` entry (both [withReplaceRow] true).
 ///
 /// Sets `OcptEditorState.search`'s `isOpen`, and unfolds the replace row when [withReplaceRow] is
@@ -29,7 +29,7 @@ class OcptEditorSearchOpenedEvent extends OcptEditorSearchEvent {
   List<Object?> get props => [...super.props, withReplaceRow];
 }
 
-/// Closes the find/replace bar (Escape, or its own × button).
+/// Close the find/replace bar (Escape, or its own × button).
 ///
 /// Clears the highlight (the match count and the current match index), but keeps the query, the
 /// replacement and both options, so reopening the bar comes back to the same search.
@@ -38,13 +38,13 @@ class OcptEditorSearchClosedEvent extends OcptEditorSearchEvent {
   const OcptEditorSearchClosedEvent();
 }
 
-/// Folds or unfolds the replace row (the bar's own chevron).
+/// Fold or unfold the replace row (the bar's own chevron).
 class OcptEditorSearchReplaceRowToggledEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchReplaceRowToggledEvent();
 }
 
-/// Reports that the find field's text changed.
+/// Report that the find field's text changed.
 ///
 /// Resets `OcptEditorSearchState.currentMatchIndex` to 0, ready for the mounted surface's next
 /// `OcptEditorSearchMatchesReportedEvent` to clamp it once the new query's matches are known.
@@ -60,7 +60,7 @@ class OcptEditorSearchQueryChangedEvent extends OcptEditorSearchEvent {
   List<Object?> get props => [...super.props, query];
 }
 
-/// Reports that the replace field's text changed.
+/// Report that the replace field's text changed.
 class OcptEditorSearchReplacementChangedEvent extends OcptEditorSearchEvent {
   /// The replace field's new text.
   final String replacement;
@@ -73,19 +73,19 @@ class OcptEditorSearchReplacementChangedEvent extends OcptEditorSearchEvent {
   List<Object?> get props => [...super.props, replacement];
 }
 
-/// Toggles the "match case" option (the find field's `Aa` toggle).
+/// Toggle the "match case" option (the find field's `Aa` toggle).
 class OcptEditorSearchCaseSensitivityToggledEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchCaseSensitivityToggledEvent();
 }
 
-/// Toggles the "whole word" option (the find field's `ab` toggle).
+/// Toggle the "whole word" option (the find field's `ab` toggle).
 class OcptEditorSearchWholeWordToggledEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchWholeWordToggledEvent();
 }
 
-/// Reports the current match count of the mounted editing surface — raw mode counts matches in the
+/// Report the current match count of the mounted editing surface — raw mode counts matches in the
 /// Fountain source text, styled mode in each node's display text (see `OcptEditorState.search`'s
 /// own doc comment for why the two can differ).
 ///
@@ -103,20 +103,20 @@ class OcptEditorSearchMatchesReportedEvent extends OcptEditorSearchEvent {
   List<Object?> get props => [...super.props, matchCount];
 }
 
-/// Moves to the next match (the bar's `›` button), wrapping from the last match back to the first.
+/// Move to the next match (the bar's `›` button), wrapping from the last match back to the first.
 class OcptEditorSearchNextRequestedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchNextRequestedEvent();
 }
 
-/// Moves to the previous match (the bar's `‹` button), wrapping from the first match back to the
+/// Move to the previous match (the bar's `‹` button), wrapping from the first match back to the
 /// last.
 class OcptEditorSearchPreviousRequestedEvent extends OcptEditorSearchEvent {
   /// Class constructor
   const OcptEditorSearchPreviousRequestedEvent();
 }
 
-/// Sets the current match to [index] directly, dispatched by whichever editing surface just
+/// Set the current match to [index] directly, dispatched by whichever editing surface just
 /// performed a `Replace` and computed, against the text it just wrote, which match should become
 /// current next.
 ///

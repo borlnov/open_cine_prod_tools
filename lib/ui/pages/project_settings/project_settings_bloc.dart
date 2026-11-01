@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/project_settings/project_settings_
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
-/// Opens [folder] in the platform's own file manager, answering whether it did.
+/// Open [folder] in the platform's own file manager, answering whether it did.
 typedef OcptFolderLauncher = Future<bool> Function(Uri folder);
 
 /// This is the bloc class for the project settings page.
@@ -93,11 +93,12 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
   /// a test hands in its own, since no url_launcher implementation answers under `flutter test`.
   final OcptFolderLauncher _launchFolder;
 
-  /// The current project's database. The route that reaches this page is guarded exactly like the
+  /// Get the current project's database. The route that reaches this page is guarded exactly like
+  /// the
   /// workspace's own, so a project is always open by the time an episode mutation runs.
   OcptProjectDatabase get _database => _projectsManager.currentProject!.database;
 
-  /// [_exportManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// Get [_exportManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
   /// environment actually registered one, or null otherwise — resolved lazily on every access
   /// rather than eagerly in the constructor, exactly as `OcptWorkspaceBloc._syncManager` is and for
   /// the same reason: this page's own widget tests build a bare `OcptProjectSettingsBloc()` with no
@@ -116,7 +117,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     return managers.isRegistered<OcptExportManager>() ? managers.get<OcptExportManager>() : null;
   }
 
-  /// [_syncManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_syncManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily for the very same reason
   /// [_exportManager] is.
   OcptSyncManager? get _syncManager {
@@ -132,7 +134,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
 
-  /// [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager environment
+  /// Get [_hostManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// environment
   /// actually registered one, or null otherwise — resolved lazily for the very same reason
   /// [_exportManager] is.
   OcptRelayHostManager? get _hostManager {
@@ -150,7 +153,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         : null;
   }
 
-  /// [_propertiesManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
+  /// Get [_propertiesManagerOverride], or the one `globalGetIt()` holds when an app-wide manager
   /// environment actually registered one, or null otherwise — resolved lazily for the very same
   /// reason [_exportManager] is.
   OcptPropertiesManager? get _propertiesManager {
@@ -269,7 +272,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     );
   }
 
-  /// Whether an in-app-hosted relay is currently online for the very project this page is open on
+  /// Tell whether an in-app-hosted relay is currently online for the very project this page is open
+  /// on
   /// — what [initAsyncBloc] withholds `Move…` for, since a hosted relay keeps this project's
   /// `.relay.sqlite` sidecar open (`OcptProjectsManager.moveCurrentProject`'s own doc comment
   /// explains why the manager itself cannot check this).
@@ -295,7 +299,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     return projectId != null && projectId == hostManager.hostedProjectId;
   }
 
-  /// Opens the current project's folder in the platform's own file manager — the `Project file`
+  /// Open the current project's folder in the platform's own file manager — the `Project file`
   /// card's own `Show in folder` action.
   ///
   /// A failure — most likely no application registered to open a folder, which is what a desktop
@@ -323,7 +327,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
   }
 
-  /// Clears [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
+  /// Clear [OcptProjectSettingsState.isShowInFolderFailed] once the page has shown it.
   Future<void> _onShowInFolderFailureDismissed(
     OcptProjectSettingsShowInFolderFailureDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -331,7 +335,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithShowInFolderFailureDismissed());
   }
 
-  /// Shows the native save-file dialog, suggesting the project's current file name inside its
+  /// Show the native save-file dialog, suggesting the project's current file name inside its
   /// current folder, and moves the project's file there once the user picks a destination — the
   /// `Project file` card's own `Move…` action. A cancelled dialog is a silent no-op.
   ///
@@ -383,7 +387,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMoved(projectFilePath: result.value!.path));
   }
 
-  /// Restarts the sync session [_onMoveRequested] stopped before the move, now against the moved
+  /// Restart the sync session [_onMoveRequested] stopped before the move, now against the moved
   /// project's own (freshly opened) database — mirrors
   /// `OcptWorkspaceBloc._startSyncSessionIfPaired` step for step, reading the very same
   /// `sync_pairings` row and starting the very same way, since the move touched nothing about the
@@ -430,7 +434,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     }
   }
 
-  /// Clears the transient move error currently shown, if any.
+  /// Clear the transient move error currently shown, if any.
   Future<void> _onMoveErrorDismissed(
     OcptProjectSettingsMoveErrorDismissedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -438,7 +442,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMoveErrorDismissed());
   }
 
-  /// Writes the newly picked currency to the project, then reflects it in the state.
+  /// Write the newly picked currency to the project, then reflects it in the state.
   Future<void> _onCurrencyChanged(
     OcptProjectSettingsCurrencyChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -447,7 +451,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithCurrencyCode(currencyCode: event.currencyCode));
   }
 
-  /// Writes the newly picked page format to the project, then reflects it in the state.
+  /// Write the newly picked page format to the project, then reflects it in the state.
   Future<void> _onPageFormatChanged(
     OcptProjectSettingsPageFormatChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -456,7 +460,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithPageFormat(pageFormat: event.pageFormat));
   }
 
-  /// Writes the newly committed minimum rest to the project, then reflects it in the state.
+  /// Write the newly committed minimum rest to the project, then reflects it in the state.
   ///
   /// `hasChanged` is set here exactly as every other field of this page sets it: the schedule
   /// mode's own re-read of this figure (`OcptScheduleProjectSettingsChangedEvent`, fired when this
@@ -469,7 +473,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMinimumRestMinutes(minimumRestMinutes: event.minutes));
   }
 
-  /// Writes the newly committed default VAT rate to the project, then reflects it in the state.
+  /// Write the newly committed default VAT rate to the project, then reflects it in the state.
   ///
   /// `event.basisPoints` is written whichever it is, including null and including `0` — the same
   /// reasoning [_onMinimumRestMinutesChanged] already follows for its own field, `0` being as real
@@ -482,7 +486,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithDefaultVatRate(defaultVatRateBasisPoints: event.basisPoints));
   }
 
-  /// Writes the newly committed meal price to the project, then reflects it in the state.
+  /// Write the newly committed meal price to the project, then reflects it in the state.
   Future<void> _onMealPriceCentsChanged(
     OcptProjectSettingsMealPriceCentsChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -491,7 +495,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMealPrice(mealPriceCents: event.cents));
   }
 
-  /// Writes the newly committed buffet price to the project, then reflects it in the state —
+  /// Write the newly committed buffet price to the project, then reflects it in the state —
   /// [_onMealPriceCentsChanged]'s sibling. Still written through
   /// `saveCurrentProjectSnackPriceCents`, the schema column's own name.
   Future<void> _onBuffetPriceCentsChanged(
@@ -502,7 +506,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithBuffetPrice(buffetPriceCents: event.cents));
   }
 
-  /// Writes the newly picked screenplay language to the project, then reflects it in the state.
+  /// Write the newly picked screenplay language to the project, then reflects it in the state.
   ///
   /// `event.screenplayLanguage` is written whichever it is, "None" (null) included: it is what
   /// makes the checker's off switch for this screenplay actually reach the project file, the same
@@ -515,8 +519,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithScreenplayLanguage(screenplayLanguage: event.screenplayLanguage));
   }
 
-  /// Applies `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then
-  /// re-reads the live word list so the section's count reflects what the database now holds.
+  /// Apply `OcptProjectDictionaryDialog`'s reported diff to the project's dictionary, then re-read
+  /// the live word list so the section's count reflects what the database now holds.
   ///
   /// Every removed word is unlearned **before** any added word is learned — the ordering
   /// `OcptProjectDictionaryDialog._close`'s own doc comment relies on: it is what turns a
@@ -547,8 +551,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithDictionaryWords(dictionaryWords: dictionaryWords));
   }
 
-  /// Appends a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
-  /// then re-reads the project's episodes so the card shows what the database now holds.
+  /// Append a new episode, numbered "last + 1" by `OcptScreenplayService.createEpisode` itself,
+  /// then re-read the project's episodes so the card shows what the database now holds.
   ///
   /// The home card's episode badge is told about it right away
   /// ([OcptProjectsManager.recordCurrentProjectEpisodeCount]) rather than left to the project's
@@ -564,7 +568,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithEpisodeAdded(episodes: episodes, isAdded: id != null));
   }
 
-  /// Writes the newly committed title of `event.screenplayId`, then re-reads the project's
+  /// Write the newly committed title of `event.screenplayId`, then re-read the project's
   /// episodes.
   Future<void> _onEpisodeTitleChanged(
     OcptProjectSettingsEpisodeTitleChangedEvent event,
@@ -579,7 +583,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
-  /// Writes the newly committed printed number of `event.screenplayId`, then re-reads the
+  /// Write the newly committed printed number of `event.screenplayId`, then re-read the
   /// project's episodes.
   Future<void> _onEpisodeNumberChanged(
     OcptProjectSettingsEpisodeNumberChangedEvent event,
@@ -594,8 +598,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
-  /// Moves `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then
-  /// re-reads the project's episodes in their freshly ordered `sortKey` order.
+  /// Move `event.screenplayId` to [OcptProjectSettingsEpisodeMovedEvent.newPosition], then re-read
+  /// the project's episodes in their freshly ordered `sortKey` order.
   Future<void> _onEpisodeMoved(
     OcptProjectSettingsEpisodeMovedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
@@ -609,8 +613,8 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithEpisodesChanged(episodes: episodes));
   }
 
-  /// Deletes `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog`
-  /// confirmed it, then re-reads the project's remaining episodes.
+  /// Delete `event.screenplayId` and its cascade, once the page's own `OcptConfirmDialog` confirmed
+  /// it, then re-read the project's remaining episodes.
   ///
   /// `hasChanged` is only set when the deletion actually happened: the card already withholds the
   /// delete affordance on a project's last live episode, but `OcptScreenplayService.deleteEpisode`
@@ -631,7 +635,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithEpisodeDeleted(episodes: episodes, isDeleted: deleted));
   }
 
-  /// Appends a new, blank mileage rate, then re-reads the project's rates so the card shows what
+  /// Append a new, blank mileage rate, then re-read the project's rates so the card shows what
   /// the database now holds.
   Future<void> _onMileageRateAdded(
     OcptProjectSettingsMileageRateAddedEvent event,
@@ -647,7 +651,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMileageRateAdded(mileageRates: mileageRates, isAdded: id != null));
   }
 
-  /// Writes the newly committed label of mileage rate `event.rateId`, then re-reads the project's
+  /// Write the newly committed label of mileage rate `event.rateId`, then re-read the project's
   /// rates.
   Future<void> _onMileageRateLabelChanged(
     OcptProjectSettingsMileageRateLabelChangedEvent event,
@@ -664,7 +668,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
   }
 
-  /// Writes the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-reads
+  /// Write the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-read
   /// the project's rates.
   Future<void> _onMileageRateAmountChanged(
     OcptProjectSettingsMileageRateAmountChangedEvent event,
@@ -681,7 +685,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
   }
 
-  /// Deletes `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-reads
+  /// Delete `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-read
   /// the project's remaining rates.
   ///
   /// `OcptBudgetFinancingService.deleteMileageRate` tombstones the row rather than erasing it

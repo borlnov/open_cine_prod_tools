@@ -31,7 +31,8 @@ class OcptEditorMetadataPanel extends StatelessWidget {
   /// the button is then not rendered at all.
   final VoidCallback? onEditTitlePage;
 
-  /// The Author field's display value: the `Author` entry, falling back to the `Authors` spelling
+  /// Get the Author field's display value: the `Author` entry, falling back to the `Authors`
+  /// spelling
   /// (both accepted on parse), or a dash when neither is present.
   String get _authorValue {
     final author = _rawValueOf('Author');
@@ -111,12 +112,12 @@ class OcptEditorMetadataPanel extends StatelessWidget {
     );
   }
 
-  /// [titlePage]'s entry for [key], as its raw joined value (not `FountainTitlePage`'s semantic
+  /// Get [titlePage]'s entry for [key], as its raw joined value (not `FountainTitlePage`'s semantic
   /// getters, which re-split and re-join their source text) — empty when the entry is absent or
   /// itself empty.
   String _rawValueOf(String key) => titlePage?.entry(key)?.joinedValue ?? '';
 
-  /// [key]'s display value: its raw joined value, or a dash when that's empty.
+  /// Get [key]'s display value: its raw joined value, or a dash when that's empty.
   String _displayValueOf(String key) {
     final value = _rawValueOf(key);
     return value.isEmpty ? _dash : value;

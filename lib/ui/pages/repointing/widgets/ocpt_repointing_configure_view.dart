@@ -173,7 +173,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     );
   }
 
-  /// Validates the relay address, showing [_relayAddressError] and dispatching nothing when it
+  /// Validate the relay address, showing [_relayAddressError] and dispatching nothing when it
   /// isn't a well-formed absolute URI, otherwise calling
   /// [OcptRepointingConfigureView.onRepointRequested].
   void _onSubmitPressed() {
@@ -188,7 +188,7 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     widget.onRepointRequested(uri, _enrolmentSecretController.text);
   }
 
-  /// Handles a QR code scanned by [_OcptRepointingScannerCard]: a code that isn't a relay
+  /// Handle a QR code scanned by [_OcptRepointingScannerCard]: a code that isn't a relay
   /// enrolment is ignored and the scanner re-armed for another attempt
   /// ([_scannerGeneration]) — never a crash — while a valid one fills the two fields and submits
   /// straight away, exactly as scanning the Partager screen's own invite QR joins straight away
@@ -267,8 +267,8 @@ class _OcptRepointingScannerCardState extends State<_OcptRepointingScannerCard> 
     );
   }
 
-  /// Reports the first detected barcode's raw value to [_OcptRepointingScannerCard.onScanned], then
-  /// ignores every further detection — `OcptJoiningScannerView._onDetect`'s own reasoning.
+  /// Report the first detected barcode's raw value to [_OcptRepointingScannerCard.onScanned], then
+  /// ignore every further detection — `OcptJoiningScannerView._onDetect`'s own reasoning.
   void _onDetect(BarcodeCapture capture) {
     if (_hasScanned) {
       return;

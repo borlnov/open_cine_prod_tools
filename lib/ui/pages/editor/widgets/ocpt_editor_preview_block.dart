@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 
-/// Renders one printable screenplay block on the preview's simulated paper page, at its true
+/// Render one printable screenplay block on the preview's simulated paper page, at its true
 /// screenplay position: indented from the page's left edge, capped at its element's width, and
 /// aligned per its element's convention (left for most, centered for centered text, right for
 /// transitions).
@@ -34,7 +34,8 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The pixel layout the block is typeset with.
   final OcptEditorPreviewLayout layout;
 
-  /// The base text style every preview run derives from: Courier Prime, black on the white page,
+  /// Get the base text style every preview run derives from: Courier Prime, black on the white
+  /// page,
   /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
   /// that getter's own doc comment for why estimate and render must always agree).
   ///
@@ -57,7 +58,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     color: Colors.black,
   );
 
-  /// The horizontal text alignment of [block]'s element.
+  /// Get the horizontal text alignment of [block]'s element.
   TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
     FountainLayoutAlignment.center => TextAlign.center,
     FountainLayoutAlignment.right => TextAlign.right,
@@ -118,7 +119,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     );
   }
 
-  /// Positions [text] within [element]'s layout box: indented from the page's left edge and
+  /// Position [text] within [element]'s layout box: indented from the page's left edge and
   /// capped at the element's width.
   ///
   /// The outer [Align] is load-bearing, not decorative: each block sits in the preview's
@@ -137,7 +138,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     ),
   );
 
-  /// Renders a full dialogue group: the character cue, then its parentheticals and dialogue
+  /// Render a full dialogue group: the character cue, then its parentheticals and dialogue
   /// lines, each at its own element's indent.
   Widget _dialogueGroup(FountainDialogueGroup dialogue) {
     final character = dialogue.character;
@@ -169,7 +170,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     );
   }
 
-  /// Renders [lines] as one text widget, one source line per rendered paragraph.
+  /// Render [lines] as one text widget, one source line per rendered paragraph.
   Widget _multilineText(List<String> lines, TextStyle style) => Text.rich(
     TextSpan(
       children: [
@@ -184,7 +185,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     textScaler: _textScaler,
   );
 
-  /// Renders [text] as one text widget, resolving its inline emphasis.
+  /// Render [text] as one text widget, resolving its inline emphasis.
   Widget _styledText(String text, TextStyle style) => Text.rich(
     TextSpan(children: _inlineSpans(text, style)),
     style: style,
@@ -192,7 +193,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     textScaler: _textScaler,
   );
 
-  /// The layout box of [block]'s element, or null for blocks without one (e.g. page breaks).
+  /// Get the layout box of [block]'s element, or null for blocks without one (e.g. page breaks).
   FountainElementLayout? _elementOf(FountainBlock block) => switch (block) {
     FountainSceneHeading() => layout.metrics.sceneHeading,
     FountainActionBlock() => layout.metrics.action,
@@ -202,14 +203,14 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     _ => null,
   };
 
-  /// Applies [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
+  /// Apply [FountainPrintStyle.of]'s print-time letter case to [text] for a line of [lineType],
   /// upper-casing it when that type's print style says so: the single source of truth this
   /// preview shares with the PDF exporter and the styled editor's stylesheet for which elements
   /// print upper-cased, so the three never drift apart on the question.
   static String _printed(String text, FountainLineType lineType) =>
       FountainPrintStyle.of(lineType).isUppercase ? text.toUpperCase() : text;
 
-  /// Applies [FountainPrintStyle.of]'s base weight/slope for [lineType] to [style]: the same
+  /// Apply [FountainPrintStyle.of]'s base weight/slope for [lineType] to [style]: the same
   /// shared table [_printed] reads its casing rule from, so a switch case above never hardcodes
   /// its own bold/italic decision for a type the table already has an opinion on (a scene heading
   /// is always bold, lyrics are always italic, regardless of any inline emphasis their own text
@@ -222,7 +223,7 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     );
   }
 
-  /// Resolves [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
+  /// Resolve [text]'s inline emphasis markers into styled [TextSpan]s deriving from [style].
   ///
   /// Inline notes (`[[...]]`) are editor-only: they are not part of the printed screenplay, so
   /// their spans are skipped.

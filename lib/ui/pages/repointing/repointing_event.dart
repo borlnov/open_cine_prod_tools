@@ -10,7 +10,7 @@ sealed class OcptRepointingEvent extends BlocEventForMixin {
   const OcptRepointingEvent();
 }
 
-/// Reports that the "Switch relay" action was pressed, or a scanned relay enrolment QR was
+/// Report that the "Switch relay" action was pressed, or a scanned relay enrolment QR was
 /// resolved, with the relay address and the enrolment secret either typed into the ① Configure
 /// form or read off the QR.
 class OcptRepointingRequestedEvent extends OcptRepointingEvent {
@@ -31,7 +31,7 @@ class OcptRepointingRequestedEvent extends OcptRepointingEvent {
   List<Object?> get props => [...super.props, relayBaseUri, enrolmentSecret];
 }
 
-/// Reports that the page has shown `OcptRepointingState.repointFailed`'s own snack bar, so the
+/// Report that the page has shown `OcptRepointingState.repointFailed`'s own snack bar, so the
 /// bloc clears the flag and a later rebuild doesn't show it again — the same one-shot-notice shape
 /// `OcptSharingBloc`'s own `OcptSharingPairingErrorDismissedEvent` already follows.
 class OcptRepointingErrorDismissedEvent extends OcptRepointingEvent {

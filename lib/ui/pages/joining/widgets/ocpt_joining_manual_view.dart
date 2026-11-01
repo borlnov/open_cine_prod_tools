@@ -76,7 +76,7 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
     );
   }
 
-  /// Hands the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
+  /// Hand the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
   /// typed — see this class's own doc comment for why nothing is validated here.
   void _onJoinPressed() => widget.onJoinRequested(_inviteLinkController.text);
 

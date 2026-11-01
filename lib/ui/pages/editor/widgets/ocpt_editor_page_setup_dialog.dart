@@ -29,7 +29,7 @@ class OcptEditorPageSetupDialog extends StatefulWidget {
   @override
   State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
 
-  /// Shows the dialog and returns the [OcptPageSetup] the user applied, or null if they cancelled
+  /// Show the dialog and return the [OcptPageSetup] the user applied, or null if they cancelled
   /// it.
   static Future<OcptPageSetup?> show(BuildContext context, {required OcptPageSetup current}) =>
       showDialog<OcptPageSetup>(
@@ -203,13 +203,13 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Validates one margin field: rejects a non-numeric or negative value, then, once every field
+  /// Validate one margin field: rejects a non-numeric or negative value, then, once every field
   /// parses, rejects a combination that leaves a non-positive printable width or height for
   /// [_selectedFormat].
   ///
@@ -255,7 +255,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     return null;
   }
 
-  /// The physical page width, in inches, of [format], read from the format's own layout metrics
+  /// Get the physical page width, in inches, of [format], read from the format's own layout metrics
   /// (built with their default standard margins, which is always safe/non-asserting) rather than
   /// hardcoding it a second time here.
   double _pageWidthInches(OcptPageFormat format) => switch (format) {
@@ -263,13 +263,13 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     OcptPageFormat.a4 => FountainLayoutMetrics.a4().pageWidthInches,
   };
 
-  /// The physical page height, in inches, of [format]; see [_pageWidthInches].
+  /// Get the physical page height, in inches, of [format]; see [_pageWidthInches].
   double _pageHeightInches(OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => FountainLayoutMetrics.usLetter().pageHeightInches,
     OcptPageFormat.a4 => FountainLayoutMetrics.a4().pageHeightInches,
   };
 
-  /// Overwrites every margin field with the standard margins, then re-validates the form.
+  /// Overwrite every margin field with the standard margins, then re-validate the form.
   void _resetToStandardMargins() {
     const standard = FountainPageMargins.standard();
     setState(() {
@@ -281,7 +281,7 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     _formKey.currentState?.validate();
   }
 
-  /// Validates the entered margins and, if they're valid, pops the dialog returning the resulting
+  /// Validate the entered margins and, if they're valid, pop the dialog returning the resulting
   /// [OcptPageSetup].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router

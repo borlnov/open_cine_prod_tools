@@ -55,7 +55,7 @@ final class OcptWysiwygTitlePage {
   /// Private constructor: this class only exposes static members.
   const OcptWysiwygTitlePage._();
 
-  /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
+  /// Get the title page entry for [key] (`Author` also matching a source written as `Authors`, per
   /// `FountainTitlePage.authors`'s own fallback), or null when [titlePage] is null or has no such
   /// entry.
   static FountainTitlePageEntry? entryFor(FountainTitlePage? titlePage, String key) {
@@ -67,7 +67,7 @@ final class OcptWysiwygTitlePage {
         : titlePage.entry(key);
   }
 
-  /// Builds the title-page field nodes `decodeWithTitlePage` prepends to the body: one node per
+  /// Build the title-page field nodes `decodeWithTitlePage` prepends to the body: one node per
   /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning
   /// several (an empty single node when [titlePage] has none for that key at all).
   ///
@@ -100,7 +100,7 @@ final class OcptWysiwygTitlePage {
     return nodes;
   }
 
-  /// The inverse of [nodesFrom]: groups [titlePageNodes] (already in the fixed
+  /// Get the inverse of [nodesFrom]: groups [titlePageNodes] (already in the fixed
   /// [ocptTitlePageFieldKeys] order, one run of consecutive nodes per field, by construction) back
   /// into [FountainTitlePageEntry] values, dropping a field whose every line is empty (the common
   /// case for most fields most of the time) so [FountainTitlePageWriter.apply] never writes a

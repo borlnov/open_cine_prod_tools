@@ -19,21 +19,21 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
   /// {@macro open_cine_prod_tools.OcptChangeNodeMetadataRequest.isHistorical}
   final bool isHistorical;
 
-  /// This command's undo/redo behavior: grouped with other undoable edits, matching
+  /// Get this command's undo/redo behavior: grouped with other undoable edits, matching
   /// `ChangeParagraphBlockTypeCommand`, unless [isHistorical] says this change happened before
   /// the writer could have anything to undo.
   @override
   HistoryBehavior get historyBehavior =>
       isHistorical ? HistoryBehavior.undoable : HistoryBehavior.nonHistorical;
 
-  /// Creates an [OcptChangeNodeMetadataCommand].
+  /// Create an [OcptChangeNodeMetadataCommand].
   const OcptChangeNodeMetadataCommand({
     required this.nodeId,
     required this.metadata,
     this.isHistorical = true,
   });
 
-  /// Applies the metadata merge to the document.
+  /// Apply the metadata merge to the document.
   @override
   void execute(EditContext context, CommandExecutor executor) {
     final document = context.document;
@@ -44,7 +44,8 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
   }
 }
 
-/// The [EditRequestHandler] for [OcptChangeNodeMetadataRequest], appended to the styled editor's
+/// Get the [EditRequestHandler] for [OcptChangeNodeMetadataRequest], appended to the styled
+/// editor's
 /// `Editor.requestHandlers` list wherever its `Editor` is constructed (see
 /// `_OcptStyledScreenplayEditorState._rebuildEditorFrom`).
 EditCommand? ocptChangeNodeMetadataRequestHandler(Editor editor, EditRequest request) =>

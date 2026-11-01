@@ -28,14 +28,14 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dar
 /// here yet", which is what it means.
 const ocptShotListEmptyValue = "—";
 
-/// The display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
+/// Get the display number of [sequence]: a real scene's own `displaySceneNumber`, or the orphan
 /// placeholder for the orphan group or for no sequence at all.
 String ocptShotSequenceDisplayNumberOf(OcptShotSequence? sequence) => switch (sequence) {
   OcptSceneShotSequence() => sequence.displaySceneNumber,
   OcptOrphanShotSequence() || null => ocptShotListEmptyValue,
 };
 
-/// The heading shown for [sequence]: a real scene's own heading, or [shot]'s
+/// Get the heading shown for [sequence]: a real scene's own heading, or [shot]'s
 /// `OcptShot.orphanedHeading` while [sequence] is the orphan group.
 String ocptShotSequenceHeadingOf(OcptShotSequence? sequence, OcptShot? shot) => switch (sequence) {
   OcptSceneShotSequence() => sequence.heading,
@@ -47,7 +47,8 @@ String ocptShotSequenceHeadingOf(OcptShotSequence? sequence, OcptShot? shot) => 
 /// the 0-5 scale the four difficulty axes are rated on.
 const ocptShotListDifficultyWarningThreshold = 2.5;
 
-/// The display label of the optional table column [column], shared by the table's header row and
+/// Get the display label of the optional table column [column], shared by the table's header row
+/// and
 /// by the `Columns ▾` menu so the two can never name the same column differently.
 String ocptShotListColumnLabel(Tr tr, OcptShotListColumn column) => switch (column) {
   OcptShotListColumn.set => tr.shotListColumnSet,
@@ -60,14 +61,14 @@ String ocptShotListColumnLabel(Tr tr, OcptShotListColumn column) => switch (colu
   OcptShotListColumn.status => tr.shotListColumnStatus,
 };
 
-/// The display label of the shooting status [status].
+/// Get the display label of the shooting status [status].
 String ocptShotStatusLabel(Tr tr, OcptShotStatus status) => switch (status) {
   OcptShotStatus.toShoot => tr.shotListStatusToShoot,
   OcptShotStatus.shot => tr.shotListStatusShot,
   OcptShotStatus.retake => tr.shotListStatusRetake,
 };
 
-/// The header label of the exported workbook's column [column].
+/// Get the header label of the exported workbook's column [column].
 ///
 /// Reuses the table's own column labels wherever the workbook writes the same column, so the
 /// spreadsheet a crew works from never names a column differently than the app does; the two
@@ -92,7 +93,7 @@ String ocptShotListXlsxColumnLabel(Tr tr, OcptShotListXlsxColumn column) => swit
   OcptShotListXlsxColumn.locationNotes => tr.shotListInspectorLocationSectionTitle,
 };
 
-/// Builds every localized string the exported shot list workbook carries, for the [sequences] it
+/// Build every localized string the exported shot list workbook carries, for the [sequences] it
 /// is being built from.
 ///
 /// This is the single bridge between the UI's `Tr` and `OcptShotListXlsxExportService`, which runs
@@ -113,7 +114,7 @@ OcptShotListXlsxLabels ocptShotListXlsxLabelsOf(Tr tr, List<OcptShotSequence> se
       dayTagPrefix: tr.scheduleDayTagPrefix,
     );
 
-/// Builds every localized string the exported scenario coverage document carries, for the
+/// Build every localized string the exported scenario coverage document carries, for the
 /// [sequences] it is being built from.
 ///
 /// The sibling of [ocptShotListXlsxLabelsOf] for the other export the shot list mode offers, and
@@ -143,7 +144,7 @@ OcptScenarioCoverageLabels ocptScenarioCoverageLabelsOf(Tr tr, List<OcptShotSequ
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
     );
 
-/// Builds every localized string the exported storyboard document carries, for the [sequences] it
+/// Build every localized string the exported storyboard document carries, for the [sequences] it
 /// is being built from.
 ///
 /// The third sibling of [ocptShotListXlsxLabelsOf] and [ocptScenarioCoverageLabelsOf], and the same
@@ -171,7 +172,7 @@ OcptStoryboardLabels ocptStoryboardLabelsOf(Tr tr, List<OcptShotSequence> sequen
       sequenceTitles: ocptShotListSequenceTitlesOf(tr, sequences),
     );
 
-/// Builds every localized string the exported floor plans document carries, for the [sequences] it
+/// Build every localized string the exported floor plans document carries, for the [sequences] it
 /// is being built from.
 ///
 /// The sibling of [ocptStoryboardLabelsOf] for the floor plans document. `noCameraNote` reuses
@@ -202,7 +203,8 @@ OcptFloorPlanLabels ocptFloorPlanLabelsOf(Tr tr, List<OcptShotSequence> sequence
       scaleBarUnitLabel: tr.shotListExportFloorPlansScaleBarUnitLabel,
     );
 
-/// The title of each of the [sequences], keyed by `OcptShotSequence.id`, as both exports name them.
+/// Get the title of each of the [sequences], keyed by `OcptShotSequence.id`, as both exports name
+/// them.
 ///
 /// Resolved sequence by sequence rather than formatted by the exporting service, since a real
 /// scene's own header takes its number and heading as placeholders while the orphan group's is a
@@ -218,7 +220,7 @@ Map<String, String> ocptShotListSequenceTitlesOf(Tr tr, List<OcptShotSequence> s
     },
 };
 
-/// The colour the shooting status [status] is painted with.
+/// Get the colour the shooting status [status] is painted with.
 ///
 /// [OcptShotStatus.toShoot] is the neutral one and reads through the colour scheme's own
 /// `onSurfaceVariant`; the two others come from [OcptSpecificColors], which is where the app puts
@@ -234,7 +236,7 @@ Color ocptShotStatusColor(BuildContext context, OcptShotStatus status) {
   };
 }
 
-/// Formats the difficulty [value] with a single decimal, in the locale [context] resolves to (so
+/// Format the difficulty [value] with a single decimal, in the locale [context] resolves to (so
 /// French reads `1,8` where English reads `1.8`).
 String ocptFormatShotDifficulty(BuildContext context, double value) =>
     NumberFormat.decimalPatternDigits(
@@ -242,7 +244,7 @@ String ocptFormatShotDifficulty(BuildContext context, double value) =>
       decimalDigits: 1,
     ).format(value);
 
-/// Formats the shot duration [milliseconds] as `mm:ss`, or [ocptShotListEmptyValue] when the shot
+/// Format the shot duration [milliseconds] as `mm:ss`, or [ocptShotListEmptyValue] when the shot
 /// has no estimated duration yet.
 ///
 /// Both halves are always written on two digits (`01:30`, `00:45`), so a column of durations reads
@@ -262,13 +264,14 @@ String ocptFormatShotDuration(int? milliseconds) {
   return "${minutes.toString().padLeft(2, "0")}:${seconds.toString().padLeft(2, "0")}";
 }
 
-/// Returns [value] if it holds anything other than whitespace, [ocptShotListEmptyValue]
+/// Return [value] if it holds anything other than whitespace, [ocptShotListEmptyValue]
 /// otherwise: the single place the table and the left dock turn a blank shot field into
 /// something readable.
 String ocptShotFieldOrDash(String? value) =>
     value == null || value.trim().isEmpty ? ocptShotListEmptyValue : value;
 
-/// The shot list's own read-out of a shot's placement(s) in the schedule, [placements] being every
+/// Get the shot list's own read-out of a shot's placement(s) in the schedule, [placements] being
+/// every
 /// live block that places it (`OcptShotListSnapshot.placementsByShotId`, empty for a shot the
 /// schedule carries no entry for at all):
 ///
@@ -314,7 +317,7 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
       .join(", ");
 }
 
-/// Parses a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].
+/// Parse a shot's estimated duration from [input], the inverse of [ocptFormatShotDuration].
 ///
 /// A blank [input], or exactly [ocptShotListEmptyValue] (what [ocptFormatShotDuration] itself
 /// renders for a null duration, so the two stay round-trippable), means "no estimate" and parses
@@ -359,7 +362,7 @@ ResultWithStatus<OcptShotDurationStatus, int> ocptParseShotDuration(String input
   );
 }
 
-/// Deduces the short abbreviation of the shot size [shotSize]: the initials of its words, upper
+/// Deduce the short abbreviation of the shot size [shotSize]: the initials of its words, upper
 /// cased (`Plan moyen` → `PM`, `Gros plan` → `GP`, `Close-up` → `C`).
 ///
 /// A "word" is whatever whitespace separates, so a hyphenated shot size counts as one — which is
@@ -395,7 +398,7 @@ final List<TextInputFormatter> ocptShotDurationInputFormatters = [
   FilteringTextInputFormatter.allow(RegExp("[0-9:]")),
 ];
 
-/// Whether [input] is something [ocptParseShotDuration] accepts: what the shot inspector's
+/// Tell whether [input] is something [ocptParseShotDuration] accepts: what the shot inspector's
 /// duration field asks itself on every keystroke to decide whether to show its `mm:ss` error, while
 /// the bloc goes on parsing the very same text for the value itself.
 bool ocptIsShotDurationValid(String input) => ocptParseShotDuration(input).status.isSuccess;

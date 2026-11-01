@@ -36,7 +36,7 @@ class OcptFountainTabInterceptor extends DeltaTextInputClientDecorator {
   /// Class constructor.
   OcptFountainTabInterceptor({required this.onTabPressed});
 
-  /// Forwards every delta list to super_editor's own document IME client unchanged, except a pure
+  /// Forward every delta list to super_editor's own document IME client unchanged, except a pure
   /// `"\t"` insertion (see [_isPureTabInsertion]), which triggers [onTabPressed] and is never
   /// forwarded.
   @override
@@ -49,7 +49,7 @@ class OcptFountainTabInterceptor extends DeltaTextInputClientDecorator {
     super.updateEditingValueWithDeltas(textEditingDeltas);
   }
 
-  /// Whether [deltas] is exactly one [TextEditingDeltaInsertion] whose entire
+  /// Tell whether [deltas] is exactly one [TextEditingDeltaInsertion] whose entire
   /// [TextEditingDeltaInsertion.textInserted] is the single character `"\t"`.
   bool _isPureTabInsertion(List<TextEditingDelta> deltas) {
     if (deltas.length != 1) {

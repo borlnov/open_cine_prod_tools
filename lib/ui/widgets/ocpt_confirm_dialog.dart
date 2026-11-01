@@ -103,7 +103,7 @@ class OcptConfirmDialog extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog and returns true if the user confirmed the action, false or null if they
+  /// Show the dialog and return true if the user confirmed the action, false or null if they
   /// cancelled it.
   ///
   /// **Unchanged** — every one of this method's 35 existing call sites keeps working exactly as
@@ -127,8 +127,8 @@ class OcptConfirmDialog extends StatelessWidget {
     ),
   );
 
-  /// Shows the dialog with a third, [alternativeLabel] button between cancel and confirm, and
-  /// returns which of the three the user picked ([OcptConfirmDialogResult.cancelled] for a plain
+  /// Show the dialog with a third, [alternativeLabel] button between cancel and confirm, and return
+  /// which of the three the user picked ([OcptConfirmDialogResult.cancelled] for a plain
   /// dismissal too, e.g. a click outside the dialog or `Escape`).
   ///
   /// For deleting a floor-plan set element used by two or more sequences:

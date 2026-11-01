@@ -14,7 +14,7 @@ sealed class OcptModeEvent extends BlocEventForMixin {
   const OcptModeEvent();
 }
 
-/// Requests writing every pending edit of the mode and of all its view blocs, and reading the
+/// Request writing every pending edit of the mode and of all its view blocs, and reading the
 /// shared data again if any of it was written. Answers whether the action it was asked for may go
 /// on.
 class OcptModeFlushRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEvent<bool> {
@@ -22,7 +22,7 @@ class OcptModeFlushRequestedEvent extends OcptModeEvent with MixinOcptAwaitedEve
   OcptModeFlushRequestedEvent();
 }
 
-/// Requests reading again the parts of the mode's shared data that [scopes] names, so a view that
+/// Request reading again the parts of the mode's shared data that [scopes] names, so a view that
 /// just wrote a row finds it in the mode's state.
 ///
 /// The scopes are the mode's own enum ([Scope]), which only the mode knows how to read. The

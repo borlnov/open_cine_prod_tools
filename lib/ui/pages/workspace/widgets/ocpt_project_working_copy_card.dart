@@ -107,7 +107,8 @@ class OcptProjectWorkingCopyCard extends StatelessWidget {
     );
   }
 
-  /// The state line under the counters: whether the working copy still matches [baseVersionName],
+  /// Get the state line under the counters: whether the working copy still matches
+  /// [baseVersionName],
   /// or that it has none to compare against at all.
   String _stateLine(Tr tr) {
     final baseVersionName = this.baseVersionName;

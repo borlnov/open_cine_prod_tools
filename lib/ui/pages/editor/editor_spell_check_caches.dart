@@ -55,7 +55,7 @@ class OcptEditorSpellCheckCaches {
       lastStyledTexts = const {},
       pushedLearnedWords = const {};
 
-  /// Forgets both caches and their keys: a document built from a different Fountain source than the
+  /// Forget both caches and their keys: a document built from a different Fountain source than the
   /// one they describe, where a stale entry could coincidentally match a new block's or node's text.
   void clear() {
     raw.clear();

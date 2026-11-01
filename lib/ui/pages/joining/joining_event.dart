@@ -10,7 +10,7 @@ sealed class OcptJoiningEvent extends BlocEventForMixin {
   const OcptJoiningEvent();
 }
 
-/// Reports that the manual entry form's "Rejoindre" button was pressed, with the pasted invite
+/// Report that the manual entry form's "Rejoindre" button was pressed, with the pasted invite
 /// link as typed — not validated yet, since that needs no `Tr` and the bloc does it itself
 /// (see `OcptJoiningBloc._onManualSubmitted`'s own doc comment for why).
 class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
@@ -32,7 +32,7 @@ class OcptJoiningManualSubmittedEvent extends OcptJoiningEvent {
   List<Object?> get props => [...super.props, inviteLinkText, destinationConfirmButtonText];
 }
 
-/// Reports that the camera scanner found a QR code, carrying its raw decoded text — not
+/// Report that the camera scanner found a QR code, carrying its raw decoded text — not
 /// necessarily a valid invite, which the bloc is the one to decide
 /// (`OcptRelayInvite.parse`).
 class OcptJoiningInviteScannedEvent extends OcptJoiningEvent {
@@ -56,7 +56,7 @@ class OcptJoiningInviteScannedEvent extends OcptJoiningEvent {
   List<Object?> get props => [...super.props, scannedText, destinationConfirmButtonText];
 }
 
-/// Reports that the page has shown `OcptJoiningState.joinFailed`'s own snack bar, so the bloc
+/// Report that the page has shown `OcptJoiningState.joinFailed`'s own snack bar, so the bloc
 /// clears the flag and a later rebuild doesn't show it again — the same one-shot-notice shape
 /// `OcptSharingBloc`'s own `pairingFailed` already follows.
 class OcptJoiningErrorDismissedEvent extends OcptJoiningEvent {
@@ -64,7 +64,7 @@ class OcptJoiningErrorDismissedEvent extends OcptJoiningEvent {
   const OcptJoiningErrorDismissedEvent();
 }
 
-/// Reports that the success modal's own "Ouvrir" button was pressed, once `joinSucceeded` is true:
+/// Report that the success modal's own "Ouvrir" button was pressed, once `joinSucceeded` is true:
 /// the bloc navigates to the workspace only now, on the user's explicit ask, rather than the moment
 /// the join itself finishes.
 class OcptJoiningOpenRequestedEvent extends OcptJoiningEvent {
@@ -72,7 +72,7 @@ class OcptJoiningOpenRequestedEvent extends OcptJoiningEvent {
   const OcptJoiningOpenRequestedEvent();
 }
 
-/// Reports that the blocking modal's own "Annuler" button was pressed while a join is in flight.
+/// Report that the blocking modal's own "Annuler" button was pressed while a join is in flight.
 ///
 /// A best-effort UI abandon only: `dart:io` gives no way to actually cancel an in-flight snapshot
 /// fetch or materialisation, so a join already past that point may still finish writing a `.ocpt`

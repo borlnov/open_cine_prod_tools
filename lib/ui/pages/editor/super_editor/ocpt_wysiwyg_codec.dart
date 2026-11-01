@@ -57,7 +57,7 @@ const String ocptHadForcingMarkerMetadataKey = "ocptHadForcingMarker";
 /// mode only) is a separate concern, driven by `computeOcptStyledSceneNumbers`.
 const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
 
-/// Converts between Fountain source text and the super_editor `MutableDocument` backing the
+/// Convert between Fountain source text and the super_editor `MutableDocument` backing the
 /// styled block editor, on the invariant the whole styled editing mode is built around: **one
 /// `ParagraphNode` per non-blank Fountain source line**. Blank source lines carry no node of their
 /// own; they are folded into the [ocptBlankLinesBeforeMetadataKey] metadata of the node that
@@ -110,7 +110,7 @@ class OcptWysiwygCodec {
   /// Private constructor: this class only exposes static members.
   const OcptWysiwygCodec._();
 
-  /// Decodes [text] into a fresh document: one `ParagraphNode` per non-blank source line, blank
+  /// Decode [text] into a fresh document: one `ParagraphNode` per non-blank source line, blank
   /// runs folded into [ocptBlankLinesBeforeMetadataKey] metadata (or, for a trailing run, into
   /// [OcptWysiwygDecodeResult.trailingBlankLines]), forcing prefixes stripped into
   /// [ocptHadForcingMarkerMetadataKey] metadata, and inline emphasis/notes converted to
@@ -174,8 +174,8 @@ class OcptWysiwygCodec {
     );
   }
 
-  /// Decodes [text] exactly like [decode], but additionally recognizes a leading title page (see
-  /// `FountainParser`'s own title-page pre-pass) and prepends one node per
+  /// Decode [text] exactly like [decode], but additionally recognize a leading title page (see
+  /// `FountainParser`'s own title-page pre-pass) and prepend one node per
   /// [ocptTitlePageFieldKeys] field ([isTitlePageNode], carrying [ocptTitlePageKeyMetadataKey])
   /// ahead of the body nodes [decode] itself would already produce for the remaining text.
   ///
@@ -217,7 +217,7 @@ class OcptWysiwygCodec {
     );
   }
 
-  /// Decodes [text] into the nodes a paste would insert, with the full metadata set [decode]
+  /// Decode [text] into the nodes a paste would insert, with the full metadata set [decode]
   /// itself gives every node (`blockType`, [ocptBlankLinesBeforeMetadataKey],
   /// [ocptTypeLockedMetadataKey] always false, [ocptHadForcingMarkerMetadataKey]) — unlike
   /// [decode], this never synthesizes an empty node for all-blank input, since there is nothing
@@ -227,7 +227,7 @@ class OcptWysiwygCodec {
     return nodes;
   }
 
-  /// Encodes [document] back into Fountain source text, the inverse of [decode]: rejoins each
+  /// Encode [document] back into Fountain source text, the inverse of [decode]: rejoins each
   /// node's inline attributions into marked-up display text
   /// ([FountainInlineSerializer.write]/[OcptWysiwygInlineRuns.runsFromAttributedText]), then lets [FountainLineWriter]
   /// decide, left to right with the already-fixed earlier lines as context, whether each node's
@@ -351,8 +351,8 @@ class OcptWysiwygCodec {
     );
   }
 
-  /// Encodes [document] exactly like [encode], but additionally recognizes [document]'s leading
-  /// title-page field nodes ([isTitlePageNode]) and splices them in as a real Fountain title page
+  /// Encode [document] exactly like [encode], but additionally recognize [document]'s leading
+  /// title-page field nodes ([isTitlePageNode]) and splice them in as a real Fountain title page
   /// ahead of the body text [encode] itself produces for the remaining nodes, through
   /// [FountainTitlePageWriter.apply] — never a hand-written `Key: value` line, so this and
   /// `OcptEditorTitlePageDialog`'s `⋮ ▸ Title page…` flow stay two front-ends over the one writer.
@@ -393,14 +393,14 @@ class OcptWysiwygCodec {
     );
   }
 
-  /// Whether [node] is one of [decodeWithTitlePage]'s synthesized title-page field nodes
+  /// Tell whether [node] is one of [decodeWithTitlePage]'s synthesized title-page field nodes
   /// ([ocptTitlePageKeyMetadataKey] set) rather than an ordinary body line: every pass in this
   /// class that classifies, forces or uppercases a node's text (none of which has any meaning for
   /// a title-page field) checks this first and skips the node entirely when it's true.
   static bool isTitlePageNode(ParagraphNode node) =>
       node.getMetadataValue(ocptTitlePageKeyMetadataKey) is String;
 
-  /// Encodes just the [selection] span of [document] into Fountain source text, for the
+  /// Encode just the [selection] span of [document] into Fountain source text, for the
   /// clipboard: reuses [encode] on a throwaway document holding only the selected nodes (clipping
   /// the first and last node's text to the selection's own start/end offsets, attributions
   /// preserved), so a copied fragment stays a faithful, independently round-trippable Fountain
@@ -425,7 +425,7 @@ class OcptWysiwygCodec {
     return encode(MutableDocument(nodes: adjustedNodes)).text;
   }
 
-  /// Computes the requests needed to bring every unlocked, non-empty node's `blockType` metadata
+  /// Compute the requests needed to bring every unlocked, non-empty node's `blockType` metadata
   /// back in sync with a fresh classification of [document]'s current text, given the surrounding
   /// context every other node's current text (and folded blank runs) provides.
   ///
@@ -508,7 +508,7 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Computes the requests needed to absorb a trailing `#N#` tag typed live into a scene heading
+  /// Compute the requests needed to absorb a trailing `#N#` tag typed live into a scene heading
   /// node's text: strips it from the node's text (an [OcptReplaceNodeTextRequest]) and stores the
   /// captured number as [ocptSceneNumberMetadataKey] metadata (an [OcptChangeNodeMetadataRequest]),
   /// so the tag never lingers as literal, visible text in the styled view.
@@ -554,7 +554,7 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Computes the requests needed to uppercase the text of every node currently classified as one
+  /// Compute the requests needed to uppercase the text of every node currently classified as one
   /// of [_uppercasedTypes] whose text isn't already fully uppercase, preserving its attribution
   /// spans and (since uppercasing is 1:1 for the app's locales, leaving every character's offset
   /// unchanged) the caret position.
@@ -587,7 +587,7 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Computes the requests needed to bring every node's [ocptFountainNoteAttribution] spans back
+  /// Compute the requests needed to bring every node's [ocptFountainNoteAttribution] spans back
   /// in sync with the `[[...]]` regions currently in its text, adding/removing spans only for a
   /// node whose desired spans actually differ from what it currently carries (so an edit outside
   /// any note leaves every node's note spans untouched).
@@ -652,13 +652,13 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
+  /// Split [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
   /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
   /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
   static List<String> _splitLines(String text) =>
       text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
 
-  /// The shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
+  /// Run the shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
   /// [lines] into one node per non-blank line (folding blank runs into
   /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
   /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
@@ -701,13 +701,13 @@ class OcptWysiwygCodec {
     return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
-  /// Copies [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
+  /// Copy [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
   /// never changes a string's length for this app's supported locales, so every span's (start, end)
   /// offset still refers to the same run of characters.
   static AttributedText _uppercased(AttributedText text, String upperText) =>
       AttributedText(upperText, text.spans.copy(), text.placeholders);
 
-  /// Whether [type] is a dialogue-block element that keeps a dialogue group open (see
+  /// Tell whether [type] is a dialogue-block element that keeps a dialogue group open (see
   /// [FountainLineClassifier]'s own equivalent private rule), used by [encode] to force
   /// [ocptBlankLinesBeforeMetadataKey] to 0 between two directly-adjacent members.
   static bool _isDialogueGroupMember(FountainLineType type) =>
@@ -715,24 +715,24 @@ class OcptWysiwygCodec {
       type == FountainLineType.parenthetical ||
       type == FountainLineType.dialogue;
 
-  /// Reads a node's [ocptBlankLinesBeforeMetadataKey] metadata, defaulting to 0 for a node that
+  /// Read a node's [ocptBlankLinesBeforeMetadataKey] metadata, defaulting to 0 for a node that
   /// never had it set (for example one freshly split off by a default super_editor command).
   static int _readBlankLinesBefore(ParagraphNode node) {
     final value = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);
     return value is int ? value : 0;
   }
 
-  /// Reads a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
+  /// Read a node's [ocptHadForcingMarkerMetadataKey] metadata, defaulting to false.
   static bool _readHadForcingMarker(ParagraphNode node) =>
       node.getMetadataValue(ocptHadForcingMarkerMetadataKey) == true;
 
-  /// Reads a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
+  /// Read a node's [ocptSceneNumberMetadataKey] metadata, or null if it isn't set.
   static String? _readSceneNumber(ParagraphNode node) {
     final value = node.getMetadataValue(ocptSceneNumberMetadataKey);
     return value is String ? value : null;
   }
 
-  /// The text [encode] hands to [_lineWriter] for [node]: its inline-serialized display text,
+  /// Get the text [encode] hands to [_lineWriter] for [node]: its inline-serialized display text,
   /// with a scene heading's [ocptSceneNumberMetadataKey] tag re-appended when set. Never appends
   /// to an empty base text, so an emptied heading still serializes through the empty-node rule
   /// (a plain blank line) rather than stranding a lone `#N#` tag.
@@ -746,11 +746,11 @@ class OcptWysiwygCodec {
     return sceneNumber == null ? base : "$base #$sceneNumber#";
   }
 
-  /// Reads a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
+  /// Read a node's [ocptTypeLockedMetadataKey] metadata, defaulting to false.
   static bool _readTypeLocked(ParagraphNode node) =>
       node.getMetadataValue(ocptTypeLockedMetadataKey) == true;
 
-  /// Whether [node]'s stored `blockType` is pinned by the user rather than up for
+  /// Tell whether [node]'s stored `blockType` is pinned by the user rather than up for
   /// auto-detection, per [reclassifyRequests]'s doc comment: either a manual dropdown/Tab choice
   /// ([ocptTypeLockedMetadataKey]) or a source line that carried an explicit forcing marker
   /// ([ocptHadForcingMarkerMetadataKey]) — the *serialized* form of that very same "the user fixed
@@ -759,7 +759,7 @@ class OcptWysiwygCodec {
   static bool _isPinnedNode(ParagraphNode node) =>
       _readTypeLocked(node) || _readHadForcingMarker(node);
 
-  /// The virtual source line [reclassifyRequests] feeds the classifier for [node], currently
+  /// Get the virtual source line [reclassifyRequests] feeds the classifier for [node], currently
   /// stored as [type]. A pinned node (see [_isPinnedNode]) gets its marker re-emitted through
   /// [_lineWriter] with `hadForcingMarker: true`, which always prepends the marker regardless of
   /// what auto-detection alone would decide (`FountainLineWriter`'s own private
@@ -788,7 +788,7 @@ class OcptWysiwygCodec {
     );
   }
 
-  /// Strips [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
+  /// Strip [rawLine]'s forcing prefix (if any) for its classified [type], returning its display
   /// text and whether a marker was actually present. Mirrors, in reverse, every rule
   /// [FountainLineClassifier.classifyLine] and [FountainLineWriter.writeLine] use for that type.
   static (String, bool) _stripDisplayText(String rawLine, FountainLineType type) {
@@ -829,7 +829,7 @@ class OcptWysiwygCodec {
     }
   }
 
-  /// Strips a trailing `#N#` scene-number tag off a scene heading's already forcing-marker-
+  /// Strip a trailing `#N#` scene-number tag off a scene heading's already forcing-marker-
   /// stripped [text], returning the text without it (trailing whitespace trimmed) and the
   /// captured number, or [text] unchanged and null when there is no tag.
   static (String, String?) _extractSceneNumber(String text) {
@@ -840,7 +840,7 @@ class OcptWysiwygCodec {
     return (text.substring(0, match.start).trimRight(), match.group(1));
   }
 
-  /// Strips the `> ` / ` <` wrapping [FountainLineWriter.writeLine] always emits for
+  /// Strip the `> ` / ` <` wrapping [FountainLineWriter.writeLine] always emits for
   /// [FountainLineType.centeredText] (`'> $text <'`), tolerating the wrapping marker with or
   /// without its usual single space so a hand-written `>text<` line still recovers its inner text.
   static String _stripCentered(String rawLine) {

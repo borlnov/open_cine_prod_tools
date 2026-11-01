@@ -246,21 +246,21 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     );
   }
 
-  /// Commits the number field's current text once it loses focus.
+  /// Commit the number field's current text once it loses focus.
   void _onNumberFocusChanged() {
     if (!_numberFocusNode.hasFocus) {
       _commitNumber();
     }
   }
 
-  /// Commits the title field's current text once it loses focus.
+  /// Commit the title field's current text once it loses focus.
   void _onTitleFocusChanged() {
     if (!_titleFocusNode.hasFocus) {
       _commitTitle();
     }
   }
 
-  /// Parses the number field's current text and reports it: an unparseable or non-positive figure
+  /// Parse the number field's current text and report it: an unparseable or non-positive figure
   /// reverts the field to whatever was last committed, exactly as the minimum rest field's own
   /// zero-or-negative case does.
   void _commitNumber() {
@@ -277,7 +277,7 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
     }
   }
 
-  /// Reports the title field's current text: any string is legal, the empty one included — an
+  /// Report the title field's current text: any string is legal, the empty one included — an
   /// untitled episode is an ordinary state (`OcptEpisode.title`'s own doc comment), never a
   /// reversion.
   void _commitTitle() {

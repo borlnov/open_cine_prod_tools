@@ -12,7 +12,7 @@ sealed class OcptViewEvent extends BlocEventForMixin {
   const OcptViewEvent();
 }
 
-/// Reports that the mode bloc's shared state moved in a way a view reacts to: its data was read
+/// Report that the mode bloc's shared state moved in a way a view reacts to: its data was read
 /// again, its selection was moved, or both.
 ///
 /// Dispatched by the base class when it sees the mode's epochs change. It carries the mode state
@@ -41,7 +41,7 @@ class OcptViewModeStateChangedEvent<MS extends MixinOcptModeState<MS>> extends O
   List<Object?> get props => [...super.props, modeState, hasReloaded, hasSelectionMoved];
 }
 
-/// Requests writing the edits the view holds, answering whether there were any.
+/// Request writing the edits the view holds, answering whether there were any.
 class OcptViewFlushRequestedEvent extends OcptViewEvent with MixinOcptAwaitedEvent<bool> {
   /// Class constructor
   OcptViewFlushRequestedEvent();

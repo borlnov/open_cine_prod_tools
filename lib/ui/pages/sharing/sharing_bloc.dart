@@ -41,7 +41,8 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
   /// The manager used to read this replica's own device id.
   final OcptPropertiesManager _propertiesManager;
 
-  /// The current project's writable file — a paired project's own pairing row and its ongoing sync
+  /// Get the current project's writable file — a paired project's own pairing row and its ongoing
+  /// sync
   /// session both belong to the project **file**, never to a read-only preview
   /// (`OcptOpenProjectModel.fileDatabase`'s own doc comment). The route that reaches this page is
   /// guarded exactly like the workspace's own, so a project is always open by the time this runs.
@@ -80,7 +81,8 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     emit(state.copyToLoaded(projectName: _projectsManager.currentProject!.name, invite: invite));
   }
 
-  /// The current project's own relay invite, or null when it isn't paired — either because it has
+  /// Get the current project's own relay invite, or null when it isn't paired — either because it
+  /// has
   /// no `sync_pairings` row at all, or because [OcptSyncManager.pairingService] finds no token for
   /// it in secure storage any more (see `OcptPairingService`'s own doc comment).
   Future<OcptRelayInvite?> _loadCurrentInvite() async {
@@ -105,7 +107,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     );
   }
 
-  /// Mints a fresh project id — the client's own to pick — and pairs the project to
+  /// Mint a fresh project id — the client's own to pick — and pair the project to
   /// `event.relayBaseUri` with `event.enrolmentSecret`, moving the page to ② Invite on success.
   ///
   /// A failure (the relay unreachable, a bad enrolment secret, …) is surfaced as
@@ -146,7 +148,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     }
   }
 
-  /// Stops sharing the current project, once the page's own `OcptConfirmDialog` confirmed it,
+  /// Stop sharing the current project, once the page's own `OcptConfirmDialog` confirmed it,
   /// moving the page back to ① Configure.
   Future<void> _onUnpairConfirmed(
     OcptSharingUnpairConfirmedEvent event,
@@ -161,7 +163,7 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
     emitter(state.copyWithInviteCleared());
   }
 
-  /// Clears [OcptSharingState.pairingFailed] once the page has shown its own snack bar for it.
+  /// Clear [OcptSharingState.pairingFailed] once the page has shown its own snack bar for it.
   void _onPairingErrorDismissed(
     OcptSharingPairingErrorDismissedEvent event,
     Emitter<OcptSharingState> emitter,

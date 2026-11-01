@@ -6,13 +6,13 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_sc
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Settles a styled editor's document after an edit, the pass its text sync and its flush both
+/// Settle a styled editor's document after an edit, the pass its text sync and its flush both
 /// need before the text can safely be encoded.
 final class OcptStyledDocumentSettle {
   /// Private constructor: this class only exposes static members.
   const OcptStyledDocumentSettle._();
 
-  /// Brings every node of [document] (executed through [editor]) to the same settled state
+  /// Bring every node of [document] (executed through [editor]) to the same settled state
   /// `_syncAfterEdit` and `_flushPendingSync` both need before their text can be safely encoded:
   /// live `#N#` tags absorbed, every `blockType` reclassified from current text, note/uppercase
   /// spans refreshed, and scene numbers renumbered — in that order, each its own `execute` call so

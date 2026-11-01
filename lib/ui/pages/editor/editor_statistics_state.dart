@@ -47,7 +47,7 @@ class OcptEditorStatisticsState extends BlocStateForMixin<OcptEditorStatisticsSt
     sceneStatistics: sceneStatistics ?? (forceSceneStatisticsValue ? null : this.sceneStatistics),
   );
 
-  /// Copies this state with the whole-script [statistics] and the [sceneStatistics] of the scene
+  /// Copy this state with the whole-script [statistics] and the [sceneStatistics] of the scene
   /// the caret is in, which goes back to null when the caret precedes every scene.
   OcptEditorStatisticsState copyWithRecomputedStatistics({
     required FountainScriptStatistics statistics,
@@ -58,7 +58,7 @@ class OcptEditorStatisticsState extends BlocStateForMixin<OcptEditorStatisticsSt
     forceSceneStatisticsValue: sceneStatistics == null,
   );
 
-  /// Copies this state with the [sceneStatistics] of the scene the caret moved into, or null when
+  /// Copy this state with the [sceneStatistics] of the scene the caret moved into, or null when
   /// it precedes every scene.
   OcptEditorStatisticsState copyWithCaretScene({
     required FountainSceneStatistics? sceneStatistics,
@@ -67,7 +67,7 @@ class OcptEditorStatisticsState extends BlocStateForMixin<OcptEditorStatisticsSt
     forceSceneStatisticsValue: sceneStatistics == null,
   );
 
-  /// Copies this state with the whole-script [statistics] only, leaving the caret's scene as is.
+  /// Copy this state with the whole-script [statistics] only, leaving the caret's scene as is.
   OcptEditorStatisticsState copyWithScriptStatistics({
     required FountainScriptStatistics statistics,
   }) => copyWith(statistics: statistics);

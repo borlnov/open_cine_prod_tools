@@ -199,7 +199,7 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
   }
 }
 
-/// [hostState]'s own status subtitle, shown under [OcptHostingPanel]'s own switch label.
+/// Get [hostState]'s own status subtitle, shown under [OcptHostingPanel]'s own switch label.
 String _statusLabel(Tr tr, OcptRelayHostState hostState) => switch (hostState) {
   OcptRelayHostStopped() => tr.hostingStatusStopped,
   OcptRelayHostStarting() => tr.hostingStatusStarting,
@@ -460,7 +460,7 @@ class _OcptHostingPeerChip extends StatelessWidget {
     );
   }
 
-  /// [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
+  /// Get [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
   /// `deviceId` — `OcptPresenceIndicator._participantLabel`'s own shape, replicated here since that
   /// one is private to its own file.
   static String _peerLabel(OcptPresenceFrame frame) {

@@ -71,7 +71,7 @@ class _OcptJoiningScannerViewState extends State<OcptJoiningScannerView> {
     );
   }
 
-  /// Reports a newly detected barcode's raw value to [OcptJoiningScannerView.onScanned], ignoring a
+  /// Report a newly detected barcode's raw value to [OcptJoiningScannerView.onScanned], ignoring a
   /// repeat of [_lastReportedValue] — see that field's own doc comment for why this is also what
   /// re-arms the camera for a fresh attempt.
   void _onDetect(BarcodeCapture capture) {

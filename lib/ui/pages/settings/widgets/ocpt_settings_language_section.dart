@@ -56,7 +56,7 @@ class OcptSettingsLanguageSection extends StatelessWidget {
     );
   }
 
-  /// Labels [locale] in its own language, the usual convention for a language picker: unlike every
+  /// Label [locale] in its own language, the usual convention for a language picker: unlike every
   /// other string on this page, a language's own name doesn't go through [Tr], since it must not
   /// change when the app's current locale changes.
   static String _localeOwnLanguageLabel(Locale locale) => switch (locale.languageCode) {

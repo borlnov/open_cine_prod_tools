@@ -27,7 +27,7 @@ class OcptProjectVersionCreateDialog extends StatefulWidget {
   @override
   State<OcptProjectVersionCreateDialog> createState() => _OcptProjectVersionCreateDialogState();
 
-  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  /// Show the dialog and return the fields the user confirmed, or null if they cancelled it.
   static Future<OcptProjectVersionCreationFields?> show(BuildContext context) =>
       showDialog<OcptProjectVersionCreationFields>(
         context: context,
@@ -89,7 +89,7 @@ class _OcptProjectVersionCreateDialogState extends State<OcptProjectVersionCreat
     );
   }
 
-  /// Validates the entered name and, if it is valid, pops the dialog returning both fields
+  /// Validate the entered name and, if it is valid, pop the dialog returning both fields
   /// trimmed.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {

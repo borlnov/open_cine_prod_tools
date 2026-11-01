@@ -60,7 +60,7 @@ class OcptJoiningScanFrame extends StatelessWidget {
     );
   }
 
-  /// The border colour for [status], resolved against [theme].
+  /// Get the border colour for [status], resolved against [theme].
   Color _colorFor(ThemeData theme) => switch (status) {
     OcptJoiningScanStatus.idle => theme.colorScheme.outline,
     OcptJoiningScanStatus.error => theme.colorScheme.error,

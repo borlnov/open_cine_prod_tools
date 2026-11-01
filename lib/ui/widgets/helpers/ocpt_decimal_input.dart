@@ -14,7 +14,7 @@ import 'package:flutter/services.dart';
 /// switches keyboards.
 final RegExp _partialDecimalPattern = RegExp(r"^\d*[.,]?\d*$");
 
-/// Keeps a text field to a decimal number: anything else the user types or pastes is refused, and
+/// Keep a text field to a decimal number: anything else the user types or pastes is refused, and
 /// the field keeps the value it already had.
 ///
 /// This is a **gate, unlike the rest of the resources sheets**, which flag a value without refusing

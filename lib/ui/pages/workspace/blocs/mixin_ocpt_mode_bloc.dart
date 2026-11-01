@@ -62,18 +62,19 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Whether [close] was called, from which point nothing new can be dispatched to this bloc.
   bool _isClosing = false;
 
-  /// Whether this bloc is closing or closed, from which point `add` throws.
+  /// Tell whether this bloc is closing or closed, from which point `add` throws.
   ///
   /// `isClosed` is not enough: it stays false until every handler still running has finished, a
   /// window in which the event queue is already shut and `add` already throws.
   bool get isClosing => _isClosing || isClosed;
 
-  /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
+  /// Count how many flushers are registered, so a test can tell that every view bloc of a mode was
+  /// built
   /// without any widget having read it.
   @visibleForTesting
   int get pendingWritesFlusherCount => _flushers.length;
 
-  /// Registers [flusher] to be asked to write what it holds, and returns the function that
+  /// Register [flusher] to be asked to write what it holds, and return the function that
   /// unregisters it again.
   ///
   /// A view bloc registers itself when it is built and unregisters itself first thing when it
@@ -83,7 +84,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     return () => _flushers.remove(flusher);
   }
 
-  /// Adds [event] to this bloc, or does nothing if it is closing ([isClosing]).
+  /// Add [event] to this bloc, or do nothing if it is closing ([isClosing]).
   ///
   /// What a view bloc, a timer or a continuation after an `await` uses to ask the mode for
   /// something: by the time it runs, the mode may have started to close, and a plain `add` would
@@ -96,7 +97,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     add(event);
   }
 
-  /// Registers [handler] for the mode's own event type [E], like `on<E>`, but so that
+  /// Register [handler] for the mode's own event type [E], like `on<E>`, but so that
   /// [addAndWait] can wait for it: whoever dispatched the event is told when the handler is done.
   ///
   /// Register through this the events a view bloc has to move the mode's selection with, see
@@ -113,7 +114,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     });
   }
 
-  /// Adds [event], one registered through [onAwaited], and completes once its handler is done, i.e.
+  /// Add [event], one registered through [onAwaited], and complete once its handler is done, i.e.
   /// once the mode's state holds what the handler emitted. Completes at once on a bloc that is
   /// closing, and as soon as the bloc closes without having run the handler.
   ///
@@ -145,7 +146,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
   }
 
-  /// Asks every registered flusher to write what it holds, one after the other, and answers
+  /// Ask every registered flusher to write what it holds, one after the other, and answer
   /// whether any of them had something to write and whether any of them failed.
   ///
   /// Every flusher is asked even after one failed: they hold unrelated edits, and a failure of one
@@ -167,7 +168,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     return (hasWritten: hasWritten, hasFailed: hasFailed);
   }
 
-  /// Asks every registered flusher to write what it holds without touching any state, for the
+  /// Ask every registered flusher to write what it holds without touching any state, for the
   /// moments no handler can emit from (see [OcptPendingWritesFlusher.flushPendingWritesWithoutState]).
   @protected
   Future<void> runPendingWritesFlushersWithoutState() async {
@@ -176,7 +177,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
   }
 
-  /// Writes every pending edit of the mode and of its views, and reads the shared data again if any
+  /// Write every pending edit of the mode and of its views, and read the shared data again if any
   /// of it was written. Completes once that is done, or at once on a bloc that is closing.
   ///
   /// Answers whether the caller may go on with the action it flushed for (a preview, a restore, an
@@ -191,7 +192,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     return await OcptModeFlushRequestedEvent().addToAndWait(this) ?? false;
   }
 
-  /// Reads again the parts of the shared data that [scopes] names, and completes once the mode's
+  /// Read again the parts of the shared data that [scopes] names, and complete once the mode's
   /// state holds what was read — so the caller can select a row it has just written.
   ///
   /// Answers whether the data was read. A caller that gets false stops there: the read failed (the
@@ -206,8 +207,8 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   }
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
-  /// Writes what the mode holds and, through [runPendingWritesFlushers], what its views hold, then
-  /// reads the shared data again if any of it was written. Called by [flushAllPendingWrites]'s
+  /// Write what the mode holds and, through [runPendingWritesFlushers], what its views hold, then
+  /// read the shared data again if any of it was written. Called by [flushAllPendingWrites]'s
   /// handler, with that handler's own [emitter].
   ///
   /// Answers whether the action the flush was asked for may go on. A mode decides it from
@@ -219,8 +220,8 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   Future<bool> flushAllPendingWritesIn(Emitter<S> emitter);
 
   /// {@template open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
-  /// Reads again the parts of the shared data that [scopes] names, emits them with the state's
-  /// `reloadEpoch` moved on, and answers whether it did: false when the read failed or nothing
+  /// Read again the parts of the shared data that [scopes] names, emit them with the state's
+  /// `reloadEpoch` moved on, and answer whether it did: false when the read failed or nothing
   /// could be read. Called one at a time by [reloadSerially].
   ///
   /// A mode that no view asks to reload, because none writes its shared data behind its back,
@@ -229,7 +230,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   @protected
   Future<bool> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter) async => false;
 
-  /// Runs [action], a read of the shared data that ends in an emit, only once every action already
+  /// Run [action], a read of the shared data that ends in an emit, only once every action already
   /// queued through this has settled, and queues it in turn.
   ///
   /// [action] must read and emit, and wait for nothing that is itself queued here: it would wait
@@ -242,7 +243,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     return result;
   }
 
-  /// Runs [reloadScopesIn] through [runSerially].
+  /// Run [reloadScopesIn] through [runSerially].
   @protected
   Future<bool> reloadSerially(Set<Scope> scopes, Emitter<S> emitter) =>
       runSerially(() => reloadScopesIn(scopes, emitter));
@@ -256,7 +257,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     on<OcptModeReloadRequestedEvent<Scope>>(_onReloadRequested);
   }
 
-  /// Tells the oldest dispatcher waiting on [event] that its handler is done. Events are told
+  /// Tell the oldest dispatcher waiting on [event] that its handler is done. Events are told
   /// apart by identity; two equal events (a `const` one dispatched twice) are interchangeable, so
   /// the oldest waiter is the one released.
   void _completeAwaited(BlocEventForMixin event) {
@@ -269,7 +270,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
   }
 
-  /// Writes every pending edit, then tells the dispatcher.
+  /// Write every pending edit, then tell the dispatcher.
   Future<void> _onFlushRequested(OcptModeFlushRequestedEvent event, Emitter<S> emitter) async {
     try {
       event.complete(await flushAllPendingWritesIn(emitter));
@@ -278,7 +279,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
   }
 
-  /// Reads the requested parts of the shared data again, then tells the dispatcher.
+  /// Read the requested parts of the shared data again, then tell the dispatcher.
   Future<void> _onReloadRequested(
     OcptModeReloadRequestedEvent<Scope> event,
     Emitter<S> emitter,
@@ -290,7 +291,7 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     }
   }
 
-  /// Stops accepting [flushAllPendingWrites] and [reload] before the bloc starts closing, so a
+  /// Stop accepting [flushAllPendingWrites] and [reload] before the bloc starts closing, so a
   /// view that is still waiting on a handler this bloc will never run again cannot hold the close
   /// up: see `MixinOcptAwaitedEvent`.
   @override

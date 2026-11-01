@@ -54,7 +54,8 @@ class OcptDiagnosticsLogList extends StatelessWidget {
     );
   }
 
-  /// The registered [OcptDiagnosticsManager], or null when none can be resolved — see this class's
+  /// Get the registered [OcptDiagnosticsManager], or null when none can be resolved — see this
+  /// class's
   /// own doc comment for why that is a real, tolerated case rather than a programmer error.
   OcptDiagnosticsManager? _resolveManager() {
     if (AbsGlobalManager.instance == null) {
@@ -68,7 +69,7 @@ class OcptDiagnosticsLogList extends StatelessWidget {
         : null;
   }
 
-  /// [entries] filtered down to [categories], when given.
+  /// Get [entries] filtered down to [categories], when given.
   List<OcptDiagnosticsEntry> _filtered(List<OcptDiagnosticsEntry> entries) {
     final wanted = categories;
     if (wanted == null) {
@@ -135,7 +136,7 @@ class _OcptDiagnosticsBody extends StatelessWidget {
     );
   }
 
-  /// Every [entries] line, joined by newlines — what the copy-all button puts on the clipboard.
+  /// Get every [entries] line, joined by newlines — what the copy-all button puts on the clipboard.
   static String _joinedText(List<OcptDiagnosticsEntry> entries) =>
       entries.map(_lineText).join('\n');
 }
@@ -196,7 +197,7 @@ class _OcptDiagnosticsLine extends StatelessWidget {
   );
 }
 
-/// One [entry]'s own text: `HH:mm:ss · CATEGORY · message`.
+/// Get one [entry]'s own text: `HH:mm:ss · CATEGORY · message`.
 String _lineText(OcptDiagnosticsEntry entry) {
   final time = intl.DateFormat('HH:mm:ss').format(entry.time.toLocal());
   final category = entry.category.name.toUpperCase();

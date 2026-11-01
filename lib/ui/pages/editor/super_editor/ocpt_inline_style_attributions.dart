@@ -5,7 +5,7 @@
 import 'package:open_cine_prod_tools/types/ocpt_inline_style.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Maps every [OcptInlineStyle] to the super_editor `Attribution` it toggles, mirroring
+/// Map every [OcptInlineStyle] to the super_editor `Attribution` it toggles, mirroring
 /// `OcptFountainLineAttributions`'s own block-level mapping pattern.
 ///
 /// Unlike the block-type mapping, no reverse lookup by attribution name is needed here: the
@@ -22,6 +22,6 @@ class OcptInlineStyleAttributions {
   /// Private constructor: this class only exposes static members.
   const OcptInlineStyleAttributions._();
 
-  /// The `Attribution` toggled when applying [style].
+  /// Get the `Attribution` toggled when applying [style].
   static Attribution attributionOf(OcptInlineStyle style) => _attributionsByStyle[style]!;
 }

@@ -27,7 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_state.dart';
 ///
 /// The `OcptRouterManager` workspace guard guarantees a project is open when this page is reached.
 class OcptWorkspacePage extends StatelessWidget {
-  /// Creates the workspace page.
+  /// Create the workspace page.
   const OcptWorkspacePage({super.key});
 
   /// Build the workspace page as a [BlocProvider].

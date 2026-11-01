@@ -95,10 +95,10 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     isCancelled: isCancelled ?? this.isCancelled,
   );
 
-  /// Copies this state with the scanned code flagged as not being a valid invite.
+  /// Copy this state with the scanned code flagged as not being a valid invite.
   OcptJoiningState copyWithInviteRejected() => copyWith(joinFailed: true);
 
-  /// Copies this state with a join started, at its first step.
+  /// Copy this state with a join started, at its first step.
   OcptJoiningState copyWithJoinStarted() => copyWith(
     isJoining: true,
     joinFailed: false,
@@ -107,28 +107,28 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
     joinStep: OcptJoinStep.connecting,
   );
 
-  /// Copies this state back to idle: no join under way and no step shown.
+  /// Copy this state back to idle: no join under way and no step shown.
   OcptJoiningState copyToIdle() => copyWith(isJoining: false, forceJoinStepValue: true);
 
-  /// Copies this state back to idle with the join in flight marked as cancelled by the user.
+  /// Copy this state back to idle with the join in flight marked as cancelled by the user.
   OcptJoiningState copyToCancelled() =>
       copyWith(isJoining: false, forceJoinStepValue: true, isCancelled: true);
 
-  /// Copies this state with the join at its downloading step.
+  /// Copy this state with the join at its downloading step.
   OcptJoiningState copyWithDownloading() => copyWith(joinStep: OcptJoinStep.downloading);
 
-  /// Copies this state with the join at its opening step.
+  /// Copy this state with the join at its opening step.
   OcptJoiningState copyWithOpening() => copyWith(joinStep: OcptJoinStep.opening);
 
-  /// Copies this state with the join ended on a failure.
+  /// Copy this state with the join ended on a failure.
   OcptJoiningState copyWithJoinFailed() =>
       copyWith(isJoining: false, joinFailed: true, forceJoinStepValue: true);
 
-  /// Copies this state with the join ended on a success.
+  /// Copy this state with the join ended on a success.
   OcptJoiningState copyWithJoinSucceeded() =>
       copyWith(isJoining: false, joinSucceeded: true, forceJoinStepValue: true);
 
-  /// Copies this state with the failure dismissed.
+  /// Copy this state with the failure dismissed.
   OcptJoiningState copyWithFailureDismissed() => copyWith(joinFailed: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

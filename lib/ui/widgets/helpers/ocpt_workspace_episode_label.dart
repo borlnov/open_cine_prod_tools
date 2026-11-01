@@ -5,7 +5,7 @@
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 
-/// [episode]'s label: its title when it has one (`{number}. {title}`), the localized
+/// Get [episode]'s label: its title when it has one (`{number}. {title}`), the localized
 /// `Episode {number}` when it doesn't — see `OcptEpisode.title`'s own doc comment for why an
 /// empty title is an ordinary state rather than a placeholder to fill in a hurry.
 ///

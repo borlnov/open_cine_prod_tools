@@ -10,7 +10,7 @@ sealed class OcptEditorStatisticsEvent extends OcptEditorEvent {
   const OcptEditorStatisticsEvent();
 }
 
-/// Requests recomputing `OcptEditorStatisticsState.statistics` from the mode's current document and
+/// Request recomputing `OcptEditorStatisticsState.statistics` from the mode's current document and
 /// page setup.
 ///
 /// This is dispatched by the bloc's own statistics debounce timer, kept separate from the parse
@@ -21,7 +21,8 @@ class OcptEditorStatisticsRecomputeRequestedEvent extends OcptEditorStatisticsEv
   const OcptEditorStatisticsRecomputeRequestedEvent();
 }
 
-/// Requests recomputing `OcptEditorStatisticsState.sceneStatistics` from the mode's current document,
+/// Request recomputing `OcptEditorStatisticsState.sceneStatistics` from the mode's current
+/// document,
 /// caret and page setup, right away.
 ///
 /// Dispatched by the bloc to itself when it sees a new document (the parse debounce) or the caret

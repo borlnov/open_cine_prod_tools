@@ -71,7 +71,7 @@ class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
     pairingFailed: pairingFailed ?? this.pairingFailed,
   );
 
-  /// Copies this state as loaded for the project called [projectName], with the [invite] already
+  /// Copy this state as loaded for the project called [projectName], with the [invite] already
   /// held, if any.
   OcptSharingState copyToLoaded({required String projectName, required OcptRelayInvite? invite}) =>
       copyWith(
@@ -81,20 +81,20 @@ class OcptSharingState extends BlocStateForMixin<OcptSharingState> {
         forceInviteValue: invite == null,
       );
 
-  /// Copies this state with a pairing under way and the previous failure forgotten.
+  /// Copy this state with a pairing under way and the previous failure forgotten.
   OcptSharingState copyWithPairing() => copyWith(isPairing: true, pairingFailed: false);
 
-  /// Copies this state with the pairing ended on a failure.
+  /// Copy this state with the pairing ended on a failure.
   OcptSharingState copyWithPairingFailed() => copyWith(isPairing: false, pairingFailed: true);
 
-  /// Copies this state with the pairing done, [invite] being what it produced.
+  /// Copy this state with the pairing done, [invite] being what it produced.
   OcptSharingState copyWithPaired({required OcptRelayInvite? invite}) =>
       copyWith(isPairing: false, invite: invite);
 
-  /// Copies this state with the invite cleared.
+  /// Copy this state with the invite cleared.
   OcptSharingState copyWithInviteCleared() => copyWith(forceInviteValue: true);
 
-  /// Copies this state with the failure dismissed.
+  /// Copy this state with the failure dismissed.
   OcptSharingState copyWithFailureDismissed() => copyWith(pairingFailed: false);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

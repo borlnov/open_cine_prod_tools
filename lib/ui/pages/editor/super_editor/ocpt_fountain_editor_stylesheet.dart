@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview_layout.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Builds the `Stylesheet` that lays every Fountain line out at its true screenplay position
+/// Build the `Stylesheet` that lays every Fountain line out at its true screenplay position
 /// while the user types, driving the styled block editor entirely through super_editor's own
 /// stylesheet mechanism: no custom `ComponentBuilder` is needed, because every plain
 /// `ParagraphNode` this editor ever creates already supports `Styles.padding` (used here for the
@@ -57,7 +57,7 @@ class OcptFountainEditorStylesheet {
   /// Private constructor: this class only exposes static members.
   const OcptFountainEditorStylesheet._();
 
-  /// Builds the stylesheet for typesetting the styled editor at [metrics].
+  /// Build the stylesheet for typesetting the styled editor at [metrics].
   ///
   /// When [isPageSimulationEnabled] is off, colors follow [colorScheme] (so the editing surface
   /// follows the app's light/dark theme) — *unless* [usePaperColors] forces the fixed paper colors
@@ -253,7 +253,7 @@ class OcptFountainEditorStylesheet {
     );
   }
 
-  /// Builds the `StyleRule` every title-page field node shares (see
+  /// Build the `StyleRule` every title-page field node shares (see
   /// `OcptWysiwygCodec.ocptTitlePageFieldAttribution`): unlike every other rule in this class,
   /// which selects one [FountainLineType] each, this single selector covers all six title-page
   /// fields and reads each node's own `OcptWysiwygCodec.ocptTitlePageKeyMetadataKey` metadata
@@ -286,7 +286,7 @@ class OcptFountainEditorStylesheet {
         };
       });
 
-  /// Applies [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
+  /// Apply [FountainPrintStyle.of]'s base weight/slope for [type] to [style]: the shared table
   /// this editor, the raw preview and the PDF exporter all derive a printed element's base
   /// typesetting from, so a rule below never hardcodes its own bold/italic decision for a type the
   /// table already has an opinion on. Deliberately leaves [FountainPrintStyle.isUppercase] out of
@@ -300,7 +300,7 @@ class OcptFountainEditorStylesheet {
     );
   }
 
-  /// Builds the `StyleRule` for [type], selecting nodes by the `blockType` attribution
+  /// Build the `StyleRule` for [type], selecting nodes by the `blockType` attribution
   /// [OcptFountainLineAttributions.attributionOf] gives it, and positioning them at [element]'s
   /// indent and width (converted to pixels through [layout]); each node's own
   /// [ocptBlankLinesBeforeMetadataKey] metadata additionally opens up top padding, visually
@@ -341,7 +341,8 @@ class OcptFountainEditorStylesheet {
     };
   });
 
-  /// The extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank source
+  /// Get the extra top padding standing in for [node]'s [ocptBlankLinesBeforeMetadataKey] blank
+  /// source
   /// lines, one [OcptEditorPreviewLayout.lineHeight] each, capped at
   /// [ocptMaxBlankLinesBeforeSpacing].
   static double _blankLinesBeforeTopPadding(DocumentNode node, OcptEditorPreviewLayout layout) {
@@ -350,7 +351,7 @@ class OcptFountainEditorStylesheet {
     return count.clamp(0, ocptMaxBlankLinesBeforeSpacing) * layout.lineHeight;
   }
 
-  /// The extra top padding standing in for the page gap and the previous/next page's margins,
+  /// Get the extra top padding standing in for the page gap and the previous/next page's margins,
   /// opened up above a node flagged [ocptStartsNewPageMetadataKey] by `computeOcptStyledPagination`
   /// — the exact pixel amount that pass computed for this node so it lands precisely at its
   /// sheet's text origin, rather than a fixed estimate (0 for a node not flagged, or while page
@@ -360,7 +361,7 @@ class OcptFountainEditorStylesheet {
     return value is double ? value : 0;
   }
 
-  /// Wraps `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
+  /// Wrap `defaultInlineTextStyler` to additionally dim an [ocptFountainNoteAttribution] span
   /// ([_noteInlineOpacity] of [onSurfaceVariant]), read-only authoring scaffolding that never
   /// prints.
   static TextStyle _inlineTextStyler(

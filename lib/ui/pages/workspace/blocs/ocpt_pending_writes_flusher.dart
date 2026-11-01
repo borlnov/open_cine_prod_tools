@@ -14,7 +14,7 @@ typedef OcptPendingWritesRun = ({bool hasWritten, bool hasFailed});
 /// preview, leaving the workspace. It does not know what each of them holds, only that it can be
 /// asked to let go of it.
 abstract interface class OcptPendingWritesFlusher {
-  /// Writes whatever this holds, forgets it, and answers whether there was anything to write.
+  /// Write whatever this holds, forget it, and answer whether there was anything to write.
   ///
   /// Runs inside the flusher's own bloc, so it may emit the now-empty state.
   ///
@@ -24,7 +24,7 @@ abstract interface class OcptPendingWritesFlusher {
   /// to the user and wants the action to go on catches them itself instead.
   Future<bool> flushPendingWrites();
 
-  /// Writes whatever this holds **without touching any state**, for the moments no handler can
+  /// Write whatever this holds **without touching any state**, for the moments no handler can
   /// emit from: a widget leaving the tree, a bloc closing. A failure is only logged. Both moments
   /// can come one after the other, or overlap, for the same edit (the second starts while the
   /// first write is still running), so an implementation must not write it a second time: see

@@ -7,7 +7,8 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_episode.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
 
-/// The episode tag to append to a mode's own export suggested file name (`ep. 2`), or null while
+/// Get the episode tag to append to a mode's own export suggested file name (`ep. 2`), or null
+/// while
 /// [episodes] holds one episode or none, or [selectedEpisodeId] names none of them.
 ///
 /// A single-episode project names no episode anywhere (ADR 0019), and this is the one place the

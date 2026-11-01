@@ -41,7 +41,7 @@ class OcptProjectPackageExportRequestedEvent extends BlocEventForMixin {
   List<Object?> get props => [...super.props, fileTypeLabel, target];
 }
 
-/// Reports that the mode has opened the question about the missing files, which clears it from the
+/// Report that the mode has opened the question about the missing files, which clears it from the
 /// state.
 ///
 /// The one-shot state field is consumed the moment it has been acted on, exactly as every transient
@@ -52,7 +52,7 @@ class OcptProjectPackageMissingFilesAskDismissedEvent extends BlocEventForMixin 
   const OcptProjectPackageMissingFilesAskDismissedEvent();
 }
 
-/// Reports that the user answered the missing-files question by asking for the package anyway.
+/// Report that the user answered the missing-files question by asking for the package anyway.
 ///
 /// Carries [fileTypeLabel] again rather than having the handler remember what the request event
 /// brought: the mode resolves it from the very context it just showed the dialog in, and a bloc
@@ -70,7 +70,7 @@ class OcptProjectPackageExportConfirmedEvent extends BlocEventForMixin {
   List<Object?> get props => [...super.props, fileTypeLabel];
 }
 
-/// Clears the transient project package notice currently shown, if any.
+/// Clear the transient project package notice currently shown, if any.
 class OcptProjectPackageNoticeDismissedEvent extends BlocEventForMixin {
   /// Class constructor
   const OcptProjectPackageNoticeDismissedEvent();

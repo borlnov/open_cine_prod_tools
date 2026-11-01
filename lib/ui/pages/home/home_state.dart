@@ -214,69 +214,69 @@ class OcptHomeState extends BlocStateForMixin<OcptHomeState>
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Copies this state with the [recentProjects] list read again.
+  /// Copy this state with the [recentProjects] list read again.
   OcptHomeState copyWithRecentProjects({
     required List<OcptHomeRecentProjectEntry> recentProjects,
   }) => copyWith(recentProjects: recentProjects);
 
-  /// Copies this state busy with a new action, and the previous error forgotten.
+  /// Copy this state busy with a new action, and the previous error forgotten.
   OcptHomeState copyWithBusy() => copyWith(isBusy: true, forceErrorValue: true);
 
-  /// Copies this state no longer busy.
+  /// Copy this state no longer busy.
   OcptHomeState copyWithIdle() => copyWith(isBusy: false);
 
-  /// Copies this state no longer busy, the action having ended on [error].
+  /// Copy this state no longer busy, the action having ended on [error].
   OcptHomeState copyWithFailure({required OcptProjectStatus error}) =>
       copyWith(isBusy: false, error: error);
 
-  /// Copies this state no longer busy, with the [compatibility] verdict of the file to open pending
+  /// Copy this state no longer busy, with the [compatibility] verdict of the file to open pending
   /// the page's answer.
   OcptHomeState copyWithPendingFileCompatibility({
     required OcptProjectFileCompatibility compatibility,
   }) => copyWith(isBusy: false, pendingFileCompatibility: compatibility);
 
-  /// Copies this state with the compatibility verdict the page has stated cleared.
+  /// Copy this state with the compatibility verdict the page has stated cleared.
   OcptHomeState copyWithFileCompatibilityStated() =>
       copyWith(forcePendingFileCompatibilityValue: true);
 
-  /// Copies this state with the error dismissed.
+  /// Copy this state with the error dismissed.
   OcptHomeState copyWithErrorDismissed() => copyWith(forceErrorValue: true);
 
-  /// Copies this state busy with a screenplay import, and the previous errors forgotten.
+  /// Copy this state busy with a screenplay import, and the previous errors forgotten.
   OcptHomeState copyWithScreenplayImportStarted() =>
       copyWith(isBusy: true, forceErrorValue: true, forceScreenplayImportErrorValue: true);
 
-  /// Copies this state no longer busy after the screenplay file was picked and read, with
+  /// Copy this state no longer busy after the screenplay file was picked and read, with
   /// [screenplayImportError] stating why it could not be, if it is worth stating.
   OcptHomeState copyWithScreenplayImportRead({
     required OcptScreenplayImportStatus? screenplayImportError,
   }) => copyWith(isBusy: false, screenplayImportError: screenplayImportError);
 
-  /// Copies this state with the screenplay import error dismissed.
+  /// Copy this state with the screenplay import error dismissed.
   OcptHomeState copyWithScreenplayImportErrorDismissed() =>
       copyWith(forceScreenplayImportErrorValue: true);
 
-  /// Copies this state busy with a project package import, and the previous errors forgotten.
+  /// Copy this state busy with a project package import, and the previous errors forgotten.
   OcptHomeState copyWithProjectPackageImportStarted() =>
       copyWith(isBusy: true, forceErrorValue: true, forceProjectPackageImportErrorValue: true);
 
-  /// Copies this state no longer busy, the project package import having ended on
+  /// Copy this state no longer busy, the project package import having ended on
   /// [projectPackageImportError].
   OcptHomeState copyWithProjectPackageImportFailed({
     required OcptProjectPackageStatus projectPackageImportError,
   }) => copyWith(isBusy: false, projectPackageImportError: projectPackageImportError);
 
-  /// Copies this state no longer busy, the project package import having produced
+  /// Copy this state no longer busy, the project package import having produced
   /// [projectPackageImportReport].
   OcptHomeState copyWithProjectPackageImported({
     required OcptProjectPackageImportReport projectPackageImportReport,
   }) => copyWith(isBusy: false, projectPackageImportReport: projectPackageImportReport);
 
-  /// Copies this state with the project package import error dismissed.
+  /// Copy this state with the project package import error dismissed.
   OcptHomeState copyWithProjectPackageImportErrorDismissed() =>
       copyWith(forceProjectPackageImportErrorValue: true);
 
-  /// Copies this state with the project package import report dismissed.
+  /// Copy this state with the project package import report dismissed.
   OcptHomeState copyWithProjectPackageImportReportDismissed() =>
       copyWith(forceProjectPackageImportReportValue: true);
 

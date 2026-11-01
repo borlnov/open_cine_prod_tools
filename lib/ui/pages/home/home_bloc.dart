@@ -139,7 +139,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeScreenplayImportErrorDismissedEvent>(_onScreenplayImportErrorDismissed);
   }
 
-  /// Does nothing: no project is open from the home page, so there is no debounced field edit or
+  /// Do nothing: no project is open from the home page, so there is no debounced field edit or
   /// pending autosave a mode would otherwise still be holding outside the database.
   @protected
   @override
@@ -156,7 +156,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _refreshRecentProjects(emit);
   }
 
-  /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
+  /// Reload the recent projects list, recompute which of them still exist on disk, and probe
   /// the format of every one that does.
   ///
   /// The probe is the same read-only header check [_stopsOnFileFormat] runs before an open — see
@@ -181,8 +181,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithRecentProjects(recentProjects: entries));
   }
 
-  /// Navigates to [route] (the workspace or the Partager screen, both reached with a project
-  /// already open), then reloads the recent projects list once it pops back here.
+  /// Navigate to [route] (the workspace or the Partager screen, both reached with a project already
+  /// open), then reload the recent projects list once it pops back here.
   ///
   /// The push only completes when the user leaves [route], and what they did there is exactly
   /// what this page shows: leaving the workspace closes the current project, and
@@ -205,8 +205,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _refreshRecentProjects(emitter);
   }
 
-  /// Shows the native save-file dialog on desktop (or resolves a free file path with no dialog on
-  /// mobile — see this class's own doc comment), creates the project there, then navigates to the
+  /// Show the native save-file dialog on desktop (or resolves a free file path with no dialog on
+  /// mobile — see this class's own doc comment), create the project there, then navigate to the
   /// editor. A cancelled desktop dialog is a silent no-op: nothing is created.
   Future<void> _onCreateProjectRequested(
     OcptHomeCreateProjectRequestedEvent event,
@@ -235,7 +235,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Resolves the file path a fresh project named [name] is created at: the native save-file
+  /// Resolve the file path a fresh project named [name] is created at: the native save-file
   /// dialog's own pick on desktop, suggested `<name>.ocpt` inside
   /// [OcptProjectsManager.suggestedProjectsDirectory] and labelled [fileTypeLabel] — or null when
   /// the user cancelled it — or [OcptProjectsManager.freeNewProjectFilePath], with no dialog at
@@ -257,8 +257,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     );
   }
 
-  /// Opens [OcptHomeOpenProjectRequestedEvent.filePath], or shows an open-file dialog first if
-  /// it's null, then navigates to the editor.
+  /// Open [OcptHomeOpenProjectRequestedEvent.filePath], or show an open-file dialog first if it's
+  /// null, then navigate to the editor.
   ///
   /// Every project file this page opens goes through the compatibility gate first, the picked one
   /// and the tapped card alike: a file from another build stops here, and what the probe found is
@@ -307,7 +307,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Opens the project at [OcptHomeShareProjectRequestedEvent.filePath], then navigates to its
+  /// Open the project at [OcptHomeShareProjectRequestedEvent.filePath], then navigate to its
   /// Partager screen instead of the workspace — a project card's own "Partager / Synchroniser…"
   /// overflow menu action.
   ///
@@ -332,7 +332,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.sharing, emitter);
   }
 
-  /// Navigates to the "Rejoindre un projet partagé" screen, then reloads the recent projects list
+  /// Navigate to the "Rejoindre un projet partagé" screen, then reload the recent projects list
   /// once it pops back here — joining creates a new project card that was not there before.
   ///
   /// Opens no project first, unlike [_onShareProjectRequested]: joining is how a project comes to
@@ -344,7 +344,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.joining, emitter);
   }
 
-  /// Whether opening [filePath] has to stop and be stated to the user first, raising what the
+  /// Tell whether opening [filePath] has to stop and be stated to the user first, raising what the
   /// probe found through the state when it does.
   ///
   /// The manager refuses these two verdicts on its own as well, and would report them as statuses:
@@ -366,7 +366,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     }
   }
 
-  /// Clears the compatibility verdict the page has just stated, if any.
+  /// Clear the compatibility verdict the page has just stated, if any.
   Future<void> _onFileCompatibilityStated(
     OcptHomeFileCompatibilityStatedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -374,7 +374,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithFileCompatibilityStated());
   }
 
-  /// Removes a recent project from the list and refreshes it.
+  /// Remove a recent project from the list and refresh it.
   Future<void> _onRemoveRecentProjectRequested(
     OcptHomeRemoveRecentProjectRequestedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -383,7 +383,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _refreshRecentProjects(emitter);
   }
 
-  /// Clears the transient error currently shown, if any.
+  /// Clear the transient error currently shown, if any.
   Future<void> _onErrorDismissed(
     OcptHomeErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -391,7 +391,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithErrorDismissed());
   }
 
-  /// Picks a screenplay file, creates a new project for it, imports its text, then navigates to
+  /// Pick a screenplay file, create a new project for it, import its text, then navigate to
   /// the editor.
   ///
   /// Mirrors [_onCreateProjectRequested] step for step, with two differences: resolving the new
@@ -494,7 +494,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
 
-  /// Picks a `.ocptz` file, then a parent folder to unpack it into, and raises what landed through
+  /// Pick a `.ocptz` file, then a parent folder to unpack it into, and raise what landed through
   /// the state.
   ///
   /// A cancelled open dialog or a cancelled folder picker are both silent no-ops, exactly as every
@@ -544,7 +544,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithProjectPackageImported(projectPackageImportReport: report));
   }
 
-  /// Clears the transient project package import error currently shown, if any.
+  /// Clear the transient project package import error currently shown, if any.
   Future<void> _onProjectPackageImportErrorDismissed(
     OcptHomeProjectPackageImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -552,7 +552,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithProjectPackageImportErrorDismissed());
   }
 
-  /// Clears the project package import report the page has just read, if any.
+  /// Clear the project package import report the page has just read, if any.
   Future<void> _onProjectPackageImportReportDismissed(
     OcptHomeProjectPackageImportReportDismissedEvent event,
     Emitter<OcptHomeState> emitter,
@@ -560,7 +560,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     emitter(state.copyWithProjectPackageImportReportDismissed());
   }
 
-  /// Clears the transient screenplay import error currently shown, if any.
+  /// Clear the transient screenplay import error currently shown, if any.
   Future<void> _onScreenplayImportErrorDismissed(
     OcptHomeScreenplayImportErrorDismissedEvent event,
     Emitter<OcptHomeState> emitter,

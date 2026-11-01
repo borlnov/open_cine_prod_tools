@@ -11,13 +11,13 @@ import 'package:super_editor/super_editor.dart';
 /// for styling, never for serialization (a node's text already carries the brackets verbatim).
 const NamedAttribution ocptFountainNoteAttribution = NamedAttribution("fountainNote");
 
-/// Converts between Fountain styled runs and super_editor attributed text, the inline half of
+/// Convert between Fountain styled runs and super_editor attributed text, the inline half of
 /// `OcptWysiwygCodec`.
 final class OcptWysiwygInlineRuns {
   /// Private constructor: this class only exposes static members.
   const OcptWysiwygInlineRuns._();
 
-  /// Converts [runs] into an `AttributedText`, applying [boldAttribution], [italicsAttribution],
+  /// Convert [runs] into an `AttributedText`, applying [boldAttribution], [italicsAttribution],
   /// [underlineAttribution] and [ocptFountainNoteAttribution] over each run's span; the inverse of
   /// [runsFromAttributedText].
   static AttributedText attributedTextFromRuns(List<FountainStyledRun> runs) {
@@ -52,7 +52,7 @@ final class OcptWysiwygInlineRuns {
     return attributedText;
   }
 
-  /// Converts [text]'s attributions into [FountainStyledRun]s, splitting it wherever its bold,
+  /// Convert [text]'s attributions into [FountainStyledRun]s, splitting it wherever its bold,
   /// italic, underline or note attribution set changes; the inverse of [attributedTextFromRuns].
   ///
   /// An [ocptFountainNoteAttribution] range always wins over any overlapping bold/italic/underline
@@ -102,7 +102,7 @@ final class OcptWysiwygInlineRuns {
     return runs;
   }
 
-  /// Whether [a] and [b] hold the same (start, exclusive end) ranges in the same order.
+  /// Tell whether [a] and [b] hold the same (start, exclusive end) ranges in the same order.
   static bool sameRanges(List<(int, int)> a, List<(int, int)> b) {
     if (a.length != b.length) {
       return false;
@@ -115,7 +115,7 @@ final class OcptWysiwygInlineRuns {
     return true;
   }
 
-  /// The (start, exclusive end) character ranges of every `[[...]]` region in [text], left to
+  /// Get the (start, exclusive end) character ranges of every `[[...]]` region in [text], left to
   /// right and non-overlapping, mirroring `FountainInlineParser.parse`'s own note-matching rule
   /// (nearest `]]` after each `[[`, no nesting).
   static List<(int, int)> noteRanges(String text) {

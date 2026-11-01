@@ -225,13 +225,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     super.add(event);
   }
 
-  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// Get the screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
   String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
-  /// Saves the screenplay if it holds unsaved changes, so a preview about to swap the database
+  /// Save the screenplay if it holds unsaved changes, so a preview about to swap the database
   /// can't send the text sitting in the autosave debounce into the previewed version instead.
   ///
   /// Tagged [OcptSnapshotReason.manual] like every other save the user's own action triggers: from
@@ -273,7 +273,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _load(emit);
   }
 
-  /// Loads the current project's screenplay text, title and page format, and parses the text,
+  /// Load the current project's screenplay text, title and page format, and parse the text,
   /// together with the persisted preferred editor mode.
   ///
   /// The editor route is guarded by the router manager, so a project is normally always open
@@ -363,7 +363,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
-  /// Reads the page setup [project] is typeset with: the version's own while one is being
+  /// Read the page setup [project] is typeset with: the version's own while one is being
   /// previewed, and the project's page format paired with the app-wide margins preference
   /// otherwise.
   ///
@@ -379,7 +379,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
+  /// Compute how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
   /// [_load] once the persisted mode is known.
   ///
@@ -433,7 +433,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
-  /// Stores the edited text, marks it dirty, and restarts the parse and autosave debounces.
+  /// Store the edited text, mark it dirty, and restart the parse and autosave debounces.
   Future<void> _onTextChanged(
     OcptEditorTextChangedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -464,7 +464,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     });
   }
 
-  /// Re-parses the current text into a fresh document.
+  /// Re-parse the current text into a fresh document.
   ///
   /// The spell-check bloc requests its raw pass off the fresh document this emits, exactly where
   /// `docs/architecture/screenplay.md` puts it: on this same parse debounce, never a keystroke. The
@@ -476,7 +476,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithParsedDocument(document: _fountainParser.parse(state.text)));
   }
 
-  /// Saves the current text to the project database, unless there is nothing dirty to save.
+  /// Save the current text to the project database, unless there is nothing dirty to save.
   ///
   /// Delegates to [_saveCurrentText], tagged [OcptSnapshotReason.manual] or
   /// [OcptSnapshotReason.timer] depending on [OcptEditorSaveRequestedEvent.isManual].
@@ -494,7 +494,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
-  /// Saves the current text to the project database, tagged [reason]. Does nothing if no project
+  /// Save the current text to the project database, tagged [reason]. Does nothing if no project
   /// is open.
   ///
   /// If the text is edited again while the save is in flight, the screenplay stays dirty once the
@@ -539,7 +539,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Records the source line the caret moved to. The statistics bloc recomputes the scene's counters
+  /// Record the source line the caret moved to. The statistics bloc recomputes the scene's counters
   /// when that lands the caret on a different scene.
   Future<void> _onCaretMoved(
     OcptEditorCaretMovedEvent event,
@@ -548,7 +548,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithCurrentLine(currentLine: event.line));
   }
 
-  /// Emits a fresh jump request for the page to move the caret to the clicked scene's start.
+  /// Emit a fresh jump request for the page to move the caret to the clicked scene's start.
   Future<void> _onSceneJumpRequested(
     OcptEditorSceneJumpRequestedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -556,7 +556,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithSceneJumpRequested(charOffset: event.charOffset));
   }
 
-  /// Toggles the scene panel's visibility.
+  /// Toggle the scene panel's visibility.
   Future<void> _onScenePanelToggled(
     OcptEditorScenePanelToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -564,10 +564,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithScenePanelVisibility(isScenePanelVisible: !state.isScenePanelVisible));
   }
 
-  /// Selects a tab of the right dock (decision 3's toggle semantics: the already-active tab
-  /// closes the dock, any other tab opens or switches to it), records it as
+  /// Select a tab of the right dock (decision 3's toggle semantics: the already-active tab closes
+  /// the dock, any other tab opens or switches to it), record it as
   /// [OcptEditorState.lastRightDockTab] (even when it just closed the dock: that's still the tab
-  /// the toolbar's toggle must bring back), and clears
+  /// the toolbar's toggle must bring back), and clear
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   Future<void> _onRightDockTabSelected(
     OcptEditorRightDockTabSelectedEvent event,
@@ -584,7 +584,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptEditorState.lastRightDockTab], and clears
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   ///
@@ -612,7 +612,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
   }
 
-  /// Closes the right dock via its own × close button, and clears
+  /// Close the right dock via its own × close button, and clear
   /// [OcptEditorState.autoClosedRightDockTab] since this is an explicit user action.
   Future<void> _onRightDockClosed(
     OcptEditorRightDockClosedEvent event,
@@ -621,7 +621,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Applies and persists whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
+  /// Apply and persist whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
   /// given, dispatched once per drag gesture rather than per frame (see the event's doc comment).
   Future<void> _onDockFractionsChanged(
     OcptEditorDockFractionsChangedEvent event,
@@ -641,7 +641,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Restores both dock fractions to their defaults and persists them ("Reset panel layout").
+  /// Restore both dock fractions to their defaults and persist them ("Reset panel layout").
   Future<void> _onDockLayoutReset(
     OcptEditorDockLayoutResetEvent event,
     Emitter<OcptEditorState> emitter,
@@ -656,7 +656,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.editorRightDockFraction.store(OcptWorkspaceDock.rightDefaultFraction);
   }
 
-  /// Toggles the editing mode between styled and raw, persists the new mode, and applies the
+  /// Toggle the editing mode between styled and raw, persist the new mode, and apply the
   /// right dock's raw/styled transition (see [_rightDockTransitionFor]).
   ///
   /// The spell-check bloc requests a raw pass the moment raw becomes the mounted mode, see
@@ -687,7 +687,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.editorMode.store(newMode);
   }
 
-  /// Toggles the "Word-like" page simulation, and persists the new value.
+  /// Toggle the "Word-like" page simulation, and persist the new value.
   Future<void> _onPageSimulationToggled(
     OcptEditorPageSimulationToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -697,7 +697,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.isPageSimulationEnabled.store(newValue);
   }
 
-  /// Toggles whether the styled editor shows scene numbers, and persists the new value.
+  /// Toggle whether the styled editor shows scene numbers, and persist the new value.
   Future<void> _onStyledSceneNumbersToggled(
     OcptEditorStyledSceneNumbersToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -707,7 +707,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.styledSceneNumbersVisible.store(newValue);
   }
 
-  /// Toggles whether this machine shows the spell-check underlines, and persists the new value.
+  /// Toggle whether this machine shows the spell-check underlines, and persist the new value.
   ///
   /// `OcptEditorSpellCheckBloc` sees the switch move: it clears the underlines when it is now off and
   /// loads or unloads the dictionary as the two switches of `docs/architecture/screenplay.md` dictate.
@@ -720,7 +720,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.spellCheckVisible.store(newValue);
   }
 
-  /// Persists the new page setup (format per-project, margins app-wide), and applies it live. The
+  /// Persist the new page setup (format per-project, margins app-wide), and apply it live. The
   /// statistics bloc recomputes the counters at once, since the page count depends on the page
   /// format.
   Future<void> _onPageSetupChanged(
@@ -732,7 +732,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithPageSetup(pageSetup: event.pageSetup));
   }
 
-  /// Re-reads the project's page format and screenplay language after the project settings page
+  /// Re-read the project's page format and screenplay language after the project settings page
   /// changed something, repaginating against the first and emitting the second, which
   /// `OcptEditorSpellCheckBloc` drives its dictionary from.
   ///
@@ -755,7 +755,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Clears the transient save error currently shown, if any.
+  /// Clear the transient save error currently shown, if any.
   Future<void> _onSaveErrorDismissed(
     OcptEditorSaveErrorDismissedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -763,7 +763,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithSaveErrorDismissed());
   }
 
-  /// Writes the unsaved text, tagged [OcptSnapshotReason.export], before an export reads it, so the
+  /// Write the unsaved text, tagged [OcptSnapshotReason.export], before an export reads it, so the
   /// exported file matches exactly what the project stores.
   ///
   /// The parse and autosave debounces are cancelled first: the save below is the one that counts, and
@@ -781,7 +781,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Replaces the screenplay text with the one an import has just written to the project: the text
+  /// Replace the screenplay text with the one an import has just written to the project: the text
   /// is clean (the import saved it), the caret goes back to the first line, and the document and the
   /// counters follow at once instead of waiting for the typing debounces.
   Future<void> _onImportedTextApplied(
@@ -796,8 +796,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithTextReplaced());
   }
 
-  /// Rewrites the screenplay's title-page section from [event]'s six fields, saves the result
-  /// (tagged [OcptSnapshotReason.manual]), and re-parses it.
+  /// Rewrite the screenplay's title-page section from [event]'s six fields, save the result (tagged
+  /// [OcptSnapshotReason.manual]), and re-parse it.
   ///
   /// Reuses [_saveCurrentText] for the save itself, so a failure surfaces through the same
   /// [OcptEditorState.hasSaveError] path a normal edit's save would.
@@ -822,7 +822,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWithTextReplaced());
   }
 
-  /// Builds the title-page entries [event] describes, skipping every field left blank.
+  /// Build the title-page entries [event] describes, skipping every field left blank.
   List<FountainTitlePageEntry> _titlePageEntriesFrom(OcptEditorTitlePageChangedEvent event) {
     final fields = {
       'Title': event.title,
@@ -844,7 +844,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     ];
   }
 
-  /// Leaves the editor: cancels the pending debounce timers, flushes the unsaved change if there
+  /// Leave the editor: cancels the pending debounce timers, flushes the unsaved change if there
   /// is one, closes the current project, and navigates back to the home page.
   ///
   /// The project is closed before navigating, so [disposeLifeCycle]'s own close-flush (guarded on

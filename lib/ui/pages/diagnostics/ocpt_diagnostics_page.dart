@@ -100,7 +100,8 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
     );
   }
 
-  /// The file logger's own current log-file path, or null when file logging is disabled, its setup
+  /// Get the file logger's own current log-file path, or null when file logging is disabled, its
+  /// setup
   /// failed, or no `OcptFileLoggingManager` can be resolved at all.
   String? _resolveLogFilePath() {
     if (AbsGlobalManager.instance == null) {

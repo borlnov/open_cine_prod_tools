@@ -9,8 +9,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_fountain_
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_inline_style_attributions.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Reads the caret's block type, the active inline styles and the undo/redo availability off a
-/// styled editor and reports them to its [OcptStyledEditorController].
+/// Read the caret's block type, the active inline styles and the undo/redo availability off a
+/// styled editor and report them to its [OcptStyledEditorController].
 ///
 /// The document and the composer are resolved through callbacks at call time, since the styled
 /// editor replaces both whenever its text is rebuilt from outside.
@@ -30,13 +30,13 @@ final class OcptStyledReadState {
   /// Whether there is anything left to redo.
   final bool Function() _canRedoOf;
 
-  /// The document the caret sits in.
+  /// Get the document the caret sits in.
   MutableDocument get _document => _documentOf();
 
-  /// The composer holding the selection.
+  /// Get the composer holding the selection.
   MutableDocumentComposer get _composer => _composerOf();
 
-  /// Creates an [OcptStyledReadState].
+  /// Create an [OcptStyledReadState].
   OcptStyledReadState({
     required OcptStyledEditorController? Function() controllerOf,
     required MutableDocument Function() documentOf,
@@ -49,7 +49,7 @@ final class OcptStyledReadState {
        _canUndoOf = canUndoOf,
        _canRedoOf = canRedoOf;
 
-  /// Refreshes [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state, and
+  /// Refresh [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state, and
   /// whether there is anything left to undo or redo) from the caret's current node type, the
   /// active inline styles and the editor's own history, called after every attach, every document
   /// rebuild, every document change, every selection change and every composer-preferences change
@@ -77,7 +77,8 @@ final class OcptStyledReadState {
     );
   }
 
-  /// Whether [style]'s attribution is active over the current selection: for a collapsed caret,
+  /// Tell whether [style]'s attribution is active over the current selection: for a collapsed
+  /// caret,
   /// the composer's pending style preferences (what the next typed character will carry); for an
   /// expanded selection, whether every character of it already carries the attribution.
   ///

@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_skipped_asset.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_missing_files_confirm.dart';
 
-/// States that some of the files an imported package's project references did not travel — they
+/// State that some of the files an imported package's project references did not travel — they
 /// were already missing when the package was written, and the import is only reporting that again.
 ///
 /// A dialog rather than a SnackBar, shown **before** the workspace is pushed — a transient message
@@ -52,7 +52,7 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog, and completes once the user has dismissed it.
+  /// Show the dialog, and complete once the user has dismissed it.
   static Future<void> show(BuildContext context, {required List<OcptSkippedAsset> skippedAssets}) =>
       showDialog<void>(
         context: context,

@@ -63,7 +63,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
   /// of this banner may write through.
   final bool isReadOnly;
 
-  /// Builds the orphaned variant, reporting [alert].
+  /// Build the orphaned variant, reporting [alert].
   const OcptRoleAlertBanner.orphaned({
     super.key,
     required OcptRemovedRoleAlert alert,
@@ -75,7 +75,7 @@ class OcptRoleAlertBanner extends StatelessWidget {
   }) : orphanedAlert = alert,
        collisionAlert = null;
 
-  /// Builds the collision variant, reporting [alert].
+  /// Build the collision variant, reporting [alert].
   const OcptRoleAlertBanner.collision({
     super.key,
     required OcptRoleCollisionAlert alert,

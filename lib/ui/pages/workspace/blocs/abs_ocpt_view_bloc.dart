@@ -112,7 +112,8 @@ abstract class AbsOcptViewBloc<
   /// The write [flushEditsWithoutState] is running, if any.
   Future<void>? _writeWithoutStateInFlight;
 
-  /// Whether this view is closing or closed, from which point `add` throws: `isClosed` stays false
+  /// Tell whether this view is closing or closed, from which point `add` throws: `isClosed` stays
+  /// false
   /// until every handler still running has finished, a window in which the event queue is already
   /// shut. Check this, not `isClosed`, before an `add` made from a timer or after an `await`.
   @protected
@@ -144,14 +145,15 @@ abstract class AbsOcptViewBloc<
     on<OcptViewFlushRequestedEvent>(_onFlushRequested);
   }
 
-  /// Asks the mode bloc for [event], or does nothing if the mode is closing. The only way a view
+  /// Ask the mode bloc for [event], or do nothing if the mode is closing. The only way a view
   /// should add an event to its mode: the mode may start to close while this view's handler is
   /// still waiting on it, and a plain `modeBloc.add` would throw then.
   @protected
   void addToMode(BlocEventForMixin event) => modeBloc.addUnlessClosing(event);
 
-  /// Asks the mode for [event], one the mode registered as awaitable (`MixinOcptModeBloc.onAwaited`),
-  /// and completes once the mode has handled it **and** this view has reacted to the state it
+  /// Ask the mode for [event], one the mode registered as awaitable
+  /// (`MixinOcptModeBloc.onAwaited`), and complete once the mode has handled it **and** this view
+  /// has reacted to the state it
   /// emitted. Does nothing if the mode is closing.
   ///
   /// This is how a view moves the mode's shared selection and then emits its own selection in the
@@ -163,7 +165,7 @@ abstract class AbsOcptViewBloc<
     await _untilReactedToMode();
   }
 
-  /// (Re)starts the view's debounce: after [delay] without another call, [event] is added to this
+  /// (Re)start the view's debounce: after [delay] without another call, [event] is added to this
   /// view, unless the view started to close meanwhile. A view that holds typed edits calls this on
   /// every keystroke, and its handler for [event] writes them.
   ///
@@ -185,7 +187,7 @@ abstract class AbsOcptViewBloc<
     });
   }
 
-  /// Cancels the debounce started by [restartDebounce], if it is running. A flush calls this first:
+  /// Cancel the debounce started by [restartDebounce], if it is running. A flush calls this first:
   /// what it writes is what the timer was waiting to write.
   @protected
   void cancelDebounce() {
@@ -193,7 +195,7 @@ abstract class AbsOcptViewBloc<
     _debounceTimer = null;
   }
 
-  /// Reacts to the mode's shared state having moved: clears what was scoped to the previous
+  /// React to the mode's shared state having moved: clears what was scoped to the previous
   /// selection when `event.hasSelectionMoved`, prunes what the new data no longer holds when
   /// `event.hasReloaded`. `event.modeState` is the state that moved the epochs; [modeBloc]'s own
   /// state is the latest data to prune against.
@@ -206,12 +208,12 @@ abstract class AbsOcptViewBloc<
     Emitter<S> emitter,
   ) async {}
 
-  /// Writes what this view holds in a debounce and emits the state without it, answering whether
+  /// Write what this view holds in a debounce and emit the state without it, answering whether
   /// there was anything to write. Nothing by default: a view with no typed edits holds nothing.
   @protected
   Future<bool> onFlushRequested(Emitter<S> emitter) async => false;
 
-  /// Asks the view's own bloc to write what it holds, and answers whether it had anything. Answers
+  /// Ask the view's own bloc to write what it holds, and answer whether it had anything. Answers
   /// false at once on a view that is closing, and throws what the write threw: see
   /// [OcptPendingWritesFlusher.flushPendingWrites].
   @override
@@ -223,13 +225,14 @@ abstract class AbsOcptViewBloc<
     return await OcptViewFlushRequestedEvent().addToAndWait(this) ?? false;
   }
 
-  /// Nothing by default: a view with no typed edits holds nothing. A view that does writes through
+  /// Write nothing by default: a view with no typed edits holds nothing. A view that does writes
+  /// through
   /// [flushEditsWithoutState].
   @override
   Future<void> flushPendingWritesWithoutState() async {}
 
-  /// Writes, through [write], the entries of [pending] that an earlier call did not already write
-  /// with the same value, and remembers them. For a view's [flushPendingWritesWithoutState].
+  /// Write, through [write], the entries of [pending] that an earlier call did not already write
+  /// with the same value, and remember them. For a view's [flushPendingWritesWithoutState].
   ///
   /// That flush leaves the pending map as it is, since it cannot emit: the widget leaving the tree
   /// runs it, then the bloc closing runs it again, and without this the same edit is written twice,
@@ -284,7 +287,7 @@ abstract class AbsOcptViewBloc<
     }
   }
 
-  /// Turns an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].
+  /// Turn an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].
   void _onModeState(MS modeState) {
     // Only an epoch that grew is a move: a state older than one already seen (a handler that
     // emitted from a copy taken before it waited) carries a lower epoch, and is not news.
@@ -313,7 +316,7 @@ abstract class AbsOcptViewBloc<
     _signalReaction();
   }
 
-  /// Runs [onModeStateChanged], then counts the reaction as handled.
+  /// Run [onModeStateChanged], then count the reaction as handled.
   Future<void> _onModeStateChangedEvent(
     OcptViewModeStateChangedEvent<MS> event,
     Emitter<S> emitter,
@@ -326,14 +329,14 @@ abstract class AbsOcptViewBloc<
     }
   }
 
-  /// Wakes whoever waits in [_untilReactedToMode].
+  /// Wake whoever waits in [_untilReactedToMode].
   void _signalReaction() {
     final signal = _reactionSignal;
     _reactionSignal = Completer<void>();
     signal.complete();
   }
 
-  /// Completes once this view has reacted to every state the mode emitted so far, or once either
+  /// Complete once this view has reacted to every state the mode emitted so far, or once either
   /// of them is going away.
   Future<void> _untilReactedToMode() async {
     while (!isClosing && !modeBloc.isClosed) {
@@ -350,7 +353,7 @@ abstract class AbsOcptViewBloc<
     }
   }
 
-  /// Writes what the view holds, then tells the dispatcher what it found, or that it failed: the
+  /// Write what the view holds, then tell the dispatcher what it found, or that it failed: the
   /// error goes to the dispatcher, which must not take a failed write for an empty one, and to
   /// this bloc's own error report.
   Future<void> _onFlushRequested(OcptViewFlushRequestedEvent event, Emitter<S> emitter) async {
@@ -365,7 +368,7 @@ abstract class AbsOcptViewBloc<
     }
   }
 
-  /// Marks the bloc as closing before it starts to, so a flush asked for in the meantime is
+  /// Mark the bloc as closing before it starts to, so a flush asked for in the meantime is
   /// answered at once instead of waiting on a handler that will not run.
   @override
   Future<void> close() {

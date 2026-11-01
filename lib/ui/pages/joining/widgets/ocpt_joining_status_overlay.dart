@@ -79,7 +79,7 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
     );
   }
 
-  /// [step]'s own label, falling back to the generic "Retrieving the project…" wording for the
+  /// Get [step]'s own label, falling back to the generic "Retrieving the project…" wording for the
   /// null case this class's own doc comment explains cannot actually occur.
   String _stepLabel(Tr tr) => switch (step) {
     OcptJoinStep.connecting => tr.joiningStepConnecting,

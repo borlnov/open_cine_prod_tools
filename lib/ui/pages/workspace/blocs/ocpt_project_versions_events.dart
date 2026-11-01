@@ -14,7 +14,7 @@ sealed class OcptProjectVersionsEvent extends BlocEventForMixin {
   const OcptProjectVersionsEvent();
 }
 
-/// Requests (re)loading the current project's version list into the state.
+/// Request (re)loading the current project's version list into the state.
 ///
 /// Dispatched by the mixin itself whenever the list may have changed — on entry, after a version
 /// is created or deleted, and after entering or leaving a preview — so a mode never has to
@@ -24,7 +24,7 @@ class OcptProjectVersionsRefreshRequestedEvent extends OcptProjectVersionsEvent 
   const OcptProjectVersionsRefreshRequestedEvent();
 }
 
-/// Requests capturing the current project as a new version, named [name] and described by [note].
+/// Request capturing the current project as a new version, named [name] and described by [note].
 ///
 /// [name] and [note] come from the create dialog, which is where they are validated: the handler
 /// takes them as given.
@@ -43,7 +43,7 @@ class OcptProjectVersionCreationRequestedEvent extends OcptProjectVersionsEvent 
   List<Object?> get props => [...super.props, name, note];
 }
 
-/// Reports that the user clicked `Delete` on the card of the version [versionId], which shows that
+/// Report that the user clicked `Delete` on the card of the version [versionId], which shows that
 /// card's inline confirmation rather than deleting anything.
 class OcptProjectVersionDeletionRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose deletion is being confirmed.
@@ -57,13 +57,13 @@ class OcptProjectVersionDeletionRequestedEvent extends OcptProjectVersionsEvent 
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline delete confirmation currently shown.
+/// Report that the user cancelled the inline delete confirmation currently shown.
 class OcptProjectVersionDeletionCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionDeletionCancelledEvent();
 }
 
-/// Requests the permanent deletion of the version [versionId], confirmed inline in its card.
+/// Request the permanent deletion of the version [versionId], confirmed inline in its card.
 class OcptProjectVersionDeletionConfirmedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to delete.
   final String versionId;
@@ -76,7 +76,7 @@ class OcptProjectVersionDeletionConfirmedEvent extends OcptProjectVersionsEvent 
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user clicked `Restore this version` on the card of the version [versionId],
+/// Report that the user clicked `Restore this version` on the card of the version [versionId],
 /// which shows that card's inline confirmation rather than restoring anything.
 class OcptProjectVersionRestoreRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose restore is being confirmed.
@@ -90,13 +90,13 @@ class OcptProjectVersionRestoreRequestedEvent extends OcptProjectVersionsEvent {
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline restore confirmation currently shown.
+/// Report that the user cancelled the inline restore confirmation currently shown.
 class OcptProjectVersionRestoreCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRestoreCancelledEvent();
 }
 
-/// Requests putting the whole project back into the state the version [versionId] holds, confirmed
+/// Request putting the whole project back into the state the version [versionId] holds, confirmed
 /// inline in its card.
 ///
 /// [safetyVersionName] is the name the version keeping the state this one replaces is created
@@ -120,7 +120,7 @@ class OcptProjectVersionRestoreConfirmedEvent extends OcptProjectVersionsEvent {
   List<Object?> get props => [...super.props, versionId, safetyVersionName];
 }
 
-/// Reports that the user clicked `Rename` on the card of the version [versionId], which shows
+/// Report that the user clicked `Rename` on the card of the version [versionId], which shows
 /// that card's inline rename form rather than renaming anything yet.
 class OcptProjectVersionRenameRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version whose rename form is being shown.
@@ -134,13 +134,13 @@ class OcptProjectVersionRenameRequestedEvent extends OcptProjectVersionsEvent {
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Reports that the user cancelled the inline rename form currently shown.
+/// Report that the user cancelled the inline rename form currently shown.
 class OcptProjectVersionRenameCancelledEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionRenameCancelledEvent();
 }
 
-/// Requests renaming the version [versionId] to [name], replacing its [note], confirmed inline in
+/// Request renaming the version [versionId] to [name], replacing its [note], confirmed inline in
 /// its card's rename form.
 class OcptProjectVersionRenameConfirmedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to rename.
@@ -164,7 +164,7 @@ class OcptProjectVersionRenameConfirmedEvent extends OcptProjectVersionsEvent {
   List<Object?> get props => [...super.props, versionId, name, note];
 }
 
-/// Requests a fresh read of the working copy's own card, throttled by the mixin rather than run on
+/// Request a fresh read of the working copy's own card, throttled by the mixin rather than run on
 /// every dispatch: see `MixinOcptProjectVersionsBloc`'s own doc comment for where this is
 /// dispatched from and why.
 class OcptProjectWorkingCopyRefreshRequestedEvent extends OcptProjectVersionsEvent {
@@ -172,7 +172,7 @@ class OcptProjectWorkingCopyRefreshRequestedEvent extends OcptProjectVersionsEve
   const OcptProjectWorkingCopyRefreshRequestedEvent();
 }
 
-/// Requests entering the read-only preview of the version [versionId].
+/// Request entering the read-only preview of the version [versionId].
 class OcptProjectVersionPreviewRequestedEvent extends OcptProjectVersionsEvent {
   /// The id of the version to preview.
   final String versionId;
@@ -185,13 +185,13 @@ class OcptProjectVersionPreviewRequestedEvent extends OcptProjectVersionsEvent {
   List<Object?> get props => [...super.props, versionId];
 }
 
-/// Requests leaving the read-only preview, putting the working copy back on screen.
+/// Request leaving the read-only preview, putting the working copy back on screen.
 class OcptProjectVersionPreviewExitRequestedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionPreviewExitRequestedEvent();
 }
 
-/// Clears the transient version notice currently shown, once the page has displayed it.
+/// Clear the transient version notice currently shown, once the page has displayed it.
 class OcptProjectVersionNoticeDismissedEvent extends OcptProjectVersionsEvent {
   /// Class constructor
   const OcptProjectVersionNoticeDismissedEvent();

@@ -374,7 +374,7 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     },
   );
 
-  /// Opens [side], or closes it back to [_OcptCompactDrawerSide.none] when it is already the open
+  /// Open [side], or close it back to [_OcptCompactDrawerSide.none] when it is already the open
   /// one — the compact dock toggle's own tap handler. Assigning a single enum value is what keeps
   /// the two drawers mutually exclusive: opening one always replaces whatever the other held.
   ///
@@ -401,13 +401,13 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
     }
   }
 
-  /// Closes whichever drawer is open — the scrim's own tap handler.
+  /// Close whichever drawer is open — the scrim's own tap handler.
   void _closeCompactDrawer() {
     setState(() => _compactDrawer = _OcptCompactDrawerSide.none);
   }
 }
 
-/// Builds the left dock / centre / right dock row, wiring the dividers to
+/// Build the left dock / centre / right dock row, wiring the dividers to
 /// [OcptWorkspaceShell.dockLayoutController] and reporting drag ends through
 /// [OcptWorkspaceShell.onDockFractionsChanged].
 ///
@@ -517,7 +517,7 @@ class _OcptWorkspaceDocksRow extends StatelessWidget {
   }
 }
 
-/// Builds the compact-width presentation of the docks row: [OcptWorkspaceShell.centre] fills the
+/// Build the compact-width presentation of the docks row: [OcptWorkspaceShell.centre] fills the
 /// whole row of [rowWidth], and at most one side panel — [compactDrawer]'s own choice — slides
 /// over it as an edge drawer, dimming the centre behind a scrim that closes the drawer when
 /// tapped.
@@ -612,7 +612,7 @@ class _OcptWorkspaceCompactDrawers extends StatelessWidget {
   }
 }
 
-/// Builds one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
+/// Build one open compact drawer, anchored to [isLeft]'s edge of the row of [rowWidth].
 ///
 /// On a phone ([ocptIsPhoneWidth]) it fills the whole row and is not resizable. On a wider
 /// compact row it opens to [controller]'s clamped fraction and carries an

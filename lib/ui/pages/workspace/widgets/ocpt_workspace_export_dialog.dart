@@ -97,7 +97,7 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
     );
   }
 
-  /// Shows the dialog and returns what the user picked — one of [entries]' own values, or the
+  /// Show the dialog and return what the user picked — one of [entries]' own values, or the
   /// project package — or null if they cancelled it or picked no card at all.
   static Future<OcptWorkspaceExportPick<T>?> show<T>(
     BuildContext context, {

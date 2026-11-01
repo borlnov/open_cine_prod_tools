@@ -177,7 +177,7 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     qrKind: qrKind ?? this.qrKind,
   );
 
-  /// Copies this state as loaded in [hostState], with the hosting preferences and, when the relay is
+  /// Copy this state as loaded in [hostState], with the hosting preferences and, when the relay is
   /// online, its addresses, port, enrolment and join invite.
   OcptHostingState copyToLoaded({
     required OcptRelayHostState hostState,
@@ -207,7 +207,7 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     forceJoinInviteValue: joinInvite == null,
   );
 
-  /// Copies this state with the relay online in [hostState], and the addresses, port, enrolment and
+  /// Copy this state with the relay online in [hostState], and the addresses, port, enrolment and
   /// join invite it advertises.
   OcptHostingState copyWithHostOnline({
     required OcptRelayHostState hostState,
@@ -232,7 +232,7 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     forceJoinInviteValue: joinInvite == null,
   );
 
-  /// Copies this state with the relay no longer online in [hostState], and everything it advertised
+  /// Copy this state with the relay no longer online in [hostState], and everything it advertised
   /// forgotten.
   OcptHostingState copyWithHostOffline({required OcptRelayHostState hostState}) => copyWith(
     hostState: hostState,
@@ -243,37 +243,37 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     forceJoinInviteValue: true,
   );
 
-  /// Copies this state with the peers' [presenceRoster], null when there is none.
+  /// Copy this state with the peers' [presenceRoster], null when there is none.
   OcptHostingState copyWithPresenceRoster({required OcptPresenceRoster? presenceRoster}) =>
       copyWith(presenceRoster: presenceRoster, forcePresenceRosterValue: presenceRoster == null);
 
-  /// Copies this state with the choice of hosting on launch set to [hostOnLaunch].
+  /// Copy this state with the choice of hosting on launch set to [hostOnLaunch].
   OcptHostingState copyWithHostOnLaunch({required bool hostOnLaunch}) =>
       copyWith(hostOnLaunch: hostOnLaunch);
 
-  /// Copies this state with the invite typed for a reconciliation flagged as invalid.
+  /// Copy this state with the invite typed for a reconciliation flagged as invalid.
   OcptHostingState copyWithReconcileInviteInvalid() => copyWith(
     reconcileInviteInvalid: true,
     isReconciling: false,
     forceReconcileOutcomeValue: true,
   );
 
-  /// Copies this state with a reconciliation under way and the previous outcome forgotten.
+  /// Copy this state with a reconciliation under way and the previous outcome forgotten.
   OcptHostingState copyWithReconciling() => copyWith(
     isReconciling: true,
     reconcileInviteInvalid: false,
     forceReconcileOutcomeValue: true,
   );
 
-  /// Copies this state with the reconciliation ended on [reconcileOutcome].
+  /// Copy this state with the reconciliation ended on [reconcileOutcome].
   OcptHostingState copyWithReconcileOutcome({required OcptReconcileOutcome reconcileOutcome}) =>
       copyWith(isReconciling: false, reconcileOutcome: reconcileOutcome);
 
-  /// Copies this state with the reconciliation outcome and the invalid-invite flag dismissed.
+  /// Copy this state with the reconciliation outcome and the invalid-invite flag dismissed.
   OcptHostingState copyWithReconcileDismissed() =>
       copyWith(forceReconcileOutcomeValue: true, reconcileInviteInvalid: false);
 
-  /// Copies this state with [selectedAddress] picked, and the [enrolment] and [joinInvite] rebuilt
+  /// Copy this state with [selectedAddress] picked, and the [enrolment] and [joinInvite] rebuilt
   /// against it.
   OcptHostingState copyWithSelectedAddress({
     required String selectedAddress,
@@ -286,10 +286,10 @@ class OcptHostingState extends BlocStateForMixin<OcptHostingState> {
     forceJoinInviteValue: joinInvite == null,
   );
 
-  /// Copies this state with the QR code of the given [qrKind] shown.
+  /// Copy this state with the QR code of the given [qrKind] shown.
   OcptHostingState copyWithQrKind({required OcptHostingQrKind qrKind}) => copyWith(qrKind: qrKind);
 
-  /// Copies this state with the [availableAddresses] read again and [selectedAddress] kept or moved
+  /// Copy this state with the [availableAddresses] read again and [selectedAddress] kept or moved
   /// to one of them.
   OcptHostingState copyWithRefreshedAddresses({
     required List<String> availableAddresses,

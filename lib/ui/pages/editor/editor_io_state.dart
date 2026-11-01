@@ -16,17 +16,17 @@ class OcptEditorIoState extends BlocStateForMixin<OcptEditorIoState> {
   /// Init class constructor
   const OcptEditorIoState.init() : ioNotice = null;
 
-  /// Copies this state, replacing what is given. [ioNotice] goes back to null only through
+  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
   /// [forceIoNoticeValue], since a null argument means "keep".
   @override
   OcptEditorIoState copyWith({OcptEditorIoNotice? ioNotice, bool forceIoNoticeValue = false}) =>
       OcptEditorIoState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));
 
-  /// Copies this state with [ioNotice] shown as the outcome of an export or an import.
+  /// Copy this state with [ioNotice] shown as the outcome of an export or an import.
   OcptEditorIoState copyWithIoNotice({required OcptEditorIoNotice ioNotice}) =>
       copyWith(ioNotice: ioNotice);
 
-  /// Copies this state with the shown notice cleared.
+  /// Copy this state with the shown notice cleared.
   OcptEditorIoState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.props}

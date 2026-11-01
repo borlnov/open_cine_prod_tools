@@ -211,7 +211,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   @override
   final OcptProjectPackageTarget? projectPackagePendingExportTarget;
 
-  /// Whether the right dock's formatted-preview tab exists at all right now.
+  /// Tell whether the right dock's formatted-preview tab exists at all right now.
   ///
   /// Two states have no use for it, for the same reason: what the centre already shows *is* the
   /// formatted screenplay — the styled block editor, and the read-only preview a project version is
@@ -221,10 +221,10 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   bool get isPreviewTabAvailable =>
       isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
 
-  /// The scene headings of [document], in source order (empty while nothing is parsed).
+  /// Get the scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
-  /// The index, in [scenes], of the scene containing [currentLine], or null while nothing is
+  /// Get the index, in [scenes], of the scene containing [currentLine], or null while nothing is
   /// parsed yet or the caret precedes every scene. Cheap to derive live from state already
   /// tracked, unlike the scene statistics `OcptEditorStatisticsBloc` computes.
   int? get currentSceneIndex => currentSceneIndexFor(scenes, currentLine);
@@ -473,7 +473,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
 
-  /// Copies this state as loaded when no project is open: the document and the display preferences
+  /// Copy this state as loaded when no project is open: the document and the display preferences
   /// read, no version previewed, and the reload epoch moved with the cause
   /// [OcptEditorReloadCause.load].
   OcptEditorState copyToLoadedWithoutProject({
@@ -509,7 +509,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     reloadCause: OcptEditorReloadCause.load,
   );
 
-  /// Copies this state as loaded from the open project: its [title], [text] and [document], the
+  /// Copy this state as loaded from the open project: its [title], [text] and [document], the
   /// version being previewed if any ([previewedVersionId] null when none is), and the display
   /// preferences read, with the reload epoch moved and the cause [OcptEditorReloadCause.load].
   OcptEditorState copyToLoaded({
@@ -553,32 +553,32 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     reloadCause: OcptEditorReloadCause.load,
   );
 
-  /// Copies this state with the [text] the user just typed, which makes it dirty.
+  /// Copy this state with the [text] the user just typed, which makes it dirty.
   OcptEditorState copyWithTypedText({required String text}) => copyWith(text: text, isDirty: true);
 
-  /// Copies this state with the [document] parsed from the current text.
+  /// Copy this state with the [document] parsed from the current text.
   OcptEditorState copyWithParsedDocument({required FountainDocument document}) =>
       copyWith(document: document);
 
-  /// Copies this state with a save under way.
+  /// Copy this state with a save under way.
   OcptEditorState copyWithSaving() => copyWith(isSaving: true);
 
-  /// Copies this state with the save done at [lastSavedAt], [isDirty] telling whether the text moved
+  /// Copy this state with the save done at [lastSavedAt], [isDirty] telling whether the text moved
   /// on meanwhile.
   OcptEditorState copyWithSaved({required bool isDirty, required DateTime lastSavedAt}) =>
       copyWith(isSaving: false, isDirty: isDirty, lastSavedAt: lastSavedAt);
 
-  /// Copies this state with the save ended on an error.
+  /// Copy this state with the save ended on an error.
   OcptEditorState copyWithSaveFailed() => copyWith(isSaving: false, hasSaveError: true);
 
-  /// Copies this state with the save error dismissed.
+  /// Copy this state with the save error dismissed.
   OcptEditorState copyWithSaveErrorDismissed() => copyWith(hasSaveError: false);
 
-  /// Copies this state with the caret on [currentLine].
+  /// Copy this state with the caret on [currentLine].
   OcptEditorState copyWithCurrentLine({required int currentLine}) =>
       copyWith(currentLine: currentLine);
 
-  /// Copies this state with a jump request for the editing surface to move the caret to
+  /// Copy this state with a jump request for the editing surface to move the caret to
   /// [charOffset], which moves the selection epoch.
   ///
   /// The request is given the id after the last one made, so two requests for the same offset still
@@ -589,11 +589,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     selectionEpoch: selectionEpoch + 1,
   );
 
-  /// Copies this state with the scene panel shown or hidden.
+  /// Copy this state with the scene panel shown or hidden.
   OcptEditorState copyWithScenePanelVisibility({required bool isScenePanelVisible}) =>
       copyWith(isScenePanelVisible: isScenePanelVisible);
 
-  /// Copies this state with the right dock showing [tab], or closed when it [isAlreadyActive]; the
+  /// Copy this state with the right dock showing [tab], or closed when it [isAlreadyActive]; the
   /// tab is remembered and the tab the dock was auto-closed from is forgotten.
   OcptEditorState copyWithRightDockTabSelected({
     required OcptEditorRightDockTab tab,
@@ -605,22 +605,22 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     forceAutoClosedRightDockTabValue: true,
   );
 
-  /// Copies this state with the right dock closed, and the tab it was auto-closed from forgotten.
+  /// Copy this state with the right dock closed, and the tab it was auto-closed from forgotten.
   OcptEditorState copyWithRightDockClosed() =>
       copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true);
 
-  /// Copies this state with the right dock reopened on [rightDockTab], and the tab it was
+  /// Copy this state with the right dock reopened on [rightDockTab], and the tab it was
   /// auto-closed from forgotten.
   OcptEditorState copyWithRightDockReopened({required OcptEditorRightDockTab? rightDockTab}) =>
       copyWith(rightDockTab: rightDockTab, forceAutoClosedRightDockTabValue: true);
 
-  /// Copies this state with the docks' widths set to [leftDockFraction] and [rightDockFraction].
+  /// Copy this state with the docks' widths set to [leftDockFraction] and [rightDockFraction].
   OcptEditorState copyWithDockFractions({
     required double? leftDockFraction,
     required double? rightDockFraction,
   }) => copyWith(leftDockFraction: leftDockFraction, rightDockFraction: rightDockFraction);
 
-  /// Copies this state switched to [mode], with the right dock moved as that switch requires.
+  /// Copy this state switched to [mode], with the right dock moved as that switch requires.
   OcptEditorState copyWithMode({
     required OcptEditorMode mode,
     required OcptEditorRightDockTab? rightDockTab,
@@ -635,19 +635,19 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
   );
 
-  /// Copies this state with the page simulation switched on or off.
+  /// Copy this state with the page simulation switched on or off.
   OcptEditorState copyWithPageSimulation({required bool isPageSimulationEnabled}) =>
       copyWith(isPageSimulationEnabled: isPageSimulationEnabled);
 
-  /// Copies this state with the styled scene numbers shown or hidden.
+  /// Copy this state with the styled scene numbers shown or hidden.
   OcptEditorState copyWithStyledSceneNumbers({required bool areStyledSceneNumbersVisible}) =>
       copyWith(areStyledSceneNumbersVisible: areStyledSceneNumbersVisible);
 
-  /// Copies this state with the spell-check underlines shown or hidden.
+  /// Copy this state with the spell-check underlines shown or hidden.
   OcptEditorState copyWithSpellCheckVisibility({required bool isSpellCheckVisible}) =>
       copyWith(isSpellCheckVisible: isSpellCheckVisible);
 
-  /// Copies this state with the [pageSetup] replaced, which moves the reload epoch with the cause
+  /// Copy this state with the [pageSetup] replaced, which moves the reload epoch with the cause
   /// [OcptEditorReloadCause.pageSetup].
   OcptEditorState copyWithPageSetup({required OcptPageSetup pageSetup}) => copyWith(
     pageSetup: pageSetup,
@@ -655,7 +655,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     reloadCause: OcptEditorReloadCause.pageSetup,
   );
 
-  /// Copies this state with the page setup moved to [pageFormat], which moves the reload epoch with
+  /// Copy this state with the page setup moved to [pageFormat], which moves the reload epoch with
   /// the cause [OcptEditorReloadCause.pageSetup].
   OcptEditorState copyWithPageFormat({required OcptPageFormat pageFormat}) => copyWith(
     pageSetup: pageSetup.copyWith(format: pageFormat),
@@ -663,7 +663,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     reloadCause: OcptEditorReloadCause.pageSetup,
   );
 
-  /// Copies this state with the project's [screenplayLanguage], null when it is unset.
+  /// Copy this state with the project's [screenplayLanguage], null when it is unset.
   OcptEditorState copyWithScreenplayLanguage({
     required OcptScreenplayLanguage? screenplayLanguage,
   }) => copyWith(
@@ -671,20 +671,20 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     forceScreenplayLanguageValue: screenplayLanguage == null,
   );
 
-  /// Copies this state with the [text] an import just wrote: clean, with the caret back on the first
+  /// Copy this state with the [text] an import just wrote: clean, with the caret back on the first
   /// line.
   OcptEditorState copyWithImportedText({required String text}) =>
       copyWith(text: text, isDirty: false, currentLine: 0);
 
-  /// Copies this state with the [text] a title-page change just wrote.
+  /// Copy this state with the [text] a title-page change just wrote.
   OcptEditorState copyWithTitlePageText({required String text}) => copyWith(text: text);
 
-  /// Copies this state with the surfaces told to reload the text, through the reload epoch and the
+  /// Copy this state with the surfaces told to reload the text, through the reload epoch and the
   /// cause [OcptEditorReloadCause.textReplaced].
   OcptEditorState copyWithTextReplaced() =>
       copyWith(reloadEpoch: reloadEpoch + 1, reloadCause: OcptEditorReloadCause.textReplaced);
 
-  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
+  /// Get the prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
   /// [mode], with [isReadOnly] telling whether a project version is being previewed.
   static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
       mode == OcptEditorMode.raw && !isReadOnly;

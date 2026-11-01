@@ -64,7 +64,7 @@ class OcptPresenceIndicator extends StatelessWidget {
   /// The sync manager handed in by the caller, or null to use the registered one.
   final OcptSyncManager? _syncManager;
 
-  /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
+  /// Get [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise — see
   /// `OcptSyncStatusIndicator._sync`'s own doc comment for why this is the harmless case rather
   /// than a crash.
@@ -431,7 +431,7 @@ class _OcptPresenceSelfBadge extends StatelessWidget {
   }
 }
 
-/// [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
+/// Get [frame]'s own neutral label: its platform, capitalised, then a short, stable slice of its
 /// `deviceId` (the last three characters, or the whole id when it is shorter than that) — e.g.
 /// `Windows · a3f`. Never a name: identity here is entirely automatic (`docs/adr/0009` §6).
 String _participantLabel(OcptPresenceFrame frame) {
@@ -445,7 +445,8 @@ String _participantLabel(OcptPresenceFrame frame) {
   return "$capitalised · $fragment";
 }
 
-/// [modeKey]'s own label from [ocptWorkspaceModeLabel], or null when [modeKey] is null or names no
+/// Get [modeKey]'s own label from [ocptWorkspaceModeLabel], or null when [modeKey] is null or names
+/// no
 /// known [OcptWorkspaceMode] — a peer that hasn't chosen a mode yet, or one running a build ahead
 /// of this one that added a mode this replica doesn't know about, both read as "nothing to show"
 /// rather than a throw. A plain search rather than `OcptWorkspaceMode.values.byName` precisely so

@@ -47,7 +47,7 @@ class OcptEditorSyntaxGuidePanel extends StatelessWidget {
     );
   }
 
-  /// The localized header of [section], read from [tr].
+  /// Get the localized header of [section], read from [tr].
   String _sectionTitleOf(Tr tr, OcptFountainSyntaxSection section) => switch (section) {
     OcptFountainSyntaxSection.structure => tr.editorSyntaxGuideStructureSectionTitle,
     OcptFountainSyntaxSection.organisation => tr.editorSyntaxGuideOrganisationSectionTitle,
@@ -103,7 +103,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
     ),
   );
 
-  /// The localized title of [topic], read from [tr].
+  /// Get the localized title of [topic], read from [tr].
   String _labelOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorBlockTypeSceneHeading,
     OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberTitle,
@@ -124,7 +124,7 @@ class _OcptSyntaxGuideEntry extends StatelessWidget {
     OcptFountainSyntaxTopic.titlePage => tr.editorSyntaxGuideTitlePageTitle,
   };
 
-  /// The localized description of [topic], read from [tr].
+  /// Get the localized description of [topic], read from [tr].
   String _descriptionOf(Tr tr, OcptFountainSyntaxTopic topic) => switch (topic) {
     OcptFountainSyntaxTopic.sceneHeading => tr.editorSyntaxGuideSceneHeadingDescription,
     OcptFountainSyntaxTopic.sceneNumber => tr.editorSyntaxGuideSceneNumberDescription,

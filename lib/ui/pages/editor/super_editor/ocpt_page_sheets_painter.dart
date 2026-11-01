@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_script_page_number.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_page_pagination.dart';
 
-/// Paints one white, lightly rounded rectangle per simulated page behind the styled editor's
+/// Paint one white, lightly rounded rectangle per simulated page behind the styled editor's
 /// document — and, on every sheet the printed screenplay numbers, that page's own number — with one
 /// call site in `OcptStyledPageSimulationSurface`.
 ///
@@ -50,7 +50,7 @@ class OcptPageSheetsPainter extends CustomPainter {
   /// The current scroll offset of the document painted in front of this layer, in logical pixels.
   final double scrollOffset;
 
-  /// Creates an [OcptPageSheetsPainter].
+  /// Create an [OcptPageSheetsPainter].
   const OcptPageSheetsPainter({
     required this.pageCount,
     required this.titlePageSheetCount,
@@ -102,8 +102,8 @@ class OcptPageSheetsPainter extends CustomPainter {
       oldDelegate.pageNumberStyle != pageNumberStyle ||
       oldDelegate.scrollOffset != scrollOffset;
 
-  /// Paints the number of the sheet at index [page], whose own top edge sits at [top] in the
-  /// canvas' (already scroll-translated) coordinates, or paints nothing when that sheet shows no
+  /// Paint the number of the sheet at index [page], whose own top edge sits at [top] in the canvas'
+  /// (already scroll-translated) coordinates, or paint nothing when that sheet shows no
   /// number — the title page and the first script page both do not.
   ///
   /// Sheets scrolled out of view are skipped, unlike the sheets themselves: the rectangles above

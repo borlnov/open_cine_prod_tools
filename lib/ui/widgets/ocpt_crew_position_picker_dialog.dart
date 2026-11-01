@@ -66,7 +66,7 @@ class OcptCrewPositionPickerDialog extends StatefulWidget {
   @override
   State<OcptCrewPositionPickerDialog> createState() => _OcptCrewPositionPickerDialogState();
 
-  /// Shows the dialog and returns what was picked, or null if the user dismissed it.
+  /// Show the dialog and return what was picked, or null if the user dismissed it.
   static Future<OcptCrewPositionPickResult?> show(
     BuildContext context, {
     List<OcptCrewPositionRef> promoted = const [],
@@ -192,7 +192,7 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
   /// Rebuild the dialog so the list follows the query typed in the search field.
   void _onQueryChanged() => setState(() {});
 
-  /// [ref]'s own label: the catalogue's when it names one, [ref].customLabel otherwise — a
+  /// Get [ref]'s own label: the catalogue's when it names one, [ref].customLabel otherwise — a
   /// promoted ref may itself be a free label, `ocptCrewPositionPrefillOf` promoting whatever a
   /// person declared.
   String _labelOf(Tr tr, OcptCrewPositionRef ref) =>

@@ -22,10 +22,10 @@ import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_lan
 /// wide desktop window.
 const _maxContentWidth = 720.0;
 
-/// Displays the application settings: appearance (brightness), language, calendar, and an about
+/// Display the application settings: appearance (brightness), language, calendar, and an about
 /// section.
 class OcptSettingsPage extends StatelessWidget {
-  /// Creates the settings page.
+  /// Create the settings page.
   const OcptSettingsPage({super.key});
 
   /// Build the settings page as a [BlocProvider].
@@ -86,17 +86,17 @@ class OcptSettingsView extends StatelessWidget {
     ),
   );
 
-  /// Dispatches the event that updates the app-wide brightness preference.
+  /// Dispatch the event that updates the app-wide brightness preference.
   void _onBrightnessChanged(BuildContext context, Brightness? brightness) {
     context.read<OcptSettingsBloc>().add(AskToUpdateBrightnessEvent(newBrightness: brightness));
   }
 
-  /// Dispatches the event that updates the app-wide wanted locale.
+  /// Dispatch the event that updates the app-wide wanted locale.
   void _onLocaleChanged(BuildContext context, Locale? locale) {
     context.read<OcptSettingsBloc>().add(NewLocaleWantedByUserEvent(wantedLocale: locale));
   }
 
-  /// Dispatches the event that stores the app-wide day a week starts on.
+  /// Dispatch the event that stores the app-wide day a week starts on.
   void _onFirstWeekdayChanged(BuildContext context, OcptFirstWeekday firstWeekday) {
     context.read<OcptSettingsBloc>().add(
       OcptSettingsFirstWeekdayChangedEvent(firstWeekday: firstWeekday),

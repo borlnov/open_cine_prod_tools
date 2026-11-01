@@ -4,7 +4,7 @@
 
 import 'package:flutter/foundation.dart';
 
-/// Formats the label of a shortcut made of the platform's primary modifier and [key], as a menu
+/// Format the label of a shortcut made of the platform's primary modifier and [key], as a menu
 /// entry displays it beside the action it triggers: `⌘F` on macOS, `Ctrl+F` everywhere else.
 /// [isShifted] adds the Shift modifier the same way — `⇧⌘Z` on macOS, `Ctrl+Shift+Z` elsewhere —
 /// for the shortcuts that carry it (redo).

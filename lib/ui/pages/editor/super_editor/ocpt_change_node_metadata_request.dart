@@ -37,21 +37,21 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
   /// {@endtemplate}
   final bool isHistorical;
 
-  /// Object hash code
+  /// Get the object hash code
   @override
   int get hashCode =>
       nodeId.hashCode ^
       isHistorical.hashCode ^
       Object.hashAllUnordered(metadata.entries.map((e) => Object.hash(e.key, e.value)));
 
-  /// Creates an [OcptChangeNodeMetadataRequest].
+  /// Create an [OcptChangeNodeMetadataRequest].
   const OcptChangeNodeMetadataRequest({
     required this.nodeId,
     required this.metadata,
     this.isHistorical = true,
   });
 
-  /// Object equality
+  /// Compare two objects for equality
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -61,7 +61,7 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
           isHistorical == other.isHistorical &&
           _mapsEqual(metadata, other.metadata);
 
-  /// Whether [a] and [b] hold the same keys mapped to the same values (order-independent).
+  /// Tell whether [a] and [b] hold the same keys mapped to the same values (order-independent).
   static bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {
     if (a.length != b.length) {
       return false;

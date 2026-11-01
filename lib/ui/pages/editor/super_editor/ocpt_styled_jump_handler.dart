@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_se
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_codec.dart';
 import 'package:super_editor/super_editor.dart';
 
-/// Carries out a scene jump request in a styled editor: moves the selection to the node a source
+/// Carry out a scene jump request in a styled editor: moves the selection to the node a source
 /// character offset falls in, focuses the editor and scrolls the node into view.
 ///
 /// The document, the editor and the line mapping are resolved through callbacks at call time,
@@ -39,16 +39,16 @@ final class OcptStyledJumpHandler {
   /// Whether the owning widget is still mounted.
   final bool Function() _isMounted;
 
-  /// Whether the owning widget is still mounted.
+  /// Tell whether the owning widget is still mounted.
   bool get mounted => _isMounted();
 
-  /// The document the jump lands in.
+  /// Get the document the jump lands in.
   MutableDocument get _document => _documentOf();
 
-  /// The editor executing the selection request.
+  /// Get the editor executing the selection request.
   Editor get _editor => _editorOf();
 
-  /// Creates an [OcptStyledJumpHandler].
+  /// Create an [OcptStyledJumpHandler].
   OcptStyledJumpHandler({
     required MutableDocument Function() documentOf,
     required Editor Function() editorOf,
@@ -67,8 +67,8 @@ final class OcptStyledJumpHandler {
        _focusNode = focusNode,
        _isMounted = isMounted;
 
-  /// Moves the styled editor's selection to the start of the node containing [charOffset] of
-  /// the line mapping's own source text, focuses the editor, and scrolls the target node's component
+  /// Move the styled editor's selection to the start of the node containing [charOffset] of the
+  /// line mapping's own source text, focus the editor, and scroll the target node's component
   /// into view.
   void apply(int charOffset) {
     if (!mounted || _document.nodeCount == 0) {

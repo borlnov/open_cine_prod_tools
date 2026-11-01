@@ -27,7 +27,7 @@ class OcptRepointingQrView extends StatelessWidget {
   /// The enrolment this project was just re-pointed to.
   final OcptRelayEnrolment enrolment;
 
-  /// [enrolment]'s own secret, masked to a fixed run of dots —
+  /// Get [enrolment]'s own secret, masked to a fixed run of dots —
   /// `OcptSharingInviteView._maskedToken`'s own reasoning: nothing here is meant to narrow down
   /// what the hidden characters could be.
   String get _maskedSecret => "•" * 24;
@@ -113,7 +113,7 @@ class OcptRepointingQrView extends StatelessWidget {
     );
   }
 
-  /// Copies [text] to the clipboard — fire-and-forget, exactly like `OcptSharingInviteView`'s own
+  /// Copy [text] to the clipboard — fire-and-forget, exactly like `OcptSharingInviteView`'s own
   /// `_copyToClipboard`.
   void _copyToClipboard(String text) => unawaited(Clipboard.setData(ClipboardData(text: text)));
 }

@@ -17,14 +17,14 @@ class OcptReplaceNodeTextRequest implements EditRequest {
   /// The new text for the node.
   final AttributedText text;
 
-  /// Object hash code
+  /// Get the object hash code
   @override
   int get hashCode => nodeId.hashCode ^ text.hashCode;
 
-  /// Creates an [OcptReplaceNodeTextRequest].
+  /// Create an [OcptReplaceNodeTextRequest].
   const OcptReplaceNodeTextRequest({required this.nodeId, required this.text});
 
-  /// Object equality
+  /// Compare two objects for equality
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

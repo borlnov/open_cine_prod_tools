@@ -47,7 +47,7 @@ class OcptEditorSearchQuery extends Equatable {
     required this.isWholeWord,
   });
 
-  /// This query's matches in [text], through `ocptFindTextMatches` — the one thing every caller
+  /// Get this query's matches in [text], through `ocptFindTextMatches` — the one thing every caller
   /// (the raw controller's highlight, the page's replace/replace-all, the bloc test doubles) goes
   /// through, so none of them can drift from the matcher's own rules.
   List<OcptTextMatch> matchesIn(String text) => ocptFindTextMatches(

@@ -15,7 +15,8 @@ import 'package:act_flutter_utility/act_flutter_utility.dart';
 /// would not change.
 mixin MixinOcptModeState<S extends MixinOcptModeState<S>> on BlocStateForMixin<S> {
   /// {@template open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
-  /// How many times the mode has replaced data it read from the project database: on entry, after a
+  /// Count how many times the mode has replaced data it read from the project database: on entry,
+  /// after a
   /// flush, after a write a view asked it to reload for, after any write of its own that reads a
   /// snapshot back, and when a version preview is entered or left. It moves with **every** emit that
   /// replaces a snapshot a view can read, whichever handler made it, so a view prunes whatever it
@@ -24,7 +25,8 @@ mixin MixinOcptModeState<S extends MixinOcptModeState<S>> on BlocStateForMixin<S
   int get reloadEpoch;
 
   /// {@template open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
-  /// How many times the mode has moved its shared selection, **whether or not the selection ended
+  /// Count how many times the mode has moved its shared selection, **whether or not the selection
+  /// ended
   /// up elsewhere**: every emit that selects a sequence, a shot or a set, or that changes the
   /// selection as a side effect (a shot or a set created and selected, the selected one deleted),
   /// moves it, and says why through the mode's own cause. A view clears what is scoped to the

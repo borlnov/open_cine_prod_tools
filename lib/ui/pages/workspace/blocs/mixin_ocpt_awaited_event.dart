@@ -26,7 +26,7 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
   /// The completer the handler completes and [addToAndWait] waits on.
   final Completer<T?> _completer = Completer<T?>();
 
-  /// Tells the dispatcher the handler is done, handing back [value] if the handler has an answer.
+  /// Tell the dispatcher the handler is done, handing back [value] if the handler has an answer.
   ///
   /// Completing twice is harmless, so a handler can complete early on its normal path and again in
   /// its `finally`.
@@ -36,7 +36,7 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
     }
   }
 
-  /// Tells the dispatcher the handler failed: [addToAndWait] throws [error] to whoever waits.
+  /// Tell the dispatcher the handler failed: [addToAndWait] throws [error] to whoever waits.
   ///
   /// For a handler whose dispatcher has to know the work did not happen, which an answer of "nothing
   /// to report" would hide. Like [complete], it does nothing once the event was completed.
@@ -46,8 +46,8 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
     }
   }
 
-  /// Adds this event to [bloc], then waits until its handler completed it and returns the answer,
-  /// or returns null as soon as [bloc] closes, without waiting for a handler that will never run.
+  /// Add this event to [bloc], then wait until its handler completed it and return the answer, or
+  /// return null as soon as [bloc] closes, without waiting for a handler that will never run.
   Future<T?> addToAndWait(Bloc<BlocEventForMixin, Object?> bloc) async {
     if (bloc.isClosed) {
       return null;

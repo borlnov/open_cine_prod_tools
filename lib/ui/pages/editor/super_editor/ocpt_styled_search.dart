@@ -58,19 +58,19 @@ final class OcptStyledSearch {
   /// [query]; null while there is none.
   int? _currentMatchIndex;
 
-  /// The active find/replace query, or null while there is no active search.
+  /// Get the active find/replace query, or null while there is no active search.
   OcptEditorSearchQuery? get query => _query;
 
-  /// Whether the owning widget is still mounted.
+  /// Tell whether the owning widget is still mounted.
   bool get mounted => _isMounted();
 
-  /// The document the matches are computed over.
+  /// Get the document the matches are computed over.
   MutableDocument get _document => _documentOf();
 
-  /// The editor executing the selection and replace requests.
+  /// Get the editor executing the selection and replace requests.
   Editor get _editor => _editorOf();
 
-  /// Creates an [OcptStyledSearch].
+  /// Create an [OcptStyledSearch].
   OcptStyledSearch({
     required MutableDocument Function() documentOf,
     required Editor Function() editorOf,
@@ -84,7 +84,7 @@ final class OcptStyledSearch {
        _isMounted = isMounted,
        _onMatchCountReported = onMatchCountReported;
 
-  /// Every current match of [query], in document order (node order, then offset within the
+  /// Get every current match of [query], in document order (node order, then offset within the
   /// node) — the single computation [recompute], [replaceCurrentMatch] and
   /// [replaceAllMatches] all go through, so none of them can drift from what the highlight
   /// actually shows.
@@ -109,10 +109,10 @@ final class OcptStyledSearch {
     return matches;
   }
 
-  /// Recomputes every match of [query] over the live document's own display text, feeds
-  /// them to [styler], reports the total count to
-  /// `OcptStyledScreenplayEditor.styledController`, and — only when [navigateToCurrent] is true —
-  /// places the selection on `currentMatchIndex`'s match and scrolls it into view (see
+  /// Recompute every match of [query] over the live document's own display text, feed them to
+  /// [styler], report the total count to `OcptStyledScreenplayEditor.styledController`, and — only
+  /// when [navigateToCurrent] is true — places the selection on `currentMatchIndex`'s match and
+  /// scroll it into view (see
   /// [navigateTo]'s own doc comment on why that never takes keyboard focus).
   void recompute({required bool navigateToCurrent}) {
     final query = _query;
@@ -147,7 +147,7 @@ final class OcptStyledSearch {
     }
   }
 
-  /// Selects [match] inside the node [nodeId] and scrolls it into view, the styled mode's own
+  /// Select [match] inside the node [nodeId] and scroll it into view, the styled mode's own
   /// counterpart to the state's own jump handling — **deliberately never calls `_focusNode.requestFocus()`**:
   /// the find field must keep the keyboard focus while the user types a query or presses
   /// Next/Previous. `build`'s `selectionPolicies` already sets
@@ -203,7 +203,7 @@ final class OcptStyledSearch {
     });
   }
 
-  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
+  /// Replace the find/replace query and current-match index this widget highlights/navigates to,
   /// then immediately recomputes and (re-)navigates — see [recompute]'s own doc
   /// comment on when it does each.
   void update({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
@@ -212,7 +212,7 @@ final class OcptStyledSearch {
     recompute(navigateToCurrent: true);
   }
 
-  /// Replaces the current match (see `orderedMatches`) with [replacement] and returns the
+  /// Replace the current match (see `orderedMatches`) with [replacement] and return the
   /// index, among the fresh matches left afterwards, of the first one starting at or past the end
   /// of what was just written — never simply the match now sitting at the same index, which a
   /// replacement that itself still matches the query (`MARIE` → `MARIE-JEANNE`) would land back
@@ -268,7 +268,7 @@ final class OcptStyledSearch {
     return nextIndex == -1 ? 0 : nextIndex;
   }
 
-  /// Replaces every current match of [query] with [replacement], one
+  /// Replace every current match of [query] with [replacement], one
   /// [OcptReplaceNodeTextRequest] per node carrying at least one match, grouped into a single
   /// [Editor.execute] call. A no-op while there is no active search or it matches nothing.
   void replaceAllMatches(String replacement) {
@@ -304,7 +304,7 @@ final class OcptStyledSearch {
     ]);
   }
 
-  /// Returns a copy of [original] with every one of [matches] (assumed non-overlapping and in
+  /// Return a copy of [original] with every one of [matches] (assumed non-overlapping and in
   /// left-to-right order, exactly as `OcptEditorSearchQuery.matchesIn` returns them) replaced by
   /// [replacement], every untouched span keeping its original attributions (`copyText` carries
   /// them along; only the freshly-inserted [replacement] text itself carries none).

@@ -27,7 +27,8 @@ class OcptEditorSavedTimeSegment extends StatefulWidget {
   @override
   State<OcptEditorSavedTimeSegment> createState() => _OcptEditorSavedTimeSegmentState();
 
-  /// The saved-state text [lastSavedAt] renders right now, computed without building this widget.
+  /// Get the saved-state text [lastSavedAt] renders right now, computed without building this
+  /// widget.
   ///
   /// `OcptWorkspaceStatusBar`'s width-driven degradation needs a plain-text stand-in for this
   /// self-refreshing segment to size the rest of the summary against, before this widget is

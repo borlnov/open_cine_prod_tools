@@ -79,7 +79,7 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     );
   }
 
-  /// The joined summary of as many trailing [counters] as still fit [maxWidth] alongside
+  /// Get the joined summary of as many trailing [counters] as still fit [maxWidth] alongside
   /// [trailingText], dropping the last one repeatedly until it does (or only [nonDroppableCount]
   /// entries remain).
   String _fittingSummary(double maxWidth, TextStyle? style, TextDirection direction) {
@@ -91,7 +91,8 @@ class OcptWorkspaceStatusBar extends StatelessWidget {
     return counters.take(visibleCount).join(" · ");
   }
 
-  /// The pixel width of [visibleCounters] joined by " · " plus [trailingText], as it would render
+  /// Get the pixel width of [visibleCounters] joined by " · " plus [trailingText], as it would
+  /// render
   /// with [style] in [direction] — used to decide how many counters still fit.
   double _joinedWidth(List<String> visibleCounters, TextStyle? style, TextDirection direction) {
     final text = "${visibleCounters.join(" · ")} · $trailingText";

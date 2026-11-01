@@ -168,7 +168,7 @@ class OcptProjectVersionCard extends StatelessWidget {
     );
   }
 
-  /// The card's own colour: the accent for the base version, the workspace's warning colour
+  /// Get the card's own colour: the accent for the base version, the workspace's warning colour
   /// while this version is the one being previewed, and a muted outline for every other one.
   Color _accentColor(BuildContext context, ThemeData theme) {
     if (isPreviewed) {
@@ -178,7 +178,7 @@ class OcptProjectVersionCard extends StatelessWidget {
     return version.isBase ? theme.colorScheme.primary : theme.colorScheme.outline;
   }
 
-  /// The badge this card carries, or null when it carries none.
+  /// Get the badge this card carries, or null when it carries none.
   ///
   /// Previewing wins over being the base, since the two can legitimately coincide for a moment (a
   /// version created and immediately previewed): the badge answers "what am I looking at?".
@@ -519,10 +519,10 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
     );
   }
 
-  /// Rebuilds the form so the `Save` button's `onPressed` reflects the name field's new emptiness.
+  /// Rebuild the form so the `Save` button's `onPressed` reflects the name field's new emptiness.
   void _onNameChanged() => setState(() {});
 
-  /// Reports the trimmed name and note to [_OcptProjectVersionRenameForm.onSave].
+  /// Report the trimmed name and note to [_OcptProjectVersionRenameForm.onSave].
   void _save() => widget.onSave(_nameController.text.trim(), _noteController.text.trim());
 
   /// Dispose [_nameController] and [_noteController].

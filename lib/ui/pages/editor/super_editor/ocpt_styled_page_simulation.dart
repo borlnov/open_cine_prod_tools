@@ -44,13 +44,13 @@ final class OcptStyledPageSimulation {
   /// Resolves the page setup driving the layout metrics.
   final OcptPageSetup Function() _pageSetupOf;
 
-  /// The document the pagination is computed over.
+  /// Get the document the pagination is computed over.
   MutableDocument get _document => _documentOf();
 
-  /// The editor executing the page-start requests.
+  /// Get the editor executing the page-start requests.
   Editor get _editor => _editorOf();
 
-  /// Creates an [OcptStyledPageSimulation].
+  /// Create an [OcptStyledPageSimulation].
   OcptStyledPageSimulation({
     required MutableDocument Function() documentOf,
     required Editor Function() editorOf,
@@ -66,7 +66,7 @@ final class OcptStyledPageSimulation {
        _isEnabled = isEnabled,
        _pageSetupOf = pageSetupOf;
 
-  /// Recomputes which nodes start a fresh simulated page (their exact top padding stored as
+  /// Recompute which nodes start a fresh simulated page (their exact top padding stored as
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
   /// page-boundary spacing), [pageCount] and [trailingBottomPadding], for the current document,
   /// `OcptStyledScreenplayEditor.isPageSimulationEnabled` and `OcptStyledScreenplayEditor.pageSetup`.
@@ -126,7 +126,7 @@ final class OcptStyledPageSimulation {
     trailingBottomPadding = pagination.trailingBottomPadding;
   }
 
-  /// The exact top padding (in logical pixels) [node] currently carries in
+  /// Get the exact top padding (in logical pixels) [node] currently carries in
   /// [ocptStartsNewPageMetadataKey] metadata, or 0 if it doesn't start a page.
   static double _pageStartPaddingOf(ParagraphNode node) {
     final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);

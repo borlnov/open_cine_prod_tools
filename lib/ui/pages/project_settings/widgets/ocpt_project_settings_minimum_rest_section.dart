@@ -120,7 +120,7 @@ class _OcptProjectSettingsMinimumRestFieldState
   /// loss never commits the very same edit twice (`OcptScheduleMinuteField`'s own reasoning).
   late int? _lastReportedMinutes = widget.minimumRestMinutes;
 
-  /// [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] written in hours through
+  /// Get [_OcptProjectSettingsMinimumRestField.minimumRestMinutes] written in hours through
   /// [ocptMinimumRestHoursTextOf], or the empty string while it is null.
   String get _formatted => ocptMinimumRestHoursTextOf(widget.minimumRestMinutes);
 
@@ -167,14 +167,14 @@ class _OcptProjectSettingsMinimumRestFieldState
     );
   }
 
-  /// Commits the field's current text once it loses focus.
+  /// Commit the field's current text once it loses focus.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _commit();
     }
   }
 
-  /// Parses the field's current text as hours and reports the minutes it makes: empty clears the
+  /// Parse the field's current text as hours and report the minutes it makes: empty clears the
   /// minimum (a real gesture, reported as null), a positive figure is reported and read back in the
   /// canonical hours writing, and anything else — zero, negative, or unparseable — reverts the
   /// field to whatever was last committed.

@@ -17,26 +17,26 @@ import 'package:spell_kit/spell_kit.dart';
 /// class lives in a different file; only [OcptStyledEditorController] is meant to call these
 /// methods, and only the styled editor's own state is meant to implement them.
 abstract class OcptStyledEditorControllerDelegate {
-  /// Whether there is a gesture of the writer's left for [undo] to take back.
+  /// Tell whether there is a gesture of the writer's left for [undo] to take back.
   bool get canUndo;
 
-  /// Whether there is an undone gesture left for [redo] to put back *and* it can still be put
+  /// Tell whether there is an undone gesture left for [redo] to put back *and* it can still be put
   /// back — no edit having been made since it was undone.
   bool get canRedo;
 
-  /// Applies a manual block-type change (dropdown selection) to the currently selected block.
+  /// Apply a manual block-type change (dropdown selection) to the currently selected block.
   void applyBlockType(FountainLineType type);
 
-  /// Toggles [style] on the current selection (or the composer's pending style, if collapsed).
+  /// Toggle [style] on the current selection (or the composer's pending style, if collapsed).
   void applyToggleInlineStyle(OcptInlineStyle style);
 
-  /// Replaces the find/replace query and current-match index the delegate highlights/navigates
+  /// Replace the find/replace query and current-match index the delegate highlights/navigates
   /// to, mirroring [OcptStyledEditorController.updateSearch]'s own doc comment. `null`/`null`
   /// means "no active search" (the bar is closed, a different mode is active, or a version is
   /// being previewed).
   void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex});
 
-  /// Replaces the current match (the one [updateSearch] last pointed at) with [replacement],
+  /// Replace the current match (the one [updateSearch] last pointed at) with [replacement],
   /// returning the index, among the matches left afterwards, of the first one starting at or past
   /// the end of what was just written (wrapping to `0`, or `null` if none remain) — the caller
   /// (`editor_page.dart`) is what turns that into a fresh
@@ -44,20 +44,20 @@ abstract class OcptStyledEditorControllerDelegate {
   /// `_requestRawReplace`.
   int? replaceCurrentMatch(String replacement);
 
-  /// Replaces every current match with [replacement] in one grouped edit.
+  /// Replace every current match with [replacement] in one grouped edit.
   void replaceAllMatches(String replacement);
 
-  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to this delegate's own
+  /// Apply [rangesByNodeId] — the bloc's own answer, keyed by node id — to this delegate's own
   /// spelling styler, mirroring [updateSearch]'s own direction of travel. Ranges for a node id this
   /// delegate's live document no longer holds, or that no longer fit that node's *current* text
   /// length, are dropped rather than fed to the styler
   /// (`docs/architecture/screenplay.md`).
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId);
 
-  /// Takes back the writer's last gesture, plus everything the editor derived from it; does
+  /// Take back the writer's last gesture, plus everything the editor derived from it; does
   /// nothing when [canUndo] is false.
   void undo();
 
-  /// Puts back the last undone gesture; does nothing when [canRedo] is false.
+  /// Put back the last undone gesture; does nothing when [canRedo] is false.
   void redo();
 }

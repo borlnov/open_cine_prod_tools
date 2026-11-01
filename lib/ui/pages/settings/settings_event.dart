@@ -15,7 +15,7 @@ sealed class OcptSettingsEvent extends BlocEventForMixin {
   const OcptSettingsEvent();
 }
 
-/// Requests storing [firstWeekday] as the app-wide day a week starts on.
+/// Request storing [firstWeekday] as the app-wide day a week starts on.
 class OcptSettingsFirstWeekdayChangedEvent extends OcptSettingsEvent {
   /// The day a week is to start on from now on.
   final OcptFirstWeekday firstWeekday;

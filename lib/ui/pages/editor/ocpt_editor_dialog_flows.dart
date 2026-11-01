@@ -41,7 +41,7 @@ class OcptEditorDialogFlows {
   /// Private constructor: this class only exposes static members.
   OcptEditorDialogFlows._();
 
-  /// Shows the import confirmation dialog, then dispatches the import request if the user
+  /// Show the import confirmation dialog, then dispatch the import request if the user
   /// confirmed the replacement.
   static Future<void> importAndReplace(BuildContext context) async {
     final bloc = context.read<OcptEditorIoBloc>();
@@ -66,7 +66,7 @@ class OcptEditorDialogFlows {
     );
   }
 
-  /// Shows the page setup dialog, then dispatches the new page setup if the user applied it.
+  /// Show the page setup dialog, then dispatch the new page setup if the user applied it.
   static Future<void> pageSetup(BuildContext context) async {
     final bloc = context.read<OcptEditorBloc>();
     final setup = await OcptEditorPageSetupDialog.show(context, current: bloc.state.pageSetup);
@@ -80,7 +80,7 @@ class OcptEditorDialogFlows {
     bloc.add(OcptEditorPageSetupChangedEvent(pageSetup: setup));
   }
 
-  /// Opens the project settings page, then reloads the page format (and repaginates) if the user
+  /// Open the project settings page, then reload the page format (and repaginates) if the user
   /// changed anything there.
   ///
   /// Also tells `OcptWorkspaceBloc` to reload its episodes: the settings page's own `Episodes`
@@ -109,7 +109,7 @@ class OcptEditorDialogFlows {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
+  /// Open the export panel, then dispatch the picked document's own request: the `.fountain`
   /// export event directly (it opens no options dialog of its own), or [_exportPdf], which
   /// opens the PDF export options dialog exactly as it always has.
   static Future<void> export(BuildContext context, Rect? shareAnchor) async {
@@ -147,7 +147,7 @@ class OcptEditorDialogFlows {
     }
   }
 
-  /// Shows the title page dialog, then dispatches the edited fields if the user applied them.
+  /// Show the title page dialog, then dispatch the edited fields if the user applied them.
   static Future<void> titlePage(BuildContext context) async {
     final bloc = context.read<OcptEditorBloc>();
     final fields = await OcptEditorTitlePageDialog.show(
@@ -173,7 +173,7 @@ class OcptEditorDialogFlows {
     );
   }
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can
@@ -199,7 +199,7 @@ class OcptEditorDialogFlows {
     );
   }
 
-  /// Maps [notice] to its localized, user-facing message.
+  /// Map [notice] to its localized, user-facing message.
   ///
   /// A succeeded export kind degrades to the generic "shared" message on mobile
   /// ([OcptEditorIoNotice.wasShared]): there is no path to name, the export having been handed to
@@ -224,7 +224,7 @@ class OcptEditorDialogFlows {
     };
   }
 
-  /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
+  /// Build the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
   /// source and the typeset PDF. Both are always available — see `OcptEditorExportDocument`'s own
   /// doc comment.
   static List<OcptWorkspaceExportEntry<OcptEditorExportDocument>> _exportEntries(
@@ -248,7 +248,7 @@ class OcptEditorDialogFlows {
     ];
   }
 
-  /// Shows the PDF export options dialog, then dispatches the export request if the user applied
+  /// Show the PDF export options dialog, then dispatch the export request if the user applied
   /// it.
   static Future<void> _exportPdf(BuildContext context, Rect? shareAnchor) async {
     final bloc = context.read<OcptEditorIoBloc>();
@@ -273,7 +273,8 @@ class OcptEditorDialogFlows {
     );
   }
 
-  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// Get the selected episode's own tag (`ep. 2`), or null while the open project holds one episode
+  /// or
   /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
   /// exactly as every other localized export payload already is.
   static String? _episodeExportTag(BuildContext context) {
@@ -285,7 +286,7 @@ class OcptEditorDialogFlows {
     );
   }
 
-  /// Dispatches the project package export, resolving here — the last place with a
+  /// Dispatch the project package export, resolving here — the last place with a
   /// [BuildContext] — the label the native save dialog carries.
   ///
   /// What happens next depends on what the project references: everything being there, the save

@@ -57,7 +57,7 @@ class OcptStyledPagination {
   /// scroll into so the last sheet's own bottom margin is never shown, only cropped short.
   final double trailingBottomPadding;
 
-  /// Creates an [OcptStyledPagination].
+  /// Create an [OcptStyledPagination].
   const OcptStyledPagination({
     required this.pageStartNodeIds,
     required this.pageStartTopPaddings,
@@ -67,7 +67,7 @@ class OcptStyledPagination {
   });
 }
 
-/// Buckets every `ParagraphNode` of [document] into simulated pages, the same line-estimation
+/// Bucket every `ParagraphNode` of [document] into simulated pages, the same line-estimation
 /// approach `OcptEditorPreviewLayout`'s own pagination uses for the raw preview: a running sum of
 /// [OcptEditorPreviewLayout.wrappedLineCount] (plus each node's `ocptBlankLinesBefore` metadata,
 /// capped like [ocptMaxBlankLinesBeforeSpacing]) is compared against [metrics]'
@@ -198,14 +198,15 @@ OcptStyledPagination computeOcptStyledPagination({
   );
 }
 
-/// The number of lines [node] (classified as [type]) is estimated to wrap its own text to, not
+/// Get the number of lines [node] (classified as [type]) is estimated to wrap its own text to, not
 /// counting its `ocptBlankLinesBefore` metadata (see [_blankLinesBeforeOf] for that half).
 int _wrappedLineCountOf(ParagraphNode node, FountainLineType type, FountainLayoutMetrics metrics) {
   final element = _elementLayoutOf(type, metrics);
   return OcptEditorPreviewLayout.wrappedLineCount(node.text.toPlainText(), element.maxWidthColumns);
 }
 
-/// The layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element choice
+/// Get the layout box [type] is set in, mirroring `OcptFountainEditorStylesheet`'s own element
+/// choice
 /// per type (in particular lyrics sharing the dialogue box, and every non-printing/scaffolding
 /// type using the full-width action box).
 FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetrics metrics) =>
@@ -224,7 +225,7 @@ FountainElementLayout _elementLayoutOf(FountainLineType type, FountainLayoutMetr
       FountainLineType.blank => metrics.action,
     };
 
-/// Reads [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
+/// Read [node]'s `ocptBlankLinesBefore` metadata, capped at [ocptMaxBlankLinesBeforeSpacing] to
 /// match the extra spacing `OcptFountainEditorStylesheet` actually renders for it.
 int _blankLinesBeforeOf(ParagraphNode node) {
   final value = node.getMetadataValue(ocptBlankLinesBeforeMetadataKey);

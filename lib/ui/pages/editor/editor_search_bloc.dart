@@ -41,7 +41,7 @@ class OcptEditorSearchBloc
     on<OcptEditorSearchCurrentMatchSelectedEvent>(_onSearchCurrentMatchSelected);
   }
 
-  /// Opens the find/replace bar (see `OcptEditorSearchOpenedEvent`'s own doc comment for exactly
+  /// Open the find/replace bar (see `OcptEditorSearchOpenedEvent`'s own doc comment for exactly
   /// what folds and what doesn't).
   Future<void> _onSearchOpened(
     OcptEditorSearchOpenedEvent event,
@@ -55,7 +55,7 @@ class OcptEditorSearchBloc
     );
   }
 
-  /// Closes the find/replace bar, clearing the highlight but keeping the query, the replacement
+  /// Close the find/replace bar, clearing the highlight but keeping the query, the replacement
   /// and both options (see `OcptEditorSearchClosedEvent`'s own doc comment).
   Future<void> _onSearchClosed(
     OcptEditorSearchClosedEvent event,
@@ -64,7 +64,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithClosed());
   }
 
-  /// Folds or unfolds the replace row.
+  /// Fold or unfold the replace row.
   Future<void> _onSearchReplaceRowToggled(
     OcptEditorSearchReplaceRowToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
@@ -72,7 +72,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithReplaceRowToggled(isReplaceRowOpen: !state.isReplaceRowOpen));
   }
 
-  /// Stores the find field's new text and resets the current match index to 0, ready to be
+  /// Store the find field's new text and reset the current match index to 0, ready to be
   /// clamped by the mounted surface's next match count report.
   Future<void> _onSearchQueryChanged(
     OcptEditorSearchQueryChangedEvent event,
@@ -81,7 +81,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithQuery(query: event.query));
   }
 
-  /// Stores the replace field's new text.
+  /// Store the replace field's new text.
   Future<void> _onSearchReplacementChanged(
     OcptEditorSearchReplacementChangedEvent event,
     Emitter<OcptEditorSearchState> emitter,
@@ -89,7 +89,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithReplacement(replacement: event.replacement));
   }
 
-  /// Toggles the "match case" option.
+  /// Toggle the "match case" option.
   Future<void> _onSearchCaseSensitivityToggled(
     OcptEditorSearchCaseSensitivityToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
@@ -97,7 +97,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithCaseSensitivity(isCaseSensitive: !state.isCaseSensitive));
   }
 
-  /// Toggles the "whole word" option.
+  /// Toggle the "whole word" option.
   Future<void> _onSearchWholeWordToggled(
     OcptEditorSearchWholeWordToggledEvent event,
     Emitter<OcptEditorSearchState> emitter,
@@ -105,7 +105,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithWholeWord(isWholeWord: !state.isWholeWord));
   }
 
-  /// Records the mounted surface's current match count, clamping the current match index into the
+  /// Record the mounted surface's current match count, clamping the current match index into the
   /// new range (null once [OcptEditorSearchMatchesReportedEvent.matchCount] is 0).
   Future<void> _onSearchMatchesReported(
     OcptEditorSearchMatchesReportedEvent event,
@@ -121,7 +121,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithMatches(matchCount: matchCount, currentMatchIndex: clampedIndex));
   }
 
-  /// Moves to the next match, wrapping from the last one back to the first. A no-op while there is
+  /// Move to the next match, wrapping from the last one back to the first. A no-op while there is
   /// no match.
   Future<void> _onSearchNextRequested(
     OcptEditorSearchNextRequestedEvent event,
@@ -136,7 +136,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithCurrentMatch(currentMatchIndex: nextIndex));
   }
 
-  /// Moves to the previous match, wrapping from the first one back to the last. A no-op while
+  /// Move to the previous match, wrapping from the first one back to the last. A no-op while
   /// there is no match.
   Future<void> _onSearchPreviousRequested(
     OcptEditorSearchPreviousRequestedEvent event,
@@ -151,7 +151,7 @@ class OcptEditorSearchBloc
     emitter(state.copyWithCurrentMatch(currentMatchIndex: previousIndex));
   }
 
-  /// Sets the current match directly to [OcptEditorSearchCurrentMatchSelectedEvent.index], computed
+  /// Set the current match directly to [OcptEditorSearchCurrentMatchSelectedEvent.index], computed
   /// by whichever editing surface just performed a `Replace` against the text it just wrote (see
   /// the event's own doc comment for why this can't simply keep the previous index).
   Future<void> _onSearchCurrentMatchSelected(

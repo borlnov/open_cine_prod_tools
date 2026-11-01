@@ -62,15 +62,15 @@ class OcptEditorSpellCheckState extends BlocStateForMixin<OcptEditorSpellCheckSt
     caches: caches,
   );
 
-  /// Copies this state with both surfaces' misspelled ranges emptied.
+  /// Copy this state with both surfaces' misspelled ranges emptied.
   OcptEditorSpellCheckState copyWithRangesCleared() =>
       copyWith(rawSpellCheckRanges: const [], styledSpellCheckRanges: const {});
 
-  /// Copies this state with the misspelled [ranges] found in the raw mode's source text.
+  /// Copy this state with the misspelled [ranges] found in the raw mode's source text.
   OcptEditorSpellCheckState copyWithRawRanges({required List<SpellRange> ranges}) =>
       copyWith(rawSpellCheckRanges: ranges);
 
-  /// Copies this state with the misspelled [ranges] found in the styled mode's node texts, keyed by
+  /// Copy this state with the misspelled [ranges] found in the styled mode's node texts, keyed by
   /// node id.
   OcptEditorSpellCheckState copyWithStyledRanges({required Map<String, List<SpellRange>> ranges}) =>
       copyWith(styledSpellCheckRanges: ranges);

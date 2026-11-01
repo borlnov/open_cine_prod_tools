@@ -35,12 +35,12 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_mis
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_project_package_notice_message.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
-/// Displays the project card grid: the app's real landing page.
+/// Display the project card grid: the app's real landing page.
 ///
 /// Lets the user create a new project, open an existing one, or pick up a recently opened one
 /// from the grid.
 class OcptHomePage extends StatelessWidget {
-  /// Creates the home page.
+  /// Create the home page.
   const OcptHomePage({super.key});
 
   /// Build the home page as a [BlocProvider].
@@ -138,7 +138,7 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// States whatever [state] is holding for the user: the verdict on a project file whose format
+  /// State whatever [state] is holding for the user: the verdict on a project file whose format
   /// isn't this build's, the transient error of a failed create/open, a project card's export
   /// pre-flight asking about missing files, the outcome of that export, a failed project package
   /// import, and a landed one's report — each dismissed from the state as soon as it has been put
@@ -202,7 +202,7 @@ class _HomeView extends StatelessWidget {
     }
   }
 
-  /// States the skipped files a landed project package import carries, if any, then dispatches the
+  /// State the skipped files a landed project package import carries, if any, then dispatch the
   /// open that finishes bringing it in.
   ///
   /// The dialog is shown **before** the open, on purpose: a SnackBar
@@ -230,8 +230,8 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// Asks whether to write a card's package even though some referenced files are gone, then
-  /// dispatches the export if the user said to go on.
+  /// Ask whether to write a card's package even though some referenced files are gone, then
+  /// dispatch the export if the user said to go on.
   ///
   /// Mirrors every production mode's own `_askAboutMissingPackagedFiles` step for step: opened
   /// from the bloc's state rather than from the card's own click, since only the bloc can read the
@@ -257,7 +257,7 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// Puts [compatibility] in front of the user: the migration to answer for an older file, the
+  /// Put [compatibility] in front of the user: the migration to answer for an older file, the
   /// refusal for a newer one or for one at this build's own schema but written by a different
   /// development build.
   ///
@@ -323,7 +323,7 @@ class _HomeView extends StatelessWidget {
     }
   }
 
-  /// Maps [status] to its localized, user-facing message.
+  /// Map [status] to its localized, user-facing message.
   String _errorMessage(BuildContext context, OcptProjectStatus status) {
     final tr = Tr.of(context);
 
@@ -340,7 +340,7 @@ class _HomeView extends StatelessWidget {
     };
   }
 
-  /// Maps [status] to its localized, user-facing message.
+  /// Map [status] to its localized, user-facing message.
   ///
   /// [OcptProjectPackageStatus.ok] and [OcptProjectPackageStatus.sourceNotFound] are never raised
   /// by an import — the former is success, not an error, and the latter is
@@ -360,7 +360,7 @@ class _HomeView extends StatelessWidget {
     };
   }
 
-  /// Maps [status] to its localized, user-facing message.
+  /// Map [status] to its localized, user-facing message.
   ///
   /// [OcptScreenplayImportStatus.ok] and [OcptScreenplayImportStatus.cancelled] never reach the
   /// state at all — the first is a created project, the second a silent no-op — but still need a
@@ -378,7 +378,7 @@ class _HomeView extends StatelessWidget {
     };
   }
 
-  /// Asks the user for a new project's name, then dispatches the creation request.
+  /// Ask the user for a new project's name, then dispatch the creation request.
   Future<void> _requestNewProject(BuildContext context) async {
     final bloc = context.read<OcptHomeBloc>();
     final name = await OcptNewProjectNameDialog.show(context);
@@ -397,14 +397,14 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// Dispatches the open request that shows the open-file dialog.
+  /// Dispatch the open request that shows the open-file dialog.
   void _requestOpenProject(BuildContext context) {
     context.read<OcptHomeBloc>().add(
       OcptHomeOpenProjectRequestedEvent(fileTypeLabel: Tr.of(context).homeOpenFileTypeLabel),
     );
   }
 
-  /// Opens the `Import…` modal, then dispatches whichever of the two import flows the user picked
+  /// Open the `Import…` modal, then dispatch whichever of the two import flows the user picked
   /// a card for — a cancelled modal is a silent no-op, exactly as every dialog of this app treats
   /// one.
   Future<void> _requestImport(BuildContext context) async {
@@ -424,7 +424,7 @@ class _HomeView extends StatelessWidget {
     }
   }
 
-  /// Dispatches the import-screenplay request that shows the screenplay open-file dialog.
+  /// Dispatch the import-screenplay request that shows the screenplay open-file dialog.
   void _requestImportScreenplay(BuildContext context) {
     final tr = Tr.of(context);
 
@@ -436,7 +436,7 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// Dispatches the import-project-package request that shows the `.ocptz` open-file dialog, then
+  /// Dispatch the import-project-package request that shows the `.ocptz` open-file dialog, then
   /// the destination folder picker.
   void _requestImportProjectPackage(BuildContext context) {
     final tr = Tr.of(context);
@@ -449,7 +449,7 @@ class _HomeView extends StatelessWidget {
     );
   }
 
-  /// Navigates to the settings page.
+  /// Navigate to the settings page.
   ///
   /// Unlike the other actions above, this is a plain page push with no async work or result to
   /// wait on, so it goes straight through the router manager instead of round-tripping through
@@ -458,7 +458,7 @@ class _HomeView extends StatelessWidget {
     unawaited(globalGetIt().get<OcptRouterManager>().push(OcptRoute.settings));
   }
 
-  /// Dispatches the request that navigates to the "Rejoindre un projet partagé" screen.
+  /// Dispatch the request that navigates to the "Rejoindre un projet partagé" screen.
   ///
   /// Round-trips through [OcptHomeBloc], unlike [_requestOpenSettings]'s direct router push,
   /// because the bloc still has to refresh the recent projects list once the user comes back —

@@ -29,7 +29,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
   /// The manager the preferences this page owns are read from and written to.
   final OcptPropertiesManager _propertiesManager;
 
-  /// Creates the settings bloc, with an initial state carrying the preferences the [LocalesManager]
+  /// Create the settings bloc, with an initial state carrying the preferences the [LocalesManager]
   /// and the [ActThemesManager] currently hold, so the page opens on the options actually in use.
   ///
   /// Those managers' streams emit on change and never replay their current value to a new
@@ -84,7 +84,7 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
     emit(state.copyWithFirstWeekday(firstWeekday: firstWeekday));
   }
 
-  /// Stores the day a week starts on, then shows it.
+  /// Store the day a week starts on, then show it.
   ///
   /// Nothing has to be told about it: the schedule mode reads the preference on its own load, and
   /// the settings page cannot be open at the same time as a workspace — they are two routes.

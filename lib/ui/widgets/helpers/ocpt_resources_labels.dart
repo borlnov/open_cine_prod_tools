@@ -37,7 +37,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// looks like.
 const ocptResourcesEmptyValue = "—";
 
-/// The display label of the crew position [positionId] (one of `ocptCrewPositions`'
+/// Get the display label of the crew position [positionId] (one of `ocptCrewPositions`'
 /// `OcptCrewPosition.id`s), resolved through its `labelKey`.
 ///
 /// **A position added to `ocptCrewPositions` (`lib/constants/`) must be added here too**: the
@@ -133,7 +133,7 @@ String ocptCrewPositionLabel(Tr tr, String positionId) => switch (positionId) {
   _ => positionId,
 };
 
-/// The crew department of position [positionId] (one of `ocptCrewPositions`' ids), or null when
+/// Get the crew department of position [positionId] (one of `ocptCrewPositions`' ids), or null when
 /// [positionId] is empty (a free-label assignment, which belongs to no department) or names a
 /// position retired from the catalogue.
 ///
@@ -149,7 +149,8 @@ OcptCrewDepartment? ocptCrewPositionDepartmentOf(String positionId) {
   return null;
 }
 
-/// The display label of the crew department [department], for grouping `ocptCrewPositions` in the
+/// Get the display label of the crew department [department], for grouping `ocptCrewPositions` in
+/// the
 /// UI.
 String ocptCrewDepartmentLabel(Tr tr, OcptCrewDepartment department) => switch (department) {
   OcptCrewDepartment.direction => tr.resourcesCrewDepartmentDirection,
@@ -167,14 +168,15 @@ String ocptCrewDepartmentLabel(Tr tr, OcptCrewDepartment department) => switch (
   OcptCrewDepartment.postProduction => tr.resourcesCrewDepartmentPostProduction,
 };
 
-/// The display label of [kind], what a location's availability window allows.
+/// Get the display label of [kind], what a location's availability window allows.
 String ocptLocationAvailabilityKindLabel(Tr tr, OcptLocationAvailabilityKind kind) =>
     switch (kind) {
       OcptLocationAvailabilityKind.available => tr.resourcesAvailabilityKindAvailable,
       OcptLocationAvailabilityKind.conditional => tr.resourcesAvailabilityKindConditional,
     };
 
-/// The display label of [slot], which part of each covered day a dated window takes — a person's
+/// Get the display label of [slot], which part of each covered day a dated window takes — a
+/// person's
 /// unavailability as much as a location's availability.
 String ocptDayPartSlotLabel(Tr tr, OcptDayPartSlot slot) => switch (slot) {
   OcptDayPartSlot.fullDay => tr.resourcesSlotFullDay,
@@ -183,7 +185,7 @@ String ocptDayPartSlotLabel(Tr tr, OcptDayPartSlot slot) => switch (slot) {
   OcptDayPartSlot.custom => tr.resourcesSlotCustom,
 };
 
-/// The display label of [status], where a person's image rights release stands.
+/// Get the display label of [status], where a person's image rights release stands.
 String ocptImageRightsStatusLabel(Tr tr, OcptImageRightsStatus status) => switch (status) {
   OcptImageRightsStatus.notApplicable => tr.resourcesImageRightsNotApplicable,
   OcptImageRightsStatus.toGenerate => tr.resourcesImageRightsToGenerate,
@@ -191,7 +193,7 @@ String ocptImageRightsStatusLabel(Tr tr, OcptImageRightsStatus status) => switch
   OcptImageRightsStatus.signed => tr.resourcesImageRightsSigned,
 };
 
-/// The display label of [status], where one person stands in the casting of one part.
+/// Get the display label of [status], where one person stands in the casting of one part.
 String ocptRoleCandidateStatusLabel(Tr tr, OcptRoleCandidateStatus status) => switch (status) {
   OcptRoleCandidateStatus.spotted => tr.resourcesRoleCandidateStatusSpotted,
   OcptRoleCandidateStatus.toMeet => tr.resourcesRoleCandidateStatusToMeet,
@@ -203,7 +205,7 @@ String ocptRoleCandidateStatusLabel(Tr tr, OcptRoleCandidateStatus status) => sw
   OcptRoleCandidateStatus.unavailable => tr.resourcesRoleCandidateStatusUnavailable,
 };
 
-/// The display label of [status], where a location's filming permit stands.
+/// Get the display label of [status], where a location's filming permit stands.
 String ocptPermitStatusLabel(Tr tr, OcptPermitStatus status) => switch (status) {
   OcptPermitStatus.notNeeded => tr.resourcesPermitNotNeeded,
   OcptPermitStatus.toRequest => tr.resourcesPermitToRequest,
@@ -212,7 +214,7 @@ String ocptPermitStatusLabel(Tr tr, OcptPermitStatus status) => switch (status) 
   OcptPermitStatus.refused => tr.resourcesPermitRefused,
 };
 
-/// The colour the permit status [status] is painted with, in the left dock's list and on the
+/// Get the colour the permit status [status] is painted with, in the left dock's list and on the
 /// location sheet's own badge alike — a location is read at a glance by whether it may be shot at.
 ///
 /// Follows the image rights card's own scale, for the same reason it does: `notNeeded` is the
@@ -231,7 +233,7 @@ Color ocptPermitStatusColor(BuildContext context, OcptPermitStatus status) {
   };
 }
 
-/// The display label of [category], the top-level grouping the elements list is organised by.
+/// Get the display label of [category], the top-level grouping the elements list is organised by.
 String ocptElementCategoryLabel(Tr tr, OcptElementCategory category) => switch (category) {
   OcptElementCategory.prop => tr.resourcesElementCategoryProp,
   OcptElementCategory.setDressing => tr.resourcesElementCategorySetDressing,
@@ -249,7 +251,7 @@ String ocptElementCategoryLabel(Tr tr, OcptElementCategory category) => switch (
   OcptElementCategory.other => tr.resourcesElementCategoryOther,
 };
 
-/// The display label of [sourceKind], where an element comes from or is going to.
+/// Get the display label of [sourceKind], where an element comes from or is going to.
 String ocptElementSourceKindLabel(Tr tr, OcptElementSourceKind sourceKind) => switch (sourceKind) {
   OcptElementSourceKind.owned => tr.resourcesElementSourceOwned,
   OcptElementSourceKind.borrowed => tr.resourcesElementSourceBorrowed,
@@ -259,7 +261,8 @@ String ocptElementSourceKindLabel(Tr tr, OcptElementSourceKind sourceKind) => sw
   OcptElementSourceKind.alreadyOnSet => tr.resourcesElementSourceAlreadyOnSet,
 };
 
-/// How far along [element] is, read off its three tracking flags: the one thing about an item that
+/// Tell how far along [element] is, read off its three tracking flags: the one thing about an item
+/// that
 /// decides whether it is still a problem.
 ///
 /// Derived rather than stored, exactly as a person's age is: the flags are the answers the user
@@ -280,7 +283,8 @@ String ocptElementTrackingLabel(Tr tr, OcptElement element) {
   return tr.resourcesElementTrackingToSecure;
 }
 
-/// The colour [ocptElementTrackingLabel]'s answer is painted with, in the left dock's list and on
+/// Get the colour [ocptElementTrackingLabel]'s answer is painted with, in the left dock's list and
+/// on
 /// the element sheet's own badge alike.
 ///
 /// Follows the permit status' own scale, for the same reason it does: an item still to secure is
@@ -303,7 +307,7 @@ Color ocptElementTrackingColor(BuildContext context, OcptElement element) {
   return ocptWarningColor(context);
 }
 
-/// How [scene] reads wherever the resources mode names one outside the screenplay — on a set's
+/// Tell how [scene] reads wherever the resources mode names one outside the screenplay — on a set's
 /// chips, on an element's own scene rows, and in the pickers adding either: its number, then the
 /// place its heading names.
 ///
@@ -315,7 +319,7 @@ String ocptSceneRefLabel(OcptSceneRef scene) {
   return "${scene.displayNumber} · ${place.isEmpty ? scene.heading : place}";
 }
 
-/// The display label of the left dock tab [tab], shared by `OcptResourcesTabBar` (the tab strip
+/// Get the display label of the left dock tab [tab], shared by `OcptResourcesTabBar` (the tab strip
 /// itself) and `OcptResourcesListPanel` (the list header title, and the placeholder line of a tab
 /// with no content yet), so the two can never name the same tab differently.
 String ocptResourcesTabLabel(Tr tr, OcptResourcesTab tab) => switch (tab) {
@@ -325,14 +329,14 @@ String ocptResourcesTabLabel(Tr tr, OcptResourcesTab tab) => switch (tab) {
   OcptResourcesTab.elements => tr.resourcesTabElements,
 };
 
-/// The display label of [kind], what kind of character a role is.
+/// Get the display label of [kind], what kind of character a role is.
 String ocptRoleKindLabel(Tr tr, OcptRoleKind kind) => switch (kind) {
   OcptRoleKind.speaking => tr.resourcesRoleKindSpeaking,
   OcptRoleKind.silent => tr.resourcesRoleKindSilent,
   OcptRoleKind.extra => tr.resourcesRoleKindExtra,
 };
 
-/// The header label of the exported crew & cast directory sheet's column [column].
+/// Get the header label of the exported crew & cast directory sheet's column [column].
 String ocptPeopleXlsxColumnLabel(Tr tr, OcptPeopleXlsxColumn column) => switch (column) {
   OcptPeopleXlsxColumn.name => tr.resourcesXlsxColumnName,
   OcptPeopleXlsxColumn.positions => tr.resourcesXlsxColumnPositions,
@@ -368,7 +372,7 @@ String ocptPeopleXlsxColumnLabel(Tr tr, OcptPeopleXlsxColumn column) => switch (
   OcptPeopleXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
 };
 
-/// The header label of the exported roles sheet's column [column].
+/// Get the header label of the exported roles sheet's column [column].
 String ocptRolesXlsxColumnLabel(Tr tr, OcptRolesXlsxColumn column) => switch (column) {
   OcptRolesXlsxColumn.number => tr.resourcesXlsxColumnNumber,
   OcptRolesXlsxColumn.name => tr.resourcesXlsxColumnName,
@@ -379,7 +383,7 @@ String ocptRolesXlsxColumnLabel(Tr tr, OcptRolesXlsxColumn column) => switch (co
   OcptRolesXlsxColumn.castingNotes => tr.resourcesXlsxColumnCastingNotes,
 };
 
-/// The header label of the exported locations & sets sheet's column [column].
+/// Get the header label of the exported locations & sets sheet's column [column].
 String ocptLocationsXlsxColumnLabel(Tr tr, OcptLocationsXlsxColumn column) => switch (column) {
   OcptLocationsXlsxColumn.locationName => tr.resourcesXlsxColumnLocationName,
   OcptLocationsXlsxColumn.setCode => tr.resourcesXlsxColumnSetCode,
@@ -406,7 +410,7 @@ String ocptLocationsXlsxColumnLabel(Tr tr, OcptLocationsXlsxColumn column) => sw
   OcptLocationsXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
 };
 
-/// The header label of the exported elements sheet's column [column].
+/// Get the header label of the exported elements sheet's column [column].
 ///
 /// [currencyCode] is only read by [OcptElementsXlsxColumn.cost], whose header names the project's
 /// currency (`Cost (EUR)`) so the workbook reads correctly once it has left the app that produced
@@ -436,7 +440,7 @@ String ocptElementsXlsxColumnLabel(
   OcptElementsXlsxColumn.notes => tr.resourcesXlsxColumnNotes,
 };
 
-/// Builds every localized string the exported resources workbook carries, for the [scenes] a set's
+/// Build every localized string the exported resources workbook carries, for the [scenes] a set's
 /// or an element's own scene column names.
 ///
 /// This is the single bridge between the UI's `Tr` and `OcptResourcesXlsxExportService`, which runs
@@ -518,7 +522,7 @@ OcptResourcesXlsxLabels ocptResourcesXlsxLabelsOf(
   );
 }
 
-/// Builds every localized string the exported contact list carries.
+/// Build every localized string the exported contact list carries.
 ///
 /// This is the single bridge between the UI's `Tr` and `OcptContactListPdfService`, which runs in
 /// the manager layer and has no `BuildContext` to resolve anything of its own — mirroring
@@ -551,7 +555,7 @@ OcptContactListLabels ocptContactListLabelsOf(BuildContext context) {
   );
 }
 
-/// The name of every day of the week in [context]'s own locale, keyed by its
+/// Get the name of every day of the week in [context]'s own locale, keyed by its
 /// `DateTime.monday`…`DateTime.sunday` number.
 ///
 /// Formatted off a reference week (2024-01-01 was a Monday) rather than off today, so the seven

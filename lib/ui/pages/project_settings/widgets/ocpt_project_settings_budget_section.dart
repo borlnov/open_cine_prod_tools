@@ -171,7 +171,7 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   /// commits the very same edit twice (`_OcptProjectSettingsMinimumRestField`'s own reasoning).
   late int? _lastReportedBasisPoints = widget.basisPoints;
 
-  /// [_OcptProjectSettingsVatRateField.basisPoints] written in per cent through
+  /// Get [_OcptProjectSettingsVatRateField.basisPoints] written in per cent through
   /// [ocptVatRatePercentTextOf], or the empty string while it is null.
   String get _formatted => ocptVatRatePercentTextOf(widget.basisPoints);
 
@@ -218,14 +218,14 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
     );
   }
 
-  /// Commits the field's current text once it loses focus.
+  /// Commit the field's current text once it loses focus.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _commit();
     }
   }
 
-  /// Parses the field's current text as a rate in per cent and reports the basis points it makes:
+  /// Parse the field's current text as a rate in per cent and report the basis points it makes:
   /// a non-negative figure, `0` included, is reported and read back in the canonical per cent
   /// writing; an empty, unparseable or negative text reverts the field to whatever was last
   /// committed instead — "not recorded" is put back only through the card's own `No rate` button.
@@ -303,7 +303,8 @@ class _OcptProjectSettingsBudgetMoneyFieldState
   /// commits the very same edit twice.
   late int? _lastReportedCents = widget.cents;
 
-  /// [_OcptProjectSettingsBudgetMoneyField.cents] written through [ocptCostTextOf], or the empty
+  /// Get [_OcptProjectSettingsBudgetMoneyField.cents] written through [ocptCostTextOf], or the
+  /// empty
   /// string while it is null.
   String get _formatted => ocptCostTextOf(widget.cents);
 
@@ -345,14 +346,14 @@ class _OcptProjectSettingsBudgetMoneyFieldState
     );
   }
 
-  /// Commits the field's current text once it loses focus.
+  /// Commit the field's current text once it loses focus.
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _commit();
     }
   }
 
-  /// Parses the field's current text as money and reports the cents it makes: empty clears the
+  /// Parse the field's current text as money and report the cents it makes: empty clears the
   /// price (a real gesture, reported as null), a parseable figure is reported and read back in the
   /// canonical writing, and anything unparseable reverts the field to whatever was last committed.
   void _commit() {

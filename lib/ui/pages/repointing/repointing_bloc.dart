@@ -41,7 +41,8 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
   /// The manager used to read this replica's own device id.
   final OcptPropertiesManager _propertiesManager;
 
-  /// The current project's writable file — a re-point moves the project **file**'s own pairing and
+  /// Get the current project's writable file — a re-point moves the project **file**'s own pairing
+  /// and
   /// ongoing sync session, never a read-only preview's (`OcptOpenProjectModel.fileDatabase`'s own
   /// doc comment). The route that reaches this page is guarded exactly like the sharing screen's
   /// own, so a project is always open by the time this runs.
@@ -78,7 +79,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
     emit(state.copyToLoaded(projectName: _projectsManager.currentProject!.name));
   }
 
-  /// Re-points the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
+  /// Re-point the current project to `event.relayBaseUri` with `event.enrolmentSecret`, reusing
   /// the token its existing pairing already holds, and moving the page to ② QR code on success.
   ///
   /// A failure (the relay unreachable, a bad enrolment secret, the project not paired at all yet)
@@ -136,7 +137,7 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
     }
   }
 
-  /// Clears [OcptRepointingState.repointFailed] once the page has shown its own snack bar for it.
+  /// Clear [OcptRepointingState.repointFailed] once the page has shown its own snack bar for it.
   void _onErrorDismissed(
     OcptRepointingErrorDismissedEvent event,
     Emitter<OcptRepointingState> emitter,

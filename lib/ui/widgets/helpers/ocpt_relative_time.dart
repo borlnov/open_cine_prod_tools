@@ -5,7 +5,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 
-/// Formats [dateTime] as a short, localized relative time compared to [now] (defaulting to
+/// Format [dateTime] as a short, localized relative time compared to [now] (defaulting to
 /// [DateTime.now]), for example "2 days ago"/"il y a 2 jours".
 ///
 /// It intentionally only has minute/hour/day resolution: this is meant for showing "roughly how

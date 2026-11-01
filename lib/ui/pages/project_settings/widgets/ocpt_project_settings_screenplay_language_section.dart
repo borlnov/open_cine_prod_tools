@@ -75,7 +75,7 @@ class OcptProjectSettingsScreenplayLanguageSection extends StatelessWidget {
     );
   }
 
-  /// The localized label of [language].
+  /// Get the localized label of [language].
   String _languageLabel(Tr tr, OcptScreenplayLanguage language) => switch (language) {
     OcptScreenplayLanguage.fr => tr.projectSettingsScreenplayLanguageFrenchOption,
     OcptScreenplayLanguage.enGb => tr.projectSettingsScreenplayLanguageEnglishOption,

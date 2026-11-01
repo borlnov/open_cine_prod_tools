@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_package_notice_kind.dart';
 
-/// The localized, user-facing message reporting [notice], shown as a SnackBar over whichever
+/// Get the localized, user-facing message reporting [notice], shown as a SnackBar over whichever
 /// production mode the `Export` panel was opened from.
 ///
 /// Shared by every mode rather than mapped again in each page, for the same reason the standing

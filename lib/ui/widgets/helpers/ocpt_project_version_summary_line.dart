@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_summary.dart';
 /// summary line of the workspace joins with.
 const _summarySeparator = " · ";
 
-/// The line summarising [summary]: the counters measured at the moment it was captured, e.g.
+/// Get the line summarising [summary]: the counters measured at the moment it was captured, e.g.
 /// `41 pages · 3 sequences broken down`, preceded by [createdAt] when the caller has one to show
 /// — e.g. `12 Mar 2026, 18:42 · 41 pages · 3 sequences broken down`.
 ///

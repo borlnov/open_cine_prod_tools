@@ -353,12 +353,12 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     onWordLearnedOf: () => widget.onWordLearned,
   );
 
-  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
+  /// Tell whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
   /// `Undo` entry has anything to offer.
   @override
   bool get canUndo => _history.canUndo;
 
-  /// Whether the last undone gesture can still be put back (see [OcptStyledHistory.canRedo]).
+  /// Tell whether the last undone gesture can still be put back (see [OcptStyledHistory.canRedo]).
   @override
   bool get canRedo => _history.canRedo;
 
@@ -610,15 +610,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
-  /// Takes back the writer's last gesture, plus everything this widget derived from it.
+  /// Take back the writer's last gesture, plus everything this widget derived from it.
   @override
   void undo() => _history.undo();
 
-  /// Puts back the last undone gesture, or does nothing at all when [canRedo] refuses.
+  /// Put back the last undone gesture, or do nothing at all when [canRedo] refuses.
   @override
   void redo() => _history.redo();
 
-  /// Applies a manual block-type change to the current selection's extent node: bails out silently
+  /// Apply a manual block-type change to the current selection's extent node: bails out silently
   /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
   /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
   /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
@@ -651,7 +651,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _focusNode.requestFocus();
   }
 
-  /// Toggles [style] on the current selection: the composer's pending style preferences when
+  /// Toggle [style] on the current selection: the composer's pending style preferences when
   /// collapsed (so the next typed character carries it), or a `ToggleTextAttributionsRequest` over
   /// the expanded selection otherwise. Bails out silently if there is no selection. Reports the
   /// fresh read state and hands focus back to the editor afterwards, same as [applyBlockType].
@@ -675,23 +675,23 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _focusNode.requestFocus();
   }
 
-  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
+  /// Replace the find/replace query and current-match index this widget highlights/navigates to,
   /// then immediately recomputes and (re-)navigates (see [OcptStyledSearch.recompute]).
   @override
   void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
     _search.update(query: query, currentMatchIndex: currentMatchIndex);
   }
 
-  /// Replaces the current match with [replacement] and returns the index of the next one to land
+  /// Replace the current match with [replacement] and return the index of the next one to land
   /// on (see [OcptStyledSearch.replaceCurrentMatch]).
   @override
   int? replaceCurrentMatch(String replacement) => _search.replaceCurrentMatch(replacement);
 
-  /// Replaces every current match with [replacement] (see [OcptStyledSearch.replaceAllMatches]).
+  /// Replace every current match with [replacement] (see [OcptStyledSearch.replaceAllMatches]).
   @override
   void replaceAllMatches(String replacement) => _search.replaceAllMatches(replacement);
 
-  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
+  /// Apply [rangesByNodeId] — the bloc's own answer, keyed by node id — to
   /// `OcptStyledSpellCheckRanges.styler`, replacing whatever it held before: every node this widget could
   /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
   /// added only for a node id [rangesByNodeId] actually names.
@@ -717,7 +717,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _spellCheck.update(rangesByNodeId);
   }
 
-  /// Applies [OcptStyledScreenplayEditor.jumpRequest] if it wasn't already applied by this widget
+  /// Apply [OcptStyledScreenplayEditor.jumpRequest] if it wasn't already applied by this widget
   /// (whether it arrived through a rebuild, or was already pending the very first time this
   /// widget was built, e.g. right after switching from raw to styled mode).
   void _maybeApplyPendingJumpRequest() {
@@ -730,7 +730,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
   }
 
-  /// Runs a full pending debounced sync immediately, instead of waiting for [_syncTimer] to fire
+  /// Run a full pending debounced sync immediately, instead of waiting for [_syncTimer] to fire
   /// on its own, settling a throwaway copy of the document rather than executing requests against
   /// the live [_editor].
   ///
@@ -775,7 +775,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     settledEditor.dispose();
   }
 
-  /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document
+  /// Build [_document], [_composer] and [_editor] from [text], and start listening to document
   /// and selection changes.
   ///
   /// [_lastSyncedText] is set to [text] so this rebuild is never mistaken, on the very next
@@ -803,7 +803,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _composer.preferences.addListener(_onComposerPreferencesChanged);
   }
 
-  /// Stops listening to [_document] and [_composer] and disposes them, before they're replaced or
+  /// Stop listening to [_document] and [_composer] and dispose them, before they're replaced or
   /// this widget is disposed.
   void _disposeEditor() {
     _document.removeListener(_onDocumentChanged);
@@ -813,7 +813,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _editor.dispose();
   }
 
-  /// Restarts the sync debounce on every document change (a text edit, a line split/merge...), and
+  /// Restart the sync debounce on every document change (a text edit, a line split/merge...), and
   /// immediately refreshes the toolbar's read state: a metadata-only change like the Tab cycle
   /// (see `ocptManualBlockTypeRequests`) moves no selection, so without this the dropdown would
   /// otherwise only catch up 120 ms later, at the next debounced sync.
@@ -855,8 +855,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     });
   }
 
-  /// Rejoins the document into flat text (reporting it upstream if it changed), refreshes
-  /// [_mapping] for that freshly encoded text, and re-classifies every line plus every note's
+  /// Rejoin the document into flat text (reporting it upstream if it changed), refresh [_mapping]
+  /// for that freshly encoded text, and re-classify every line plus every note's
   /// attribution span, only touching the metadata of the nodes that actually need it.
   ///
   /// Also reports a fresh set of checkable spell-check texts ([_reportSpellCheckTexts]), right here
@@ -883,11 +883,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
   }
 
-  /// Runs [derivedPass] — any pass that writes back to [_document] what this widget *derived* from
+  /// Run [derivedPass] — any pass that writes back to [_document] what this widget *derived* from
   /// the writer's last gesture — merged onto that gesture (see [OcptStyledHistory.runDerivedPass]).
   void _runDerivedPass(void Function() derivedPass) => _history.runDerivedPass(derivedPass);
 
-  /// Renumbers every scene heading immediately (not debounced) and reports the corrected text
+  /// Renumber every scene heading immediately (not debounced) and report the corrected text
   /// upstream if it changed, right after [_rebuildEditorFrom] rebuilds the document from fresh
   /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
   /// the moment it's decoded into the styled editor, rather than waiting for the next edit's
@@ -913,8 +913,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _encodeAndReportIfChanged();
   }
 
-  /// Encodes [document] (defaulting to [_document]) back to text, refreshes [_mapping] for it, and
-  /// reports the new text upstream if it actually changed. [_flushPendingSync] passes its own
+  /// Encode [document] (defaulting to [_document]) back to text, refresh [_mapping] for it, and
+  /// report the new text upstream if it actually changed. [_flushPendingSync] passes its own
   /// throwaway, already-settled document copy instead of the default, so a flush never has to run
   /// [_editor] commands (see that method's own doc comment for why that matters).
   void _encodeAndReportIfChanged([Document? document]) {
@@ -928,7 +928,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     }
   }
 
-  /// Decodes [text] through [OcptWysiwygCodec.decodeWithTitlePage] while
+  /// Decode [text] through [OcptWysiwygCodec.decodeWithTitlePage] while
   /// [OcptStyledScreenplayEditor.isPageSimulationEnabled] is on (the title sheet is only ever shown
   /// in page mode, matching the raw preview's own paper-only page simulation), or plain
   /// [OcptWysiwygCodec.decode] otherwise, so the fluid, theme-following surface stays exactly what
@@ -937,14 +937,14 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
       ? OcptWysiwygCodec.decodeWithTitlePage(text)
       : OcptWysiwygCodec.decode(text);
 
-  /// The [_decode] counterpart for encoding, switching between
+  /// Get the [_decode] counterpart for encoding, switching between
   /// [OcptWysiwygCodec.encodeWithTitlePage] and [OcptWysiwygCodec.encode] the same way.
   OcptWysiwygEncodeResult _encode(Document document, {required int trailingBlankLines}) =>
       widget.isPageSimulationEnabled
       ? OcptWysiwygCodec.encodeWithTitlePage(document, trailingBlankLines: trailingBlankLines)
       : OcptWysiwygCodec.encode(document, trailingBlankLines: trailingBlankLines);
 
-  /// Reports the source line the caret moved to, whenever the composer's selection changes to a
+  /// Report the source line the caret moved to, whenever the composer's selection changes to a
   /// different node, resolved through [_mapping] (a node's index is no longer always its source
   /// line, now that blank source lines are folded into metadata instead of being their own node).
   void _onSelectionChanged() {
@@ -967,7 +967,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _readState.report();
   }
 
-  /// Refreshes the controller's read side whenever the composer's collapsed-caret style
+  /// Refresh the controller's read side whenever the composer's collapsed-caret style
   /// preferences change (a B/I/U toggle applied via keyboard shortcut or the toolbar, while the
   /// caret has no selection): [_onSelectionChanged] alone would miss this, since the selection
   /// itself doesn't move.
@@ -975,7 +975,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _readState.report();
   }
 
-  /// Reports `OcptStyledSpellCheckRanges.checkableTexts` up through [OcptStyledScreenplayEditor.styledController]
+  /// Report `OcptStyledSpellCheckRanges.checkableTexts` up through
+  /// [OcptStyledScreenplayEditor.styledController]
   /// (`OcptStyledEditorController.reportSpellCheckTexts`, which dedupes against what was last
   /// reported on its own — this method itself is called unconditionally, exactly like
   /// `OcptStyledSearch.recompute` reports its own match count every time it runs).

@@ -145,7 +145,8 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     );
   }
 
-  /// The name of the version [baseVersionId] names, resolved out of [versions] — the list already
+  /// Get the name of the version [baseVersionId] names, resolved out of [versions] — the list
+  /// already
   /// carries every version, the base included, so a second lookup path could only ever disagree
   /// with it. Null when [baseVersionId] is null, or names a version no longer in the list.
   String? _baseVersionName(String? baseVersionId) {

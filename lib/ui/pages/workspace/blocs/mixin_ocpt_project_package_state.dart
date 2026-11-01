@@ -18,7 +18,8 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_target.dart';
 mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
     on BlocStateForMixin<S> {
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExport}
-  /// What the pre-flight found when it read the project's referenced files, while the mode still
+  /// Get what the pre-flight found when it read the project's referenced files, while the mode
+  /// still
   /// has to ask the user about it; null the rest of the time.
   ///
   /// Only ever set when something is actually missing — a project whose every file is where it
@@ -29,13 +30,14 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
   OcptProjectPackagePreflight? get projectPackagePendingExport;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageState.projectPackageNotice}
-  /// The outcome of the last package export the user has to be told about, or null while there is
+  /// Get the outcome of the last package export the user has to be told about, or null while there
+  /// is
   /// nothing to report; shown as a transient SnackBar then dismissed.
   /// {@endtemplate}
   OcptProjectPackageNotice? get projectPackageNotice;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageState.projectPackagePendingExportTarget}
-  /// The target the pre-flight question is currently about, from the moment it found a missing
+  /// Get the target the pre-flight question is currently about, from the moment it found a missing
   /// file until `OcptProjectPackageExportConfirmedEvent` uses it — null the rest of the time.
   ///
   /// `OcptProjectPackageExportConfirmedEvent` deliberately does not carry the target again: the
@@ -55,7 +57,7 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
   OcptProjectPackageTarget? get projectPackagePendingExportTarget;
 
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageState.copyProjectPackageState}
-  /// This is the copyWith method for the mixin.
+  /// Implement the copyWith method for the mixin.
   ///
   /// Both fields legitimately go back to null while the mode is alive (a question answered, a
   /// notice dismissed), so each carries its own force flag rather than relying on "a null argument
@@ -70,7 +72,7 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
     bool forceProjectPackagePendingExportTargetValue = false,
   });
 
-  /// Copies the state with the pre-flight [preflight] to ask the user about, [target] being the
+  /// Copy the state with the pre-flight [preflight] to ask the user about, [target] being the
   /// export it is about.
   S copyWithPackagePreflightAsked({
     required OcptProjectPackagePreflight preflight,
@@ -80,20 +82,20 @@ mixin MixinOcptProjectPackageState<S extends MixinOcptProjectPackageState<S>>
     projectPackagePendingExportTarget: target,
   );
 
-  /// Copies the state with the pending pre-flight question dropped.
+  /// Copy the state with the pending pre-flight question dropped.
   S copyWithPackagePreflightDismissed() =>
       copyProjectPackageState(forceProjectPackagePendingExportValue: true);
 
-  /// Copies the state with the pending export target consumed, the user having answered the
+  /// Copy the state with the pending export target consumed, the user having answered the
   /// question.
   S copyWithPackageExportTargetConsumed() =>
       copyProjectPackageState(forceProjectPackagePendingExportTargetValue: true);
 
-  /// Copies the state with the package notice dismissed.
+  /// Copy the state with the package notice dismissed.
   S copyWithPackageNoticeDismissed() =>
       copyProjectPackageState(forceProjectPackageNoticeValue: true);
 
-  /// Copies the state with [notice] as the outcome of the export, the pending question dropped.
+  /// Copy the state with [notice] as the outcome of the export, the pending question dropped.
   S copyWithPackageNoticed({required OcptProjectPackageNotice notice}) => copyProjectPackageState(
     projectPackageNotice: notice,
     forceProjectPackagePendingExportValue: true,
