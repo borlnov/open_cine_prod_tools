@@ -35,10 +35,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// own `_SpySyncManager` reasoning, applied to the manager this bloc drives instead of the one it
 /// drove.
 class _FakeHostManager extends OcptRelayHostManager {
-  OcptRelayHostState _state = const OcptRelayHostStopped();
-  final _controller = StreamController<OcptRelayHostState>.broadcast();
-  String? _hostedProjectId;
-
   /// What [availableLanAddresses] returns.
   List<InternetAddress> lanAddresses = [InternetAddress('192.168.1.42')];
 
@@ -59,6 +55,10 @@ class _FakeHostManager extends OcptRelayHostManager {
 
   /// What [reconcileWithUpstream] returns.
   OcptReconcileOutcome reconcileResult = const OcptReconcileSucceeded(pushed: 0, pulled: 0);
+
+  OcptRelayHostState _state = const OcptRelayHostStopped();
+  final _controller = StreamController<OcptRelayHostState>.broadcast();
+  String? _hostedProjectId;
 
   @override
   OcptRelayHostState get state => _state;
@@ -116,6 +116,9 @@ class _FakeHostManager extends OcptRelayHostManager {
 /// [loadPairing] override never reaches it), so it is built with closures that would throw if
 /// ever called.
 class _FakePairingService extends OcptPairingService {
+  /// What [loadPairing] returns.
+  OcptProjectPairing? pairing;
+
   _FakePairingService({this.pairing})
     : super(
         logger: const SilentLogger(),
@@ -124,9 +127,6 @@ class _FakePairingService extends OcptPairingService {
           confGetter: () => throw UnimplementedError(),
         ),
       );
-
-  /// What [loadPairing] returns.
-  OcptProjectPairing? pairing;
 
   @override
   Future<OcptProjectPairing?> loadPairing({
@@ -139,6 +139,23 @@ class _FakePairingService extends OcptPairingService {
 /// fully under this file's own control — no real pairing, no real presence service, exactly
 /// `ocpt_sync_status_indicator_test.dart`'s own `_FakeSyncManager` reasoning.
 class _FakeSyncManager extends OcptSyncManager {
+  /// What [loadPairedProjectId] returns.
+  String? pairedProjectId;
+
+  final _FakePairingService _fakePairingService;
+
+  OcptPresenceRoster? _roster;
+  final _controller = StreamController<OcptPresenceRoster>.broadcast();
+
+  @override
+  OcptPairingService get pairingService => _fakePairingService;
+
+  @override
+  OcptPresenceRoster? get presenceRoster => _roster;
+
+  @override
+  Stream<OcptPresenceRoster>? get presenceRosterStream => _controller.stream;
+
   _FakeSyncManager({this.pairedProjectId, _FakePairingService? pairingService})
     : _fakePairingService = pairingService ?? _FakePairingService(),
       super(
@@ -148,25 +165,8 @@ class _FakeSyncManager extends OcptSyncManager {
         ),
       );
 
-  /// What [loadPairedProjectId] returns.
-  String? pairedProjectId;
-
-  final _FakePairingService _fakePairingService;
-
-  @override
-  OcptPairingService get pairingService => _fakePairingService;
-
-  OcptPresenceRoster? _roster;
-  final _controller = StreamController<OcptPresenceRoster>.broadcast();
-
   @override
   Future<String?> loadPairedProjectId(OcptProjectDatabase database) async => pairedProjectId;
-
-  @override
-  OcptPresenceRoster? get presenceRoster => _roster;
-
-  @override
-  Stream<OcptPresenceRoster>? get presenceRosterStream => _controller.stream;
 
   /// Pushes [roster] onto [presenceRosterStream], as a real presence service's own heartbeat
   /// would.

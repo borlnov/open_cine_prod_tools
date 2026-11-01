@@ -21,10 +21,16 @@ import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 /// `append`/`readSince`/the snapshot ops and [newWorkStream] are never exercised by
 /// [OcptPresenceService] itself, so they are stubbed to inert values.
 class _FakeRemoteStorage implements OcptRemoteStorage {
-  final StreamController<String> _presenceController = StreamController<String>.broadcast();
-
   /// Every payload [sendPresence] was called with, in order.
   final List<String> sentPayloads = [];
+
+  final StreamController<String> _presenceController = StreamController<String>.broadcast();
+
+  @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => _presenceController.stream;
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
@@ -48,13 +54,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) => sentPayloads.add(opaquePayload);
-
-  @override
-  Stream<String> get presenceStream => _presenceController.stream;
 
   /// Simulates a peer's own frame arriving over the wire.
   void emitPeerFrame(OcptPresenceFrame frame) =>

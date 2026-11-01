@@ -74,10 +74,10 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `_StubPlatformManager` already
 /// is.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A save location service answering [saveLocationAnswer] without ever showing a native dialog,

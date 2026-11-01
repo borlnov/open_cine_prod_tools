@@ -85,12 +85,12 @@ class ResourcesScenarioRouterManager extends OcptRouterManager {
 /// A save location service whose dialog never opens: it counts how often it was asked and answers
 /// as if the user had cancelled.
 class ResourcesScenarioSaveLocationService extends OcptSaveLocationService {
+  /// The number of times a save dialog was requested since the last reset.
+  int askedCount = 0;
+
   /// Class constructor
   ResourcesScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("resources_scenarios_save_location"));
-
-  /// The number of times a save dialog was requested since the last reset.
-  int askedCount = 0;
 
   @override
   Future<String?> pickSaveLocation({
@@ -130,13 +130,6 @@ class ResourcesRecordedExport {
 /// An export manager answering both resources exports with a saved file, and recording what each
 /// one was handed so a scenario can tell what the mode had read at the moment of the export.
 class ResourcesRecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  ResourcesRecordingExportManager()
-    : super(
-        fileSelectorManager: const FileSelectorManager(),
-        saveLocationService: ResourcesScenarioSaveLocationService(),
-      );
-
   /// Every export run since the last [reset], in order.
   final List<ResourcesRecordedExport> exports = [];
 
@@ -150,34 +143,19 @@ class ResourcesRecordingExportManager extends OcptExportManager {
   ResourcesScenarioSaveLocationService get saveDialog =>
       saveLocationService as ResourcesScenarioSaveLocationService;
 
+  /// Class constructor
+  ResourcesRecordingExportManager()
+    : super(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: ResourcesScenarioSaveLocationService(),
+      );
+
   /// Forgets everything recorded and answers normally again.
   void reset() {
     exports.clear();
     shouldFail = false;
     shouldCancel = false;
     saveDialog.askedCount = 0;
-  }
-
-  /// Records an export of [document], throwing when [shouldFail] says so.
-  OcptExportOutcome? _record({
-    required String document,
-    required OcptResourcesSnapshot snapshot,
-    required OcptPageSetup? pageSetup,
-    required String projectName,
-  }) {
-    exports.add(
-      ResourcesRecordedExport(
-        document: document,
-        snapshot: snapshot,
-        pageSetup: pageSetup,
-        projectName: projectName,
-      ),
-    );
-    if (shouldFail) {
-      throw StateError("$document export intentionally failed for the scenario");
-    }
-
-    return shouldCancel ? null : OcptExportSaved("/tmp/$document.out");
   }
 
   @override
@@ -205,6 +183,28 @@ class ResourcesRecordingExportManager extends OcptExportManager {
     pageSetup: pageSetup,
     projectName: projectName,
   );
+
+  /// Records an export of [document], throwing when [shouldFail] says so.
+  OcptExportOutcome? _record({
+    required String document,
+    required OcptResourcesSnapshot snapshot,
+    required OcptPageSetup? pageSetup,
+    required String projectName,
+  }) {
+    exports.add(
+      ResourcesRecordedExport(
+        document: document,
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        projectName: projectName,
+      ),
+    );
+    if (shouldFail) {
+      throw StateError("$document export intentionally failed for the scenario");
+    }
+
+    return shouldCancel ? null : OcptExportSaved("/tmp/$document.out");
+  }
 }
 
 /// The screenplay most scenarios start from: two scenes, the first one with a speaking role.
@@ -228,6 +228,12 @@ class ResourcesScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The database of the open project.
+  OcptProjectDatabase get database => projectsManager.currentProject!.database;
+
+  /// The screenplay the project opened with: its first episode.
+  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -286,12 +292,6 @@ class ResourcesScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The database of the open project.
-  OcptProjectDatabase get database => projectsManager.currentProject!.database;
-
-  /// The screenplay the project opened with: its first episode.
-  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Reads the address book back from the database.
   Future<List<OcptPerson>> readPeople() =>

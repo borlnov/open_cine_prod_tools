@@ -31,8 +31,6 @@ OcptChangesetEnvelope _envelope(String suffix) => OcptChangesetEnvelope(
 /// observe whether [sink] was closed through [closed] — everything else this transport never
 /// touches (protocol negotiation, close codes) is stubbed to a fixed value.
 class _FakeWebSocketChannel with StreamChannelMixin<dynamic> implements WebSocketChannel {
-  _FakeWebSocketChannel(this.incoming);
-
   final StreamController<dynamic> incoming;
   final List<dynamic> sent = [];
   bool closed = false;
@@ -54,12 +52,17 @@ class _FakeWebSocketChannel with StreamChannelMixin<dynamic> implements WebSocke
 
   @override
   Future<void> get ready => Future<void>.value();
+
+  _FakeWebSocketChannel(this.incoming);
 }
 
 class _FakeWebSocketSink implements WebSocketSink {
-  _FakeWebSocketSink(this._channel);
-
   final _FakeWebSocketChannel _channel;
+
+  @override
+  Future get done => Future<void>.value();
+
+  _FakeWebSocketSink(this._channel);
 
   @override
   // Matches StreamSink's own untyped signature, which this fake overrides.
@@ -71,9 +74,6 @@ class _FakeWebSocketSink implements WebSocketSink {
 
   @override
   Future addStream(Stream stream) async {}
-
-  @override
-  Future get done => Future<void>.value();
 
   @override
   Future close([int? closeCode, String? closeReason]) async {

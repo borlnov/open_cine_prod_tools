@@ -33,14 +33,14 @@ import 'home_bloc_test_doubles.dart';
 /// A file selector manager whose [openSelector] is stubbed, to exercise the bloc's import flows
 /// without any real open-file dialog.
 class _FakeFileSelectorManager extends FileSelectorManager {
-  /// Class constructor
-  _FakeFileSelectorManager({this.result});
-
   /// The file [openSelector] returns, or null to simulate a cancelled dialog.
   final XFile? result;
 
   /// The extensions of the last [openSelector] call.
   List<String>? lastAllowedExtensions;
+
+  /// Class constructor
+  _FakeFileSelectorManager({this.result});
 
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({

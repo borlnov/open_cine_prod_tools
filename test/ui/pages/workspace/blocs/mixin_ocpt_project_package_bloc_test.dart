@@ -79,11 +79,11 @@ class _RecordingSaveLocationService extends OcptSaveLocationService {
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart` uses for the manager's own write
 /// funnel.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A share service answering [temporaryDirectory] with the directory given at construction and
@@ -93,14 +93,6 @@ class _StubPlatformManager extends PlatformManager {
 /// A false [answer] is the user dismissing the share sheet, which the mixin's mobile branch treats
 /// as a silent no-op, exactly as a cancelled save dialog is on desktop.
 class _RecordingShareService extends OcptShareService {
-  /// Class constructor
-  _RecordingShareService({required Directory directory, required this.answer})
-    : _directory = directory,
-      super(logger: const SilentLogger());
-
-  /// The directory [temporaryDirectory] resolves to.
-  final Directory _directory;
-
   /// The outcome [shareFiles] reports.
   final bool answer;
 
@@ -109,6 +101,14 @@ class _RecordingShareService extends OcptShareService {
 
   /// The paths of the last [shareFiles] call.
   List<String> lastPaths = const [];
+
+  /// The directory [temporaryDirectory] resolves to.
+  final Directory _directory;
+
+  /// Class constructor
+  _RecordingShareService({required Directory directory, required this.answer})
+    : _directory = directory,
+      super(logger: const SilentLogger());
 
   @override
   Future<Directory> temporaryDirectory() async => _directory;

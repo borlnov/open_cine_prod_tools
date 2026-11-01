@@ -76,6 +76,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -97,13 +103,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport and whose
@@ -114,6 +114,8 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// assert anything about the live sync status the repointing page doesn't even show — have no
 /// reason to start one at all, and every reason not to.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  final OcptPairingService _pairing;
+
   _FakeTransportSyncManager({required OcptPairingService pairingService})
     : _pairing = pairingService,
       super(
@@ -123,8 +125,6 @@ class _FakeTransportSyncManager extends OcptSyncManager {
           mergeService: OcptMergeService(logger: SilentLogger()),
         ),
       );
-
-  final OcptPairingService _pairing;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(

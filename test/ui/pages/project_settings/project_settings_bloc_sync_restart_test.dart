@@ -67,20 +67,20 @@ void _mockSecureStorage(Map<String, String> store) {
 
 /// A [PlatformManager] whose [isMobile] is stubbed.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A save-location service answering [path] without showing any native dialog.
 class _FixedSaveLocationService extends OcptSaveLocationService {
-  /// Class constructor
-  _FixedSaveLocationService(this.path) : super(logger: const SilentLogger());
-
   /// The path every save dialog is answered with.
   final String path;
+
+  /// Class constructor
+  _FixedSaveLocationService(this.path) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickSaveLocation({
@@ -99,6 +99,12 @@ class _FakeRemoteStorage extends Fake implements OcptRemoteStorage {}
 
 /// A sync manager holding a running session whose restart always fails.
 class _FailingSyncManager extends OcptSyncManager {
+  /// Whether [startSyncSession] was called.
+  bool isStartCalled = false;
+
+  @override
+  OcptSyncSession? get syncSession => _FakeSyncSession();
+
   /// Class constructor
   _FailingSyncManager({required super.pairingService})
     : super(
@@ -107,12 +113,6 @@ class _FailingSyncManager extends OcptSyncManager {
           mergeService: OcptMergeService(logger: SilentLogger()),
         ),
       );
-
-  /// Whether [startSyncSession] was called.
-  bool isStartCalled = false;
-
-  @override
-  OcptSyncSession? get syncSession => _FakeSyncSession();
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(

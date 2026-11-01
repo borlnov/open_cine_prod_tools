@@ -53,6 +53,9 @@ Future<String> _testDeviceId() async => "test-device";
 /// database, so a test can assert a save happened (and with which text) without depending on real
 /// persistence timing.
 class _RecordingScreenplayService extends OcptScreenplayService {
+  /// Every Fountain text this service was asked to save, in call order.
+  final List<String> savedTexts;
+
   /// Class constructor
   const _RecordingScreenplayService({required this.savedTexts})
     : super(
@@ -124,9 +127,6 @@ class _RecordingScreenplayService extends OcptScreenplayService {
         scheduleService: const OcptScheduleService(logger: SilentLogger(), deviceId: _testDeviceId),
         deviceId: _testDeviceId,
       );
-
-  /// Every Fountain text this service was asked to save, in call order.
-  final List<String> savedTexts;
 
   /// {@macro open_cine_prod_tools.OcptScreenplayService.snapshotPolicy}
   @override

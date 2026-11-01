@@ -21,11 +21,11 @@ import 'ocpt_role_index_service_test_doubles.dart';
 /// [OcptRoleIndexService.reconcile] never opens one when its plan is empty — the [transaction]
 /// override is the only way to observe "wrote nothing" from outside the service.
 class _TransactionCountingDatabase extends OcptProjectDatabase {
-  /// Opens a fresh in-memory database, exactly as [OcptProjectDatabase.memory] does.
-  _TransactionCountingDatabase() : super.memory();
-
   /// How many transactions have been opened on this database so far.
   int transactionCount = 0;
+
+  /// Opens a fresh in-memory database, exactly as [OcptProjectDatabase.memory] does.
+  _TransactionCountingDatabase() : super.memory();
 
   /// {@macro drift.DatabaseConnectionUser.transaction}
   @override

@@ -74,6 +74,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// An in-memory [OcptRemoteStorage] carrying no network at all.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -95,13 +101,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] recording whether/how [startSyncSession] was called, instead of actually
@@ -110,6 +110,13 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// itself — have no reason to drive. `ocpt_sync_manager_pairing_test.dart` and
 /// `ocpt_sync_manager_snapshot_test.dart` already cover the session's real behaviour.
 class _RecordingSyncManager extends OcptSyncManager {
+  bool startSyncSessionCalled = false;
+
+  /// Whether [startSyncSession] throws once it has recorded its call.
+  bool isStartFailing = false;
+  bool stopSyncSessionCalled = false;
+  String? startedProjectId;
+
   _RecordingSyncManager({required OcptPairingService pairingService})
     : super(
         pairingService: pairingService,
@@ -118,13 +125,6 @@ class _RecordingSyncManager extends OcptSyncManager {
           mergeService: OcptMergeService(logger: SilentLogger()),
         ),
       );
-
-  bool startSyncSessionCalled = false;
-
-  /// Whether [startSyncSession] throws once it has recorded its call.
-  bool isStartFailing = false;
-  bool stopSyncSessionCalled = false;
-  String? startedProjectId;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(
@@ -163,8 +163,6 @@ class _RecordingSyncManager extends OcptSyncManager {
 /// `ocpt_relay_host_manager_test.dart` — this file's tests are about the workspace's own wiring to
 /// them, not their behaviour.
 class _RecordingHostManager extends OcptRelayHostManager {
-  _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
-
   OcptRelayHostState stateToReport;
 
   /// The state [maybeAutoStartHosting] transitions [state] to, modelling a fresh host start coming
@@ -180,6 +178,8 @@ class _RecordingHostManager extends OcptRelayHostManager {
 
   @override
   OcptRelayHostState get state => stateToReport;
+
+  _RecordingHostManager({required this.stateToReport, this.stateAfterAutoStart});
 
   @override
   Future<void> maybeAutoStartHosting({

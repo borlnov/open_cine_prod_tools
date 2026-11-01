@@ -79,6 +79,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
+  Stream<void> get newWorkStream => _newWorkController.stream;
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async {
@@ -119,13 +125,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
       ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: uploaded);
 
   @override
-  Stream<void> get newWorkStream => _newWorkController.stream;
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 
   Future<void> dispose() => _newWorkController.close();
 }
@@ -135,6 +135,14 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// [pairProjectToRelay] itself has no seam for a transport (it always builds its own, per its own
 /// doc comment), so this is how its own tests exercise it with no network at all.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  final OcptRemoteStorage storage;
+  String? capturedEnrolmentSecret;
+
+  /// Set by `repointProjectToRelay`'s own tests to hand back a second, distinct
+  /// [_FakeRemoteStorage] for the re-point's own transport, so its own appends/uploads can be
+  /// asserted apart from the first [pairProjectToRelay] call's [storage].
+  OcptRemoteStorage? storageOverride;
+
   _FakeTransportSyncManager({
     required this.storage,
     required OcptPairingService super.pairingService,
@@ -144,14 +152,6 @@ class _FakeTransportSyncManager extends OcptSyncManager {
            mergeService: OcptMergeService(logger: SilentLogger()),
          ),
        );
-
-  final OcptRemoteStorage storage;
-  String? capturedEnrolmentSecret;
-
-  /// Set by `repointProjectToRelay`'s own tests to hand back a second, distinct
-  /// [_FakeRemoteStorage] for the re-point's own transport, so its own appends/uploads can be
-  /// asserted apart from the first [pairProjectToRelay] call's [storage].
-  OcptRemoteStorage? storageOverride;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(

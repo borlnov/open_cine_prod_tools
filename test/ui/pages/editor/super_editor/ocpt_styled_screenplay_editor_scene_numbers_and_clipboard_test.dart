@@ -28,6 +28,12 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
   final List<Map<String, List<SpellRange>>> rangesReceived = [];
 
   @override
+  bool get canUndo => false;
+
+  @override
+  bool get canRedo => false;
+
+  @override
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
     rangesReceived.add(rangesByNodeId);
   }
@@ -46,12 +52,6 @@ class _RecordingStyledEditorControllerDelegate implements OcptStyledEditorContro
 
   @override
   void replaceAllMatches(String replacement) {}
-
-  @override
-  bool get canUndo => false;
-
-  @override
-  bool get canRedo => false;
 
   @override
   void undo() {}

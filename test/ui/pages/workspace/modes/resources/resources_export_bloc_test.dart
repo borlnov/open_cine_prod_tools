@@ -49,10 +49,6 @@ const Map<int, String> _weekdayLabels = {
 /// bloc's export path can be exercised without any real native dialog or workbook write. Mirrors
 /// `shot_list_export_bloc_test_doubles.dart`'s own `_FakeExportManager`.
 class _FakeExportManager extends OcptExportManager {
-  /// Class constructor
-  _FakeExportManager({this.exportResult, this.fails = false})
-    : super(fileSelectorManager: const FileSelectorManager());
-
   /// The path [exportResourcesXlsx] returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
@@ -70,6 +66,25 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The file type label of the last [exportResourcesXlsx] call.
   String? lastExportedFileTypeLabel;
+
+  /// The snapshot of the last [exportContactList] call.
+  OcptResourcesSnapshot? lastExportedContactListSnapshot;
+
+  /// The page setup of the last [exportContactList] call.
+  OcptPageSetup? lastExportedContactListPageSetup;
+
+  /// The labels of the last [exportContactList] call.
+  OcptContactListLabels? lastExportedContactListLabels;
+
+  /// The project name of the last [exportContactList] call.
+  String? lastExportedContactListProjectName;
+
+  /// The file type label of the last [exportContactList] call.
+  String? lastExportedContactListFileTypeLabel;
+
+  /// Class constructor
+  _FakeExportManager({this.exportResult, this.fails = false})
+    : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportResourcesXlsx({
@@ -91,21 +106,6 @@ class _FakeExportManager extends OcptExportManager {
     final result = exportResult;
     return result == null ? null : OcptExportSaved(result);
   }
-
-  /// The snapshot of the last [exportContactList] call.
-  OcptResourcesSnapshot? lastExportedContactListSnapshot;
-
-  /// The page setup of the last [exportContactList] call.
-  OcptPageSetup? lastExportedContactListPageSetup;
-
-  /// The labels of the last [exportContactList] call.
-  OcptContactListLabels? lastExportedContactListLabels;
-
-  /// The project name of the last [exportContactList] call.
-  String? lastExportedContactListProjectName;
-
-  /// The file type label of the last [exportContactList] call.
-  String? lastExportedContactListFileTypeLabel;
 
   @override
   Future<OcptExportOutcome?> exportContactList({

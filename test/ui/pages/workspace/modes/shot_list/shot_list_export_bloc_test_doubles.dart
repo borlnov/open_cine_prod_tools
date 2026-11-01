@@ -46,10 +46,6 @@ class RecordingRouterManager extends OcptRouterManager {
 /// An export manager whose two exports are stubbed and whose calls are recorded, so the bloc's
 /// export paths can be exercised without any real native dialog, workbook or PDF write.
 class FakeExportManager extends OcptExportManager {
-  /// Class constructor
-  FakeExportManager({this.exportResult, this.fails = false, this.buildFails = false})
-    : super(fileSelectorManager: const FileSelectorManager());
-
   /// The path either export returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
@@ -109,6 +105,10 @@ class FakeExportManager extends OcptExportManager {
 
   /// The labels of the last [exportFloorPlans] call.
   OcptFloorPlanLabels? lastFloorPlanLabels;
+
+  /// Class constructor
+  FakeExportManager({this.exportResult, this.fails = false, this.buildFails = false})
+    : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({

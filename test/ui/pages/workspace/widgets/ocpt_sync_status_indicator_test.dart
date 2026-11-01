@@ -24,6 +24,20 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_sync_status
 /// frames through [emit], mirroring `syncStatusChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakeSyncManager extends OcptSyncManager {
+  /// What [syncStatus] returns — the seed a fresh listener reads before the stream ever emits.
+  OcptSyncStatus? status;
+
+  /// Every call `syncNow()` recorded, oldest first.
+  int syncNowCallCount = 0;
+
+  final _controller = StreamController<OcptSyncStatus?>.broadcast();
+
+  @override
+  OcptSyncStatus? get syncStatus => status;
+
+  @override
+  Stream<OcptSyncStatus?> get syncStatusChanges => _controller.stream;
+
   _FakeSyncManager(this.status)
     : super(
         changesetService: const OcptChangesetService(
@@ -31,20 +45,6 @@ class _FakeSyncManager extends OcptSyncManager {
           mergeService: OcptMergeService(logger: SilentLogger()),
         ),
       );
-
-  /// What [syncStatus] returns — the seed a fresh listener reads before the stream ever emits.
-  OcptSyncStatus? status;
-
-  final _controller = StreamController<OcptSyncStatus?>.broadcast();
-
-  /// Every call `syncNow()` recorded, oldest first.
-  int syncNowCallCount = 0;
-
-  @override
-  OcptSyncStatus? get syncStatus => status;
-
-  @override
-  Stream<OcptSyncStatus?> get syncStatusChanges => _controller.stream;
 
   /// Pushes [next] onto [syncStatusChanges], as a session starting or a run would; a null is a
   /// session stopping.

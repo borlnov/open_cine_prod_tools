@@ -79,6 +79,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// fixture, unused by these tests beyond satisfying [OcptSyncManager]'s own constructor.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -100,13 +106,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of
@@ -169,11 +169,11 @@ class _FakeHostManager extends OcptRelayHostManager {
 /// stubbing `isDesktop` directly rather than `isMobile`/`isLinux`/etc., since that is the one flag
 /// the gating actually reads.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isDesktop});
-
   @override
   final bool isDesktop;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isDesktop});
 }
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve,

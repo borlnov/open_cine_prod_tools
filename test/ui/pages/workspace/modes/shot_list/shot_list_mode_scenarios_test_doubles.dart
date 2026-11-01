@@ -78,9 +78,6 @@ class ScenarioRouterManager extends OcptRouterManager {
 /// An export manager answering every export with a saved file, and recording what each one was
 /// handed so a scenario can tell what the mode read from its views at the moment of the export.
 class ScenarioRecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  ScenarioRecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
-
   /// The shot list snapshot of the last export, whichever document it was.
   OcptShotListSnapshot? lastShotListSnapshot;
 
@@ -92,6 +89,9 @@ class ScenarioRecordingExportManager extends OcptExportManager {
 
   /// The number of exports run since the last [reset].
   int exportCount = 0;
+
+  /// Class constructor
+  ScenarioRecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   /// Forgets everything recorded so far.
   void reset() {
@@ -179,11 +179,11 @@ class ScenarioRecordingExportManager extends OcptExportManager {
 /// a native dialog. The file need not exist: the app references a frame by path and treats a
 /// missing one as a normal state.
 class ScenarioFileSelectorManager extends FileSelectorManager {
-  /// Class constructor
-  ScenarioFileSelectorManager();
-
   /// The path the next pick answers with.
   String pickedPath = "/frames/a.png";
+
+  /// Class constructor
+  ScenarioFileSelectorManager();
 
   @override
   Future<ResultWithBoolStatus<XFile>> openSelector({
@@ -347,9 +347,6 @@ class ScenarioProjectsManager extends OcptProjectsManager {
   /// The switches deciding which write fails.
   final ScenarioFailures failures = ScenarioFailures();
 
-  /// Class constructor
-  ScenarioProjectsManager({super.propertiesManager, super.appLanguageCode});
-
   /// The shot list service, failing on demand.
   late final _shotListService = _ScenarioShotListService(failures: failures);
 
@@ -367,6 +364,9 @@ class ScenarioProjectsManager extends OcptProjectsManager {
 
   @override
   OcptFloorPlanService get floorPlanService => _floorPlanService;
+
+  /// Class constructor
+  ScenarioProjectsManager({super.propertiesManager, super.appLanguageCode});
 }
 
 /// The screenplay every scenario starts from: two sequences, the first one with a speaking role.
@@ -391,6 +391,12 @@ class ShotListScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The database of the open project.
+  OcptProjectDatabase get database => projectsManager.currentProject!.database;
+
+  /// The screenplay the mode reads: the project's only episode.
+  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -450,12 +456,6 @@ class ShotListScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The database of the open project.
-  OcptProjectDatabase get database => projectsManager.currentProject!.database;
-
-  /// The screenplay the mode reads: the project's only episode.
-  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Reads the whole shot list back from the database.
   Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService.loadShotList(

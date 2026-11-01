@@ -29,14 +29,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// A locales manager whose current/wanted locale are held in plain fields: see the bloc test for
 /// why this fake exists instead of a real [LocalesManager].
 class _FakeLocalesManager extends LocalesManager {
-  /// Class constructor
-  _FakeLocalesManager()
-    : super(
-        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-      );
-
   /// The stream backing [currentLocaleStream]; never emits in this fake.
   final _currentLocaleCtrl = StreamController<Locale>.broadcast();
 
@@ -58,6 +50,14 @@ class _FakeLocalesManager extends LocalesManager {
   @override
   set wantedLocale(Locale? newLocale) => _wanted = newLocale;
 
+  /// Class constructor
+  _FakeLocalesManager()
+    : super(
+        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+      );
+
   /// Closes the stream backing this fake, for tidy test teardown.
   Future<void> disposeFake() => _currentLocaleCtrl.close();
 }
@@ -65,16 +65,6 @@ class _FakeLocalesManager extends LocalesManager {
 /// A themes manager whose current theme/brightness are held in plain fields: see the bloc test
 /// for why this fake exists instead of a real [ActThemesManager].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
-  /// previous session.
-  _FakeActThemesManager({Brightness? brightness})
-    : _brightness = brightness,
-      super(
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-        appThemes: OcptAppTheme.values,
-      );
-
   /// The stream backing [currentThemeStream]; never emits in this fake.
   final _themeCtrl = StreamController<MixinActThemes>.broadcast();
 
@@ -98,6 +88,16 @@ class _FakeActThemesManager extends ActThemesManager {
 
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
+
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+        appThemes: OcptAppTheme.values,
+      );
 
   @override
   Future<void> setBrightness({required Brightness? newBrightness}) async {

@@ -313,12 +313,12 @@ class _CornerFlag {
   /// The length of each of the triangle's right-angle legs, in canvas units.
   final double cornerSize;
 
-  /// Class constructor
-  const _CornerFlag({required this.cornerSize});
-
   /// The value of `x - y` along the triangle's hypotenuse; the corner lies below it (more
   /// negative).
   double get _hypotenuse => -(_canvasUnits - cornerSize);
+
+  /// Class constructor
+  const _CornerFlag({required this.cornerSize});
 
   /// The coverage of the flag at ([x], [y]), antialiased over one pixel ([unitsPerPixel]).
   ///

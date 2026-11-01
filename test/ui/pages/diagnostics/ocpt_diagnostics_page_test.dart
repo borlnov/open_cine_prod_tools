@@ -32,14 +32,14 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// A file logging manager reporting a fixed [logFilePath], overridden directly since nothing here
 /// wants to run the real per-platform file setup `initLifeCycle` would otherwise attempt.
 class _FakeFileLoggingManager extends OcptFileLoggingManager {
-  /// Class constructor
-  _FakeFileLoggingManager(this._path);
-
   /// The path [logFilePath] reports.
   final String? _path;
 
   @override
   String? get logFilePath => _path;
+
+  /// Class constructor
+  _FakeFileLoggingManager(this._path);
 }
 
 /// Wraps [child] with the app theme and the localization delegates so `Tr.of` lookups resolve.

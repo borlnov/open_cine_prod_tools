@@ -92,11 +92,11 @@ class _ModeBloc extends BlocForMixin<_State> with MixinOcptModeBloc<_State, _Sco
   /// failure.
   bool returnsFalse = false;
 
-  /// How many reads started so far.
-  int _readCount = 0;
-
   /// What the mode's own flush hook did last: whether any flusher had written.
   bool? lastFlushHadWritten;
+
+  /// How many reads started so far.
+  int _readCount = 0;
 
   /// Class constructor
   _ModeBloc() : super(const _State());

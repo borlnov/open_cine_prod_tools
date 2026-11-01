@@ -56,9 +56,6 @@ class InertExportManager extends OcptExportManager {
 
 /// A spell-check manager whose language and dictionary the test controls.
 class FakeSpellCheckManager extends OcptSpellCheckManager {
-  OcptScreenplayLanguage? _loadedLanguage;
-  int _generation = 0;
-
   /// Every [check] call's requested texts, keyed the same way the bloc addresses them (a raw-mode
   /// block index, or a styled-mode node id), in call order.
   final List<Map<Object, String>> checkCalls = [];
@@ -72,6 +69,26 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
   /// trip open long enough to change something (the language, most plainly) out from under it, to
   /// exercise the "a stale generation's answer is dropped" path.
   Completer<void>? gate;
+
+  /// Every [suggestionsFor] call's requested word, in call order.
+  final List<String> suggestionsForCalls = [];
+
+  /// Computes [suggestionsFor]'s answer for a word; overridable per test.
+  List<String> Function(String word) suggestionsAnswer = (word) => const [];
+
+  /// Every [ignoreWords] call's whole replacement set, in call order.
+  final List<Set<String>> ignoreWordsCalls = [];
+
+  /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation,
+  /// mirroring the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
+  /// that the manager was reached and that the accumulation actually happened.
+  final List<String> ignoredWords = [];
+
+  /// Every [setLearnedWords] call's whole replacement set, in call order.
+  final List<Set<String>> setLearnedWordsCalls = [];
+
+  OcptScreenplayLanguage? _loadedLanguage;
+  int _generation = 0;
 
   @override
   OcptScreenplayLanguage? get loadedLanguage => _loadedLanguage;
@@ -107,20 +124,11 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
     };
   }
 
-  /// Every [suggestionsFor] call's requested word, in call order.
-  final List<String> suggestionsForCalls = [];
-
-  /// Computes [suggestionsFor]'s answer for a word; overridable per test.
-  List<String> Function(String word) suggestionsAnswer = (word) => const [];
-
   @override
   Future<List<String>> suggestionsFor(String word) async {
     suggestionsForCalls.add(word);
     return suggestionsAnswer(word);
   }
-
-  /// Every [ignoreWords] call's whole replacement set, in call order.
-  final List<Set<String>> ignoreWordsCalls = [];
 
   @override
   void ignoreWords(Set<String> words) {
@@ -128,19 +136,11 @@ class FakeSpellCheckManager extends OcptSpellCheckManager {
     _generation++;
   }
 
-  /// Every word [ignoreWord] was called with, in call order — this fake's own accumulation,
-  /// mirroring the real manager's (`docs/architecture/screenplay.md`), so a test can assert both
-  /// that the manager was reached and that the accumulation actually happened.
-  final List<String> ignoredWords = [];
-
   @override
   void ignoreWord(String word) {
     ignoredWords.add(word);
     _generation++;
   }
-
-  /// Every [setLearnedWords] call's whole replacement set, in call order.
-  final List<Set<String>> setLearnedWordsCalls = [];
 
   @override
   void setLearnedWords(Set<String> words) {
@@ -157,9 +157,6 @@ class EditorStates {
   /// The spell-check bloc's state.
   final OcptEditorSpellCheckState spell;
 
-  /// Class constructor
-  const EditorStates(this.mode, this.spell);
-
   bool get isLoading => mode.isLoading;
   bool get isPreviewingVersion => mode.isPreviewingVersion;
   bool get isSpellCheckVisible => mode.isSpellCheckVisible;
@@ -169,6 +166,9 @@ class EditorStates {
   List<FountainSceneHeading> get scenes => mode.scenes;
   List<SpellRange> get rawSpellCheckRanges => spell.rawSpellCheckRanges;
   Map<String, List<SpellRange>> get styledSpellCheckRanges => spell.styledSpellCheckRanges;
+
+  /// Class constructor
+  const EditorStates(this.mode, this.spell);
 }
 
 /// The mode bloc and the spell-check bloc built together, the way the editor page builds them:
@@ -179,9 +179,6 @@ class Editor {
 
   /// The spell-check bloc.
   final OcptEditorSpellCheckBloc spell;
-
-  /// Class constructor
-  Editor(this.mode, this.spell);
 
   /// Both blocs' current states.
   EditorStates get state => EditorStates(mode.state, spell.state);
@@ -198,6 +195,9 @@ class Editor {
       }
     };
   }, isBroadcast: true);
+
+  /// Class constructor
+  Editor(this.mode, this.spell);
 
   /// Sends [event] to the bloc that handles it.
   void add(BlocEventForMixin event) =>

@@ -16,11 +16,11 @@ import 'ocpt_export_manager_test_doubles.dart';
 
 /// A [PlatformManager] whose [isMobile] is stubbed.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A share service whose temporary directory cannot be resolved.

@@ -131,12 +131,12 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
 /// project, so a dispatch that is only supposed to *request* one (rather than always performing
 /// it) can be told apart from one that skipped it.
 class _CountingProjectsManager extends OcptProjectsManager {
+  /// How many times [captureWorkingCopyState] actually ran.
+  int captureCount = 0;
+
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: testAppLanguageCode);
-
-  /// How many times [captureWorkingCopyState] actually ran.
-  int captureCount = 0;
 
   @override
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {

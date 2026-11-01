@@ -47,11 +47,11 @@ import 'shot_list_mode_test_doubles.dart';
 /// handed, so a test can tell what `OcptShotListMode` itself computed and dispatched — the mode's
 /// own `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
 class _RecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
-
   /// The episode tag of the last [exportShotListXlsx] call.
   String? lastExportedEpisodeTag;
+
+  /// Class constructor
+  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportShotListXlsx({

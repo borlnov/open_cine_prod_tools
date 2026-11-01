@@ -82,11 +82,11 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
 /// handed, so a test can tell what `OcptBreakdownMode` itself computed and dispatched — the mode's
 /// own `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
 class _RecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
-
   /// The episode tag of the last [exportBreakdownXlsx] call.
   String? lastExportedEpisodeTag;
+
+  /// Class constructor
+  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportBreakdownXlsx({

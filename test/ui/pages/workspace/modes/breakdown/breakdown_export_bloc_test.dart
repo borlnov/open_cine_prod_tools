@@ -93,10 +93,6 @@ const _exportXlsxLabels = OcptBreakdownXlsxLabels(
 /// calls are recorded, so the bloc's export paths can be exercised without any real native dialog
 /// or file write. Mirrors `resources_bloc_test.dart`'s own `_FakeExportManager`.
 class _FakeExportManager extends OcptExportManager {
-  /// Class constructor
-  _FakeExportManager({this.exportResult, this.fails = false})
-    : super(fileSelectorManager: const FileSelectorManager());
-
   /// The path [exportBreakdownSheets] returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
@@ -123,6 +119,25 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The episode tag of the last [exportBreakdownSheets] call.
   String? lastExportedEpisodeTag;
+
+  /// The snapshot of the last [exportBreakdownXlsx] call.
+  OcptBreakdownSnapshot? lastExportedXlsxSnapshot;
+
+  /// The labels of the last [exportBreakdownXlsx] call.
+  OcptBreakdownXlsxLabels? lastExportedXlsxLabels;
+
+  /// The project name of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxProjectName;
+
+  /// The file type label of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxFileTypeLabel;
+
+  /// The episode tag of the last [exportBreakdownXlsx] call.
+  String? lastExportedXlsxEpisodeTag;
+
+  /// Class constructor
+  _FakeExportManager({this.exportResult, this.fails = false})
+    : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportBreakdownSheets({
@@ -157,21 +172,6 @@ class _FakeExportManager extends OcptExportManager {
     final result = exportResult;
     return result == null ? null : OcptExportSaved(result);
   }
-
-  /// The snapshot of the last [exportBreakdownXlsx] call.
-  OcptBreakdownSnapshot? lastExportedXlsxSnapshot;
-
-  /// The labels of the last [exportBreakdownXlsx] call.
-  OcptBreakdownXlsxLabels? lastExportedXlsxLabels;
-
-  /// The project name of the last [exportBreakdownXlsx] call.
-  String? lastExportedXlsxProjectName;
-
-  /// The file type label of the last [exportBreakdownXlsx] call.
-  String? lastExportedXlsxFileTypeLabel;
-
-  /// The episode tag of the last [exportBreakdownXlsx] call.
-  String? lastExportedXlsxEpisodeTag;
 
   @override
   Future<OcptExportOutcome?> exportBreakdownXlsx({

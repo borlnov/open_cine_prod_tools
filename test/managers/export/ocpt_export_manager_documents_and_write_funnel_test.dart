@@ -46,24 +46,16 @@ const Map<int, String> _weekdayLabels = {
 /// A [PlatformManager] whose [isMobile] is stubbed, so the manager's write funnel can be exercised
 /// on either branch without a real platform underneath it.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A share service whose [temporaryDirectory] and [shareFiles] are stubbed and whose calls are
 /// recorded, so the manager's mobile write funnel can be exercised without any real OS share sheet.
 class _FakeShareService extends OcptShareService {
-  /// Class constructor
-  _FakeShareService({required Directory directory, this.result = true})
-    : _directory = directory,
-      super(logger: const SilentLogger());
-
-  /// The directory [temporaryDirectory] resolves to.
-  final Directory _directory;
-
   /// Whether [shareFiles] reports the share sheet as shown.
   final bool result;
 
@@ -72,6 +64,14 @@ class _FakeShareService extends OcptShareService {
 
   /// The anchor of the last [shareFiles] call.
   Rect? lastSharePositionOrigin;
+
+  /// The directory [temporaryDirectory] resolves to.
+  final Directory _directory;
+
+  /// Class constructor
+  _FakeShareService({required Directory directory, this.result = true})
+    : _directory = directory,
+      super(logger: const SilentLogger());
 
   @override
   Future<Directory> temporaryDirectory() async => _directory;

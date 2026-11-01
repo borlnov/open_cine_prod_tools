@@ -32,11 +32,11 @@ class _AwaitedEvent extends BlocEventForMixin with MixinOcptAwaitedEvent<int> {
 /// A bloc whose handler answers [answer] once [gate] is released, or never completes the event
 /// when [forgetsToComplete] is set.
 class _Bloc extends BlocForMixin<_State> {
-  /// The gate the handler waits for before completing the event.
-  final Completer<void> gate = Completer<void>();
-
   /// What the handler completes the event with.
   static const answer = 7;
+
+  /// The gate the handler waits for before completing the event.
+  final Completer<void> gate = Completer<void>();
 
   /// Whether the handler leaves the event uncompleted.
   final bool forgetsToComplete;

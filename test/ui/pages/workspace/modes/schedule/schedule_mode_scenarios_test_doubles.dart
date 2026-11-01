@@ -100,9 +100,6 @@ class ScheduleRecordedExport {
 /// recording what each one was handed so a scenario can tell what the mode had read at the moment
 /// of the export.
 class ScheduleRecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  ScheduleRecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
-
   /// Every export run since the last [reset], in order.
   final List<ScheduleRecordedExport> exports = [];
 
@@ -115,6 +112,9 @@ class ScheduleRecordingExportManager extends OcptExportManager {
   /// The failed file names a folder export reports, empty for a complete run.
   List<String> failedFileNames = const [];
 
+  /// Class constructor
+  ScheduleRecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
+
   /// Forgets everything recorded and answers normally again.
   void reset() {
     exports.clear();
@@ -122,18 +122,6 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     shouldCancel = false;
     failedFileNames = const [];
   }
-
-  /// Records an export of [document], throwing when [shouldFail] says so.
-  void _record(String document, OcptSchedulePlanSnapshot plan, List<String> dayIds) {
-    exports.add(ScheduleRecordedExport(document: document, plan: plan, dayIds: dayIds));
-    if (shouldFail) {
-      throw StateError("$document export intentionally failed for the scenario");
-    }
-  }
-
-  /// The single-file answer of [document].
-  OcptExportOutcome? _fileAnswer(String document) =>
-      shouldCancel ? null : OcptExportSaved("/tmp/$document.pdf");
 
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({
@@ -163,15 +151,6 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     _record("namedCallSheets", plan, dayIds);
     return _folderAnswer(dayIds);
   }
-
-  /// The folder answer of a call sheets export of [dayIds].
-  OcptCallSheetExportResult? _folderAnswer(List<String> dayIds) => shouldCancel
-      ? null
-      : OcptCallSheetExportResult(
-          folderPath: "/tmp/sheets",
-          writtenFileNames: [for (final id in dayIds.skip(failedFileNames.length)) "$id.pdf"],
-          failedFileNames: failedFileNames,
-        );
 
   @override
   Future<OcptExportOutcome?> exportShootingPlan({
@@ -252,6 +231,27 @@ class ScheduleRecordingExportManager extends OcptExportManager {
     _record("sides", plan, [dayId]);
     return _fileAnswer("sides");
   }
+
+  /// Records an export of [document], throwing when [shouldFail] says so.
+  void _record(String document, OcptSchedulePlanSnapshot plan, List<String> dayIds) {
+    exports.add(ScheduleRecordedExport(document: document, plan: plan, dayIds: dayIds));
+    if (shouldFail) {
+      throw StateError("$document export intentionally failed for the scenario");
+    }
+  }
+
+  /// The single-file answer of [document].
+  OcptExportOutcome? _fileAnswer(String document) =>
+      shouldCancel ? null : OcptExportSaved("/tmp/$document.pdf");
+
+  /// The folder answer of a call sheets export of [dayIds].
+  OcptCallSheetExportResult? _folderAnswer(List<String> dayIds) => shouldCancel
+      ? null
+      : OcptCallSheetExportResult(
+          folderPath: "/tmp/sheets",
+          writtenFileNames: [for (final id in dayIds.skip(failedFileNames.length)) "$id.pdf"],
+          failedFileNames: failedFileNames,
+        );
 }
 
 /// The screenplay every scenario starts from: two sequences, the first one with a speaking role.
@@ -275,6 +275,12 @@ class ScheduleScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The database of the open project.
+  OcptProjectDatabase get database => projectsManager.currentProject!.database;
+
+  /// The screenplay the project opened with: its first episode.
+  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -332,12 +338,6 @@ class ScheduleScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The database of the open project.
-  OcptProjectDatabase get database => projectsManager.currentProject!.database;
-
-  /// The screenplay the project opened with: its first episode.
-  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Reads the whole schedule back from the database.
   Future<OcptScheduleSnapshot> readSchedule() =>

@@ -29,11 +29,11 @@ import 'package:sqlite3/sqlite3.dart';
 /// provide, exactly the kind of pitfall `AGENTS.md`'s own "flutter test runs on the plain Dart VM"
 /// note already flags elsewhere.
 class _TestProjectsManager extends OcptProjectsManager {
-  /// Class constructor
-  _TestProjectsManager({required this.directory, super.propertiesManager});
-
   /// The directory [newProjectsDirectory] always resolves to.
   final Directory directory;
+
+  /// Class constructor
+  _TestProjectsManager({required this.directory, super.propertiesManager});
 
   @override
   Future<Directory> newProjectsDirectory() async => directory;

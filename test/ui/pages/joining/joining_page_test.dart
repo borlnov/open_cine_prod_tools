@@ -78,10 +78,10 @@ class _FailFastSyncManager extends OcptSyncManager {
 /// actually reaches a real native dialog — none of this page's own tests exercise the desktop
 /// save/folder dialogs themselves, that being `joining_bloc_test.dart`'s own job.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// The export manager every [OcptJoiningBloc] built below is given: real, but reporting

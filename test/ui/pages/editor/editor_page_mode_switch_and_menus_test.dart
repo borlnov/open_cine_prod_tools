@@ -51,11 +51,11 @@ import 'editor_page_test_doubles.dart';
 /// so a test can tell what `OcptEditorPage` itself computed and dispatched — the page's own
 /// `_episodeExportTag`, not the bloc's own scoped episode, is under test here.
 class _RecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
-
   /// The episode tag of the last [exportFountain] call.
   String? lastExportedEpisodeTag;
+
+  /// Class constructor
+  _RecordingExportManager() : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportFountain({

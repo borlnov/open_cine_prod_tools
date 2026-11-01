@@ -75,6 +75,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this page's own fixtures.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -96,13 +102,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of

@@ -69,6 +69,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// [OcptSyncManager.pairProjectToRelay] needs of a transport for this bloc's own tests.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -90,13 +96,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of
@@ -104,6 +104,13 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// for the relay being unreachable, or the enrolment secret being refused — exactly the shape
 /// `ocpt_sync_manager_pairing_test.dart`'s own `_FakeTransportSyncManager` already follows.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  final bool shouldFailToOpenTransport;
+
+  /// Whether [pairProjectToRelay] throws instead of answering a status.
+  final bool shouldThrowOnPair;
+
+  final OcptPairingService _pairing;
+
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
@@ -116,13 +123,6 @@ class _FakeTransportSyncManager extends OcptSyncManager {
            mergeService: OcptMergeService(logger: SilentLogger()),
          ),
        );
-
-  final OcptPairingService _pairing;
-
-  final bool shouldFailToOpenTransport;
-
-  /// Whether [pairProjectToRelay] throws instead of answering a status.
-  final bool shouldThrowOnPair;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(

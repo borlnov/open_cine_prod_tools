@@ -27,6 +27,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
+  Stream<void> get newWorkStream => _newWorkController.stream;
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -48,13 +54,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => _newWorkController.stream;
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 
   Future<void> dispose() => _newWorkController.close();
 }
@@ -63,13 +63,13 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// session's own test file for the fuller version this mirrors; this one only needs to prove
 /// [OcptSyncManager] wires a session up and tears it down correctly, so it stays minimal.
 class _FakeChangesetService extends OcptChangesetService {
+  int syncOnceCalls = 0;
+
   _FakeChangesetService()
     : super(
         logger: const SilentLogger(),
         mergeService: const OcptMergeService(logger: SilentLogger()),
       );
-
-  int syncOnceCalls = 0;
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({

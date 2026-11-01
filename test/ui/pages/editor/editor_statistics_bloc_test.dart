@@ -67,9 +67,6 @@ class _EditorStates {
   /// The statistics bloc's state.
   final OcptEditorStatisticsState counters;
 
-  /// Class constructor
-  const _EditorStates(this.mode, this.counters);
-
   bool get isLoading => mode.isLoading;
   OcptPageSetup get pageSetup => mode.pageSetup;
   FountainDocument? get document => mode.document;
@@ -77,6 +74,9 @@ class _EditorStates {
   List<FountainSceneHeading> get scenes => mode.scenes;
   FountainScriptStatistics get statistics => counters.statistics;
   FountainSceneStatistics? get sceneStatistics => counters.sceneStatistics;
+
+  /// Class constructor
+  const _EditorStates(this.mode, this.counters);
 }
 
 /// The mode bloc and the statistics bloc built together, the way the editor page builds them: an
@@ -87,9 +87,6 @@ class _Editor {
 
   /// The statistics bloc.
   final OcptEditorStatisticsBloc counters;
-
-  /// Class constructor
-  _Editor(this.mode, this.counters);
 
   /// Both blocs' current states.
   _EditorStates get state => _EditorStates(mode.state, counters.state);
@@ -106,6 +103,9 @@ class _Editor {
       }
     };
   }, isBroadcast: true);
+
+  /// Class constructor
+  _Editor(this.mode, this.counters);
 
   /// Sends [event] to the bloc that handles it.
   void add(BlocEventForMixin event) =>

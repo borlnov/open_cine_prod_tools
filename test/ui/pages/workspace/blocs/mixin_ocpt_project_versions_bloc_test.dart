@@ -80,13 +80,13 @@ class _FailingDeleteProjectsManager extends OcptProjectsManager {
 /// project, so the mixin's throttle can be measured without depending on real wall-clock gaps
 /// between assertions.
 class _CountingProjectsManager extends OcptProjectsManager {
-  /// Class constructor
-  _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
-    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
-
   /// How many times [captureWorkingCopyState] actually ran, as opposed to being skipped by the
   /// mixin's throttle before ever reaching here.
   int captureCount = 0;
+
+  /// Class constructor
+  _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
+    : super(propertiesManager: propertiesManager, appLanguageCode: _testAppLanguageCode);
 
   @override
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {

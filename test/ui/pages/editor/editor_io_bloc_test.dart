@@ -66,14 +66,6 @@ class _RecordingRouterManager extends OcptRouterManager {
 /// An export manager whose export/import calls are recorded and stubbed, to exercise the bloc's
 /// export and import-and-replace paths without any real file dialog.
 class _FakeExportManager extends OcptExportManager {
-  /// Class constructor
-  _FakeExportManager({
-    this.exportResult,
-    this.importResult,
-    this.exportPdfResult,
-    this.importStatus = OcptScreenplayImportStatus.cancelled,
-  }) : super(fileSelectorManager: const FileSelectorManager());
-
   /// The path [exportFountain] returns, or null to simulate a cancelled save dialog.
   final String? exportResult;
 
@@ -122,6 +114,14 @@ class _FakeExportManager extends OcptExportManager {
 
   /// The episode tag of the last [exportPdf] call.
   String? lastExportedPdfEpisodeTag;
+
+  /// Class constructor
+  _FakeExportManager({
+    this.exportResult,
+    this.importResult,
+    this.exportPdfResult,
+    this.importStatus = OcptScreenplayImportStatus.cancelled,
+  }) : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportFountain({
@@ -202,9 +202,6 @@ class _EditorStates {
   /// The file exchange bloc's state.
   final OcptEditorIoState io;
 
-  /// Class constructor
-  const _EditorStates(this.mode, this.io);
-
   bool get isLoading => mode.isLoading;
   bool get isDirty => mode.isDirty;
   String get text => mode.text;
@@ -212,6 +209,9 @@ class _EditorStates {
   OcptPageSetup get pageSetup => mode.pageSetup;
   List<FountainSceneHeading> get scenes => mode.scenes;
   OcptEditorIoNotice? get ioNotice => io.ioNotice;
+
+  /// Class constructor
+  const _EditorStates(this.mode, this.io);
 }
 
 /// The mode bloc and the file exchange bloc built together, the way the editor page builds them: an
@@ -222,9 +222,6 @@ class _Editor {
 
   /// The file exchange bloc.
   final OcptEditorIoBloc io;
-
-  /// Class constructor
-  _Editor(this.mode, this.io);
 
   /// Both blocs' current states.
   _EditorStates get state => _EditorStates(mode.state, io.state);
@@ -241,6 +238,9 @@ class _Editor {
       }
     };
   }, isBroadcast: true);
+
+  /// Class constructor
+  _Editor(this.mode, this.io);
 
   /// Sends [event] to the bloc that handles it.
   void add(BlocEventForMixin event) => event is OcptEditorIoEvent ? io.add(event) : mode.add(event);

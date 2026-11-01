@@ -30,12 +30,12 @@ import 'editor_bloc_test_doubles.dart';
 /// project, so a dispatch that only *requests* one (rather than always performing it) can be told
 /// apart from one that the throttle skipped.
 class _CountingProjectsManager extends OcptProjectsManager {
+  /// How many times [captureWorkingCopyState] actually ran.
+  int captureCount = 0;
+
   /// Class constructor
   _CountingProjectsManager({required OcptPropertiesManager propertiesManager})
     : super(propertiesManager: propertiesManager, appLanguageCode: testAppLanguageCode);
-
-  /// How many times [captureWorkingCopyState] actually ran.
-  int captureCount = 0;
 
   @override
   Future<OcptProjectWorkingCopyState?> captureWorkingCopyState() async {

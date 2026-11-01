@@ -23,11 +23,11 @@ import 'package:open_cine_prod_tools/ui/pages/home/home_bloc.dart';
 /// double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own `StubPlatformManager`
 /// already is.
 class StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  StubPlatformManager({required this.isMobile});
 }
 
 /// An export manager whose [pickAndReadScreenplay] is stubbed, to exercise the bloc's import flow
@@ -37,6 +37,16 @@ class StubPlatformManager extends PlatformManager {
 /// the very same no-dialog branch it always has ([OcptProjectsManager.freeNewProjectFilePath]);
 /// [saveLocationService] is only reached at all once a test sets [isMobile] to false.
 class FakeExportManager extends OcptExportManager {
+  /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
+  final OcptImportedFountainModel? importResult;
+
+  /// The status [pickAndReadScreenplay] returns when [importResult] is null, defaulting to a
+  /// cancelled open dialog.
+  final OcptScreenplayImportStatus importStatus;
+
+  /// The file type label of the last [pickAndReadScreenplay] call.
+  String? lastFileTypeLabel;
+
   /// Class constructor
   FakeExportManager({
     this.importResult,
@@ -47,16 +57,6 @@ class FakeExportManager extends OcptExportManager {
          fileSelectorManager: const FileSelectorManager(),
          platformManager: StubPlatformManager(isMobile: isMobile),
        );
-
-  /// The model [pickAndReadScreenplay] returns, or null to return no value at all.
-  final OcptImportedFountainModel? importResult;
-
-  /// The status [pickAndReadScreenplay] returns when [importResult] is null, defaulting to a
-  /// cancelled open dialog.
-  final OcptScreenplayImportStatus importStatus;
-
-  /// The file type label of the last [pickAndReadScreenplay] call.
-  String? lastFileTypeLabel;
 
   @override
   Future<ResultWithStatus<OcptScreenplayImportStatus, OcptImportedFountainModel>>
@@ -79,11 +79,11 @@ class FakeExportManager extends OcptExportManager {
 /// note already flags elsewhere. This is what lets `OcptHomeBloc._onCreateProjectRequested`'s own
 /// [OcptProjectsManager.freeNewProjectFilePath] call be exercised for real in these tests.
 class TestProjectsManager extends OcptProjectsManager {
-  /// Class constructor
-  TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
-
   /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
   final Directory directory;
+
+  /// Class constructor
+  TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
   @override
   Future<Directory> newProjectsDirectory() async => directory;
@@ -157,11 +157,11 @@ class RecordingRouterManager extends OcptRouterManager {
   /// popping back to the home page — a real push only completes once they leave it.
   final Future<void> Function()? whilePushed;
 
-  /// Class constructor
-  RecordingRouterManager({this.whilePushed});
-
   /// The last route [push] was called with, or null if it never was.
   OcptRoute? pushedRoute;
+
+  /// Class constructor
+  RecordingRouterManager({this.whilePushed});
 
   @override
   Future<Y?> push<Y extends Object?>(

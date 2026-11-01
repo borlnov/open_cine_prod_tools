@@ -28,6 +28,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
+  Stream<void> get newWorkStream => _newWorkController.stream;
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -48,17 +54,11 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
-  @override
-  Stream<void> get newWorkStream => _newWorkController.stream;
-
   /// Simulates the relay announcing another replica's own push.
   void pingNewWork() => _newWorkController.add(null);
 
   @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 
   Future<void> dispose() => _newWorkController.close();
 }
@@ -70,12 +70,6 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// its queue runs dry. This is what lets this file test [OcptSyncSession]'s own scheduling and
 /// status logic without a real merge to drive.
 class _FakeChangesetService extends OcptChangesetService {
-  _FakeChangesetService()
-    : super(
-        logger: const SilentLogger(),
-        mergeService: const OcptMergeService(logger: SilentLogger()),
-      );
-
   int syncOnceCalls = 0;
   int pullAndApplyCalls = 0;
   int countUnpushedEditsCalls = 0;
@@ -86,6 +80,12 @@ class _FakeChangesetService extends OcptChangesetService {
 
   final List<Object> syncOnceOutcomes = [];
   final List<Object> pullAndApplyOutcomes = [];
+
+  _FakeChangesetService()
+    : super(
+        logger: const SilentLogger(),
+        mergeService: const OcptMergeService(logger: SilentLogger()),
+      );
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>> syncOnce({
@@ -153,9 +153,9 @@ class _FakeChangesetService extends OcptChangesetService {
 /// A queued outcome of [_FakeChangesetService] that makes the call throw [error], the way the
 /// project database failing underneath a run does.
 class _DatabaseFailure {
-  const _DatabaseFailure(this.error);
-
   final Error error;
+
+  const _DatabaseFailure(this.error);
 }
 
 /// Waits for [condition] to become true, polling every 5ms, failing the test if [timeout] elapses

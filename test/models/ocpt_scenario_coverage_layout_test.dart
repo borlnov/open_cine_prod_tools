@@ -104,6 +104,18 @@ OcptShot _buildShot({
 /// A screenplay parsed, composed and ready to be laid coverage out over: everything
 /// [OcptScenarioCoverageLayout.of] needs except the shot list itself.
 class _ComposedScreenplay {
+  /// The screenplay's whole Fountain text.
+  final String text;
+
+  /// The parsed document, the scene bounds are read from.
+  final FountainDocument document;
+
+  /// The metrics the screenplay was composed with.
+  final FountainLayoutMetrics metrics;
+
+  /// The composed pages.
+  final FountainScriptLayout script;
+
   /// Creates a [_ComposedScreenplay] by parsing and composing [text].
   factory _ComposedScreenplay(String text) {
     final document = const FountainParser().parse(text);
@@ -123,18 +135,6 @@ class _ComposedScreenplay {
     required this.metrics,
     required this.script,
   });
-
-  /// The screenplay's whole Fountain text.
-  final String text;
-
-  /// The parsed document, the scene bounds are read from.
-  final FountainDocument document;
-
-  /// The metrics the screenplay was composed with.
-  final FountainLayoutMetrics metrics;
-
-  /// The composed pages.
-  final FountainScriptLayout script;
 
   /// Builds the [OcptSceneShotSequence] of the [index]th scene of the screenplay, holding [shots],
   /// with the very character bounds `OcptSceneIndexService` would have stored for it.

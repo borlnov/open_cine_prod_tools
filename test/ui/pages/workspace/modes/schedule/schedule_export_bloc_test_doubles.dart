@@ -219,24 +219,6 @@ const sidesLabels = OcptSidesLabels(
 /// the bloc's export handlers can be exercised without any real native dialog or PDF write. Mirrors
 /// `breakdown_export_bloc_test.dart`'s own `_FakeExportManager`.
 class FakeScheduleExportManager extends OcptExportManager {
-  /// Class constructor
-  FakeScheduleExportManager({
-    this.generalCallSheetsResult,
-    this.namedCallSheetsResult,
-    this.shootingPlanResult,
-    this.shootingPlanXlsxResult,
-    this.dayOutOfDaysResult,
-    this.oneLineScheduleResult,
-    this.sidesResult,
-    this.generalCallSheetsFails = false,
-    this.namedCallSheetsFails = false,
-    this.shootingPlanFails = false,
-    this.shootingPlanXlsxFails = false,
-    this.dayOutOfDaysFails = false,
-    this.oneLineScheduleFails = false,
-    this.sidesFails = false,
-  }) : super(fileSelectorManager: const FileSelectorManager());
-
   /// The result [exportGeneralCallSheets] returns, or null to simulate a cancelled folder dialog.
   final OcptCallSheetExportResult? generalCallSheetsResult;
 
@@ -321,6 +303,24 @@ class FakeScheduleExportManager extends OcptExportManager {
   /// screenplay id — what proves the handler read each episode's own screenplay out of the open
   /// project rather than handing over an empty one.
   Map<String, String>? lastSidesSourceTextsByScreenplayId;
+
+  /// Class constructor
+  FakeScheduleExportManager({
+    this.generalCallSheetsResult,
+    this.namedCallSheetsResult,
+    this.shootingPlanResult,
+    this.shootingPlanXlsxResult,
+    this.dayOutOfDaysResult,
+    this.oneLineScheduleResult,
+    this.sidesResult,
+    this.generalCallSheetsFails = false,
+    this.namedCallSheetsFails = false,
+    this.shootingPlanFails = false,
+    this.shootingPlanXlsxFails = false,
+    this.dayOutOfDaysFails = false,
+    this.oneLineScheduleFails = false,
+    this.sidesFails = false,
+  }) : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptCallSheetExportResult?> exportGeneralCallSheets({

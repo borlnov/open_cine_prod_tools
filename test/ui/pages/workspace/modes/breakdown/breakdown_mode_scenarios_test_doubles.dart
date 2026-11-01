@@ -85,12 +85,12 @@ class BreakdownScenarioRouterManager extends OcptRouterManager {
 /// A save location service whose dialog never opens: it counts how often it was asked and answers
 /// as if the user had cancelled.
 class BreakdownScenarioSaveLocationService extends OcptSaveLocationService {
+  /// The number of times a save dialog was requested since the last reset.
+  int askedCount = 0;
+
   /// Class constructor
   BreakdownScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("breakdown_scenarios_save_location"));
-
-  /// The number of times a save dialog was requested since the last reset.
-  int askedCount = 0;
 
   @override
   Future<String?> pickSaveLocation({
@@ -150,13 +150,6 @@ class BreakdownRecordedExport {
 /// An export manager answering both breakdown exports with a saved file, and recording what each
 /// one was handed so a scenario can tell what the mode had read at the moment of the export.
 class BreakdownRecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  BreakdownRecordingExportManager()
-    : super(
-        fileSelectorManager: const FileSelectorManager(),
-        saveLocationService: BreakdownScenarioSaveLocationService(),
-      );
-
   /// Every export run since the last [reset], in order.
   final List<BreakdownRecordedExport> exports = [];
 
@@ -173,6 +166,13 @@ class BreakdownRecordingExportManager extends OcptExportManager {
   BreakdownScenarioSaveLocationService get saveDialog =>
       saveLocationService as BreakdownScenarioSaveLocationService;
 
+  /// Class constructor
+  BreakdownRecordingExportManager()
+    : super(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: BreakdownScenarioSaveLocationService(),
+      );
+
   /// Forgets everything recorded and answers normally again.
   void reset() {
     exports.clear();
@@ -180,41 +180,6 @@ class BreakdownRecordingExportManager extends OcptExportManager {
     shouldCancel = false;
     shouldAnswerFailed = false;
     saveDialog.askedCount = 0;
-  }
-
-  /// Records an export of [document], throwing when [shouldFail] says so.
-  OcptExportOutcome? _record({
-    required String document,
-    required FountainDocument parsed,
-    required OcptBreakdownSnapshot snapshot,
-    required OcptPageSetup pageSetup,
-    required String projectName,
-    required String? episodeTag,
-    bool? onlyDoneScenes,
-    bool? includeNotes,
-    bool? includeToFindList,
-  }) {
-    exports.add(
-      BreakdownRecordedExport(
-        document: document,
-        snapshot: snapshot,
-        pageSetup: pageSetup,
-        projectName: projectName,
-        episodeTag: episodeTag,
-        onlyDoneScenes: onlyDoneScenes,
-        includeNotes: includeNotes,
-        includeToFindList: includeToFindList,
-        parsedSceneCount: parsed.scenes.length,
-      ),
-    );
-    if (shouldFail) {
-      throw StateError("$document export intentionally failed for the scenario");
-    }
-    if (shouldAnswerFailed) {
-      return const OcptExportFailed();
-    }
-
-    return shouldCancel ? null : OcptExportSaved("/tmp/$document.out");
   }
 
   @override
@@ -260,6 +225,41 @@ class BreakdownRecordingExportManager extends OcptExportManager {
     projectName: projectName,
     episodeTag: episodeTag,
   );
+
+  /// Records an export of [document], throwing when [shouldFail] says so.
+  OcptExportOutcome? _record({
+    required String document,
+    required FountainDocument parsed,
+    required OcptBreakdownSnapshot snapshot,
+    required OcptPageSetup pageSetup,
+    required String projectName,
+    required String? episodeTag,
+    bool? onlyDoneScenes,
+    bool? includeNotes,
+    bool? includeToFindList,
+  }) {
+    exports.add(
+      BreakdownRecordedExport(
+        document: document,
+        snapshot: snapshot,
+        pageSetup: pageSetup,
+        projectName: projectName,
+        episodeTag: episodeTag,
+        onlyDoneScenes: onlyDoneScenes,
+        includeNotes: includeNotes,
+        includeToFindList: includeToFindList,
+        parsedSceneCount: parsed.scenes.length,
+      ),
+    );
+    if (shouldFail) {
+      throw StateError("$document export intentionally failed for the scenario");
+    }
+    if (shouldAnswerFailed) {
+      return const OcptExportFailed();
+    }
+
+    return shouldCancel ? null : OcptExportSaved("/tmp/$document.out");
+  }
 }
 
 /// The screenplay most scenarios start from: two scenes, the first one with a speaking role. The
@@ -285,6 +285,12 @@ class BreakdownScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The database of the open project.
+  OcptProjectDatabase get database => projectsManager.currentProject!.database;
+
+  /// The screenplay the project opened with: its first episode.
+  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -344,12 +350,6 @@ class BreakdownScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The database of the open project.
-  OcptProjectDatabase get database => projectsManager.currentProject!.database;
-
-  /// The screenplay the project opened with: its first episode.
-  String get screenplayId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Reads the first episode's scenes, with their tags, back from the database.
   Future<List<OcptBreakdownScene>> readScenes() => projectsManager.breakdownService.loadScenes(

@@ -22,14 +22,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_presence_in
 /// frames through [emit], mirroring `presenceRosterChanges` (the lifecycle-spanning stream the
 /// indicator listens to).
 class _FakePresenceSyncManager extends OcptSyncManager {
-  _FakePresenceSyncManager(this.roster)
-    : super(
-        changesetService: const OcptChangesetService(
-          logger: SilentLogger(),
-          mergeService: OcptMergeService(logger: SilentLogger()),
-        ),
-      );
-
   /// What [presenceRoster] returns — the seed a fresh listener reads before the stream ever emits.
   OcptPresenceRoster? roster;
 
@@ -40,6 +32,14 @@ class _FakePresenceSyncManager extends OcptSyncManager {
 
   @override
   Stream<OcptPresenceRoster?> get presenceRosterChanges => _controller.stream;
+
+  _FakePresenceSyncManager(this.roster)
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   /// Pushes [next] onto [presenceRosterChanges], as a presence service starting or a heartbeat run
   /// would; a null is the session stopping.

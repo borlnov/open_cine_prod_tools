@@ -76,10 +76,10 @@ void _mockSecureStorage(Map<String, String> store) {
 /// note already flags elsewhere. This is what lets `OcptJoiningBloc._resolveParentDirectoryPath`
 /// be exercised for real in these tests.
 class _TestProjectsManager extends OcptProjectsManager {
-  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
-
   /// The directory [newProjectsDirectory] and [suggestedProjectsDirectory] always resolve to.
   final Directory directory;
+
+  _TestProjectsManager({required this.directory, super.propertiesManager, super.appLanguageCode});
 
   @override
   Future<Directory> newProjectsDirectory() async => directory;
@@ -105,18 +105,6 @@ class _TestProjectsManager extends OcptProjectsManager {
 /// real relay round-trip and snapshot unpacking would take — what lets a test observe
 /// `OcptJoiningState.isJoining` while a join is still in flight.
 class _FakeSyncManager extends OcptSyncManager {
-  _FakeSyncManager({
-    required OcptPairingService pairingService,
-    required this.joinResultPath,
-    this.whileJoining,
-  }) : super(
-         pairingService: pairingService,
-         changesetService: const OcptChangesetService(
-           logger: SilentLogger(),
-           mergeService: OcptMergeService(logger: SilentLogger()),
-         ),
-       );
-
   /// The path [joinFromRelay] always returns.
   final String joinResultPath;
 
@@ -132,6 +120,18 @@ class _FakeSyncManager extends OcptSyncManager {
 
   /// The parent directory path of the last [joinFromRelay] call, or null if it never was.
   String? lastParentDirectoryPath;
+
+  _FakeSyncManager({
+    required OcptPairingService pairingService,
+    required this.joinResultPath,
+    this.whileJoining,
+  }) : super(
+         pairingService: pairingService,
+         changesetService: const OcptChangesetService(
+           logger: SilentLogger(),
+           mergeService: OcptMergeService(logger: SilentLogger()),
+         ),
+       );
 
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, String>> joinFromRelay({
@@ -158,10 +158,10 @@ class _FakeSyncManager extends OcptSyncManager {
 /// the same double `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own
 /// `_StubPlatformManager` already is.
 class _StubPlatformManager extends PlatformManager {
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A save location service answering [directoryAnswer] without ever showing a native folder

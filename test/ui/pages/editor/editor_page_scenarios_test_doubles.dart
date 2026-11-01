@@ -105,12 +105,12 @@ class EditorScenarioRouterManager extends OcptRouterManager {
 /// A save location service whose dialog never opens: it counts how often it was asked and answers
 /// as if the user had cancelled.
 class EditorScenarioSaveLocationService extends OcptSaveLocationService {
+  /// The number of times a save dialog was requested since the last reset.
+  int askedCount = 0;
+
   /// Class constructor
   EditorScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("editor_scenarios_save_location"));
-
-  /// The number of times a save dialog was requested since the last reset.
-  int askedCount = 0;
 
   @override
   Future<String?> pickSaveLocation({
@@ -163,13 +163,6 @@ class EditorRecordedExport {
 /// An export manager answering the screenplay's two exports with a saved file, and the import
 /// picker with whatever [importAnswer] says, recording what each one was handed.
 class EditorScenarioExportManager extends OcptExportManager {
-  /// Class constructor
-  EditorScenarioExportManager()
-    : super(
-        fileSelectorManager: const FileSelectorManager(),
-        saveLocationService: EditorScenarioSaveLocationService(),
-      );
-
   /// Every export run since the last [reset], in order.
   final List<EditorRecordedExport> exports = [];
 
@@ -189,6 +182,13 @@ class EditorScenarioExportManager extends OcptExportManager {
   /// The save location service the project package export asks, counting its dialogs.
   EditorScenarioSaveLocationService get saveDialog =>
       saveLocationService as EditorScenarioSaveLocationService;
+
+  /// Class constructor
+  EditorScenarioExportManager()
+    : super(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: EditorScenarioSaveLocationService(),
+      );
 
   /// Forgets everything recorded and answers normally again.
   void reset() {
@@ -211,16 +211,6 @@ class EditorScenarioExportManager extends OcptExportManager {
   /// Makes the import picker answer that the picked file is not a screenplay.
   void importUnreadable() {
     importAnswer = const ResultWithStatus(status: OcptScreenplayImportStatus.unreadableFile);
-  }
-
-  /// Records [export], then answers the way the switches say.
-  OcptExportOutcome? _record(EditorRecordedExport export) {
-    exports.add(export);
-    if (shouldFail) {
-      throw StateError("${export.kind} export intentionally failed for the scenario");
-    }
-
-    return shouldCancel ? null : OcptExportSaved("/tmp/${export.projectName}.${export.kind}");
   }
 
   @override
@@ -268,6 +258,16 @@ class EditorScenarioExportManager extends OcptExportManager {
 
     return importAnswer;
   }
+
+  /// Records [export], then answers the way the switches say.
+  OcptExportOutcome? _record(EditorRecordedExport export) {
+    exports.add(export);
+    if (shouldFail) {
+      throw StateError("${export.kind} export intentionally failed for the scenario");
+    }
+
+    return shouldCancel ? null : OcptExportSaved("/tmp/${export.projectName}.${export.kind}");
+  }
 }
 
 /// Answers a bundled dictionary asset with a miniature hunspell pair, so the spell-check isolate
@@ -305,6 +305,17 @@ class EditorScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The id of the episode the page edits when the workspace has not selected another one.
+  String get episodeId => projectsManager.currentProject!.primaryScreenplayId;
+
+  /// Finds the raw source field's text field.
+  Finder get rawField =>
+      find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField));
+
+  /// Finds the find bar's text fields: the query first, the replacement last.
+  Finder get barFields =>
+      find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField));
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -367,9 +378,6 @@ class EditorScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The id of the episode the page edits when the workspace has not selected another one.
-  String get episodeId => projectsManager.currentProject!.primaryScreenplayId;
 
   /// Writes [text] as the screenplay of the open project, as an earlier session would have left it.
   Future<void> seedScreenplay(String text, {String? screenplayId}) async {
@@ -484,14 +492,6 @@ class EditorScenarioHarness {
     await tester.pumpAndSettle();
   }
 
-  /// Sizes the surface of [tester] to [size] for the rest of the test.
-  void _sizeSurface(WidgetTester tester, Size size) {
-    tester.view.physicalSize = size;
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-  }
-
   /// Takes whatever is mounted out of the tree, which is what leaving the page does, and settles.
   Future<void> unmount(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
@@ -505,20 +505,12 @@ class EditorScenarioHarness {
   OcptWorkspaceBloc workspaceBlocOf(WidgetTester tester) =>
       tester.element(find.byType(Scaffold).first).read<OcptWorkspaceBloc>();
 
-  /// Finds the raw source field's text field.
-  Finder get rawField =>
-      find.descendant(of: find.byType(OcptEditorSourceField), matching: find.byType(TextField));
-
   /// Reads the text the raw source field holds.
   String rawText(WidgetTester tester) => tester.widget<TextField>(rawField).controller!.text;
 
   /// Reads the selection the raw source field holds.
   TextSelection rawSelection(WidgetTester tester) =>
       tester.widget<TextField>(rawField).controller!.selection;
-
-  /// Finds the find bar's text fields: the query first, the replacement last.
-  Finder get barFields =>
-      find.descendant(of: find.byType(OcptEditorFindBar), matching: find.byType(TextField));
 
   /// Types [text] into [field] and pumps one frame, leaving every debounce running.
   Future<void> type(WidgetTester tester, Finder field, String text) async {
@@ -630,5 +622,13 @@ class EditorScenarioHarness {
       for (final child in span.children ?? const <InlineSpan>[])
         if (child is TextSpan && child.style?.decoration == TextDecoration.underline) child.text!,
     ];
+  }
+
+  /// Sizes the surface of [tester] to [size] for the rest of the test.
+  void _sizeSurface(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
   }
 }

@@ -25,16 +25,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 /// [MixinSetWantedLocaleBloc]'s reaction to [NewLocaleWantedByUserEvent], never the manager's own
 /// persistence or system-locale resolution.
 class _FakeLocalesManager extends LocalesManager {
-  /// Class constructor, [wantedLocale] standing for a locale the user had already picked in a
-  /// previous session.
-  _FakeLocalesManager({Locale? wantedLocale})
-    : _wanted = wantedLocale,
-      super(
-        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-      );
-
   /// The stream backing [currentLocaleStream]; never emits in this fake since no test exercises a
   /// system-locale change.
   final _currentLocaleCtrl = StreamController<Locale>.broadcast();
@@ -57,6 +47,16 @@ class _FakeLocalesManager extends LocalesManager {
   @override
   set wantedLocale(Locale? newLocale) => _wanted = newLocale;
 
+  /// Class constructor, [wantedLocale] standing for a locale the user had already picked in a
+  /// previous session.
+  _FakeLocalesManager({Locale? wantedLocale})
+    : _wanted = wantedLocale,
+      super(
+        getSupportedLocales: () => const <Locale>[Locale("en", "GB"), Locale("fr")],
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+      );
+
   /// Closes the stream backing this fake, for tidy test teardown.
   Future<void> disposeFake() => _currentLocaleCtrl.close();
 }
@@ -65,16 +65,6 @@ class _FakeLocalesManager extends LocalesManager {
 /// backed by real config/properties managers: this test only exercises
 /// [MixinActThemesBloc]'s reaction to [AskToUpdateBrightnessEvent].
 class _FakeActThemesManager extends ActThemesManager {
-  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
-  /// previous session.
-  _FakeActThemesManager({Brightness? brightness})
-    : _brightness = brightness,
-      super(
-        propertiesGetter: () => throw UnimplementedError(),
-        configGetter: () => throw UnimplementedError(),
-        appThemes: OcptAppTheme.values,
-      );
-
   /// The stream backing [currentThemeStream]; never emits in this fake since no test exercises a
   /// theme change (the app has a single theme).
   final _themeCtrl = StreamController<MixinActThemes>.broadcast();
@@ -99,6 +89,16 @@ class _FakeActThemesManager extends ActThemesManager {
 
   @override
   Stream<Brightness?> get brightnessStream => _brightnessCtrl.stream;
+
+  /// Class constructor, [brightness] standing for a preference the user had already persisted in a
+  /// previous session.
+  _FakeActThemesManager({Brightness? brightness})
+    : _brightness = brightness,
+      super(
+        propertiesGetter: () => throw UnimplementedError(),
+        configGetter: () => throw UnimplementedError(),
+        appThemes: OcptAppTheme.values,
+      );
 
   /// Stores [newBrightness] and, like the real manager's value keeper, only notifies the stream
   /// when the value actually changes.

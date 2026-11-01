@@ -18,11 +18,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 /// reacts to those two values, not how they get parsed (`ocpt_config_manager_test.dart` covers
 /// that).
 class _FakeConfigManager extends OcptConfigManager {
-  /// Class constructor
-  _FakeConfigManager({required bool fileLogEnabled, LogsLevel fileLogLevel = LogsLevel.info})
-    : _fileLogEnabled = fileLogEnabled,
-      _fileLogLevel = fileLogLevel;
-
   final bool _fileLogEnabled;
   final LogsLevel _fileLogLevel;
 
@@ -31,6 +26,11 @@ class _FakeConfigManager extends OcptConfigManager {
 
   @override
   LogsLevel get fileLogLevel => _fileLogLevel;
+
+  /// Class constructor
+  _FakeConfigManager({required bool fileLogEnabled, LogsLevel fileLogLevel = LogsLevel.info})
+    : _fileLogEnabled = fileLogEnabled,
+      _fileLogLevel = fileLogLevel;
 }
 
 /// A [LoggerManager] recording every `addExternalLogger`/`removeExternalLogger` call instead of
@@ -40,18 +40,18 @@ class _FakeConfigManager extends OcptConfigManager {
 /// the [OcptFileExternalLogger] under test starts real timers that must be cancelled before a
 /// test's temporary directory is deleted underneath them.
 class _RecordingLoggerManager extends LoggerManager {
+  /// Every logger added so far, keyed by the key it was added under.
+  final Map<Enum, MixinExternalLogger> added = {};
+
+  /// Every key a logger was removed from.
+  final List<Enum> removed = [];
+
   /// Class constructor
   ///
   /// [loggerConfigGetter] is never actually called: this class overrides every method of
   /// [LoggerManager] that would otherwise reach for it (`initLifeCycle` is never invoked on this
   /// fake by these tests).
   _RecordingLoggerManager() : super(loggerConfigGetter: () => throw UnimplementedError());
-
-  /// Every logger added so far, keyed by the key it was added under.
-  final Map<Enum, MixinExternalLogger> added = {};
-
-  /// Every key a logger was removed from.
-  final List<Enum> removed = [];
 
   @override
   Future<void> addExternalLogger(Enum loggerKey, MixinExternalLogger externalLogger) async {

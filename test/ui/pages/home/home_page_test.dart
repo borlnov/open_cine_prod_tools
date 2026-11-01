@@ -87,17 +87,17 @@ class _NavigatorKeyRouterManager extends OcptRouterManager {
   /// The key of the navigator the pumped [MaterialApp] builds.
   final GlobalKey<NavigatorState> navigatorKey;
 
-  /// Class constructor
-  _NavigatorKeyRouterManager({required this.navigatorKey});
-
-  @override
-  void pop<Y extends Object?>([Y? result]) => navigatorKey.currentState?.pop<Y>(result);
-
   /// The route the last [push] named, or null if none ever was.
   ///
   /// A push is recorded rather than performed: these tests stop at the home page, and none of them
   /// ever gets far enough to open a project.
   OcptRoute? pushedRoute;
+
+  /// Class constructor
+  _NavigatorKeyRouterManager({required this.navigatorKey});
+
+  @override
+  void pop<Y extends Object?>([Y? result]) => navigatorKey.currentState?.pop<Y>(result);
 
   @override
   Future<Y?> push<Y extends Object?>(

@@ -95,12 +95,12 @@ class BudgetScenarioRouterManager extends OcptRouterManager {
 /// A save location service whose dialog never opens: it counts how often it was asked and answers
 /// as if the user had cancelled.
 class BudgetScenarioSaveLocationService extends OcptSaveLocationService {
+  /// The number of times a save dialog was requested since the last reset.
+  int askedCount = 0;
+
   /// Class constructor
   BudgetScenarioSaveLocationService()
     : super(logger: buildOcptLogsHelper("budget_scenarios_save_location"));
-
-  /// The number of times a save dialog was requested since the last reset.
-  int askedCount = 0;
 
   @override
   Future<String?> pickSaveLocation({
@@ -157,13 +157,6 @@ class BudgetRecordedExport {
 /// An export manager answering the four budget exports with a saved file, and recording what each
 /// one was handed so a scenario can tell what the mode had read at the moment of the export.
 class BudgetRecordingExportManager extends OcptExportManager {
-  /// Class constructor
-  BudgetRecordingExportManager()
-    : super(
-        fileSelectorManager: const FileSelectorManager(),
-        saveLocationService: BudgetScenarioSaveLocationService(),
-      );
-
   /// Every export run since the last [reset], in order.
   final List<BudgetRecordedExport> exports = [];
 
@@ -180,6 +173,13 @@ class BudgetRecordingExportManager extends OcptExportManager {
   BudgetScenarioSaveLocationService get saveDialog =>
       saveLocationService as BudgetScenarioSaveLocationService;
 
+  /// Class constructor
+  BudgetRecordingExportManager()
+    : super(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: BudgetScenarioSaveLocationService(),
+      );
+
   /// Forgets everything recorded and answers normally again.
   void reset() {
     exports.clear();
@@ -187,19 +187,6 @@ class BudgetRecordingExportManager extends OcptExportManager {
     shouldCancel = false;
     shouldAnswerFailed = false;
     saveDialog.askedCount = 0;
-  }
-
-  /// Records [export], then answers the way the switches say.
-  OcptExportOutcome? _record(BudgetRecordedExport export, {bool isWorkbook = false}) {
-    exports.add(export);
-    if (shouldFail) {
-      throw StateError("${export.document} export intentionally failed for the scenario");
-    }
-    if (isWorkbook && shouldAnswerFailed) {
-      return const OcptExportFailed();
-    }
-
-    return shouldCancel ? null : OcptExportSaved("/tmp/${export.document}.out");
   }
 
   @override
@@ -280,6 +267,19 @@ class BudgetRecordingExportManager extends OcptExportManager {
       includeTitlePage: includeTitlePage,
     ),
   );
+
+  /// Records [export], then answers the way the switches say.
+  OcptExportOutcome? _record(BudgetRecordedExport export, {bool isWorkbook = false}) {
+    exports.add(export);
+    if (shouldFail) {
+      throw StateError("${export.document} export intentionally failed for the scenario");
+    }
+    if (isWorkbook && shouldAnswerFailed) {
+      return const OcptExportFailed();
+    }
+
+    return shouldCancel ? null : OcptExportSaved("/tmp/${export.document}.out");
+  }
 }
 
 /// The switches [BudgetScenarioProjectsManager] reads to decide which write fails.
@@ -401,9 +401,6 @@ class BudgetScenarioProjectsManager extends OcptProjectsManager {
   /// The switches deciding which write fails.
   final BudgetScenarioFailures failures = BudgetScenarioFailures();
 
-  /// Class constructor
-  BudgetScenarioProjectsManager({super.propertiesManager, super.appLanguageCode});
-
   /// The quote service, failing on demand.
   late final _quoteService = _ScenarioBudgetQuoteService(failures: failures);
 
@@ -415,6 +412,9 @@ class BudgetScenarioProjectsManager extends OcptProjectsManager {
 
   @override
   OcptBudgetJournalService get budgetJournalService => _journalService;
+
+  /// Class constructor
+  BudgetScenarioProjectsManager({super.propertiesManager, super.appLanguageCode});
 }
 
 /// The shared set-up of the budget mode scenarios: the global managers, one temporary project per
@@ -435,6 +435,9 @@ class BudgetScenarioHarness {
 
   /// The folder holding the current scenario's project file.
   late Directory tempDir;
+
+  /// The database of the open project.
+  OcptProjectDatabase get database => projectsManager.currentProject!.database;
 
   /// Registers the global managers once for the whole file.
   Future<void> setUpAll() async {
@@ -485,9 +488,6 @@ class BudgetScenarioHarness {
     await projectsManager.closeCurrentProject();
     await tempDir.delete(recursive: true);
   }
-
-  /// The database of the open project.
-  OcptProjectDatabase get database => projectsManager.currentProject!.database;
 
   /// Reads the live postes, with their lines, back from the database.
   Future<List<OcptBudgetPoste>> readPostes() =>

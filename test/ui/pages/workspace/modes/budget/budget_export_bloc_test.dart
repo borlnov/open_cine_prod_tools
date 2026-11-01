@@ -125,18 +125,6 @@ const _financialReportLabels = OcptBudgetFinancialReportLabels(
 /// methods and returning a caller-chosen path (or throwing, or answering null to simulate a
 /// cancelled save dialog) — mirrors `_FakeScheduleExportManager` in `schedule_bloc_test.dart`.
 class _FakeBudgetExportManager extends OcptExportManager {
-  /// Class constructor
-  _FakeBudgetExportManager({
-    this.quoteResult,
-    this.financingPlanResult,
-    this.cashJournalResult,
-    this.financialReportResult,
-    this.quoteFails = false,
-    this.financingPlanFails = false,
-    this.cashJournalFails = false,
-    this.financialReportFails = false,
-  }) : super(fileSelectorManager: const FileSelectorManager());
-
   /// The path [exportBudgetQuote] returns, or null to simulate a cancelled save dialog.
   final String? quoteResult;
 
@@ -169,6 +157,18 @@ class _FakeBudgetExportManager extends OcptExportManager {
 
   /// The `linkLabelByEntryId` of the last [exportBudgetCashJournalXlsx] call.
   Map<String, String>? lastCashJournalLinkLabelByEntryId;
+
+  /// Class constructor
+  _FakeBudgetExportManager({
+    this.quoteResult,
+    this.financingPlanResult,
+    this.cashJournalResult,
+    this.financialReportResult,
+    this.quoteFails = false,
+    this.financingPlanFails = false,
+    this.cashJournalFails = false,
+    this.financialReportFails = false,
+  }) : super(fileSelectorManager: const FileSelectorManager());
 
   @override
   Future<OcptExportOutcome?> exportBudgetQuote({

@@ -9,9 +9,6 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_save_location
 /// A save-location service whose [pickSaveLocation] is stubbed and whose calls are recorded, so
 /// the manager's export methods can be exercised without any real native dialog.
 class FakeSaveLocationService extends OcptSaveLocationService {
-  /// Class constructor
-  FakeSaveLocationService({this.result}) : super(logger: const SilentLogger());
-
   /// The path [pickSaveLocation] returns, or null to simulate a cancelled dialog.
   final String? result;
 
@@ -30,6 +27,9 @@ class FakeSaveLocationService extends OcptSaveLocationService {
 
   /// The confirm-button label of the last [pickDirectory] call.
   String? lastConfirmButtonText;
+
+  /// Class constructor
+  FakeSaveLocationService({this.result}) : super(logger: const SilentLogger());
 
   @override
   Future<String?> pickSaveLocation({

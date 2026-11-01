@@ -71,11 +71,11 @@ void _mockSecureStorage(Map<String, String> store) {
 /// exercised on either branch without a real platform underneath it — mirrors
 /// `ocpt_export_manager_documents_and_write_funnel_test.dart`'s own stub.
 class _StubPlatformManager extends PlatformManager {
-  /// Class constructor
-  _StubPlatformManager({required this.isMobile});
-
   @override
   final bool isMobile;
+
+  /// Class constructor
+  _StubPlatformManager({required this.isMobile});
 }
 
 /// A spy [OcptSyncManager] recording whether `OcptRelayHostManager.startHosting`'s self-seed
@@ -85,14 +85,6 @@ class _StubPlatformManager extends PlatformManager {
 /// [OcptRelayHostManager] calls the right one, with the right localhost URI, and tears the session
 /// down again on `OcptRelayHostManager.stopHosting`.
 class _SpySyncManager extends OcptSyncManager {
-  _SpySyncManager()
-    : super(
-        changesetService: const OcptChangesetService(
-          logger: SilentLogger(),
-          mergeService: OcptMergeService(logger: SilentLogger()),
-        ),
-      );
-
   Uri? seededRelayBaseUri;
   String? seededEnrolmentSecret;
   String? seededProjectId;
@@ -100,6 +92,16 @@ class _SpySyncManager extends OcptSyncManager {
   bool didRepoint = false;
   bool didStopSession = false;
   OcptPresenceRoster? rosterWhileSeeded;
+
+  @override
+  OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
+  _SpySyncManager()
+    : super(
+        changesetService: const OcptChangesetService(
+          logger: SilentLogger(),
+          mergeService: OcptMergeService(logger: SilentLogger()),
+        ),
+      );
 
   @override
   Future<ResultWithStatus<OcptSyncFlowStatus, OcptRelayInvite>> pairProjectToRelay({
@@ -168,9 +170,6 @@ class _SpySyncManager extends OcptSyncManager {
   Future<void> stopSyncSession() async {
     didStopSession = true;
   }
-
-  @override
-  OcptPresenceRoster? get presenceRoster => rosterWhileSeeded;
 }
 
 void main() {

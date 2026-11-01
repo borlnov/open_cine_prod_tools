@@ -68,6 +68,12 @@ void _mockSecureStorage(Map<String, String> store) {
 /// `_FakeRemoteStorage`.
 class _FakeRemoteStorage implements OcptRemoteStorage {
   @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -89,13 +95,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   fetchLatestSnapshot() async => const ResultWithStatus(status: OcptRemoteStorageStatus.ok);
 
   @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 }
 
 /// An [OcptSyncManager] whose [openRelayRemoteStorage] hands back a fixed fake transport instead of
@@ -107,6 +107,13 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
 /// no need to exercise — only that the pairing moved and a live session started is what the bloc
 /// reacts to.
 class _FakeTransportSyncManager extends OcptSyncManager {
+  final bool shouldFailToOpenTransport;
+
+  /// Whether [repointProjectToRelay] throws instead of answering a status.
+  final bool shouldThrowOnRepoint;
+
+  final OcptPairingService _pairing;
+
   _FakeTransportSyncManager({
     required OcptPairingService pairingService,
     this.shouldFailToOpenTransport = false,
@@ -119,13 +126,6 @@ class _FakeTransportSyncManager extends OcptSyncManager {
            mergeService: OcptMergeService(logger: SilentLogger()),
          ),
        );
-
-  final OcptPairingService _pairing;
-
-  final bool shouldFailToOpenTransport;
-
-  /// Whether [repointProjectToRelay] throws instead of answering a status.
-  final bool shouldThrowOnRepoint;
 
   @override
   OcptRemoteStorage openRelayRemoteStorage(

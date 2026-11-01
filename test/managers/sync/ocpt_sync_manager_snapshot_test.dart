@@ -74,6 +74,12 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   final StreamController<void> _newWorkController = StreamController<void>.broadcast();
 
   @override
+  Stream<void> get newWorkStream => _newWorkController.stream;
+
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
+  @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
   ) async =>
@@ -110,13 +116,7 @@ class _FakeRemoteStorage implements OcptRemoteStorage {
   }
 
   @override
-  Stream<void> get newWorkStream => _newWorkController.stream;
-
-  @override
   void sendPresence(String opaquePayload) {}
-
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 
   Future<void> dispose() => _newWorkController.close();
 }
