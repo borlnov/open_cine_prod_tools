@@ -409,16 +409,23 @@ void main() {
       );
       await waitForState(locationsBloc, (state) => state.pendingLocationFieldEdits.isNotEmpty);
 
-      await bloc.flushPendingFieldEdits();
-
-      // The value is put back to blank behind the bloc's back: a second write of the same edit, which
-      // the bloc closing would make without the memory of the first, would bring it back.
+      // Every update of the table is logged, so a second write of the same edit shows.
       final database = projectsManager.currentProject!.database;
-      expect(await readStoredValue(database), "France");
-      await database.customStatement("UPDATE locations SET country = ''");
-      await closeAll(locationsBloc, bloc);
+      await database.customStatement("CREATE TABLE write_log (written INTEGER)");
+      await database.customStatement(
+        "CREATE TRIGGER log_write AFTER UPDATE ON locations "
+        "BEGIN INSERT INTO write_log VALUES (1); END",
+      );
 
-      expect(await readStoredValue(database), isEmpty);
+      // What the widget leaving the tree does: the flush starts, and the bloc closes in the same
+      // frame, before the write is done.
+      final flushing = bloc.flushPendingFieldEdits();
+      await closeAll(locationsBloc, bloc);
+      await flushing;
+
+      expect(await readStoredValue(database), "France");
+      final writes = await database.customSelect("SELECT COUNT(*) AS n FROM write_log").getSingle();
+      expect(writes.read<int>("n"), 1);
     });
 
     test(

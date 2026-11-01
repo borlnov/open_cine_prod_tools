@@ -1085,8 +1085,11 @@ void main() {
       );
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
-      await bloc.flushPendingFieldEdits();
+      // What the widget leaving the tree does: the flush starts, and the bloc closes in the same
+      // frame, before the write is done.
+      final flushing = bloc.flushPendingFieldEdits();
       await expensesBloc.close();
+      await flushing;
 
       expect(quote.updatePosteCalls, 1);
     });

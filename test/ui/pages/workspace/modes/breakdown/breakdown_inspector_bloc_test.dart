@@ -879,20 +879,30 @@ void main() {
       await waitForState(inspectorBloc, (state) => state.pendingSceneNotesEdits.isNotEmpty);
       final database = projectsManager.currentProject!.database;
 
-      await bloc.flushPendingFieldEdits();
+      // Every insert and update of the table is logged, so a second write of the same edit shows.
+      await database.customStatement("CREATE TABLE write_log (written INTEGER)");
+      for (final operation in ["INSERT", "UPDATE"]) {
+        await database.customStatement(
+          "CREATE TRIGGER log_$operation AFTER $operation ON scene_breakdowns "
+          "BEGIN INSERT INTO write_log VALUES (1); END",
+        );
+      }
 
-      // The notes are put back to blank behind the bloc's back: a second write of the same edit,
-      // which the bloc closing would make without the memory of the first, would bring them back.
-      await database.customStatement("UPDATE scene_breakdowns SET notes = ''");
+      // What the widget leaving the tree does: the flush starts, and the bloc closes in the same
+      // frame, before the write is done.
+      final flushing = bloc.flushPendingFieldEdits();
       await inspectorBloc.close();
       await bloc.close();
+      await flushing;
 
       final scenes = await projectsManager.breakdownService.loadScenes(
         database: database,
         screenplayId: projectsManager.currentProject!.primaryScreenplayId,
         episodeNumber: null,
       );
-      expect(scenes.single.notes, isEmpty);
+      expect(scenes.single.notes, "Bring the lamp");
+      final writes = await database.customSelect("SELECT COUNT(*) AS n FROM write_log").getSingle();
+      expect(writes.read<int>("n"), 1);
     });
   });
 

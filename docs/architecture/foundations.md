@@ -158,8 +158,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
     transactions and two row stamps, which sync sees as two changes. A view writes through
     `flushEditsWithoutState`, which hands its callback only the entries not already written with
     the same value; an edit changed in between, a write that failed, and every edit once the mode
-    read its data again or flushed the view with state, are written again. The old shot list wrote
-    twice here too; the old schedule did not flush at close at all.
+    read its data again or flushed the view with state, are written again. The widget leaving the
+    tree and the bloc closing come in the same frame, so the second call starts while the first
+    write is still running: the entries are remembered **before** the write runs and forgotten
+    only if it fails, and a call that finds a write in flight waits for it. A test of this
+    starts the flush, closes the view, and only then awaits the flush: awaiting the flush first is
+    a sequence the widget tree never produces. The old shot list wrote twice here too; the old
+    schedule did not flush at close at all.
   - **What flushes is each mode's own.** The shot list flushes on every selection move; the
     schedule flushes on none (a day or block selection, a centre view switch, going back) and only
     ahead of a dock tab change, a version preview, a package export and an export. The flush sites

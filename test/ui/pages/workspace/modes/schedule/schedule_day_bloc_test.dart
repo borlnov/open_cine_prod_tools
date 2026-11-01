@@ -475,14 +475,15 @@ void main() {
         typeSlotLabel(dayBloc, fixture.slotId, "Cave");
         await waitForDayState(dayBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
-        await bloc.flushPendingFieldEdits();
-        expect(service.slotLabelWrites, ["Cave"]);
-        expect(dayBloc.state.pendingFieldEdits, isNotEmpty, reason: "nothing could be emitted");
-
+        // What the widget leaving the tree does: the flush starts, and the bloc closes in the same
+        // frame, before the write is done.
+        final flushing = bloc.flushPendingFieldEdits();
         await dayBloc.close();
         await bloc.close();
+        await flushing;
 
         expect(service.slotLabelWrites, ["Cave"], reason: "one edit, one write, one row stamp");
+        expect(dayBloc.state.pendingFieldEdits, isNotEmpty, reason: "nothing could be emitted");
       },
     );
 

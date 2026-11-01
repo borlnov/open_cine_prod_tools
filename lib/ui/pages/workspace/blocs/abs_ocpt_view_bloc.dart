@@ -54,8 +54,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.d
 ///   `ocptPendingEditsAfterWrite`. Emitting an empty map loses the keystroke typed during the
 ///   write.
 /// - Write [flushPendingWritesWithoutState] through [flushEditsWithoutState], never straight from
-///   the pending map: the widget leaving the tree and the bloc closing both run it, and the same
-///   edit would reach the database, and sync, twice.
+///   the pending map: the widget leaving the tree and the bloc closing both run it, in the same
+///   frame, and the same edit would reach the database, and sync, twice. Test it that way: start
+///   the flush, close the view, then await the flush.
 /// - Ask the mode for anything through [addToMode], never `modeBloc.add`, and check [isClosing],
 ///   never `isClosed`, before an `add` made from a timer or after an `await`: both are safe on a
 ///   bloc that is closing.
@@ -102,9 +103,12 @@ abstract class AbsOcptViewBloc<
   /// The running debounce timer, if any, see [restartDebounce].
   Timer? _debounceTimer;
 
-  /// The edits [flushEditsWithoutState] wrote, by key, until the data they were written into may
-  /// have changed under them.
+  /// The edits [flushEditsWithoutState] wrote or is writing, by key, until the data they were
+  /// written into may have changed under them.
   final Map<Object?, Object?> _editsWrittenWithoutState = {};
+
+  /// The write [flushEditsWithoutState] is running, if any.
+  Future<void>? _writeWithoutStateInFlight;
 
   /// Class constructor
   ///
@@ -288,15 +292,26 @@ abstract class AbsOcptViewBloc<
   ///
   /// That flush leaves the pending map as it is, since it cannot emit: the widget leaving the tree
   /// runs it, then the bloc closing runs it again, and without this the same edit is written twice,
-  /// two transactions and two row stamps that sync sees as two changes. A value typed since is a
-  /// different value and is written again. So is every edit once the mode has read its data again
-  /// or flushed this view with state, since the database may have changed under what was
-  /// remembered. [write] throwing remembers nothing, so the next call retries.
+  /// two transactions and two row stamps that sync sees as two changes. The two calls can overlap,
+  /// the second starting while the first write is still running: the entries are therefore
+  /// remembered **before** [write] runs, and a call that finds a write in flight waits for it, so
+  /// it neither repeats it nor returns before it is done. A value typed since is a different value
+  /// and is written again. So is every edit once the mode has read its data again or flushed this
+  /// view with state, since the database may have changed under what was remembered. [write]
+  /// throwing forgets what it was given, so the next call retries.
   @protected
   Future<void> flushEditsWithoutState<K, V>(
     Map<K, V> pending,
     Future<void> Function(Map<K, V> edits) write,
   ) async {
+    while (_writeWithoutStateInFlight != null) {
+      try {
+        await _writeWithoutStateInFlight;
+      } catch (_) {
+        // The call that ran it reports its failure; this one only finds out what is left to write.
+      }
+    }
+
     final unwritten = {
       for (final entry in pending.entries)
         if (!_editsWrittenWithoutState.containsKey(entry.key) ||
@@ -307,8 +322,25 @@ abstract class AbsOcptViewBloc<
       return;
     }
 
-    await write(unwritten);
     _editsWrittenWithoutState.addAll(unwritten);
+    final writing = Future<void>.sync(() => write(unwritten));
+    _writeWithoutStateInFlight = writing;
+    try {
+      await writing;
+    } catch (_) {
+      // Only what this call remembered: a read of the data in between may have cleared it, and a
+      // newer call may have remembered a newer value for the same key.
+      for (final entry in unwritten.entries) {
+        if (_editsWrittenWithoutState[entry.key] == entry.value) {
+          _editsWrittenWithoutState.remove(entry.key);
+        }
+      }
+      rethrow;
+    } finally {
+      if (identical(_writeWithoutStateInFlight, writing)) {
+        _writeWithoutStateInFlight = null;
+      }
+    }
   }
 
   /// Writes what the view holds, then tells the dispatcher what it found, or that it failed: the
