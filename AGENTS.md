@@ -280,6 +280,12 @@ A project rule overrides these. The overrides this project has made:
   for each, in `test/ui/pages/workspace/bloc_final_fields_test.dart`, which fails on any other.
 - **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.
 
+The rule asking for doc comments that start with an imperative verb is read this way here: a
+method, getter, setter, operator or function opens with the verb (`Build`, `Get the`, `Tell
+whether`), a constructor with `Create` or `Build`, a class, mixin, enum, extension or typedef with
+the noun phrase saying what it is (unless it opens with a third-person verb), and a field,
+constant or enum value with a noun phrase.
+
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
 existing files' idioms exactly. Tests use inline private test doubles (no shared helpers
 directory), or a `<feature>_test_doubles.dart` right beside the test files that a long test was split

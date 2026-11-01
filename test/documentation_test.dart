@@ -100,6 +100,321 @@ List<String> _offencesOf(File file) {
   return offences;
 }
 
+/// The third-person verbs a doc comment must not open with: it opens with the imperative instead
+/// (`Build`, not `Builds`).
+const _thirdPersonVerbs = <String>{
+  "Abandons",
+  "Adds",
+  "Advances",
+  "Anchors",
+  "Answers",
+  "Antialiases",
+  "Appends",
+  "Applies",
+  "Asks",
+  "Assigns",
+  "Attaches",
+  "Authenticates",
+  "Bends",
+  "Blanks",
+  "Brings",
+  "Buckets",
+  "Builds",
+  "Calls",
+  "Cancels",
+  "Capitalizes",
+  "Captures",
+  "Carries",
+  "Casts",
+  "Chains",
+  "Checks",
+  "Clamps",
+  "Classifies",
+  "Clears",
+  "Clips",
+  "Closes",
+  "Collects",
+  "Commits",
+  "Completes",
+  "Composes",
+  "Computes",
+  "Confirms",
+  "Converts",
+  "Convokes",
+  "Copies",
+  "Counts",
+  "Creates",
+  "Decides",
+  "Decodes",
+  "Deduces",
+  "Delegates",
+  "Deletes",
+  "Derives",
+  "Detaches",
+  "Determines",
+  "Dismisses",
+  "Dispatches",
+  "Displays",
+  "Disposes",
+  "Does",
+  "Draws",
+  "Drives",
+  "Drops",
+  "Duplicates",
+  "Emboldens",
+  "Emits",
+  "Empties",
+  "Encodes",
+  "Ends",
+  "Enters",
+  "Erases",
+  "Escapes",
+  "Estimates",
+  "Expands",
+  "Exports",
+  "Falls",
+  "Fetches",
+  "Files",
+  "Fills",
+  "Filters",
+  "Finds",
+  "Finishes",
+  "Fires",
+  "Fits",
+  "Flattens",
+  "Flushes",
+  "Focuses",
+  "Folds",
+  "Forgets",
+  "Formats",
+  "Forwards",
+  "Freezes",
+  "Generates",
+  "Groups",
+  "Handles",
+  "Hands",
+  "Has",
+  "Hashes",
+  "Hides",
+  "Highlights",
+  "Indexes",
+  "Inserts",
+  "Installs",
+  "Interpolates",
+  "Joins",
+  "Keeps",
+  "Kills",
+  "Labels",
+  "Lays",
+  "Leaves",
+  "Links",
+  "Lists",
+  "Loads",
+  "Logs",
+  "Maps",
+  "Marks",
+  "Masks",
+  "Materialises",
+  "Measures",
+  "Merges",
+  "Mints",
+  "Moves",
+  "Names",
+  "Narrows",
+  "Navigates",
+  "Notifies",
+  "Opens",
+  "Orders",
+  "Overlays",
+  "Overwrites",
+  "Owns",
+  "Packages",
+  "Pages",
+  "Paints",
+  "Pairs",
+  "Parses",
+  "Pays",
+  "Persists",
+  "Picks",
+  "Pins",
+  "Places",
+  "Points",
+  "Pops",
+  "Positions",
+  "Prepends",
+  "Promotes",
+  "Prunes",
+  "Publishes",
+  "Pushes",
+  "Puts",
+  "Raises",
+  "Ranks",
+  "Rasterizes",
+  "Reacts",
+  "Reads",
+  "Rebuilds",
+  "Recomputes",
+  "Reconciles",
+  "Reconstructs",
+  "Records",
+  "Redirects",
+  "Redraws",
+  "References",
+  "Refreshes",
+  "Registers",
+  "Rejoins",
+  "Releases",
+  "Reloads",
+  "Remembers",
+  "Removes",
+  "Renames",
+  "Renders",
+  "Renumbers",
+  "Reorders",
+  "Replaces",
+  "Reports",
+  "Represents",
+  "Requests",
+  "Resizes",
+  "Resolves",
+  "Restarts",
+  "Restores",
+  "Retains",
+  "Returns",
+  "Reveals",
+  "Rewrites",
+  "Rotates",
+  "Routes",
+  "Runs",
+  "Saves",
+  "Says",
+  "Scans",
+  "Schedules",
+  "Scrolls",
+  "Seeds",
+  "Selects",
+  "Sends",
+  "Serialises",
+  "Serializes",
+  "Sets",
+  "Settles",
+  "Shows",
+  "Snapshots",
+  "Sorts",
+  "Spawns",
+  "Splices",
+  "Splits",
+  "Stamps",
+  "Starts",
+  "States",
+  "Stats",
+  "Stops",
+  "Stores",
+  "Streams",
+  "Strips",
+  "Styles",
+  "Submits",
+  "Subscribes",
+  "Suggests",
+  "Sums",
+  "Switches",
+  "Tags",
+  "Takes",
+  "Teaches",
+  "Tears",
+  "Tells",
+  "Throws",
+  "Ticks",
+  "Toggles",
+  "Tokenizes",
+  "Tombstones",
+  "Translates",
+  "Tries",
+  "Trims",
+  "Turns",
+  "Undoes",
+  "Unlinks",
+  "Unpacks",
+  "Unpairs",
+  "Updates",
+  "Upgrades",
+  "Upserts",
+  "Validates",
+  "Wakes",
+  "Walks",
+  "Wraps",
+  "Writes",
+  "Yields",
+  "Zooms",
+};
+
+/// The articles and determiners a method, getter, setter, operator or function doc may not open
+/// with: such a doc says what the member does, and starts with the verb that says it.
+const _nounPhraseOpenings = <String>{"The", "A", "An", "This", "One"};
+
+/// The members whose doc opens with a noun phrase on purpose. Each of these four functions sits
+/// under a file-level comment that is not separated from it by a code token, so the parser reads
+/// that header as the first lines of the function's own doc.
+const _verbOpeningExceptions = <String>{
+  "ocptBudgetReceivedByRevenueId",
+  "ocptBudgetPricedElementIdsOf",
+  "ocptBudgetReimbursedByPersonId",
+  "ocptBudgetReceivedByResourceId",
+};
+
+/// The first word of the doc of [node], or null when it has no doc or opens with a `{@macro}`.
+String? _firstWordOf(AnnotatedNode node) {
+  final comment = node.documentationComment;
+  if (comment == null) {
+    return null;
+  }
+  for (final token in comment.tokens) {
+    final text = token.lexeme.replaceFirst(RegExp(r"^///\s?"), "").trim();
+    if (text.isEmpty || text.startsWith("{@template")) {
+      continue;
+    }
+    if (text.startsWith("{@")) {
+      return null;
+    }
+    return RegExp("^[A-Za-z]+").firstMatch(text)?.group(0);
+  }
+  return null;
+}
+
+/// Lists the methods, getters, setters, operators and functions of [file] whose doc does not open
+/// with an imperative verb, as "path:line name".
+List<String> _verbOffencesOf(File file) {
+  final parsed = parseFile(
+    path: file.absolute.path,
+    featureSet: FeatureSet.latestLanguageVersion(),
+  );
+  final offences = <String>[];
+
+  void check(AnnotatedNode node, String name) {
+    final word = _firstWordOf(node);
+    if (word == null || _verbOpeningExceptions.contains(name)) {
+      return;
+    }
+    if (_nounPhraseOpenings.contains(word) || _thirdPersonVerbs.contains(word)) {
+      final line = parsed.lineInfo.getLocation(node.firstTokenAfterCommentAndMetadata.offset);
+      offences.add("${file.path}:${line.lineNumber} $name opens with `$word`");
+    }
+  }
+
+  for (final declaration in parsed.unit.declarations) {
+    if (declaration is FunctionDeclaration) {
+      check(declaration, declaration.name.lexeme);
+    }
+    for (final member in _membersOf(declaration)) {
+      if (member is MethodDeclaration) {
+        check(member, member.name.lexeme);
+      }
+    }
+  }
+
+  return offences;
+}
+
 /// Every class, mixin, enum, extension, typedef, function, variable, field, constructor, method,
 /// getter and setter carries a `///` doc comment, private ones and overrides included, in the
 /// app, in the tests, in the tools and in each package. An enum's values are not counted.
@@ -148,4 +463,22 @@ void main() {
       );
     });
   });
+
+  // The tests are not held to it: only the code they exercise is.
+  for (final entry in folders.entries.where((entry) => !entry.key.startsWith("test"))) {
+    test("${entry.key} opens the doc of every method and function with a verb", () {
+      final offences = [
+        for (final file in entry.value.where((file) => !file.path.contains("/test/")))
+          ..._verbOffencesOf(file),
+      ];
+
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            "A method, getter, setter, operator or function doc starts with an imperative "
+            "verb: `Build the page`, not `Builds the page` nor `The page`.",
+      );
+    });
+  }
 }
