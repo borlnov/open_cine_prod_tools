@@ -88,10 +88,11 @@ List<OcptCallSheetPeopleListEntry> ocptCallSheetCandidateListEntries({
 /// A named sheet's own "to bring" rows: [OcptSchedulePlanSnapshot.elementsToBringOnDay] for
 /// [personId] — already sorted by category then by name — paired with the scene numbers of
 /// [dayEntries]' own shot blocks that play a scene each element is linked to, mirroring how
-/// [ocptCallSheetCastRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both this
-/// function and [ocptCallSheetCastRowsOfDay] are handed the **day's** own entries rather than the recipient's
-/// restricted `orderedEntries`, for the comment there's own reason: what an element is needed for
-/// today is a fact about the day, not about which of its slots happens to convoke this reader.
+/// [ocptCallSheetCastRowsOfDay]'s own `sceneNumbers` is built off the very same [dayEntries]. Both
+/// this function and [ocptCallSheetCastRowsOfDay] are handed the **day's** own entries rather than
+/// the recipient's restricted `orderedEntries`, for the comment there's own reason: what an element
+/// is needed for today is a fact about the day, not about which of its slots happens to convoke
+/// this reader.
 List<OcptCallSheetToBringRow> ocptCallSheetToBringRowsOfDay({
   required OcptSchedulePlanSnapshot plan,
   required String dayId,
@@ -117,7 +118,8 @@ List<OcptCallSheetToBringRow> ocptCallSheetToBringRowsOfDay({
 }
 
 /// The scene numbers of [dayEntries]' own shot blocks whose scene is one of [element]'s own
-/// [OcptElement.sceneLinks], sorted — the join [ocptCallSheetToBringRowsOfDay] prints on each of its rows.
+/// [OcptElement.sceneLinks], sorted — the join [ocptCallSheetToBringRowsOfDay] prints on each of
+/// its rows.
 List<String> ocptCallSheetSceneNumbersForElement({
   required OcptElement element,
   required OcptSchedulePlanSnapshot plan,
@@ -254,9 +256,9 @@ String ocptCallSheetPatCellOf(OcptDayConvocation? convocation) {
   return "${ocptFormatDayMinute(start)} – ${ocptFormatDayMinute(end)}";
 }
 
-/// The role numbers of every role whose character is in one of [row]'s own [OcptCallSheetDayRow.shots], among
-/// [roles] — matched the way the app already matches a shot's own characters to a role everywhere
-/// else, through `normalizeCharacterName`.
+/// The role numbers of every role whose character is in one of [row]'s own
+/// [OcptCallSheetDayRow.shots], among [roles] — matched the way the app already matches a shot's
+/// own characters to a role everywhere else, through `normalizeCharacterName`.
 String ocptCallSheetRolesLabelOf(OcptCallSheetDayRow row, List<OcptRole> roles) {
   final characterNames = <String>{for (final shot in row.shots) ...shot.characters};
   if (characterNames.isEmpty) {
@@ -407,8 +409,9 @@ String ocptCallSheetConvocationPositionsLabel({
 }
 
 /// Turns [value] into a safe fragment of a file name: diacritics folded (through
-/// [ocptCallSheetFileNameDiacriticsFold], case kept), unsafe characters ([ocptCallSheetUnsafeFileNameChars]) dropped, runs
-/// of whitespace turned into a single dash, and any leading/trailing dash trimmed.
+/// [ocptCallSheetFileNameDiacriticsFold], case kept), unsafe characters
+/// ([ocptCallSheetUnsafeFileNameChars]) dropped, runs of whitespace turned into a single dash, and
+/// any leading/trailing dash trimmed.
 String ocptCallSheetSafeFileNamePart(String value) {
   final folded = StringBuffer();
   for (final rune in value.runes) {

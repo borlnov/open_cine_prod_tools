@@ -190,10 +190,10 @@ abstract final class OcptCallSheetTableSections {
   }
 
   /// A full-width band naming a shot run's own crew note(s) — printed the moment
-  /// [mainTableSection]'s own composition closes a table chunk on a row that carries one, since
-  /// the `pw.Table` row itself cannot span the page width a note deserves. Drawn like
-  /// [milestoneRowWidget]'s own container but **without** its [ocptCallSheetBandColor] fill, so a note reads
-  /// as a note rather than as another milestone.
+  /// [mainTableSection]'s own composition closes a table chunk on a row that carries one, since the
+  /// `pw.Table` row itself cannot span the page width a note deserves. Drawn like
+  /// [milestoneRowWidget]'s own container but **without** its [ocptCallSheetBandColor] fill, so a
+  /// note reads as a note rather than as another milestone.
   static pw.Widget crewNoteBandWidget({
     required OcptScriptPagePainter painter,
     required List<String> crewNotes,
@@ -215,8 +215,9 @@ abstract final class OcptCallSheetTableSections {
     ),
   );
 
-  /// One run of consecutive [OcptCallSheetDayRow.shotRun] rows, as a `SEQ / PLANS / EFFET / DÉCORS / RÔLES`
-  /// table — see [ocptCallSheetMainColumnWidths] for why the reference's own `RÉSUMÉ` column is not among them.
+  /// One run of consecutive [OcptCallSheetDayRow.shotRun] rows, as a `SEQ / PLANS / EFFET / DÉCORS
+  /// / RÔLES` table — see [ocptCallSheetMainColumnWidths] for why the reference's own `RÉSUMÉ`
+  /// column is not among them.
   static pw.Widget mainTable({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -399,8 +400,8 @@ abstract final class OcptCallSheetTableSections {
   /// than a shape: the two lists that read a *position* head it
   /// [OcptCallSheetLabels.positionsHeader] (their default), while the candidates list heads it
   /// [OcptCallSheetLabels.roleHeader], somebody seen for a part holding no position at all.
-  /// [OcptCallSheetPeopleListEntry.positionOrRole] has carried both readings since the cast-and-extras list
-  /// joined the crew list.
+  /// [OcptCallSheetPeopleListEntry.positionOrRole] has carried both readings since the
+  /// cast-and-extras list joined the crew list.
   static pw.Widget peopleListSection({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -550,8 +551,9 @@ abstract final class OcptCallSheetTableSections {
   );
 
   /// One [guestsSection] row's own `MOTIF` cell: the guest's own reason(s), then their own note(s)
-  /// on a muted second line when they carry any — the same shape [OcptCallSheetHeaderSections.contactsBlock]'s own contact
-  /// entries print a phone number under a position in.
+  /// on a muted second line when they carry any — the same shape
+  /// [OcptCallSheetHeaderSections.contactsBlock]'s own contact entries print a phone number under a
+  /// position in.
   static pw.Widget guestReasonCell({
     required OcptScriptPagePainter painter,
     required OcptScheduleGuestRow row,

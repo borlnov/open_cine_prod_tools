@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 /// A cell is the empty string when the row's own subject does not apply to that column at all (a
 /// location's row against a slot shot somewhere else, a role's row against a slot that doesn't
 /// convoke it) — never a placeholder standing in for a missing value, the distinction
-/// `OcptShootingPlanPdfService._gridDataCell`'s own doc comment already draws between a blank grid
+/// `OcptShootingPlanGridSections.gridDataCell`'s own doc comment already draws between a blank grid
 /// cell and a blank shot-table one. A caller substitutes its own "nothing here" mark for a
 /// genuinely missing value elsewhere; this model never does.
 class OcptShootingPlanGridRow extends Equatable {

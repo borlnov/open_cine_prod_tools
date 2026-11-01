@@ -18,7 +18,7 @@ const double ocptCallSheetSmallFontSizePt = 7;
 /// The padding, in points, inside one cell of a sheet's table and inside a milestone band.
 const double ocptCallSheetCellPaddingPt = 4;
 
-/// The most department columns `OcptCallSheetPdfService._contactsBlock` ever lays out in one
+/// The most department columns `OcptCallSheetHeaderSections.contactsBlock` ever lays out in one
 /// `pw.Row`, wrapping onto a further row rather than squeezing a ninth column onto the first.
 const int ocptCallSheetContactsColumnsPerRow = 4;
 
@@ -77,8 +77,8 @@ const Map<int, pw.TableColumnWidth> ocptCallSheetAuditionColumnWidths = {
 };
 
 /// The trailing guest table's `NOM / MOTIF / HORAIRES` columns — wider on the reason column than
-/// [ocptCallSheetPeopleColumnWidths]' own `POSTE(S)` since a guest's own reason is prose rather than a job
-/// title, and with no phone/email pair to make room for.
+/// [ocptCallSheetPeopleColumnWidths]' own `POSTE(S)` since a guest's own reason is prose rather
+/// than a job title, and with no phone/email pair to make room for.
 const Map<int, pw.TableColumnWidth> ocptCallSheetGuestColumnWidths = {
   0: pw.FlexColumnWidth(1.6),
   1: pw.FlexColumnWidth(2.4),
@@ -133,6 +133,6 @@ const Map<String, String> ocptCallSheetFileNameDiacriticsFold = {
 };
 
 /// The characters a file name may not hold on any platform this app targets, dropped in
-/// [ocptCallSheetSafeFileNamePart]: both path separator conventions, control characters, and the handful of
-/// characters Windows refuses in a file name.
+/// [ocptCallSheetSafeFileNamePart]: both path separator conventions, control characters, and the
+/// handful of characters Windows refuses in a file name.
 final RegExp ocptCallSheetUnsafeFileNameChars = RegExp(r'[\\/:*?"<>|\x00-\x1F]');

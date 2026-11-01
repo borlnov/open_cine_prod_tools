@@ -9,7 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 /// belongs to — [dayId]/[dayNumber] let a caller print or write a day tag once above the first
 /// column of its own group, [OcptShootingPlanGrids.slotColumns] itself carrying no grouping of its
 /// own (a caller compares one column's [dayId] against the one before it, exactly as
-/// `OcptShootingPlanPdfService._gridPage` already does).
+/// `OcptShootingPlanGridSections.gridPage` already does).
 class OcptShootingPlanGridColumn extends Equatable {
   /// Class constructor
   const OcptShootingPlanGridColumn({

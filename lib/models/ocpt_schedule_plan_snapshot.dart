@@ -865,7 +865,7 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// Every role a shot placed on [dayId] calls for, one [OcptScheduleAlertCalledRole] per matched
   /// character of every `shot` block of that day's own blocks, in block order. A character with no
   /// matching role (through [_roleIdByNormalizedName]) names nothing this rule can act on and is
-  /// silently skipped, exactly as `OcptShootingPlanPdfService._roleNamesOf` skips one.
+  /// silently skipped, exactly as `OcptShootingPlanDaySections.roleNamesOf` skips one.
   List<OcptScheduleAlertCalledRole> _calledRolesOfDay(String dayId) {
     final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
     final calledRoles = <OcptScheduleAlertCalledRole>[];

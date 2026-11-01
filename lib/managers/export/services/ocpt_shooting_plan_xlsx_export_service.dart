@@ -190,7 +190,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
 
   /// Writes one of the three slot-shaped summary grids (`Locations`, `Sequences`, `Crew and cast`)
   /// into [sheet]: a bold day-tag row (a day's tag printed once above the first of its own slot
-  /// columns, mirroring `OcptShootingPlanPdfService._gridPage`'s own header), a bold slot-label
+  /// columns, mirroring `OcptShootingPlanGridSections.gridPage`'s own header), a bold slot-label
   /// row, then [rows] — a row's own [OcptShootingPlanGridRow.isIndented] read as a two-space indent
   /// on its label, since a spreadsheet cell has no visual indent of its own to reach for.
   void _appendSlotGridSheet({
@@ -363,7 +363,7 @@ class OcptShootingPlanXlsxExportService extends AbsOcptService {
 
   /// The role names of every one of [block]'s own shot's `characters` matched against
   /// [plan]'s own roles (through `normalizeCharacterName`, the same join
-  /// `OcptShootingPlanPdfService._roleNamesOf` uses for the day agenda's own `Perso.` column), or
+  /// `OcptShootingPlanDaySections.roleNamesOf` uses for the day agenda's own `Perso.` column), or
   /// null for a block that is not a [OcptShootingBlockKind.shot] one or matches no role at all.
   String? _rolesOf(OcptShootingDayBlock block, OcptSchedulePlanSnapshot plan) {
     if (block.kind != OcptShootingBlockKind.shot || block.shotId == null) {

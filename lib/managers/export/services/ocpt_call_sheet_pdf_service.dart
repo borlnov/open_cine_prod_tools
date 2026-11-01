@@ -65,27 +65,28 @@ import 'package:pdf/widgets.dart' as pw;
 /// table and its audition table hold the blocks of its recipient's own slots, and then only the
 /// ones that recipient is actually **in**: an actor reads the shots calling a part they play, a
 /// technician reads their unit end to end, a candidate reads their own auditions, and every
-/// milestone stays for everybody ([ocptCallSheetEntriesOfRecipient]). A sheet is read down by one person to
-/// know their own day, and one handed the whole running order makes them work out which half is
-/// theirs. The audition table is a reading of that same timetable, not a directory — and **a sheet
-/// addressed to a candidate narrows both one step further, to that candidacy alone**: its audition
-/// table prints the auditions naming them and no other, and the candidates directory prints their
-/// line alone (ADR 0024). It is the one place a block-level link narrows something a slot-level one
-/// could not, and the reason is not tidiness: who else is being seen for a part, and on what phone
-/// number, is the production's business and not another candidate's. The cast table, the candidates
-/// list for every other recipient and the two closing directories are day-wide, because they answer
-/// "who else is on this day and how do I reach them", which is a question about the day rather than
-/// about the reader — and a crew that cannot phone each other on the morning of a shoot is a crew
-/// that stops. The cast table is day-wide in a second sense too: it lists every role the day
-/// **calls for**, including the ones a placed shot plays that nobody convoked, so a role number
-/// printed in the main table's own `RÔLES` column can always be looked up on the same sheet
-/// ([ocptCallSheetCastRowsOfDay]). The day's own events and its guests are day-wide for the same reason: an
-/// event is a fact about the day rather than about a unit, and a guest is owed an hour whichever
-/// slot happens to convoke the sheet's own recipient.
+/// milestone stays for everybody ([ocptCallSheetEntriesOfRecipient]). A sheet is read down by one
+/// person to know their own day, and one handed the whole running order makes them work out which
+/// half is theirs. The audition table is a reading of that same timetable, not a directory — and
+/// **a sheet addressed to a candidate narrows both one step further, to that candidacy alone**: its
+/// audition table prints the auditions naming them and no other, and the candidates directory
+/// prints their line alone (ADR 0024). It is the one place a block-level link narrows something a
+/// slot-level one could not, and the reason is not tidiness: who else is being seen for a part, and
+/// on what phone number, is the production's business and not another candidate's. The cast table,
+/// the candidates list for every other recipient and the two closing directories are day-wide,
+/// because they answer "who else is on this day and how do I reach them", which is a question about
+/// the day rather than about the reader — and a crew that cannot phone each other on the morning of
+/// a shoot is a crew that stops. The cast table is day-wide in a second sense too: it lists every
+/// role the day **calls for**, including the ones a placed shot plays that nobody convoked, so a
+/// role number printed in the main table's own `RÔLES` column can always be looked up on the same
+/// sheet ([ocptCallSheetCastRowsOfDay]). The day's own events and its guests are day-wide for the
+/// same reason: an event is a fact about the day rather than about a unit, and a guest is owed an
+/// hour whichever slot happens to convoke the sheet's own recipient.
 ///
 /// **A block's own [OcptShootingDayBlock.crewNote] prints under its own row**, unlike its private
-/// `notes`, which never leaves the office — see [OcptCallSheetTableSections.mainTableSection] for how a `pw.Table` row, which
-/// cannot itself span the page, still ends up with a full-width note directly beneath it.
+/// `notes`, which never leaves the office — see [OcptCallSheetTableSections.mainTableSection] for
+/// how a `pw.Table` row, which cannot itself span the page, still ends up with a full-width note
+/// directly beneath it.
 ///
 /// **Every hour printed comes off [OcptSchedulePlanSnapshot.timelinesOfDay]'s resolved clocks and
 /// [OcptSchedulePlanSnapshot.convocationsOfDay]'s computed figures** — never off a stored anchor,
@@ -94,11 +95,11 @@ import 'package:pdf/widgets.dart' as pw;
 /// one back onto a clock face.
 ///
 /// **A sheet that runs long says on every page what it is**: the running head is drawn through
-/// [pw.MultiPage]'s own `header:` ([_page]) and every table here marks its header row
-/// `repeat: true`, so a second page carries the project's name and knows which column is `ARRIVÉE`
-/// rather than handing somebody five anonymous columns. `OcptShootingPlanPdfService` states the
-/// same two rules for the same reason — a printed page is read on its own, and the sheet it was
-/// stapled to is regularly not in the reader's hand.
+/// [pw.MultiPage]'s own `header:` ([_page]) and every table here marks its header row `repeat:
+/// true`, so a second page carries the project's name and knows which column is `ARRIVÉE` rather
+/// than handing somebody five anonymous columns. `OcptShootingPlanPdfService` states the same two
+/// rules for the same reason — a printed page is read on its own, and the sheet it was stapled to
+/// is regularly not in the reader's hand.
 class OcptCallSheetPdfService extends AbsOcptService {
   /// Creates an [OcptCallSheetPdfService].
   ///
@@ -117,11 +118,11 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// The `.pdf` file name of the named call sheet of day [dayNumber] for [personName]
   /// (`FDS-J2-Elisa-Mabit.pdf`).
   ///
-  /// [personName] is sanitized through [ocptCallSheetSafeFileNamePart] — diacritics folded, unsafe characters
-  /// dropped, whitespace turned into dashes — and a name that sanitizes down to nothing (blank, or
-  /// made entirely of characters a file name cannot hold) falls back to [OcptCallSheetLabels
-  /// .unnamedPersonLabel], sanitized the same way, so the file still gets a stable, readable name
-  /// rather than none at all.
+  /// [personName] is sanitized through [ocptCallSheetSafeFileNamePart] — diacritics folded, unsafe
+  /// characters dropped, whitespace turned into dashes — and a name that sanitizes down to nothing
+  /// (blank, or made entirely of characters a file name cannot hold) falls back to
+  /// [OcptCallSheetLabels .unnamedPersonLabel], sanitized the same way, so the file still gets a
+  /// stable, readable name rather than none at all.
   String namedCallSheetFileName({
     required OcptCallSheetLabels labels,
     required int dayNumber,
@@ -328,8 +329,8 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// ([OcptDayConvocation.personId]) — an uncast role has nobody to bring anything, so the section
   /// is absent altogether rather than a heading over an em dash — and only when
   /// [OcptSchedulePlanSnapshot.elementsToBringOnDay] actually joins something, exactly as
-  /// [OcptCallSheetHeaderSections.crewNoteSection] and [OcptCallSheetHeaderSections.eventsSection] are already skipped rather than drawn empty (their own
-  /// doc comments).
+  /// [OcptCallSheetHeaderSections.crewNoteSection] and [OcptCallSheetHeaderSections.eventsSection]
+  /// are already skipped rather than drawn empty (their own doc comments).
   ///
   /// [exportDate] carries the same contract it does on [generateGeneralCallSheet] — see there.
   Future<Uint8List> generateNamedCallSheet({
@@ -586,10 +587,10 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// folded in here, over the very same
   /// [OcptCallSheetHeaderSections.contactsBlock]/[OcptCallSheetTableSections.mainTableSection]/[OcptCallSheetTableSections.castTableSection]/[OcptCallSheetTableSections.peopleListSection]/[OcptCallSheetTableSections.guestsSection]
   /// builders [generateNamedCallSheet] also calls directly. [generateNamedCallSheet] does not call
-  /// this method at all: its own recipient line and its own single band ([OcptCallSheetHeaderSections.ownBandSection],
-  /// replacing the day-wide time bands this method prints) make its ordering different enough that
-  /// composing it from this list would need more conditionals than just calling the same builders
-  /// itself does.
+  /// this method at all: its own recipient line and its own single band
+  /// ([OcptCallSheetHeaderSections.ownBandSection], replacing the day-wide time bands this method
+  /// prints) make its ordering different enough that composing it from this list would need more
+  /// conditionals than just calling the same builders itself does.
   List<pw.Widget> _sharedSections({
     required OcptScriptPagePainter painter,
     required OcptCallSheetLabels labels,
@@ -671,7 +672,7 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// **once**, where a `header:` is drawn on every physical page the flow lands on. A call sheet
   /// whose cast table and two directories push it onto a second page was handing that page over
   /// naming no project and no document at all — the same fix
-  /// `OcptShootingPlanPdfService._runningHead` carries for the same reason, a sheet being read one
+  /// `OcptShootingPlanPageParts.runningHead` carries for the same reason, a sheet being read one
   /// page at a time whatever it was stapled to.
   pw.Page _page({
     required OcptScriptPagePainter painter,

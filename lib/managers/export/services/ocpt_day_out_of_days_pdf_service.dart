@@ -474,7 +474,7 @@ class OcptDayOutOfDaysPdfService extends AbsOcptService {
 
   /// The running head naming the project and the document on the left, [versionLine] on the right,
   /// over a thin rule — handed to every page's own `header:` callback rather than to its `build:`
-  /// list, for the reason `OcptShootingPlanPdfService._runningHead`'s own doc comment gives: a
+  /// list, for the reason `OcptShootingPlanPageParts.runningHead`'s own doc comment gives: a
   /// `build:` child is drawn once per flow, a `header:` one on every page that flow overflows onto.
   pw.Widget _runningHead({
     required OcptScriptPagePainter painter,
