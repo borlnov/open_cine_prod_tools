@@ -9,3 +9,15 @@ b04f907a5746747eb790cd14cefc8432756b6ac6
 
 # style: wrap comments and strings at 100 columns
 76754f2886a2e87113270b91ace136af3bab0441
+
+# style: order members in managers and models
+dde2c679f0a58c7692f589cba58b715ded84ef18
+
+# style: order class members in the UI
+d8588ee3dfeac85afe2d684e1ff7a4a7b332e4f5
+
+# style: order class members in the packages
+89bfe809dd94c669c4b9be16e2febb2df9d17dcd
+
+# style: order class members in tests and tools
+2da87d7b41f9bb7efc36dddf3caeb7e1f184609a
