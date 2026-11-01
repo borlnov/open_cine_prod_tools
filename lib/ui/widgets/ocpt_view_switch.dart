@@ -46,15 +46,40 @@ class OcptViewSwitch<T> extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [for (final segment in segments) _buildSegment(context, segment)],
+        children: [
+          for (final segment in segments)
+            _OcptViewSwitchSegmentButton<T>(
+              segment: segment,
+              isActive: value == segment.value,
+              onChanged: onChanged,
+            ),
+        ],
       ),
     );
   }
+}
 
-  /// One of the switch's own segments.
-  Widget _buildSegment(BuildContext context, OcptViewSwitchSegment<T> segment) {
+/// One of the switch's own segments.
+class _OcptViewSwitchSegmentButton<T> extends StatelessWidget {
+  /// The segment drawn.
+  final OcptViewSwitchSegment<T> segment;
+
+  /// Whether the segment is the one selected.
+  final bool isActive;
+
+  /// Called with the segment's value when it is tapped while inactive.
+  final ValueChanged<T> onChanged;
+
+  /// Class constructor
+  const _OcptViewSwitchSegmentButton({
+    required this.segment,
+    required this.isActive,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isActive = value == segment.value;
 
     return InkWell(
       onTap: isActive ? null : () => onChanged(segment.value),

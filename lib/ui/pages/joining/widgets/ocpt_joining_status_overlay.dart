@@ -53,6 +53,7 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tr = Tr.of(context);
 
     return Positioned.fill(
       child: ColoredBox(
@@ -63,7 +64,12 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: succeeded ? _buildSuccess(context, theme) : _buildBusy(context, theme),
+                child: succeeded
+                    ? _OcptJoiningSuccessContent(onOpenRequested: onOpenRequested)
+                    : _OcptJoiningBusyContent(
+                        stepLabel: _stepLabel(tr),
+                        onCancelRequested: onCancelRequested,
+                      ),
               ),
             ),
           ),
@@ -72,8 +78,30 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
     );
   }
 
-  /// The busy state: spinner, current step label, "Annuler".
-  Widget _buildBusy(BuildContext context, ThemeData theme) {
+  /// [step]'s own label, falling back to the generic "Retrieving the project…" wording for the
+  /// null case this class's own doc comment explains cannot actually occur.
+  String _stepLabel(Tr tr) => switch (step) {
+    OcptJoinStep.connecting => tr.joiningStepConnecting,
+    OcptJoinStep.downloading => tr.joiningStepDownloading,
+    OcptJoinStep.opening => tr.joiningStepOpening,
+    null => tr.joiningProgressTitle,
+  };
+}
+
+/// The busy state: spinner, current step label, "Annuler".
+class _OcptJoiningBusyContent extends StatelessWidget {
+  /// The current step's label.
+  final String stepLabel;
+
+  /// Called when "Annuler" is pressed.
+  final VoidCallback onCancelRequested;
+
+  /// Class constructor
+  const _OcptJoiningBusyContent({required this.stepLabel, required this.onCancelRequested});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tr = Tr.of(context);
 
     return Column(
@@ -81,15 +109,25 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
       children: [
         const SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 3)),
         const SizedBox(height: 16),
-        Text(_stepLabel(tr), style: theme.textTheme.titleSmall, textAlign: TextAlign.center),
+        Text(stepLabel, style: theme.textTheme.titleSmall, textAlign: TextAlign.center),
         const SizedBox(height: 20),
         OutlinedButton(onPressed: onCancelRequested, child: Text(tr.joiningCancelAction)),
       ],
     );
   }
+}
 
-  /// The success state: check mark, "Projet récupéré", "Ouvrir".
-  Widget _buildSuccess(BuildContext context, ThemeData theme) {
+/// The success state: check mark, "Projet récupéré", "Ouvrir".
+class _OcptJoiningSuccessContent extends StatelessWidget {
+  /// Called when "Ouvrir" is pressed.
+  final VoidCallback onOpenRequested;
+
+  /// Class constructor
+  const _OcptJoiningSuccessContent({required this.onOpenRequested});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tr = Tr.of(context);
     final successColor =
         theme.extension<OcptSpecificColors>()?.shotStatusShot ?? theme.colorScheme.primary;
@@ -109,13 +147,4 @@ class OcptJoiningStatusOverlay extends StatelessWidget {
       ],
     );
   }
-
-  /// [step]'s own label, falling back to the generic "Retrieving the project…" wording for the
-  /// null case this class's own doc comment explains cannot actually occur.
-  String _stepLabel(Tr tr) => switch (step) {
-    OcptJoinStep.connecting => tr.joiningStepConnecting,
-    OcptJoinStep.downloading => tr.joiningStepDownloading,
-    OcptJoinStep.opening => tr.joiningStepOpening,
-    null => tr.joiningProgressTitle,
-  };
 }

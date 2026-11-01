@@ -160,19 +160,6 @@ class OcptWorkspaceDockDivider extends StatefulWidget {
 /// The state of [OcptWorkspaceDockDivider]: tracks hover and drag to tint the divider line and its
 /// grip.
 class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
-  /// The grip's own width, in pixels — narrower than [OcptWorkspaceDock.dividerHitWidth] so it sits
-  /// clear of both edges of the hit area.
-  static const double _gripWidth = 6;
-
-  /// The grip's own height, in pixels.
-  static const double _gripHeight = 32;
-
-  /// The diameter of each of the grip's three dots.
-  static const double _gripDotSize = 2.5;
-
-  /// The vertical gap between two of the grip's dots.
-  static const double _gripDotGap = 3;
-
   /// Whether the pointer is currently hovering the divider.
   bool _isHovered = false;
 
@@ -205,17 +192,40 @@ class _OcptWorkspaceDockDividerState extends State<OcptWorkspaceDockDivider> {
               // The full-height seam line, behind the grip: a childless [Container] with a forced
               // width fills the loose height Center hands it.
               Center(child: Container(width: 1, color: lineColor)),
-              Center(child: _buildGrip(theme, isTinted)),
+              Center(child: _OcptWorkspaceDockGrip(isTinted: isTinted)),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  /// Builds the three-dot grip: a rounded, faintly filled pill carrying three stacked dots, all of
-  /// it tinted `primary` while [isTinted] (hovered or dragged) so grabbing it lights it up.
-  Widget _buildGrip(ThemeData theme, bool isTinted) {
+/// The divider's three-dot grip: a rounded, faintly filled pill carrying three stacked dots, all of
+/// it tinted `primary` while [isTinted] (hovered or dragged) so grabbing it lights it up.
+class _OcptWorkspaceDockGrip extends StatelessWidget {
+  /// The grip's own width, in pixels — narrower than [OcptWorkspaceDock.dividerHitWidth] so it sits
+  /// clear of both edges of the hit area.
+  static const double _gripWidth = 6;
+
+  /// The grip's own height, in pixels.
+  static const double _gripHeight = 32;
+
+  /// The diameter of each of the grip's three dots.
+  static const double _gripDotSize = 2.5;
+
+  /// The vertical gap between two of the grip's dots.
+  static const double _gripDotGap = 3;
+
+  /// Whether the divider is hovered or dragged.
+  final bool isTinted;
+
+  /// Class constructor
+  const _OcptWorkspaceDockGrip({required this.isTinted});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final dotColor = isTinted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
     final pillColor = isTinted
         ? theme.colorScheme.primary.withValues(alpha: 0.16)

@@ -149,36 +149,36 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (!hasResults)
-                      _buildHint(context, tr.resourcesCrewPositionPickerNoResultsHint)
+                      _OcptCrewPositionPickerHint(
+                        message: tr.resourcesCrewPositionPickerNoResultsHint,
+                      )
                     else ...[
                       if (filteredPromoted.isNotEmpty)
-                        _buildSection(
-                          context,
-                          tr,
+                        _OcptCrewPositionPickerSection(
                           heading: tr.resourcesCrewPositionPickerPromotedHeading,
                           uppercase: false,
                           children: [
                             for (final ref in filteredPromoted)
-                              _buildRow(context, _labelOf(tr, ref), ref),
+                              _OcptCrewPositionPickerRow(label: _labelOf(tr, ref), ref: ref),
                           ],
                         ),
                       for (final department in OcptCrewDepartment.values)
                         if (byDepartment[department] case final positions?)
-                          _buildSection(
-                            context,
-                            tr,
+                          _OcptCrewPositionPickerSection(
                             heading: ocptCrewDepartmentLabel(tr, department),
                             children: [
                               for (final position in positions)
-                                _buildRow(
-                                  context,
-                                  ocptCrewPositionLabel(tr, position.id),
-                                  OcptCrewPositionRef(positionId: position.id, customLabel: ""),
+                                _OcptCrewPositionPickerRow(
+                                  label: ocptCrewPositionLabel(tr, position.id),
+                                  ref: OcptCrewPositionRef(
+                                    positionId: position.id,
+                                    customLabel: "",
+                                  ),
                                 ),
                             ],
                           ),
                     ],
-                    if (widget.allowCustomLabel) _buildCustomRow(context, tr),
+                    if (widget.allowCustomLabel) const _OcptCrewPositionPickerCustomRow(),
                   ],
                 ),
               ),
@@ -200,16 +200,29 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
   /// person declared.
   String _labelOf(Tr tr, OcptCrewPositionRef ref) =>
       ref.positionId.isEmpty ? ref.customLabel : ocptCrewPositionLabel(tr, ref.positionId);
+}
 
-  /// One heading, in a muted, bold caption — upper-case for [uppercase] (a department heading),
-  /// left as written for the promoted section's own heading instead — over its own [children].
-  Widget _buildSection(
-    BuildContext context,
-    Tr tr, {
-    required String heading,
-    required List<Widget> children,
-    bool uppercase = true,
-  }) {
+/// One heading, in a muted, bold caption — upper-case for [uppercase] (a department heading), left
+/// as written for the promoted section's own heading instead — over its own [children].
+class _OcptCrewPositionPickerSection extends StatelessWidget {
+  /// The section's heading.
+  final String heading;
+
+  /// The rows under the heading.
+  final List<Widget> children;
+
+  /// Whether the heading is shown upper-case.
+  final bool uppercase;
+
+  /// Class constructor
+  const _OcptCrewPositionPickerSection({
+    required this.heading,
+    required this.children,
+    this.uppercase = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(
@@ -232,9 +245,21 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
       ),
     );
   }
+}
 
-  /// One clickable row, naming [label] — picking it pops the dialog with [ref].
-  Widget _buildRow(BuildContext context, String label, OcptCrewPositionRef ref) => InkWell(
+/// One clickable row, naming [label] — picking it pops the dialog with [ref].
+class _OcptCrewPositionPickerRow extends StatelessWidget {
+  /// The row's text.
+  final String label;
+
+  /// The position the row picks.
+  final OcptCrewPositionRef ref;
+
+  /// Class constructor
+  const _OcptCrewPositionPickerRow({required this.label, required this.ref});
+
+  @override
+  Widget build(BuildContext context) => InkWell(
     onTap: () => globalGetIt().get<OcptRouterManager>().pop<OcptCrewPositionPickResult>(
       OcptCrewPositionPickResult.position(ref),
     ),
@@ -245,10 +270,16 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
       child: Text(label, style: Theme.of(context).textTheme.bodySmall),
     ),
   );
+}
 
-  /// The shared "Custom label…" row, always last and never filtered by the search — picking it
-  /// pops the dialog with [OcptCrewPositionPickResult.custom].
-  Widget _buildCustomRow(BuildContext context, Tr tr) => Padding(
+/// The shared "Custom label…" row, always last and never filtered by the search — picking it pops
+/// the dialog with [OcptCrewPositionPickResult.custom].
+class _OcptCrewPositionPickerCustomRow extends StatelessWidget {
+  /// Class constructor
+  const _OcptCrewPositionPickerCustomRow();
+
+  @override
+  Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 4),
     child: InkWell(
       onTap: () => globalGetIt().get<OcptRouterManager>().pop<OcptCrewPositionPickResult>(
@@ -259,7 +290,7 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Text(
-          tr.resourcesPositionCustomOptionLabel,
+          Tr.of(context).resourcesPositionCustomOptionLabel,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             fontStyle: FontStyle.italic,
             color: Theme.of(context).colorScheme.primary,
@@ -268,9 +299,18 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
       ),
     ),
   );
+}
 
-  /// A hint filling the list's own area while the search matches nothing.
-  Widget _buildHint(BuildContext context, String message) => Padding(
+/// A hint filling the list's own area while the search matches nothing.
+class _OcptCrewPositionPickerHint extends StatelessWidget {
+  /// The hint's text.
+  final String message;
+
+  /// Class constructor
+  const _OcptCrewPositionPickerHint({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 16),
     child: Text(
       message,

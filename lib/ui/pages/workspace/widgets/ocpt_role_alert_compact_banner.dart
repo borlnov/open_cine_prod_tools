@@ -63,23 +63,23 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
 
     final lines = <Widget>[
       for (final alert in orphanedAlerts)
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.roleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactOrphanedLine(alert.characterName),
         ),
       for (final alert in collisionAlerts) ...[
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.screenplayRoleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
-        _buildLine(
-          theme: theme,
+        _OcptRoleAlertCompactLine(
           color: color,
           roleId: alert.handAddedRoleId,
+          onRoleTapped: onRoleTapped,
           text: tr.roleAlertCompactCollisionLine(alert.name),
         ),
       ],
@@ -95,14 +95,32 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: lines),
     );
   }
+}
 
-  /// One line: [text], tappable onto [roleId].
-  Widget _buildLine({
-    required ThemeData theme,
-    required Color color,
-    required String roleId,
-    required String text,
-  }) => InkWell(
+/// One line: [text], tappable onto [roleId].
+class _OcptRoleAlertCompactLine extends StatelessWidget {
+  /// The colour of the icons and the text.
+  final Color color;
+
+  /// The role the line leads to.
+  final String roleId;
+
+  /// The line's text.
+  final String text;
+
+  /// Called with [roleId] when the line is tapped.
+  final ValueChanged<String> onRoleTapped;
+
+  /// Class constructor
+  const _OcptRoleAlertCompactLine({
+    required this.color,
+    required this.roleId,
+    required this.text,
+    required this.onRoleTapped,
+  });
+
+  @override
+  Widget build(BuildContext context) => InkWell(
     onTap: () => onRoleTapped(roleId),
     mouseCursor: ocptClickableCursor,
     borderRadius: BorderRadius.circular(ocptRadiusMedium),
@@ -113,7 +131,7 @@ class OcptRoleAlertCompactBanner extends StatelessWidget {
           Icon(Icons.person_off_outlined, size: 14, color: color),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(text, style: theme.textTheme.bodySmall?.copyWith(color: color)),
+            child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color)),
           ),
           Icon(Icons.chevron_right, size: 16, color: color),
         ],

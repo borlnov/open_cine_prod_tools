@@ -143,92 +143,25 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
               const SizedBox(height: 12),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 320),
-                child: _buildList(tr, filtered),
+                child: _OcptDictionaryWordList(
+                  isDictionaryEmpty: _words.isEmpty,
+                  words: filtered,
+                  confirmingRemovalOf: _confirmingRemovalOf,
+                  onRemovalRequested: (word) => setState(() => _confirmingRemovalOf = word),
+                  onRemovalCancelled: () => setState(() => _confirmingRemovalOf = null),
+                  onRemovalConfirmed: _removeWord,
+                ),
               ),
               const SizedBox(height: 12),
-              _buildAddField(tr),
+              _OcptDictionaryAddField(
+                controller: _addController,
+                errorText: _addError,
+                onSubmitted: _addWord,
+              ),
             ],
           ),
         ),
         actions: [FilledButton(onPressed: _close, child: Text(tr.projectDictionaryCloseAction))],
-      ),
-    );
-  }
-
-  /// Builds the scrollable word list, or the one of its two empty-state lines that applies: the
-  /// dictionary itself holds nothing yet, or the current filter matches none of what it holds —
-  /// two different facts, worth two different sentences.
-  Widget _buildList(Tr tr, List<String> filtered) {
-    if (_words.isEmpty) {
-      return Text(tr.projectDictionaryEmptyMessage);
-    }
-    if (filtered.isEmpty) {
-      return Text(tr.projectDictionaryNoFilterMatchMessage);
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final word = filtered[index];
-        return KeyedSubtree(
-          key: ValueKey(word),
-          child: _confirmingRemovalOf == word
-              ? _buildRemovalConfirmationRow(tr, word)
-              : _buildWordRow(tr, word),
-        );
-      },
-    );
-  }
-
-  /// Builds one ordinary row: the word, and the `✕` that turns this very row into
-  /// [_buildRemovalConfirmationRow].
-  Widget _buildWordRow(Tr tr, String word) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(
-      children: [
-        Expanded(child: Text(word)),
-        IconButton(
-          icon: const Icon(Icons.close, size: 18),
-          tooltip: tr.projectDictionaryRemoveTooltip,
-          visualDensity: VisualDensity.compact,
-          onPressed: () => setState(() => _confirmingRemovalOf = word),
-        ),
-      ],
-    ),
-  );
-
-  /// Builds the in-row `Remove?` question a row's own `✕` opened — the `OcptProjectVersionCard`
-  /// idiom, answered inside the row rather than by a stacked confirm dialog. `No` simply forgets
-  /// which word was asking, restoring the row untouched; `Yes` drops the word from the working
-  /// copy.
-  Widget _buildRemovalConfirmationRow(Tr tr, String word) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              tr.projectDictionaryRemoveConfirmQuestion,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-            ),
-          ),
-          TextButton(
-            onPressed: () => setState(() => _confirmingRemovalOf = null),
-            child: Text(tr.projectDictionaryRemoveConfirmNoAction),
-          ),
-          const SizedBox(width: 4),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
-            onPressed: () => _removeWord(word),
-            child: Text(tr.projectDictionaryRemoveConfirmYesAction),
-          ),
-        ],
       ),
     );
   }
@@ -240,28 +173,6 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
       _confirmingRemovalOf = null;
     });
   }
-
-  /// Builds the add field and its `Add` button: trims on submission, refuses a blank entry
-  /// silently (nothing worth learning), and refuses a word the working copy already holds
-  /// case-insensitively with [_addError] under the field.
-  Widget _buildAddField(Tr tr) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Expanded(
-        child: TextField(
-          controller: _addController,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: tr.projectDictionaryAddFieldHint,
-            errorText: _addError,
-          ),
-          onSubmitted: (_) => _addWord(),
-        ),
-      ),
-      const SizedBox(width: 8),
-      FilledButton(onPressed: _addWord, child: Text(tr.projectDictionaryAddAction)),
-    ],
-  );
 
   /// Adds the add field's current text to the working copy, in its sorted place, and clears the
   /// field — or refuses it, silently for a blank entry, with [_addError] for a case-insensitive
@@ -316,4 +227,193 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
       final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
       return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
     });
+}
+
+/// The scrollable word list, or the one of its two empty-state lines that applies: the dictionary
+/// itself holds nothing yet, or the current filter matches none of what it holds — two different
+/// facts, worth two different sentences.
+class _OcptDictionaryWordList extends StatelessWidget {
+  /// Whether the dictionary itself holds no word at all.
+  final bool isDictionaryEmpty;
+
+  /// The words the current filter keeps, in display order.
+  final List<String> words;
+
+  /// The word whose removal question is open, or null.
+  final String? confirmingRemovalOf;
+
+  /// Called with the word whose `✕` was pressed.
+  final ValueChanged<String> onRemovalRequested;
+
+  /// Called when the removal question is answered `No`.
+  final VoidCallback onRemovalCancelled;
+
+  /// Called with the word whose removal was answered `Yes`.
+  final ValueChanged<String> onRemovalConfirmed;
+
+  /// Class constructor
+  const _OcptDictionaryWordList({
+    required this.isDictionaryEmpty,
+    required this.words,
+    required this.confirmingRemovalOf,
+    required this.onRemovalRequested,
+    required this.onRemovalCancelled,
+    required this.onRemovalConfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    if (isDictionaryEmpty) {
+      return Text(tr.projectDictionaryEmptyMessage);
+    }
+    if (words.isEmpty) {
+      return Text(tr.projectDictionaryNoFilterMatchMessage);
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: words.length,
+      itemBuilder: (context, index) {
+        final word = words[index];
+        return KeyedSubtree(
+          key: ValueKey(word),
+          child: confirmingRemovalOf == word
+              ? _OcptDictionaryRemovalConfirmationRow(
+                  onCancelled: onRemovalCancelled,
+                  onConfirmed: () => onRemovalConfirmed(word),
+                )
+              : _OcptDictionaryWordRow(
+                  word: word,
+                  onRemovalRequested: () => onRemovalRequested(word),
+                ),
+        );
+      },
+    );
+  }
+}
+
+/// One ordinary row: the word, and the `✕` that turns this very row into
+/// [_OcptDictionaryRemovalConfirmationRow].
+class _OcptDictionaryWordRow extends StatelessWidget {
+  /// The word shown.
+  final String word;
+
+  /// Called when the `✕` is pressed.
+  final VoidCallback onRemovalRequested;
+
+  /// Class constructor
+  const _OcptDictionaryWordRow({required this.word, required this.onRemovalRequested});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: Row(
+      children: [
+        Expanded(child: Text(word)),
+        IconButton(
+          icon: const Icon(Icons.close, size: 18),
+          tooltip: Tr.of(context).projectDictionaryRemoveTooltip,
+          visualDensity: VisualDensity.compact,
+          onPressed: onRemovalRequested,
+        ),
+      ],
+    ),
+  );
+}
+
+/// The in-row `Remove?` question a row's own `✕` opened — the `OcptProjectVersionCard` idiom,
+/// answered inside the row rather than by a stacked confirm dialog. `No` simply forgets which word
+/// was asking, restoring the row untouched; `Yes` drops the word from the working copy.
+class _OcptDictionaryRemovalConfirmationRow extends StatelessWidget {
+  /// Called when the question is answered `No`.
+  final VoidCallback onCancelled;
+
+  /// Called when the question is answered `Yes`.
+  final VoidCallback onConfirmed;
+
+  /// Class constructor
+  const _OcptDictionaryRemovalConfirmationRow({
+    required this.onCancelled,
+    required this.onConfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              tr.projectDictionaryRemoveConfirmQuestion,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+            ),
+          ),
+          TextButton(
+            onPressed: onCancelled,
+            child: Text(tr.projectDictionaryRemoveConfirmNoAction),
+          ),
+          const SizedBox(width: 4),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            onPressed: onConfirmed,
+            child: Text(tr.projectDictionaryRemoveConfirmYesAction),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The add field and its `Add` button: trims on submission, refuses a blank entry silently
+/// (nothing worth learning), and refuses a word the working copy already holds case-insensitively
+/// with an error under the field.
+class _OcptDictionaryAddField extends StatelessWidget {
+  /// The controller of the add field.
+  final TextEditingController controller;
+
+  /// The error shown under the field, or null.
+  final String? errorText;
+
+  /// Called when the field is submitted or `Add` is pressed.
+  final VoidCallback onSubmitted;
+
+  /// Class constructor
+  const _OcptDictionaryAddField({
+    required this.controller,
+    required this.errorText,
+    required this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.projectDictionaryAddFieldHint,
+              errorText: errorText,
+            ),
+            onSubmitted: (_) => onSubmitted(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(onPressed: onSubmitted, child: Text(tr.projectDictionaryAddAction)),
+      ],
+    );
+  }
 }

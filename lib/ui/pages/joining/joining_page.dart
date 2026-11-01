@@ -109,11 +109,20 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
                     children: [
                       Text(tr.joiningIntro, style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 18),
-                      _buildSegmentedControl(tr, theme),
+                      _OcptJoiningSegmentedControl(
+                        selectedTab: _selectedTab,
+                        onSelected: (tab) => setState(() => _selectedTab = tab),
+                      ),
                       const SizedBox(height: 18),
-                      _buildSelectedTab(state),
+                      _OcptJoiningSelectedTab(
+                        selectedTab: _selectedTab,
+                        isJoining: state.isJoining,
+                        scanStatus: _scanStatus,
+                        onManualJoinRequested: _onManualJoinRequested,
+                        onScanned: _onScanned,
+                      ),
                       const SizedBox(height: 16),
-                      _buildNote(tr, theme),
+                      const _OcptJoiningNote(),
                     ],
                   ),
                 ),
@@ -134,113 +143,33 @@ class _OcptJoiningViewState extends State<OcptJoiningView> {
     },
   );
 
-  /// The segmented control switching between [_OcptJoiningTab.scanner] and
-  /// [_OcptJoiningTab.manual], drawn on every platform — matching the Rejoindre mock-up's own
-  /// always-visible two segments — even though only mobile ever shows a real camera behind the
-  /// first one.
-  Widget _buildSegmentedControl(Tr tr, ThemeData theme) => SegmentedButton<_OcptJoiningTab>(
-    segments: [
-      ButtonSegment(value: _OcptJoiningTab.scanner, label: Text(tr.joiningTabScanner)),
-      ButtonSegment(value: _OcptJoiningTab.manual, label: Text(tr.joiningTabManual)),
-    ],
-    selected: {_selectedTab},
-    showSelectedIcon: false,
-    onSelectionChanged: (selection) => setState(() => _selectedTab = selection.first),
-  );
-
-  /// The content under the segmented control: the real scanner on mobile, a fixed "camera
-  /// unavailable" card on every other platform, or the manual entry form.
-  Widget _buildSelectedTab(OcptJoiningState state) {
-    if (_selectedTab == _OcptJoiningTab.manual) {
-      return OcptJoiningManualView(
-        isJoining: state.isJoining,
-        onJoinRequested: (inviteLinkText) {
-          _lastSubmissionFromScanner = false;
-          context.read<OcptJoiningBloc>().add(
-            OcptJoiningManualSubmittedEvent(
-              inviteLinkText: inviteLinkText,
-              destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
-            ),
-          );
-        },
-      );
-    }
-
-    if (globalGetIt().get<PlatformManager>().isMobile) {
-      return OcptJoiningScannerView(
-        status: _scanStatus,
-        onScanned: (scannedText) {
-          // Optimistic: the code was successfully decoded, which is the whole of what "a valid
-          // scan" means here — whether it turns out to be a valid invite at all is for the bloc to
-          // decide, and [_onJoinFailed] corrects the colour to red if it wasn't.
-          setState(() {
-            _lastSubmissionFromScanner = true;
-            _scanStatus = OcptJoiningScanStatus.success;
-          });
-          context.read<OcptJoiningBloc>().add(
-            OcptJoiningInviteScannedEvent(
-              scannedText,
-              destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
-            ),
-          );
-        },
-      );
-    }
-
-    return _buildScannerUnavailableCard();
-  }
-
-  /// The camera-scan tab's own content on a platform with no camera at all.
-  Widget _buildScannerUnavailableCard() {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          children: [
-            Icon(Icons.videocam_off_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(
-              tr.joiningScannerUnavailableTitle,
-              style: theme.textTheme.titleSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              tr.joiningScannerUnavailableMessage,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+  /// Asks the bloc to join from the invite link typed on the manual tab.
+  void _onManualJoinRequested(String inviteLinkText) {
+    _lastSubmissionFromScanner = false;
+    context.read<OcptJoiningBloc>().add(
+      OcptJoiningManualSubmittedEvent(
+        inviteLinkText: inviteLinkText,
+        destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
       ),
     );
   }
 
-  /// The note explaining that joining downloads a full local copy of the project — the mock-up's
-  /// own callout, shown under both tabs.
-  Widget _buildNote(Tr tr, ThemeData theme) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
-      borderRadius: BorderRadius.circular(ocptRadiusMedium),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline, size: 18, color: theme.colorScheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            tr.joiningNoteText,
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
-          ),
-        ),
-      ],
-    ),
-  );
+  /// Asks the bloc to join from the invite the scanner decoded.
+  void _onScanned(String scannedText) {
+    // Optimistic: the code was successfully decoded, which is the whole of what "a valid
+    // scan" means here — whether it turns out to be a valid invite at all is for the bloc to
+    // decide, and [_onJoinFailed] corrects the colour to red if it wasn't.
+    setState(() {
+      _lastSubmissionFromScanner = true;
+      _scanStatus = OcptJoiningScanStatus.success;
+    });
+    context.read<OcptJoiningBloc>().add(
+      OcptJoiningInviteScannedEvent(
+        scannedText,
+        destinationConfirmButtonText: Tr.of(context).joiningDestinationConfirmAction,
+      ),
+    );
+  }
 
   /// Shows [OcptJoiningState.joinFailed]'s own snack bar, then dispatches the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptSharingView`'s own `_onPairingFailed`.
@@ -285,6 +214,146 @@ class _OcptJoiningChip extends StatelessWidget {
       child: Text(
         label,
         style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// The segmented control switching between [_OcptJoiningTab.scanner] and
+/// [_OcptJoiningTab.manual], drawn on every platform — matching the Rejoindre mock-up's own
+/// always-visible two segments — even though only mobile ever shows a real camera behind the
+/// first one.
+class _OcptJoiningSegmentedControl extends StatelessWidget {
+  /// The tab currently shown.
+  final _OcptJoiningTab selectedTab;
+
+  /// Called with the tab the user picked.
+  final ValueChanged<_OcptJoiningTab> onSelected;
+
+  /// Class constructor
+  const _OcptJoiningSegmentedControl({required this.selectedTab, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+
+    return SegmentedButton<_OcptJoiningTab>(
+      segments: [
+        ButtonSegment(value: _OcptJoiningTab.scanner, label: Text(tr.joiningTabScanner)),
+        ButtonSegment(value: _OcptJoiningTab.manual, label: Text(tr.joiningTabManual)),
+      ],
+      selected: {selectedTab},
+      showSelectedIcon: false,
+      onSelectionChanged: (selection) => onSelected(selection.first),
+    );
+  }
+}
+
+/// The content under the segmented control: the real scanner on mobile, a fixed "camera
+/// unavailable" card on every other platform, or the manual entry form.
+class _OcptJoiningSelectedTab extends StatelessWidget {
+  /// The tab currently shown.
+  final _OcptJoiningTab selectedTab;
+
+  /// Whether the bloc is joining right now.
+  final bool isJoining;
+
+  /// The scanner frame's current status.
+  final OcptJoiningScanStatus scanStatus;
+
+  /// Called with the invite link typed on the manual tab.
+  final ValueChanged<String> onManualJoinRequested;
+
+  /// Called with the text the scanner decoded.
+  final ValueChanged<String> onScanned;
+
+  /// Class constructor
+  const _OcptJoiningSelectedTab({
+    required this.selectedTab,
+    required this.isJoining,
+    required this.scanStatus,
+    required this.onManualJoinRequested,
+    required this.onScanned,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (selectedTab == _OcptJoiningTab.manual) {
+      return OcptJoiningManualView(isJoining: isJoining, onJoinRequested: onManualJoinRequested);
+    }
+
+    if (globalGetIt().get<PlatformManager>().isMobile) {
+      return OcptJoiningScannerView(status: scanStatus, onScanned: onScanned);
+    }
+
+    return const _OcptJoiningScannerUnavailableCard();
+  }
+}
+
+/// The camera-scan tab's own content on a platform with no camera at all.
+class _OcptJoiningScannerUnavailableCard extends StatelessWidget {
+  /// Class constructor
+  const _OcptJoiningScannerUnavailableCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          children: [
+            Icon(Icons.videocam_off_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              tr.joiningScannerUnavailableTitle,
+              style: theme.textTheme.titleSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              tr.joiningScannerUnavailableMessage,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The note explaining that joining downloads a full local copy of the project — the mock-up's
+/// own callout, shown under both tabs.
+class _OcptJoiningNote extends StatelessWidget {
+  /// Class constructor
+  const _OcptJoiningNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha),
+        borderRadius: BorderRadius.circular(ocptRadiusMedium),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              tr.joiningNoteText,
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+            ),
+          ),
+        ],
       ),
     );
   }

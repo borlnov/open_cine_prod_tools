@@ -158,7 +158,6 @@ class OcptWorkspaceToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tr = Tr.of(context);
 
     return SizedBox(
       height: ocptToolbarHeight,
@@ -172,7 +171,7 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                 child: Row(
                   spacing: 10,
                   children: [
-                    _buildBackAction(theme: theme, tr: tr),
+                    _OcptWorkspaceBackAction(onBack: onBack),
                     if (!isCompact)
                       Flexible(
                         child: Text(
@@ -183,9 +182,9 @@ class OcptWorkspaceToolbar extends StatelessWidget {
                         ),
                       ),
                     if (isReadOnly)
-                      _buildReadOnlyPill(context: context, theme: theme, tr: tr)
+                      const _OcptWorkspaceReadOnlyPill()
                     else if (isDirty)
-                      _buildDirtyMarker(theme: theme, tr: tr),
+                      const _OcptWorkspaceDirtyMarker(),
                     if (episodeControl != null) episodeControl!,
                     const Spacer(),
                     ...actions,
@@ -228,38 +227,54 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the back action: an accent-filled square badge carrying the application logo rather
-  /// than a plain icon button, so the one control leading out of the workspace reads as distinct
-  /// from every mode and chrome control around it. Its "back to projects" meaning is carried by
-  /// the tooltip alone.
-  Widget _buildBackAction({required ThemeData theme, required Tr tr}) => Tooltip(
-    message: tr.editorBackToProjectsTooltip,
-    child: Material(
-      color: theme.colorScheme.primary,
-      borderRadius: BorderRadius.circular(ocptRadiusSmall),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onBack,
-        mouseCursor: ocptClickableCursor,
-        child: SizedBox.square(
-          dimension: _backActionSize,
-          child: Center(
-            child: OcptLogoGlyph(width: _backActionIconSize, color: theme.colorScheme.onPrimary),
+/// The back action: an accent-filled square badge carrying the application logo rather than a plain
+/// icon button, so the one control leading out of the workspace reads as distinct from every mode
+/// and chrome control around it. Its "back to projects" meaning is carried by the tooltip alone.
+class _OcptWorkspaceBackAction extends StatelessWidget {
+  /// Called when the badge is tapped.
+  final VoidCallback onBack;
+
+  /// Class constructor
+  const _OcptWorkspaceBackAction({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Tooltip(
+      message: Tr.of(context).editorBackToProjectsTooltip,
+      child: Material(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(ocptRadiusSmall),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onBack,
+          mouseCursor: ocptClickableCursor,
+          child: SizedBox.square(
+            dimension: _backActionSize,
+            child: Center(
+              child: OcptLogoGlyph(width: _backActionIconSize, color: theme.colorScheme.onPrimary),
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
 
-  /// Builds the pill telling that what is on screen may not be edited, in place of the
-  /// unsaved-changes dot, tinted with the same warning colour the read-only banner under the
-  /// toolbar wears so the two read as one state.
-  Widget _buildReadOnlyPill({
-    required BuildContext context,
-    required ThemeData theme,
-    required Tr tr,
-  }) {
+/// The pill telling that what is on screen may not be edited, in place of the unsaved-changes dot,
+/// tinted with the same warning colour the read-only banner under the toolbar wears so the two read
+/// as one state.
+class _OcptWorkspaceReadOnlyPill extends StatelessWidget {
+  /// Class constructor
+  const _OcptWorkspaceReadOnlyPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
     final color = ocptWarningColor(context);
 
     return Tooltip(
@@ -277,14 +292,23 @@ class OcptWorkspaceToolbar extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Builds the dot marking unsaved changes, next to the title.
-  Widget _buildDirtyMarker({required ThemeData theme, required Tr tr}) => Tooltip(
-    message: tr.editorUnsavedChangesTooltip,
+/// The dot marking unsaved changes, next to the title.
+class _OcptWorkspaceDirtyMarker extends StatelessWidget {
+  /// Class constructor
+  const _OcptWorkspaceDirtyMarker();
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: Tr.of(context).editorUnsavedChangesTooltip,
     child: Container(
       width: _dirtyMarkerSize,
       height: _dirtyMarkerSize,
-      decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+      ),
     ),
   );
 }

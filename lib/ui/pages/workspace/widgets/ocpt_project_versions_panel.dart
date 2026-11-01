@@ -138,7 +138,8 @@ class OcptProjectVersionsPanel extends StatelessWidget {
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           )
         else
-          for (final version in versions) _buildCard(version),
+          for (final version in versions)
+            _OcptProjectVersionPanelEntry(key: ValueKey(version.id), panel: this, version: version),
       ],
     );
   }
@@ -159,32 +160,45 @@ class OcptProjectVersionsPanel extends StatelessWidget {
 
     return null;
   }
+}
 
-  /// Builds [version]'s card, wiring the actions that depend on which of its states it is in (see
-  /// [OcptProjectVersionCard]'s own doc comment).
-  Widget _buildCard(OcptProjectVersion version) {
-    final isPreviewed = version.id == previewedVersionId;
+/// [version]'s card, wiring the actions that depend on which of its states it is in (see
+/// [OcptProjectVersionCard]'s own doc comment) to the callbacks [panel] was given.
+class _OcptProjectVersionPanelEntry extends StatelessWidget {
+  /// The panel whose callbacks and selection state the card is wired to.
+  final OcptProjectVersionsPanel panel;
+
+  /// The version the card shows.
+  final OcptProjectVersion version;
+
+  /// Class constructor
+  const _OcptProjectVersionPanelEntry({super.key, required this.panel, required this.version});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPreviewed = version.id == panel.previewedVersionId;
 
     return OcptProjectVersionCard(
-      key: ValueKey(version.id),
       version: version,
       isPreviewed: isPreviewed,
-      isConfirmingDeletion: version.id == versionPendingDeletionId,
-      isConfirmingRestore: version.id == versionPendingRestoreId,
-      isConfirmingRename: version.id == versionPendingRenameId,
-      onTap: isPreviewed ? onPreviewExitRequested : () => onPreviewRequested(version.id),
-      onRestoreRequested: () => onRestoreRequested(version.id),
-      onRestoreConfirmed: () => onRestoreConfirmed(version),
-      onRestoreCancelled: onRestoreCancelled,
+      isConfirmingDeletion: version.id == panel.versionPendingDeletionId,
+      isConfirmingRestore: version.id == panel.versionPendingRestoreId,
+      isConfirmingRename: version.id == panel.versionPendingRenameId,
+      onTap: isPreviewed
+          ? panel.onPreviewExitRequested
+          : () => panel.onPreviewRequested(version.id),
+      onRestoreRequested: () => panel.onRestoreRequested(version.id),
+      onRestoreConfirmed: () => panel.onRestoreConfirmed(version),
+      onRestoreCancelled: panel.onRestoreCancelled,
       // Restoring the version being previewed is legitimate — it is the obvious next move once the
       // user has read it — where deleting it is not: the preview reads from a database hydrated out
       // of that very row.
-      onDeleteRequested: isPreviewed ? null : () => onDeleteRequested(version.id),
-      onDeleteConfirmed: () => onDeleteConfirmed(version.id),
-      onDeleteCancelled: onDeleteCancelled,
-      onRenameRequested: () => onRenameRequested(version.id),
-      onRenameConfirmed: (name, note) => onRenameConfirmed(version.id, name, note),
-      onRenameCancelled: onRenameCancelled,
+      onDeleteRequested: isPreviewed ? null : () => panel.onDeleteRequested(version.id),
+      onDeleteConfirmed: () => panel.onDeleteConfirmed(version.id),
+      onDeleteCancelled: panel.onDeleteCancelled,
+      onRenameRequested: () => panel.onRenameRequested(version.id),
+      onRenameConfirmed: (name, note) => panel.onRenameConfirmed(version.id, name, note),
+      onRenameCancelled: panel.onRenameCancelled,
     );
   }
 }

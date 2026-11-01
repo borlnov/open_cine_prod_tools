@@ -114,7 +114,11 @@ class OcptProjectVersionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, theme, tr),
+              _OcptProjectVersionHeader(
+                name: version.name,
+                accentColor: _accentColor(context, theme),
+                badgeLabel: _badgeLabel(tr),
+              ),
               const SizedBox(height: 6),
               Text(
                 ocptProjectVersionSummaryLine(
@@ -132,9 +136,15 @@ class OcptProjectVersionCard extends StatelessWidget {
               ],
               const SizedBox(height: 8),
               if (isConfirmingDeletion)
-                _buildDeleteConfirmation(context, theme, tr)
+                _OcptProjectVersionDeleteConfirmation(
+                  onCancelled: onDeleteCancelled,
+                  onConfirmed: onDeleteConfirmed,
+                )
               else if (isConfirmingRestore)
-                _buildRestoreConfirmation(context, theme, tr)
+                _OcptProjectVersionRestoreConfirmation(
+                  onCancelled: onRestoreCancelled,
+                  onConfirmed: onRestoreConfirmed,
+                )
               else if (isConfirmingRename)
                 _OcptProjectVersionRenameForm(
                   initialName: version.name,
@@ -143,136 +153,19 @@ class OcptProjectVersionCard extends StatelessWidget {
                   onCancel: onRenameCancelled,
                 )
               else
-                _buildFooter(context, theme, tr),
+                _OcptProjectVersionFooter(
+                  isBase: version.isBase,
+                  isPreviewed: isPreviewed,
+                  onRenameRequested: onRenameRequested,
+                  onRestoreRequested: onRestoreRequested,
+                  onDeleteRequested: onDeleteRequested,
+                ),
             ],
           ),
         ),
       ),
     );
   }
-
-  /// Builds the card's first line: the status dot, the version's name, and its badge if it has
-  /// one.
-  Widget _buildHeader(BuildContext context, ThemeData theme, Tr tr) {
-    final accentColor = _accentColor(context, theme);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            version.name,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
-        ),
-        if (_badgeLabel(tr) case final badgeLabel?) ...[
-          const SizedBox(width: 8),
-          _OcptProjectVersionBadge(label: badgeLabel, color: accentColor),
-        ],
-      ],
-    );
-  }
-
-  /// Builds what the card says under its counters when it isn't asking anything: the hint telling
-  /// the user what clicking it does, then the three actions it offers — `Rename` and
-  /// `Restore this version` on every card, `Delete` on every card but the previewed one.
-  ///
-  /// The hint and the actions sit on two lines rather than one: `Restore this version` is a long
-  /// label, and the dock it lives in is narrow and resizable down to a third of the workspace.
-  Widget _buildFooter(BuildContext context, ThemeData theme, Tr tr) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(switch ((version.isBase, isPreviewed)) {
-        (true, false) => tr.projectVersionBaseHint,
-        (_, true) => tr.projectVersionPreviewedHint,
-        _ => tr.projectVersionPreviewHint,
-      }, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-      // A `Wrap` rather than a `Row`: `Restore this version` is a long label, the dock it lives
-      // in is resizable down to a third of the workspace, and the actions then simply stack
-      // instead of overflowing.
-      Wrap(
-        alignment: WrapAlignment.end,
-        children: [
-          TextButton(onPressed: onRenameRequested, child: Text(tr.projectVersionRenameAction)),
-          TextButton(onPressed: onRestoreRequested, child: Text(tr.projectVersionRestoreAction)),
-          if (onDeleteRequested != null)
-            TextButton(
-              onPressed: onDeleteRequested,
-              style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-              child: Text(tr.projectVersionDeleteAction),
-            ),
-        ],
-      ),
-    ],
-  );
-
-  /// Builds the inline restore confirmation shown in place of the card's footer: what restoring
-  /// actually does to the project, then the two answers to it.
-  ///
-  /// The question says the page setup comes back too, and that the state being replaced is kept:
-  /// both are consequences the user cannot see anywhere else, and the second is the one that makes
-  /// the answer safe to give.
-  Widget _buildRestoreConfirmation(BuildContext context, ThemeData theme, Tr tr) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(tr.projectVersionRestoreConfirmMessage, style: theme.textTheme.bodySmall),
-      const SizedBox(height: 6),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: onRestoreCancelled,
-            child: Text(tr.projectVersionRestoreCancelAction),
-          ),
-          const SizedBox(width: 6),
-          FilledButton(
-            onPressed: onRestoreConfirmed,
-            child: Text(tr.projectVersionRestoreConfirmAction),
-          ),
-        ],
-      ),
-    ],
-  );
-
-  /// Builds the inline delete confirmation shown in place of the card's footer: the warning, then
-  /// the two answers to it.
-  Widget _buildDeleteConfirmation(BuildContext context, ThemeData theme, Tr tr) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        tr.projectVersionDeleteConfirmMessage,
-        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
-      ),
-      const SizedBox(height: 6),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: onDeleteCancelled,
-            child: Text(tr.projectVersionDeleteCancelAction),
-          ),
-          const SizedBox(width: 6),
-          FilledButton(
-            onPressed: onDeleteConfirmed,
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
-            child: Text(tr.projectVersionDeleteConfirmAction),
-          ),
-        ],
-      ),
-    ],
-  );
 
   /// The card's own colour: the accent for the base version, the workspace's warning colour
   /// while this version is the one being previewed, and a muted outline for every other one.
@@ -294,6 +187,213 @@ class OcptProjectVersionCard extends StatelessWidget {
     }
 
     return version.isBase ? tr.projectVersionBaseBadge : null;
+  }
+}
+
+/// The card's first line: the status dot, the version's name, and its badge if it has one.
+class _OcptProjectVersionHeader extends StatelessWidget {
+  /// The version's name.
+  final String name;
+
+  /// The colour of the status dot and the badge.
+  final Color accentColor;
+
+  /// The badge's label, or null when the card carries none.
+  final String? badgeLabel;
+
+  /// Class constructor
+  const _OcptProjectVersionHeader({
+    required this.name,
+    required this.accentColor,
+    required this.badgeLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            name,
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (badgeLabel case final badgeLabel?) ...[
+          const SizedBox(width: 8),
+          _OcptProjectVersionBadge(label: badgeLabel, color: accentColor),
+        ],
+      ],
+    );
+  }
+}
+
+/// What the card says under its counters when it isn't asking anything: the hint telling the user
+/// what clicking it does, then the three actions it offers — `Rename` and `Restore this version`
+/// on every card, `Delete` on every card but the previewed one.
+///
+/// The hint and the actions sit on two lines rather than one: `Restore this version` is a long
+/// label, and the dock it lives in is narrow and resizable down to a third of the workspace.
+class _OcptProjectVersionFooter extends StatelessWidget {
+  /// Whether the version is the base one.
+  final bool isBase;
+
+  /// Whether the version is the one being previewed.
+  final bool isPreviewed;
+
+  /// Called when `Rename` is clicked.
+  final VoidCallback onRenameRequested;
+
+  /// Called when `Restore this version` is clicked.
+  final VoidCallback onRestoreRequested;
+
+  /// Called when `Delete` is clicked, or null on the previewed card.
+  final VoidCallback? onDeleteRequested;
+
+  /// Class constructor
+  const _OcptProjectVersionFooter({
+    required this.isBase,
+    required this.isPreviewed,
+    required this.onRenameRequested,
+    required this.onRestoreRequested,
+    required this.onDeleteRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(switch ((isBase, isPreviewed)) {
+          (true, false) => tr.projectVersionBaseHint,
+          (_, true) => tr.projectVersionPreviewedHint,
+          _ => tr.projectVersionPreviewHint,
+        }, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        // A `Wrap` rather than a `Row`: `Restore this version` is a long label, the dock it lives
+        // in is resizable down to a third of the workspace, and the actions then simply stack
+        // instead of overflowing.
+        Wrap(
+          alignment: WrapAlignment.end,
+          children: [
+            TextButton(onPressed: onRenameRequested, child: Text(tr.projectVersionRenameAction)),
+            TextButton(onPressed: onRestoreRequested, child: Text(tr.projectVersionRestoreAction)),
+            if (onDeleteRequested != null)
+              TextButton(
+                onPressed: onDeleteRequested,
+                style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+                child: Text(tr.projectVersionDeleteAction),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The inline restore confirmation shown in place of the card's footer: what restoring actually
+/// does to the project, then the two answers to it.
+///
+/// The question says the page setup comes back too, and that the state being replaced is kept:
+/// both are consequences the user cannot see anywhere else, and the second is the one that makes
+/// the answer safe to give.
+class _OcptProjectVersionRestoreConfirmation extends StatelessWidget {
+  /// Called when `Cancel` is clicked.
+  final VoidCallback onCancelled;
+
+  /// Called when `Restore` is clicked.
+  final VoidCallback onConfirmed;
+
+  /// Class constructor
+  const _OcptProjectVersionRestoreConfirmation({
+    required this.onCancelled,
+    required this.onConfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tr.projectVersionRestoreConfirmMessage, style: theme.textTheme.bodySmall),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(onPressed: onCancelled, child: Text(tr.projectVersionRestoreCancelAction)),
+            const SizedBox(width: 6),
+            FilledButton(
+              onPressed: onConfirmed,
+              child: Text(tr.projectVersionRestoreConfirmAction),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The inline delete confirmation shown in place of the card's footer: the warning, then the two
+/// answers to it.
+class _OcptProjectVersionDeleteConfirmation extends StatelessWidget {
+  /// Called when `Cancel` is clicked.
+  final VoidCallback onCancelled;
+
+  /// Called when `Delete` is clicked.
+  final VoidCallback onConfirmed;
+
+  /// Class constructor
+  const _OcptProjectVersionDeleteConfirmation({
+    required this.onCancelled,
+    required this.onConfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr.projectVersionDeleteConfirmMessage,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(onPressed: onCancelled, child: Text(tr.projectVersionDeleteCancelAction)),
+            const SizedBox(width: 6),
+            FilledButton(
+              onPressed: onConfirmed,
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+              ),
+              child: Text(tr.projectVersionDeleteConfirmAction),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
