@@ -83,6 +83,7 @@ abstract final class OcptProjectPreviewOps {
     }
 
     final previewDatabase = OcptProjectDatabase.memory(isPreview: true);
+    var isHydrated = false;
     try {
       await projectVersionsService.hydratePreview(
         database: previewDatabase,
@@ -91,6 +92,7 @@ abstract final class OcptProjectPreviewOps {
             .getSingle(),
         payload: payload,
       );
+      isHydrated = true;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to hydrate the preview of the project version "
@@ -99,6 +101,9 @@ abstract final class OcptProjectPreviewOps {
         stackTrace,
       );
       await previewDatabase.close();
+    }
+
+    if (!isHydrated) {
       return const ResultWithStatus(status: OcptProjectPreviewStatus.hydrationFailed);
     }
 

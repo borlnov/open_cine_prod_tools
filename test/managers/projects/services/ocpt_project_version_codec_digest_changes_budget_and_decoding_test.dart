@@ -510,6 +510,23 @@ void main() {
       expect(result.status, OcptProjectVersionPayloadStatus.malformedPayload);
     });
 
+    test('an unknown enum name on an otherwise well-formed payload escapes as an error', () {
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      ((encoded["shootingSlots"] as List).first as Map<String, dynamic>)["anchorEdge"] = "x";
+
+      expect(() => codec.decode(jsonEncode(encoded)), throwsArgumentError);
+    });
+
+    test('an unknown enum name after a field already found unreadable is refused', () {
+      final encoded = jsonDecode(codec.encode(buildRichPayload())) as Map<String, dynamic>;
+      encoded["screenplays"] = "bad";
+      ((encoded["shootingSlots"] as List).first as Map<String, dynamic>)["anchorEdge"] = "x";
+
+      final result = codec.decode(jsonEncode(encoded));
+
+      expect(result.status, OcptProjectVersionPayloadStatus.malformedPayload);
+    });
+
     test("a JSON value that isn't an object is refused", () {
       final result = codec.decode("[1, 2, 3]");
 

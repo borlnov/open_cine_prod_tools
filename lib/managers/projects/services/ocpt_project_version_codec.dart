@@ -278,57 +278,70 @@ class OcptProjectVersionCodec extends AbsOcptService {
     String payloadJson,
   ) {
     OcptVersionJsonReader.reset();
+    ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> result;
     try {
-      final decoded = jsonDecode(payloadJson);
-      if (decoded is! Map<String, dynamic>) {
-        return _malformed("the payload isn't a JSON object");
-      }
-
-      final payloadFormat = OcptVersionJsonReader.readInt(
-        decoded,
-        OcptVersionJsonKeys.payloadFormatKey,
-      );
-      if (OcptVersionJsonReader.firstReadFailure != null) {
-        return _malformed(null);
-      }
-      if (payloadFormat > currentPayloadFormat) {
-        logger.w(
-          "The project version payload is written in the format $payloadFormat, while this "
-          "build of the app only knows up to $currentPayloadFormat: it was created by a later "
-          "version of Open Cine Prod Tools",
-        );
-        return const ResultWithStatus(
-          status: OcptProjectVersionPayloadStatus.unsupportedFutureFormat,
-        );
-      }
-
-      final payload = OcptVersionPayloadJson.fromJson(decoded, payloadFormat: payloadFormat);
-      if (OcptVersionJsonReader.firstReadFailure != null) {
-        return _malformed(null);
-      }
-
-      return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
+      result = _decodeUnguarded(payloadJson);
     } on FormatException catch (error, stackTrace) {
       if (OcptVersionJsonReader.firstReadFailure != null) {
-        return _malformed(null);
+        result = _malformed(null);
+      } else {
+        // A JSON error quotes the text around the fault, which is the user's own content.
+        logger.e(
+          "The project version payload isn't valid JSON: ${error.runtimeType}",
+          null,
+          stackTrace,
+        );
+        result = const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
       }
-      // A JSON error quotes the text around the fault, which is the user's own content.
-      logger.e(
-        "The project version payload isn't valid JSON: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
     } catch (_) {
       // Once a field read has failed, the readers hand back neutral values so the rest of the
       // payload can be walked; anything that then trips over one is that same malformed payload.
       if (OcptVersionJsonReader.firstReadFailure != null) {
-        return _malformed(null);
+        result = _malformed(null);
+      } else {
+        rethrow;
       }
-      rethrow;
     } finally {
       OcptVersionJsonReader.reset();
     }
+
+    return result;
+  }
+
+  /// The walk of [decode], whose exceptions [decode] turns into a status: reads [payloadJson] and
+  /// answers the status of the first thing found wrong, or the payload itself.
+  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _decodeUnguarded(
+    String payloadJson,
+  ) {
+    final decoded = jsonDecode(payloadJson);
+    if (decoded is! Map<String, dynamic>) {
+      return _malformed("the payload isn't a JSON object");
+    }
+
+    final payloadFormat = OcptVersionJsonReader.readInt(
+      decoded,
+      OcptVersionJsonKeys.payloadFormatKey,
+    );
+    if (OcptVersionJsonReader.firstReadFailure != null) {
+      return _malformed(null);
+    }
+    if (payloadFormat > currentPayloadFormat) {
+      logger.w(
+        "The project version payload is written in the format $payloadFormat, while this "
+        "build of the app only knows up to $currentPayloadFormat: it was created by a later "
+        "version of Open Cine Prod Tools",
+      );
+      return const ResultWithStatus(
+        status: OcptProjectVersionPayloadStatus.unsupportedFutureFormat,
+      );
+    }
+
+    final payload = OcptVersionPayloadJson.fromJson(decoded, payloadFormat: payloadFormat);
+    if (OcptVersionJsonReader.firstReadFailure != null) {
+      return _malformed(null);
+    }
+
+    return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
   }
 
   /// The [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when it is

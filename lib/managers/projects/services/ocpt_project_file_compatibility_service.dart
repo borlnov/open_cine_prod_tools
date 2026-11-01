@@ -65,6 +65,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
   }) {
     final isRunningBuildPreRelease = OcptAppVersion.parse(appVersion).isPreRelease;
 
+    OcptProjectFileCompatibility compatibility;
     try {
       final database = sqlite3.open(filePath, mode: OpenMode.readOnly);
       try {
@@ -74,7 +75,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
         // one that belongs to another application entirely. Neither is an older project — reading
         // it as one would offer to migrate a file that has nothing to migrate.
         if (fileSchemaVersion <= 0) {
-          return OcptProjectFileCompatibility(
+          compatibility = OcptProjectFileCompatibility(
             filePath: filePath,
             fileSchemaVersion: 0,
             appSchemaVersion: appSchemaVersion,
@@ -82,30 +83,30 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
             runningAppVersion: appVersion,
             verdict: OcptProjectFileVerdict.unreadable,
           );
+        } else {
+          final migratedByAppVersion = _migratedByAppVersion(database);
+
+          final verdict = _verdictFor(
+            fileSchemaVersion: fileSchemaVersion,
+            appSchemaVersion: appSchemaVersion,
+            fileWriter: migratedByAppVersion,
+            appVersion: appVersion,
+          );
+
+          compatibility = OcptProjectFileCompatibility(
+            filePath: filePath,
+            fileSchemaVersion: fileSchemaVersion,
+            appSchemaVersion: appSchemaVersion,
+            appVersionAtCreation: _appVersionAtCreation(database),
+            migratedByAppVersion: migratedByAppVersion,
+            isRunningBuildPreRelease: isRunningBuildPreRelease,
+            runningAppVersion: appVersion,
+            suggestedBackupPath: verdict == OcptProjectFileVerdict.older
+                ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
+                : null,
+            verdict: verdict,
+          );
         }
-
-        final migratedByAppVersion = _migratedByAppVersion(database);
-
-        final verdict = _verdictFor(
-          fileSchemaVersion: fileSchemaVersion,
-          appSchemaVersion: appSchemaVersion,
-          fileWriter: migratedByAppVersion,
-          appVersion: appVersion,
-        );
-
-        return OcptProjectFileCompatibility(
-          filePath: filePath,
-          fileSchemaVersion: fileSchemaVersion,
-          appSchemaVersion: appSchemaVersion,
-          appVersionAtCreation: _appVersionAtCreation(database),
-          migratedByAppVersion: migratedByAppVersion,
-          isRunningBuildPreRelease: isRunningBuildPreRelease,
-          runningAppVersion: appVersion,
-          suggestedBackupPath: verdict == OcptProjectFileVerdict.older
-              ? backupPathFor(filePath: filePath, fileSchemaVersion: fileSchemaVersion)
-              : null,
-          verdict: verdict,
-        );
       } finally {
         database.dispose();
       }
@@ -116,7 +117,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return OcptProjectFileCompatibility(
+      compatibility = OcptProjectFileCompatibility(
         filePath: filePath,
         fileSchemaVersion: 0,
         appSchemaVersion: appSchemaVersion,
@@ -125,6 +126,8 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
         verdict: OcptProjectFileVerdict.unreadable,
       );
     }
+
+    return compatibility;
   }
 
   /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
@@ -196,6 +199,7 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
   /// the backup is taken precisely because the original is about to be changed, and taking it must
   /// not be what changes it.
   bool writeBackup({required String filePath, required String backupPath}) {
+    var isWritten = false;
     try {
       Directory(p.dirname(backupPath)).createSync(recursive: true);
 
@@ -206,15 +210,16 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
         database.dispose();
       }
 
-      return true;
+      isWritten = true;
     } catch (error, stackTrace) {
       logger.e(
         "A project file can't be copied before being migrated: ${error.runtimeType}",
         null,
         stackTrace,
       );
-      return false;
     }
+
+    return isWritten;
   }
 
   /// The app version stamped into [database]'s `project_info` when the project was created, or

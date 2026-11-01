@@ -80,6 +80,7 @@ abstract final class OcptProjectMoveOps {
     }
 
     OcptProjectDatabase? newDatabase;
+    OcptProjectDatabase? copiedDatabase;
     try {
       await File(newFilePath).parent.create(recursive: true);
 
@@ -98,7 +99,8 @@ abstract final class OcptProjectMoveOps {
         );
         await newDatabase.close();
         await deleteFileIfExists(newFilePath, logger: logger);
-        return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
+      } else {
+        copiedDatabase = newDatabase;
       }
     } catch (error, stackTrace) {
       logger.e(
@@ -109,6 +111,9 @@ abstract final class OcptProjectMoveOps {
       );
       await newDatabase?.close();
       await deleteFileIfExists(newFilePath, logger: logger);
+    }
+
+    if (copiedDatabase == null) {
       return const ResultWithStatus(status: OcptProjectMoveStatus.ioError);
     }
 
@@ -119,7 +124,7 @@ abstract final class OcptProjectMoveOps {
       path: newFilePath,
       name: project.name,
       primaryScreenplayId: project.primaryScreenplayId,
-      database: newDatabase,
+      database: copiedDatabase,
     );
     onSwapped(movedProject);
 

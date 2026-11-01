@@ -63,65 +63,21 @@ abstract final class OcptProjectOpenOps {
     required Future<void> Function(String directoryPath) rememberProjectsDirectory,
   }) async {
     OcptProjectDatabase? database;
+    ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel> result;
     try {
-      final file = File(filePath);
-      if (file.existsSync()) {
-        return const ResultWithStatus(status: OcptProjectStatus.fileAlreadyExists);
-      }
-
-      if (currentProject != null) {
-        await closeCurrentProject();
-      }
-
-      await file.parent.create(recursive: true);
-
-      database = OcptProjectDatabase(file);
-
-      final now = DateTime.now();
-      await database
-          .into(database.ocptProjectInfoTable)
-          .insert(
-            OcptProjectInfoTableCompanion.insert(
-              name: name,
-              createdAt: now,
-              appVersionAtCreation: appVersion,
-              pageFormat: _defaultPageFormatForPlatformLocale(),
-              currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
-              screenplayLanguage: Value(_defaultScreenplayLanguageForAppLocale(appLanguageCode)),
-              migratedByAppVersion: Value(appVersion),
-            ),
-          );
-
-      final screenplayId = const Uuid().v4();
-      await database
-          .into(database.ocptScreenplaysTable)
-          .insert(
-            OcptScreenplaysTableCompanion.insert(
-              id: screenplayId,
-              title: name,
-              updatedAt: now,
-              number: const Value(1),
-              sortKey: Value(ocptFractionalKeyBetween()),
-            ),
-          );
-
-      final project = OcptOpenProjectModel(
-        path: filePath,
+      result = await _createProjectFile(
         name: name,
-        primaryScreenplayId: screenplayId,
-        database: database,
+        filePath: filePath,
+        currentProject: currentProject,
+        appVersion: appVersion,
+        appLanguageCode: appLanguageCode,
+        propertiesManager: propertiesManager,
+        logger: logger,
+        onDatabaseOpened: (opened) => database = opened,
+        onCreated: onCreated,
+        closeCurrentProject: closeCurrentProject,
+        rememberProjectsDirectory: rememberProjectsDirectory,
       );
-      onCreated(project);
-
-      await propertiesManager.addRecentProject(
-        // A fresh project holds exactly one episode — no need to read it back.
-        OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
-      );
-      await rememberProjectsDirectory(p.dirname(filePath));
-
-      logger.i("A project was created: $screenplayId");
-
-      return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to create a project: ${error.runtimeType}",
@@ -129,8 +85,87 @@ abstract final class OcptProjectOpenOps {
         stackTrace,
       );
       await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.ioError);
+      result = const ResultWithStatus(status: OcptProjectStatus.ioError);
     }
+
+    return result;
+  }
+
+  /// The body of [createProject], whose exceptions it turns into [OcptProjectStatus.ioError]:
+  /// everything that can fail, in order. [onDatabaseOpened] hands the database over as soon as it
+  /// exists, so the caller can close it if a later step throws.
+  static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _createProjectFile({
+    required String name,
+    required String filePath,
+    required OcptOpenProjectModel? currentProject,
+    required String appVersion,
+    required String Function() appLanguageCode,
+    required OcptPropertiesManager propertiesManager,
+    required LogsHelper logger,
+    required void Function(OcptProjectDatabase database) onDatabaseOpened,
+    required void Function(OcptOpenProjectModel project) onCreated,
+    required Future<void> Function() closeCurrentProject,
+    required Future<void> Function(String directoryPath) rememberProjectsDirectory,
+  }) async {
+    final file = File(filePath);
+    if (file.existsSync()) {
+      return const ResultWithStatus(status: OcptProjectStatus.fileAlreadyExists);
+    }
+
+    if (currentProject != null) {
+      await closeCurrentProject();
+    }
+
+    await file.parent.create(recursive: true);
+
+    final database = OcptProjectDatabase(file);
+    onDatabaseOpened(database);
+
+    final now = DateTime.now();
+    await database
+        .into(database.ocptProjectInfoTable)
+        .insert(
+          OcptProjectInfoTableCompanion.insert(
+            name: name,
+            createdAt: now,
+            appVersionAtCreation: appVersion,
+            pageFormat: _defaultPageFormatForPlatformLocale(),
+            currencyCode: Value(_defaultCurrencyCodeForPlatformLocale()),
+            screenplayLanguage: Value(_defaultScreenplayLanguageForAppLocale(appLanguageCode)),
+            migratedByAppVersion: Value(appVersion),
+          ),
+        );
+
+    final screenplayId = const Uuid().v4();
+    await database
+        .into(database.ocptScreenplaysTable)
+        .insert(
+          OcptScreenplaysTableCompanion.insert(
+            id: screenplayId,
+            title: name,
+            updatedAt: now,
+            number: const Value(1),
+            sortKey: Value(ocptFractionalKeyBetween()),
+          ),
+        );
+
+    final project = OcptOpenProjectModel(
+      path: filePath,
+      name: name,
+      primaryScreenplayId: screenplayId,
+      database: database,
+    );
+    onCreated(project);
+
+    await propertiesManager.addRecentProject(
+      // A fresh project holds exactly one episode — no need to read it back.
+      OcptRecentProjectModel(path: filePath, name: name, lastOpenedAt: now, episodeCount: 1),
+    );
+    await rememberProjectsDirectory(p.dirname(filePath));
+
+    logger.i("A project was created: $screenplayId");
+
+    return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
   }
 
   /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
@@ -168,85 +203,26 @@ abstract final class OcptProjectOpenOps {
     required Future<void> Function() closeCurrentProject,
   }) async {
     OcptProjectDatabase? database;
+    ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel> result;
     try {
-      if (!File(filePath).existsSync()) {
-        return const ResultWithStatus(status: OcptProjectStatus.fileNotFound);
-      }
-
-      final formatGate = _gateOnFileFormat(
+      result = await _openProjectFile(
         filePath: filePath,
         allowMigration: allowMigration,
+        currentProject: currentProject,
+        appVersion: appVersion,
         logger: logger,
-        probeProjectFile: probeProjectFile,
+        propertiesManager: propertiesManager,
         projectFileCompatibilityService: projectFileCompatibilityService,
+        screenplayService: screenplayService,
+        probeProjectFile: probeProjectFile,
+        onDatabaseOpened: (opened) => database = opened,
+        onOpened: onOpened,
+        closeCurrentProject: closeCurrentProject,
       );
-      if (formatGate.status != null) {
-        return ResultWithStatus(status: formatGate.status!);
-      }
-
-      if (currentProject != null) {
-        await closeCurrentProject();
-      }
-
-      database = OcptProjectDatabase(File(filePath));
-
-      final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
-      final screenplay = await (database.select(
-        database.ocptScreenplaysTable,
-      )..limit(1)).getSingleOrNull();
-
-      if (info == null || screenplay == null) {
-        logger.w(
-          "A project file is missing its project info or its "
-          "screenplay, it's considered corrupted",
-        );
-        await database.close();
-        return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
-      }
-
-      // Stamp the writer identity only when a real migration just ran (the file was `older`, and
-      // drift's `onUpgrade` has now brought it up to `currentSchemaVersion` through the query
-      // above). A plain open of an already-current file must NOT touch this column: doing so would
-      // lose the freeze guarantee ADR 0029 relies on — that a file at the build's own stable schema
-      // still names the stable build that actually produced its shape, not whichever later build
-      // happened to open it since.
-      if (formatGate.isMigrating) {
-        await database
-            .update(database.ocptProjectInfoTable)
-            .write(OcptProjectInfoTableCompanion(migratedByAppVersion: Value(appVersion)));
-      }
-
-      final project = OcptOpenProjectModel(
-        path: filePath,
-        name: info.name,
-        primaryScreenplayId: screenplay.id,
-        database: database,
-      );
-      onOpened(project);
-
-      await screenplayService.snapshotOnProjectOpen(
-        database: database,
-        screenplayId: screenplay.id,
-      );
-
-      final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
-
-      await propertiesManager.addRecentProject(
-        OcptRecentProjectModel(
-          path: filePath,
-          name: info.name,
-          lastOpenedAt: DateTime.now(),
-          episodeCount: episodeCount,
-        ),
-      );
-
-      logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
-
-      return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
     } on SqliteException catch (error, stackTrace) {
       logger.e("A project file appears corrupted: ${error.runtimeType}", null, stackTrace);
       await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
+      result = const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to open a project: ${error.runtimeType}",
@@ -254,8 +230,101 @@ abstract final class OcptProjectOpenOps {
         stackTrace,
       );
       await database?.close();
-      return const ResultWithStatus(status: OcptProjectStatus.ioError);
+      result = const ResultWithStatus(status: OcptProjectStatus.ioError);
     }
+
+    return result;
+  }
+
+  /// The body of [openProject], whose exceptions it turns into a status: everything that can fail,
+  /// in order. [onDatabaseOpened] hands the database over as soon as it exists, so the caller can
+  /// close it if a later step throws.
+  static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> _openProjectFile({
+    required String filePath,
+    required bool allowMigration,
+    required OcptOpenProjectModel? currentProject,
+    required String appVersion,
+    required LogsHelper logger,
+    required OcptPropertiesManager propertiesManager,
+    required OcptProjectFileCompatibilityService projectFileCompatibilityService,
+    required OcptScreenplayService screenplayService,
+    required OcptProjectFileCompatibility Function({required String filePath}) probeProjectFile,
+    required void Function(OcptProjectDatabase database) onDatabaseOpened,
+    required void Function(OcptOpenProjectModel project) onOpened,
+    required Future<void> Function() closeCurrentProject,
+  }) async {
+    if (!File(filePath).existsSync()) {
+      return const ResultWithStatus(status: OcptProjectStatus.fileNotFound);
+    }
+
+    final formatGate = _gateOnFileFormat(
+      filePath: filePath,
+      allowMigration: allowMigration,
+      logger: logger,
+      probeProjectFile: probeProjectFile,
+      projectFileCompatibilityService: projectFileCompatibilityService,
+    );
+    if (formatGate.status != null) {
+      return ResultWithStatus(status: formatGate.status!);
+    }
+
+    if (currentProject != null) {
+      await closeCurrentProject();
+    }
+
+    final database = OcptProjectDatabase(File(filePath));
+    onDatabaseOpened(database);
+
+    final info = await database.select(database.ocptProjectInfoTable).getSingleOrNull();
+    final screenplay = await (database.select(
+      database.ocptScreenplaysTable,
+    )..limit(1)).getSingleOrNull();
+
+    if (info == null || screenplay == null) {
+      logger.w(
+        "A project file is missing its project info or its "
+        "screenplay, it's considered corrupted",
+      );
+      await database.close();
+      return const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
+    }
+
+    // Stamp the writer identity only when a real migration just ran (the file was `older`, and
+    // drift's `onUpgrade` has now brought it up to `currentSchemaVersion` through the query
+    // above). A plain open of an already-current file must NOT touch this column: doing so would
+    // lose the freeze guarantee ADR 0029 relies on — that a file at the build's own stable schema
+    // still names the stable build that actually produced its shape, not whichever later build
+    // happened to open it since.
+    if (formatGate.isMigrating) {
+      await database
+          .update(database.ocptProjectInfoTable)
+          .write(OcptProjectInfoTableCompanion(migratedByAppVersion: Value(appVersion)));
+    }
+
+    final project = OcptOpenProjectModel(
+      path: filePath,
+      name: info.name,
+      primaryScreenplayId: screenplay.id,
+      database: database,
+    );
+    onOpened(project);
+
+    await screenplayService.snapshotOnProjectOpen(database: database, screenplayId: screenplay.id);
+
+    final episodeCount = (await screenplayService.loadEpisodes(database: database)).length;
+
+    await propertiesManager.addRecentProject(
+      OcptRecentProjectModel(
+        path: filePath,
+        name: info.name,
+        lastOpenedAt: DateTime.now(),
+        episodeCount: episodeCount,
+      ),
+    );
+
+    logger.i("A project was opened: ${screenplay.id}, $episodeCount episode(s)");
+
+    return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
   }
 
   /// Answers whether the file at [filePath] may be handed to drift, and takes the backup when a

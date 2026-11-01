@@ -88,8 +88,9 @@ class OcptProjectPackageService extends AbsOcptService {
   /// project at all — there is nothing to ask about then, and [writePackage] reports the same
   /// failure with a status of its own.
   OcptProjectPackagePreflight? scanAssets({required String projectFilePath}) {
+    OcptProjectPackagePreflight? preflight;
     try {
-      return _withReadOnlyDatabase(projectFilePath, (database) {
+      preflight = _withReadOnlyDatabase(projectFilePath, (database) {
         final rows = _liveAssetRows(database);
 
         return OcptProjectPackagePreflight(
@@ -108,8 +109,9 @@ class OcptProjectPackageService extends AbsOcptService {
         null,
         stackTrace,
       );
-      return null;
     }
+
+    return preflight;
   }
 
   /// Writes the project at [projectFilePath] as a package at [packageFilePath], and says what
@@ -135,6 +137,7 @@ class OcptProjectPackageService extends AbsOcptService {
     }
 
     Directory? workingDirectory;
+    ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageExportReport> result;
     try {
       workingDirectory = await Directory.systemTemp.createTemp("ocpt_package_");
       final stagedDatabasePath = p.join(workingDirectory.path, ocptPackageDatabaseEntry);
@@ -175,7 +178,7 @@ class OcptProjectPackageService extends AbsOcptService {
         manifest: manifest,
       );
 
-      return ResultWithStatus(
+      result = ResultWithStatus(
         status: OcptProjectPackageStatus.ok,
         value: OcptProjectPackageExportReport(
           packagePath: packageFilePath,
@@ -185,10 +188,12 @@ class OcptProjectPackageService extends AbsOcptService {
       );
     } catch (error, stackTrace) {
       logger.e("A project can't be packaged: ${error.runtimeType}", null, stackTrace);
-      return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
+      result = const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
     } finally {
       await _deleteQuietly(workingDirectory);
     }
+
+    return result;
   }
 
   /// Streams [manifest] and the staged database into the zip at [packageFilePath], followed by
@@ -240,7 +245,7 @@ class OcptProjectPackageService extends AbsOcptService {
     required String packageFilePath,
     required String parentDirectoryPath,
   }) async {
-    final Archive archive;
+    Archive? archive;
     try {
       archive = ZipDecoder().decodeStream(InputFileStream(packageFilePath));
     } catch (error, stackTrace) {
@@ -250,6 +255,9 @@ class OcptProjectPackageService extends AbsOcptService {
         null,
         stackTrace,
       );
+    }
+
+    if (archive == null) {
       return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
     }
 
@@ -324,6 +332,7 @@ class OcptProjectPackageService extends AbsOcptService {
       return const ResultWithStatus(status: OcptProjectPackageStatus.destinationExists);
     }
 
+    ResultWithStatus<OcptProjectPackageStatus, OcptProjectPackageImportReport> result;
     try {
       destinationDirectory.createSync(recursive: true);
 
@@ -342,23 +351,24 @@ class OcptProjectPackageService extends AbsOcptService {
         // logged.
         logger.e("A package can't be trusted: an entry resolves outside the destination folder");
         await _deleteQuietly(destinationDirectory);
-        return const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
-      }
-      _rewireUnpackedAssetPaths(
-        projectFilePath: projectFilePath,
-        destinationDirectory: destinationDirectory,
-        assets: manifest.assets,
-      );
-
-      return ResultWithStatus(
-        status: OcptProjectPackageStatus.ok,
-        value: OcptProjectPackageImportReport(
+        result = const ResultWithStatus(status: OcptProjectPackageStatus.unreadableArchive);
+      } else {
+        _rewireUnpackedAssetPaths(
           projectFilePath: projectFilePath,
-          projectName: manifest.projectName,
-          importedAssetCount: manifest.assets.length,
-          skippedAssets: manifest.skippedAssets,
-        ),
-      );
+          destinationDirectory: destinationDirectory,
+          assets: manifest.assets,
+        );
+
+        result = ResultWithStatus(
+          status: OcptProjectPackageStatus.ok,
+          value: OcptProjectPackageImportReport(
+            projectFilePath: projectFilePath,
+            projectName: manifest.projectName,
+            importedAssetCount: manifest.assets.length,
+            skippedAssets: manifest.skippedAssets,
+          ),
+        );
+      }
     } catch (error, stackTrace) {
       logger.e(
         "A package can't be unpacked: "
@@ -367,8 +377,10 @@ class OcptProjectPackageService extends AbsOcptService {
         stackTrace,
       );
       await _deleteQuietly(destinationDirectory);
-      return const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
+      result = const ResultWithStatus(status: OcptProjectPackageStatus.ioError);
     }
+
+    return result;
   }
 
   /// Reads and parses [entry] as [OcptProjectPackageManifest], or null when it is missing or is not
@@ -382,11 +394,11 @@ class OcptProjectPackageService extends AbsOcptService {
       return null;
     }
 
-    final Object? decoded;
+    Object? decoded;
     try {
       decoded = jsonDecode(utf8.decode(entry.readBytes() ?? const []));
     } catch (_) {
-      return null;
+      decoded = null;
     }
 
     if (decoded is! Map<String, dynamic>) {

@@ -432,6 +432,20 @@ void main() {
       expect(File(projectPath).readAsBytesSync(), before);
     });
 
+    test("answers ioError when the package cannot be written", () async {
+      final blocker = File(p.join(workspace.path, "blocker"))..writeAsStringSync("x");
+
+      final result = await service.writePackage(
+        projectFilePath: projectPath,
+        packageFilePath: p.join(blocker.path, "package.ocptz"),
+        projectName: "Les Vagues",
+        appVersion: "0.1.0",
+        exportedAt: DateTime.utc(2026, 8, 19),
+      );
+
+      expect(result.status, OcptProjectPackageStatus.ioError);
+    });
+
     test("refuses a source that is not there", () async {
       final result = await service.writePackage(
         projectFilePath: p.join(workspace.path, "nowhere.ocpt"),
@@ -720,6 +734,28 @@ void main() {
 
       expect(imported.status, OcptProjectPackageStatus.unreadableArchive);
       expect(importsParent.listSync(), isEmpty);
+    });
+
+    test("refuses a package file that cannot be opened with unreadableArchive", () async {
+      final imported = await service.readPackage(
+        packageFilePath: p.join(workspace.path, "nowhere.ocptz"),
+        parentDirectoryPath: importsParent.path,
+      );
+
+      expect(imported.status, OcptProjectPackageStatus.unreadableArchive);
+      expect(importsParent.listSync(), isEmpty);
+    });
+
+    test("answers ioError when the destination folder cannot be created", () async {
+      await export();
+      final blocker = File(p.join(workspace.path, "blocker"))..writeAsStringSync("x");
+
+      final imported = await service.readPackage(
+        packageFilePath: packagePath,
+        parentDirectoryPath: blocker.path,
+      );
+
+      expect(imported.status, OcptProjectPackageStatus.ioError);
     });
 
     test("refuses a zip with no manifest at all with unreadableArchive", () async {

@@ -428,6 +428,7 @@ class OcptProjectVersionsService extends AbsOcptService {
       pageMargins: pageMargins,
     );
 
+    var isRestored = false;
     try {
       await database.transaction(() async {
         // The payload's rows legitimately arrive in an order that violates a foreign key part way
@@ -475,12 +476,16 @@ class OcptProjectVersionsService extends AbsOcptService {
               ),
             );
       });
+      isRestored = true;
     } catch (error, stackTrace) {
       logger.e(
         "A problem occurred when tried to restore the project version $id: ${error.runtimeType}",
         null,
         stackTrace,
       );
+    }
+
+    if (!isRestored) {
       return const ResultWithStatus(status: OcptProjectRestoreStatus.writeFailed);
     }
 

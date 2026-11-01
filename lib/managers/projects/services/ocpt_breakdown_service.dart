@@ -371,8 +371,9 @@ class OcptBreakdownService extends AbsOcptService {
       return null;
     }
 
+    ({String elementId, String tagId})? created;
     try {
-      return await database.transaction(() async {
+      created = await database.transaction(() async {
         final elementId = await _elementsService.createElement(
           database: database,
           name: name,
@@ -404,8 +405,10 @@ class OcptBreakdownService extends AbsOcptService {
         return (elementId: elementId, tagId: tagId);
       });
     } on _OcptBreakdownTagRefused {
-      return null;
+      created = null;
     }
+
+    return created;
   }
 
   /// Creates a new set named [name] and tags the scene-relative `[startOffset, endOffset)` passage
@@ -439,8 +442,9 @@ class OcptBreakdownService extends AbsOcptService {
       return null;
     }
 
+    ({String setId, String tagId})? created;
     try {
-      return await database.transaction(() async {
+      created = await database.transaction(() async {
         final holdingLocationId =
             locationId ?? await _locationsService.createLocation(database: database, name: name);
         if (holdingLocationId == null) {
@@ -475,8 +479,10 @@ class OcptBreakdownService extends AbsOcptService {
         return (setId: setId, tagId: tagId);
       });
     } on _OcptBreakdownTagRefused {
-      return null;
+      created = null;
     }
+
+    return created;
   }
 
   /// Creates, or updates, the `scene_breakdowns` row of scene [sceneId], writing whichever of
