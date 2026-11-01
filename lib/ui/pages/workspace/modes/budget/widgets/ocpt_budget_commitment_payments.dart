@@ -64,7 +64,7 @@ class OcptBudgetCommitmentPayments extends StatelessWidget {
     );
   }
 
-  /// [payment]'s own debit, tax-inclusive, formatted in [currencyCode] — [ocptBudgetEmptyValue]
+  /// Get [payment]'s own debit, tax-inclusive, formatted in [currencyCode] — [ocptBudgetEmptyValue]
   /// while its rate cannot be read.
   String _amountText(OcptBudgetEntry payment) {
     final debitCents = ocptBudgetEntryDebitCentsOf(

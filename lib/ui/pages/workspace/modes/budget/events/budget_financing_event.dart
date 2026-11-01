@@ -13,7 +13,7 @@ sealed class OcptBudgetFinancingEvent extends OcptBudgetEvent {
   const OcptBudgetFinancingEvent();
 }
 
-/// Creates a new defrayal from [fields], dispatched by the mode once `OcptBudgetAllowanceDialog`
+/// Create a new defrayal from [fields], dispatched by the mode once `OcptBudgetAllowanceDialog`
 /// returned a result for a fresh one — mirrors `OcptBudgetResourceCreationConfirmedEvent`.
 class OcptBudgetAllowanceCreationConfirmedEvent extends OcptBudgetFinancingEvent {
   /// Every field the dialog collected.
@@ -27,7 +27,7 @@ class OcptBudgetAllowanceCreationConfirmedEvent extends OcptBudgetFinancingEvent
   List<Object?> get props => [...super.props, fields];
 }
 
-/// Writes [fields] onto defrayal [allowanceId], dispatched by the mode once
+/// Write [fields] onto defrayal [allowanceId], dispatched by the mode once
 /// `OcptBudgetAllowanceDialog` returned a result for an existing one it was opened to edit.
 class OcptBudgetAllowanceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   /// The id of the defrayal being edited.
@@ -44,7 +44,7 @@ class OcptBudgetAllowanceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   List<Object?> get props => [...super.props, allowanceId, fields];
 }
 
-/// Deletes defrayal [allowanceId] for good, dispatched by the mode once its own `OcptConfirmDialog`
+/// Delete defrayal [allowanceId] for good, dispatched by the mode once its own `OcptConfirmDialog`
 /// has already been answered.
 class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetFinancingEvent {
   /// The id of the defrayal to delete.
@@ -58,7 +58,7 @@ class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetFinancingEvent
   List<Object?> get props => [...super.props, allowanceId];
 }
 
-/// Carries out [entries] against poste [posteId], dispatched by the mode once its own
+/// Carry out [entries] against poste [posteId], dispatched by the mode once its own
 /// `OcptConfirmDialog` has put the plan's own counts in front of the user and they agreed.
 ///
 /// **The plan travels with the event rather than being recomputed here**, and deliberately: it is
@@ -80,7 +80,7 @@ class OcptBudgetProvisionConfirmedEvent extends OcptBudgetFinancingEvent {
   List<Object?> get props => [...super.props, posteId, entries];
 }
 
-/// Creates a new financing resource from [fields], dispatched by the mode once
+/// Create a new financing resource from [fields], dispatched by the mode once
 /// `OcptBudgetResourceDialog` returned a result for a fresh resource — mirrors
 /// `OcptBudgetCommitmentCreationConfirmedEvent`'s own "written the moment it is dispatched"
 /// reading.
@@ -96,7 +96,7 @@ class OcptBudgetResourceCreationConfirmedEvent extends OcptBudgetFinancingEvent 
   List<Object?> get props => [...super.props, fields];
 }
 
-/// Writes [fields] onto resource [resourceId], dispatched by the mode once
+/// Write [fields] onto resource [resourceId], dispatched by the mode once
 /// `OcptBudgetResourceDialog` returned a result for an existing resource it was opened to edit.
 class OcptBudgetResourceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   /// The id of the resource being edited.
@@ -113,7 +113,7 @@ class OcptBudgetResourceUpdateConfirmedEvent extends OcptBudgetFinancingEvent {
   List<Object?> get props => [...super.props, resourceId, fields];
 }
 
-/// Deletes financing resource [resourceId] for good, dispatched by the mode once its own
+/// Delete financing resource [resourceId] for good, dispatched by the mode once its own
 /// `OcptConfirmDialog` has already been answered — mirrors
 /// `OcptBudgetCommitmentDeletionConfirmedEvent`.
 class OcptBudgetResourceDeletionConfirmedEvent extends OcptBudgetFinancingEvent {

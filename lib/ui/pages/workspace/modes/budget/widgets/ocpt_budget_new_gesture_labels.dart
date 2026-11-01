@@ -6,7 +6,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_family.dart';
 
-/// [gesture]'s own bold answer label — the fifteen answers, one per `OcptBudgetGesture`.
+/// Get [gesture]'s own bold answer label — the fifteen answers, one per `OcptBudgetGesture`.
 String ocptBudgetGestureAnswerLabel(Tr tr, OcptBudgetGesture gesture) => switch (gesture) {
   OcptBudgetGesture.addQuoteLine => tr.budgetNewGestureAddQuoteLineLabel,
   OcptBudgetGesture.addQuoteLinesFromBreakdown =>
@@ -26,7 +26,8 @@ String ocptBudgetGestureAnswerLabel(Tr tr, OcptBudgetGesture gesture) => switch 
   OcptBudgetGesture.addSharingParticipant => tr.budgetNewGestureAddSharingParticipantLabel,
 };
 
-/// [gesture]'s own muted hint — one sentence, every answer carrying its own, not just the complex
+/// Get [gesture]'s own muted hint — one sentence, every answer carrying its own, not just the
+/// complex
 /// ones.
 String ocptBudgetGestureHint(Tr tr, OcptBudgetGesture gesture) => switch (gesture) {
   OcptBudgetGesture.addQuoteLine => tr.budgetNewGestureAddQuoteLineHint,
@@ -46,7 +47,7 @@ String ocptBudgetGestureHint(Tr tr, OcptBudgetGesture gesture) => switch (gestur
   OcptBudgetGesture.addSharingParticipant => tr.budgetNewGestureAddSharingParticipantHint,
 };
 
-/// [family]'s own heading — the five documents, in the design's own order.
+/// Get [family]'s own heading — the five documents, in the design's own order.
 String ocptBudgetGestureFamilyLabel(Tr tr, OcptBudgetGestureFamily family) => switch (family) {
   OcptBudgetGestureFamily.quote => tr.budgetNewFamilyQuoteLabel,
   OcptBudgetGestureFamily.cashMovement => tr.budgetNewFamilyCashMovementLabel,
@@ -55,7 +56,8 @@ String ocptBudgetGestureFamilyLabel(Tr tr, OcptBudgetGestureFamily family) => sw
   OcptBudgetGestureFamily.revenueSharing => tr.budgetNewFamilyRevenueSharingLabel,
 };
 
-/// [family]'s own subtitle — the one line stating its tense, telling `J'ai encaissé un financement`
+/// Get [family]'s own subtitle — the one line stating its tense, telling
+/// `J'ai encaissé un financement`
 /// apart from `Inscrire une subvention attendue`.
 String ocptBudgetGestureFamilySubtitle(Tr tr, OcptBudgetGestureFamily family) => switch (family) {
   OcptBudgetGestureFamily.quote => tr.budgetNewFamilyQuoteSubtitle,

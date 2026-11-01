@@ -30,7 +30,7 @@ class OcptBudgetCostTrackingPosteFigures {
     required this.varianceCents,
   });
 
-  /// Builds [poste]'s own figures under [taxBasis], given its own [paidCents], [committedCents] and
+  /// Build [poste]'s own figures under [taxBasis], given its own [paidCents], [committedCents] and
   /// [inKindCoveredCents] — the very same
   /// [ocptBudgetTotalOf]/[ocptBudgetRemainingCents]/[ocptBudgetVarianceCents] calls
   /// [OcptBudgetCostTrackingPosteAmountsRow.build] makes for the desktop row.

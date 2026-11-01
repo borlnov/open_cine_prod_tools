@@ -54,7 +54,7 @@ class OcptBudgetCostTrackingOffQuoteAmountsRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, printing [text] as typed.
+  /// Build one amount cell, right-aligned, printing [text] as typed.
   Widget _amountCell(ThemeData theme, String text) => SizedBox(
     width: ocptBudgetCostTrackingAmountColumnWidth,
     child: Text(
@@ -66,7 +66,8 @@ class OcptBudgetCostTrackingOffQuoteAmountsRow extends StatelessWidget {
     ),
   );
 
-  /// One amount cell reading [ocptBudgetEmptyValue] — every column this row has no reading for.
+  /// Build one amount cell reading [ocptBudgetEmptyValue] — every column this row has no reading
+  /// for.
   Widget _emptyCell(ThemeData theme) => SizedBox(
     width: ocptBudgetCostTrackingAmountColumnWidth,
     child: Text(ocptBudgetEmptyValue, textAlign: TextAlign.right, style: theme.textTheme.bodySmall),

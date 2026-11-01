@@ -33,7 +33,8 @@ class OcptBudgetNewBreakdownSelection {
   /// absent while the row still follows the bulk default.
   final Map<String, String> _posteOverrideByElementId;
 
-  /// Whether lines can be created: something is checked and every checked element resolves to a
+  /// Tell whether lines can be created: something is checked and every checked element resolves to
+  /// a
   /// poste — its own or the bulk default. A line with no poste is a row the quote has nowhere to
   /// file.
   bool get isReady => selectedIds.isNotEmpty && selectedIds.every((id) => posteFor(id) != null);
@@ -46,20 +47,20 @@ class OcptBudgetNewBreakdownSelection {
       _posteOverrideByElementId = {},
       query = "";
 
-  /// The quantity field controller of [element], created on first request.
+  /// Get the quantity field controller of [element], created on first request.
   TextEditingController quantityControllerOf(OcptElement element) =>
       _quantityControllers.putIfAbsent(
         element.id,
         () => TextEditingController(text: ocptBudgetQuantityLabel(defaultQuantityMilliOf(element))),
       );
 
-  /// The quantity a fresh row is born with, in thousandths — the number of scenes [element]
+  /// Get the quantity a fresh row is born with, in thousandths — the number of scenes [element]
   /// appears in. A suggestion, never a truth: right for a rostrum hired by the day, wrong for a
   /// backdrop built once, corrected in the table before creating rather than decided by the app.
   int defaultQuantityMilliOf(OcptElement element) =>
       (element.sceneLinks.isEmpty ? 1 : element.sceneLinks.length) * 1000;
 
-  /// Checks or unchecks [element], remembering the quantity its row currently reads when it is
+  /// Check or uncheck [element], remembering the quantity its row currently reads when it is
   /// checked.
   void setChecked(OcptElement element, {required bool isChecked}) {
     final controller = quantityControllerOf(element);
@@ -73,7 +74,7 @@ class OcptBudgetNewBreakdownSelection {
     }
   }
 
-  /// Files every row under [posteId], clearing the per-row overrides: `File all under X` is a
+  /// File every row under [posteId], clearing the per-row overrides: `File all under X` is a
   /// promise about every row, so everything really lands in X, ready to be re-filed one by one
   /// after.
   void setBulkPoste(String? posteId) {
@@ -81,14 +82,14 @@ class OcptBudgetNewBreakdownSelection {
     _posteOverrideByElementId.clear();
   }
 
-  /// Files the row of [elementId] under [posteId], ignoring a null pick.
+  /// File the row of [elementId] under [posteId], ignoring a null pick.
   void setPosteOverride(String elementId, String? posteId) {
     if (posteId != null) {
       _posteOverrideByElementId[elementId] = posteId;
     }
   }
 
-  /// Records the quantity the row of [elementId] now reads, ignoring text that is not a number.
+  /// Record the quantity the row of [elementId] now reads, ignoring text that is not a number.
   void setQuantityText(String elementId, String value) {
     final quantityMilli = ocptBudgetQuantityMilliOf(value);
     if (quantityMilli != null) {
@@ -96,12 +97,14 @@ class OcptBudgetNewBreakdownSelection {
     }
   }
 
-  /// The poste breakdown row [elementId] will be filed under: its own override if it has one, else
+  /// Get the poste breakdown row [elementId] will be filed under: its own override if it has one,
+  /// else
   /// the bulk default — null while neither has been chosen, which is what keeps its line from being
   /// created.
   String? posteFor(String elementId) => _posteOverrideByElementId[elementId] ?? bulkPosteId;
 
-  /// The outcome creating the checked lines ends in, or null while nothing is checked or a checked
+  /// Get the outcome creating the checked lines ends in, or null while nothing is checked or a
+  /// checked
   /// row resolves no poste — [isReady] already withholds the button then, so this is the belt to
   /// that braces.
   OcptBudgetNewLinesFromBreakdownOutcome? outcome() {
@@ -125,7 +128,7 @@ class OcptBudgetNewBreakdownSelection {
     return OcptBudgetNewLinesFromBreakdownOutcome(lines: lines);
   }
 
-  /// Disposes every quantity controller.
+  /// Dispose every quantity controller.
   void dispose() {
     for (final controller in _quantityControllers.values) {
       controller.dispose();

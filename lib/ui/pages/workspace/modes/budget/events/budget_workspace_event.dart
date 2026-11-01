@@ -14,13 +14,13 @@ sealed class OcptBudgetWorkspaceEvent extends OcptBudgetEvent {
   const OcptBudgetWorkspaceEvent();
 }
 
-/// Requests leaving the workspace: closes the current project and navigates back to the home page.
+/// Request leaving the workspace: closes the current project and navigates back to the home page.
 class OcptBudgetBackRequestedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetBackRequestedEvent();
 }
 
-/// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens or
+/// Select a tab of the right dock (the already-active tab closes the dock, any other one opens or
 /// switches to it).
 class OcptBudgetRightDockTabSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The tab to select.
@@ -34,20 +34,20 @@ class OcptBudgetRightDockTabSelectedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, tab];
 }
 
-/// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
+/// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens on
 /// its last tab.
 class OcptBudgetRightDockToggledEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetRightDockToggledEvent();
 }
 
-/// Closes the right dock via its own × close button.
+/// Close the right dock via its own × close button.
 class OcptBudgetRightDockClosedEvent extends OcptBudgetWorkspaceEvent {
   /// Class constructor
   const OcptBudgetRightDockClosedEvent();
 }
 
-/// Applies and persists the right dock's new width fraction once a divider drag ends.
+/// Apply and persist the right dock's new width fraction once a divider drag ends.
 class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
   /// The right dock's new fraction of the mode's content row width.
   final double fraction;
@@ -60,7 +60,7 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, fraction];
 }
 
-/// Selects which of the mode's views is shown, dispatched by the header's own view switch, by the
+/// Select which of the mode's views is shown, dispatched by the header's own view switch, by the
 /// feed card's own catering row wherever it is drawn, and by every other gesture that used to open
 /// a document, a reading or a sub-page of its own.
 ///
@@ -86,7 +86,7 @@ class OcptBudgetViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, view, clearSelection];
 }
 
-/// Selects which of the tools drawer's own three pages is shown, dispatched by the header's own
+/// Select which of the tools drawer's own three pages is shown, dispatched by the header's own
 /// second segmented switch — mirrors [OcptBudgetViewSelectedEvent], the two events staying
 /// independent so picking one never clears the other. [clearSelection] reads exactly as it does
 /// there: true only for the header's own switch, false for a gesture that also selects something.
@@ -106,7 +106,7 @@ class OcptBudgetToolsViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, toolsView, clearSelection];
 }
 
-/// Toggles the header's simplified/detailed switch. Session-only, never persisted, mirroring the
+/// Toggle the header's simplified/detailed switch. Session-only, never persisted, mirroring the
 /// schedule mode's own agenda mode.
 class OcptBudgetSimplifiedToggledEvent extends OcptBudgetWorkspaceEvent {
   /// The switch's new value.
@@ -120,7 +120,7 @@ class OcptBudgetSimplifiedToggledEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, isSimplified];
 }
 
-/// Switches the header's excluding/including-tax toggle — the **display** basis alone, never
+/// Switch the header's excluding/including-tax toggle — the **display** basis alone, never
 /// written anywhere (`OcptBudgetTaxBasis`'s own doc comment). Session-only, never persisted.
 class OcptBudgetTaxBasisChangedEvent extends OcptBudgetWorkspaceEvent {
   /// The basis to read every amount in from now on.
@@ -134,7 +134,7 @@ class OcptBudgetTaxBasisChangedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, basis];
 }
 
-/// Expands or collapses expenses-tree node [nodeId] — a poste's or a quote line's own id, whichever
+/// Expand or collapse expenses-tree node [nodeId] — a poste's or a quote line's own id, whichever
 /// twisty was clicked: an already-expanded node collapses, a collapsed one expands, independently
 /// of every other one, so several branches of the tree can stand open together.
 class OcptBudgetRowExpansionToggledEvent extends OcptBudgetWorkspaceEvent {
@@ -149,7 +149,7 @@ class OcptBudgetRowExpansionToggledEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, nodeId];
 }
 
-/// Re-reads the project's currency and default VAT rate after the project settings page changed
+/// Re-read the project's currency and default VAT rate after the project settings page changed
 /// something — mirrors `OcptScheduleProjectSettingsChangedEvent` for the same reason: the settings
 /// page is exactly where both are changed.
 class OcptBudgetProjectSettingsChangedEvent extends OcptBudgetWorkspaceEvent {
@@ -157,7 +157,7 @@ class OcptBudgetProjectSettingsChangedEvent extends OcptBudgetWorkspaceEvent {
   const OcptBudgetProjectSettingsChangedEvent();
 }
 
-/// Narrows every view of the mode to poste [posteId], or clears the filter when it is null —
+/// Narrow every view of the mode to poste [posteId], or clear the filter when it is null —
 /// dispatched by the header's own poste filter, the only control that sets it.
 ///
 /// **Not `OcptBudgetPosteSelectedEvent`'s inverse, and no longer the same field.** The filter used
@@ -179,7 +179,7 @@ class OcptBudgetPosteFilterSelectedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Points the régie view's own provisioning at poste [posteId] — a selection, written to no
+/// Point the régie view's own provisioning at poste [posteId] — a selection, written to no
 /// project and remembered for as long as the mode is open.
 class OcptBudgetProvisionPosteSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The id of the poste just picked.

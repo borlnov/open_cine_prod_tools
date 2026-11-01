@@ -201,7 +201,7 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, printing [ocptBudgetEmptyValue] while [cents] is null.
+  /// Build one amount cell, right-aligned, printing [ocptBudgetEmptyValue] while [cents] is null.
   Widget _amountCell(BuildContext context, int? cents, {Color? color, bool bold = false}) =>
       SizedBox(
         width: ocptBudgetCashJournalAmountColumnWidth,

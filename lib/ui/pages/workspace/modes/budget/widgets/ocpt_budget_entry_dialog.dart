@@ -109,7 +109,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   @override
   State<OcptBudgetEntryDialog> createState() => _OcptBudgetEntryDialogState();
 
-  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  /// Show the dialog and return the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetEntryFormFields?> show(
     BuildContext context, {
     required OcptBudgetEntry existing,
@@ -196,7 +196,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// changed afterwards, this dialog offering no way to reconsider it.
   late final OcptBudgetEntryNature _nature;
 
-  /// The path currently shown for the `Justificatif` field.
+  /// Get the path currently shown for the `Justificatif` field.
   String? get _displayedReceiptPath {
     final pickedReceiptPath = _pickedReceiptPath;
     if (pickedReceiptPath != null) {
@@ -352,7 +352,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     );
   }
 
-  /// Applies the `Recette` picker's own choice.
+  /// Apply the `Recette` picker's own choice.
   Future<void> _onRevenuePicked(String? value) async {
     if (value != ocptBudgetNewRevenueActionValue) {
       setState(() => _revenueId = value);
@@ -374,7 +374,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     });
   }
 
-  /// Shows the native "open" dialog.
+  /// Show the native "open" dialog.
   Future<void> _pickReceipt() async {
     final label = Tr.of(context).budgetEntryDialogReceiptFieldLabel;
     final selection = await globalGetIt().get<FileSelectorManager>().openSelector(
@@ -396,7 +396,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     });
   }
 
-  /// `Enregistrer`: validates the form and, if it passes, pops with every field collected.
+  /// Handle `Enregistrer`: validates the form and, if it passes, pops with every field collected.
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;

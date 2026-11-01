@@ -131,7 +131,7 @@ class OcptBudgetRegieView extends StatelessWidget {
   }
 }
 
-/// What provisioning would do to the poste [OcptBudgetState.provisionPosteId] names, whole.
+/// Get what provisioning would do to the poste [OcptBudgetState.provisionPosteId] names, whole.
 ///
 /// Read twice: once to draw the band — which withholds the gesture and says why when the plan
 /// would change nothing — and once when the gesture is actually taken, so what the user is shown
@@ -158,7 +158,7 @@ List<OcptBudgetProvisionEntry> ocptBudgetRegieProvisionPlanOf(
   );
 }
 
-/// What the provisioned lines of [OcptBudgetState.provisionPosteId] currently hold, in cents —
+/// Get what the provisioned lines of [OcptBudgetState.provisionPosteId] currently hold, in cents —
 /// the figure the régie view's own band reads back as `Quoted on this poste`.
 ///
 /// **Only the lines the provisioning itself wrote count**, never every line of the poste: a

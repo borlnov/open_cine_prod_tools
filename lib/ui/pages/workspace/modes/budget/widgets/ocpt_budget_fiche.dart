@@ -313,15 +313,15 @@ class OcptBudgetFiche extends StatelessWidget {
     return SingleChildScrollView(padding: const EdgeInsets.all(12), child: variant);
   }
 
-  /// [postes]' own entry naming [posteId], or null while no live poste carries that id.
+  /// Get [postes]' own entry naming [posteId], or null while no live poste carries that id.
   OcptBudgetPoste? posteById(String posteId) =>
       postes.firstWhereOrNull((poste) => poste.id == posteId);
 
-  /// The poste [lineId]'s own quote line belongs to, or null while no live poste carries it.
+  /// Get the poste [lineId]'s own quote line belongs to, or null while no live poste carries it.
   OcptBudgetPoste? posteOfLine(String lineId) =>
       postes.firstWhereOrNull((poste) => poste.lines.any((line) => line.id == lineId));
 
-  /// [lineId]'s own live quote line, or null.
+  /// Get [lineId]'s own live quote line, or null.
   OcptBudgetLine? lineById(String lineId) {
     for (final poste in postes) {
       final line = poste.lines.firstWhereOrNull((line) => line.id == lineId);
@@ -332,11 +332,12 @@ class OcptBudgetFiche extends StatelessWidget {
     return null;
   }
 
-  /// [amountCents] formatted in [currencyCode], or [ocptBudgetEmptyValue] while it is null.
+  /// Get [amountCents] formatted in [currencyCode], or [ocptBudgetEmptyValue] while it is null.
   String amountLabelOf(int? amountCents) =>
       amountCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(amountCents, currencyCode);
 
-  /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against it,
+  /// Get `posteId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against
+  /// it,
   /// read off [entries] directly since the fiche resolves its own poste rather than being handed
   /// one pre-resolved.
   int paidCentsOf(String posteId) =>
@@ -346,7 +347,7 @@ class OcptBudgetFiche extends StatelessWidget {
       )[posteId]?.amountCents ??
       0;
 
-  /// `posteId`'s own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
+  /// Get `posteId`'s own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
   int committedCentsOf(String posteId) =>
       ocptBudgetCommittedCentsByPosteId(
         commitments,
@@ -355,7 +356,7 @@ class OcptBudgetFiche extends StatelessWidget {
       )[posteId]?.amountCents ??
       0;
 
-  /// `posteId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off [postes]
+  /// Get `posteId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off [postes]
   /// directly since the fiche resolves its own poste rather than being handed one pre-resolved.
   int inKindCoveredCentsOf(String posteId) =>
       ocptBudgetInKindCoveredCentsByPosteId(postes)[posteId] ?? 0;

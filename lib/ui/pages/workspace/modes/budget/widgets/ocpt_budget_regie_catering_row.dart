@@ -113,20 +113,22 @@ class OcptBudgetRegieCateringRow extends StatelessWidget {
     );
   }
 
-  /// One of the three narrow, right-aligned head-count cells (`Crew`, `Cast`, `Extras`).
+  /// Build one of the three narrow, right-aligned head-count cells (`Crew`, `Cast`, `Extras`).
   Widget _countCell(BuildContext context, int count) => SizedBox(
     width: ocptBudgetRegieCountColumnWidth,
     child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
   );
 
-  /// The `Craft services` cell — a plain head count, at the wider column width the `Meals` cell
+  /// Build the `Craft services` cell — a plain head count, at the wider column width the `Meals`
+  /// cell
   /// beside it also needs.
   Widget _wideCountCell(BuildContext context, int count) => SizedBox(
     width: ocptBudgetRegieWideCountColumnWidth,
     child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
   );
 
-  /// The `Meals` cell — see the class doc comment for the dash-versus-joined-sittings reading.
+  /// Build the `Meals` cell — see the class doc comment for the dash-versus-joined-sittings
+  /// reading.
   Widget _mealsCell(BuildContext context) {
     final sittings = day.mealSittings;
     final text = sittings.isEmpty

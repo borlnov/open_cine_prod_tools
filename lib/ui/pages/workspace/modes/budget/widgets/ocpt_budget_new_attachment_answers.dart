@@ -53,56 +53,56 @@ class OcptBudgetNewAttachmentAnswers {
   /// Class constructor
   OcptBudgetNewAttachmentAnswers() : posteAnswered = false, lineNoneAnswered = false;
 
-  /// Answers the poste, null standing for `Hors devis`.
+  /// Answer the poste, null standing for `Hors devis`.
   void selectPoste(String? posteId) {
     this.posteId = posteId;
     posteAnswered = true;
   }
 
-  /// Takes the poste answer back, along with the line answered under it.
+  /// Take the poste answer back, along with the line answered under it.
   void clearPoste() {
     posteAnswered = false;
     lineId = null;
     lineNoneAnswered = false;
   }
 
-  /// Answers the quote line.
+  /// Answer the quote line.
   void selectLine(String lineId) {
     this.lineId = lineId;
     lineNoneAnswered = false;
   }
 
-  /// Answers `Aucune` to the quote line.
+  /// Answer `Aucune` to the quote line.
   void selectNoLine() {
     lineId = null;
     lineNoneAnswered = true;
   }
 
-  /// Answers an existing financing resource, dropping the pending one.
+  /// Answer an existing financing resource, dropping the pending one.
   void selectResource(String resourceId) {
     this.resourceId = resourceId;
     pendingNewResource = null;
   }
 
-  /// Answers a financing resource still to be created, dropping the existing one.
+  /// Answer a financing resource still to be created, dropping the existing one.
   void selectPendingResource(OcptBudgetResourceFormFields fields) {
     pendingNewResource = fields;
     resourceId = null;
   }
 
-  /// Answers an existing participant, dropping the pending one.
+  /// Answer an existing participant, dropping the pending one.
   void selectShare(String shareId) {
     this.shareId = shareId;
     pendingNewShare = null;
   }
 
-  /// Answers a participant still to be created, dropping the existing one.
+  /// Answer a participant still to be created, dropping the existing one.
   void selectPendingShare(OcptBudgetShareFormFields fields) {
     pendingNewShare = fields;
     shareId = null;
   }
 
-  /// Whether step 2 has been answered for [gesture], which is what `Continue` waits for.
+  /// Tell whether step 2 has been answered for [gesture], which is what `Continue` waits for.
   bool isAnsweredFor(OcptBudgetGesture? gesture) {
     if (gesture == null) {
       return false;
@@ -121,7 +121,7 @@ class OcptBudgetNewAttachmentAnswers {
     };
   }
 
-  /// The quote line [lineId] answered, searched across [postes], or null.
+  /// Get the quote line [lineId] answered, searched across [postes], or null.
   OcptBudgetLine? lineIn(List<OcptBudgetPoste> postes) {
     final lineId = this.lineId;
     if (lineId == null) {
@@ -136,7 +136,8 @@ class OcptBudgetNewAttachmentAnswers {
     return null;
   }
 
-  /// `commitSpend`'s own prefill when reached through the ordinary three-step flow (a poste, and
+  /// Get `commitSpend`'s own prefill when reached through the ordinary three-step flow (a poste,
+  /// and
   /// optionally a line, just answered in step 2) — mirrors `budget_wizard_flows.dart`'s own
   /// `_handleLineCommitRequested`, everything the line already states carried across.
   OcptBudgetCommitmentFormFields? commitmentPrefillIn(List<OcptBudgetPoste> postes) {

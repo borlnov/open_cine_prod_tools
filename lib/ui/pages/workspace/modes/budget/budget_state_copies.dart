@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 /// The named copies of an `OcptBudgetState`: each one is a change the bloc makes, spelled out with
 /// every field the change affects.
 extension OcptBudgetStateCopiesExtension on OcptBudgetState {
-  /// Copies this state with the selection and the selected share cleared, moving the selection
+  /// Copy this state with the selection and the selected share cleared, moving the selection
   /// with the cause [OcptBudgetSelectionCause.cleared].
   OcptBudgetState copyWithSelectionCleared() => copyWith(
     forceSelectionValue: true,
@@ -29,7 +29,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.cleared,
   );
 
-  /// Copies this state as loaded when no project is open: the right dock preferences restored, no
+  /// Copy this state as loaded when no project is open: the right dock preferences restored, no
   /// version previewed, the selection cleared and the data emptied.
   OcptBudgetState copyToLoadedWithoutProject({
     required double rightDockFraction,
@@ -49,7 +49,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.load,
   );
 
-  /// Copies this state as loaded from the open project: the budget and everything read beside it
+  /// Copy this state as loaded from the open project: the budget and everything read beside it
   /// replaced, the selection and the selected share cleared and the selection moved with the cause
   /// [OcptBudgetSelectionCause.load].
   ///
@@ -89,7 +89,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.load,
   );
 
-  /// Copies this state with the budget [snapshot] and everything read beside it replaced.
+  /// Copy this state with the budget [snapshot] and everything read beside it replaced.
   ///
   /// What the new [snapshot] no longer holds is dropped in the same copy, and moves the selection
   /// with the cause [OcptBudgetSelectionCause.reconciled]: the selection when it is not
@@ -128,7 +128,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     );
   }
 
-  /// Copies this state with the right dock tab [tab] shown and remembered, or the dock closed when
+  /// Copy this state with the right dock tab [tab] shown and remembered, or the dock closed when
   /// [isAlreadyActive].
   OcptBudgetState copyWithToggledRightDockTab({
     required OcptBudgetRightDockTab tab,
@@ -139,17 +139,17 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     lastRightDockTab: tab,
   );
 
-  /// Copies this state with the right dock closed.
+  /// Copy this state with the right dock closed.
   OcptBudgetState copyWithRightDockClosed() => copyWith(forceRightDockTabValue: true);
 
-  /// Copies this state with the right dock reopened on the last tab it showed.
+  /// Copy this state with the right dock reopened on the last tab it showed.
   OcptBudgetState copyWithRightDockReopened() => copyWith(rightDockTab: lastRightDockTab);
 
-  /// Copies this state with [fraction] as the width of the right dock.
+  /// Copy this state with [fraction] as the width of the right dock.
   OcptBudgetState copyWithRightDockFraction({required double fraction}) =>
       copyWith(rightDockFraction: fraction);
 
-  /// Copies this state with [view] as the centre view.
+  /// Copy this state with [view] as the centre view.
   ///
   /// The selection is cleared, moving it with the cause [OcptBudgetSelectionCause.viewChanged],
   /// when [clearSelection].
@@ -161,7 +161,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
         selectionCause: clearSelection ? OcptBudgetSelectionCause.viewChanged : null,
       );
 
-  /// Copies this state with [toolsView] as the tools view.
+  /// Copy this state with [toolsView] as the tools view.
   ///
   /// The selection is cleared, moving it with the cause [OcptBudgetSelectionCause.viewChanged],
   /// when [clearSelection].
@@ -175,19 +175,19 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: clearSelection ? OcptBudgetSelectionCause.viewChanged : null,
   );
 
-  /// Copies this state with the simplified figures switched on or off.
+  /// Copy this state with the simplified figures switched on or off.
   OcptBudgetState copyWithSimplified({required bool isSimplified}) =>
       copyWith(isSimplified: isSimplified);
 
-  /// Copies this state with [basis] as the tax basis the figures are shown on.
+  /// Copy this state with [basis] as the tax basis the figures are shown on.
   OcptBudgetState copyWithTaxBasis({required OcptBudgetTaxBasis basis}) =>
       copyWith(taxBasis: basis);
 
-  /// Copies this state with [expandedNodeIds] as the rows shown expanded.
+  /// Copy this state with [expandedNodeIds] as the rows shown expanded.
   OcptBudgetState copyWithExpandedNodeIds({required Set<String> expandedNodeIds}) =>
       copyWith(expandedNodeIds: expandedNodeIds);
 
-  /// Copies this state with [selection] selected and the inspector shown, remembered as the last
+  /// Copy this state with [selection] selected and the inspector shown, remembered as the last
   /// right dock tab.
   OcptBudgetState copyWithInspectedSelection({required OcptBudgetSelection selection}) => copyWith(
     selection: selection,
@@ -197,7 +197,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.selected,
   );
 
-  /// Copies this state with [selection] selected as the record was just created.
+  /// Copy this state with [selection] selected as the record was just created.
   ///
   /// The inspector is shown, and remembered as the last right dock tab, when [opensInspector].
   OcptBudgetState copyWithCreatedSelection({
@@ -211,21 +211,21 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.created,
   );
 
-  /// Copies this state with the share [shareId] selected as it was just created.
+  /// Copy this state with the share [shareId] selected as it was just created.
   OcptBudgetState copyWithCreatedShare({required String shareId}) => copyWith(
     selectedShareId: shareId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBudgetSelectionCause.created,
   );
 
-  /// Copies this state with the share [shareId] selected.
+  /// Copy this state with the share [shareId] selected.
   OcptBudgetState copyWithSelectedShare({required String shareId}) => copyWith(
     selectedShareId: shareId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBudgetSelectionCause.shareSelected,
   );
 
-  /// Copies this state with the poste filter cleared, moving the selection with the cause
+  /// Copy this state with the poste filter cleared, moving the selection with the cause
   /// [OcptBudgetSelectionCause.filtered].
   OcptBudgetState copyWithPosteFilterCleared() => copyWith(
     forceFilterPosteIdValue: true,
@@ -233,7 +233,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.filtered,
   );
 
-  /// Copies this state with every view narrowed to the poste [posteId], moving the selection with
+  /// Copy this state with every view narrowed to the poste [posteId], moving the selection with
   /// the cause [OcptBudgetSelectionCause.filtered].
   OcptBudgetState copyWithPosteFilter({required String posteId}) => copyWith(
     filterPosteId: posteId,
@@ -241,7 +241,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.filtered,
   );
 
-  /// Copies this state with the poste [posteId] as the provision poste, moving the selection with
+  /// Copy this state with the poste [posteId] as the provision poste, moving the selection with
   /// the cause [OcptBudgetSelectionCause.provisionSelected].
   OcptBudgetState copyWithProvisionPoste({required String posteId}) => copyWith(
     provisionPosteId: posteId,

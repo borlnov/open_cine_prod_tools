@@ -18,7 +18,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_attachment_answers.dart';
 
-/// The ranked lettrage candidates for the movement typed so far: empty while [offersLettrage] is
+/// Get the ranked lettrage candidates for the movement typed so far: empty while [offersLettrage]
+/// is
 /// false or while [amountText] and [wording] do not yet make a saveable draft (a positive amount
 /// and a non-blank wording).
 List<OcptBudgetMatchSuggestion> ocptBudgetNewLettrageSuggestionsOf({
@@ -62,7 +63,7 @@ List<OcptBudgetMatchSuggestion> ocptBudgetNewLettrageSuggestionsOf({
   );
 }
 
-/// The journal entry fields of the movement typed, according to [gesture] and to what step 2
+/// Get the journal entry fields of the movement typed, according to [gesture] and to what step 2
 /// collected in [answers].
 OcptBudgetEntryFormFields ocptBudgetNewMovementFieldsOf({
   required OcptBudgetGesture gesture,

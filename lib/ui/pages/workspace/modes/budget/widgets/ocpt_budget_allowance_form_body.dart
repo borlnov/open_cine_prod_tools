@@ -118,7 +118,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
   /// The end date currently picked, or null.
   DateTime? _endDate;
 
-  /// The fields this body would submit right now, or null while the `Quantity` or `Unit price`
+  /// Get the fields this body would submit right now, or null while the `Quantity` or `Unit price`
   /// fields' own figures do not parse.
   OcptBudgetAllowanceFormFields? get _currentDraft {
     final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
@@ -139,7 +139,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     );
   }
 
-  /// Whether the unit price is currently being picked from a scale rather than typed: a travel
+  /// Tell whether the unit price is currently being picked from a scale rather than typed: a travel
   /// defrayal, on a project that names at least one scale, with something other than
   /// `Free amount…` chosen.
   bool get _isPricedByScale =>
@@ -363,11 +363,11 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     );
   }
 
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// Report [_currentDraft] to the host — every controller listener and every picker's own
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
-  /// The distance and rate the person currently picked would pre-fill, or null while they have
+  /// Get the distance and rate the person currently picked would pre-fill, or null while they have
   /// neither — or while nobody is picked at all.
   ///
   /// **Both halves have to be there for the offer to make sense**: a commute with no rate cannot
@@ -390,7 +390,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     return rate == null ? null : (commuteKmMilli, rate.ratePerKmMilliCents, rate.id);
   }
 
-  /// Writes [prefill]'s own distance and rate into the two fields, and moves the nature to
+  /// Write [prefill]'s own distance and rate into the two fields, and move the nature to
   /// [OcptBudgetAllowanceKind.travel] — which is the only thing a mileage scale can price.
   void _applyPrefill((int, int, String) prefill) {
     setState(() {
@@ -404,15 +404,15 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     _report();
   }
 
-  /// The `Unit price` field's own helper: on a travel defrayal that no scale can price, it says
+  /// Get the `Unit price` field's own helper: on a travel defrayal that no scale can price, it says
   /// where scales come from rather than leaving the reader to guess why none was offered.
   String? _unitPriceHelper(Tr tr) =>
       _kind == OcptBudgetAllowanceKind.travel && widget.mileageRates.isEmpty
       ? tr.budgetAllowanceDialogNoMileageRateHint
       : null;
 
-  /// Applies the scale just picked in the dropdown, writing its own rate into the unit price the
-  /// form submits — or hands the field back on `Free amount…`, keeping whatever was last in it so
+  /// Apply the scale just picked in the dropdown, writing its own rate into the unit price the form
+  /// submits — or hand the field back on `Free amount…`, keeping whatever was last in it so
   /// a mis-click costs nothing.
   void _onMileageRateSelected(String? rateId) {
     setState(() {
@@ -425,7 +425,7 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     _report();
   }
 
-  /// The `Quantity` field's own helper, worded for [_kind] — the unit changes with the nature.
+  /// Get the `Quantity` field's own helper, worded for [_kind] — the unit changes with the nature.
   String _quantityHelper(Tr tr) => switch (_kind) {
     OcptBudgetAllowanceKind.travel => tr.budgetAllowanceDialogQuantityHelperTravel,
     OcptBudgetAllowanceKind.accommodation => tr.budgetAllowanceDialogQuantityHelperAccommodation,
@@ -466,7 +466,7 @@ class _OcptAllowanceKindPicker extends StatelessWidget {
     children: [for (final kind in OcptBudgetAllowanceKind.values) _segment(context, kind)],
   );
 
-  /// One of the picker's own segments.
+  /// Build one of the picker's own segments.
   Widget _segment(BuildContext context, OcptBudgetAllowanceKind kind) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);

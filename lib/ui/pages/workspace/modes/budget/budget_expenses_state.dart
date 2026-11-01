@@ -24,31 +24,32 @@ class OcptBudgetExpensesState extends BlocStateForMixin<OcptBudgetExpensesState>
   /// Class constructor
   const OcptBudgetExpensesState({required this.pendingFieldEdits});
 
-  /// Builds the state of a view that holds no typed edit.
+  /// Build the state of a view that holds no typed edit.
   const OcptBudgetExpensesState.init() : pendingFieldEdits = const {};
 
-  /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
+  /// Get [targetId]'s current value for [field] — a pending edit still sitting in
+  /// [pendingFieldEdits],
   /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
   /// `OcptScheduleDayState.fieldValueOf` resolves a day's, a slot's or a block's own fields.
   String fieldValueOf(String targetId, OcptBudgetField field, String storedValue) =>
       pendingFieldEdits[(targetId, field)] ?? storedValue;
 
-  /// Copies this state, replacing what is given. [pendingFieldEdits] is always replaced wholesale:
+  /// Copy this state, replacing what is given. [pendingFieldEdits] is always replaced wholesale:
   /// the caller always computes the full next map.
   @override
   OcptBudgetExpensesState copyWith({Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits}) =>
       OcptBudgetExpensesState(pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits);
 
-  /// Copies this state with every pending field edit dropped.
+  /// Copy this state with every pending field edit dropped.
   OcptBudgetExpensesState copyWithFieldEditsCleared() => copyWith(pendingFieldEdits: const {});
 
-  /// Copies this state with [pendingFieldEdits] as the edits sitting in the debounce, a field
+  /// Copy this state with [pendingFieldEdits] as the edits sitting in the debounce, a field
   /// having just been typed into.
   OcptBudgetExpensesState copyWithFieldEditTyped({
     required Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Copies this state with [pendingFieldEdits] as the edits left once the pending ones were
+  /// Copy this state with [pendingFieldEdits] as the edits left once the pending ones were
   /// written.
   OcptBudgetExpensesState copyWithFieldEditsWritten({
     required Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits,

@@ -33,8 +33,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_event.dart';
 
-/// Opens `OcptBudgetEntryDialog` on [entry] — the one screen it has left, its nature inferred
-/// silently off whichever of the entry's own links is set — then dispatches the update if the
+/// Open `OcptBudgetEntryDialog` on [entry] — the one screen it has left, its nature inferred
+/// silently off whichever of the entry's own links is set — then dispatch the update if the
 /// user confirmed it.
 Future<void> ocptBudgetEditEntry(
   BuildContext context,
@@ -62,7 +62,7 @@ Future<void> ocptBudgetEditEntry(
   journalBloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result));
 }
 
-/// Opens the commitment dialog pre-filled with [commitment], then dispatches the update if the
+/// Open the commitment dialog pre-filled with [commitment], then dispatch the update if the
 /// user confirmed it.
 Future<void> ocptBudgetEditCommitment(
   BuildContext context,
@@ -87,7 +87,7 @@ Future<void> ocptBudgetEditCommitment(
   );
 }
 
-/// Opens the resource dialog pre-filled with [resource], then dispatches the update if the user
+/// Open the resource dialog pre-filled with [resource], then dispatch the update if the user
 /// confirmed it.
 ///
 /// [OcptBudgetResourceDialog.initialPosteId] seeds the `Poste` picker from [resource]'s own
@@ -119,8 +119,8 @@ Future<void> ocptBudgetEditResource(
   );
 }
 
-/// Opens the defrayal dialog — empty while creating, pre-filled from [existing] while editing —
-/// then dispatches the write if the user confirmed it.
+/// Open the defrayal dialog — empty while creating, pre-filled from [existing] while editing — then
+/// dispatch the write if the user confirmed it.
 Future<void> ocptBudgetEditAllowance(
   BuildContext context,
   OcptBudgetState state,
@@ -145,7 +145,7 @@ Future<void> ocptBudgetEditAllowance(
   );
 }
 
-/// Opens the revenue dialog pre-filled with [revenue], then dispatches the update if the user
+/// Open the revenue dialog pre-filled with [revenue], then dispatch the update if the user
 /// confirmed it.
 Future<void> ocptBudgetEditRevenue(
   BuildContext context,
@@ -165,7 +165,7 @@ Future<void> ocptBudgetEditRevenue(
   sharingBloc.add(OcptBudgetRevenueUpdateConfirmedEvent(revenueId: revenue.id, fields: fields));
 }
 
-/// Opens the share dialog pre-filled with [share], then dispatches the update if the user
+/// Open the share dialog pre-filled with [share], then dispatch the update if the user
 /// confirmed it.
 Future<void> ocptBudgetEditShare(
   BuildContext context,
@@ -181,7 +181,7 @@ Future<void> ocptBudgetEditShare(
   sharingBloc.add(OcptBudgetShareUpdateConfirmedEvent(shareId: share.id, fields: fields));
 }
 
-/// Opens the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,
+/// Open the resources mode's own elements tab — `OcptBudgetFeedCard`'s own breakdown row,
 /// wherever the card is drawn.
 void ocptBudgetOpenBreakdownElements(BuildContext context) => context.read<OcptWorkspaceBloc>().add(
   const OcptWorkspaceModeSelectedEvent(
@@ -190,12 +190,12 @@ void ocptBudgetOpenBreakdownElements(BuildContext context) => context.read<OcptW
   ),
 );
 
-/// Opens the schedule mode — `OcptBudgetFeedCard`'s own schedule row, wherever the card is drawn.
+/// Open the schedule mode — `OcptBudgetFeedCard`'s own schedule row, wherever the card is drawn.
 void ocptBudgetOpenSchedule(BuildContext context) => context.read<OcptWorkspaceBloc>().add(
   const OcptWorkspaceModeSelectedEvent(mode: OcptWorkspaceMode.schedule),
 );
 
-/// Opens the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
+/// Open the catering-and-travel pass — `OcptBudgetFeedCard`'s own catering row, drawn only where
 /// that pass is not itself already on screen. Sets **both** [OcptBudgetView.tools] and
 /// [OcptBudgetToolsView.regie]: the first opens the drawer, the second picks which of its own
 /// pages is on screen the moment it does, and neither event clears the other's own field.

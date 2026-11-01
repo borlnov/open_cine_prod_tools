@@ -78,7 +78,7 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null.
+  /// Build one amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null.
   Widget _cell(BuildContext context, String? text) => SizedBox(
     width: ocptBudgetCostTrackingAmountColumnWidth,
     child: Text(

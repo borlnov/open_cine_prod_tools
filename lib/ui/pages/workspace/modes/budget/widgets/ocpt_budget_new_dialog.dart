@@ -215,7 +215,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   @override
   State<OcptBudgetNewDialog> createState() => _OcptBudgetNewDialogState();
 
-  /// Shows the wizard and returns what the user confirmed, or null if they cancelled it.
+  /// Show the wizard and return what the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetNewOutcome?> show(
     BuildContext context, {
     OcptBudgetGestureFamily? promotedFamily,
@@ -360,7 +360,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   // Step 1 — the fifteen answers, grouped by document
 
-  /// The families in the order step 1 draws them: the promoted one first, unless `Show all` lifted
+  /// Get the families in the order step 1 draws them: the promoted one first, unless `Show all`
+  /// lifted
   /// the filter.
   List<OcptBudgetGestureFamily> get _orderedFamilies {
     // `Show all` drops the promotion too, so the lifted list reads in the plain natural order — the
@@ -378,7 +379,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   // Step 3 — the money, or the form
 
-  /// Whether the wizard opened straight on the form, a prefilled shortcut — a commitment's own
+  /// Tell whether the wizard opened straight on the form, a prefilled shortcut — a commitment's own
   /// `Pay`, a receipt, a payout, a repayment, the direct pay of a quote line, or `Commit this
   /// line…` — skipping steps 1 and 2 (`initState`). There is then no step behind the form to return
   /// to, so it offers `Cancel`, which closes the wizard, rather than `Back`, and its own trail
@@ -561,7 +562,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
   }
 
-  /// The trail's segments above steps 2 and 3 — what has been answered so far — or null on step 1
+  /// Get the trail's segments above steps 2 and 3 — what has been answered so far — or null on step
+  /// 1
   /// and while no gesture is picked, where no trail is drawn.
   List<String>? _trailSegmentsOf(Tr tr) {
     final gesture = _gesture;
@@ -579,7 +581,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     return segments;
   }
 
-  /// The words step 2's own answer reads on the trail, or null while [gesture] attaches to nothing
+  /// Get the words step 2's own answer reads on the trail, or null while [gesture] attaches to
+  /// nothing
   /// or nothing has been answered yet.
   String? _attachmentAnswerLabel(Tr tr, OcptBudgetGesture gesture) {
     switch (ocptBudgetGestureAttachmentOf(gesture)) {
@@ -618,7 +621,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
   }
 
-  /// The display label of the poste [posteId], or the off-quote label while it is null.
+  /// Get the display label of the poste [posteId], or the off-quote label while it is null.
   String _posteLabelOf(Tr tr, String? posteId) {
     if (posteId == null) {
       return tr.budgetCostTrackingOffQuoteLabel;
@@ -629,7 +632,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         : ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified);
   }
 
-  /// [family]'s own gestures that step 1 currently offers — every one of them while the filter is
+  /// Get [family]'s own gestures that step 1 currently offers — every one of them while the filter
+  /// is
   /// lifted or absent, only the offered ones otherwise. A family with none is drawn no heading.
   List<OcptBudgetGesture> _visibleGesturesOf(OcptBudgetGestureFamily family) {
     final allowed = _showAll ? null : widget.allowedGestures;
@@ -641,7 +645,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     ];
   }
 
-  /// The actions of step 1: `Cancel`, and `Continue` once a gesture is picked.
+  /// Build the actions of step 1: `Cancel`, and `Continue` once a gesture is picked.
   List<Widget> _gestureActionsOf(Tr tr) => [
     OcptBudgetNewTextAction(
       buttonKey: const Key("ocptBudgetNewCancelButton"),
@@ -655,10 +659,10 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     ),
   ];
 
-  /// Closes the wizard without an outcome.
+  /// Close the wizard without an outcome.
   void _handleCancel() => globalGetIt().get<OcptRouterManager>().pop();
 
-  /// Leaves step 1 for the attachment step, or straight for the form when the gesture attaches to
+  /// Leave step 1 for the attachment step, or straight for the form when the gesture attaches to
   /// nothing.
   void _handleGestureContinue() {
     final gesture = _gesture;
@@ -681,7 +685,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
 
   // Step 2 — the attachment
 
-  /// Asks for the financing resource to create along with the movement, then keeps it pending.
+  /// Ask for the financing resource to create along with the movement, then keep it pending.
   Future<void> _handleCreateResourceRequested() async {
     final fields = await OcptBudgetResourceDialog.show(
       context,
@@ -703,7 +707,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     setState(() => _answers.selectPendingResource(fields));
   }
 
-  /// Asks for the participant to create along with the movement, then keeps it pending.
+  /// Ask for the participant to create along with the movement, then keep it pending.
   Future<void> _handleCreateShareRequested() async {
     final fields = await OcptBudgetShareDialog.show(context, existing: null, people: widget.people);
     if (fields == null || !mounted) {
@@ -713,7 +717,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     setState(() => _answers.selectPendingShare(fields));
   }
 
-  /// The actions of step 2: `Back`, and `Continue` once the attachment is answered.
+  /// Build the actions of step 2: `Back`, and `Continue` once the attachment is answered.
   List<Widget> _attachmentActionsOf(Tr tr) => [
     OcptBudgetNewTextAction(
       buttonKey: const Key("ocptBudgetNewBackButton"),
@@ -729,7 +733,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     ),
   ];
 
-  /// The actions of step 3: `Cancel` or `Back`, and the primary action of the gesture in effect.
+  /// Build the actions of step 3: `Cancel` or `Back`, and the primary action of the gesture in
+  /// effect.
   List<Widget> _formActionsOf(Tr tr) {
     final gesture = _gesture;
     final attachment = gesture == null
@@ -761,7 +766,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     ];
   }
 
-  /// What the primary action of step 3 does for [gesture], or null while it is withheld.
+  /// Get what the primary action of step 3 does for [gesture], or null while it is withheld.
   VoidCallback? _primaryFormPressedOf(OcptBudgetGesture gesture) {
     if (gesture == OcptBudgetGesture.addQuoteLinesFromBreakdown) {
       return _breakdown.isReady ? _submitBreakdown : null;
@@ -780,11 +785,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     };
   }
 
-  /// Closes the wizard with [outcome].
+  /// Close the wizard with [outcome].
   void _pop(OcptBudgetNewOutcome outcome) =>
       globalGetIt().get<OcptRouterManager>().pop<OcptBudgetNewOutcome>(outcome);
 
-  /// Confirms the quote line form.
+  /// Confirm the quote line form.
   void _submitLine() {
     final draft = _lineDraft;
     final posteId = _answers.posteId;
@@ -794,7 +799,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     _pop(OcptBudgetNewLineOutcome(posteId: posteId, fields: draft));
   }
 
-  /// Confirms the commitment form.
+  /// Confirm the commitment form.
   void _submitCommitment() {
     final draft = _commitmentDraft;
     if (!(_formKey.currentState?.validate() ?? false) || draft == null) {
@@ -809,7 +814,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
   }
 
-  /// Confirms the resource form.
+  /// Confirm the resource form.
   void _submitResource() {
     final draft = _resourceDraft;
     if (!(_formKey.currentState?.validate() ?? false) || draft == null) {
@@ -818,7 +823,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     _pop(OcptBudgetNewResourceOutcome(fields: draft));
   }
 
-  /// Confirms the taking form.
+  /// Confirm the taking form.
   void _submitRevenue() {
     final draft = _revenueDraft;
     if (!(_formKey.currentState?.validate() ?? false) || draft == null) {
@@ -827,7 +832,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     _pop(OcptBudgetNewRevenueOutcome(fields: draft));
   }
 
-  /// Confirms the defrayal form.
+  /// Confirm the defrayal form.
   void _submitAllowance() {
     final draft = _allowanceDraft;
     if (!(_formKey.currentState?.validate() ?? false) || draft == null) {
@@ -836,7 +841,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     _pop(OcptBudgetNewAllowanceOutcome(fields: draft));
   }
 
-  /// Confirms the participant form.
+  /// Confirm the participant form.
   void _submitShare() {
     final draft = _shareDraft;
     if (!(_formKey.currentState?.validate() ?? false) || draft == null) {
@@ -845,7 +850,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     _pop(OcptBudgetNewShareOutcome(fields: draft));
   }
 
-  /// Confirms the breakdown selector, creating one quote line per checked element.
+  /// Confirm the breakdown selector, creating one quote line per checked element.
   void _submitBreakdown() {
     final outcome = _breakdown.outcome();
     if (outcome != null) {
@@ -853,7 +858,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
   }
 
-  /// Opens the file selector for the movement's receipt and keeps the picked path.
+  /// Open the file selector for the movement's receipt and keep the picked path.
   Future<void> _pickReceipt() async {
     final label = Tr.of(context).budgetEntryDialogReceiptFieldLabel;
     final selection = await globalGetIt().get<FileSelectorManager>().openSelector(
@@ -875,7 +880,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     });
   }
 
-  /// The lettrage candidates the movement form offers, but only while the gesture in effect is a
+  /// Get the lettrage candidates the movement form offers, but only while the gesture in effect is
+  /// a
   /// cash movement; empty otherwise.
   List<OcptBudgetMatchSuggestion> _formStepSuggestions() {
     final gesture = _gesture;
@@ -885,7 +891,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     return _lettrageSuggestionsOf();
   }
 
-  /// The ranked lettrage candidates for the movement typed so far.
+  /// Get the ranked lettrage candidates for the movement typed so far.
   List<OcptBudgetMatchSuggestion> _lettrageSuggestionsOf() => ocptBudgetNewLettrageSuggestionsOf(
     offersLettrage: widget.offersLettrage,
     amountText: _amountController.text,
@@ -902,7 +908,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     projectVatRateBasisPoints: widget.defaultVatRateBasisPoints,
   );
 
-  /// Confirms the movement form, settling the accepted lettrage candidate when there is one.
+  /// Confirm the movement form, settling the accepted lettrage candidate when there is one.
   void _submitMovement() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;

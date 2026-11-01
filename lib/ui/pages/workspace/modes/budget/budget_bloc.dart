@@ -173,8 +173,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetShareSelectedEvent>(_onShareSelected);
   }
 
-  /// Has every view write what it holds, so a preview about to swap the database can't send a typed
-  /// edit into the previewed version instead, then clears the selection: whatever it named out of
+  /// Have every view write what it holds, so a preview about to swap the database can't send a
+  /// typed edit into the previewed version instead, then clear the selection: whatever it named out
+  /// of
   /// the working copy's own catalogue means nothing once a preview swaps that data out.
   ///
   /// Answers false, with the selection untouched, when a typed edit could not be written: the
@@ -240,7 +241,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     return isReloaded;
   }
 
-  /// Writes every pending edit of the views directly to the database, without touching [state].
+  /// Write every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptScheduleBloc.flushPendingFieldEdits`:
   /// `deactivate()` runs before `dispose()` for every removal from the tree, so triggering the
@@ -265,7 +266,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _load(emit);
   }
 
-  /// Asks every view to write what it holds, and answers whether they all could.
+  /// Ask every view to write what it holds, and answer whether they all could.
   ///
   /// Nothing in this mode catches a failed write: the view that failed keeps its edit pending, the
   /// views after it are still asked, and the action this flush was for (a selection, a view or dock
@@ -277,7 +278,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     return !run.hasFailed;
   }
 
-  /// Loads the current project's whole budget through [_loader] (which seeds the ten CNC postes on
+  /// Load the current project's whole budget through [_loader] (which seeds the ten CNC postes on
   /// the first read of an empty table), the page setup and the persisted dock state.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
@@ -328,7 +329,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     });
   }
 
-  /// Reads the page setup the mode's own three PDF export dialogs are pre-filled with: the open
+  /// Read the page setup the mode's own three PDF export dialogs are pre-filled with: the open
   /// project's own page format, paired with the app-wide margins preference, exactly as
   /// `OcptResourcesBloc`'s own `_loadPageSetup` pairs them.
   ///
@@ -342,7 +343,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
 
-  /// Leaves the workspace: closes the current project and navigates back to the home page.
+  /// Leave the workspace: closes the current project and navigates back to the home page.
   Future<void> _onBackRequested(
     OcptBudgetBackRequestedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -351,7 +352,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     _routerManager.pop();
   }
 
-  /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
+  /// Select a tab of the right dock (the already-active tab closes the dock, any other one opens
   /// or switches to it). Flushes any pending field edit first, mirroring every other mode.
   Future<void> _onRightDockTabSelected(
     OcptBudgetRightDockTabSelectedEvent event,
@@ -370,7 +371,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Toggles the right dock from the workspace toolbar: an open dock closes, a closed one reopens
+  /// Toggle the right dock from the workspace toolbar: an open dock closes, a closed one reopens
   /// on [OcptBudgetState.lastRightDockTab].
   Future<void> _onRightDockToggled(
     OcptBudgetRightDockToggledEvent event,
@@ -388,7 +389,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Closes the right dock via its own × close button.
+  /// Close the right dock via its own × close button.
   Future<void> _onRightDockClosed(
     OcptBudgetRightDockClosedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -396,7 +397,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithRightDockClosed());
   }
 
-  /// Applies and persists the right dock's new width fraction.
+  /// Apply and persist the right dock's new width fraction.
   Future<void> _onRightDockFractionChanged(
     OcptBudgetRightDockFractionChangedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -405,7 +406,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithRightDockFraction(fraction: event.fraction));
   }
 
-  /// Persists [tab] as the mode's last right dock tab, unless it already is.
+  /// Persist [tab] as the mode's last right dock tab, unless it already is.
   Future<void> _persistLastRightDockTab(OcptBudgetRightDockTab tab) async {
     if (state.lastRightDockTab == tab) {
       return;
@@ -414,7 +415,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _propertiesManager.budgetLastRightDockTab.store(tab);
   }
 
-  /// Switches which of the mode's views is shown — dispatched by one of the header's own chips,
+  /// Switch which of the mode's views is shown — dispatched by one of the header's own chips,
   /// and by every other gesture that leads to a view of its own.
   Future<void> _onViewSelected(
     OcptBudgetViewSelectedEvent event,
@@ -433,7 +434,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithView(view: event.view, clearSelection: event.clearSelection));
   }
 
-  /// Switches which of the tools drawer's own three pages is shown — dispatched by the header's
+  /// Switch which of the tools drawer's own three pages is shown — dispatched by the header's
   /// own second segmented switch. Mirrors [_onViewSelected] exactly, flush included: leaving
   /// `Régie`'s own provisioning band for `Flux de trésorerie` reads the very figures a pending
   /// edit has not reached yet.
@@ -450,7 +451,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Toggles the header's simplified/detailed switch.
+  /// Toggle the header's simplified/detailed switch.
   Future<void> _onSimplifiedToggled(
     OcptBudgetSimplifiedToggledEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -464,7 +465,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithSimplified(isSimplified: event.isSimplified));
   }
 
-  /// Switches the header's excluding/including-tax toggle.
+  /// Switch the header's excluding/including-tax toggle.
   Future<void> _onTaxBasisChanged(
     OcptBudgetTaxBasisChangedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -478,7 +479,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithTaxBasis(basis: event.basis));
   }
 
-  /// Selects poste `event.posteId`, opening the right dock on the `Inspector` tab. A poste id
+  /// Select poste `event.posteId`, opening the right dock on the `Inspector` tab. A poste id
   /// naming no live poste is ignored. Flushes any pending field edit first: switching which poste's
   /// own fields are on screen is exactly the selection change every other mode flushes on.
   Future<void> _onPosteSelected(
@@ -496,7 +497,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithInspectedSelection(selection: OcptBudgetPosteSelection(event.posteId)));
   }
 
-  /// Expands or collapses expenses-tree node `event.nodeId` — an already-expanded one collapses, a
+  /// Expand or collapse expenses-tree node `event.nodeId` — an already-expanded one collapses, a
   /// collapsed one expands, independently of every other node.
   Future<void> _onRowExpansionToggled(
     OcptBudgetRowExpansionToggledEvent event,
@@ -510,7 +511,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithExpandedNodeIds(expandedNodeIds: expandedNodeIds));
   }
 
-  /// Selects quote line `event.lineId`, opening the right dock on the `Inspector` tab — mirrors
+  /// Select quote line `event.lineId`, opening the right dock on the `Inspector` tab — mirrors
   /// [_onPosteSelected], flushing any pending field edit first for the same reason: the newly
   /// selected line may belong to a different poste than whichever one's fields are on screen. A
   /// line id naming no live line is ignored.
@@ -529,7 +530,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithInspectedSelection(selection: OcptBudgetLineSelection(event.lineId)));
   }
 
-  /// Selects commitment `event.commitmentId`, opening the right dock on the `Inspector` tab —
+  /// Select commitment `event.commitmentId`, opening the right dock on the `Inspector` tab —
   /// mirrors [_onLineSelected]. A commitment id naming no live commitment is ignored.
   Future<void> _onCommitmentSelected(
     OcptBudgetCommitmentSelectedEvent event,
@@ -550,7 +551,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Selects journal entry `event.entryId`, opening the right dock on the `Inspector` tab —
+  /// Select journal entry `event.entryId`, opening the right dock on the `Inspector` tab —
   /// mirrors [_onLineSelected]. An entry id naming no live entry is ignored.
   Future<void> _onEntrySelected(
     OcptBudgetEntrySelectedEvent event,
@@ -567,7 +568,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithInspectedSelection(selection: OcptBudgetEntrySelection(event.entryId)));
   }
 
-  /// Selects receipt `event.receiptId` — a sub-row of the resources tree — opening the right dock
+  /// Select receipt `event.receiptId` — a sub-row of the resources tree — opening the right dock
   /// on the `Inspector` tab. Mirrors [_onEntrySelected] exactly: a receipt is the very same
   /// `budget_entries` row read under a different name, so it is looked up in
   /// [OcptBudgetState.entries] the same way. A receipt id naming no live entry is ignored.
@@ -584,7 +585,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Selects the poste, the quote line, the resource or the taking a view has just created, without
+  /// Select the poste, the quote line, the resource or the taking a view has just created, without
   /// writing what is pending: the view did so, and has read the snapshot again. A poste and a line
   /// open the right dock on the `Inspector` tab, a resource and a taking do not.
   Future<void> _onSelectionCreated(
@@ -599,7 +600,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Highlights the share a view has just created, without writing what is pending.
+  /// Highlight the share a view has just created, without writing what is pending.
   Future<void> _onShareCreated(
     OcptBudgetShareCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -607,7 +608,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithCreatedShare(shareId: event.shareId));
   }
 
-  /// Re-reads the project's currency and default VAT rate after the project settings page changed
+  /// Re-read the project's currency and default VAT rate after the project settings page changed
   /// something — mirrors `OcptScheduleProjectSettingsChangedEvent`'s own handler.
   Future<void> _onProjectSettingsChanged(
     OcptBudgetProjectSettingsChangedEvent event,
@@ -621,7 +622,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await runSerially(() => _readBudgetSnapshot(emitter, project));
   }
 
-  /// Narrows every view of the mode to `event.posteId`, or clears the filter when it is null — see
+  /// Narrow every view of the mode to `event.posteId`, or clear the filter when it is null — see
   /// [OcptBudgetPosteFilterSelectedEvent]'s own doc comment for why this is not the selection.
   ///
   /// Flushes any pending field edit first, mirroring every other handler that changes what is on
@@ -648,8 +649,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Reads [project]'s whole snapshot, reconciles the shared selection against it, emits both in
-  /// one state, and asks for a fresh working-copy capture while the `Versions` tab is open.
+  /// Read [project]'s whole snapshot, reconcile the shared selection against it, emit both in one
+  /// state, and ask for a fresh working-copy capture while the `Versions` tab is open.
   ///
   /// Not queued: [reloadScopesIn] and the settings handler queue it, each in its own way. Whatever
   /// the selection, the filter or the share named that the snapshot no longer holds is dropped in
@@ -716,7 +717,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
-  /// Selects financing resource `event.resourceId`, opening the right dock on the `Inspector` tab —
+  /// Select financing resource `event.resourceId`, opening the right dock on the `Inspector` tab —
   /// mirrors [_onPosteSelected]. A resource id naming no live resource is ignored.
   Future<void> _onResourceSelected(
     OcptBudgetResourceSelectedEvent event,
@@ -731,13 +732,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Points the provisioning at `event.posteId` — a selection, written nowhere.
+  /// Point the provisioning at `event.posteId` — a selection, written nowhere.
   void _onProvisionPosteSelected(
     OcptBudgetProvisionPosteSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) => emitter(state.copyWithProvisionPoste(posteId: event.posteId));
 
-  /// Selects taking `event.revenueId`, opening the right dock on the `Inspector` tab — mirrors
+  /// Select taking `event.revenueId`, opening the right dock on the `Inspector` tab — mirrors
   /// [_onResourceSelected]. A revenue id naming no live revenue is ignored.
   Future<void> _onRevenueSelected(
     OcptBudgetRevenueSelectedEvent event,
@@ -752,7 +753,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Selects share `event.shareId`, drawn as a plain highlight — mirrors [_onRevenueSelected]. A
+  /// Select share `event.shareId`, drawn as a plain highlight — mirrors [_onRevenueSelected]. A
   /// share id naming no live share is ignored.
   Future<void> _onShareSelected(
     OcptBudgetShareSelectedEvent event,

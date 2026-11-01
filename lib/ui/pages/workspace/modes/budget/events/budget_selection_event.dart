@@ -11,7 +11,7 @@ sealed class OcptBudgetSelectionEvent extends OcptBudgetEvent {
   const OcptBudgetSelectionEvent();
 }
 
-/// Selects poste [posteId] — a cost-tracking row — opening the right dock on the `Inspector` tab,
+/// Select poste [posteId] — a cost-tracking row — opening the right dock on the `Inspector` tab,
 /// mirroring `OcptScheduleShotSelectedEvent`'s own gesture. A [posteId] naming no live poste is
 /// ignored.
 class OcptBudgetPosteSelectedEvent extends OcptBudgetSelectionEvent {
@@ -26,7 +26,7 @@ class OcptBudgetPosteSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Selects quote line [lineId] — a sub-row of the expenses tree — dispatched by its row's own
+/// Select quote line [lineId] — a sub-row of the expenses tree — dispatched by its row's own
 /// click. A [lineId] naming no live line is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
 class OcptBudgetLineSelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the line to select.
@@ -40,7 +40,7 @@ class OcptBudgetLineSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, lineId];
 }
 
-/// Selects commitment [commitmentId] — a sub-row of the expenses tree — dispatched by its row's own
+/// Select commitment [commitmentId] — a sub-row of the expenses tree — dispatched by its row's own
 /// click. Draws as a plain highlight; its own `⋮` menu is what edits, settles or deletes it. A
 /// [commitmentId] naming no live commitment is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
 class OcptBudgetCommitmentSelectedEvent extends OcptBudgetSelectionEvent {
@@ -55,7 +55,7 @@ class OcptBudgetCommitmentSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, commitmentId];
 }
 
-/// Selects journal entry [entryId] — a sub-row of the expenses tree, whether it settles a
+/// Select journal entry [entryId] — a sub-row of the expenses tree, whether it settles a
 /// commitment or names its own poste directly — dispatched by its row's own click. A [entryId]
 /// naming no live entry is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
 class OcptBudgetEntrySelectedEvent extends OcptBudgetSelectionEvent {
@@ -70,7 +70,7 @@ class OcptBudgetEntrySelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Selects receipt [receiptId] — a sub-row of the resources tree, nested under the resource or the
+/// Select receipt [receiptId] — a sub-row of the resources tree, nested under the resource or the
 /// revenue the underlying `budget_entries` credit names — dispatched by its row's own click.
 /// Mirrors `OcptBudgetEntrySelectedEvent`: [receiptId] is a journal entry's own id, read as a
 /// receipt rather than as a debit or a credit of the expenses tree. A [receiptId] naming no live
@@ -87,7 +87,7 @@ class OcptBudgetReceiptSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, receiptId];
 }
 
-/// Selects financing resource [resourceId] — a row of the financing view — dispatched by its row's
+/// Select financing resource [resourceId] — a row of the financing view — dispatched by its row's
 /// own click. Draws as a plain highlight, never an inspector: see `OcptBudgetFinancing`'s own class
 /// doc comment. A [resourceId] naming no live resource is ignored, mirroring
 /// `OcptBudgetPosteSelectedEvent`.
@@ -103,7 +103,7 @@ class OcptBudgetResourceSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, resourceId];
 }
 
-/// Selects revenue sharing taking [revenueId] — a row of the tools drawer's own `Partage` page,
+/// Select revenue sharing taking [revenueId] — a row of the tools drawer's own `Partage` page,
 /// or of the resources plan's own `Takings` family — dispatched by its row's own click. Either way
 /// it opens the right dock's fiche exactly as `OcptBudgetResourceSelectedEvent` does: both routes
 /// carry an inspector (`ocptBudgetViewHasInspector`), and a taking reads the same wherever it is
@@ -120,7 +120,7 @@ class OcptBudgetRevenueSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, revenueId];
 }
 
-/// Selects share [shareId] — a row of the sharing view's own `Distribution` table — dispatched by
+/// Select share [shareId] — a row of the sharing view's own `Distribution` table — dispatched by
 /// its row's own click. Draws as a plain highlight, never an inspector, mirroring
 /// `OcptBudgetRevenueSelectedEvent`. A [shareId] naming no live share is ignored.
 class OcptBudgetShareSelectedEvent extends OcptBudgetSelectionEvent {
@@ -135,7 +135,7 @@ class OcptBudgetShareSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, shareId];
 }
 
-/// Selects the record a view has just created and read the snapshot again for — a poste, a quote
+/// Select the record a view has just created and read the snapshot again for — a poste, a quote
 /// line, a financing resource or a taking — without writing what is pending: the view did so.
 ///
 /// Dispatched through `addToModeAndWait` by the view that created the record, and handled by the
@@ -156,7 +156,7 @@ class OcptBudgetSelectionCreatedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, selection, opensInspector];
 }
 
-/// Highlights the revenue sharing share a view has just created and read the snapshot again for,
+/// Highlight the revenue sharing share a view has just created and read the snapshot again for,
 /// without writing what is pending — mirrors `OcptBudgetSelectionCreatedEvent`.
 class OcptBudgetShareCreatedEvent extends OcptBudgetSelectionEvent {
   /// The id of the share to highlight.

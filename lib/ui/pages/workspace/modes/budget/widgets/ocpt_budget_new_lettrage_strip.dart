@@ -85,7 +85,7 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     );
   }
 
-  /// The reasons [suggestion] was ranked, joined into one muted line.
+  /// Get the reasons [suggestion] was ranked, joined into one muted line.
   String _reasonsOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
     final reasons = [
       if (suggestion.matchesAmount) tr.budgetNewLettrageReasonAmount,
@@ -95,7 +95,7 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     return reasons.join(" · ");
   }
 
-  /// The headline sentence naming [suggestion] and the figures that matter for its kind.
+  /// Get the headline sentence naming [suggestion] and the figures that matter for its kind.
   String _headlineOf(BuildContext context, Tr tr, OcptBudgetMatchSuggestion suggestion) {
     switch (suggestion.kind) {
       case OcptBudgetMatchCandidateKind.commitment:
@@ -142,11 +142,11 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     }
   }
 
-  /// What [suggestion] has already received, in cents.
+  /// Get what [suggestion] has already received, in cents.
   int _receivedCentsOf(OcptBudgetMatchSuggestion suggestion) =>
       (suggestion.amountCents ?? 0) - (suggestion.outstandingCents ?? 0);
 
-  /// The label of the poste the commitment behind [suggestion] hangs off.
+  /// Get the label of the poste the commitment behind [suggestion] hangs off.
   String _commitmentPosteLabelOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
     final commitment = commitments
         .where((candidate) => candidate.id == suggestion.candidateId)

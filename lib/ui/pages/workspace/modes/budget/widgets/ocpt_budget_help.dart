@@ -88,7 +88,8 @@ class OcptBudgetHelp extends StatelessWidget {
     );
   }
 
-  /// The chain [_OcptBudgetHelpChain] draws for the current route, or empty on `tools › regie` —
+  /// Get the chain [_OcptBudgetHelpChain] draws for the current route, or empty on `tools › regie`
+  /// —
   /// see the class doc comment for why régie draws none.
   ///
   /// `tools › cashFlow` reads the very same chain as `expenses`: it is that document's own middle
@@ -104,7 +105,8 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => _sharingChainSteps(tr),
   };
 
-  /// The expenses chain: a quote line, resolved as [Tr.budgetFicheStepEstimatedLabel] — the very
+  /// Get the expenses chain: a quote line, resolved as [Tr.budgetFicheStepEstimatedLabel] — the
+  /// very
   /// word the fiche's own stepper already shows for it — becomes a commitment
   /// ([Tr.budgetInspectorFigureCommitted]), settled by an entry ([Tr.budgetInspectorFigurePaid]).
   List<(String, String)> _expensesChainSteps(Tr tr) => [
@@ -113,7 +115,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (tr.budgetInspectorFigurePaid, tr.budgetHelpChainExpensesPaidCaption),
   ];
 
-  /// [OcptBudgetView.resources]' own chain: a resource or a taking is promised
+  /// Get [OcptBudgetView.resources]' own chain: a resource or a taking is promised
   /// ([Tr.budgetFicheStepPromisedLabel]), and becomes received ([Tr.budgetFinancingColumnReceived])
   /// the moment a journal entry names it — no hand-typed step in between, unlike the expenses
   /// chain's own commitment.
@@ -122,7 +124,8 @@ class OcptBudgetHelp extends StatelessWidget {
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainResourcesReceivedCaption),
   ];
 
-  /// `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived] — read
+  /// Get `tools › sharing`'s own chain: the takings received ([Tr.budgetFinancingColumnReceived] —
+  /// read
   /// from [OcptBudgetView.resources], not typed here) become what has already been repaid
   /// ([Tr.budgetSharingRepaidLabel]) and what is left to share
   /// ([Tr.budgetSharingLeftToShareLabel]).
@@ -132,7 +135,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (tr.budgetSharingLeftToShareLabel, tr.budgetHelpChainSharingLeftToShareCaption),
   ];
 
-  /// The sentence printed under the chain, or null on `tools › regie` where [_chainStepsOf] is
+  /// Get the sentence printed under the chain, or null on `tools › regie` where [_chainStepsOf] is
   /// already empty and nothing is printed at all.
   String? _chainSentenceOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.tools, OcptBudgetToolsView.regie) => null,
@@ -143,7 +146,8 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHelpChainSharingSentence,
   };
 
-  /// Which of [_chainStepsOf]'s own steps is the current route's own — "you are here" — or null
+  /// Tell which of [_chainStepsOf]'s own steps is the current route's own — "you are here" — or
+  /// null
   /// where none stands for it in particular.
   ///
   /// **`expenses` and [OcptBudgetView.resources] both highlight nothing.** Each reads every one of
@@ -166,7 +170,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => null,
   };
 
-  /// The current route's own heading — the very word its band shows above the centre, so the
+  /// Get the current route's own heading — the very word its band shows above the centre, so the
   /// reader finds the same name here as on screen (`OcptBudgetHeader._titleOf`'s own reasoning,
   /// reimplemented here rather than shared, since that method is private to that widget).
   String _titleOf(Tr tr) => switch ((view, toolsView)) {
@@ -178,7 +182,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingTitle,
   };
 
-  /// The current route's own one-line subtitle, exactly as the header band prints it.
+  /// Get the current route's own one-line subtitle, exactly as the header band prints it.
   String _subtitleOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.dashboard, _) => tr.budgetHeaderDashboardSubtitle,
     (OcptBudgetView.expenses, _) => tr.budgetHeaderSubtitle,
@@ -188,7 +192,7 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => tr.budgetHeaderSharingSubtitle,
   };
 
-  /// The current route's own explanation, one short paragraph per entry — the substance
+  /// Get the current route's own explanation, one short paragraph per entry — the substance
   /// `docs/architecture/budget.md` states, in plain language, with every cross-reference to a
   /// figure or another route worded exactly as its own label or chip already reads.
   ///

@@ -70,7 +70,7 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
   /// The controller of the unit price field.
   late final TextEditingController _unitPriceController;
 
-  /// The fields this body would submit right now, or null while `Quantity` or `Unit price` does
+  /// Get the fields this body would submit right now, or null while `Quantity` or `Unit price` does
   /// not parse.
   OcptBudgetLineFormFields? get _currentDraft {
     final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
@@ -170,7 +170,7 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
     );
   }
 
-  /// Reports [_currentDraft] to the host — every controller listener calls this after applying its
+  /// Report [_currentDraft] to the host — every controller listener calls this after applying its
   /// own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 

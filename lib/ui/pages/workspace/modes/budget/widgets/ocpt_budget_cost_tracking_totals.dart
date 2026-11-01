@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 
-/// How many postes count as covered under [taxBasis] — "every one of its own lines does"
+/// Count how many postes count as covered under [taxBasis] — "every one of its own lines does"
 /// (`docs/architecture/budget.md`) — what the total row's own coverage read-out counts
 /// against `postes.length`.
 int ocptBudgetCostTrackingCoveredPosteCountOf(
@@ -29,7 +29,8 @@ int ocptBudgetCostTrackingCoveredPosteCountOf(
   return count;
 }
 
-/// The grand `Coût final` total, summed **poste by poste** (`ocpt_budget_totals.dart`'s own "row
+/// Get the grand `Coût final` total, summed **poste by poste** (`ocpt_budget_totals.dart`'s own
+/// "row
 /// by row, then summed" doctrine) rather than re-derived from the grand `Devis`/`Payé`/`Engagé`
 /// totals: a typed estimate to complete on one poste cannot be reconstructed from any
 /// project-wide figure, and [ocptBudgetEstimateToCompleteCents]'s own `max(0, …)` clamp does not

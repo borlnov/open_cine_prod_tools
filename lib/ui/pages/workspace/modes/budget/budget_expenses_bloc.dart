@@ -112,7 +112,7 @@ class OcptBudgetExpensesBloc
     on<OcptBudgetFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
   }
 
-  /// Drops the edits the mode's fresh read makes meaningless.
+  /// Drop the edits the mode's fresh read makes meaningless.
   ///
   /// When the mode read everything again (`OcptBudgetSelectionCause.load`: entry, a version preview
   /// or a restore) every pending edit goes, whichever row it was typed into: the database
@@ -139,7 +139,7 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// Write every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one, then has the mode read the snapshot again — which
   /// also reconciles the selection and refreshes the working-copy card if the `Versions` tab is
   /// open — and only then forgets what it wrote, so what a field shows never falls back to a stale
@@ -187,7 +187,7 @@ class OcptBudgetExpensesBloc
     return true;
   }
 
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
+  /// Write every pending field edit directly to the database, bypassing both the debounce timer
   /// and the bloc's own event queue.
   ///
   /// Called by the mode's own `deactivate()` (through the flushers it registered): `deactivate()`
@@ -226,7 +226,7 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Creates a new, unnamed poste, appended at the end of the catalogue, and selects it.
+  /// Create a new, unnamed poste, appended at the end of the catalogue, and select it.
   Future<void> _onPosteCreated(
     OcptBudgetPosteCreatedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
@@ -252,7 +252,7 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Moves poste `event.posteId` to `event.newPosition` within the catalogue's flat order.
+  /// Move poste `event.posteId` to `event.newPosition` within the catalogue's flat order.
   Future<void> _onPosteReordered(
     OcptBudgetPosteReorderedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
@@ -270,7 +270,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes poste `event.posteId` for good, along with every quote line it holds, confirmed by the
+  /// Delete poste `event.posteId` for good, along with every quote line it holds, confirmed by the
   /// mode's own `OcptConfirmDialog`.
   Future<void> _onPosteDeletionConfirmed(
     OcptBudgetPosteDeletionConfirmedEvent event,
@@ -285,7 +285,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Puts poste `event.posteId`'s own estimate to complete back to being derived, immediately — see
+  /// Put poste `event.posteId`'s own estimate to complete back to being derived, immediately — see
   /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`'s own doc comment.
   Future<void> _onPosteEstimateToCompleteDerivedRequested(
     OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent event,
@@ -304,8 +304,8 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Creates a new quote line inside poste `event.posteId`, appended at the end of its own lines,
-  /// and selects it, opening the right dock on the `Inspector` tab — a line is now selected rather
+  /// Create a new quote line inside poste `event.posteId`, appended at the end of its own lines,
+  /// and select it, opening the right dock on the `Inspector` tab — a line is now selected rather
   /// than expanded, mirroring `OcptBudgetBloc`'s own selection of a line.
   ///
   /// **`event.fields` null keeps this handler's own original write**: an unnamed line, every other
@@ -345,8 +345,8 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Creates a new quote line inside poste `event.posteId` **from** breakdown element
-  /// `event.elementId`, and selects it — dispatched by the capture wizard's own breakdown selector,
+  /// Create a new quote line inside poste `event.posteId` **from** breakdown element
+  /// `event.elementId`, and select it — dispatched by the capture wizard's own breakdown selector,
   /// once per row created. An element id naming no live element of [OcptBudgetState.elements] is
   /// ignored: the selector only ever offers a live one, so this should not happen outside a stale
   /// dialog result.
@@ -399,7 +399,7 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Deletes quote line `event.lineId` for good, confirmed by the mode's own `OcptConfirmDialog`.
+  /// Delete quote line `event.lineId` for good, confirmed by the mode's own `OcptConfirmDialog`.
   Future<void> _onLineDeletionConfirmed(
     OcptBudgetLineDeletionConfirmedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
@@ -413,7 +413,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Writes a new including/excluding-tax basis onto line `event.lineId`'s own unit price
+  /// Write a new including/excluding-tax basis onto line `event.lineId`'s own unit price
   /// immediately — a pick, not typing.
   Future<void> _onLineTaxInclusiveChanged(
     OcptBudgetLineTaxInclusiveChangedEvent event,
@@ -432,7 +432,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Puts line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately
+  /// Put line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately
   /// — see `OcptBudgetLineVatRateInheritedRequestedEvent`'s own doc comment for why this is a
   /// dedicated event rather than something an empty field submission could trigger.
   Future<void> _onLineVatRateInheritedRequested(
@@ -452,7 +452,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Pays quote line `event.lineId` directly, promoting it into a commitment in the same gesture —
+  /// Pay quote line `event.lineId` directly, promoting it into a commitment in the same gesture —
   /// the line's own `Pay` action (`OcptBudgetLinePaidDirectlyEvent`). Creates the commitment from
   /// the line first — its full quoted total, in the line's own tax basis and rate, naming the line
   /// — then records `event.fields` as the debit that settles it, naming that fresh commitment: the
@@ -525,7 +525,7 @@ class OcptBudgetExpensesBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Records the raw text just typed into a field as a pending edit, visible immediately, and
+  /// Record the raw text just typed into a field as a pending edit, visible immediately, and
   /// (re)starts the field-edit debounce.
   Future<void> _onFieldChanged(
     OcptBudgetFieldChangedEvent event,
@@ -538,7 +538,7 @@ class OcptBudgetExpensesBloc
     restartDebounce(_fieldEditDebounce, const OcptBudgetFieldEditFlushRequestedEvent());
   }
 
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
+  /// Write every pending field edit once the field-edit debounce timer fires.
   Future<void> _onFieldEditFlushRequested(
     OcptBudgetFieldEditFlushRequestedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
@@ -546,7 +546,7 @@ class OcptBudgetExpensesBloc
     await onFlushRequested(emitter);
   }
 
-  /// Whether [field] targets a quote line that is an in-kind counterpart line (its
+  /// Tell whether [field] targets a quote line that is an in-kind counterpart line (its
   /// `inKindResourceId` is set) — such a line's fields follow the contribution it balances and are
   /// never a direct edit's to write (`docs/architecture/budget.md`, "A balanced in-kind
   /// contribution"). Defensive only: `OcptBudgetFiche` already withholds a counterpart line's
@@ -573,7 +573,7 @@ class OcptBudgetExpensesBloc
     return false;
   }
 
-  /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
+  /// Write every one of [edits] to [project]'s database, one write per entry — the shared write
   /// loop [onFlushRequested] and [flushPendingWritesWithoutState] both run, so the switch over
   /// [OcptBudgetField] is written once.
   ///

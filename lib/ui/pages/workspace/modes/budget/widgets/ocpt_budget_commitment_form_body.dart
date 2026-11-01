@@ -130,7 +130,7 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
   /// The status currently picked.
   late OcptBudgetCommitmentStatus _status;
 
-  /// The fields this body would submit right now, or null while `Amount` does not parse or
+  /// Get the fields this body would submit right now, or null while `Amount` does not parse or
   /// `Label`/`Poste` is still missing.
   OcptBudgetCommitmentFormFields? get _currentDraft {
     final amountCents = ocptCostCentsOf(_amountController.text);
@@ -277,14 +277,14 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     );
   }
 
-  /// Reports both [_currentDraft] and [_missingFieldsHintOf] to the host — every controller
+  /// Report both [_currentDraft] and [_missingFieldsHintOf] to the host — every controller
   /// listener and every picker's own `onChanged` call this after applying its own change.
   void _report() {
     widget.onDraftChanged(_currentDraft);
     widget.onMissingFieldsHintChanged(_missingFieldsHintOf());
   }
 
-  /// The `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
+  /// Get the `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
   /// reading exactly.
   String? _effectiveDefaultVatRateHint(Tr tr) {
     final defaultVatRateBasisPoints = widget.defaultVatRateBasisPoints;
@@ -295,7 +295,8 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     return tr.budgetLineVatRateInheritedHint(ocptVatRatePercentTextOf(defaultVatRateBasisPoints));
   }
 
-  /// Which of the two required fields (or both) is still missing, worded for the muted hint next to
+  /// Tell which of the two required fields (or both) is still missing, worded for the muted hint
+  /// next to
   /// `Save` — null once both are filled, at which point [_currentDraft] no longer reads null for
   /// want of either.
   String? _missingFieldsHintOf() {
@@ -350,7 +351,7 @@ class _OcptCommitmentStatusPicker extends StatelessWidget {
     children: [for (final status in OcptBudgetCommitmentStatus.values) _segment(context, status)],
   );
 
-  /// One of the picker's own segments, filled in its own accent colour while active.
+  /// Build one of the picker's own segments, filled in its own accent colour while active.
   Widget _segment(BuildContext context, OcptBudgetCommitmentStatus status) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);

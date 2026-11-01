@@ -46,7 +46,8 @@ class OcptBudgetDashboardView extends StatelessWidget {
     );
   }
 
-  /// A dashboard alert row is a link to where the poste is worked on, not a selection of its own —
+  /// Handle a dashboard alert row is a link to where the poste is worked on, not a selection of its
+  /// own —
   /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
   /// [OcptBudgetView.expenses] in the same gesture.
   void _handlePosteOpened(OcptBudgetBloc bloc, String posteId) {
@@ -55,7 +56,8 @@ class OcptBudgetDashboardView extends StatelessWidget {
       ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses));
   }
 
-  /// The cash-projection alert's own action: the cash question it raises is exactly what the tools
+  /// Handle the cash-projection alert's own action: the cash question it raises is exactly what the
+  /// tools
   /// drawer's own `Flux de trésorerie` page answers, so it opens straight onto it, the view and the
   /// tools view both set in one gesture, mirroring [_handlePosteOpened]'s own shape.
   void _handleCashAlertActionRequested(OcptBudgetBloc bloc) {

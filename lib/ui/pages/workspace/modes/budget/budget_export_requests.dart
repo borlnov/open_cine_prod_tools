@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_export_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// Builds the four entries the toolbar's `Export` button offers — see the class doc comment for
+/// Build the four entries the toolbar's `Export` button offers — see the class doc comment for
 /// which of them is greyed and inert, and why.
 List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _exportEntriesOf(
   BuildContext context,
@@ -64,7 +64,7 @@ List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _exportEntriesOf(
   ];
 }
 
-/// Opens the toolbar's `Export` panel, then dispatches the picked document's own request onto its
+/// Open the toolbar's `Export` panel, then dispatch the picked document's own request onto its
 /// own `_request…Export` method — each one opens its own options dialog first, the cash journal
 /// alone taking none, exactly as `OcptScheduleMode._requestExport` does for its own six
 /// documents.
@@ -105,7 +105,7 @@ Future<void> ocptBudgetRequestExport(
   }
 }
 
-/// Shows the quote export options dialog, then dispatches the export request if the user applied
+/// Show the quote export options dialog, then dispatch the export request if the user applied
 /// it, resolving here — the last place with a [BuildContext] — the labels, the breakdown element
 /// names and the localized string the native save dialog carries.
 Future<void> _requestQuoteExport(
@@ -137,7 +137,7 @@ Future<void> _requestQuoteExport(
   );
 }
 
-/// Shows the financing plan export options dialog, then dispatches the export request if the user
+/// Show the financing plan export options dialog, then dispatch the export request if the user
 /// applied it — mirrors [_requestQuoteExport].
 Future<void> _requestFinancingPlanExport(
   BuildContext context,
@@ -163,7 +163,7 @@ Future<void> _requestFinancingPlanExport(
   );
 }
 
-/// Dispatches the cash journal export request straight away — this document takes no options
+/// Dispatch the cash journal export request straight away — this document takes no options
 /// dialog of its own, mirroring every other options-free export in the app.
 void _requestCashJournalExport(BuildContext context, OcptBudgetState state, Rect? shareAnchor) {
   final tr = Tr.of(context);
@@ -177,7 +177,7 @@ void _requestCashJournalExport(BuildContext context, OcptBudgetState state, Rect
   );
 }
 
-/// What each live entry of [state] settles, keyed by its own id — a resource's, a taking's or a
+/// Get what each live entry of [state] settles, keyed by its own id — a resource's, a taking's or a
 /// share's own label read straight off the entry naming it, or the label of the commitment this
 /// entry itself pays (`OcptBudgetEntry.commitmentId`), an entry naming none of them getting no
 /// key here at all. `OcptBudgetCashJournalXlsxExportService` resolves nothing of this itself (its
@@ -203,7 +203,7 @@ Map<String, String> _linkLabelByEntryIdOf(OcptBudgetState state) {
   return linkLabelByEntryId;
 }
 
-/// Shows the financial report export options dialog, then dispatches the export request if the
+/// Show the financial report export options dialog, then dispatch the export request if the
 /// user applied it — mirrors [_requestFinancingPlanExport].
 Future<void> _requestFinancialReportExport(
   BuildContext context,
@@ -232,7 +232,7 @@ Future<void> _requestFinancialReportExport(
   );
 }
 
-/// Dispatches the project package export, resolving here — the last place with a
+/// Dispatch the project package export, resolving here — the last place with a
 /// [BuildContext] — the label the native save dialog carries. Mirrors
 /// `OcptScheduleMode._requestProjectPackageExport`.
 void _requestProjectPackageExport(BuildContext context) {

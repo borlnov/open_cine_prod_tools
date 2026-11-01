@@ -43,7 +43,7 @@ class OcptBudgetQuoteExportDialog extends StatefulWidget {
   @override
   State<OcptBudgetQuoteExportDialog> createState() => _OcptBudgetQuoteExportDialogState();
 
-  /// Shows the dialog and returns the [OcptBudgetQuoteExportOptions] the user applied, or null if
+  /// Show the dialog and return the [OcptBudgetQuoteExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptBudgetQuoteExportOptions?> show(
     BuildContext context, {
@@ -136,13 +136,13 @@ class _OcptBudgetQuoteExportDialogState extends State<OcptBudgetQuoteExportDialo
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptBudgetQuoteExportOptions].
+  /// Pop the dialog returning the resulting [OcptBudgetQuoteExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the [OcptBudgetQuoteExportDialog.show]

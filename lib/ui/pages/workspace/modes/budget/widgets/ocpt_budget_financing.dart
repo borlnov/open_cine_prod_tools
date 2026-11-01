@@ -270,7 +270,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// The quote's own total, read **tax-inclusive always** — money coming in is always read
+  /// Get the quote's own total, read **tax-inclusive always** — money coming in is always read
   /// tax-inclusive (`docs/architecture/budget.md`'s "Money that has moved is read tax-inclusive,
   /// always"), and this document carries no tax-basis switch of its own to read a different basis
   /// from, mirroring `OcptBudgetNeedsResourcesBalance`'s own reading — the financing-plan and
@@ -284,7 +284,8 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// [resources]' own rows belonging to [family] — subsidies stay their own, cash and in-kind fold
+  /// Get [resources]' own rows belonging to [family] — subsidies stay their own, cash and in-kind
+  /// fold
   /// into contributions, takings holds none (a revenue carries no group kind at all).
   List<OcptBudgetResource> _familyResources(OcptBudgetResourceFamily family) =>
       family == OcptBudgetResourceFamily.takings
@@ -294,11 +295,11 @@ class OcptBudgetFinancing extends StatelessWidget {
             if (OcptBudgetResourceFamily.of(resource.groupKind) == family) resource,
         ];
 
-  /// [revenues], for [OcptBudgetResourceFamily.takings] alone.
+  /// Get [revenues], for [OcptBudgetResourceFamily.takings] alone.
   List<OcptBudgetRevenue> _familyRevenues(OcptBudgetResourceFamily family) =>
       family == OcptBudgetResourceFamily.takings ? revenues : const [];
 
-  /// The whole tree, flattened top to bottom into one list — see the class doc comment.
+  /// Get the whole tree, flattened top to bottom into one list — see the class doc comment.
   List<OcptBudgetFinancingTreeRow> _rowsOf() {
     final rows = <OcptBudgetFinancingTreeRow>[];
 
@@ -362,20 +363,21 @@ class OcptBudgetFinancing extends StatelessWidget {
     return rows;
   }
 
-  /// Every live credit naming [resourceId], in the chronological order [entries] is already loaded
+  /// Get every live credit naming [resourceId], in the chronological order [entries] is already
+  /// loaded
   /// in — the receipts a resource's own twisty reveals.
   List<OcptBudgetEntry> _receiptsOfResource(String resourceId) => [
     for (final entry in entries)
       if (entry.resourceId == resourceId && entry.creditCents > 0) entry,
   ];
 
-  /// Every live credit naming [revenueId] — mirrors [_receiptsOfResource].
+  /// Get every live credit naming [revenueId] — mirrors [_receiptsOfResource].
   List<OcptBudgetEntry> _receiptsOfRevenue(String revenueId) => [
     for (final entry in entries)
       if (entry.revenueId == revenueId && entry.creditCents > 0) entry,
   ];
 
-  /// [resource]'s own `Promis`/`Rentré`/`Reste à venir` — see the class doc comment for the
+  /// Get [resource]'s own `Promis`/`Rentré`/`Reste à venir` — see the class doc comment for the
   /// in-kind reading.
   OcptBudgetFinancingRowFigures _resourceFigures(OcptBudgetResource resource) {
     final isUnentriedInKind =
@@ -396,7 +398,8 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// [revenue]'s own `Promis`/`Rentré`/`Reste à venir` — a taking's own "no entry names it" reads
+  /// Get [revenue]'s own `Promis`/`Rentré`/`Reste à venir` — a taking's own "no entry names it"
+  /// reads
   /// null directly off [receivedByRevenueId], with no group-kind branch of its own.
   OcptBudgetFinancingRowFigures _revenueFigures(OcptBudgetRevenue revenue) {
     final receivedCents = receivedByRevenueId[revenue.id]?.amountCents;
@@ -414,7 +417,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// Folds every one of [familyResources]' and [familyRevenues]' own figures into one triple — see
+  /// Fold every one of [familyResources]' and [familyRevenues]' own figures into one triple — see
   /// the class doc comment for the "known rows only" rule [Rentré]/[Reste à venir] follow. Also
   /// used with the *whole* project's own resources and revenues for the grand total row.
   OcptBudgetFinancingRowFigures _familyAggregatesOf(
@@ -452,7 +455,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// Builds the widget for one flattened [row].
+  /// Build the widget for one flattened [row].
   Widget _rowOf(OcptBudgetFinancingTreeRow row) => switch (row) {
     OcptBudgetFinancingFamilyTreeRow() => OcptBudgetFinancingFamilyRow(
       family: row.family,
@@ -525,38 +528,40 @@ class OcptBudgetFinancing extends StatelessWidget {
     ),
   };
 
-  /// Whether [figures] show anything actually received — what `Undo the last receipt` is withheld
+  /// Tell whether [figures] show anything actually received — what `Undo the last receipt` is
+  /// withheld
   /// until, there being no last receipt to undo before then.
   bool _hasReceivedSomething(OcptBudgetFinancingRowFigures figures) =>
       figures.receivedCents != null && figures.receivedCents! > 0;
 
-  /// `Record a receipt` has nothing left to offer on an in-kind resource (valued, never collected)
+  /// Tell whether `Record a receipt` still has something to offer, which it does not on an in-kind
+  /// resource (valued, never collected)
   /// or on one that has already received at least its own amount — see the class doc comment.
   bool _canOfferReceipt(OcptBudgetResource resource, OcptBudgetFinancingRowFigures figures) =>
       resource.groupKind != OcptBudgetResourceGroupKind.inKind &&
       (figures.receivedCents ?? 0) < resource.amountCents;
 
-  /// Whether resource [resourceId] is the currently selected one.
+  /// Tell whether resource [resourceId] is the currently selected one.
   bool _isResourceSelected(String resourceId) {
     final selection = this.selection;
     return selection is OcptBudgetResourceSelection && selection.resourceId == resourceId;
   }
 
-  /// Whether revenue [revenueId] is the currently selected one.
+  /// Tell whether revenue [revenueId] is the currently selected one.
   bool _isRevenueSelected(String revenueId) {
     final selection = this.selection;
     return selection is OcptBudgetRevenueSelection && selection.revenueId == revenueId;
   }
 
-  /// Whether receipt (journal entry) [receiptId] is the currently selected one.
+  /// Tell whether receipt (journal entry) [receiptId] is the currently selected one.
   bool _isReceiptSelected(String receiptId) {
     final selection = this.selection;
     return selection is OcptBudgetReceiptSelection && selection.receiptId == receiptId;
   }
 
-  /// Whether [revenueId] is the first taking of the whole project — `Move up` withheld there.
+  /// Tell whether [revenueId] is the first taking of the whole project — `Move up` withheld there.
   bool _isFirstRevenue(String revenueId) => revenues.isNotEmpty && revenues.first.id == revenueId;
 
-  /// Whether [revenueId] is the last taking of the whole project — `Move down` withheld there.
+  /// Tell whether [revenueId] is the last taking of the whole project — `Move down` withheld there.
   bool _isLastRevenue(String revenueId) => revenues.isNotEmpty && revenues.last.id == revenueId;
 }

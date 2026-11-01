@@ -37,7 +37,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_shar
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 
-/// Which [OcptBudgetGestureFamily] the current route promotes to the top of step 1 — the group
+/// Tell which [OcptBudgetGestureFamily] the current route promotes to the top of step 1 — the group
 /// whose document the route works on — or null for [OcptBudgetView.dashboard], which works on no
 /// single document.
 OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) =>
@@ -50,12 +50,12 @@ OcptBudgetGestureFamily? _promotedGestureFamilyOf(OcptBudgetState state) =>
       (OcptBudgetView.dashboard, _) => null,
     };
 
-/// [family]'s own first answer, in [OcptBudgetGesture]'s own declared order — the promoted
+/// Get [family]'s own first answer, in [OcptBudgetGesture]'s own declared order — the promoted
 /// group's own first card, which arrives pre-selected so the frequent gesture is one click.
 OcptBudgetGesture _firstGestureOf(OcptBudgetGestureFamily family) =>
     OcptBudgetGesture.values.firstWhere((gesture) => ocptBudgetGestureFamilyOf(gesture) == family);
 
-/// Which gestures the `+ New` wizard offers when opened from the current route — a semantic
+/// Tell which gestures the `+ New` wizard offers when opened from the current route — a semantic
 /// filter by the direction money moves (`ocptBudgetGestureFlowsOf`), **transverse to the
 /// families**: the expenses route offers everything that spends, the resources route everything
 /// that brings money in, the drawer's cash-flow page its own movements, régie its defrayal.
@@ -90,7 +90,7 @@ Set<OcptBudgetGesture>? _wizardGesturesForView(OcptBudgetState state) {
   };
 }
 
-/// The word the wizard's own filter tag names the current filter by — the route's own header
+/// Get the word the wizard's own filter tag names the current filter by — the route's own header
 /// segment label. Read only where [_wizardGesturesForView] is non-null.
 String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) =>
     switch ((state.view, state.toolsView)) {
@@ -130,7 +130,7 @@ class OcptBudgetNewOutcomeTargets {
     required this.sharingBloc,
   });
 
-  /// Reads the four blocs off [context].
+  /// Read the four blocs off [context].
   factory OcptBudgetNewOutcomeTargets.of(BuildContext context) => OcptBudgetNewOutcomeTargets(
     expensesBloc: context.read<OcptBudgetExpensesBloc>(),
     journalBloc: context.read<OcptBudgetCashJournalBloc>(),
@@ -139,7 +139,7 @@ class OcptBudgetNewOutcomeTargets {
   );
 }
 
-/// Opens the capture wizard fresh — no step already answered — promoted and pre-selected per the
+/// Open the capture wizard fresh — no step already answered — promoted and pre-selected per the
 /// current route (the header band's own `+ New` button). Dispatches whatever
 /// [ocptBudgetApplyNewOutcome] says once the wizard closes with something.
 Future<void> ocptBudgetOpenNewWizard(BuildContext context, OcptBudgetState state) async {
@@ -176,7 +176,7 @@ Future<void> ocptBudgetOpenNewWizard(BuildContext context, OcptBudgetState state
   ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
-/// Turns a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
+/// Turn a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
 /// through the wizard converges here, one variant per [OcptBudgetGesture], each dispatching the
 /// event that already exists for it. Nothing here writes to the project itself.
 ///
@@ -227,8 +227,8 @@ void ocptBudgetApplyNewOutcome(
   }
 }
 
-/// Opens the capture wizard's own step 3 directly, on [gesture], pre-filled with [prefill] —
-/// steps 1 and 2 both already answered — then dispatches whatever [ocptBudgetApplyNewOutcome] says once
+/// Open the capture wizard's own step 3 directly, on [gesture], pre-filled with [prefill] — steps 1
+/// and 2 both already answered — then dispatch whatever [ocptBudgetApplyNewOutcome] says once
 /// it closes with something. The one shared shape behind every contextual shortcut that pre-fills
 /// an ordinary movement: a resource's or a taking's own `Receive`, a participant's own payout, a
 /// contribution's own repayment — every one of them an [OcptBudgetEntryCreationConfirmedEvent]
@@ -278,7 +278,8 @@ Future<void> ocptBudgetOpenEntryShortcut(
   ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
-/// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
+/// Handle `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the
+/// write
 /// its own kind calls for. **This mapping is carried over unchanged from the quick-capture card
 /// this wizard replaces**, whose own version of it first argued every line below: read it before
 /// touching it.
@@ -388,10 +389,10 @@ void _handleEntryWizardSuggestionAccepted(
   }
 }
 
-/// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense],
-/// pre-filled from [commitment] (today's date, its own label, poste, amount, tax basis and rate,
-/// as a debit) — steps 1 and 2 both already answered, exactly as `OcptBudgetEntryDialog`'s own
-/// prefill used to skip them — then dispatches the settlement if the user confirmed it — see
+/// Open the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense], pre-filled
+/// from [commitment] (today's date, its own label, poste, amount, tax basis and rate, as a debit) —
+/// steps 1 and 2 both already answered, exactly as `OcptBudgetEntryDialog`'s own prefill used to
+/// skip them — then dispatch the settlement if the user confirmed it — see
 /// `OcptBudgetCommitmentSettlementConfirmedEvent`'s own doc comment for the combined write this
 /// produces.
 Future<void> ocptBudgetSettleCommitment(
@@ -481,7 +482,7 @@ Future<void> ocptBudgetSettleCommitment(
   );
 }
 
-/// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordFinancingReceipt],
+/// Open the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordFinancingReceipt],
 /// pre-filled from [resource] (today's date, its own label, as a credit, for whatever is still
 /// outstanding against it, the resource already named) — mirrors
 /// `ocptBudgetSettleCommitment`'s own gesture: see "A commitment settles by naming the
@@ -521,7 +522,7 @@ Future<void> ocptBudgetReceiveResource(
   );
 }
 
-/// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.reimbursePerson],
+/// Open the capture wizard's own step 3 directly, on [OcptBudgetGesture.reimbursePerson],
 /// pre-filled from [personId] (today's date, the person's own display name, as a debit, for
 /// whatever is still owed them, the person already named) — mirrors
 /// `ocptBudgetReceiveResource`'s own gesture: a reimbursement can never exist as a figure
@@ -559,9 +560,9 @@ Future<void> ocptBudgetReimbursePerson(
   await ocptBudgetOpenEntryShortcut(context, state, OcptBudgetGesture.reimbursePerson, prefill);
 }
 
-/// Opens the entry dialog pre-filled to repay [line]'s own contributor (today's date, their own
-/// wording, as a debit, for whatever is still owed them, the resource already named), then
-/// dispatches the creation if the user confirmed it.
+/// Open the entry dialog pre-filled to repay [line]'s own contributor (today's date, their own
+/// wording, as a debit, for whatever is still owed them, the resource already named), then dispatch
+/// the creation if the user confirmed it.
 ///
 /// **The card that says what is owed is the card that offers to pay it.** Every other figure in
 /// this mode already had the gesture that produces it within reach of where it is read; this one
@@ -613,7 +614,7 @@ Future<void> ocptBudgetRepayLine(
   await ocptBudgetOpenEntryShortcut(context, state, OcptBudgetGesture.repayContribution, prefill);
 }
 
-/// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordTakingReceipt],
+/// Open the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordTakingReceipt],
 /// pre-filled from [revenue] (today's date, its own label, as a credit, for whatever is still
 /// outstanding against it, the taking already named) — mirrors
 /// `ocptBudgetReceiveResource`'s own gesture: a receipt can never exist as a figure with no
@@ -647,7 +648,7 @@ Future<void> ocptBudgetReceiveRevenue(
   await ocptBudgetOpenEntryShortcut(context, state, OcptBudgetGesture.recordTakingReceipt, prefill);
 }
 
-/// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.payParticipantShare],
+/// Open the capture wizard's own step 3 directly, on [OcptBudgetGesture.payParticipantShare],
 /// pre-filled from [share] (today's date, its own label, as a debit, for whatever the participant
 /// is still owed — its own due less what it has already been paid, the share already named) —
 /// mirrors `ocptBudgetReceiveRevenue`'s own gesture: a payout can never exist as a figure
@@ -690,7 +691,7 @@ Future<void> ocptBudgetPayShare(
   await ocptBudgetOpenEntryShortcut(context, state, OcptBudgetGesture.payParticipantShare, prefill);
 }
 
-/// Promotes quote line [lineId] into a commitment: opens the capture wizard's own step 3
+/// Promote quote line [lineId] into a commitment: opens the capture wizard's own step 3
 /// directly, on [OcptBudgetGesture.commitSpend], seeded from the line — steps 1 and 2 both
 /// already answered — and dispatches the creation naming the line it came from.
 ///
@@ -750,9 +751,9 @@ Future<void> ocptBudgetCommitLine(
   ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
-/// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action,
-/// pre-filled from the line (its full quoted total, in the line's own tax basis and rate, as
-/// today's debit) — and, on confirm, dispatches [OcptBudgetLinePaidDirectlyEvent], which creates
+/// Open the capture wizard to pay quote line [lineId] directly — its own `Pay` action, pre-filled
+/// from the line (its full quoted total, in the line's own tax basis and rate, as today's debit) —
+/// and, on confirm, dispatch [OcptBudgetLinePaidDirectlyEvent], which creates
 /// the commitment behind the payment so the reader only ever quoted and paid. The lettrage strip
 /// is withheld here, exactly as [ocptBudgetSettleCommitment] withholds it: the payment
 /// belongs to this very line, so rerouting it onto a different object is a rapprochement the
@@ -823,8 +824,8 @@ Future<void> ocptBudgetPayLineDirectly(
   expensesBloc.add(OcptBudgetLinePaidDirectlyEvent(lineId: lineId, fields: outcome.fields));
 }
 
-/// Opens the entry dialog pre-filled from the commitment quote line [lineId] was promoted into
-/// (today's date, its own label, poste, amount, tax basis and rate, as a debit), then dispatches
+/// Open the entry dialog pre-filled from the commitment quote line [lineId] was promoted into
+/// (today's date, its own label, poste, amount, tax basis and rate, as a debit), then dispatch
 /// the settlement if the user confirmed it — the quote line's own fiche reaches the very same
 /// gesture a commitment's own `Pay` action does, once it is promoted and unsettled.
 Future<void> ocptBudgetSettleLine(

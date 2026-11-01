@@ -583,7 +583,8 @@ class _OcptDashboardAlert extends StatelessWidget {
     };
   }
 
-  /// [posteId]'s own label out of [posteLabelById], or `tr.budgetPosteUnnamed` while it is empty —
+  /// Get [posteId]'s own label out of [posteLabelById], or `tr.budgetPosteUnnamed` while it is
+  /// empty —
   /// never absent, since an alert's own poste always comes straight out of the very dashboard that
   /// built [posteLabelById].
   String _posteLabelOf(Tr tr, String posteId) {

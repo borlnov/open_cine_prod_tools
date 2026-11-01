@@ -18,7 +18,7 @@ sealed class OcptBudgetExportEvent extends OcptBudgetEvent {
   const OcptBudgetExportEvent();
 }
 
-/// Requests exporting the quote as a single PDF, written through the native save dialog —
+/// Request exporting the quote as a single PDF, written through the native save dialog —
 /// dispatched once `OcptBudgetQuoteExportDialog` returns its result.
 class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetExportEvent {
   /// The one-off options the export runs with (the page format/margins, the title page toggle and
@@ -63,7 +63,7 @@ class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetExportEvent {
   ];
 }
 
-/// Requests exporting the financing plan as a single PDF, written through the native save dialog —
+/// Request exporting the financing plan as a single PDF, written through the native save dialog —
 /// dispatched once `OcptBudgetFinancingPlanExportDialog` returns its result.
 class OcptBudgetFinancingPlanExportRequestedEvent extends OcptBudgetExportEvent {
   /// The one-off options the export runs with (the page format/margins and the title page toggle).
@@ -92,7 +92,7 @@ class OcptBudgetFinancingPlanExportRequestedEvent extends OcptBudgetExportEvent 
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Requests exporting the cash journal as a single XLSX workbook, written through the native save
+/// Request exporting the cash journal as a single XLSX workbook, written through the native save
 /// dialog — dispatched the moment its own card is picked, this export taking no options dialog of
 /// its own.
 class OcptBudgetCashJournalExportRequestedEvent extends OcptBudgetExportEvent {
@@ -130,7 +130,7 @@ class OcptBudgetCashJournalExportRequestedEvent extends OcptBudgetExportEvent {
   ];
 }
 
-/// Requests exporting the financial report as a single PDF, written through the native save
+/// Request exporting the financial report as a single PDF, written through the native save
 /// dialog — dispatched once `OcptBudgetFinancialReportExportDialog` returns its result.
 class OcptBudgetFinancialReportExportRequestedEvent extends OcptBudgetExportEvent {
   /// The one-off options the export runs with (the page format/margins and the title page toggle).
@@ -159,7 +159,7 @@ class OcptBudgetFinancialReportExportRequestedEvent extends OcptBudgetExportEven
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
 
-/// Clears the transient export notice currently shown, if any.
+/// Clear the transient export notice currently shown, if any.
 class OcptBudgetIoNoticeDismissedEvent extends OcptBudgetExportEvent {
   /// Class constructor
   const OcptBudgetIoNoticeDismissedEvent();

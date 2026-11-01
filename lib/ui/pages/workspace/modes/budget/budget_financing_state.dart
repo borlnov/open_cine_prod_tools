@@ -14,10 +14,10 @@ class OcptBudgetFinancingState extends BlocStateForMixin<OcptBudgetFinancingStat
   /// Class constructor
   const OcptBudgetFinancingState();
 
-  /// Builds the state of a bloc that has written nothing yet.
+  /// Build the state of a bloc that has written nothing yet.
   const OcptBudgetFinancingState.init();
 
-  /// Copies this state: there is nothing to replace.
+  /// Copy this state: there is nothing to replace.
   @override
   OcptBudgetFinancingState copyWith() => this;
 

@@ -13,7 +13,7 @@ sealed class OcptBudgetExpensesEvent extends OcptBudgetEvent {
   const OcptBudgetExpensesEvent();
 }
 
-/// Creates a new, unnamed poste, appended at the end of the catalogue, and selects it — dispatched
+/// Create a new, unnamed poste, appended at the end of the catalogue, and select it — dispatched
 /// by the cost-tracking table's own `+ Poste` footer. Mirrors
 /// `OcptResourcesElementCreationRequestedEvent`: a fresh record is created empty, its own sheet's
 /// placeholder reading it as unnamed until somebody types into it.
@@ -22,7 +22,7 @@ class OcptBudgetPosteCreatedEvent extends OcptBudgetExpensesEvent {
   const OcptBudgetPosteCreatedEvent();
 }
 
-/// Moves poste [posteId] to [newPosition] (0-based) within the catalogue's flat order, dispatched
+/// Move poste [posteId] to [newPosition] (0-based) within the catalogue's flat order, dispatched
 /// by a row's own `⋮` menu `▲`/`▼` entries.
 class OcptBudgetPosteReorderedEvent extends OcptBudgetExpensesEvent {
   /// The id of the poste to reorder.
@@ -39,7 +39,7 @@ class OcptBudgetPosteReorderedEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, posteId, newPosition];
 }
 
-/// Deletes poste [posteId] for good, along with every quote line it holds, dispatched by the mode
+/// Delete poste [posteId] for good, along with every quote line it holds, dispatched by the mode
 /// once its `OcptConfirmDialog` has already been answered.
 class OcptBudgetPosteDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   /// The id of the poste to delete.
@@ -53,8 +53,8 @@ class OcptBudgetPosteDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Creates a new quote line inside poste [posteId], appended at the end of its own lines, and
-/// expands it — dispatched by the poste inspector's own `+ Add` action, mirroring
+/// Create a new quote line inside poste [posteId], appended at the end of its own lines, and expand
+/// it — dispatched by the poste inspector's own `+ Add` action, mirroring
 /// `OcptBudgetPosteCreatedEvent`'s own "created empty" idiom.
 ///
 /// **[fields] is nullable, and null keeps this event's own original reading exactly**: an unnamed,
@@ -77,8 +77,8 @@ class OcptBudgetLineCreatedEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, posteId, fields];
 }
 
-/// Creates a new quote line inside poste [posteId] **from** breakdown element [elementId], and
-/// expands it — dispatched by the capture wizard's own breakdown selector, once per row it creates,
+/// Create a new quote line inside poste [posteId] **from** breakdown element [elementId], and
+/// expand it — dispatched by the capture wizard's own breakdown selector, once per row it creates,
 /// mirroring `OcptBudgetLineCreatedEvent`'s own "written the moment it is dispatched" reading. See
 /// `OcptBudgetBloc._onLineCreatedFromElement`'s own doc comment for what this writes onto the fresh
 /// line beyond its label.
@@ -111,7 +111,7 @@ class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, posteId, elementId, quantityMilli];
 }
 
-/// Deletes quote line [lineId] for good, dispatched by the mode once its `OcptConfirmDialog` has
+/// Delete quote line [lineId] for good, dispatched by the mode once its `OcptConfirmDialog` has
 /// already been answered.
 class OcptBudgetLineDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   /// The id of the line to delete.
@@ -125,7 +125,7 @@ class OcptBudgetLineDeletionConfirmedEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, lineId];
 }
 
-/// Writes a new including/excluding-tax basis onto line [lineId]'s own unit price immediately,
+/// Write a new including/excluding-tax basis onto line [lineId]'s own unit price immediately,
 /// dispatched by its expanded card's own radio — a pick, not typing, so it never rides the
 /// field-edit debounce.
 class OcptBudgetLineTaxInclusiveChangedEvent extends OcptBudgetExpensesEvent {
@@ -146,7 +146,7 @@ class OcptBudgetLineTaxInclusiveChangedEvent extends OcptBudgetExpensesEvent {
   List<Object?> get props => [...super.props, lineId, isTaxInclusive];
 }
 
-/// Puts line [lineId]'s own VAT rate back to inheriting the project's default, dispatched by its
+/// Put line [lineId]'s own VAT rate back to inheriting the project's default, dispatched by its
 /// expanded card's own `Inherit` action — the field's dedicated way back to null, exactly as the
 /// project settings' own `No rate` button is for `defaultVatRateBasisPoints`
 /// (`OcptBudgetField`'s own doc comment explains why an empty typed submission cannot mean this).
@@ -163,7 +163,7 @@ class OcptBudgetLineVatRateInheritedRequestedEvent extends OcptBudgetExpensesEve
   List<Object?> get props => [...super.props, lineId];
 }
 
-/// Puts poste [posteId]'s own estimate to complete back to being derived, dispatched by the
+/// Put poste [posteId]'s own estimate to complete back to being derived, dispatched by the
 /// inspector's own `Derive again` action — the field's dedicated way back to null, exactly as
 /// [OcptBudgetLineVatRateInheritedRequestedEvent] is for a line's rate. Written immediately, never
 /// through the field-edit debounce, and not an irreversible action: it puts the poste back to a
@@ -180,7 +180,7 @@ class OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent extends OcptBudgetE
   List<Object?> get props => [...super.props, posteId];
 }
 
-/// Records the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
+/// Record the raw text just typed into [field] of entity [targetId] as a pending edit, dispatched
 /// on every keystroke into a poste's or a line's own free-text field — rides `OcptBudgetBloc`'s own
 /// 2 s field-edit debounce.
 class OcptBudgetFieldChangedEvent extends OcptBudgetExpensesEvent {
@@ -212,8 +212,8 @@ class OcptBudgetFieldEditFlushRequestedEvent extends OcptBudgetExpensesEvent {
   const OcptBudgetFieldEditFlushRequestedEvent();
 }
 
-/// Pays quote line [lineId] directly, promoting it into a commitment in the same gesture — the
-/// line's own `Pay` action, for the common case where a production quotes a cost and then pays it
+/// Pay quote line [lineId] directly, promoting it into a commitment in the same gesture — the
+/// line's own `Pay` action, for the common case where a production quotes a cost and then pay it
 /// without ever thinking of the commitment in between. The bloc creates the commitment from the
 /// line first (`OcptBudgetJournalService.createCommitment`, seeded from the line as
 /// `OcptBudgetCommitmentCreationConfirmedEvent` would), then records [fields] as a debit naming it

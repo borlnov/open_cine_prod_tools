@@ -38,7 +38,7 @@ class OcptBudgetFinancingPlanExportDialog extends StatefulWidget {
   State<OcptBudgetFinancingPlanExportDialog> createState() =>
       _OcptBudgetFinancingPlanExportDialogState();
 
-  /// Shows the dialog and returns the [OcptBudgetFinancingPlanExportOptions] the user applied, or
+  /// Show the dialog and return the [OcptBudgetFinancingPlanExportOptions] the user applied, or
   /// null if they cancelled it.
   static Future<OcptBudgetFinancingPlanExportOptions?> show(
     BuildContext context, {
@@ -110,13 +110,13 @@ class _OcptBudgetFinancingPlanExportDialogState extends State<OcptBudgetFinancin
     );
   }
 
-  /// The localized label of [format].
+  /// Get the localized label of [format].
   String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
     OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
     OcptPageFormat.a4 => tr.editorPageSetupA4Option,
   };
 
-  /// Pops the dialog returning the resulting [OcptBudgetFinancingPlanExportOptions].
+  /// Pop the dialog returning the resulting [OcptBudgetFinancingPlanExportOptions].
   ///
   /// The dialog is dismissed through the router manager (navigation only via the router
   /// manager), whose pop delivers the new options back to the

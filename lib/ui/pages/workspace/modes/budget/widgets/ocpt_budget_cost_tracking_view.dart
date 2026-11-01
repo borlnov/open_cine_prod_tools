@@ -120,7 +120,7 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
   }
 }
 
-/// The 0-based position poste [posteId] moves to when its row's own `▲`/`▼` menu entry is
+/// Get the 0-based position poste [posteId] moves to when its row's own `▲`/`▼` menu entry is
 /// clicked — one above or below its current position in [OcptBudgetState.postes]' own order, a
 /// poste id no longer found there (should not happen, the shell already refused to draw a stale
 /// row's menu) falling back to leaving it where it is.
@@ -133,7 +133,7 @@ int _posteReorderedPosition(OcptBudgetState state, String posteId, bool moveUp) 
   return moveUp ? currentIndex - 1 : currentIndex + 1;
 }
 
-/// [state]'s own postes, narrowed to the one the header's filter names — or every one of them
+/// Get [state]'s own postes, narrowed to the one the header's filter names — or every one of them
 /// while nothing is filtered.
 ///
 /// See `ocptBudgetViewHonoursPosteFilter` for which views read this and which say they cannot.

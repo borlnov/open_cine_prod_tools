@@ -64,7 +64,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// state (every poste can be deleted one by one, a fresh project starts with no resource and no
 /// entry) rather than one invented for the sake of drawing a greyed card.
 class OcptBudgetMode extends StatelessWidget {
-  /// Creates the budget mode.
+  /// Create the budget mode.
   const OcptBudgetMode({super.key});
 
   /// Build the budget mode as a [MultiBlocProvider].
@@ -241,7 +241,7 @@ class _BudgetViewState extends State<_BudgetView> {
     },
   );
 
-  /// Asks whether to write the package even though some referenced files are gone, then dispatches
+  /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on. Mirrors
   /// `OcptScheduleMode._askAboutMissingPackagedFiles`.
   Future<void> _askAboutMissingPackagedFiles(
@@ -264,7 +264,7 @@ class _BudgetViewState extends State<_BudgetView> {
     );
   }
 
-  /// Opens the project settings page, then re-reads the currency and default VAT rate if the user
+  /// Open the project settings page, then re-read the currency and default VAT rate if the user
   /// changed something — mirrors `OcptScheduleMode._requestProjectSettings`.
   Future<void> _requestProjectSettings(BuildContext context) async {
     final bloc = context.read<OcptBudgetBloc>();
@@ -280,8 +280,8 @@ class _BudgetViewState extends State<_BudgetView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Asks `OcptConfirmDialog` whether poste [posteId] really is to be deleted — the message says
-  /// its own quote lines go with it — then dispatches the deletion if the user answered `Delete`.
+  /// Ask `OcptConfirmDialog` whether poste [posteId] really is to be deleted — the message says its
+  /// own quote lines go with it — then dispatch the deletion if the user answered `Delete`.
   Future<void> _handlePosteDeletionRequested(BuildContext context, String posteId) async {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final tr = Tr.of(context);
@@ -303,8 +303,8 @@ class _BudgetViewState extends State<_BudgetView> {
     expensesBloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
   }
 
-  /// Asks `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
-  /// dispatches the deletion if the user answered `Delete`.
+  /// Ask `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
+  /// dispatch the deletion if the user answered `Delete`.
   Future<void> _handleEntryDeletionRequested(BuildContext context, String entryId) async {
     final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final tr = Tr.of(context);
@@ -326,8 +326,8 @@ class _BudgetViewState extends State<_BudgetView> {
     journalBloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
-  /// Asks `OcptConfirmDialog` whether commitment [commitmentId] really is to be deleted, then
-  /// dispatches the deletion if the user answered `Delete`.
+  /// Ask `OcptConfirmDialog` whether commitment [commitmentId] really is to be deleted, then
+  /// dispatch the deletion if the user answered `Delete`.
   Future<void> _handleCommitmentDeletionRequested(BuildContext context, String commitmentId) async {
     final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final tr = Tr.of(context);
@@ -349,8 +349,8 @@ class _BudgetViewState extends State<_BudgetView> {
     journalBloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
   }
 
-  /// Asks `OcptConfirmDialog` whether financing resource [resourceId] really is to be deleted, then
-  /// dispatches the deletion if the user answered `Delete`.
+  /// Ask `OcptConfirmDialog` whether financing resource [resourceId] really is to be deleted, then
+  /// dispatch the deletion if the user answered `Delete`.
   Future<void> _handleResourceDeletionRequested(BuildContext context, String resourceId) async {
     final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
@@ -372,9 +372,9 @@ class _BudgetViewState extends State<_BudgetView> {
     financingBloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
   }
 
-  /// Resolves the most recently recorded live credit against [resource]
-  /// (`ocptBudgetLatestReceiptEntryIdOf`, `lib/models/rules/ocpt_budget_financing.dart`), asks
-  /// `OcptConfirmDialog` whether it really is to be undone, then dispatches its deletion — the very
+  /// Resolve the most recently recorded live credit against [resource]
+  /// (`ocptBudgetLatestReceiptEntryIdOf`, `lib/models/rules/ocpt_budget_financing.dart`), ask
+  /// `OcptConfirmDialog` whether it really is to be undone, then dispatch its deletion — the very
   /// same `OcptBudgetEntryDeletionConfirmedEvent` the cash journal's own `Delete` already uses,
   /// tombstoning the entry rather than un-receiving the resource through any figure of its own
   /// (`budget_resources` stores none — `docs/architecture/budget.md`). `OcptBudgetFinancing`'s own
@@ -410,8 +410,8 @@ class _BudgetViewState extends State<_BudgetView> {
     journalBloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
-  /// Asks `OcptConfirmDialog` whether defrayal [allowanceId] really is to be deleted, then
-  /// dispatches the deletion if the user answered `Delete`.
+  /// Ask `OcptConfirmDialog` whether defrayal [allowanceId] really is to be deleted, then dispatch
+  /// the deletion if the user answered `Delete`.
   Future<void> _handleAllowanceDeletionRequested(BuildContext context, String allowanceId) async {
     final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
@@ -433,8 +433,8 @@ class _BudgetViewState extends State<_BudgetView> {
     financingBloc.add(OcptBudgetAllowanceDeletionConfirmedEvent(allowanceId: allowanceId));
   }
 
-  /// Computes what provisioning would do, puts those counts in front of the user through
-  /// `OcptConfirmDialog`, and dispatches it only if they agree.
+  /// Compute what provisioning would do, put those counts in front of the user through
+  /// `OcptConfirmDialog`, and dispatch it only if they agree.
   ///
   /// **The plan is computed here, whole, before anything is written**, and travels with the event:
   /// it is what the user was shown and said yes to. Its wordings are resolved here too, since no
@@ -484,7 +484,7 @@ class _BudgetViewState extends State<_BudgetView> {
     financingBloc.add(OcptBudgetProvisionConfirmedEvent(posteId: posteId, entries: entries));
   }
 
-  /// Asks `OcptConfirmDialog` whether taking [revenueId] really is to be deleted, then dispatches
+  /// Ask `OcptConfirmDialog` whether taking [revenueId] really is to be deleted, then dispatch
   /// the deletion if the user answered `Delete`.
   Future<void> _handleRevenueDeletionRequested(BuildContext context, String revenueId) async {
     final sharingBloc = context.read<OcptBudgetSharingBloc>();
@@ -507,7 +507,7 @@ class _BudgetViewState extends State<_BudgetView> {
     sharingBloc.add(OcptBudgetRevenueDeletionConfirmedEvent(revenueId: revenueId));
   }
 
-  /// Asks `OcptConfirmDialog` whether share [shareId] really is to be deleted, then dispatches the
+  /// Ask `OcptConfirmDialog` whether share [shareId] really is to be deleted, then dispatch the
   /// deletion if the user answered `Delete`.
   Future<void> _handleShareDeletionRequested(BuildContext context, String shareId) async {
     final sharingBloc = context.read<OcptBudgetSharingBloc>();
@@ -530,7 +530,7 @@ class _BudgetViewState extends State<_BudgetView> {
     sharingBloc.add(OcptBudgetShareDeletionConfirmedEvent(shareId: shareId));
   }
 
-  /// Asks, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
+  /// Ask, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
   /// deletes the commitment it produced, and leaves the quote line itself alone.
   Future<void> _handleLineUncommitRequested(
     BuildContext context,
@@ -574,7 +574,7 @@ class _BudgetViewState extends State<_BudgetView> {
     journalBloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitment.id));
   }
 
-  /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
+  /// Ask `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatch
   /// the deletion if the user answered `Delete`.
   Future<void> _handleLineDeletionRequested(BuildContext context, String lineId) async {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
@@ -597,7 +597,7 @@ class _BudgetViewState extends State<_BudgetView> {
     expensesBloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
   }
 
-  /// Applies bloc-driven effects onto the page: the live right dock fraction, the transient version
+  /// Apply bloc-driven effects onto the page: the live right dock fraction, the transient version
   /// notice SnackBar, the missing-files question and the transient package notice SnackBar —
   /// mirrors `OcptScheduleMode._onStateChanged`.
   void _onStateChanged(BuildContext context, OcptBudgetState state) {

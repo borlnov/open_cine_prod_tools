@@ -68,7 +68,7 @@ class OcptBudgetSharingView extends StatelessWidget {
   }
 }
 
-/// The 0-based position share [shareId] moves to when its row's own `⋮` menu `▲`/`▼` entry is
+/// Get the 0-based position share [shareId] moves to when its row's own `⋮` menu `▲`/`▼` entry is
 /// clicked — one above or below its current position in [OcptBudgetState.shares]' own order, a
 /// share id no longer found there falling back to the first position.
 int _shareReorderedPosition(OcptBudgetState state, String shareId, bool moveUp) {

@@ -32,7 +32,7 @@ class OcptBudgetViewEffects extends StatelessWidget {
     child: child,
   );
 
-  /// Shows the outcome of an export as a SnackBar, then dismisses it.
+  /// Show the outcome of an export as a SnackBar, then dismiss it.
   void _onExportStateChanged(BuildContext context, OcptBudgetExportState state) {
     final ioNotice = state.ioNotice;
     if (ioNotice == null) {
@@ -45,7 +45,7 @@ class OcptBudgetViewEffects extends StatelessWidget {
     context.read<OcptBudgetExportBloc>().add(const OcptBudgetIoNoticeDismissedEvent());
   }
 
-  /// The SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`,
+  /// Get the SnackBar text for [notice] — mirrors `OcptScheduleMode._ioNoticeMessage`,
   /// `OcptBudgetIoNotice.wasShared` included.
   String _ioNoticeMessage(BuildContext context, OcptBudgetIoNotice notice) {
     final tr = Tr.of(context);

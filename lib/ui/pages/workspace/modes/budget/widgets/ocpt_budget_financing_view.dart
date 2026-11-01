@@ -98,7 +98,7 @@ class OcptBudgetFinancingView extends StatelessWidget {
   }
 }
 
-/// The 0-based position revenue [revenueId] moves to when its row's own `⋮` menu `▲`/`▼` entry
+/// Get the 0-based position revenue [revenueId] moves to when its row's own `⋮` menu `▲`/`▼` entry
 /// is clicked — one above or below its current position in [OcptBudgetState.revenues]' own order,
 /// a revenue id no longer found there falling back to the first position.
 int _revenueReorderedPosition(OcptBudgetState state, String revenueId, bool moveUp) {

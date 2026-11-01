@@ -458,7 +458,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
   }
 
-  /// The whole tree, flattened top to bottom into one list both panes walk in lockstep — see the
+  /// Get the whole tree, flattened top to bottom into one list both panes walk in lockstep — see
+  /// the
   /// class doc comment.
   ///
   /// A poste draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
@@ -587,7 +588,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return rows;
   }
 
-  /// Appends one row per commitment of [rowCommitments], each immediately followed by every entry
+  /// Append one row per commitment of [rowCommitments], each immediately followed by every entry
   /// that pays it (found in [entries], through `OcptBudgetEntry.commitmentId`) whenever it has been
   /// paid at all — settled or only part-paid, one row per instalment — or by the muted "no entry"
   /// hint while genuinely none has paid it yet — all at [depth], siblings of the commitment itself,
@@ -619,7 +620,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     }
   }
 
-  /// The pinned pane's own widget for [row].
+  /// Build the pinned pane's own widget for [row].
   Widget _identityRowOf(OcptBudgetCostTrackingTreeRow row, {required double posteWidth}) =>
       switch (row) {
         OcptBudgetCostTrackingPosteTreeRow() => OcptBudgetCostTrackingPosteIdentityRow(
@@ -734,7 +735,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         ),
       };
 
-  /// The scrolling pane's own widget for [row].
+  /// Build the scrolling pane's own widget for [row].
   Widget _amountsRowOf(OcptBudgetCostTrackingTreeRow row) => switch (row) {
     OcptBudgetCostTrackingPosteTreeRow() => OcptBudgetCostTrackingPosteAmountsRow(
       poste: row.poste,
@@ -794,31 +795,32 @@ class OcptBudgetCostTracking extends StatelessWidget {
     ),
   };
 
-  /// Whether poste [posteId] is the currently selected one.
+  /// Tell whether poste [posteId] is the currently selected one.
   bool _isPosteSelected(String posteId) {
     final selection = this.selection;
     return selection is OcptBudgetPosteSelection && selection.posteId == posteId;
   }
 
-  /// Whether quote line [lineId] is the currently selected one.
+  /// Tell whether quote line [lineId] is the currently selected one.
   bool _isLineSelected(String lineId) {
     final selection = this.selection;
     return selection is OcptBudgetLineSelection && selection.lineId == lineId;
   }
 
-  /// Whether commitment [commitmentId] is the currently selected one.
+  /// Tell whether commitment [commitmentId] is the currently selected one.
   bool _isCommitmentSelected(String commitmentId) {
     final selection = this.selection;
     return selection is OcptBudgetCommitmentSelection && selection.commitmentId == commitmentId;
   }
 
-  /// Whether entry [entryId] is the currently selected one.
+  /// Tell whether entry [entryId] is the currently selected one.
   bool _isEntrySelected(String entryId) {
     final selection = this.selection;
     return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
   }
 
-  /// [commitment]'s own amounts sub-row — its own cash figure in `Engagé` while unsettled, what has
+  /// Build [commitment]'s own amounts sub-row — its own cash figure in `Engagé` while unsettled,
+  /// what has
   /// actually been paid against it in `Payé` once it is, read off [entries] through
   /// [ocptBudgetCommitmentIsSettledOf]/[ocptBudgetCommitmentPaidCentsOf] — see the class doc
   /// comment. Extracted out of [_amountsRowOf]'s own switch expression since settlement now needs
@@ -851,7 +853,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
   }
 
-  /// [commitment]'s own `⋮` menu, or null while every one of its own entries is withheld — see the
+  /// Build [commitment]'s own `⋮` menu, or null while every one of its own entries is withheld —
+  /// see the
   /// class doc comment.
   Widget? _commitmentMenuOf(BuildContext context, OcptBudgetCommitment commitment) {
     final isSettled = ocptBudgetCommitmentIsSettledOf(
@@ -891,7 +894,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     );
   }
 
-  /// [entry]'s own `⋮` menu, or null while every one of its own entries is withheld.
+  /// Build [entry]'s own `⋮` menu, or null while every one of its own entries is withheld.
   Widget? _entryMenuOf(BuildContext context, OcptBudgetEntry entry) {
     final onEdit = isReadOnly ? null : onEntryEditRequested;
     final onDelete = isReadOnly ? null : onEntryDeletionRequested;

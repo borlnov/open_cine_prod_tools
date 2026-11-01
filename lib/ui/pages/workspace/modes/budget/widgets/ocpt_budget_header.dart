@@ -104,7 +104,8 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called when [captureLabel]'s own button is clicked — null exactly when [captureLabel] is.
   final VoidCallback? onCaptureRequested;
 
-  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles, the expenses table
+  /// Tell whether the tax-basis switch draws at all: the dashboard's own KPI tiles, the expenses
+  /// table
   /// and the tools drawer's own cash-flow page are the three routes whose amounts follow it —
   /// every other route either reads no second basis or no amount at all.
   bool get _showsTaxBasisSwitch =>
@@ -112,7 +113,7 @@ class OcptBudgetHeader extends StatelessWidget {
       view == OcptBudgetView.expenses ||
       (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
 
-  /// Whether the current view honours the simplified/detailed switch —
+  /// Tell whether the current view honours the simplified/detailed switch —
   /// `ocptBudgetViewHonoursPosteFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
   bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
 

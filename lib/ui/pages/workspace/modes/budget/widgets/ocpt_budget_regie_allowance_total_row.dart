@@ -83,7 +83,7 @@ class OcptBudgetRegieAllowanceTotalRow extends StatelessWidget {
     );
   }
 
-  /// The tax-inclusive sum of every person's own reimbursed total, across [entries] —
+  /// Get the tax-inclusive sum of every person's own reimbursed total, across [entries] —
   /// `ocptBudgetReimbursedByPersonId`, folded into one figure for the whole table rather than kept
   /// per person, since the total row answers for every running account at once.
   int _reimbursedTotalCentsOf() => ocptBudgetReimbursedByPersonId(

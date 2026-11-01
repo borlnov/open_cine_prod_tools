@@ -182,7 +182,7 @@ class OcptBudgetCentre extends StatelessWidget {
     );
   }
 
-  /// The header band's own trailing button, `+ Nouveau` — offered on all five routes, including
+  /// Get the header band's own trailing button, `+ Nouveau` — offered on all five routes, including
   /// [OcptBudgetView.dashboard] and `tools › cashFlow`. Opens the capture wizard's own step 1, the
   /// current route's own document promoted to the top of the list with its first answer
   /// pre-selected — never on [OcptBudgetView.dashboard], which works on no single document, so

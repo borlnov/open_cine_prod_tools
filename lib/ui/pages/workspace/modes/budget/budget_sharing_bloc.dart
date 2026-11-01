@@ -60,7 +60,7 @@ class OcptBudgetSharingBloc
     on<OcptBudgetShareDeletionConfirmedEvent>(_onShareDeletionConfirmed);
   }
 
-  /// Creates a new taking from `event.fields` and selects it, without opening the right dock —
+  /// Create a new taking from `event.fields` and select it, without opening the right dock —
   /// mirrors the creation of a financing resource: `OcptBudgetSharingService.createRevenue` mints
   /// the row from a date and a label alone, every other field written straight after through
   /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call [_onRevenueUpdateConfirmed]
@@ -94,7 +94,7 @@ class OcptBudgetSharingBloc
     }
   }
 
-  /// Writes `event.fields` onto revenue `event.revenueId`.
+  /// Write `event.fields` onto revenue `event.revenueId`.
   Future<void> _onRevenueUpdateConfirmed(
     OcptBudgetRevenueUpdateConfirmedEvent event,
     Emitter<OcptBudgetSharingState> emitter,
@@ -112,7 +112,7 @@ class OcptBudgetSharingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Moves revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
+  /// Move revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
   /// order — mirrors `OcptBudgetPosteReorderedEvent`'s own handler.
   Future<void> _onRevenueReordered(
     OcptBudgetRevenueReorderedEvent event,
@@ -131,7 +131,7 @@ class OcptBudgetSharingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes taking `event.revenueId` for good, confirmed by the mode's own `OcptConfirmDialog` —
+  /// Delete taking `event.revenueId` for good, confirmed by the mode's own `OcptConfirmDialog` —
   /// mirrors the deletion of a financing resource.
   Future<void> _onRevenueDeletionConfirmed(
     OcptBudgetRevenueDeletionConfirmedEvent event,
@@ -149,7 +149,7 @@ class OcptBudgetSharingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Creates a new share from `event.fields` and selects it — mirrors
+  /// Create a new share from `event.fields` and select it — mirrors
   /// [_onRevenueCreationConfirmed].
   Future<void> _onShareCreationConfirmed(
     OcptBudgetShareCreationConfirmedEvent event,
@@ -175,7 +175,7 @@ class OcptBudgetSharingBloc
     }
   }
 
-  /// Writes `event.fields` onto share `event.shareId`.
+  /// Write `event.fields` onto share `event.shareId`.
   Future<void> _onShareUpdateConfirmed(
     OcptBudgetShareUpdateConfirmedEvent event,
     Emitter<OcptBudgetSharingState> emitter,
@@ -193,7 +193,7 @@ class OcptBudgetSharingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Moves share `event.shareId` to `event.newPosition` within the sharing view's own flat order —
+  /// Move share `event.shareId` to `event.newPosition` within the sharing view's own flat order —
   /// mirrors [_onRevenueReordered].
   Future<void> _onShareReordered(
     OcptBudgetShareReorderedEvent event,
@@ -212,7 +212,7 @@ class OcptBudgetSharingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes share `event.shareId` for good, confirmed by the mode's own `OcptConfirmDialog` —
+  /// Delete share `event.shareId` for good, confirmed by the mode's own `OcptConfirmDialog` —
   /// mirrors [_onRevenueDeletionConfirmed].
   Future<void> _onShareDeletionConfirmed(
     OcptBudgetShareDeletionConfirmedEvent event,

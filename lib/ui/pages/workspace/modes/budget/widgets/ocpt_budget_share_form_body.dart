@@ -87,7 +87,7 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
   /// comment.
   String? _personId;
 
-  /// The fields this body would submit right now, or null while `_shareController`'s or
+  /// Get the fields this body would submit right now, or null while `_shareController`'s or
   /// `_reinvestController`'s own percentage does not parse.
   OcptBudgetShareFormFields? get _currentDraft {
     final sharePermille = ocptPercentPermilleOf(_shareController.text);
@@ -200,7 +200,7 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
     );
   }
 
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// Report [_currentDraft] to the host — every controller listener and every picker's own
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 

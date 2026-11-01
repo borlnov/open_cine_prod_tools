@@ -12,7 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_resource_form_fields.dar
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 
-/// Writes a form's fields through the cash journal service, for every view bloc that creates or
+/// Write a form's fields through the cash journal service, for every view bloc that creates or
 /// writes a journal entry: the cash journal's own, and the expenses view's `Pay` action.
 ///
 /// These writes are shared, not owned: a journal entry, a financing resource, a taking and a share
@@ -21,7 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 /// own view. They hold no state and emit nothing; the bloc that calls them reads the snapshot
 /// again afterwards.
 extension OcptBudgetJournalFormWrites on OcptBudgetJournalService {
-  /// Writes whatever [fields] collected about a journal entry's own voucher, once the entry itself
+  /// Write whatever [fields] collected about a journal entry's own voucher, once the entry itself
   /// exists: a fresh pick ([OcptBudgetEntryFormFields.pickedReceiptPath]) references it, replacing
   /// whatever the entry already carried; the dialog's own `Detach` action
   /// ([OcptBudgetEntryFormFields.isReceiptDetached]) drops it instead — never both at once, see
@@ -43,9 +43,9 @@ extension OcptBudgetJournalFormWrites on OcptBudgetJournalService {
   }
 }
 
-/// Writes a form's fields through the financing service.
+/// Write a form's fields through the financing service.
 extension OcptBudgetFinancingFormWrites on OcptBudgetFinancingService {
-  /// Writes every field of [fields] onto resource [resourceId] — shared by the creation of a
+  /// Write every field of [fields] onto resource [resourceId] — shared by the creation of a
   /// resource (right after minting the row) and its update.
   Future<void> writeResourceFields({
     required OcptProjectDatabase database,
@@ -63,8 +63,8 @@ extension OcptBudgetFinancingFormWrites on OcptBudgetFinancingService {
     notes: Value(fields.notes),
   );
 
-  /// Creates the resource [fields] describes — [createResource] mints the row from a label alone,
-  /// every other field is written straight after — and answers its fresh id, or null if the row
+  /// Create the resource [fields] describes — [createResource] mints the row from a label alone,
+  /// every other field is written straight after — and answer its fresh id, or null if the row
   /// could not be minted.
   Future<String?> createResourceWithFields({
     required OcptProjectDatabase database,
@@ -79,9 +79,9 @@ extension OcptBudgetFinancingFormWrites on OcptBudgetFinancingService {
   }
 }
 
-/// Writes a form's fields through the revenue sharing service.
+/// Write a form's fields through the revenue sharing service.
 extension OcptBudgetSharingFormWrites on OcptBudgetSharingService {
-  /// Writes every field of [fields] onto revenue [revenueId].
+  /// Write every field of [fields] onto revenue [revenueId].
   Future<void> writeRevenueFields({
     required OcptProjectDatabase database,
     required String revenueId,
@@ -96,8 +96,8 @@ extension OcptBudgetSharingFormWrites on OcptBudgetSharingService {
     notes: Value(fields.notes),
   );
 
-  /// Creates the taking [fields] describes — [createRevenue] mints the row from a date and a label
-  /// alone, every other field is written straight after — and answers its fresh id, or null if the
+  /// Create the taking [fields] describes — [createRevenue] mints the row from a date and a label
+  /// alone, every other field is written straight after — and answer its fresh id, or null if the
   /// row could not be minted.
   Future<String?> createRevenueWithFields({
     required OcptProjectDatabase database,
@@ -115,7 +115,7 @@ extension OcptBudgetSharingFormWrites on OcptBudgetSharingService {
     return revenueId;
   }
 
-  /// Writes every field of [fields] onto share [shareId].
+  /// Write every field of [fields] onto share [shareId].
   Future<void> writeShareFields({
     required OcptProjectDatabase database,
     required String shareId,
@@ -130,8 +130,8 @@ extension OcptBudgetSharingFormWrites on OcptBudgetSharingService {
     notes: Value(fields.notes),
   );
 
-  /// Creates the share [fields] describes — [createShare] mints the row from a label alone, every
-  /// other field is written straight after — and answers its fresh id, or null if the row could not
+  /// Create the share [fields] describes — [createShare] mints the row from a label alone, every
+  /// other field is written straight after — and answer its fresh id, or null if the row could not
   /// be minted.
   Future<String?> createShareWithFields({
     required OcptProjectDatabase database,

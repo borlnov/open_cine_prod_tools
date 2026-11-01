@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [cents] is null, blank
+/// Build one amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [cents] is null,
+/// blank
 /// while [showBlank] (a receipt sub-row's own untouched columns), and the given amount otherwise.
 Widget ocptBudgetFinancingAmountCell(
   BuildContext context,

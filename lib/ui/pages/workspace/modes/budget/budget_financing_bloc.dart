@@ -82,7 +82,7 @@ class OcptBudgetFinancingBloc
     on<OcptBudgetProvisionConfirmedEvent>(_onProvisionConfirmed);
   }
 
-  /// Creates a new financing resource from `event.fields` and selects it.
+  /// Create a new financing resource from `event.fields` and select it.
   ///
   /// [OcptBudgetFinancingService.createResource] mints the row from a label alone (mirroring
   /// `OcptBudgetQuoteService.createPoste`'s own shape, unlike `createCommitment`'s single insert):
@@ -121,7 +121,7 @@ class OcptBudgetFinancingBloc
     }
   }
 
-  /// Writes `event.fields` onto resource `event.resourceId`.
+  /// Write `event.fields` onto resource `event.resourceId`.
   Future<void> _onResourceUpdateConfirmed(
     OcptBudgetResourceUpdateConfirmedEvent event,
     Emitter<OcptBudgetFinancingState> emitter,
@@ -140,7 +140,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes financing resource `event.resourceId` for good, confirmed by the mode's own
+  /// Delete financing resource `event.resourceId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog` — and, alongside it, its own counterpart line if it had one, found in the
   /// live snapshot before the deletion rather than after: a resource just tombstoned names no poste
   /// any more for [ocptBudgetInKindCounterpartLineOf] to find it by.
@@ -168,7 +168,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Keeps in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
+  /// Keep in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
   /// called right after `OcptBudgetFinancingFormWrites.writeResourceFields` writes the contribution itself, from both
   /// [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the resource and its
   /// counterpart line are two rows kept in step by one caller, the same "one write, two rows"
@@ -241,7 +241,7 @@ class OcptBudgetFinancingBloc
     );
   }
 
-  /// Creates a defrayal from `event.fields`.
+  /// Create a defrayal from `event.fields`.
   ///
   /// **One insert, unlike a resource's own two**: `OcptBudgetAllowancesService.createAllowance`
   /// takes every field the dialog collected, because a defrayal is only ever minted from a form
@@ -270,7 +270,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Writes `event.fields` onto defrayal `event.allowanceId`.
+  /// Write `event.fields` onto defrayal `event.allowanceId`.
   Future<void> _onAllowanceUpdateConfirmed(
     OcptBudgetAllowanceUpdateConfirmedEvent event,
     Emitter<OcptBudgetFinancingState> emitter,
@@ -296,7 +296,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes defrayal `event.allowanceId` for good, confirmed by the mode's own
+  /// Delete defrayal `event.allowanceId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog`.
   Future<void> _onAllowanceDeletionConfirmed(
     OcptBudgetAllowanceDeletionConfirmedEvent event,
@@ -314,7 +314,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Carries out `event.entries` against poste `event.posteId`, confirmed by the mode's own
+  /// Carry out `event.entries` against poste `event.posteId`, confirmed by the mode's own
   /// `OcptConfirmDialog`.
   Future<void> _onProvisionConfirmed(
     OcptBudgetProvisionConfirmedEvent event,

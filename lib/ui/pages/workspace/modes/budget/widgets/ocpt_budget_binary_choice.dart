@@ -51,7 +51,7 @@ class OcptBudgetBinaryChoice extends StatelessWidget {
     ],
   );
 
-  /// One of the choice's own two segments: filled and bold while active, muted otherwise.
+  /// Build one of the choice's own two segments: filled and bold while active, muted otherwise.
   Widget _segment(BuildContext context, bool segmentValue, String label) {
     final theme = Theme.of(context);
     final isActive = segmentValue == value;

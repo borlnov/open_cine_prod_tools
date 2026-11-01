@@ -159,7 +159,7 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
     );
   }
 
-  /// One amount cell, right-aligned, one step smaller than a poste row's own.
+  /// Build one amount cell, right-aligned, one step smaller than a poste row's own.
   Widget _cell(BuildContext context, String text) => SizedBox(
     width: ocptBudgetCostTrackingAmountColumnWidth,
     child: Text(

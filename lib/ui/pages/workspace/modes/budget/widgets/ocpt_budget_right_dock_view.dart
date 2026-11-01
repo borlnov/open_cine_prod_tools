@@ -151,7 +151,7 @@ class _OcptBudgetVersions extends StatelessWidget {
     ),
   );
 
-  /// Shows the version creation dialog, then dispatches the capture if the user confirmed it.
+  /// Show the version creation dialog, then dispatch the capture if the user confirmed it.
   Future<void> _requestVersionCreation(BuildContext context) async {
     final bloc = context.read<OcptBudgetBloc>();
     final fields = await OcptProjectVersionCreateDialog.show(context);

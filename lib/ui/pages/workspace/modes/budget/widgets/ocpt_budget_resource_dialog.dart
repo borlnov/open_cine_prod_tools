@@ -81,7 +81,7 @@ class OcptBudgetResourceDialog extends StatefulWidget {
   @override
   State<OcptBudgetResourceDialog> createState() => _OcptBudgetResourceDialogState();
 
-  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  /// Show the dialog and return the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetResourceFormFields?> show(
     BuildContext context, {
     required OcptBudgetResource? existing,
@@ -148,7 +148,8 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
     );
   }
 
-  /// This dialog's own title: the kind-specific creation title while creating a fixed kind (`New
+  /// Get this dialog's own title: the kind-specific creation title while creating a fixed kind
+  /// (`New subsidy`,
   /// subsidy`, `New cash contribution`, `New in-kind contribution`), the kind-agnostic
   /// `New contribution` while creating with [OcptBudgetResourceDialog.offerCashOrInKindChoice] —
   /// [OcptBudgetResourceDialog.groupKind] only seeds which of the two the picker starts on, so no
@@ -170,7 +171,7 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
     };
   }
 
-  /// Validates the form and, if it passes, pops the dialog returning the last draft
+  /// Validate the form and, if it passes, pop the dialog returning the last draft
   /// [OcptBudgetResourceFormBody] reported — mirrors what this dialog's own `_submit` did before it
   /// was split.
   void _submit() {

@@ -83,10 +83,11 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
   /// takes whatever height the heading band leaves it — see [ocptBudgetRegieStackedMinRowCount].
   final double? tableHeight;
 
-  /// [people], keyed by their own id.
+  /// Get [people], keyed by their own id.
   Map<String, OcptPerson> get _personById => {for (final person in people) person.id: person};
 
-  /// [roles], keyed by the person each one is played by — a role naming no person carries no key.
+  /// Get [roles], keyed by the person each one is played by — a role naming no person carries no
+  /// key.
   Map<String, OcptRole> get _roleByPersonId => {
     for (final role in roles)
       if (role.personId != null) role.personId!: role,
@@ -184,7 +185,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     );
   }
 
-  /// The whole tree, flattened top to bottom into one list — mirrors
+  /// Get the whole tree, flattened top to bottom into one list — mirrors
   /// `OcptBudgetFinancing._rowsOf`'s own reading exactly: a person group row draws whenever a
   /// live defrayal or a live reimbursement names them, its own sub-rows draw only while their own
   /// id sits in [expandedNodeIds]. A defrayal naming nobody draws as its own group of one, in the
@@ -262,7 +263,7 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     return rows;
   }
 
-  /// Builds the widget for one flattened [row].
+  /// Build the widget for one flattened [row].
   Widget _rowOf(OcptBudgetRegieAllowanceTreeRow row) => switch (row) {
     OcptBudgetRegieAllowancePersonGroupRow() => OcptBudgetRegieAllowancePersonRow(
       person: row.person,

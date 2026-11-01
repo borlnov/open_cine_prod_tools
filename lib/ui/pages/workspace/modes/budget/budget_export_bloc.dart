@@ -65,7 +65,7 @@ class OcptBudgetExportBloc
     on<OcptBudgetIoNoticeDismissedEvent>(_onIoNoticeDismissed);
   }
 
-  /// Exports the quote as a single PDF, written through the native save dialog.
+  /// Export the quote as a single PDF, written through the native save dialog.
   ///
   /// Built exactly as every other mode's own export handlers are: have the mode write whatever
   /// field edit is still sitting in the debounce first — an export must never print a figure the user has typed
@@ -127,7 +127,7 @@ class OcptBudgetExportBloc
     }
   }
 
-  /// Exports the financing plan as a single PDF, written through the native save dialog. Mirrors
+  /// Export the financing plan as a single PDF, written through the native save dialog. Mirrors
   /// [_onQuoteExportRequested] — see its own doc comment for the flush and the cancellation
   /// contract, identical here.
   Future<void> _onFinancingPlanExportRequested(
@@ -182,7 +182,7 @@ class OcptBudgetExportBloc
     }
   }
 
-  /// Exports the cash journal as a single XLSX workbook, written through the native save dialog.
+  /// Export the cash journal as a single XLSX workbook, written through the native save dialog.
   ///
   /// Built exactly as [_onQuoteExportRequested] is: flush whatever is still pending, then hand what
   /// [state] now carries to [OcptExportManager.exportBudgetCashJournalXlsx]. There is no options
@@ -246,7 +246,7 @@ class OcptBudgetExportBloc
     }
   }
 
-  /// Exports the financial report as a single PDF, written through the native save dialog. Mirrors
+  /// Export the financial report as a single PDF, written through the native save dialog. Mirrors
   /// [_onQuoteExportRequested] — see its own doc comment for the flush and the cancellation
   /// contract, identical here.
   Future<void> _onFinancialReportExportRequested(
@@ -301,7 +301,7 @@ class OcptBudgetExportBloc
     }
   }
 
-  /// Clears the transient export notice currently shown, if any.
+  /// Clear the transient export notice currently shown, if any.
   Future<void> _onIoNoticeDismissed(
     OcptBudgetIoNoticeDismissedEvent event,
     Emitter<OcptBudgetExportState> emitter,

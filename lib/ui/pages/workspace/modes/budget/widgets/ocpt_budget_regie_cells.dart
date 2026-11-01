@@ -7,13 +7,15 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_allowance.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_regie_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The height a table card holding [rowCount] rows of [rowHeight] is drawn at once the panes stack.
+/// Get the height a table card holding [rowCount] rows of [rowHeight] is drawn at once the panes
+/// stack.
 double ocptBudgetRegieStackedCardHeight(int rowCount, double rowHeight) =>
     ocptBudgetRegieCardChromeHeight +
     rowHeight *
         rowCount.clamp(ocptBudgetRegieStackedMinRowCount, ocptBudgetRegieStackedMaxRowCount);
 
-/// How many top-level rows [allowances] draws in the stacked layout's own height guess: one per
+/// Count how many top-level rows [allowances] draws in the stacked layout's own height guess: one
+/// per
 /// distinct person named, plus one for every defrayal naming nobody, each its own group of one —
 /// never the sub-rows a group's own twisty later reveals, since [ocptBudgetRegieStackedCardHeight]'s own
 /// clamp already floors and ceilings this into a reasonable card height either way.
@@ -32,7 +34,8 @@ int ocptBudgetRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
   return personIds.length + noPersonCount;
 }
 
-/// One amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [cents] is null, blank
+/// Build one amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [cents] is null,
+/// blank
 /// while [showBlank] (a sub-row's own untouched columns), and the given amount otherwise — mirrors
 /// `OcptBudgetFinancing`'s own `_ocptResourcesAmountCell`.
 Widget ocptBudgetRegieAllowanceAmountCell(

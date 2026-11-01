@@ -150,7 +150,8 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
     );
   }
 
-  /// One `label` above `amountCents`, formatted through [ocptBudgetAmountLabel] like every other
+  /// Build one `label` above `amountCents`, formatted through [ocptBudgetAmountLabel] like every
+  /// other
   /// figure this table prints.
   Widget _figureOf(BuildContext context, String label, int amountCents) {
     final theme = Theme.of(context);

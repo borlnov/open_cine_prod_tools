@@ -232,7 +232,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `OcptResourcesState.pageSetup` is, this mode carrying no screenplay of its own to typeset.
   final OcptPageSetup pageSetup;
 
-  /// The id of the currently selected poste, or null while [selection] does not name one.
+  /// Get the id of the currently selected poste, or null while [selection] does not name one.
   ///
   /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
   /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
@@ -244,7 +244,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// The id of the currently selected financing resource, or null while [selection] does not name
+  /// Get the id of the currently selected financing resource, or null while [selection] does not
+  /// name
   /// one — the financing view's own selection, read exactly as [selectedPosteId] is, but drawn as a
   /// plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
   /// comment for why this view carries no inspector of its own.
@@ -253,7 +254,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// The id of the currently selected taking, or null while [selection] does not name one — the
+  /// Get the id of the currently selected taking, or null while [selection] does not name one — the
   /// resources tree's own revenue row reads and dispatches this, opening the fiche on it exactly
   /// as [selectedResourceId] does for a resource row.
   String? get selectedRevenueId => switch (selection) {
@@ -261,37 +262,39 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// Every live poste of [snapshot], in display order (empty while nothing is loaded).
+  /// Get every live poste of [snapshot], in display order (empty while nothing is loaded).
   List<OcptBudgetPoste> get postes => snapshot?.postes ?? const [];
 
-  /// The number of live postes — the status bar's own first counter.
+  /// Get the number of live postes — the status bar's own first counter.
   int get posteCount => snapshot?.posteCount ?? 0;
 
-  /// The total number of quote lines across every poste — the status bar's own second counter.
+  /// Get the total number of quote lines across every poste — the status bar's own second counter.
   int get lineCount => snapshot?.lineCount ?? 0;
 
-  /// Every live journal entry of [snapshot], in chronological order (empty while nothing is
+  /// Get every live journal entry of [snapshot], in chronological order (empty while nothing is
   /// loaded).
   List<OcptBudgetEntry> get entries => snapshot?.entries ?? const [];
 
-  /// Every live commitment of [snapshot], in due-date order (empty while nothing is loaded).
+  /// Get every live commitment of [snapshot], in due-date order (empty while nothing is loaded).
   List<OcptBudgetCommitment> get commitments => snapshot?.commitments ?? const [];
 
-  /// Every live financing resource of [snapshot], in `sortKey` order (empty while nothing is
+  /// Get every live financing resource of [snapshot], in `sortKey` order (empty while nothing is
   /// loaded).
   List<OcptBudgetResource> get resources => snapshot?.resources ?? const [];
 
-  /// The number of live financing resources — mirrors [posteCount].
+  /// Get the number of live financing resources — mirrors [posteCount].
   int get resourceCount => snapshot?.resourceCount ?? 0;
 
-  /// What has actually come in against each financing resource of [snapshot], keyed by its own id
+  /// Get what has actually come in against each financing resource of [snapshot], keyed by its own
+  /// id
   /// — empty while nothing is loaded. `OcptBudgetFinancing` reads this map itself, raw, for the one
   /// reading `receivedCentsOf` cannot answer — see [OcptBudgetSnapshot.receivedCentsOf]'s own doc
   /// comment.
   Map<String, OcptBudgetCoveredTotal> get receivedByResourceId =>
       snapshot?.receivedByResourceId ?? const {};
 
-  /// The cash journal's own debit, credit and balance — a zero-everything total while nothing is
+  /// Get the cash journal's own debit, credit and balance — a zero-everything total while nothing
+  /// is
   /// loaded, mirroring [postes]' own empty default.
   OcptBudgetCashTotals get cashTotals =>
       snapshot?.cashTotals ??
@@ -302,29 +305,30 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         entryCount: 0,
       );
 
-  /// Every live taking of [snapshot], in `sortKey` order (empty while nothing is loaded).
+  /// Get every live taking of [snapshot], in `sortKey` order (empty while nothing is loaded).
   List<OcptBudgetRevenue> get revenues => snapshot?.revenues ?? const [];
 
-  /// The number of live takings — mirrors [resourceCount].
+  /// Get the number of live takings — mirrors [resourceCount].
   int get revenueCount => snapshot?.revenueCount ?? 0;
 
-  /// Every live share of [snapshot], in `sortKey` order (empty while nothing is loaded).
+  /// Get every live share of [snapshot], in `sortKey` order (empty while nothing is loaded).
   List<OcptBudgetShare> get shares => snapshot?.shares ?? const [];
 
-  /// The number of live shares — mirrors [resourceCount].
+  /// Get the number of live shares — mirrors [resourceCount].
   int get shareCount => snapshot?.shareCount ?? 0;
 
-  /// What has actually come in against each taking of [snapshot], keyed by its own id — empty
+  /// Get what has actually come in against each taking of [snapshot], keyed by its own id — empty
   /// while nothing is loaded. `OcptBudgetSharing` reads this map itself, raw, for the one reading
   /// [receivedRevenueCentsOf] cannot answer — mirrors [receivedByResourceId].
   Map<String, OcptBudgetCoveredTotal> get receivedByRevenueId =>
       snapshot?.receivedByRevenueId ?? const {};
 
-  /// What has actually been paid against each share of [snapshot], keyed by its own id — mirrors
+  /// Get what has actually been paid against each share of [snapshot], keyed by its own id —
+  /// mirrors
   /// [receivedByRevenueId].
   Map<String, OcptBudgetCoveredTotal> get paidByShareId => snapshot?.paidByShareId ?? const {};
 
-  /// What there is to share, and what stands between the takings and it — a zero-everything pot
+  /// Get what there is to share, and what stands between the takings and it — a zero-everything pot
   /// while nothing is loaded, mirroring [cashTotals]' own empty default.
   OcptBudgetSharingPot get sharingPot =>
       snapshot?.sharingPot ??
@@ -334,19 +338,20 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         repaid: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
       );
 
-  /// The split of [sharingPot] across [shares], empty while nothing is loaded.
+  /// Get the split of [sharingPot] across [shares], empty while nothing is loaded.
   List<OcptBudgetShareSplit> get shareSplits => snapshot?.shareSplits ?? const [];
 
-  /// [resources]' own reimbursable ones, grouped by lender — empty while nothing is loaded. The
+  /// Get [resources]' own reimbursable ones, grouped by lender — empty while nothing is loaded. The
   /// `Repaying the contributions` card's own detail: who is owed what.
   List<OcptBudgetRepaymentLine> get repaymentLines => snapshot?.repaymentLines ?? const [];
 
-  /// What has actually been paid against each poste of [snapshot], empty while nothing is loaded —
+  /// Get what has actually been paid against each poste of [snapshot], empty while nothing is
+  /// loaded —
   /// the cost-tracking table reads this, per poste and folded into its own total row's `Payé`
   /// cell, rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get paidByPosteId => snapshot?.paidByPosteId ?? const {};
 
-  /// The total of every debit that names no poste at all — spending outside the quote,
+  /// Get the total of every debit that names no poste at all — spending outside the quote,
   /// `OcptBudgetSnapshot.offQuotePaidTotal`'s own doc comment. Zero and complete while nothing is
   /// loaded, mirroring [cashTotals]' own empty default. The cost-tracking table's own total row
   /// folds this in alongside [paidByPosteId].
@@ -354,30 +359,32 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       snapshot?.offQuotePaidTotal ??
       const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
 
-  /// What is committed against each poste of [snapshot], empty while nothing is loaded — the
+  /// Get what is committed against each poste of [snapshot], empty while nothing is loaded — the
   /// cost-tracking table reads this per poste (`committedCentsOf`) rather than recomputing it.
   Map<String, OcptBudgetCoveredTotal> get committedByPosteId =>
       snapshot?.committedByPosteId ?? const {};
 
-  /// The header's own two alerts, empty while nothing is loaded or the project raises neither.
+  /// Get the header's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
-  /// How many of [elements] a live quote line already prices, and how many are not — the feed
+  /// Count how many of [elements] a live quote line already prices, and how many are not — the feed
   /// card's own breakdown row, derived here rather than in that widget, exactly as [paidByPosteId]
   /// is derived here rather than in the cost-tracking table.
   OcptBudgetElementLinkCounts get elementLinkCounts =>
       ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
 
-  /// Every one of [elements] no live quote line prices yet — what
+  /// Get every one of [elements] no live quote line prices yet — what
   /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers.
   List<OcptElement> get unpricedElements =>
       ocptBudgetUnpricedElementsOf(postes: postes, elements: elements);
 
-  /// Every live shooting day's own catering reading, empty while nothing is loaded or the project
+  /// Get every live shooting day's own catering reading, empty while nothing is loaded or the
+  /// project
   /// holds no shooting day — `OcptBudgetRegie`'s own left column.
   List<OcptBudgetRegieDay> get regieDays => snapshot?.regieDays ?? const [];
 
-  /// [regieDays] folded into one total — a zero-everything, fully-covered total while nothing is
+  /// Get [regieDays] folded into one total — a zero-everything, fully-covered total while nothing
+  /// is
   /// loaded, mirroring [cashTotals]' own empty default.
   OcptBudgetRegieTotals get regieTotals =>
       snapshot?.regieTotals ??
@@ -388,32 +395,34 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         cost: OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0),
       );
 
-  /// Every live defrayal, empty while nothing is loaded or the production has defrayed nobody —
+  /// Get every live defrayal, empty while nothing is loaded or the production has defrayed nobody —
   /// `OcptBudgetRegie`'s own right column.
   List<OcptBudgetAllowance> get allowances => snapshot?.allowances ?? const [];
 
-  /// What has actually been reimbursed against each defrayed person of [snapshot], keyed by their
+  /// Get what has actually been reimbursed against each defrayed person of [snapshot], keyed by
+  /// their
   /// own id — empty while nothing is loaded. `OcptBudgetRegie`'s own person tree reads this map
   /// itself, raw, mirroring [receivedByResourceId]'s own reading.
   Map<String, OcptBudgetCoveredTotal> get reimbursedByPersonId =>
       snapshot?.reimbursedByPersonId ?? const {};
 
-  /// Every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing is
+  /// Get every live voucher, keyed by the `budget_entries` row it evidences — empty while nothing
+  /// is
   /// loaded or no entry carries one.
   Map<String, OcptAssetRef> get receiptsByEntryId => snapshot?.receiptsByEntryId ?? const {};
 
-  /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
+  /// Get the project's default VAT rate, in basis points, or null while nobody has recorded one.
   int? get defaultVatRateBasisPoints => snapshot?.defaultVatRateBasisPoints;
 
-  /// The project's own meal price, in cents, or null while nobody has recorded one —
+  /// Get the project's own meal price, in cents, or null while nobody has recorded one —
   /// `OcptBudgetRegie`'s own caption.
   int? get mealPriceCents => snapshot?.mealPriceCents;
 
-  /// The project's own buffet price, in cents, or null while nobody has recorded one — mirrors
+  /// Get the project's own buffet price, in cents, or null while nobody has recorded one — mirrors
   /// [mealPriceCents].
   int? get buffetPriceCents => snapshot?.buffetPriceCents;
 
-  /// The selected poste, or null while none is selected (or the selected one disappeared from a
+  /// Get the selected poste, or null while none is selected (or the selected one disappeared from a
   /// freshly loaded [snapshot]).
   OcptBudgetPoste? get selectedPoste {
     final selectedPosteId = this.selectedPosteId;
@@ -430,7 +439,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
-  /// The selected financing resource, or null while none is selected (or the selected one
+  /// Get the selected financing resource, or null while none is selected (or the selected one
   /// disappeared from a freshly loaded [snapshot]) — mirrors [selectedPoste].
   OcptBudgetResource? get selectedResource {
     final selectedResourceId = this.selectedResourceId;
@@ -525,30 +534,32 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       projectPackagePendingExportTarget = null,
       pageSetup = const OcptPageSetup.standard();
 
-  /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
+  /// Get `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no
   /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
   /// honestly zero rather than a stand-in for an unknown figure.
   int paidCentsOf(String posteId) => snapshot?.paidCentsOf(posteId) ?? 0;
 
-  /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// Get `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
   int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
 
-  /// `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
+  /// Get `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
   /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
   int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
 
-  /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// Get `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
   /// why this `?? 0` is the ordinary reading, and why the financing view reads
   /// [receivedByResourceId] itself for the one row kind that needs the other one.
   int receivedCentsOf(String resourceId) => snapshot?.receivedCentsOf(resourceId) ?? 0;
 
-  /// `revenueId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// Get `revenueId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. Mirrors [receivedCentsOf].
   int receivedRevenueCentsOf(String revenueId) => snapshot?.receivedRevenueCentsOf(revenueId) ?? 0;
 
-  /// `shareId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
+  /// Get `shareId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no
   /// entry against it. Mirrors [receivedCentsOf].
   int paidShareCentsOf(String shareId) => snapshot?.paidShareCentsOf(shareId) ?? 0;
 

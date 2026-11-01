@@ -12,7 +12,7 @@ sealed class OcptBudgetCashJournalEvent extends OcptBudgetEvent {
   const OcptBudgetCashJournalEvent();
 }
 
-/// Creates a new cash-journal entry from [fields], dispatched by the mode once
+/// Create a new cash-journal entry from [fields], dispatched by the mode once
 /// `OcptBudgetEntryDialog` returned a result for a fresh entry — mirrors
 /// `OcptBudgetLineCreatedEvent`'s own "written the moment it is dispatched" reading: none of this
 /// dialog's fields is typing, so none of them rides the field-edit debounce.
@@ -28,7 +28,7 @@ class OcptBudgetEntryCreationConfirmedEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, fields];
 }
 
-/// Writes [fields] onto entry [entryId], dispatched by the mode once `OcptBudgetEntryDialog`
+/// Write [fields] onto entry [entryId], dispatched by the mode once `OcptBudgetEntryDialog`
 /// returned a result for an existing entry it was opened to edit.
 class OcptBudgetEntryUpdateConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// The id of the entry being edited.
@@ -45,7 +45,7 @@ class OcptBudgetEntryUpdateConfirmedEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId, fields];
 }
 
-/// Deletes cash-journal entry [entryId] for good, dispatched by the mode once its own
+/// Delete cash-journal entry [entryId] for good, dispatched by the mode once its own
 /// `OcptConfirmDialog` has already been answered — mirrors `OcptBudgetLineDeletionConfirmedEvent`.
 class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// The id of the entry to delete.
@@ -59,7 +59,7 @@ class OcptBudgetEntryDeletionConfirmedEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Creates a new commitment from [fields], dispatched by the mode once
+/// Create a new commitment from [fields], dispatched by the mode once
 /// `OcptBudgetCommitmentDialog` returned a result for a fresh commitment — mirrors
 /// `OcptBudgetEntryCreationConfirmedEvent`'s own "written the moment it is dispatched" reading.
 class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetCashJournalEvent {
@@ -82,7 +82,7 @@ class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetCashJournalEv
   List<Object?> get props => [...super.props, fields, lineId];
 }
 
-/// Writes [fields] onto commitment [commitmentId], dispatched by the mode once
+/// Write [fields] onto commitment [commitmentId], dispatched by the mode once
 /// `OcptBudgetCommitmentDialog` returned a result for an existing commitment it was opened to edit.
 /// [fields]' own `posteId` is never sent on: `OcptBudgetJournalService.updateCommitment` carries no
 /// such parameter, a commitment's own poste being fixed the moment it is created
@@ -105,7 +105,7 @@ class OcptBudgetCommitmentUpdateConfirmedEvent extends OcptBudgetCashJournalEven
   List<Object?> get props => [...super.props, commitmentId, fields];
 }
 
-/// Deletes commitment [commitmentId] for good, dispatched by the mode once its own
+/// Delete commitment [commitmentId] for good, dispatched by the mode once its own
 /// `OcptConfirmDialog` has already been answered — mirrors
 /// `OcptBudgetEntryDeletionConfirmedEvent`.
 class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetCashJournalEvent {
@@ -120,7 +120,7 @@ class OcptBudgetCommitmentDeletionConfirmedEvent extends OcptBudgetCashJournalEv
   List<Object?> get props => [...super.props, commitmentId];
 }
 
-/// Records commitment [commitmentId]'s own payment, dispatched by the mode once
+/// Record commitment [commitmentId]'s own payment, dispatched by the mode once
 /// `OcptBudgetEntryDialog` returned a result for the fresh entry it was opened pre-filled with,
 /// from its row's own `Settle` action. The bloc creates the journal entry [fields] describes,
 /// naming [commitmentId] on it, in the one handler this event reaches, then reloads once — one
@@ -143,7 +143,7 @@ class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetCashJournal
   List<Object?> get props => [...super.props, commitmentId, fields];
 }
 
-/// Promotes off-line debit entry [entryId] into the quote it never went through — the banner's own
+/// Promote off-line debit entry [entryId] into the quote it never went through — the banner's own
 /// `Add to the quote` action, dispatched on an entry that names a poste but no commitment (a till
 /// receipt for something the quote never anticipated). The bloc creates a quote line from the entry
 /// first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit price
@@ -167,7 +167,7 @@ class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Detaches off-line debit entry [entryId] from its poste — the banner's own `Move off-quote`
+/// Detach off-line debit entry [entryId] from its poste — the banner's own `Move off-quote`
 /// action, dispatched on the very same kind of entry [OcptBudgetEntryPromotedToQuoteEvent]
 /// promotes, the other way to reconcile it: rather than folding the spend into the quote, this
 /// admits it was never quoted at all. Clears `posteId` back to null
@@ -186,7 +186,7 @@ class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Promotes off-line commitment [commitmentId] into the quote — the fiche's own banner and its
+/// Promote off-line commitment [commitmentId] into the quote — the fiche's own banner and its
 /// `Add to the quote` action, offered on a commitment that names a poste but no quote line
 /// (`ocptBudgetCommitmentIsOffLine`). This is `OcptBudgetLinePaidDirectlyEvent` run the other way
 /// round: the bloc creates a quote line from the commitment (`OcptBudgetQuoteService.createLine`,
@@ -208,7 +208,7 @@ class OcptBudgetCommitmentPromotedToQuoteEvent extends OcptBudgetCashJournalEven
   List<Object?> get props => [...super.props, commitmentId];
 }
 
-/// Undoes commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
+/// Undo commitment [commitmentId]'s own settlement, dispatched by its row's own `Undo settlement`
 /// action — clears `commitmentId` back to null on **every** live entry naming it, each entry itself
 /// left untouched otherwise. `Undo settlement`'s own label promises the commitment is not paid, and
 /// a commitment can be paid in several instalments (`OcptBudgetEntryFormFields.commitmentId`'s own

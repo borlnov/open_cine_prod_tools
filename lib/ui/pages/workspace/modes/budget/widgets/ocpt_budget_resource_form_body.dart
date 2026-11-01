@@ -176,7 +176,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
   /// `Poste` field.
   String? _posteId;
 
-  /// The fields this body would submit right now, or null while the `Amount` field's own figure
+  /// Get the fields this body would submit right now, or null while the `Amount` field's own figure
   /// does not parse.
   OcptBudgetResourceFormFields? get _currentDraft {
     final amountCents = ocptCostCentsOf(_amountController.text);
@@ -370,11 +370,11 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     );
   }
 
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// Report [_currentDraft] to the host — every controller listener and every picker's own
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
-  /// The `Amount` field's own label, worded for [_groupKind] — see the class doc comment: an
+  /// Get the `Amount` field's own label, worded for [_groupKind] — see the class doc comment: an
   /// in-kind contribution's figure is what it is *valued at*, never an amount to be received.
   String _amountFieldLabel(Tr tr) => switch (_groupKind) {
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogValuedAtFieldLabel,
@@ -382,7 +382,8 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     OcptBudgetResourceGroupKind.cash => tr.budgetEntryDialogAmountFieldLabel,
   };
 
-  /// The `Amount` field's own helper text, worded for [_groupKind] — this is the field the product
+  /// Get the `Amount` field's own helper text, worded for [_groupKind] — this is the field the
+  /// product
   /// owner could not tell apart by kind: what the figure actually means differs from one kind to
   /// the next, even though the field itself is asked of all three.
   String _amountFieldHelper(Tr tr) => switch (_groupKind) {
@@ -391,7 +392,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogAmountHelperInKind,
   };
 
-  /// The `Status` field's own helper text, worded for [_groupKind]. **No status is hidden or
+  /// Get the `Status` field's own helper text, worded for [_groupKind]. **No status is hidden or
   /// disabled by kind** — only the wording changes, never which of the three steps may be picked:
   /// the mode's standing rule that the UI carries no conditional branch on the state of the data.
   ///
@@ -447,7 +448,7 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
     children: [for (final kind in choices) _segment(context, kind)],
   );
 
-  /// One of the picker's own segments.
+  /// Build one of the picker's own segments.
   Widget _segment(BuildContext context, OcptBudgetResourceGroupKind kind) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -513,7 +514,7 @@ class _OcptResourceStatusPicker extends StatelessWidget {
     children: [for (final status in OcptBudgetResourceStatus.values) _segment(context, status)],
   );
 
-  /// One of the picker's own segments, filled in its own accent colour while active.
+  /// Build one of the picker's own segments, filled in its own accent colour while active.
   Widget _segment(BuildContext context, OcptBudgetResourceStatus status) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);

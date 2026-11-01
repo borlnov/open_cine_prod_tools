@@ -354,21 +354,23 @@ class OcptBudgetCashJournal extends StatelessWidget {
     );
   }
 
-  /// Whether entry [entryId] is the currently selected one — mirrors
+  /// Tell whether entry [entryId] is the currently selected one — mirrors
   /// `OcptBudgetCostTracking._isEntrySelected`.
   bool _isEntrySelected(String entryId) {
     final selection = this.selection;
     return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
   }
 
-  /// Whether commitment [commitmentId] is the currently selected one — mirrors [_isEntrySelected]
+  /// Tell whether commitment [commitmentId] is the currently selected one — mirrors
+  /// [_isEntrySelected]
   /// for the `À venir` section's own rows.
   bool _isCommitmentSelected(String commitmentId) {
     final selection = this.selection;
     return selection is OcptBudgetCommitmentSelection && selection.commitmentId == commitmentId;
   }
 
-  /// [postes]' own entry naming [posteId], or null while [posteId] is null or names no live poste —
+  /// Get [postes]' own entry naming [posteId], or null while [posteId] is null or names no live
+  /// poste —
   /// mirrors `OcptBudgetState.selectedPoste`'s own reading.
   OcptBudgetPoste? _posteById(String? posteId) {
     if (posteId == null) {

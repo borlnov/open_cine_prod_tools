@@ -232,7 +232,7 @@ class _OcptBudgetFicheBody extends StatelessWidget {
     );
   }
 
-  /// Opens the tools drawer's own `Flux de trésorerie` page and selects [lineId]'s own commitment
+  /// Open the tools drawer's own `Flux de trésorerie` page and select [lineId]'s own commitment
   /// there, under its own `À venir` section — never withheld under a preview, since it only moves
   /// the reader. The commitment is the line's own unsettled one, `À venir` holding no other kind.
   void _handleLineShowCommitmentRequested(

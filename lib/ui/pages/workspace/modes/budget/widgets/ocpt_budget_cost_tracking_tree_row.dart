@@ -46,7 +46,7 @@ class OcptBudgetCostTrackingLineTreeRow extends OcptBudgetCostTrackingTreeRow {
   /// Whether this line is currently expanded.
   final bool isExpanded;
 
-  /// Whether this line has anything at all to expand onto.
+  /// Tell whether this line has anything at all to expand onto.
   bool get isExpandable => lineCommitments.isNotEmpty;
 
   /// Class constructor

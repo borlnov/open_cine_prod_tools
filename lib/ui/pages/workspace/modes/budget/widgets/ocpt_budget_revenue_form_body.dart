@@ -80,7 +80,7 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
   /// The status currently picked.
   late OcptBudgetRevenueStatus _status;
 
-  /// The fields this body would submit right now, or null while the `Amount` field's own figure
+  /// Get the fields this body would submit right now, or null while the `Amount` field's own figure
   /// does not parse.
   OcptBudgetRevenueFormFields? get _currentDraft {
     final amountCents = ocptCostCentsOf(_amountController.text);
@@ -191,7 +191,7 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
     );
   }
 
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// Report [_currentDraft] to the host — every controller listener and every picker's own
   /// `onChanged` call this after applying its own change.
   void _report() => widget.onDraftChanged(_currentDraft);
 
@@ -226,7 +226,7 @@ class _OcptRevenueStatusPicker extends StatelessWidget {
     children: [for (final status in OcptBudgetRevenueStatus.values) _segment(context, status)],
   );
 
-  /// One of the picker's own segments, filled in its own accent colour while active.
+  /// Build one of the picker's own segments, filled in its own accent colour while active.
   Widget _segment(BuildContext context, OcptBudgetRevenueStatus status) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);

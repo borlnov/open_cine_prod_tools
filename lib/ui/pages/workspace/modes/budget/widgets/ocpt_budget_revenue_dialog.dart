@@ -32,7 +32,7 @@ class OcptBudgetRevenueDialog extends StatefulWidget {
   @override
   State<OcptBudgetRevenueDialog> createState() => _OcptBudgetRevenueDialogState();
 
-  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  /// Show the dialog and return the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetRevenueFormFields?> show(
     BuildContext context, {
     required OcptBudgetRevenue? existing,
@@ -78,7 +78,7 @@ class _OcptBudgetRevenueDialogState extends State<OcptBudgetRevenueDialog> {
     );
   }
 
-  /// Validates the form and, if it passes, pops the dialog returning the last draft
+  /// Validate the form and, if it passes, pop the dialog returning the last draft
   /// [OcptBudgetRevenueFormBody] reported — mirrors what this dialog's own `_submit` did before it
   /// was split.
   void _submit() {

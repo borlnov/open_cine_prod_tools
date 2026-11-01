@@ -35,7 +35,7 @@ class OcptBudgetRegieAllowanceHeaderRow extends StatelessWidget {
     );
   }
 
-  /// One amount column's own header cell, right-aligned like the figures underneath it.
+  /// Build one amount column's own header cell, right-aligned like the figures underneath it.
   Widget _amountHeaderCell(String label, TextStyle? style) => SizedBox(
     width: ocptBudgetRegieAllowanceAmountColumnWidth,
     child: Text(

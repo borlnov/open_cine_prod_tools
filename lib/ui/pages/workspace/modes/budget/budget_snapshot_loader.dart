@@ -58,7 +58,7 @@ class OcptBudgetRead {
   });
 }
 
-/// Reads the budget mode's whole data from the open project: the services it joins are resolved
+/// Read the budget mode's whole data from the open project: the services it joins are resolved
 /// from the projects manager once, and [load] makes one pass over them.
 ///
 /// It only reads. Which state the result lands in, and what is reconciled against it, is the mode
@@ -114,7 +114,7 @@ class OcptBudgetSnapshotLoader {
       _locationsService = projectsManager.locationsService,
       _elementsService = projectsManager.elementsService;
 
-  /// Reads [project]'s whole budget: the postes with their lines, the cash journal's own entries and
+  /// Read [project]'s whole budget: the postes with their lines, the cash journal's own entries and
   /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
   /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
   /// and the meal/buffet prices, joined into one [OcptBudgetSnapshot] alongside the raw
@@ -189,7 +189,8 @@ class OcptBudgetSnapshotLoader {
     );
   }
 
-  /// The decor name `OcptBudgetRegie` prints under each shooting day: the name of the first set, or
+  /// Get the decor name `OcptBudgetRegie` prints under each shooting day: the name of the first
+  /// set, or
   /// failing that the first location, that any of [days]' own [slotsByDayId] entries name, in slot
   /// order — resolved out of [locations] (and their own live sets) alone.
   /// `lib/models/rules/ocpt_budget_regie.dart`'s own pass reads no location or set at all, being

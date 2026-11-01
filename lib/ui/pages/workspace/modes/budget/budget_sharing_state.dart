@@ -13,10 +13,10 @@ class OcptBudgetSharingState extends BlocStateForMixin<OcptBudgetSharingState> {
   /// Class constructor
   const OcptBudgetSharingState();
 
-  /// Builds the state of a bloc that has written nothing yet.
+  /// Build the state of a bloc that has written nothing yet.
   const OcptBudgetSharingState.init();
 
-  /// Copies this state: there is nothing to replace.
+  /// Copy this state: there is nothing to replace.
   @override
   OcptBudgetSharingState copyWith() => this;
 

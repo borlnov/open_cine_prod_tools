@@ -12,7 +12,7 @@ sealed class OcptBudgetSharingEvent extends OcptBudgetEvent {
   const OcptBudgetSharingEvent();
 }
 
-/// Creates a new taking from [fields], dispatched by the mode once `OcptBudgetRevenueDialog`
+/// Create a new taking from [fields], dispatched by the mode once `OcptBudgetRevenueDialog`
 /// returned a result for a fresh revenue — mirrors `OcptBudgetResourceCreationConfirmedEvent`'s own
 /// "written the moment it is dispatched" reading.
 class OcptBudgetRevenueCreationConfirmedEvent extends OcptBudgetSharingEvent {
@@ -27,7 +27,7 @@ class OcptBudgetRevenueCreationConfirmedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, fields];
 }
 
-/// Writes [fields] onto revenue [revenueId], dispatched by the mode once
+/// Write [fields] onto revenue [revenueId], dispatched by the mode once
 /// `OcptBudgetRevenueDialog` returned a result for an existing revenue it was opened to edit.
 class OcptBudgetRevenueUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   /// The id of the revenue being edited.
@@ -44,7 +44,7 @@ class OcptBudgetRevenueUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, revenueId, fields];
 }
 
-/// Moves revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat order,
+/// Move revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat order,
 /// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetPosteReorderedEvent`.
 class OcptBudgetRevenueReorderedEvent extends OcptBudgetSharingEvent {
   /// The id of the revenue to reorder.
@@ -61,7 +61,7 @@ class OcptBudgetRevenueReorderedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, revenueId, newPosition];
 }
 
-/// Deletes taking [revenueId] for good, dispatched by the mode once its own `OcptConfirmDialog`
+/// Delete taking [revenueId] for good, dispatched by the mode once its own `OcptConfirmDialog`
 /// has already been answered — mirrors `OcptBudgetResourceDeletionConfirmedEvent`.
 class OcptBudgetRevenueDeletionConfirmedEvent extends OcptBudgetSharingEvent {
   /// The id of the revenue to delete.
@@ -75,7 +75,7 @@ class OcptBudgetRevenueDeletionConfirmedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, revenueId];
 }
 
-/// Creates a new share from [fields], dispatched by the mode once `OcptBudgetShareDialog` returned
+/// Create a new share from [fields], dispatched by the mode once `OcptBudgetShareDialog` returned
 /// a result for a fresh share — mirrors `OcptBudgetRevenueCreationConfirmedEvent`.
 class OcptBudgetShareCreationConfirmedEvent extends OcptBudgetSharingEvent {
   /// Every field the dialog collected.
@@ -89,7 +89,7 @@ class OcptBudgetShareCreationConfirmedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, fields];
 }
 
-/// Writes [fields] onto share [shareId], dispatched by the mode once `OcptBudgetShareDialog`
+/// Write [fields] onto share [shareId], dispatched by the mode once `OcptBudgetShareDialog`
 /// returned a result for an existing share it was opened to edit.
 class OcptBudgetShareUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   /// The id of the share being edited.
@@ -106,7 +106,7 @@ class OcptBudgetShareUpdateConfirmedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, shareId, fields];
 }
 
-/// Moves share [shareId] to [newPosition] (0-based) within the sharing view's own flat order,
+/// Move share [shareId] to [newPosition] (0-based) within the sharing view's own flat order,
 /// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetRevenueReorderedEvent`.
 class OcptBudgetShareReorderedEvent extends OcptBudgetSharingEvent {
   /// The id of the share to reorder.
@@ -123,7 +123,7 @@ class OcptBudgetShareReorderedEvent extends OcptBudgetSharingEvent {
   List<Object?> get props => [...super.props, shareId, newPosition];
 }
 
-/// Deletes share [shareId] for good, dispatched by the mode once its own `OcptConfirmDialog` has
+/// Delete share [shareId] for good, dispatched by the mode once its own `OcptConfirmDialog` has
 /// already been answered — mirrors `OcptBudgetRevenueDeletionConfirmedEvent`.
 class OcptBudgetShareDeletionConfirmedEvent extends OcptBudgetSharingEvent {
   /// The id of the share to delete.

@@ -71,7 +71,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   @override
   State<OcptBudgetCommitmentDialog> createState() => _OcptBudgetCommitmentDialogState();
 
-  /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
+  /// Show the dialog and return the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetCommitmentFormFields?> show(
     BuildContext context, {
     required OcptBudgetCommitment? existing,
@@ -156,7 +156,7 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
     );
   }
 
-  /// Validates the form and, if it passes, pops the dialog returning the last draft
+  /// Validate the form and, if it passes, pop the dialog returning the last draft
   /// [OcptBudgetCommitmentFormBody] reported — mirrors what this dialog's own `_submit` did before
   /// it was split, `Save` already being withheld while [_missingFieldsHint] names something still
   /// missing.

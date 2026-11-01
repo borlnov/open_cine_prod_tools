@@ -96,7 +96,7 @@ class OcptBudgetCashJournalBloc
     on<OcptBudgetCommitmentUnsettleRequestedEvent>(_onCommitmentUnsettleRequested);
   }
 
-  /// Creates a new cash-journal entry from `event.fields`, writing its typed amount onto whichever
+  /// Create a new cash-journal entry from `event.fields`, writing its typed amount onto whichever
   /// of `debitCents`/`creditCents` [OcptBudgetEntryFormFields.isDebit] names and zero onto the
   /// other — the one reading no single database column mirrors, see that model's own doc comment.
   ///
@@ -142,7 +142,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Writes `event.fields` onto entry `event.entryId`, including its own voucher number — see
+  /// Write `event.fields` onto entry `event.entryId`, including its own voucher number — see
   /// [OcptBudgetEntryFormFields.voucherNumber]'s own doc comment for why it is always set here, an
   /// entry dialog only ever being opened to edit with one already loaded.
   ///
@@ -200,8 +200,8 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Creates the taking `fields` carries as still-to-be-made
-  /// ([OcptBudgetEntryFormFields.newRevenue]) and answers its fresh id, or null while it carries
+  /// Create the taking `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newRevenue]) and answer its fresh id, or null while it carries
   /// none — which is the ordinary case.
   ///
   /// **Written exactly the way `OcptBudgetSharingBloc` writes one**, through the same two
@@ -222,8 +222,8 @@ class OcptBudgetCashJournalBloc
     );
   }
 
-  /// Creates the financing resource `fields` carries as still-to-be-made
-  /// ([OcptBudgetEntryFormFields.newResource]) and answers its fresh id, or null while it carries
+  /// Create the financing resource `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newResource]) and answer its fresh id, or null while it carries
   /// none — mirrors [_createNewRevenueOf] exactly, written the way `OcptBudgetFinancingBloc`
   /// writes one, so a resource born in the journal is indistinguishable from one born in the
   /// financing plan.
@@ -242,8 +242,8 @@ class OcptBudgetCashJournalBloc
     );
   }
 
-  /// Creates the revenue-sharing participant `fields` carries as still-to-be-made
-  /// ([OcptBudgetEntryFormFields.newShare]) and answers its fresh id, or null while it carries none
+  /// Create the revenue-sharing participant `fields` carries as still-to-be-made
+  /// ([OcptBudgetEntryFormFields.newShare]) and answer its fresh id, or null while it carries none
   /// — mirrors [_createNewRevenueOf] exactly, written the way `OcptBudgetSharingBloc` writes
   /// one.
   Future<String?> _createNewShareOf(
@@ -261,7 +261,7 @@ class OcptBudgetCashJournalBloc
     );
   }
 
-  /// Deletes cash-journal entry `event.entryId` for good, confirmed by the mode's own
+  /// Delete cash-journal entry `event.entryId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog`.
   Future<void> _onEntryDeletionConfirmed(
     OcptBudgetEntryDeletionConfirmedEvent event,
@@ -276,7 +276,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Creates a new commitment from `event.fields`.
+  /// Create a new commitment from `event.fields`.
   Future<void> _onCommitmentCreationConfirmed(
     OcptBudgetCommitmentCreationConfirmedEvent event,
     Emitter<OcptBudgetCashJournalState> emitter,
@@ -302,7 +302,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Writes `event.fields` onto commitment `event.commitmentId` — `fields.posteId` is never sent
+  /// Write `event.fields` onto commitment `event.commitmentId` — `fields.posteId` is never sent
   /// on, see `OcptBudgetCommitmentUpdateConfirmedEvent`'s own doc comment.
   Future<void> _onCommitmentUpdateConfirmed(
     OcptBudgetCommitmentUpdateConfirmedEvent event,
@@ -329,7 +329,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Deletes commitment `event.commitmentId` for good, confirmed by the mode's own
+  /// Delete commitment `event.commitmentId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog`.
   Future<void> _onCommitmentDeletionConfirmed(
     OcptBudgetCommitmentDeletionConfirmedEvent event,
@@ -347,7 +347,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Records commitment `event.commitmentId`'s own payment: creates the journal entry
+  /// Record commitment `event.commitmentId`'s own payment: creates the journal entry
   /// `event.fields` describes, naming this commitment through `commitmentId` — one dispatched
   /// event, one write, then one reload. Settlement is read back off that link
   /// (`ocptBudgetCommitmentIsSettledOf`), never written a second time onto the commitment itself.
@@ -387,7 +387,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Promotes off-line debit entry `event.entryId` into the quote — the fiche's own banner and its
+  /// Promote off-line debit entry `event.entryId` into the quote — the fiche's own banner and its
   /// `Add to the quote` action, offered on a debit that names a poste but no commitment
   /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
   /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
@@ -447,7 +447,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Detaches off-line debit entry `event.entryId` from its poste — the fiche's own banner and its
+  /// Detach off-line debit entry `event.entryId` from its poste — the fiche's own banner and its
   /// `Move off-quote` action, the other way to reconcile the very entry
   /// [_onEntryPromotedToQuote] promotes: rather than folding the spend into the quote, this admits
   /// it was never quoted at all. Clears `posteId` back to null and nothing else, so the entry reads
@@ -476,7 +476,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Promotes off-line commitment `event.commitmentId` into the quote — the fiche's own banner and
+  /// Promote off-line commitment `event.commitmentId` into the quote — the fiche's own banner and
   /// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
   /// ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole mechanism).
   /// Creates a quote line from the commitment (`createLine`, quantity `1.0`, its own label, amount
@@ -522,7 +522,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Undoes commitment `event.commitmentId`'s own settlement: clears `commitmentId` back to null on
+  /// Undo commitment `event.commitmentId`'s own settlement: clears `commitmentId` back to null on
   /// **every** live entry that names it, each entry itself left untouched otherwise — see
   /// `OcptBudgetCommitmentUnsettleRequestedEvent`'s own doc comment. The wizard is what makes
   /// several payments against one commitment possible (`OcptBudgetEntryFormFields.commitmentId`'s

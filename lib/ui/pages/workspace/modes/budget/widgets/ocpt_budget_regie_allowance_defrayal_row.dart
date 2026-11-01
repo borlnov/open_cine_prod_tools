@@ -106,7 +106,7 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
     );
   }
 
-  /// `nature · when · ×quantity` — see the class doc comment.
+  /// Get `nature · when · ×quantity` — see the class doc comment.
   String _detailTextOf(BuildContext context) {
     final tr = Tr.of(context);
     final nature = ocptBudgetAllowanceKindLabel(tr, allowance.kind);
@@ -116,7 +116,8 @@ class OcptBudgetRegieAllowanceDefrayalRow extends StatelessWidget {
     return "$nature · $when · ×$quantity";
   }
 
-  /// A single date, a span for a stay, or [ocptBudgetEmptyValue] while nobody has said — a defrayal
+  /// Get a single date, a span for a stay, or [ocptBudgetEmptyValue] while nobody has said — a
+  /// defrayal
   /// with no date is a real, ordinary state, not an unfinished row.
   String _whenLabel(BuildContext context) {
     final date = allowance.date;
