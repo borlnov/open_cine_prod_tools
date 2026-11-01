@@ -261,7 +261,9 @@ A project rule overrides these. The overrides this project has made:
 - **RD8, RD11:** `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed
   document with a typed exception, which the app converts to a `Result` at its boundary:
   `act_dart_result` depends on Flutter, and the relay compiles without it.
-- **RD25:** a Flutter `State` and a test double may initialize their fields at declaration.
+- **RD25:** a Flutter `State` and a test double may initialize their fields at declaration, and so
+  may a mixin, which has no constructor. A `late final` field computed from the other fields of its
+  object, on first read, stays `late final`.
 - **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
   rebuilt.
 - **RFL3:** a page's view may be public (`OcptXxxView`) when its widget tests pump it directly
@@ -271,6 +273,11 @@ A project rule overrides these. The overrides this project has made:
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
 - **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
   role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
+- **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
+  where the value is read or written outside an event handler, so that no `emit` runs: a stream
+  listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
+  flight, which a state emitted later would report too late. The fields are listed, with the reason
+  for each, in `test/ui/pages/workspace/bloc_final_fields_test.dart`, which fails on any other.
 - **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.
 
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
