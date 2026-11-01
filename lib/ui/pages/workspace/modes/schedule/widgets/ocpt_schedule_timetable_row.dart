@@ -128,6 +128,7 @@ class OcptScheduleTimetableRow extends StatelessWidget {
     required this.onMovedToSlot,
   });
 
+  /// Build the schedule timetable row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -341,6 +342,7 @@ class _OcptScheduleDragFeedback extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleDragFeedback({required this.title});
 
+  /// Build the schedule drag feedback as a [Material].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -390,6 +392,7 @@ class _OcptScheduleSequencePicker extends StatelessWidget {
     required this.onSequenceChanged,
   });
 
+  /// Build the schedule sequence picker as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -490,6 +493,7 @@ class _OcptScheduleCandidateStrip extends StatelessWidget {
     required this.onCandidateRemoved,
   });
 
+  /// Build the schedule candidate strip as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -569,6 +573,7 @@ class _OcptScheduleCandidatePicker extends StatelessWidget {
     required this.onPicked,
   });
 
+  /// Build the schedule candidate picker as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -677,6 +682,7 @@ class _OcptScheduleMoveToMenu extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleMoveToMenu({required this.otherSlots, required this.onMovedToSlot});
 
+  /// Build the schedule move to menu as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -721,6 +727,7 @@ class _OcptScheduleAuditionCandidateChip extends StatelessWidget {
     required this.onRemoved,
   });
 
+  /// Build the schedule audition candidate chip as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -763,6 +770,7 @@ class _OcptScheduleDurationStepper extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleDurationStepper({required this.durationMinutes, required this.onChanged});
 
+  /// Build the schedule duration stepper as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

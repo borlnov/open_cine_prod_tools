@@ -56,7 +56,7 @@ class OcptScheduleDayState extends BlocStateForMixin<OcptScheduleDayState> {
     required Map<OcptSchedulePendingFieldKey, String> pendingFieldEdits,
   }) => copyWith(pendingFieldEdits: pendingFieldEdits);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, pendingFieldEdits];
 }

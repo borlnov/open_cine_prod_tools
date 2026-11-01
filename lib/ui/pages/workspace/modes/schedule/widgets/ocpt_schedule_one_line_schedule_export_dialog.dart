@@ -38,6 +38,8 @@ class OcptScheduleOneLineScheduleExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleOneLineScheduleExportDialogState] holding the state of the schedule
+  /// one line schedule export dialog.
   @override
   State<OcptScheduleOneLineScheduleExportDialog> createState() =>
       _OcptScheduleOneLineScheduleExportDialogState();
@@ -66,6 +68,7 @@ class _OcptScheduleOneLineScheduleExportDialogState
   /// Whether the title page will be included in the exported document.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -73,6 +76,7 @@ class _OcptScheduleOneLineScheduleExportDialogState
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule one line schedule export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

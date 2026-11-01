@@ -67,6 +67,7 @@ class OcptScheduleConvocationsPanel extends StatelessWidget {
     required this.slotById,
   });
 
+  /// Build the schedule convocations panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final convocations = this.convocations;
@@ -176,6 +177,7 @@ class _OcptScheduleConvocationCard extends StatelessWidget {
     required this.slotById,
   });
 
+  /// Build the schedule convocation card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -211,6 +213,7 @@ class _OcptScheduleConvocationsHeading extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleConvocationsHeading({required this.title});
 
+  /// Build the schedule convocations heading as a [Text].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -232,6 +235,7 @@ class _OcptScheduleConvocationsHint extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleConvocationsHint({required this.message});
 
+  /// Build the schedule convocations hint as a [Center].
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(

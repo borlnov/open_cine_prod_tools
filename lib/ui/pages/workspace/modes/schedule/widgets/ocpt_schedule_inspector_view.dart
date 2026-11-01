@@ -36,6 +36,7 @@ class OcptScheduleInspectorView extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule inspector view as an [OcptScheduleInspector].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptScheduleBloc>();

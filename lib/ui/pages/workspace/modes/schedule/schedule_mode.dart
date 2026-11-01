@@ -73,6 +73,7 @@ class OcptScheduleMode extends StatelessWidget {
   /// Creates the schedule mode.
   const OcptScheduleMode({super.key});
 
+  /// Build the schedule mode as a [MultiBlocProvider].
   @override
   Widget build(BuildContext context) => MultiBlocProvider(
     providers: [
@@ -101,6 +102,7 @@ class _ScheduleView extends StatefulWidget {
   /// Class constructor
   const _ScheduleView();
 
+  /// Create the [_ScheduleViewState] holding the state of the schedule view.
   @override
   State<_ScheduleView> createState() => _ScheduleViewState();
 }
@@ -114,6 +116,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     rightFraction: OcptWorkspaceDock.rightDefaultFraction,
   );
 
+  /// Flush the pending field edits of the bloc before the view leaves the tree.
   @override
   void deactivate() {
     // Triggering the flush here, rather than dispatching an event, is what guarantees the last
@@ -123,6 +126,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     super.deactivate();
   }
 
+  /// Build the schedule view as a [BlocConsumer].
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptScheduleBloc, OcptScheduleState>(
     listener: _onStateChanged,
@@ -768,6 +772,7 @@ class _ScheduleViewState extends State<_ScheduleView> {
     );
   }
 
+  /// Dispose [_dockLayoutController].
   @override
   void dispose() {
     _dockLayoutController.dispose();

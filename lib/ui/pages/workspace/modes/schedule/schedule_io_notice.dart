@@ -69,7 +69,7 @@ class OcptScheduleIoNotice extends Equatable {
     this.wasShared = false,
   });
 
-  /// Object properties
+  /// List the fields that decide equality.
   @override
   List<Object?> get props => [kind, path, folderPath, writtenCount, failedCount, wasShared];
 }

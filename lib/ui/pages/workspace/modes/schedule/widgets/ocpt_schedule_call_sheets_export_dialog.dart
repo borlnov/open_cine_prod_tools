@@ -45,6 +45,8 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleCallSheetsExportDialogState] holding the state of the schedule call
+  /// sheets export dialog.
   @override
   State<OcptScheduleCallSheetsExportDialog> createState() =>
       _OcptScheduleCallSheetsExportDialogState();
@@ -74,6 +76,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
   /// The ids of the days currently ticked.
   late Set<String> _selectedDayIds;
 
+  /// Start from the current format, with only the selected day ticked when there is one.
   @override
   void initState() {
     super.initState();
@@ -81,6 +84,7 @@ class _OcptScheduleCallSheetsExportDialogState extends State<OcptScheduleCallShe
     _selectedDayIds = {if (widget.selectedDayId != null) widget.selectedDayId!};
   }
 
+  /// Build the schedule call sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

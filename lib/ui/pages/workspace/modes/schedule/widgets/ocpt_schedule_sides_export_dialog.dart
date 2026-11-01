@@ -52,6 +52,8 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleSidesExportDialogState] holding the state of the schedule sides
+  /// export dialog.
   @override
   State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
 
@@ -83,6 +85,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
   /// Whether a scene heading prints its own scene number in both margins.
   bool _includeSceneNumbers = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -92,6 +95,7 @@ class _OcptScheduleSidesExportDialogState extends State<OcptScheduleSidesExportD
         : widget.days.first.id;
   }
 
+  /// Build the schedule sides export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

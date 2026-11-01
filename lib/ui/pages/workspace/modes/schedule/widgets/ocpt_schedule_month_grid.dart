@@ -93,6 +93,7 @@ class OcptScheduleMonthGrid extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule month grid as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -212,6 +213,7 @@ class _OcptScheduleMonthCell extends StatelessWidget {
     required this.onOpenRequested,
   });
 
+  /// Build the schedule month cell as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

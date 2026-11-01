@@ -52,6 +52,7 @@ class OcptScheduleSlotPeople extends StatefulWidget {
     required this.guestsBuilder,
   });
 
+  /// Create the [_OcptScheduleSlotPeopleState] holding the state of the schedule slot people.
   @override
   State<OcptScheduleSlotPeople> createState() => _OcptScheduleSlotPeopleState();
 }
@@ -61,6 +62,7 @@ class _OcptScheduleSlotPeopleState extends State<OcptScheduleSlotPeople> {
   /// Whether the section shows its three kinds of person, or its title alone.
   bool _isExpanded = true;
 
+  /// Build the schedule slot people as a [Column].
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,6 +120,7 @@ class _SectionTitle extends StatelessWidget {
     required this.onToggled,
   });
 
+  /// Build the section title as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

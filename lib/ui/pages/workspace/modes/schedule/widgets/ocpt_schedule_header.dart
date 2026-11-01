@@ -68,6 +68,7 @@ class OcptScheduleHeader extends StatelessWidget {
     required this.firstWeekday,
   });
 
+  /// Build the schedule header as a [Padding].
   @override
   Widget build(BuildContext context) {
     final showNav =
@@ -152,6 +153,7 @@ class _OcptScheduleSegmentedSwitch<T> extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Build the schedule segmented switch as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -187,6 +189,7 @@ class _OcptScheduleEffectLegend extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleEffectLegend();
 
+  /// Build the schedule effect legend as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -234,6 +237,7 @@ class _OcptScheduleColorBy extends StatelessWidget {
     required this.onAgendaColorModeSelected,
   });
 
+  /// Build the schedule color by as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -283,6 +287,7 @@ class _OcptScheduleNav extends StatelessWidget {
     required this.onAgendaAnchorDateChanged,
   });
 
+  /// Build the schedule nav as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -356,6 +361,7 @@ class _OcptScheduleSegment extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleSegment({required this.label, required this.isActive, required this.onTap});
 
+  /// Build the schedule segment as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

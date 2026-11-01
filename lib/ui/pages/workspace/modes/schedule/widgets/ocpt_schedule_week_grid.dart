@@ -150,6 +150,7 @@ class OcptScheduleWeekGrid extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule week grid as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -326,6 +327,7 @@ class _OcptScheduleWeekColumnHeader extends StatelessWidget {
     required this.onOpenRequested,
   });
 
+  /// Build the schedule week column header as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -442,6 +444,7 @@ class _OcptScheduleWeekColumnBody extends StatelessWidget {
     required this.gridHeight,
   });
 
+  /// Build the schedule week column body as a [DecoratedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -522,6 +525,7 @@ class _OcptScheduleWeekColumnLayers extends StatelessWidget {
     required this.endMinute,
   });
 
+  /// Build the schedule week column layers as a [Stack].
   @override
   Widget build(BuildContext context) {
     final entryByBlockId = {
@@ -622,6 +626,7 @@ class _OcptScheduleWeekHourLine extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleWeekHourLine({required this.top});
 
+  /// Build the schedule week hour line as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(
@@ -665,6 +670,7 @@ class _OcptScheduleWeekSunBand extends StatelessWidget {
     required this.endMinute,
   });
 
+  /// Build the schedule week sun band as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -697,6 +703,7 @@ class _OcptScheduleWeekLaneDivider extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleWeekLaneDivider({required this.left});
 
+  /// Build the schedule week lane divider as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(
@@ -763,6 +770,7 @@ class _OcptScheduleWeekBlock extends StatelessWidget {
     required this.startMinute,
   });
 
+  /// Build the schedule week block as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -825,6 +833,7 @@ class _OcptScheduleWeekEventMarker extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleWeekEventMarker({required this.event, required this.startMinute});
 
+  /// Build the schedule week event marker as a [Positioned].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

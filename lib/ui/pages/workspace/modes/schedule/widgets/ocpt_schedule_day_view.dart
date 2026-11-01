@@ -338,6 +338,7 @@ class OcptScheduleDayView extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day view as a [ListView].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -501,6 +502,7 @@ class _OcptScheduleDaySummaryBand extends StatelessWidget {
     required this.onAlertsOpenRequested,
   });
 
+  /// Build the schedule day summary band as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -590,6 +592,7 @@ class _OcptScheduleDayEventsBand extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day events band as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -637,6 +640,7 @@ class _OcptScheduleSummaryField extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleSummaryField({required this.label, required this.value});
 
+  /// Build the schedule summary field as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -47,6 +47,7 @@ class OcptScheduleRightDock extends StatelessWidget {
     required this.onClose,
   });
 
+  /// Build the schedule right dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -119,6 +120,7 @@ class _OcptScheduleRightDockTabLabel extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the schedule right dock tab label as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

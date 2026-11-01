@@ -104,6 +104,7 @@ class OcptScheduleSlotAnchorControl extends StatelessWidget {
     required this.onAnchorChanged,
   });
 
+  /// Build the schedule slot anchor control as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -203,6 +204,7 @@ class _AnchorButton extends StatelessWidget {
     required this.onAnchorChanged,
   });
 
+  /// Build the anchor button as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -342,6 +344,7 @@ class _AnchorMenuItemContent extends StatelessWidget {
     required this.disabledReason,
   });
 
+  /// Build the anchor menu item content as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

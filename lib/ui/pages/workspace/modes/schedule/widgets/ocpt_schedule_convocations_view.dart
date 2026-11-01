@@ -17,6 +17,7 @@ class OcptScheduleConvocationsView extends StatelessWidget {
   /// Class constructor
   const OcptScheduleConvocationsView({super.key, required this.state});
 
+  /// Build the schedule convocations view as an [OcptScheduleConvocationsPanel].
   @override
   Widget build(BuildContext context) {
     final selectedDayId = state.selectedDayId;

@@ -69,6 +69,7 @@ class OcptScheduleStatusBar extends StatelessWidget {
     required this.selectedDayEndMinute,
   });
 
+  /// Build the schedule status bar as an [OcptWorkspaceStatusBar].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -32,7 +32,7 @@ class OcptScheduleFieldChangedEvent extends OcptScheduleFieldsEvent {
     required this.rawValue,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, targetId, field, rawValue];
 }

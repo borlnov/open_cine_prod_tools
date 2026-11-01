@@ -19,6 +19,7 @@ class OcptScheduleReadOnlyBanner extends StatelessWidget {
   /// Class constructor
   const OcptScheduleReadOnlyBanner({super.key, required this.previewedVersion});
 
+  /// Build the schedule read only banner as an [OcptWorkspaceReadOnlyBanner].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

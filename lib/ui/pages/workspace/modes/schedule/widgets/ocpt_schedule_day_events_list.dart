@@ -81,6 +81,7 @@ class OcptScheduleDayEventsList extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day events list as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -144,6 +145,7 @@ class _OcptScheduleDayEventRow extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule day event row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -234,6 +236,8 @@ class _OcptScheduleDayEventLabelField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleDayEventLabelFieldState] holding the state of the schedule day event
+  /// label field.
   @override
   State<_OcptScheduleDayEventLabelField> createState() => _OcptScheduleDayEventLabelFieldState();
 }
@@ -245,6 +249,7 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptScheduleDayEventLabelField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -253,6 +258,7 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
     }
   }
 
+  /// Build the schedule day event label field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -261,6 +267,7 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();
@@ -290,6 +297,8 @@ class _OcptScheduleDayEventNoteField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleDayEventNoteFieldState] holding the state of the schedule day event
+  /// note field.
   @override
   State<_OcptScheduleDayEventNoteField> createState() => _OcptScheduleDayEventNoteFieldState();
 }
@@ -301,6 +310,7 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _OcptScheduleDayEventNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -309,6 +319,7 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
     }
   }
 
+  /// Build the schedule day event note field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -318,6 +329,7 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

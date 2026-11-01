@@ -28,6 +28,7 @@ class OcptScheduleAgendaView extends StatelessWidget {
   /// Class constructor
   const OcptScheduleAgendaView({super.key, required this.state});
 
+  /// Build the schedule agenda view.
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptScheduleBloc>();

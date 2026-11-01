@@ -15,6 +15,7 @@ class OcptScheduleStatusBarView extends StatelessWidget {
   /// Class constructor
   const OcptScheduleStatusBarView({super.key, required this.state});
 
+  /// Build the schedule status bar view as an [OcptScheduleStatusBar].
   @override
   Widget build(BuildContext context) => OcptScheduleStatusBar(
     alertCount: state.planSnapshot?.alerts.length ?? 0,

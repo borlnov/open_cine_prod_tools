@@ -20,6 +20,7 @@ class OcptSchedulePresenceView extends StatelessWidget {
   /// Class constructor
   const OcptSchedulePresenceView({super.key, required this.state});
 
+  /// Build the schedule presence view as an [OcptSchedulePresenceGrid].
   @override
   Widget build(BuildContext context) {
     final planSnapshot = state.planSnapshot;

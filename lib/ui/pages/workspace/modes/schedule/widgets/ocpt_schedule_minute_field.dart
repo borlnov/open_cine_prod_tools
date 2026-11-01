@@ -54,6 +54,7 @@ class OcptScheduleMinuteField extends StatefulWidget {
     required this.emptyHint,
   });
 
+  /// Create the [_OcptScheduleMinuteFieldState] holding the state of the schedule minute field.
   @override
   State<OcptScheduleMinuteField> createState() => _OcptScheduleMinuteFieldState();
 }
@@ -78,12 +79,14 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   /// [OcptScheduleMinuteField.minute] formatted as `HH:mm`, or the empty string while it is null.
   String get _formattedMinute => widget.minute == null ? "" : ocptFormatDayMinute(widget.minute!);
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new minute in the field when it changes and the field is not focused.
   @override
   void didUpdateWidget(covariant OcptScheduleMinuteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -95,6 +98,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
+  /// Build the schedule minute field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -164,6 +168,7 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode

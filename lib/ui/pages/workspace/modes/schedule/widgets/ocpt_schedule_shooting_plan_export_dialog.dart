@@ -39,6 +39,8 @@ class OcptScheduleShootingPlanExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleShootingPlanExportDialogState] holding the state of the schedule
+  /// shooting plan export dialog.
   @override
   State<OcptScheduleShootingPlanExportDialog> createState() =>
       _OcptScheduleShootingPlanExportDialogState();
@@ -82,6 +84,7 @@ class _OcptScheduleShootingPlanExportDialogState
   /// Whether the elements summary grid will be included.
   bool _includeElementsGrid = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -89,6 +92,7 @@ class _OcptScheduleShootingPlanExportDialogState
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule shooting plan export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

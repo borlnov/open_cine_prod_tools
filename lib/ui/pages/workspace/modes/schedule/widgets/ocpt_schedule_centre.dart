@@ -45,6 +45,7 @@ class OcptScheduleCentre extends StatelessWidget {
     required this.onShotBlockRequested,
   });
 
+  /// Build the schedule centre as a [Column].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptScheduleBloc>();

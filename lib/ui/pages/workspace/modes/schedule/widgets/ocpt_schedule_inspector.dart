@@ -198,6 +198,7 @@ class OcptScheduleInspector extends StatelessWidget {
     required this.isReadOnly,
   });
 
+  /// Build the schedule inspector as a [ListView].
   @override
   Widget build(BuildContext context) {
     final block = this.block;
@@ -360,6 +361,7 @@ class _OcptScheduleDayInspector extends StatelessWidget {
     required this.onWeatherNoteChanged,
   });
 
+  /// Build the schedule day inspector as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -550,6 +552,7 @@ class _OcptScheduleBlockInspector extends StatelessWidget {
     required this.onBlockNotesChanged,
   });
 
+  /// Build the schedule block inspector as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -659,6 +662,7 @@ class _OcptScheduleShotInspector extends StatelessWidget {
     required this.onShotStatusChanged,
   });
 
+  /// Build the schedule shot inspector as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -723,6 +727,7 @@ class _OcptScheduleInspectorSection extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleInspectorSection({required this.label, required this.child});
 
+  /// Build the schedule inspector section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -769,6 +774,7 @@ class _OcptScheduleNoteField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleNoteFieldState] holding the state of the schedule note field.
   @override
   State<_OcptScheduleNoteField> createState() => _OcptScheduleNoteFieldState();
 }
@@ -782,6 +788,7 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
   /// The [_OcptScheduleNoteField.ownerId] the controller was last synced against.
   late String _trackedOwnerId = widget.ownerId;
 
+  /// Show the new note when the owner or its value differs from the text in the field.
   @override
   void didUpdateWidget(covariant _OcptScheduleNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -792,6 +799,7 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
     }
   }
 
+  /// Build the schedule note field as a [TextField].
   @override
   Widget build(BuildContext context) {
     final onChanged = widget.onChanged;
@@ -812,6 +820,7 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
     );
   }
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();
@@ -855,6 +864,8 @@ class _OcptScheduleBlockDurationField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleBlockDurationFieldState] holding the state of the schedule block
+  /// duration field.
   @override
   State<_OcptScheduleBlockDurationField> createState() => _OcptScheduleBlockDurationFieldState();
 }
@@ -880,12 +891,15 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
   /// commit the very same edit twice.
   late int _lastReportedDurationMinutes = widget.durationMinutes;
 
+  /// Register [_onFocusChanged] as a listener of [_focusNode].
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
   }
 
+  /// Show the new duration in the field when the block or its duration changes and the field is not
+  /// focused.
   @override
   void didUpdateWidget(covariant _OcptScheduleBlockDurationField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -900,6 +914,7 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
+  /// Build the schedule block duration field as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -955,6 +970,7 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
     }
   }
 
+  /// Detach [_onFocusChanged] from [_focusNode], then dispose [_focusNode] and [_controller].
   @override
   void dispose() {
     _focusNode

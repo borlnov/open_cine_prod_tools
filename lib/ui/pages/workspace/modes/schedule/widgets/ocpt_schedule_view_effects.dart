@@ -23,6 +23,7 @@ class OcptScheduleViewEffects extends StatelessWidget {
   /// Class constructor
   const OcptScheduleViewEffects({super.key, required this.child});
 
+  /// Build the schedule view effects as a [BlocListener].
   @override
   Widget build(BuildContext context) =>
       BlocListener<OcptScheduleExportBloc, OcptScheduleExportState>(

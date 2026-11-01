@@ -175,6 +175,7 @@ class OcptScheduleTimetable extends StatelessWidget {
     required this.onBlockMovedToSlot,
   });
 
+  /// Build the schedule timetable as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -359,6 +360,7 @@ class _OcptScheduleBlocksArea extends StatelessWidget {
     required this.onBlockMovedToSlot,
   });
 
+  /// Build the schedule blocks area as a [DragTarget].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -452,6 +454,7 @@ class _OcptScheduleBlockRow extends StatelessWidget {
     this.reorderIndex,
   });
 
+  /// Build the schedule block row as an [OcptScheduleTimetableRow].
   @override
   Widget build(BuildContext context) => OcptScheduleTimetableRow(
     block: block,

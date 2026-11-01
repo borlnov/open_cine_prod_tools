@@ -104,6 +104,7 @@ class OcptScheduleLeftDock extends StatelessWidget {
     required this.onShotSelected,
   });
 
+  /// Build the schedule left dock as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -313,6 +314,7 @@ class _OcptScheduleDayCard extends StatelessWidget {
     required this.onDeletionRequested,
   });
 
+  /// Build the schedule day card as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -462,6 +464,7 @@ class _OcptScheduleUnplacedGroupSection extends StatelessWidget {
     required this.onShotSelected,
   });
 
+  /// Build the schedule unplaced group section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -541,6 +544,7 @@ class _OcptScheduleUnplacedShotRow extends StatelessWidget {
     required this.onTap,
   });
 
+  /// Build the schedule unplaced shot row as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

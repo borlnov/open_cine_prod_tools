@@ -49,6 +49,7 @@ class OcptScheduleSlotCastColumn extends StatelessWidget {
     required this.onCastRoleRemoved,
   });
 
+  /// Build the schedule slot cast column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -162,6 +163,7 @@ class _CastRoleRow extends StatelessWidget {
     required this.onRemoved,
   });
 
+  /// Build the cast role row as an [OcptScheduleSlotPersonCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

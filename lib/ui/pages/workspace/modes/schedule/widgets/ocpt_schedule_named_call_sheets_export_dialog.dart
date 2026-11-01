@@ -81,6 +81,8 @@ class OcptScheduleNamedCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleNamedCallSheetsExportDialogState] holding the state of the schedule
+  /// named call sheets export dialog.
   @override
   State<OcptScheduleNamedCallSheetsExportDialog> createState() =>
       _OcptScheduleNamedCallSheetsExportDialogState();
@@ -126,6 +128,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
   /// reading is written.
   late Set<String> _selectedKeys;
 
+  /// Start from the current format, tick the selected day and every recipient of the days ticked.
   @override
   void initState() {
     super.initState();
@@ -135,6 +138,7 @@ class _OcptScheduleNamedCallSheetsExportDialogState
     _selectedKeys = {for (final convocation in _recipients) _keyOf(convocation)};
   }
 
+  /// Build the schedule named call sheets export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

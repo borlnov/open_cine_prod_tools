@@ -56,6 +56,7 @@ class OcptScheduleDayAlertBadge extends StatelessWidget {
     this.onTap,
   });
 
+  /// Build the schedule day alert badge as a [Tooltip].
   @override
   Widget build(BuildContext context) {
     if (alerts.isEmpty) {

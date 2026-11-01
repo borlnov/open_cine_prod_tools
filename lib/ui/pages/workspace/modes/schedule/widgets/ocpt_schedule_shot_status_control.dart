@@ -20,6 +20,7 @@ class OcptScheduleShotStatusControl extends StatelessWidget {
   /// Class constructor
   const OcptScheduleShotStatusControl({super.key, required this.status, required this.onChanged});
 
+  /// Build the schedule shot status control as a [PopupMenuButton].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

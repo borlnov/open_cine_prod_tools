@@ -39,6 +39,8 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
     super.key,
   });
 
+  /// Create the [_OcptScheduleDayOutOfDaysExportDialogState] holding the state of the schedule day
+  /// out of days export dialog.
   @override
   State<OcptScheduleDayOutOfDaysExportDialog> createState() =>
       _OcptScheduleDayOutOfDaysExportDialogState();
@@ -67,6 +69,7 @@ class _OcptScheduleDayOutOfDaysExportDialogState
   /// Whether the title page will be included in the exported document.
   bool _includeTitlePage = true;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
@@ -74,6 +77,7 @@ class _OcptScheduleDayOutOfDaysExportDialogState
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule day out of days export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

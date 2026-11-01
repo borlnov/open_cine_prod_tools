@@ -21,6 +21,7 @@ class OcptSchedulePositionsView extends StatelessWidget {
   /// Class constructor
   const OcptSchedulePositionsView({super.key, required this.state});
 
+  /// Build the schedule positions view as an [OcptSchedulePositionsMatrix].
   @override
   Widget build(BuildContext context) => OcptSchedulePositionsMatrix(
     days: state.days,

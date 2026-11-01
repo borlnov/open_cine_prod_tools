@@ -21,6 +21,7 @@ class OcptScheduleAlertsView extends StatelessWidget {
   /// Class constructor
   const OcptScheduleAlertsView({super.key, required this.state});
 
+  /// Build the schedule alerts view as an [OcptScheduleAlertsPanel].
   @override
   Widget build(BuildContext context) {
     final snapshot = state.snapshot;

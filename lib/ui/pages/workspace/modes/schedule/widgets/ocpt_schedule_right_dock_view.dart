@@ -33,6 +33,7 @@ class OcptScheduleRightDockView extends StatelessWidget {
     required this.onEventDeletionRequested,
   });
 
+  /// Build the schedule right dock view as an [OcptScheduleRightDock].
   @override
   Widget build(BuildContext context) {
     final rightDockTab = state.rightDockTab;

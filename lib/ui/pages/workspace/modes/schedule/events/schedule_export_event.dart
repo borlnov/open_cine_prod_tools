@@ -48,7 +48,7 @@ class OcptScheduleCallSheetsExportRequestedEvent extends OcptScheduleExportEvent
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
@@ -81,7 +81,7 @@ class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleExport
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, confirmButtonText, shareAnchor];
 }
@@ -112,7 +112,7 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleExportEve
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
@@ -143,7 +143,7 @@ class OcptScheduleShootingPlanXlsxExportRequestedEvent extends OcptScheduleExpor
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
@@ -174,7 +174,7 @@ class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleExportEve
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
@@ -205,7 +205,7 @@ class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleExport
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }
@@ -235,7 +235,7 @@ class OcptScheduleSidesExportRequestedEvent extends OcptScheduleExportEvent {
     this.shareAnchor,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, options, labels, fileTypeLabel, shareAnchor];
 }

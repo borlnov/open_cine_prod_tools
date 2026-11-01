@@ -35,7 +35,7 @@ class OcptScheduleRightDockTabSelectedEvent extends OcptScheduleWorkspaceEvent {
   /// Class constructor
   const OcptScheduleRightDockTabSelectedEvent({required this.tab});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, tab];
 }
@@ -68,7 +68,7 @@ class OcptScheduleDockFractionsChangedEvent extends OcptScheduleWorkspaceEvent {
   /// Class constructor
   const OcptScheduleDockFractionsChangedEvent({required this.left, required this.right});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, left, right];
 }
@@ -88,7 +88,7 @@ class OcptScheduleCentreViewSelectedEvent extends OcptScheduleWorkspaceEvent {
   /// Class constructor
   const OcptScheduleCentreViewSelectedEvent({required this.view});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, view];
 }
@@ -102,7 +102,7 @@ class OcptScheduleAgendaModeSelectedEvent extends OcptScheduleWorkspaceEvent {
   /// Class constructor
   const OcptScheduleAgendaModeSelectedEvent({required this.mode});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, mode];
 }
@@ -116,7 +116,7 @@ class OcptScheduleAgendaColorModeSelectedEvent extends OcptScheduleWorkspaceEven
   /// Class constructor
   const OcptScheduleAgendaColorModeSelectedEvent({required this.mode});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, mode];
 }
@@ -132,7 +132,7 @@ class OcptScheduleAgendaAnchorDateChangedEvent extends OcptScheduleWorkspaceEven
   /// Class constructor
   const OcptScheduleAgendaAnchorDateChangedEvent({required this.date});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, date];
 }

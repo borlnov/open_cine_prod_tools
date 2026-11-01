@@ -22,7 +22,7 @@ class OcptScheduleDaySelectedEvent extends OcptScheduleSelectionEvent {
   /// Class constructor
   const OcptScheduleDaySelectedEvent({required this.dayId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, dayId];
 }
@@ -41,7 +41,7 @@ class OcptScheduleBlockSelectedEvent extends OcptScheduleSelectionEvent {
   /// Class constructor
   const OcptScheduleBlockSelectedEvent({required this.blockId, required this.dayId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, dayId];
 }
@@ -58,7 +58,7 @@ class OcptScheduleShotSelectedEvent extends OcptScheduleSelectionEvent {
   /// Class constructor
   const OcptScheduleShotSelectedEvent({required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId];
 }

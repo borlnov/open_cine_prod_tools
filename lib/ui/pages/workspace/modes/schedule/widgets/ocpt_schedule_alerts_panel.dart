@@ -93,6 +93,7 @@ class OcptScheduleAlertsPanel extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule alerts panel as a [ListView].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -181,6 +182,7 @@ class _OcptScheduleAlertCard extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule alert card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -236,6 +238,7 @@ class _OcptScheduleAlertDayControl extends StatelessWidget {
     required this.tr,
   });
 
+  /// Build the schedule alert day control as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -29,6 +29,8 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScheduleShootingPlanXlsxExportDialog({required this.days, super.key});
 
+  /// Create the [_OcptScheduleShootingPlanXlsxExportDialogState] holding the state of the schedule
+  /// shooting plan XLSX export dialog.
   @override
   State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
       _OcptScheduleShootingPlanXlsxExportDialogState();
@@ -50,12 +52,14 @@ class _OcptScheduleShootingPlanXlsxExportDialogState
   /// The ids of the days currently ticked.
   late Set<String> _selectedDayIds;
 
+  /// Seed the selection from the settings the dialog was opened with.
   @override
   void initState() {
     super.initState();
     _selectedDayIds = widget.days.map((day) => day.id).toSet();
   }
 
+  /// Build the schedule shooting plan XLSX export dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

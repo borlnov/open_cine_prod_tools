@@ -62,6 +62,7 @@ class OcptScheduleSlotCrewSection extends StatelessWidget {
     required this.onCrewMemberRemoved,
   });
 
+  /// Build the schedule slot crew section as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -189,6 +190,7 @@ class _CrewMemberEntry extends StatelessWidget {
     required this.onCrewMemberRemoved,
   });
 
+  /// Build the crew member entry.
   @override
   Widget build(BuildContext context) {
     final prefill = ocptCrewPositionPrefillOf(
@@ -258,6 +260,7 @@ class _CrewMemberRow extends StatelessWidget {
     required this.onRemoved,
   });
 
+  /// Build the crew member row as an [OcptScheduleSlotPersonCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

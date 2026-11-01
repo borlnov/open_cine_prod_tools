@@ -26,6 +26,8 @@ class OcptScheduleSlotNoteField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_OcptScheduleSlotNoteFieldState] holding the state of the schedule slot note
+  /// field.
   @override
   State<OcptScheduleSlotNoteField> createState() => _OcptScheduleSlotNoteFieldState();
 }
@@ -36,6 +38,7 @@ class _OcptScheduleSlotNoteFieldState extends State<OcptScheduleSlotNoteField> {
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant OcptScheduleSlotNoteField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -44,6 +47,7 @@ class _OcptScheduleSlotNoteFieldState extends State<OcptScheduleSlotNoteField> {
     }
   }
 
+  /// Build the schedule slot note field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -53,6 +57,7 @@ class _OcptScheduleSlotNoteFieldState extends State<OcptScheduleSlotNoteField> {
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();

@@ -717,6 +717,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
             : this.projectPackagePendingExportTarget),
   );
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   @override
   OcptScheduleState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
@@ -794,7 +795,7 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       forceMinimumRestMinutesValue ||
       pageSetup != null;
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [
     ...super.props,

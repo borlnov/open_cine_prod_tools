@@ -47,6 +47,7 @@ class OcptScheduleDayCentreView extends StatelessWidget {
     required this.onShotBlockRequested,
   });
 
+  /// Build the schedule day centre view as an [OcptScheduleDayView].
   @override
   Widget build(BuildContext context) {
     final day = state.selectedDay;

@@ -187,6 +187,7 @@ class OcptSchedulePositionsMatrix extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule positions matrix as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -347,6 +348,7 @@ class _OcptPositionsMatrixLabelColumn extends StatelessWidget {
   /// Class constructor
   const _OcptPositionsMatrixLabelColumn({required this.groups});
 
+  /// Build the positions matrix label column as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -450,6 +452,7 @@ class _OcptPositionsMatrixCellsColumn extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the positions matrix cells column as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -507,6 +510,7 @@ class _OcptPositionsMatrixDayBandCell extends StatelessWidget {
   /// Class constructor
   const _OcptPositionsMatrixDayBandCell({required this.band, required this.onDayOpenRequested});
 
+  /// Build the positions matrix day band cell as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -569,6 +573,7 @@ class _OcptPositionsMatrixColumnHeader extends StatelessWidget {
   /// Class constructor
   const _OcptPositionsMatrixColumnHeader({required this.column, required this.onDayOpenRequested});
 
+  /// Build the positions matrix column header as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -619,6 +624,7 @@ class _OcptPositionsMatrixColumnHeader extends StatelessWidget {
     );
   }
 
+  /// Get the label of the hours the column's slot spans, or a dash when it has no timeline.
   String _hoursLabelOf() {
     final timeline = column.timeline;
     if (timeline == null) {
@@ -651,6 +657,7 @@ class _OcptPositionsMatrixCell extends StatelessWidget {
     required this.personById,
   });
 
+  /// Build the positions matrix cell as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

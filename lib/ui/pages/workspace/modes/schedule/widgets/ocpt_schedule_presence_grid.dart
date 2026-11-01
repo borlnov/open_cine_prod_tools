@@ -124,6 +124,7 @@ class OcptSchedulePresenceGrid extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the schedule presence grid as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -211,6 +212,7 @@ class _OcptPresenceGridLabelColumn extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceGridLabelColumn({required this.people, required this.roles});
 
+  /// Build the presence grid label column as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -255,6 +257,7 @@ class _OcptPresenceGridLabelRow extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceGridLabelRow({required this.person, required this.roles});
 
+  /// Build the presence grid label row as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -357,6 +360,7 @@ class _OcptPresenceGridCellsColumn extends StatelessWidget {
     required this.onDayOpenRequested,
   });
 
+  /// Build the presence grid cells column as a [Column].
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
@@ -398,6 +402,7 @@ class _OcptPresenceGridColumnHeader extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceGridColumnHeader({required this.column, required this.onDayOpenRequested});
 
+  /// Build the presence grid column header as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -449,6 +454,7 @@ class _OcptPresenceGridTotalHeader extends StatelessWidget {
   /// Class constructor
   const _OcptPresenceGridTotalHeader();
 
+  /// Build the presence grid total header as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -497,6 +503,7 @@ class _OcptPresenceGridCell extends StatelessWidget {
     required this.conflictCells,
   });
 
+  /// Build the presence grid cell as a [SizedBox].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -561,6 +568,7 @@ class _OcptPresenceGridTotalCell extends StatelessWidget {
     required this.presenceCellOf,
   });
 
+  /// Build the presence grid total cell as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -83,6 +83,7 @@ class OcptScheduleStripAgenda extends StatelessWidget {
     required this.onBlockSelected,
   });
 
+  /// Build the schedule strip agenda as a [ListView].
   @override
   Widget build(BuildContext context) {
     if (days.isEmpty) {
@@ -171,6 +172,7 @@ class _OcptScheduleStripDayCard extends StatelessWidget {
     required this.onBlockSelected,
   });
 
+  /// Build the schedule strip day card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -335,6 +337,7 @@ class _OcptScheduleStripShotChip extends StatelessWidget {
     required this.onSelected,
   });
 
+  /// Build the schedule strip shot chip as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

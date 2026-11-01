@@ -20,7 +20,7 @@ class OcptScheduleSlotCreatedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotCreatedEvent({required this.dayId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, dayId];
 }
@@ -46,7 +46,7 @@ class OcptScheduleSlotPlaceChangedEvent extends OcptScheduleSlotsEvent {
     required this.setId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, locationId, setId];
 }
@@ -80,7 +80,7 @@ class OcptScheduleSlotAnchorChangedEvent extends OcptScheduleSlotsEvent {
     required this.sourceSlotId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, edge, minute, sourceSlotId];
 }
@@ -104,7 +104,7 @@ class OcptScheduleSlotReorderedEvent extends OcptScheduleSlotsEvent {
     required this.newPosition,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, dayId, slotId, newPosition];
 }
@@ -119,7 +119,7 @@ class OcptScheduleSlotDeletionConfirmedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotDeletionConfirmedEvent({required this.slotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId];
 }
@@ -138,7 +138,7 @@ class OcptScheduleSlotCrewMemberAddedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotCrewMemberAddedEvent({required this.slotId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, personId];
 }
@@ -164,7 +164,7 @@ class OcptScheduleSlotCrewMemberPositionChangedEvent extends OcptScheduleSlotsEv
     required this.customLabel,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, crewMemberId, positionId, customLabel];
 }
@@ -177,7 +177,7 @@ class OcptScheduleSlotCrewMemberRemovedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotCrewMemberRemovedEvent({required this.crewMemberId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, crewMemberId];
 }
@@ -193,7 +193,7 @@ class OcptScheduleSlotCastRoleAddedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotCastRoleAddedEvent({required this.slotId, required this.roleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, roleId];
 }
@@ -206,7 +206,7 @@ class OcptScheduleSlotCastRoleRemovedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotCastRoleRemovedEvent({required this.castRoleId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, castRoleId];
 }
@@ -224,7 +224,7 @@ class OcptScheduleSlotGuestAddedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotGuestAddedEvent({required this.slotId, required this.personId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, personId];
 }
@@ -237,7 +237,7 @@ class OcptScheduleSlotGuestRemovedEvent extends OcptScheduleSlotsEvent {
   /// Class constructor
   const OcptScheduleSlotGuestRemovedEvent({required this.guestId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, guestId];
 }

@@ -45,6 +45,7 @@ class OcptScheduleDaySelectionList extends StatelessWidget {
     super.key,
   });
 
+  /// Build the schedule day selection list as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);

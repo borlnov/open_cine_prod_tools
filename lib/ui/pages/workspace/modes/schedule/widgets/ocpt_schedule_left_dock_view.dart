@@ -28,6 +28,7 @@ class OcptScheduleLeftDockView extends StatelessWidget {
     required this.onDayDeletionRequested,
   });
 
+  /// Build the schedule left dock view as an [OcptScheduleLeftDock].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptScheduleBloc>();

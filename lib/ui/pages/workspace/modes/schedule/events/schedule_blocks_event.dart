@@ -32,7 +32,7 @@ class OcptScheduleBlockCandidateAddedEvent extends OcptScheduleBlocksEvent {
     required this.roleCandidateId,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, roleCandidateId];
 }
@@ -49,7 +49,7 @@ class OcptScheduleBlockCandidateRemovedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockCandidateRemovedEvent({required this.blockCandidateId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockCandidateId];
 }
@@ -67,7 +67,7 @@ class OcptScheduleShotStatusChangedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleShotStatusChangedEvent({required this.shotId, required this.status});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, shotId, status];
 }
@@ -86,7 +86,7 @@ class OcptScheduleBlockCreatedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockCreatedEvent({required this.slotId, required this.kind});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, kind];
 }
@@ -112,7 +112,7 @@ class OcptScheduleShotBlockCreatedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleShotBlockCreatedEvent({required this.slotId, required this.shotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, slotId, shotId];
 }
@@ -133,7 +133,7 @@ class OcptScheduleBlockDurationChangedEvent extends OcptScheduleBlocksEvent {
     required this.durationMinutes,
   });
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, durationMinutes];
 }
@@ -150,7 +150,7 @@ class OcptScheduleBlockAnchorChangedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockAnchorChangedEvent({required this.blockId, required this.anchorMinute});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, anchorMinute];
 }
@@ -168,7 +168,7 @@ class OcptScheduleBlockSequenceChangedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockSequenceChangedEvent({required this.blockId, required this.sceneId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, sceneId];
 }
@@ -186,7 +186,7 @@ class OcptScheduleBlockReorderedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockReorderedEvent({required this.blockId, required this.newPosition});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, newPosition];
 }
@@ -204,7 +204,7 @@ class OcptScheduleBlockMovedToSlotEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockMovedToSlotEvent({required this.blockId, required this.targetSlotId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId, targetSlotId];
 }
@@ -218,7 +218,7 @@ class OcptScheduleBlockDeletionConfirmedEvent extends OcptScheduleBlocksEvent {
   /// Class constructor
   const OcptScheduleBlockDeletionConfirmedEvent({required this.blockId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, blockId];
 }

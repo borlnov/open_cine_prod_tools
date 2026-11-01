@@ -15,6 +15,7 @@ class OcptScheduleSlotPersonCard extends StatelessWidget {
   /// Class constructor
   const OcptScheduleSlotPersonCard({super.key, required this.child});
 
+  /// Build the schedule slot person card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

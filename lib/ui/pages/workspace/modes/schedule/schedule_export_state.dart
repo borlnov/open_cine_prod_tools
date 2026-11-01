@@ -37,7 +37,7 @@ class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState>
   /// Copies this state with the export notice dismissed.
   OcptScheduleExportState copyWithIoNoticeDismissed() => copyWith(forceIoNoticeValue: true);
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocStateForMixin.props}
   @override
   List<Object?> get props => [...super.props, ioNotice];
 }

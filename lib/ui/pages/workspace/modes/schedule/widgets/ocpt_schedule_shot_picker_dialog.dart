@@ -61,6 +61,8 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
     required this.placedDayNumbersByShotId,
   });
 
+  /// Create the [_OcptScheduleShotPickerDialogState] holding the state of the schedule shot picker
+  /// dialog.
   @override
   State<OcptScheduleShotPickerDialog> createState() => _OcptScheduleShotPickerDialogState();
 
@@ -101,12 +103,14 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
   /// The search field's own controller.
   final TextEditingController _searchController = TextEditingController();
 
+  /// Register [_onQueryChanged] as a listener of [_searchController].
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onQueryChanged);
   }
 
+  /// Build the schedule shot picker dialog as an [AlertDialog].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -170,6 +174,7 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     );
   }
 
+  /// Rebuild the dialog so the list follows the query typed in the search field.
   void _onQueryChanged() => setState(() {});
 
   /// Every episode of [OcptScheduleShotPickerDialog.shotListSnapshots] with at least one sequence
@@ -256,6 +261,7 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     return null;
   }
 
+  /// Detach [_onQueryChanged] from [_searchController], then dispose [_searchController].
   @override
   void dispose() {
     _searchController
@@ -280,6 +286,7 @@ class _OcptScheduleShotPickerSequenceSection extends StatelessWidget {
     required this.placedDayNumbersByShotId,
   });
 
+  /// Build the schedule shot picker sequence section as a [Padding].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -347,6 +354,7 @@ class _OcptScheduleShotPickerShotRow extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleShotPickerShotRow({required this.shot, required this.dayNumbers});
 
+  /// Build the schedule shot picker shot row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -407,6 +415,7 @@ class _OcptScheduleShotPickerHint extends StatelessWidget {
   /// Class constructor
   const _OcptScheduleShotPickerHint({required this.message});
 
+  /// Build the schedule shot picker hint as a [Padding].
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 16),

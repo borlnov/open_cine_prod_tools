@@ -31,6 +31,7 @@ class OcptScheduleEpisodeBand extends StatelessWidget {
   /// Class constructor
   const OcptScheduleEpisodeBand({super.key, required this.label});
 
+  /// Build the schedule episode band as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

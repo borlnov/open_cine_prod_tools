@@ -62,6 +62,7 @@ class OcptScheduleSlotGuestBand extends StatelessWidget {
     required this.onGuestNotesChanged,
   });
 
+  /// Build the schedule slot guest band as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -186,6 +187,7 @@ class _GuestRow extends StatelessWidget {
     required this.onRemoved,
   });
 
+  /// Build the guest row as an [OcptScheduleSlotPersonCard].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -267,6 +269,7 @@ class _GuestTextLine extends StatelessWidget {
     required this.keySuffix,
   });
 
+  /// Build the guest text line as an [OcptScheduleSlotNoteField].
   @override
   Widget build(BuildContext context) {
     final onChanged = this.onChanged;

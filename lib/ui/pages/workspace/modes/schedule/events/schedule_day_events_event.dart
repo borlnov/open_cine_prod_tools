@@ -24,7 +24,7 @@ class OcptScheduleDayEventCreatedEvent extends OcptScheduleDayEventsEvent {
   /// Class constructor
   const OcptScheduleDayEventCreatedEvent({required this.dayId, required this.minute});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, dayId, minute];
 }
@@ -42,7 +42,7 @@ class OcptScheduleDayEventMinuteChangedEvent extends OcptScheduleDayEventsEvent 
   /// Class constructor
   const OcptScheduleDayEventMinuteChangedEvent({required this.eventId, required this.minute});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, eventId, minute];
 }
@@ -56,7 +56,7 @@ class OcptScheduleDayEventDeletionConfirmedEvent extends OcptScheduleDayEventsEv
   /// Class constructor
   const OcptScheduleDayEventDeletionConfirmedEvent({required this.eventId});
 
-  /// Object properties
+  /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
   List<Object?> get props => [...super.props, eventId];
 }

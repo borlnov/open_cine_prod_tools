@@ -26,6 +26,7 @@ class OcptScheduleSlotPeopleSubsectionTitle extends StatelessWidget {
     required this.count,
   });
 
+  /// Build the schedule slot people subsection title as a [Row].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

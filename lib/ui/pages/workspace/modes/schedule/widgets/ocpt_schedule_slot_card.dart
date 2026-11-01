@@ -334,6 +334,7 @@ class OcptScheduleSlotCard extends StatelessWidget {
     required this.onBlockMovedToSlot,
   });
 
+  /// Build the schedule slot card as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -563,6 +564,7 @@ class _SlotTimetable extends StatelessWidget {
     required this.onBlockMovedToSlot,
   });
 
+  /// Build the slot timetable as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -620,6 +622,7 @@ class _MoveControls extends StatelessWidget {
   /// Class constructor
   const _MoveControls({required this.onMovedUp, required this.onMovedDown});
 
+  /// Build the move controls as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -686,6 +689,7 @@ class _HeaderFields extends StatelessWidget {
     required this.onPlaceChanged,
   });
 
+  /// Build the header fields as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -807,6 +811,7 @@ class _PlaceName extends StatelessWidget {
   /// Class constructor
   const _PlaceName({required this.name});
 
+  /// Build the place name as a [Text].
   @override
   Widget build(BuildContext context) => Text(
     name,
@@ -838,6 +843,7 @@ class _SlotLabelField extends StatefulWidget {
     required this.onChanged,
   });
 
+  /// Create the [_SlotLabelFieldState] holding the state of the slot label field.
   @override
   State<_SlotLabelField> createState() => _SlotLabelFieldState();
 }
@@ -848,6 +854,7 @@ class _SlotLabelFieldState extends State<_SlotLabelField> {
   /// sync with it afterward, see [didUpdateWidget].
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
+  /// Show the new value in [_controller] when it differs from the text already there.
   @override
   void didUpdateWidget(covariant _SlotLabelField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -856,6 +863,7 @@ class _SlotLabelFieldState extends State<_SlotLabelField> {
     }
   }
 
+  /// Build the slot label field as a [TextField].
   @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
@@ -864,6 +872,7 @@ class _SlotLabelFieldState extends State<_SlotLabelField> {
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
 
+  /// Dispose [_controller].
   @override
   void dispose() {
     _controller.dispose();
