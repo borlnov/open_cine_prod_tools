@@ -52,6 +52,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_packa
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_allowance_dialog.dart';
@@ -129,6 +131,10 @@ class OcptBudgetMode extends StatelessWidget {
         BlocProvider(
           lazy: false,
           create: (context) => OcptBudgetExportBloc(modeBloc: context.read<OcptBudgetBloc>()),
+        ),
+        BlocProvider(
+          lazy: false,
+          create: (context) => OcptBudgetExpensesBloc(modeBloc: context.read<OcptBudgetBloc>()),
         ),
       ],
       child: const OcptBudgetViewEffects(child: _BudgetView()),
@@ -677,7 +683,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(bloc, state, outcome);
+    _handleNewOutcome(context, bloc, state, outcome);
   }
 
   /// Turns a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
@@ -689,7 +695,14 @@ class _BudgetViewState extends State<_BudgetView> {
   /// [_handleEntryWizardSuggestionAccepted] turns its own draft and the accepted suggestion into
   /// whichever of the two events its own kind calls for — see that method's own doc comment for the
   /// mapping, carried over from the capture band the wizard replaced.
-  void _handleNewOutcome(OcptBudgetBloc bloc, OcptBudgetState state, OcptBudgetNewOutcome outcome) {
+  void _handleNewOutcome(
+    BuildContext context,
+    OcptBudgetBloc bloc,
+    OcptBudgetState state,
+    OcptBudgetNewOutcome outcome,
+  ) {
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
+
     switch (outcome) {
       case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):
         if (acceptedSuggestion == null) {
@@ -698,10 +711,10 @@ class _BudgetViewState extends State<_BudgetView> {
           _handleEntryWizardSuggestionAccepted(bloc, state, acceptedSuggestion, fields);
         }
       case OcptBudgetNewLineOutcome(:final posteId, :final fields):
-        bloc.add(OcptBudgetLineCreatedEvent(posteId: posteId, fields: fields));
+        expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId, fields: fields));
       case OcptBudgetNewLinesFromBreakdownOutcome(:final lines):
         for (final line in lines) {
-          bloc.add(
+          expensesBloc.add(
             OcptBudgetLineCreatedFromElementEvent(
               posteId: line.posteId,
               elementId: line.elementId,
@@ -773,7 +786,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(bloc, state, outcome);
+    _handleNewOutcome(context, bloc, state, outcome);
   }
 
   /// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
@@ -974,6 +987,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final elementLinkCounts = state.elementLinkCounts;
 
@@ -1012,10 +1026,10 @@ class _BudgetViewState extends State<_BudgetView> {
           bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
       onPosteCreationRequested: isReadOnly
           ? null
-          : () => bloc.add(const OcptBudgetPosteCreatedEvent()),
+          : () => expensesBloc.add(const OcptBudgetPosteCreatedEvent()),
       onPosteReorderRequested: isReadOnly
           ? null
-          : (posteId, {required moveUp}) => bloc.add(
+          : (posteId, {required moveUp}) => expensesBloc.add(
               OcptBudgetPosteReorderedEvent(
                 posteId: posteId,
                 newPosition: _posteReorderedPosition(state, posteId, moveUp),
@@ -1069,7 +1083,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Asks `OcptConfirmDialog` whether poste [posteId] really is to be deleted — the message says
   /// its own quote lines go with it — then dispatches the deletion if the user answered `Delete`.
   Future<void> _handlePosteDeletionRequested(BuildContext context, String posteId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1086,7 +1100,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
+    expensesBloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
   }
 
   /// [state]'s own postes, narrowed to the one the header's filter names — or every one of them
@@ -2151,7 +2165,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(bloc, state, outcome);
+    _handleNewOutcome(context, bloc, state, outcome);
   }
 
   /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action,
@@ -2166,7 +2180,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     String lineId,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final now = DateTime.now();
 
     final poste = state.postes
@@ -2227,7 +2241,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
     // With the strip withheld the wizard can accept no suggestion, so the direct pay is the only
     // outcome left — no `acceptedSuggestion` branch is reachable here.
-    bloc.add(OcptBudgetLinePaidDirectlyEvent(lineId: lineId, fields: outcome.fields));
+    expensesBloc.add(OcptBudgetLinePaidDirectlyEvent(lineId: lineId, fields: outcome.fields));
   }
 
   /// Asks, through `OcptConfirmDialog`, before undoing line [lineId]'s own promotion — which
@@ -2277,7 +2291,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
   /// the deletion if the user answered `Delete`.
   Future<void> _handleLineDeletionRequested(BuildContext context, String lineId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -2294,7 +2308,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
+    expensesBloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
   }
 
   /// Builds the right dock, or null while it's closed.
@@ -2344,8 +2358,19 @@ class _BudgetViewState extends State<_BudgetView> {
   /// selects the line's own commitment there**, under its own `À venir` section — the very reading
   /// [_handleCateringFeedRequested]'s own two-event idiom already gives the régie's feed row,
   /// plus the selection event `OcptBudgetCostTracking.onCommitmentSelected` already dispatches.
-  Widget _buildFiche(BuildContext context, OcptBudgetState state) {
+  Widget _buildFiche(BuildContext context, OcptBudgetState state) =>
+      BlocBuilder<OcptBudgetExpensesBloc, OcptBudgetExpensesState>(
+        builder: (context, expensesState) => _buildFicheBody(context, state, expensesState),
+      );
+
+  /// Builds the polymorphic fiche over [state] and the edits [expensesState] still holds.
+  Widget _buildFicheBody(
+    BuildContext context,
+    OcptBudgetState state,
+    OcptBudgetExpensesState expensesState,
+  ) {
     final bloc = context.read<OcptBudgetBloc>();
+    final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final elementNameByElementId = {for (final element in state.elements) element.id: element.name};
     // The off-line-debit banner's own two actions read the very same entry a receipt's own fiche
@@ -2377,19 +2402,20 @@ class _BudgetViewState extends State<_BudgetView> {
       receiptsByEntryId: state.receiptsByEntryId,
       receivedByResourceId: state.receivedByResourceId,
       receivedByRevenueId: state.receivedByRevenueId,
-      fieldValueOf: state.fieldValueOf,
+      fieldValueOf: expensesState.fieldValueOf,
       onFieldChanged: isReadOnly
           ? null
-          : (targetId, field, rawValue) => bloc.add(
+          : (targetId, field, rawValue) => expensesBloc.add(
               OcptBudgetFieldChangedEvent(targetId: targetId, field: field, rawValue: rawValue),
             ),
       onPosteEstimateToCompleteDerivedRequested: isReadOnly
           ? null
-          : (posteId) =>
-                bloc.add(OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId)),
+          : (posteId) => expensesBloc.add(
+              OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId),
+            ),
       onLineTaxInclusiveChanged: isReadOnly
           ? null
-          : (lineId, {required isTaxInclusive}) => bloc.add(
+          : (lineId, {required isTaxInclusive}) => expensesBloc.add(
               OcptBudgetLineTaxInclusiveChangedEvent(
                 lineId: lineId,
                 isTaxInclusive: isTaxInclusive,
@@ -2397,7 +2423,8 @@ class _BudgetViewState extends State<_BudgetView> {
             ),
       onLineVatRateInheritedRequested: isReadOnly
           ? null
-          : (lineId) => bloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId)),
+          : (lineId) =>
+                expensesBloc.add(OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId)),
       onLineCommitRequested: isReadOnly
           ? null
           : (lineId) => unawaited(_handleLineCommitRequested(context, state, lineId)),

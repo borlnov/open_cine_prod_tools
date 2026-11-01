@@ -24,11 +24,13 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_quote_export_options.dar
 import 'package:open_cine_prod_tools/models/ocpt_budget_quote_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_export_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_export_state.dart';
 import 'package:path/path.dart' as p;
@@ -649,6 +651,50 @@ void main() {
 
       await bloc.close();
     });
+  });
+
+  test("an export first writes a typed edit, so the document holds it", () async {
+    final exportManager = _FakeBudgetExportManager(quoteResult: "/tmp/quote.pdf");
+    final bloc = buildBloc();
+    final exportBloc = buildExportBloc(bloc, exportManager: exportManager);
+    final expensesBloc = OcptBudgetExpensesBloc(
+      modeBloc: bloc,
+      projectsManager: projectsManager,
+      fieldEditDebounce: const Duration(days: 1),
+    );
+    addTearDown(expensesBloc.close);
+    addTearDown(bloc.close);
+    final loaded = await waitForState(bloc, (state) => !state.isLoading);
+    final posteId = loaded.postes.first.id;
+
+    expensesBloc.add(
+      OcptBudgetFieldChangedEvent(
+        targetId: posteId,
+        field: OcptBudgetField.posteLabel,
+        rawValue: "Typed before the export",
+      ),
+    );
+    await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
+
+    exportBloc.add(
+      const OcptBudgetQuoteExportRequestedEvent(
+        options: OcptBudgetQuoteExportOptions(
+          format: OcptPageFormat.usLetter,
+          margins: FountainPageMargins.standard(),
+          includeTitlePage: true,
+          taxBasis: OcptBudgetTaxBasis.includingTax,
+        ),
+        labels: _quoteLabels,
+        elementNameById: {},
+        fileTypeLabel: "PDF document",
+      ),
+    );
+    await waitForState(exportBloc, (state) => state.ioNotice != null);
+
+    expect(
+      exportManager.lastQuoteSnapshot!.postes.firstWhere((poste) => poste.id == posteId).label,
+      "Typed before the export",
+    );
   });
 
   group("the events of the export bloc", () {

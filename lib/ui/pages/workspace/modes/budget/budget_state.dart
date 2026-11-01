@@ -31,7 +31,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_regie_totals.dart'
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_repayment_line.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_share_split.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_sharing_pot.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
@@ -44,17 +43,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
-/// The key [OcptBudgetState.pendingFieldEdits] is stored under: which poste or line, and which of
-/// its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.
-typedef OcptBudgetPendingFieldKey = (String targetId, OcptBudgetField field);
-
 /// The state of `OcptBudgetBloc`.
 ///
-/// [pendingFieldEdits] is this mode's own single pending-edit map, over every free-text field of
-/// every poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
-/// than one per entity kind. [view], [toolsView], [isSimplified] and [taxBasis] are **not
-/// persisted**: the schedule mode's own agenda mode is the precedent, only [rightDockFraction] and
-/// [lastRightDockTab] surviving a relaunch.
+/// [view], [toolsView], [isSimplified] and [taxBasis] are **not persisted**: the schedule mode's own
+/// agenda mode is the precedent, only [rightDockFraction] and [lastRightDockTab] surviving a
+/// relaunch. The free-text fields typed and not yet written belong to `OcptBudgetExpensesBloc`.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with
         MixinOcptProjectVersionsState<OcptBudgetState>,
@@ -165,11 +158,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The right dock's width, as a fraction of the mode's content row width. Persisted through
   /// `OcptPropertiesManager.budgetRightDockFraction`.
   final double rightDockFraction;
-
-  /// Every free-text field still sitting in the field-edit debounce, keyed by which poste or line
-  /// and which of its own fields. [fieldValueOf] is what a field reads instead of its own stored
-  /// value while an edit is pending here.
-  final Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits;
 
   /// Every live role of the project, as last loaded — read by `OcptBudgetRegie` alone, to resolve a
   /// traveller's own convocation (a role's own [OcptRole.name] for a cast row, its
@@ -479,12 +467,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
-  /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
-  /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
-  /// `OcptScheduleState.fieldValueOf` resolves a day's, a slot's or a block's own fields.
-  String fieldValueOf(String targetId, OcptBudgetField field, String storedValue) =>
-      pendingFieldEdits[(targetId, field)] ?? storedValue;
-
   /// Class constructor
   const OcptBudgetState({
     required this.isLoading,
@@ -502,7 +484,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.rightDockTab,
     required this.lastRightDockTab,
     required this.rightDockFraction,
-    required this.pendingFieldEdits,
     required this.roles,
     required this.people,
     required this.elements,
@@ -542,7 +523,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       rightDockTab = null,
       lastRightDockTab = OcptBudgetRightDockTab.inspector,
       rightDockFraction = OcptWorkspaceDock.rightDefaultFraction,
-      pendingFieldEdits = const {},
       roles = const [],
       people = const [],
       elements = const [],
@@ -567,8 +547,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
   /// [selection], [filterPosteId] and [rightDockTab] all legitimately go back to null while the
-  /// mode is alive, so each has its own force flag. [pendingFieldEdits] is always replaced
-  /// wholesale — the caller (the bloc's own field-edit handler) always computes the full next map.
+  /// mode is alive, so each has its own force flag.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces [snapshot], so no handler can read
   /// the data again and forget to tell the views. An explicit [reloadEpoch] wins, for an emit that
@@ -595,7 +574,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     bool forceRightDockTabValue = false,
     OcptBudgetRightDockTab? lastRightDockTab,
     double? rightDockFraction,
-    Map<OcptBudgetPendingFieldKey, String>? pendingFieldEdits,
     List<OcptRole>? roles,
     List<OcptPerson>? people,
     List<OcptElement>? elements,
@@ -640,7 +618,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
     lastRightDockTab: lastRightDockTab ?? this.lastRightDockTab,
     rightDockFraction: rightDockFraction ?? this.rightDockFraction,
-    pendingFieldEdits: pendingFieldEdits ?? this.pendingFieldEdits,
     roles: roles ?? this.roles,
     people: people ?? this.people,
     elements: elements ?? this.elements,
@@ -739,7 +716,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     rightDockTab,
     lastRightDockTab,
     rightDockFraction,
-    pendingFieldEdits,
     roles,
     people,
     elements,

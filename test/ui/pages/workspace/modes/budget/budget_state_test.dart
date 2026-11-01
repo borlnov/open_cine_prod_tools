@@ -20,7 +20,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_cast_member.dart'
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -300,22 +299,6 @@ void main() {
       );
 
       expect(state.selectedPoste, isNull);
-    });
-  });
-
-  group("OcptBudgetState.fieldValueOf", () {
-    test("reads a pending edit ahead of the stored value", () {
-      final state = const OcptBudgetState.init().copyWith(
-        pendingFieldEdits: {("poste-1", OcptBudgetField.posteLabel): "Typed"},
-      );
-
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Typed");
-    });
-
-    test("falls back to the stored value while nothing is pending for that key", () {
-      const state = OcptBudgetState.init();
-
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Stored");
     });
   });
 

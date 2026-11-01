@@ -28,7 +28,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste_seed.dart';
@@ -45,9 +44,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
@@ -62,7 +58,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_even
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_form_writes.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// This is the bloc class for the budget production mode.
 ///
@@ -97,8 +92,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// `OcptScheduleBloc`'s own pair — the mode carries no left dock any more, so there is no fraction
 /// of its own to persist.
 ///
-/// Every write but the free-text fields (which ride [_fieldEditDebounce], flushed by
-/// [_flushPendingFieldEdits] on a selection change, a dock tab change, a version preview and the
+/// Every write but the free-text fields (which ride the expenses view's debounce, flushed by
+/// [_flushAllPendingWrites] on a selection change, a dock tab change, a version preview and the
 /// mode's own `deactivate()`) lands the moment it is dispatched, then reloads the quote snapshot
 /// through [_applyBudgetSnapshot] — which also reconciles [OcptBudgetState.selection] against the
 /// freshly loaded snapshot, and, while the `Versions` tab is open, asks
@@ -119,7 +114,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// The logger this BLoC writes to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
 
-  /// The default delay between the last field edit and its autosave write.
+  /// The default delay between the last field edit and its autosave write, for the expenses view.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
@@ -181,17 +176,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// constructor argument captured once rather than watched.
   final List<OcptBudgetPosteSeed> _seed;
 
-  /// The delay between the last field edit and its autosave write.
-  final Duration _fieldEditDebounce;
-
-  /// The running field-edit debounce timer, if any.
-  Timer? _fieldEditTimer;
-
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
-  /// through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests, to keep it
-  /// fast and deterministic.
+  /// through [globalGetIt].
   OcptBudgetBloc({
     required List<OcptBudgetPosteSeed> seed,
     OcptProjectsManager? projectsManager,
@@ -208,7 +196,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptPeopleService? peopleService,
     OcptLocationsService? locationsService,
     OcptElementsService? elementsService,
-    Duration fieldEditDebounce = defaultFieldEditDebounce,
   }) : _seed = seed,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
@@ -244,7 +231,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
        _elementsService =
            elementsService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
-       _fieldEditDebounce = fieldEditDebounce,
        super(const OcptBudgetState.init()) {
     add(const OcptBudgetLoadRequestedEvent());
   }
@@ -264,24 +250,13 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
     on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
     on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
-    on<OcptBudgetPosteCreatedEvent>(_onPosteCreated);
-    on<OcptBudgetPosteReorderedEvent>(_onPosteReordered);
-    on<OcptBudgetPosteDeletionConfirmedEvent>(_onPosteDeletionConfirmed);
     on<OcptBudgetRowExpansionToggledEvent>(_onRowExpansionToggled);
     on<OcptBudgetLineSelectedEvent>(_onLineSelected);
     on<OcptBudgetCommitmentSelectedEvent>(_onCommitmentSelected);
     on<OcptBudgetEntrySelectedEvent>(_onEntrySelected);
     on<OcptBudgetReceiptSelectedEvent>(_onReceiptSelected);
-    on<OcptBudgetLineCreatedEvent>(_onLineCreated);
-    on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
-    on<OcptBudgetLineDeletionConfirmedEvent>(_onLineDeletionConfirmed);
-    on<OcptBudgetLineTaxInclusiveChangedEvent>(_onLineTaxInclusiveChanged);
-    on<OcptBudgetLineVatRateInheritedRequestedEvent>(_onLineVatRateInheritedRequested);
-    on<OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent>(
-      _onPosteEstimateToCompleteDerivedRequested,
-    );
-    on<OcptBudgetFieldChangedEvent>(_onFieldChanged);
-    on<OcptBudgetFieldEditFlushRequestedEvent>(_onFieldEditFlushRequested);
+    onAwaited<OcptBudgetSelectionCreatedEvent>(_onSelectionCreated);
+    onAwaited<OcptBudgetShareCreatedEvent>(_onShareCreated);
     on<OcptBudgetProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptBudgetEntryCreationConfirmedEvent>(_onEntryCreationConfirmed);
     on<OcptBudgetEntryUpdateConfirmedEvent>(_onEntryUpdateConfirmed);
@@ -291,7 +266,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetCommitmentUpdateConfirmedEvent>(_onCommitmentUpdateConfirmed);
     on<OcptBudgetCommitmentDeletionConfirmedEvent>(_onCommitmentDeletionConfirmed);
     on<OcptBudgetCommitmentSettlementConfirmedEvent>(_onCommitmentSettlementConfirmed);
-    on<OcptBudgetLinePaidDirectlyEvent>(_onLinePaidDirectly);
     on<OcptBudgetEntryPromotedToQuoteEvent>(_onEntryPromotedToQuote);
     on<OcptBudgetEntryMovedOffQuoteEvent>(_onEntryMovedOffQuote);
     on<OcptBudgetCommitmentPromotedToQuoteEvent>(_onCommitmentPromotedToQuote);
@@ -327,14 +301,20 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   OcptExportManager get exportManager => _exportManager;
 
-  /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
-  /// about to swap the database can't send it into the previewed version instead, then clears the
-  /// selection: whatever it named out of the working copy's own catalogue means nothing once a
-  /// preview swaps that data out.
+  /// Has every view write what it holds, so a preview about to swap the database can't send a typed
+  /// edit into the previewed version instead, then clears the selection: whatever it named out of
+  /// the working copy's own catalogue means nothing once a preview swaps that data out.
+  ///
+  /// Answers false, with the selection untouched, when a typed edit could not be written: the
+  /// preview, the restore, the saved version or the package then does not happen, and the edit
+  /// stays pending, which is where the write failure stopped this handler before the views.
   @protected
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptBudgetState> emitter) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return false;
+    }
+
     emitter(
       state.copyWith(
         forceSelectionValue: true,
@@ -348,15 +328,12 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
   ///
-  /// Always true, like [flushPendingProjectWrites]: a write that fails is not caught anywhere in
-  /// this mode, so it stops the handler it ran in and nothing after the flush happens.
+  /// False when a typed edit could not be written, for the reason [flushPendingProjectWrites]
+  /// gives: an export would print the value the database still holds and report success.
   @protected
   @override
-  Future<bool> flushAllPendingWritesIn(Emitter<OcptBudgetState> emitter) async {
-    await _flushPendingFieldEdits(emitter);
-    await runPendingWritesFlushers();
-    return true;
-  }
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptBudgetState> emitter) =>
+      _flushAllPendingWrites();
 
   /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
   ///
@@ -396,6 +373,27 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     }
   }
 
+  /// Asks every view to write what it holds, and answers whether they all could.
+  ///
+  /// Nothing in this mode catches a failed write: the view that failed keeps its edit pending, the
+  /// views after it are still asked, and the action this flush was for (a selection, a view or dock
+  /// change, an export, a version preview) does not happen. Selecting a resource, a taking, a share
+  /// or a receipt, going back and creating a record never ask: an edit typed before them is written
+  /// by its own debounce.
+  Future<bool> _flushAllPendingWrites() async {
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
+  }
+
+  /// Writes every pending edit of the views directly to the database, without touching [state].
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring `OcptScheduleBloc.flushPendingFieldEdits`:
+  /// `deactivate()` runs before `dispose()` for every removal from the tree, so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
@@ -430,7 +428,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           forcePreviewedVersionIdValue: true,
           forceSelectionValue: true,
           forceSelectedShareIdValue: true,
-          pendingFieldEdits: const {},
           roles: const [],
           people: const [],
           elements: const [],
@@ -459,7 +456,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           currencyCode: loaded.snapshot.currencyCode,
           forceSelectionValue: true,
           forceSelectedShareIdValue: true,
-          pendingFieldEdits: const {},
           roles: loaded.roles,
           people: loaded.people,
           elements: loaded.elements,
@@ -642,7 +638,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetRightDockTabSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     final isAlreadyActive = state.rightDockTab == event.tab;
     await _persistLastRightDockTab(event.tab);
@@ -715,7 +713,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     // in the debounce, so that view drew the snapshot from before it — and corrected itself two
     // seconds later, once the timer fired. The write was never lost; it simply was not shown, which
     // reads exactly like an app that ignores what it is told.
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     emitter(
       state.copyWith(
@@ -735,7 +735,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetToolsViewSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     emitter(
       state.copyWith(
@@ -754,7 +756,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     // Flushed for [_onCentreViewSelected]'s own reason: both toggles re-read the very figures a
     // pending edit has not reached yet.
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     emitter(state.copyWith(isSimplified: event.isSimplified));
   }
@@ -766,7 +770,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     // Flushed for [_onCentreViewSelected]'s own reason: both toggles re-read the very figures a
     // pending edit has not reached yet.
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     emitter(state.copyWith(taxBasis: event.basis));
   }
@@ -778,7 +784,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetPosteSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     if (!state.postes.any((poste) => poste.id == event.posteId)) {
       return;
@@ -793,65 +801,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selectionCause: OcptBudgetSelectionCause.selected,
       ),
     );
-  }
-
-  /// Creates a new, unnamed poste, appended at the end of the catalogue, and selects it.
-  Future<void> _onPosteCreated(
-    OcptBudgetPosteCreatedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final posteId = await _budgetQuoteService.createPoste(database: project.database, label: "");
-
-    await _applyBudgetSnapshot(emitter, project);
-    if (posteId != null) {
-      emitter(
-        state.copyWith(
-          selection: OcptBudgetPosteSelection(posteId),
-          rightDockTab: OcptBudgetRightDockTab.inspector,
-          lastRightDockTab: OcptBudgetRightDockTab.inspector,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBudgetSelectionCause.created,
-        ),
-      );
-    }
-  }
-
-  /// Moves poste `event.posteId` to `event.newPosition` within the catalogue's flat order.
-  Future<void> _onPosteReordered(
-    OcptBudgetPosteReorderedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.reorderPoste(
-      database: project.database,
-      posteId: event.posteId,
-      newPosition: event.newPosition,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Deletes poste `event.posteId` for good, along with every quote line it holds, confirmed by the
-  /// mode's own `OcptConfirmDialog`.
-  Future<void> _onPosteDeletionConfirmed(
-    OcptBudgetPosteDeletionConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.deletePoste(database: project.database, posteId: event.posteId);
-    await _applyBudgetSnapshot(emitter, project);
   }
 
   /// Expands or collapses expenses-tree node `event.nodeId` — an already-expanded one collapses, a
@@ -876,7 +825,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetLineSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     if (!state.postes.any((poste) => poste.lines.any((line) => line.id == event.lineId))) {
       return;
@@ -899,7 +850,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetCommitmentSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     if (!state.commitments.any((commitment) => commitment.id == event.commitmentId)) {
       return;
@@ -922,7 +875,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetEntrySelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     if (!state.entries.any((entry) => entry.id == event.entryId)) {
       return;
@@ -962,387 +917,36 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Creates a new quote line inside poste `event.posteId`, appended at the end of its own lines,
-  /// and selects it, opening the right dock on the `Inspector` tab — a line is now selected rather
-  /// than expanded, mirroring [_onLineSelected].
-  ///
-  /// **`event.fields` null keeps this handler's own original write**: an unnamed line, every other
-  /// figure left at `OcptBudgetLinesTable`'s own defaults, for the tree's own inline editor to fill
-  /// in — see `OcptBudgetLineCreatedEvent`'s own doc comment. Non-null writes the line born filled,
-  /// in the one `createLine` call this handler has always made.
-  Future<void> _onLineCreated(
-    OcptBudgetLineCreatedEvent event,
+  /// Selects the poste, the quote line, the resource or the taking a view has just created, without
+  /// writing what is pending: the view did so, and has read the snapshot again. A poste and a line
+  /// open the right dock on the `Inspector` tab, a resource and a taking do not.
+  Future<void> _onSelectionCreated(
+    OcptBudgetSelectionCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final fields = event.fields;
-    final lineId = await _budgetQuoteService.createLine(
-      database: project.database,
-      posteId: event.posteId,
-      label: fields?.label ?? "",
-      quantityMilli: fields == null ? const Value.absent() : Value(fields.quantityMilli),
-      unit: fields == null ? const Value.absent() : Value(fields.unit),
-      unitAmountCents: fields == null ? const Value.absent() : Value(fields.unitAmountCents),
+    emitter(
+      state.copyWith(
+        selection: event.selection,
+        rightDockTab: event.opensInspector ? OcptBudgetRightDockTab.inspector : null,
+        lastRightDockTab: event.opensInspector ? OcptBudgetRightDockTab.inspector : null,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.created,
+      ),
     );
-
-    await _applyBudgetSnapshot(emitter, project);
-    if (lineId != null) {
-      emitter(
-        state.copyWith(
-          selection: OcptBudgetLineSelection(lineId),
-          rightDockTab: OcptBudgetRightDockTab.inspector,
-          lastRightDockTab: OcptBudgetRightDockTab.inspector,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBudgetSelectionCause.created,
-        ),
-      );
-    }
   }
 
-  /// Creates a new quote line inside poste `event.posteId` **from** breakdown element
-  /// `event.elementId`, and selects it — dispatched by the capture wizard's own breakdown selector,
-  /// once per row created. An element id naming no live element of [OcptBudgetState.elements] is
-  /// ignored: the selector only ever offers a live one, so this should not happen outside a stale
-  /// dialog result.
-  ///
-  /// Mints the line with `OcptElement.name` as its own label and `elementId` naming the element —
-  /// **never a price**, whatever `OcptElement.cost` happens to hold: "the breakdown says what, not
-  /// how much" (`docs/architecture/budget.md`) is the whole reason this event's only caller
-  /// is a selector, not a form. `event.quantityMilli` seeds `quantityMilli`, passed on as
-  /// [Value.absent] rather than defaulted while it is null.
-  Future<void> _onLineCreatedFromElement(
-    OcptBudgetLineCreatedFromElementEvent event,
+  /// Highlights the share a view has just created, without writing what is pending.
+  Future<void> _onShareCreated(
+    OcptBudgetShareCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    OcptElement? element;
-    for (final candidate in state.elements) {
-      if (candidate.id == event.elementId) {
-        element = candidate;
-        break;
-      }
-    }
-    if (element == null) {
-      return;
-    }
-
-    final quantityMilli = event.quantityMilli;
-    final lineId = await _budgetQuoteService.createLine(
-      database: project.database,
-      posteId: event.posteId,
-      label: element.name,
-      elementId: Value(element.id),
-      quantityMilli: quantityMilli == null ? const Value.absent() : Value(quantityMilli),
+    emitter(
+      state.copyWith(
+        selectedShareId: event.shareId,
+        selectionEpoch: state.selectionEpoch + 1,
+        selectionCause: OcptBudgetSelectionCause.created,
+      ),
     );
-
-    await _applyBudgetSnapshot(emitter, project);
-    if (lineId != null) {
-      emitter(
-        state.copyWith(
-          selection: OcptBudgetLineSelection(lineId),
-          rightDockTab: OcptBudgetRightDockTab.inspector,
-          lastRightDockTab: OcptBudgetRightDockTab.inspector,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBudgetSelectionCause.created,
-        ),
-      );
-    }
-  }
-
-  /// Deletes quote line `event.lineId` for good, confirmed by the mode's own `OcptConfirmDialog`.
-  Future<void> _onLineDeletionConfirmed(
-    OcptBudgetLineDeletionConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.deleteLine(database: project.database, lineId: event.lineId);
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Writes a new including/excluding-tax basis onto line `event.lineId`'s own unit price
-  /// immediately — a pick, not typing.
-  Future<void> _onLineTaxInclusiveChanged(
-    OcptBudgetLineTaxInclusiveChangedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.updateLine(
-      database: project.database,
-      lineId: event.lineId,
-      isTaxInclusive: Value(event.isTaxInclusive),
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Puts line `event.lineId`'s own VAT rate back to inheriting the project's default, immediately
-  /// — see `OcptBudgetLineVatRateInheritedRequestedEvent`'s own doc comment for why this is a
-  /// dedicated event rather than something an empty field submission could trigger.
-  Future<void> _onLineVatRateInheritedRequested(
-    OcptBudgetLineVatRateInheritedRequestedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.updateLine(
-      database: project.database,
-      lineId: event.lineId,
-      vatRateBasisPoints: const Value(null),
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Puts poste `event.posteId`'s own estimate to complete back to being derived, immediately — see
-  /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`'s own doc comment.
-  Future<void> _onPosteEstimateToCompleteDerivedRequested(
-    OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetQuoteService.updatePoste(
-      database: project.database,
-      posteId: event.posteId,
-      estimateToCompleteCents: const Value(null),
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Records the raw text just typed into a field as a pending edit, visible immediately, and
-  /// (re)starts the field-edit debounce.
-  Future<void> _onFieldChanged(
-    OcptBudgetFieldChangedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final pending = Map<OcptBudgetPendingFieldKey, String>.of(state.pendingFieldEdits)
-      ..[(event.targetId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingFieldEdits: pending));
-
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = Timer(_fieldEditDebounce, () {
-      if (!isClosed) {
-        add(const OcptBudgetFieldEditFlushRequestedEvent());
-      }
-    });
-  }
-
-  /// Fired by the field-edit debounce timer: writes every pending field edit.
-  Future<void> _onFieldEditFlushRequested(
-    OcptBudgetFieldEditFlushRequestedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) => _flushPendingFieldEdits(emitter);
-
-  /// Writes every field edit still sitting in the debounce, cancelling the running timer first.
-  ///
-  /// A no-op when nothing is pending: called on every selection-changing path and on every
-  /// version-preview transition, most of which have nothing waiting.
-  Future<void> _flushPendingFieldEdits(Emitter<OcptBudgetState> emitter) async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final edits = state.pendingFieldEdits;
-    if (edits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWith(pendingFieldEdits: const {}));
-      return;
-    }
-
-    await _writeAllPendingFieldEdits(project, edits);
-
-    emitter(state.copyWith(pendingFieldEdits: const {}));
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
-  /// and the bloc's own event queue.
-  ///
-  /// Called by the mode's own `deactivate()`, mirroring `OcptScheduleBloc.flushPendingFieldEdits`:
-  /// `deactivate()` runs before `dispose()` for every removal from the tree, so triggering the
-  /// write here — rather than dispatching an event, which would only be processed on a later
-  /// microtask this widget might not survive to see — is what guarantees the last
-  /// [_fieldEditDebounce] worth of typing isn't lost. Unlike [_flushPendingFieldEdits], this never
-  /// touches [state]: `emit` may only be called from inside a registered `on<Event>` handler, and
-  /// by the time this runs the widget tree that would show a fresh state is already gone anyway. A
-  /// failure here is only logged.
-  Future<void> flushPendingFieldEdits() async {
-    _fieldEditTimer?.cancel();
-    _fieldEditTimer = null;
-
-    final edits = state.pendingFieldEdits;
-    if (edits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await _writeAllPendingFieldEdits(project, edits);
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending budget field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
-  }
-
-  /// Whether [field] targets a quote line that is an in-kind counterpart line (its
-  /// `inKindResourceId` is set) — such a line's fields follow the contribution it balances and are
-  /// never a direct edit's to write (`docs/architecture/budget.md`, "A balanced in-kind
-  /// contribution"). Defensive only: `OcptBudgetFiche` already withholds a counterpart line's
-  /// editable fields, so this guards against a future edit path reaching one.
-  bool _isInKindCounterpartLineField(OcptBudgetField field, String targetId) {
-    const lineFields = {
-      OcptBudgetField.lineLabel,
-      OcptBudgetField.lineQuantity,
-      OcptBudgetField.lineUnit,
-      OcptBudgetField.lineUnitAmount,
-      OcptBudgetField.lineVatRateOverride,
-    };
-    if (!lineFields.contains(field)) {
-      return false;
-    }
-
-    for (final poste in state.postes) {
-      for (final line in poste.lines) {
-        if (line.id == targetId) {
-          return line.inKindResourceId != null;
-        }
-      }
-    }
-    return false;
-  }
-
-  /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write
-  /// loop [_flushPendingFieldEdits] and [flushPendingFieldEdits] both run, so the switch over
-  /// [OcptBudgetField] is written once.
-  ///
-  /// The four numeric fields ([OcptBudgetField.posteEstimateToComplete],
-  /// [OcptBudgetField.lineQuantity], [OcptBudgetField.lineUnitAmount],
-  /// [OcptBudgetField.lineVatRateOverride]) are parsed here, and a submission that doesn't parse is
-  /// **skipped** rather than written: `quantityMilli` and `unitAmountCents` are never nullable, so
-  /// there is no null they could legitimately become, and an estimate's or an override's own
-  /// empty/unparseable reading is deliberately not "clear it" (`OcptBudgetField`'s own doc comment)
-  /// — the field simply reverts to whatever the database already holds on the next read.
-  Future<void> _writeAllPendingFieldEdits(
-    OcptOpenProjectModel project,
-    Map<OcptBudgetPendingFieldKey, String> edits,
-  ) async {
-    for (final entry in edits.entries) {
-      final (targetId, field) = entry.key;
-      final value = entry.value;
-
-      // A counterpart line's own fields follow the in-kind contribution it balances, never a direct
-      // edit's — the fiche withholds them, so reaching here would be a bug; skip rather than let a
-      // line drift away from the resource it must equal.
-      if (_isInKindCounterpartLineField(field, targetId)) {
-        continue;
-      }
-
-      switch (field) {
-        case OcptBudgetField.posteLabel:
-          await _budgetQuoteService.updatePoste(
-            database: project.database,
-            posteId: targetId,
-            label: Value(value),
-          );
-        case OcptBudgetField.posteCode:
-          await _budgetQuoteService.updatePoste(
-            database: project.database,
-            posteId: targetId,
-            code: Value(value),
-          );
-        case OcptBudgetField.posteSimpleLabel:
-          await _budgetQuoteService.updatePoste(
-            database: project.database,
-            posteId: targetId,
-            simpleLabel: Value(value.isEmpty ? null : value),
-          );
-        case OcptBudgetField.posteEstimateToComplete:
-          final amountCents = ocptCostCentsOf(value);
-          if (amountCents != null) {
-            await _budgetQuoteService.updatePoste(
-              database: project.database,
-              posteId: targetId,
-              estimateToCompleteCents: Value(amountCents),
-            );
-          }
-        case OcptBudgetField.lineLabel:
-          await _budgetQuoteService.updateLine(
-            database: project.database,
-            lineId: targetId,
-            label: Value(value),
-          );
-        case OcptBudgetField.lineQuantity:
-          final quantityMilli = ocptBudgetQuantityMilliOf(value);
-          if (quantityMilli != null) {
-            await _budgetQuoteService.updateLine(
-              database: project.database,
-              lineId: targetId,
-              quantityMilli: Value(quantityMilli),
-            );
-          }
-        case OcptBudgetField.lineUnit:
-          await _budgetQuoteService.updateLine(
-            database: project.database,
-            lineId: targetId,
-            unit: Value(value),
-          );
-        case OcptBudgetField.lineUnitAmount:
-          final amountCents = ocptCostCentsOf(value);
-          if (amountCents != null) {
-            await _budgetQuoteService.updateLine(
-              database: project.database,
-              lineId: targetId,
-              unitAmountCents: Value(amountCents),
-            );
-          }
-        case OcptBudgetField.lineVatRateOverride:
-          final basisPoints = ocptVatRateBasisPointsOf(value);
-          if (basisPoints != null) {
-            await _budgetQuoteService.updateLine(
-              database: project.database,
-              lineId: targetId,
-              vatRateBasisPoints: Value(basisPoints),
-            );
-          }
-        case OcptBudgetField.lineNotes:
-          await _budgetQuoteService.updateLine(
-            database: project.database,
-            lineId: targetId,
-            notes: Value(value),
-          );
-      }
-    }
   }
 
   /// Re-reads the project's currency and default VAT rate after the project settings page changed
@@ -1551,7 +1155,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     OcptBudgetPosteFilterSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
-    await _flushPendingFieldEdits(emitter);
+    if (!await _flushAllPendingWrites()) {
+      return;
+    }
 
     final posteId = event.posteId;
     if (posteId == null) {
@@ -1687,84 +1293,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await _applyBudgetSnapshot(emitter, project);
   }
 
-  /// Pays quote line `event.lineId` directly, promoting it into a commitment in the same gesture —
-  /// the line's own `Pay` action (`OcptBudgetLinePaidDirectlyEvent`). Creates the commitment from
-  /// the line first — its full quoted total, in the line's own tax basis and rate, naming the line
-  /// — then records `event.fields` as the debit that settles it, naming that fresh commitment: the
-  /// two writes `_onCommitmentCreationConfirmed` and `_onCommitmentSettlementConfirmed` do apart,
-  /// done here as one so the engagement stays transparent to a reader who only quoted and paid. A
-  /// partial payment leaves the commitment standing with its own outstanding, read back off the
-  /// link like any other.
-  Future<void> _onLinePaidDirectly(
-    OcptBudgetLinePaidDirectlyEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    OcptBudgetPoste? poste;
-    OcptBudgetLine? line;
-    for (final candidate in state.postes) {
-      final match = candidate.lines.where((candidate) => candidate.id == event.lineId).firstOrNull;
-      if (match != null) {
-        poste = candidate;
-        line = match;
-        break;
-      }
-    }
-    if (poste == null || line == null) {
-      return;
-    }
-
-    final commitmentId = await _budgetJournalService.createCommitment(
-      database: project.database,
-      posteId: poste.id,
-      label: line.label,
-      amountCents: ocptBudgetLineTotalCents(line),
-      isTaxInclusive: line.unitPrice.isTaxInclusive,
-      vatRateBasisPoints: line.unitPrice.vatRateBasisPoints,
-      // createCommitment already defaults status to quoteAccepted — a line just quoted, nothing yet
-      // signed.
-      lineId: line.id,
-    );
-    if (commitmentId == null) {
-      return;
-    }
-
-    final fields = event.fields;
-    final entryId = await _budgetJournalService.createEntry(
-      database: project.database,
-      date: fields.date,
-      label: fields.label,
-      posteId: fields.posteId,
-      resourceId: fields.resourceId,
-      revenueId: fields.revenueId,
-      shareId: fields.shareId,
-      commitmentId: commitmentId,
-      debitCents: fields.isDebit ? fields.amountCents : 0,
-      creditCents: fields.isDebit ? 0 : fields.amountCents,
-      isTaxInclusive: fields.isTaxInclusive,
-      vatRateBasisPoints: fields.vatRateBasisPoints,
-    );
-
-    if (entryId != null) {
-      await _budgetJournalService.writeEntryReceiptChange(
-        database: project.database,
-        entryId: entryId,
-        fields: fields,
-      );
-    }
-
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
   /// Promotes off-line debit entry `event.entryId` into the quote — the fiche's own banner and its
   /// `Add to the quote` action, offered on a debit that names a poste but no commitment
   /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
   /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
-  /// basis), then a commitment from that line exactly as [_onLinePaidDirectly] does
+  /// basis), then a commitment from that line exactly as `OcptBudgetExpensesBloc` does for a line paid directly
   /// (`createCommitment`, naming it through `lineId`) — and finally **re-points the entry itself at
   /// that fresh commitment** (`updateEntry`, `commitmentId` alone) rather than creating a second
   /// entry: the debit that settles the commitment is the very one already on the ledger. Skipping
@@ -2370,7 +1903,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Moves revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
-  /// order — mirrors [_onPosteReordered].
+  /// order — mirrors `OcptBudgetPosteReorderedEvent`'s own handler.
   Future<void> _onRevenueReordered(
     OcptBudgetRevenueReorderedEvent event,
     Emitter<OcptBudgetState> emitter,

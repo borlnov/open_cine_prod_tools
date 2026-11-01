@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/events/budget_base_event.dart';
 
 /// The events of the budget mode about moving the mode's shared selection.
@@ -128,6 +129,41 @@ class OcptBudgetShareSelectedEvent extends OcptBudgetSelectionEvent {
 
   /// Class constructor
   const OcptBudgetShareSelectedEvent({required this.shareId});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, shareId];
+}
+
+/// Selects the record a view has just created and read the snapshot again for — a poste, a quote
+/// line, a financing resource or a taking — without writing what is pending: the view did so.
+///
+/// Dispatched through `addToModeAndWait` by the view that created the record, and handled by the
+/// mode so that the view's own state is emitted after the selection has landed.
+class OcptBudgetSelectionCreatedEvent extends OcptBudgetSelectionEvent {
+  /// What to select.
+  final OcptBudgetSelection selection;
+
+  /// Whether the right dock opens on its `Inspector` tab: a poste and a quote line do, a resource
+  /// and a taking are drawn as a plain highlight.
+  final bool opensInspector;
+
+  /// Class constructor
+  const OcptBudgetSelectionCreatedEvent({required this.selection, required this.opensInspector});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, selection, opensInspector];
+}
+
+/// Highlights the revenue sharing share a view has just created and read the snapshot again for,
+/// without writing what is pending — mirrors `OcptBudgetSelectionCreatedEvent`.
+class OcptBudgetShareCreatedEvent extends OcptBudgetSelectionEvent {
+  /// The id of the share to highlight.
+  final String shareId;
+
+  /// Class constructor
+  const OcptBudgetShareCreatedEvent({required this.shareId});
 
   /// Object properties
   @override
