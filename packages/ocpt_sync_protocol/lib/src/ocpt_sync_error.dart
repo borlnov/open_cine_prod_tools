@@ -18,6 +18,16 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// [OcptSyncMalformedDataError], which describe *this build's own decoding failures* and are
 /// thrown, never carried as data.
 class OcptSyncError extends Equatable {
+  static const _codeKey = 'code';
+  static const _messageKey = 'message';
+
+  /// Which kind of failure this is, for a caller to branch on.
+  final OcptSyncErrorCode code;
+
+  /// A human-readable detail describing this failure, for a log or a status indicator — never
+  /// parsed.
+  final String message;
+
   /// Creates an error report pairing [code] with a human-readable [message].
   const OcptSyncError({required this.code, required this.message});
 
@@ -43,22 +53,12 @@ class OcptSyncError extends Equatable {
     return OcptSyncError(code: code, message: OcptSyncWireJson.string(json, _messageKey));
   }
 
-  static const _codeKey = 'code';
-  static const _messageKey = 'message';
-
-  /// Which kind of failure this is, for a caller to branch on.
-  final OcptSyncErrorCode code;
-
-  /// A human-readable detail describing this failure, for a log or a status indicator — never
-  /// parsed.
-  final String message;
-
   /// Serialises this error to the JSON object a relay reports it as.
   Map<String, dynamic> toJson() => {_codeKey: code.name, _messageKey: message};
 
   @override
-  List<Object?> get props => [code, message];
+  String toString() => 'OcptSyncError(code: $code, message: $message)';
 
   @override
-  String toString() => 'OcptSyncError(code: $code, message: $message)';
+  List<Object?> get props => [code, message];
 }

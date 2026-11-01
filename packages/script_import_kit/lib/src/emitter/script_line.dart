@@ -17,25 +17,6 @@ import 'package:meta/meta.dart';
 /// re-deriving one rule of the Fountain syntax.
 @immutable
 class ScriptLine {
-  /// Creates a [ScriptLine].
-  const ScriptLine({
-    required this.type,
-    required this.runs,
-    this.sceneNumber,
-    this.isDualDialogue = false,
-    this.continuesBlock = false,
-  });
-
-  /// Creates a [ScriptLine] whose text carries no inline emphasis at all,
-  /// which is what most of a screenplay's lines are.
-  ScriptLine.plain({
-    required this.type,
-    required String text,
-    this.sceneNumber,
-    this.isDualDialogue = false,
-    this.continuesBlock = false,
-  }) : runs = [FountainStyledRun(text: text)];
-
   /// What this line is: a scene heading, a character cue, dialogue…
   ///
   /// [FountainLineType.blank] is never used: a blank source line is not a
@@ -71,4 +52,23 @@ class ScriptLine {
 
   /// The line's text with every run concatenated and no emphasis markup.
   String get plainText => runs.map((run) => run.text).join();
+
+  /// Creates a [ScriptLine].
+  const ScriptLine({
+    required this.type,
+    required this.runs,
+    this.sceneNumber,
+    this.isDualDialogue = false,
+    this.continuesBlock = false,
+  });
+
+  /// Creates a [ScriptLine] whose text carries no inline emphasis at all,
+  /// which is what most of a screenplay's lines are.
+  ScriptLine.plain({
+    required this.type,
+    required String text,
+    this.sceneNumber,
+    this.isDualDialogue = false,
+    this.continuesBlock = false,
+  }) : runs = [FountainStyledRun(text: text)];
 }

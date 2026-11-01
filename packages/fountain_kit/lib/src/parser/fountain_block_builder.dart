@@ -16,13 +16,6 @@ import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 /// over may start partway through the document (after a title page), so a
 /// local line index and a global line number are not the same thing.
 class _RangeCalculator {
-  /// Creates a [_RangeCalculator].
-  const _RangeCalculator({
-    required this.lines,
-    required this.lineStartOffsets,
-    required this.bodyStartLine,
-  });
-
   /// The body lines being folded into blocks.
   final List<String> lines;
 
@@ -32,6 +25,13 @@ class _RangeCalculator {
 
   /// The global line number of `lines[0]`.
   final int bodyStartLine;
+
+  /// Creates a [_RangeCalculator].
+  const _RangeCalculator({
+    required this.lines,
+    required this.lineStartOffsets,
+    required this.bodyStartLine,
+  });
 
   /// Returns the [FountainSourceRange] covering local lines
   /// `[localStart, localEnd]` (inclusive).
@@ -55,15 +55,15 @@ class _RangeCalculator {
 /// Like [FountainLineClassifier], this class holds no state between calls:
 /// [build] is a pure function of its arguments.
 class FountainBlockBuilder {
-  /// Creates a [FountainBlockBuilder].
-  const FountainBlockBuilder();
-
   /// Matches a scene number tag at the end of a heading, for example
   /// `#4A#` in `INT. HOUSE #4A#`.
   static final RegExp _sceneNumber = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
 
   /// Matches a section heading's leading `#` run and its text.
   static final RegExp _sectionPattern = RegExp(r'^(#{1,6})\s*(.*)$');
+
+  /// Creates a [FountainBlockBuilder].
+  const FountainBlockBuilder();
 
   /// Folds [lines] (already classified into [types], one-to-one) into an
   /// ordered list of top-level [FountainBlock]s.

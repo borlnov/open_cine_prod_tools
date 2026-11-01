@@ -16,15 +16,6 @@ import 'package:fountain_kit/src/models/fountain_document.dart';
 /// how long it runs once paginated. The scene-scoped sibling of
 /// `FountainScriptStatistics`.
 class FountainSceneStatistics extends Equatable {
-  /// Creates a [FountainSceneStatistics] with every counter given
-  /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
-  /// parsed document.
-  const FountainSceneStatistics({
-    required this.speakingCharacters,
-    required this.wordCount,
-    required this.pageEighths,
-  });
-
   /// The scene's speaking roles, as computed by [speakingCharactersOf] over
   /// the scene's own blocks.
   final List<String> speakingCharacters;
@@ -46,6 +37,15 @@ class FountainSceneStatistics extends Equatable {
   /// minute (`pageEighths / 8` minutes): that convention belongs to the
   /// presentation, not to this layout fact.
   final int pageEighths;
+
+  /// Creates a [FountainSceneStatistics] with every counter given
+  /// explicitly. Prefer [FountainSceneStatistics.of] to compute one from a
+  /// parsed document.
+  const FountainSceneStatistics({
+    required this.speakingCharacters,
+    required this.wordCount,
+    required this.pageEighths,
+  });
 
   /// Computes the statistics of the [sceneIndex]-th scene (0-based, in
   /// [FountainDocument.scenes] order) of [document] when laid out at
@@ -80,6 +80,11 @@ class FountainSceneStatistics extends Equatable {
       pageEighths: _pageEighthsOf(document, metrics, sceneIndex),
     );
   }
+
+  @override
+  String toString() =>
+      'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
+      '$pageEighths/8 pages)';
 
   /// The top-level blocks of [document] belonging to its [sceneIndex]-th
   /// scene: the scene heading itself, up to (but excluding) the next scene
@@ -142,9 +147,4 @@ class FountainSceneStatistics extends Equatable {
 
   @override
   List<Object?> get props => [speakingCharacters, wordCount, pageEighths];
-
-  @override
-  String toString() =>
-      'FountainSceneStatistics(${speakingCharacters.length} characters, $wordCount words, '
-      '$pageEighths/8 pages)';
 }

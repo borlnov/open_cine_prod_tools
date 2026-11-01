@@ -8,9 +8,6 @@ import 'package:fountain_kit/src/models/fountain_title_page.dart';
 
 /// A fully parsed Fountain screenplay.
 class FountainDocument extends Equatable {
-  /// Creates a [FountainDocument].
-  const FountainDocument({required this.titlePage, required this.blocks, required this.sourceText});
-
   /// The document's title page, or `null` if the source had none.
   final FountainTitlePage? titlePage;
 
@@ -26,11 +23,14 @@ class FountainDocument extends Equatable {
   List<FountainSceneHeading> get scenes =>
       blocks.whereType<FountainSceneHeading>().toList(growable: false);
 
-  @override
-  List<Object?> get props => [titlePage, blocks, sourceText];
+  /// Creates a [FountainDocument].
+  const FountainDocument({required this.titlePage, required this.blocks, required this.sourceText});
 
   @override
   String toString() =>
       'FountainDocument(${blocks.length} blocks, '
       'titlePage: ${titlePage != null})';
+
+  @override
+  List<Object?> get props => [titlePage, blocks, sourceText];
 }

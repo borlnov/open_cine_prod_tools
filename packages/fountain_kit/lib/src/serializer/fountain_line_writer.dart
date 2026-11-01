@@ -36,12 +36,12 @@ import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 /// (see the dialogue/parenthetical fallback documented on the app-side
 /// codec that calls this class).
 class FountainLineWriter {
-  /// Creates a [FountainLineWriter].
-  const FountainLineWriter({this.classifier = const FountainLineClassifier()});
-
   /// The classifier used to decide whether a candidate line needs a forcing
   /// marker to (re-)classify as its intended type.
   final FountainLineClassifier classifier;
+
+  /// Creates a [FountainLineWriter].
+  const FountainLineWriter({this.classifier = const FountainLineClassifier()});
 
   /// Renders [text] as a raw Fountain source line of type [type].
   ///

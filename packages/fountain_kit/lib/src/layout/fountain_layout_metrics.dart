@@ -31,30 +31,6 @@ import 'package:fountain_kit/src/layout/fountain_page_margins.dart';
 ///   they end flush with the right margin.
 /// * Lyrics are set like dialogue, since they are sung/spoken text.
 class FountainLayoutMetrics extends Equatable {
-  /// Creates a [FountainLayoutMetrics] with every measurement given
-  /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
-  /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
-  /// genuinely required.
-  const FountainLayoutMetrics({
-    required this.pageWidthInches,
-    required this.pageHeightInches,
-    required this.marginLeftInches,
-    required this.marginRightInches,
-    required this.marginTopInches,
-    required this.marginBottomInches,
-    required this.charsPerInch,
-    required this.linesPerInch,
-    required this.linesPerPage,
-    required this.sceneHeading,
-    required this.action,
-    required this.character,
-    required this.parenthetical,
-    required this.dialogue,
-    required this.transition,
-    required this.centeredText,
-    required this.lyrics,
-  });
-
   /// Millimeters per inch, used to derive [FountainLayoutMetrics.a4]'s page
   /// size from the ISO 216 A4 dimensions (210 mm by 297 mm).
   static const double _millimetersPerInch = 25.4;
@@ -151,6 +127,30 @@ class FountainLayoutMetrics extends Equatable {
   /// marginTopInches - marginBottomInches`.
   double get printableHeightInches => pageHeightInches - marginTopInches - marginBottomInches;
 
+  /// Creates a [FountainLayoutMetrics] with every measurement given
+  /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
+  /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is
+  /// genuinely required.
+  const FountainLayoutMetrics({
+    required this.pageWidthInches,
+    required this.pageHeightInches,
+    required this.marginLeftInches,
+    required this.marginRightInches,
+    required this.marginTopInches,
+    required this.marginBottomInches,
+    required this.charsPerInch,
+    required this.linesPerInch,
+    required this.linesPerPage,
+    required this.sceneHeading,
+    required this.action,
+    required this.character,
+    required this.parenthetical,
+    required this.dialogue,
+    required this.transition,
+    required this.centeredText,
+    required this.lyrics,
+  });
+
   /// Builds the standard US Letter (8.5 by 11 inch) preset, with [margins]
   /// defaulting to [FountainPageMargins.standard].
   factory FountainLayoutMetrics.usLetter({
@@ -241,6 +241,11 @@ class FountainLayoutMetrics extends Equatable {
     );
   }
 
+  @override
+  String toString() =>
+      'FountainLayoutMetrics(${pageWidthInches}in x '
+      '${pageHeightInches}in, $linesPerPage lines/page)';
+
   /// Builds a [FountainElementLayout], deriving its character-column
   /// measurements from its inch measurements at [_courierCharsPerInch].
   ///
@@ -280,9 +285,4 @@ class FountainLayoutMetrics extends Equatable {
     centeredText,
     lyrics,
   ];
-
-  @override
-  String toString() =>
-      'FountainLayoutMetrics(${pageWidthInches}in x '
-      '${pageHeightInches}in, $linesPerPage lines/page)';
 }

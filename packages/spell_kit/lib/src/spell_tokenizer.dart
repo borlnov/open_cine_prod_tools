@@ -18,6 +18,16 @@ final RegExp _digitPattern = RegExp(r'\p{Nd}', unicode: true);
 
 /// Options controlling how [spellTokensIn] cuts word tokens out of a text.
 class SpellTokenizerOptions {
+  /// Characters counted as part of a word besides letters.
+  final Set<String> extraWordCharacters;
+
+  /// Whether a token with no lowercase letter (a scene heading, a
+  /// character cue, a shouted word) is dropped rather than checked.
+  final bool skipAllCapsTokens;
+
+  /// Whether a token holding a digit is dropped rather than checked.
+  final bool skipTokensWithDigits;
+
   /// Creates [SpellTokenizerOptions].
   const SpellTokenizerOptions({
     this.extraWordCharacters = const {"'", '’', '-'},
@@ -44,16 +54,6 @@ class SpellTokenizerOptions {
       skipTokensWithDigits: skipTokensWithDigits,
     );
   }
-
-  /// Characters counted as part of a word besides letters.
-  final Set<String> extraWordCharacters;
-
-  /// Whether a token with no lowercase letter (a scene heading, a
-  /// character cue, a shouted word) is dropped rather than checked.
-  final bool skipAllCapsTokens;
-
-  /// Whether a token holding a digit is dropped rather than checked.
-  final bool skipTokensWithDigits;
 }
 
 /// Matches a whitespace-delimited chunk of the text being tokenized.

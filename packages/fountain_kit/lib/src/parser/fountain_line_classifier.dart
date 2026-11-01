@@ -12,9 +12,6 @@ import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 /// calls to [classify], so a caller can re-classify any subset of a
 /// document's lines as long as it passes enough surrounding context.
 class FountainLineClassifier {
-  /// Creates a [FountainLineClassifier].
-  const FountainLineClassifier();
-
   /// Matches the leading token of an (auto-detected, non-forced) scene
   /// heading: `INT`, `EXT`, `EST`, `INT./EXT`, `INT/EXT`, `EXT./INT`,
   /// `EXT/INT` or `I/E`, immediately followed by a `.` or whitespace.
@@ -23,20 +20,6 @@ class FountainLineClassifier {
     caseSensitive: false,
   );
 
-  /// Whether [line] opens with the leading token of a scene heading (`INT`,
-  /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes
-  /// of the line itself.
-  ///
-  /// Deliberately weaker than "[line] *is* a scene heading": auto-detection
-  /// additionally demands a blank line on either side (see [classifyLine]), so
-  /// a heading a writer forgot to leave a blank line after is classified as an
-  /// action line while still matching here. That gap is what this predicate is
-  /// for — a caller reading a screenplay's *content* rather than laying it out
-  /// (`charactersIntroducedInActionLine` is the one this exists for) can tell
-  /// such a line apart from a line of action prose, instead of reading a
-  /// location and a time of day as if they were the cast.
-  static bool holdsSceneHeadingPrefix(String line) => _sceneHeadingPrefix.hasMatch(line.trim());
-
   /// Matches a forced page break: a line made up of three or more `=`
   /// characters and nothing else.
   static final RegExp _pageBreak = RegExp(r'^={3,}$');
@@ -44,6 +27,9 @@ class FountainLineClassifier {
   /// Matches a section heading: one to six leading `#` characters,
   /// optionally followed by more text.
   static final RegExp _section = RegExp(r'^(#{1,6})\s*(.*)$');
+
+  /// Creates a [FountainLineClassifier].
+  const FountainLineClassifier();
 
   /// Classifies every line of [lines] and returns one [FountainLineType]
   /// per line, in the same order.
@@ -174,4 +160,18 @@ class FountainLineClassifier {
   /// letter (so that, for example, a line of only digits and punctuation
   /// does not count as "all caps").
   bool _isAllCaps(String text) => text == text.toUpperCase() && text != text.toLowerCase();
+
+  /// Whether [line] opens with the leading token of a scene heading (`INT`,
+  /// `EXT`, `EST`, `INT./EXT`, `I/E`…), whatever the surrounding context makes
+  /// of the line itself.
+  ///
+  /// Deliberately weaker than "[line] *is* a scene heading": auto-detection
+  /// additionally demands a blank line on either side (see [classifyLine]), so
+  /// a heading a writer forgot to leave a blank line after is classified as an
+  /// action line while still matching here. That gap is what this predicate is
+  /// for — a caller reading a screenplay's *content* rather than laying it out
+  /// (`charactersIntroducedInActionLine` is the one this exists for) can tell
+  /// such a line apart from a line of action prose, instead of reading a
+  /// location and a time of day as if they were the cast.
+  static bool holdsSceneHeadingPrefix(String line) => _sceneHeadingPrefix.hasMatch(line.trim());
 }

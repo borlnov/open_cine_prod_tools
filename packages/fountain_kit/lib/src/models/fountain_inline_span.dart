@@ -12,9 +12,6 @@ import 'package:fountain_kit/src/models/fountain_source_range.dart';
 /// Emphasis in Fountain never spans a line break, so a [FountainInlineSpan]
 /// always covers text from a single source line.
 class FountainInlineSpan extends Equatable {
-  /// Creates a [FountainInlineSpan].
-  const FountainInlineSpan({required this.text, required this.style, required this.sourceRange});
-
   /// The rendered text of this span, with any emphasis or note markers
   /// already stripped and escape sequences already resolved.
   final String text;
@@ -26,12 +23,15 @@ class FountainInlineSpan extends Equatable {
   /// parsed from (including its emphasis/note markers).
   final FountainSourceRange sourceRange;
 
-  @override
-  List<Object?> get props => [text, style, sourceRange];
+  /// Creates a [FountainInlineSpan].
+  const FountainInlineSpan({required this.text, required this.style, required this.sourceRange});
 
   @override
   String toString() => 'FountainInlineSpan($style, ${_quote(text)})';
 
   /// Wraps [value] in double quotes for use in [toString] output.
   static String _quote(String value) => '"$value"';
+
+  @override
+  List<Object?> get props => [text, style, sourceRange];
 }

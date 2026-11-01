@@ -12,6 +12,18 @@ import 'package:equatable/equatable.dart';
 /// numbers. This lets tooling (for example a text editor) map a parsed
 /// element back onto the original text without re-scanning it.
 class FountainSourceRange extends Equatable {
+  /// The 0-based line number of the first line covered by this range.
+  final int startLine;
+
+  /// The 0-based line number of the last line covered by this range.
+  final int endLine;
+
+  /// The character offset of the first character covered by this range.
+  final int startOffset;
+
+  /// The character offset one past the last character covered by this range.
+  final int endOffset;
+
   /// Creates a [FountainSourceRange].
   ///
   /// [startLine] and [endLine] are 0-based and inclusive. [startOffset] is
@@ -29,18 +41,6 @@ class FountainSourceRange extends Equatable {
        assert(startOffset >= 0, 'startOffset must not be negative'),
        assert(endOffset >= startOffset, 'endOffset must not precede startOffset');
 
-  /// The 0-based line number of the first line covered by this range.
-  final int startLine;
-
-  /// The 0-based line number of the last line covered by this range.
-  final int endLine;
-
-  /// The character offset of the first character covered by this range.
-  final int startOffset;
-
-  /// The character offset one past the last character covered by this range.
-  final int endOffset;
-
   /// Returns a new range that covers both this range and [other].
   FountainSourceRange merge(FountainSourceRange other) => FountainSourceRange(
     startLine: startLine < other.startLine ? startLine : other.startLine,
@@ -50,10 +50,10 @@ class FountainSourceRange extends Equatable {
   );
 
   @override
-  List<Object?> get props => [startLine, endLine, startOffset, endOffset];
-
-  @override
   String toString() =>
       'FountainSourceRange(lines $startLine-$endLine, '
       'offsets $startOffset-$endOffset)';
+
+  @override
+  List<Object?> get props => [startLine, endLine, startOffset, endOffset];
 }

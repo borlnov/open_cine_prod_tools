@@ -9,9 +9,6 @@ import 'package:spell_kit/src/spell_tokenizer.dart';
 /// One word-shaped run of text found by [spellTokensIn].
 @immutable
 class SpellToken {
-  /// Creates a [SpellToken].
-  const SpellToken(this.text, this.range);
-
   /// The token's text, already trimmed of leading/trailing apostrophes and
   /// hyphens.
   final String text;
@@ -20,11 +17,14 @@ class SpellToken {
   final SpellRange range;
 
   @override
-  bool operator ==(Object other) =>
-      other is SpellToken && other.text == text && other.range == range;
+  int get hashCode => Object.hash(text, range);
+
+  /// Creates a [SpellToken].
+  const SpellToken(this.text, this.range);
 
   @override
-  int get hashCode => Object.hash(text, range);
+  bool operator ==(Object other) =>
+      other is SpellToken && other.text == text && other.range == range;
 
   @override
   String toString() => 'SpellToken($text, $range)';

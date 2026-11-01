@@ -36,9 +36,6 @@ import 'package:xml/xml.dart';
 /// - anything outside `<Content>` and `<TitlePage>`: the cast list report,
 ///   the smart-type lists, the paper size.
 class FdxScriptReader {
-  /// Creates a [FdxScriptReader].
-  const FdxScriptReader({this.emitter = const ScriptFountainEmitter()});
-
   /// Matches the credit line of a title page (`Written by`, `Screenplay
   /// by`, `Scénario de`), whose next line names the author.
   static final RegExp _creditLine = RegExp(
@@ -55,6 +52,9 @@ class FdxScriptReader {
 
   /// Renders the lines this reader makes out of a document.
   final ScriptFountainEmitter emitter;
+
+  /// Creates a [FdxScriptReader].
+  const FdxScriptReader({this.emitter = const ScriptFountainEmitter()});
 
   /// Reads the Final Draft document held in [bytes] and returns its
   /// screenplay as Fountain source text.

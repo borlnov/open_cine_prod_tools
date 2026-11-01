@@ -40,9 +40,6 @@ import 'package:script_import_kit/src/emitter/script_title_page.dart';
 /// meant, rather than an all-caps line of dialogue quietly becoming a
 /// character cue.
 class ScriptFountainEmitter {
-  /// Creates a [ScriptFountainEmitter].
-  const ScriptFountainEmitter();
-
   static const FountainInlineSerializer _inlineSerializer = FountainInlineSerializer();
 
   static const FountainLineWriter _lineWriter = FountainLineWriter();
@@ -58,6 +55,9 @@ class ScriptFountainEmitter {
   /// carries no title page and opens on `FADE IN:` — as a great many do —
   /// would have that line swallowed as an empty title page entry and lost.
   static final RegExp _titlePageKey = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
+
+  /// Creates a [ScriptFountainEmitter].
+  const ScriptFountainEmitter();
 
   /// Renders [lines], under [titlePage], as one Fountain source string.
   ///

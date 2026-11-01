@@ -9,15 +9,15 @@ import 'package:fountain_kit/src/layout/fountain_script_line.dart';
 /// One printed page of a paginated screenplay: an ordered list of
 /// positioned lines, already fitted to [FountainLayoutMetrics.linesPerPage].
 class FountainScriptPage extends Equatable {
-  /// Creates a [FountainScriptPage].
-  const FountainScriptPage({required this.lines});
-
   /// This page's lines, top to bottom.
   final List<FountainScriptLine> lines;
 
-  @override
-  List<Object?> get props => [lines];
+  /// Creates a [FountainScriptPage].
+  const FountainScriptPage({required this.lines});
 
   @override
   String toString() => 'FountainScriptPage(${lines.length} lines)';
+
+  @override
+  List<Object?> get props => [lines];
 }

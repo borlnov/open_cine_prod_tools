@@ -24,9 +24,6 @@ import 'package:xml/xml.dart';
 /// run carries are the ones every element above it opened: this is what is
 /// carried down the walk of a paragraph's nodes.
 class _InlineStyle {
-  /// Creates an [_InlineStyle].
-  const _InlineStyle({this.isBold = false, this.isItalic = false, this.isUnderline = false});
-
   /// Whether the text is bold.
   final bool isBold;
 
@@ -35,6 +32,9 @@ class _InlineStyle {
 
   /// Whether the text is underlined.
   final bool isUnderline;
+
+  /// Creates an [_InlineStyle].
+  const _InlineStyle({this.isBold = false, this.isItalic = false, this.isUnderline = false});
 
   /// This style with whatever the HTML element named [tagName] adds to it.
   ///
@@ -48,6 +48,10 @@ class _InlineStyle {
     _ => this,
   };
 
+  /// A run of [text] carrying this style.
+  FountainStyledRun run(String text) =>
+      FountainStyledRun(text: text, isBold: isBold, isItalic: isItalic, isUnderline: isUnderline);
+
   /// This style with the flags given here turned on.
   _InlineStyle _copyWith({bool isBold = false, bool isItalic = false, bool isUnderline = false}) =>
       _InlineStyle(
@@ -55,22 +59,18 @@ class _InlineStyle {
         isItalic: this.isItalic || isItalic,
         isUnderline: this.isUnderline || isUnderline,
       );
-
-  /// A run of [text] carrying this style.
-  FountainStyledRun run(String text) =>
-      FountainStyledRun(text: text, isBold: isBold, isItalic: isItalic, isUnderline: isUnderline);
 }
 
 /// What a Celtx project's manifest says about the screenplay it holds.
 class _CeltxManifest {
-  /// Creates a [_CeltxManifest].
-  const _CeltxManifest({required this.scriptFileName, required this.titlePage});
-
   /// The name, inside the container, of the script document to read.
   final String scriptFileName;
 
   /// The title page the manifest's own metadata makes.
   final ScriptTitlePage titlePage;
+
+  /// Creates a [_CeltxManifest].
+  const _CeltxManifest({required this.scriptFileName, required this.titlePage});
 }
 
 /// Reads a legacy Celtx project (`.celtx`) and converts its screenplay to
@@ -95,9 +95,6 @@ class _CeltxManifest {
 /// - every text style Fountain has no marker for — only bold, italic and
 ///   underline survive.
 class CeltxScriptReader {
-  /// Creates a [CeltxScriptReader].
-  const CeltxScriptReader({this.emitter = const ScriptFountainEmitter()});
-
   /// The manifest entry naming the project's documents and its metadata.
   static const String _manifestFileName = 'project.rdf';
 
@@ -136,6 +133,9 @@ class CeltxScriptReader {
 
   /// Renders the lines this reader makes out of a document.
   final ScriptFountainEmitter emitter;
+
+  /// Creates a [CeltxScriptReader].
+  const CeltxScriptReader({this.emitter = const ScriptFountainEmitter()});
 
   /// Reads the Celtx project held in [bytes] and returns the screenplay of
   /// its first script document as Fountain source text.

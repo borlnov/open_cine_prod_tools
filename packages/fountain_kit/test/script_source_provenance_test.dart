@@ -74,10 +74,6 @@ const FountainScriptComposer _composer = FountainScriptComposer();
 /// source text so a test can quote what a line's range points at instead of
 /// asserting on raw offsets.
 class _Composed {
-  /// Parses and composes [source].
-  _Composed(this.source, {FountainLayoutMetrics? metrics})
-    : layout = _composer.compose(document: _parser.parse(source), metrics: metrics ?? _metrics());
-
   /// The screenplay source, exactly as parsed.
   final String source;
 
@@ -87,15 +83,19 @@ class _Composed {
   /// Every line of every page, in reading order.
   List<FountainScriptLine> get lines => [for (final page in layout.pages) ...page.lines];
 
+  /// The source text every line of [layout] points at, `null` for the lines
+  /// with no range of their own, in reading order.
+  List<String?> get coveredTexts => lines.map(covered).toList();
+
+  /// Parses and composes [source].
+  _Composed(this.source, {FountainLayoutMetrics? metrics})
+    : layout = _composer.compose(document: _parser.parse(source), metrics: metrics ?? _metrics());
+
   /// The source text [line]'s range points at, or `null` when it has none.
   String? covered(FountainScriptLine line) {
     final range = line.sourceRange;
     return range == null ? null : source.substring(range.startOffset, range.endOffset);
   }
-
-  /// The source text every line of [layout] points at, `null` for the lines
-  /// with no range of their own, in reading order.
-  List<String?> get coveredTexts => lines.map(covered).toList();
 }
 
 /// A source range every hand-built block in this file shares: a document

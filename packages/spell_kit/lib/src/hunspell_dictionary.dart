@@ -12,17 +12,6 @@ import 'package:spell_kit/src/hunspell_affix_file.dart';
 /// plain `String`s, which is what keeps this package free of `dart:io` and
 /// testable from a miniature pair written straight into a test.
 class SpellDictionary {
-  /// Creates a [SpellDictionary]. Prefer [SpellDictionary.parse].
-  const SpellDictionary({required this.affixFile, required this.entries});
-
-  /// Parses [affix] and [dictionary] (the verbatim contents of a `.aff`
-  /// file and its matching `.dic` file) into a [SpellDictionary].
-  factory SpellDictionary.parse({required String affix, required String dictionary}) =>
-      SpellDictionary(
-        affixFile: HunspellAffixFile.parse(affix),
-        entries: _parseDictionaryEntries(dictionary),
-      );
-
   /// The parsed `.aff` rules.
   final HunspellAffixFile affixFile;
 
@@ -34,6 +23,17 @@ class SpellDictionary {
   /// dictionary carries 1 903 of them) are merged by concatenating their
   /// flag strings, so no flag either copy declared is lost.
   final Map<String, String> entries;
+
+  /// Creates a [SpellDictionary]. Prefer [SpellDictionary.parse].
+  const SpellDictionary({required this.affixFile, required this.entries});
+
+  /// Parses [affix] and [dictionary] (the verbatim contents of a `.aff`
+  /// file and its matching `.dic` file) into a [SpellDictionary].
+  factory SpellDictionary.parse({required String affix, required String dictionary}) =>
+      SpellDictionary(
+        affixFile: HunspellAffixFile.parse(affix),
+        entries: _parseDictionaryEntries(dictionary),
+      );
 }
 
 /// Parses the body of a `.dic` file into a word-to-flags map.
@@ -65,14 +65,14 @@ Map<String, String> _parseDictionaryEntries(String source) {
 
 /// One `.dic` entry's word and raw flag string, before duplicate merging.
 class _DictionaryEntry {
-  /// Creates a [_DictionaryEntry].
-  const _DictionaryEntry({required this.word, required this.flags});
-
   /// The dictionary word, with any `\/` escape already unescaped.
   final String word;
 
   /// The raw, concatenated flag string (empty if the entry carried none).
   final String flags;
+
+  /// Creates a [_DictionaryEntry].
+  const _DictionaryEntry({required this.word, required this.flags});
 }
 
 /// Parses a single `.dic` token (morphological fields already stripped)

@@ -15,16 +15,6 @@ import 'package:meta/meta.dart';
 /// this package knows nothing of the application that consumes it.
 @immutable
 class ScriptTitlePage {
-  /// Creates a [ScriptTitlePage].
-  const ScriptTitlePage({
-    this.title,
-    this.credit,
-    this.author,
-    this.draftDate,
-    this.contact = const [],
-    this.source,
-  });
-
   /// A placeholder source range for the entries [toEntries] builds:
   /// [FountainTitlePageWriter] only ever reads an entry's key and values,
   /// never where it came from, and these entries came from no Fountain
@@ -55,6 +45,16 @@ class ScriptTitlePage {
 
   /// The work the screenplay was adapted from.
   final String? source;
+
+  /// Creates a [ScriptTitlePage].
+  const ScriptTitlePage({
+    this.title,
+    this.credit,
+    this.author,
+    this.draftDate,
+    this.contact = const [],
+    this.source,
+  });
 
   /// Renders the fields that carry something as Fountain title page
   /// entries, in the canonical order, ready for

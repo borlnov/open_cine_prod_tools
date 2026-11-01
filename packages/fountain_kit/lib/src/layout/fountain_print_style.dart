@@ -28,10 +28,6 @@ import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 /// `TextStyle.copyWith` for the on-screen renderers), since this package
 /// stays free of any rendering-toolkit dependency here.
 class FountainPrintStyle extends Equatable {
-  /// Creates a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
-  /// bespoke combination is genuinely required.
-  const FountainPrintStyle({this.isBold = false, this.isItalic = false, this.isUppercase = false});
-
   /// The print style shared by every [FountainLineType] with no base
   /// treatment of its own (action, dialogue, parenthetical, centered text,
   /// and the non-printing types): plain roman, sentence case.
@@ -46,6 +42,10 @@ class FountainPrintStyle extends Equatable {
   /// Whether the element's text prints upper-cased, regardless of the
   /// casing it carries in the parsed model.
   final bool isUppercase;
+
+  /// Creates a [FountainPrintStyle]. Prefer [FountainPrintStyle.of] unless a
+  /// bespoke combination is genuinely required.
+  const FountainPrintStyle({this.isBold = false, this.isItalic = false, this.isUppercase = false});
 
   /// The base print style of a [FountainLineType.sceneHeading], a
   /// [FountainLineType.character] cue, a [FountainLineType.transition] or a
@@ -70,11 +70,11 @@ class FountainPrintStyle extends Equatable {
   };
 
   @override
-  List<Object?> get props => [isBold, isItalic, isUppercase];
-
-  @override
   String toString() {
     final flags = [if (isBold) 'bold', if (isItalic) 'italic', if (isUppercase) 'uppercase'];
     return 'FountainPrintStyle(${flags.isEmpty ? 'plain' : flags.join('+')})';
   }
+
+  @override
+  List<Object?> get props => [isBold, isItalic, isUppercase];
 }

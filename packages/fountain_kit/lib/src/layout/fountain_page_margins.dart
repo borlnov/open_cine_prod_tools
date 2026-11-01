@@ -14,6 +14,18 @@ import 'package:equatable/equatable.dart';
 /// fixed relative to the *page's* left edge (character cues, parentheticals,
 /// dialogue) — see `FountainLayoutMetrics`'s class doc.
 class FountainPageMargins extends Equatable {
+  /// The left page margin, in inches.
+  final double leftInches;
+
+  /// The right page margin, in inches.
+  final double rightInches;
+
+  /// The top page margin, in inches.
+  final double topInches;
+
+  /// The bottom page margin, in inches.
+  final double bottomInches;
+
   /// Creates a [FountainPageMargins] with every margin given explicitly.
   /// Prefer [FountainPageMargins.standard] unless a non-standard margin set
   /// is genuinely required.
@@ -33,18 +45,6 @@ class FountainPageMargins extends Equatable {
       topInches = 1,
       bottomInches = 1;
 
-  /// The left page margin, in inches.
-  final double leftInches;
-
-  /// The right page margin, in inches.
-  final double rightInches;
-
-  /// The top page margin, in inches.
-  final double topInches;
-
-  /// The bottom page margin, in inches.
-  final double bottomInches;
-
   /// Copy these margins and update the given elements.
   FountainPageMargins copyWith({
     double? leftInches,
@@ -59,10 +59,10 @@ class FountainPageMargins extends Equatable {
   );
 
   @override
-  List<Object?> get props => [leftInches, rightInches, topInches, bottomInches];
-
-  @override
   String toString() =>
       'FountainPageMargins(left: ${leftInches}in, right: ${rightInches}in, '
       'top: ${topInches}in, bottom: ${bottomInches}in)';
+
+  @override
+  List<Object?> get props => [leftInches, rightInches, topInches, bottomInches];
 }

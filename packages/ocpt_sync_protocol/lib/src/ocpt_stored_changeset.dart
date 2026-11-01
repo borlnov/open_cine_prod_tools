@@ -16,6 +16,16 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// where to resume a "read since" call — and, per ADR 0010, never something a merge reads to
 /// decide a winner.
 class OcptStoredChangeset extends Equatable {
+  static const _sequenceNumberKey = 'sequenceNumber';
+  static const _envelopeKey = 'envelope';
+
+  /// The position a relay assigned this changeset in its own log.
+  final OcptSequenceNumber sequenceNumber;
+
+  /// The changeset a device appended, unpacked and applied exactly as [OcptChangesetEnvelope]
+  /// describes.
+  final OcptChangesetEnvelope envelope;
+
   /// Creates a stored changeset pairing [sequenceNumber], the relay-assigned delivery position,
   /// with [envelope], the changeset itself.
   const OcptStoredChangeset({required this.sequenceNumber, required this.envelope});
@@ -30,16 +40,6 @@ class OcptStoredChangeset extends Equatable {
     envelope: OcptChangesetEnvelope.fromJson(OcptSyncWireJson.object(json, _envelopeKey)),
   );
 
-  static const _sequenceNumberKey = 'sequenceNumber';
-  static const _envelopeKey = 'envelope';
-
-  /// The position a relay assigned this changeset in its own log.
-  final OcptSequenceNumber sequenceNumber;
-
-  /// The changeset a device appended, unpacked and applied exactly as [OcptChangesetEnvelope]
-  /// describes.
-  final OcptChangesetEnvelope envelope;
-
   /// Serialises this stored changeset to the JSON object a relay's "read since" route hands back.
   Map<String, dynamic> toJson() => {
     _sequenceNumberKey: sequenceNumber.toJson(),
@@ -47,8 +47,8 @@ class OcptStoredChangeset extends Equatable {
   };
 
   @override
-  List<Object?> get props => [sequenceNumber, envelope];
+  String toString() => 'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
 
   @override
-  String toString() => 'OcptStoredChangeset(sequenceNumber: $sequenceNumber, envelope: $envelope)';
+  List<Object?> get props => [sequenceNumber, envelope];
 }

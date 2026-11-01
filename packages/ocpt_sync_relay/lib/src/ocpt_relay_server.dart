@@ -86,25 +86,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// persisted, reset by a restart) — it is the cheapest guard against a brute-force or DoS attempt,
 /// not a security boundary on its own.
 class OcptRelayServer {
-  /// Creates a relay server answering requests against [store], accepting [enrolmentSecret] as the
-  /// only credential able to register a brand-new project.
-  ///
-  /// [maxAuthFailuresPerSource] and [authFailureWindow] configure the failed-authentication
-  /// throttle described on this class: defaults are generous enough that ordinary traffic never
-  /// trips them, and a test exercising the throttle passes a small [maxAuthFailuresPerSource] of
-  /// its own so it stays independent of every other test's timing.
-  OcptRelayServer({
-    required this.store,
-    required this.enrolmentSecret,
-    int maxAuthFailuresPerSource = 20,
-    Duration authFailureWindow = const Duration(minutes: 1),
-    this.onEvent,
-  }) : _eventSubscribersByProject = {},
-       _rateLimiter = _AuthRateLimiter(
-         maxFailures: maxAuthFailuresPerSource,
-         window: authFailureWindow,
-       );
-
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
   static const _bearerPrefix = 'Bearer ';
   static const _sinceParam = 'since';
@@ -156,6 +137,25 @@ class OcptRelayServer {
 
     return router.call;
   }
+
+  /// Creates a relay server answering requests against [store], accepting [enrolmentSecret] as the
+  /// only credential able to register a brand-new project.
+  ///
+  /// [maxAuthFailuresPerSource] and [authFailureWindow] configure the failed-authentication
+  /// throttle described on this class: defaults are generous enough that ordinary traffic never
+  /// trips them, and a test exercising the throttle passes a small [maxAuthFailuresPerSource] of
+  /// its own so it stays independent of every other test's timing.
+  OcptRelayServer({
+    required this.store,
+    required this.enrolmentSecret,
+    int maxAuthFailuresPerSource = 20,
+    Duration authFailureWindow = const Duration(minutes: 1),
+    this.onEvent,
+  }) : _eventSubscribersByProject = {},
+       _rateLimiter = _AuthRateLimiter(
+         maxFailures: maxAuthFailuresPerSource,
+         window: authFailureWindow,
+       );
 
   Future<shelf.Response> _postChangesets(shelf.Request request) async {
     final projectId = request.params['projectId']!;
@@ -484,11 +484,11 @@ class OcptRelayServer {
 /// cheapest guard against a brute-force or denial-of-service attempt, not a security boundary of
 /// its own.
 class _AuthRateLimiter {
-  _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
-
   final int maxFailures;
   final Duration window;
   final Map<String, _FailureWindow> _failuresBySource;
+
+  _AuthRateLimiter({required this.maxFailures, required this.window}) : _failuresBySource = {};
 
   /// True when [source] has already failed authentication [maxFailures] times or more within the
   /// current window, and every further request from it should be rejected without even looking at
@@ -522,8 +522,8 @@ class _AuthRateLimiter {
 
 /// One source's failure count within its current window, as tracked by [_AuthRateLimiter].
 class _FailureWindow {
-  _FailureWindow({required this.windowStart, required this.count});
-
   final DateTime windowStart;
   int count;
+
+  _FailureWindow({required this.windowStart, required this.count});
 }

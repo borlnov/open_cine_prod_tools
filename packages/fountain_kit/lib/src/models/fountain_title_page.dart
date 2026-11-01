@@ -9,25 +9,11 @@ import 'package:fountain_kit/src/models/fountain_title_page_entry.dart';
 /// The title page of a Fountain document: an ordered list of `key: value`
 /// entries that appear before the first blank line of the source.
 class FountainTitlePage extends Equatable {
-  /// Creates a [FountainTitlePage].
-  const FountainTitlePage({required this.entries, required this.sourceRange});
-
   /// The title page entries, in source order.
   final List<FountainTitlePageEntry> entries;
 
   /// The location, in the original source, of the whole title page block.
   final FountainSourceRange sourceRange;
-
-  /// Returns the first entry whose [FountainTitlePageEntry.key] matches
-  /// [key] case-insensitively, or `null` if there is none.
-  FountainTitlePageEntry? entry(String key) {
-    for (final candidate in entries) {
-      if (candidate.key.toLowerCase() == key.toLowerCase()) {
-        return candidate;
-      }
-    }
-    return null;
-  }
 
   /// The `Title` entry's joined value, or `null` if absent.
   String? get title => entry('Title')?.joinedValue;
@@ -58,9 +44,23 @@ class FountainTitlePage extends Equatable {
   /// The `Contact` entry's value lines, or an empty list if absent.
   List<String> get contact => entry('Contact')?.values ?? const [];
 
-  @override
-  List<Object?> get props => [entries];
+  /// Creates a [FountainTitlePage].
+  const FountainTitlePage({required this.entries, required this.sourceRange});
+
+  /// Returns the first entry whose [FountainTitlePageEntry.key] matches
+  /// [key] case-insensitively, or `null` if there is none.
+  FountainTitlePageEntry? entry(String key) {
+    for (final candidate in entries) {
+      if (candidate.key.toLowerCase() == key.toLowerCase()) {
+        return candidate;
+      }
+    }
+    return null;
+  }
 
   @override
   String toString() => 'FountainTitlePage($entries)';
+
+  @override
+  List<Object?> get props => [entries];
 }

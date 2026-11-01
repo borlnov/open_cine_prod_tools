@@ -6,13 +6,6 @@
 /// each be independently known, or a leading/trailing occurrence that may
 /// simply be stripped off.
 class HunspellBreakPattern {
-  /// Creates a [HunspellBreakPattern].
-  const HunspellBreakPattern({
-    required this.text,
-    required this.anchoredStart,
-    required this.anchoredEnd,
-  });
-
   /// The literal text of the pattern, with its `^`/`$` anchor (if any)
   /// already stripped off.
   final String text;
@@ -24,4 +17,11 @@ class HunspellBreakPattern {
   /// Whether the pattern is anchored to the end of the word (hunspell's
   /// `p$`), meaning a trailing occurrence of [text] may be stripped off.
   final bool anchoredEnd;
+
+  /// Creates a [HunspellBreakPattern].
+  const HunspellBreakPattern({
+    required this.text,
+    required this.anchoredStart,
+    required this.anchoredEnd,
+  });
 }

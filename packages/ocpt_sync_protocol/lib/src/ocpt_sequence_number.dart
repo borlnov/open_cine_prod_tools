@@ -14,18 +14,18 @@ import 'package:equatable/equatable.dart';
 /// decided by a Lamport stamp instead — see the ordering exposed for `(version, deviceId)`
 /// pairs — never by comparing two [OcptSequenceNumber]s from different relays.
 class OcptSequenceNumber extends Equatable implements Comparable<OcptSequenceNumber> {
-  /// Creates a sequence number wrapping [value], the relay-assigned position in its log.
-  const OcptSequenceNumber(this.value) : assert(value >= 0, 'a sequence number cannot be negative');
-
-  /// Parses a sequence number from the plain integer stored on the wire.
-  factory OcptSequenceNumber.fromJson(int json) => OcptSequenceNumber(json);
-
   /// The position before any changeset has ever been read: no relay has assigned sequence number
   /// zero to a real changeset, so this is a safe "nothing read yet" starting cursor.
   static const zero = OcptSequenceNumber(0);
 
   /// The relay-assigned position this cursor names.
   final int value;
+
+  /// Creates a sequence number wrapping [value], the relay-assigned position in its log.
+  const OcptSequenceNumber(this.value) : assert(value >= 0, 'a sequence number cannot be negative');
+
+  /// Parses a sequence number from the plain integer stored on the wire.
+  factory OcptSequenceNumber.fromJson(int json) => OcptSequenceNumber(json);
 
   /// The next position in the same log, one past this one.
   OcptSequenceNumber next() => OcptSequenceNumber(value + 1);
@@ -49,8 +49,8 @@ class OcptSequenceNumber extends Equatable implements Comparable<OcptSequenceNum
   int toJson() => value;
 
   @override
-  List<Object?> get props => [value];
+  String toString() => 'OcptSequenceNumber($value)';
 
   @override
-  String toString() => 'OcptSequenceNumber($value)';
+  List<Object?> get props => [value];
 }

@@ -17,15 +17,6 @@ import 'package:fountain_kit/src/layout/fountain_layout_metrics.dart';
 /// `round(inches * charsPerInch)`; a width is *truncated* rather than
 /// rounded, see [maxWidthColumns].
 class FountainElementLayout extends Equatable {
-  /// Creates a [FountainElementLayout].
-  const FountainElementLayout({
-    required this.leftIndentInches,
-    required this.leftIndentColumns,
-    required this.maxWidthInches,
-    required this.maxWidthColumns,
-    required this.alignment,
-  });
-
   /// The distance from the page's physical left edge to where this
   /// element's text starts, in inches.
   final double leftIndentInches;
@@ -53,6 +44,21 @@ class FountainElementLayout extends Equatable {
   /// How this element's text is aligned within its box.
   final FountainLayoutAlignment alignment;
 
+  /// Creates a [FountainElementLayout].
+  const FountainElementLayout({
+    required this.leftIndentInches,
+    required this.leftIndentColumns,
+    required this.maxWidthInches,
+    required this.maxWidthColumns,
+    required this.alignment,
+  });
+
+  @override
+  String toString() =>
+      'FountainElementLayout(indent: ${leftIndentInches}in/'
+      '$leftIndentColumns cols, width: ${maxWidthInches}in/'
+      '$maxWidthColumns cols, $alignment)';
+
   @override
   List<Object?> get props => [
     leftIndentInches,
@@ -61,10 +67,4 @@ class FountainElementLayout extends Equatable {
     maxWidthColumns,
     alignment,
   ];
-
-  @override
-  String toString() =>
-      'FountainElementLayout(indent: ${leftIndentInches}in/'
-      '$leftIndentColumns cols, width: ${maxWidthInches}in/'
-      '$maxWidthColumns cols, $alignment)';
 }

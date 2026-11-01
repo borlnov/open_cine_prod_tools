@@ -10,14 +10,14 @@ import 'package:fountain_kit/src/models/fountain_styled_run.dart';
 /// One recognized emphasis marker, paired with the [FountainInlineStyle] it
 /// produces.
 class _EmphasisMarker {
-  /// Creates an [_EmphasisMarker].
-  const _EmphasisMarker(this.token, this.style);
-
   /// The literal marker text, for example `**`.
   final String token;
 
   /// The style a span wrapped in [token] is rendered with.
   final FountainInlineStyle style;
+
+  /// Creates an [_EmphasisMarker].
+  const _EmphasisMarker(this.token, this.style);
 }
 
 /// Parses inline emphasis (`*italic*`, `**bold**`, `***bold italic***`,
@@ -30,9 +30,6 @@ class _EmphasisMarker {
 /// both from the block builder (for a future rich-text rendering pass) and
 /// directly by callers who just want to highlight a snippet of text.
 class FountainInlineParser {
-  /// Creates a [FountainInlineParser].
-  const FountainInlineParser();
-
   /// The emphasis markers this parser recognizes, ordered so that the
   /// longest marker (`***`) is tried before its prefixes (`**`, `*`).
   static const List<_EmphasisMarker> _markers = [
@@ -62,6 +59,9 @@ class FountainInlineParser {
   /// Characters that may be escaped with a leading `\` to suppress their
   /// usual markup meaning.
   static const String _escapable = r'*_\[]';
+
+  /// Creates a [FountainInlineParser].
+  const FountainInlineParser();
 
   /// Parses [text] into a sequence of [FountainInlineSpan]s.
   ///

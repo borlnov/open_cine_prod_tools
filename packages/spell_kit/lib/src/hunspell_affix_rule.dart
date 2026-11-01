@@ -8,16 +8,6 @@ import 'package:spell_kit/src/hunspell_affix_condition.dart';
 /// surface form (or, read the other way round, how affix stripping tries
 /// to turn a typed word back into one).
 class HunspellAffixRule {
-  /// Creates a [HunspellAffixRule].
-  const HunspellAffixRule({
-    required this.flag,
-    required this.strip,
-    required this.append,
-    required this.continuationFlags,
-    required this.condition,
-    required this.crossProduct,
-  });
-
   /// The flag identifying this rule; a dictionary entry must carry it (or
   /// receive it through a continuation class) to accept the rule.
   final String flag;
@@ -43,4 +33,14 @@ class HunspellAffixRule {
   /// Whether this rule may combine with a rule of the other affix kind
   /// (the header line's `Y`/`N`).
   final bool crossProduct;
+
+  /// Creates a [HunspellAffixRule].
+  const HunspellAffixRule({
+    required this.flag,
+    required this.strip,
+    required this.append,
+    required this.continuationFlags,
+    required this.condition,
+    required this.crossProduct,
+  });
 }

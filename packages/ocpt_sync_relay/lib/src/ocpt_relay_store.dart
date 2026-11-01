@@ -24,6 +24,10 @@ import 'package:sqlite3/sqlite3.dart';
 /// that project's log, atomically with the snapshot write — see [uploadSnapshot] for why that is
 /// safe for a replica that has not read that far yet.
 class OcptRelayStore {
+  static const _inMemoryPath = ':memory:';
+
+  final Database _db;
+
   /// Opens (creating if absent) the database at [path], and creates the schema below if it is not
   /// already there. Pass the literal string `:memory:` to open a private, in-memory database — the
   /// form every test in this package uses.
@@ -31,14 +35,6 @@ class OcptRelayStore {
     : _db = path == _inMemoryPath ? sqlite3.openInMemory() : sqlite3.open(path) {
     _createSchemaIfAbsent();
   }
-
-  static const _inMemoryPath = ':memory:';
-
-  final Database _db;
-
-  /// Closes the underlying database and releases its resources. Call this once this store is no
-  /// longer needed; nothing in this class re-opens it afterwards.
-  void close() => _db.dispose();
 
   /// Registers a new project with [projectId], remembering only [tokenHash] — a fast hash of the
   /// bearer token a caller presents on every later request, never the token itself.
@@ -311,4 +307,8 @@ class OcptRelayStore {
       _db.execute('ALTER TABLE changesets ADD COLUMN changesetId TEXT');
     }
   }
+
+  /// Closes the underlying database and releases its resources. Call this once this store is no
+  /// longer needed; nothing in this class re-opens it afterwards.
+  void close() => _db.dispose();
 }

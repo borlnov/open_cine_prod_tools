@@ -43,12 +43,12 @@ const String _moreToken = '(MORE)';
 /// knows how it wrapped the text, which is why that mapping is produced here
 /// rather than recomputed by a caller.
 class FountainScriptComposer {
-  /// Creates a [FountainScriptComposer].
-  const FountainScriptComposer();
-
   /// The inline parser used to resolve bold/italic/underline/note runs
   /// before wrapping. Stateless, so one instance is shared.
   static const FountainInlineParser _inlineParser = FountainInlineParser();
+
+  /// Creates a [FountainScriptComposer].
+  const FountainScriptComposer();
 
   /// Lays out every printable block of [document] into pages sized by
   /// [metrics].
@@ -460,15 +460,15 @@ class FountainScriptComposer {
 /// wrapping — everything downstream (run slicing, line ranges) follows from
 /// it mechanically.
 class _SourceAnchor {
-  /// Creates a [_SourceAnchor].
-  const _SourceAnchor({required this.line, required this.offset});
-
   /// The 0-based source line the anchored text was taken from.
   final int line;
 
   /// The character offset, in the document source, of the anchored text's
   /// first character.
   final int offset;
+
+  /// Creates a [_SourceAnchor].
+  const _SourceAnchor({required this.line, required this.offset});
 }
 
 /// Resolves the [_SourceAnchor] of each piece of text the composer prints,
@@ -490,11 +490,11 @@ class _SourceAnchor {
 /// has since been edited out from under it) yields no anchors rather than
 /// wrong ones.
 class _SourceAnchors {
-  /// Creates a [_SourceAnchors] resolving against [_sourceText].
-  const _SourceAnchors(this._sourceText);
-
   /// The document source every anchor points into.
   final String _sourceText;
+
+  /// Creates a [_SourceAnchors] resolving against [_sourceText].
+  const _SourceAnchors(this._sourceText);
 
   /// The anchor of [printedText], a single-line block [block]'s whole
   /// printed text, or `null` when [block]'s range does not address
@@ -559,14 +559,14 @@ class _SourceAnchors {
 /// line's span and for a run's span within the same text, so the two can
 /// be intersected directly.
 class _LineRange {
-  /// Creates a [_LineRange].
-  const _LineRange(this.start, this.end);
-
   /// The range's inclusive start offset.
   final int start;
 
   /// The range's exclusive end offset.
   final int end;
+
+  /// Creates a [_LineRange].
+  const _LineRange(this.start, this.end);
 }
 
 /// The mutable page-building state behind [FountainScriptComposer.compose]:
@@ -577,10 +577,6 @@ class _LineRange {
 /// several times for one input group, which reads far more clearly as a
 /// small state machine than as a recursive local function.
 class _PageBuilder {
-  /// Creates a [_PageBuilder] laying out pages of `_metrics.linesPerPage`
-  /// lines.
-  _PageBuilder(this._metrics) : _pages = [], _current = [];
-
   /// The metrics every placement decision is measured against.
   final FountainLayoutMetrics _metrics;
 
@@ -593,11 +589,9 @@ class _PageBuilder {
   /// How many more lines fit on the page currently being filled.
   int get _capacity => _metrics.linesPerPage - _current.length;
 
-  /// Closes the page currently being filled and starts a fresh one.
-  void _closePage() {
-    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
-    _current.clear();
-  }
+  /// Creates a [_PageBuilder] laying out pages of `_metrics.linesPerPage`
+  /// lines.
+  _PageBuilder(this._metrics) : _pages = [], _current = [];
 
   /// Handles a source [FountainPageBreak]: starts a fresh page, unless the
   /// current one is already empty (two consecutive breaks, or a break as
@@ -730,6 +724,12 @@ class _PageBuilder {
       _closePage();
     }
     return FountainScriptLayout(pages: List.unmodifiable(_pages));
+  }
+
+  /// Closes the page currently being filled and starts a fresh one.
+  void _closePage() {
+    _pages.add(FountainScriptPage(lines: List.unmodifiable(_current)));
+    _current.clear();
   }
 
   /// A single blank line inserted between two consecutive top-level blocks

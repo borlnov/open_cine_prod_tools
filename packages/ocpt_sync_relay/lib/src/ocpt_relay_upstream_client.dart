@@ -19,12 +19,6 @@ import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 /// never imports app code, per this package's own domain-blindness (`OcptRelayStore`'s own doc
 /// comment applies here too — this class never looks inside an envelope's payload).
 class OcptRelayUpstreamClient {
-  /// Creates a client talking to the upstream relay at [baseUri], authenticating every request
-  /// with [token]. [httpClient] defaults to a fresh [http.Client] — inject one in a test to avoid
-  /// a real socket, or to reuse a client already open.
-  OcptRelayUpstreamClient({required this.baseUri, required this.token, http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
-
   static const _authorizationHeader = 'Authorization';
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
   static const _contentTypeHeader = 'content-type';
@@ -40,8 +34,11 @@ class OcptRelayUpstreamClient {
 
   final http.Client _httpClient;
 
-  /// Closes the underlying [http.Client]. Call this once this client is no longer needed.
-  void close() => _httpClient.close();
+  /// Creates a client talking to the upstream relay at [baseUri], authenticating every request
+  /// with [token]. [httpClient] defaults to a fresh [http.Client] — inject one in a test to avoid
+  /// a real socket, or to reuse a client already open.
+  OcptRelayUpstreamClient({required this.baseUri, required this.token, http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
 
   /// Every changeset the upstream relay's log holds for [projectId] strictly after [cursor],
   /// oldest first — `GET <baseUri>/projects/<projectId>/changesets?since=<cursor.value>`.
@@ -121,4 +118,7 @@ class OcptRelayUpstreamClient {
       'failed to $action against $baseUri: HTTP ${response.statusCode} — ${response.body}',
     );
   }
+
+  /// Closes the underlying [http.Client]. Call this once this client is no longer needed.
+  void close() => _httpClient.close();
 }

@@ -9,15 +9,15 @@ import 'package:fountain_kit/src/layout/fountain_script_page.dart';
 /// A whole screenplay laid out into printed pages by
 /// [FountainScriptComposer.compose].
 class FountainScriptLayout extends Equatable {
-  /// Creates a [FountainScriptLayout].
-  const FountainScriptLayout({required this.pages});
-
   /// The screenplay's pages, in reading order.
   final List<FountainScriptPage> pages;
 
-  @override
-  List<Object?> get props => [pages];
+  /// Creates a [FountainScriptLayout].
+  const FountainScriptLayout({required this.pages});
 
   @override
   String toString() => 'FountainScriptLayout(${pages.length} pages)';
+
+  @override
+  List<Object?> get props => [pages];
 }

@@ -16,13 +16,6 @@ import 'package:fountain_kit/src/models/fountain_title_page.dart';
 /// does not on `FountainBlock`: content equality should not depend on where
 /// in a source string an entry was parsed from.
 class FountainTitlePageEntry extends Equatable {
-  /// Creates a [FountainTitlePageEntry].
-  const FountainTitlePageEntry({
-    required this.key,
-    required this.values,
-    required this.sourceRange,
-  });
-
   /// The entry key, exactly as written in the source (for example `Draft
   /// date`), before the colon.
   final String key;
@@ -40,9 +33,16 @@ class FountainTitlePageEntry extends Equatable {
   /// about a single-line representation.
   String get joinedValue => values.join(' ');
 
-  @override
-  List<Object?> get props => [key, values];
+  /// Creates a [FountainTitlePageEntry].
+  const FountainTitlePageEntry({
+    required this.key,
+    required this.values,
+    required this.sourceRange,
+  });
 
   @override
   String toString() => 'FountainTitlePageEntry($key: $values)';
+
+  @override
+  List<Object?> get props => [key, values];
 }

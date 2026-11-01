@@ -25,6 +25,14 @@ import 'package:spell_kit/src/hunspell_affix_rule.dart';
 /// and this index is what keeps the first, uncached look at a word from
 /// touching every rule in the file.
 class HunspellAffixRuleIndex {
+  /// Suffix rules bucketed by the last character of their `append`, with
+  /// the empty-`append` rules filed under the empty string key.
+  final Map<String, List<HunspellAffixRule>> _suffixByTail;
+
+  /// Prefix rules bucketed by the first character of their `append`, with
+  /// the empty-`append` rules filed under the empty string key.
+  final Map<String, List<HunspellAffixRule>> _prefixByHead;
+
   /// Builds a [HunspellAffixRuleIndex] over [affixFile]'s rules.
   HunspellAffixRuleIndex(HunspellAffixFile affixFile) : _suffixByTail = {}, _prefixByHead = {} {
     for (final rule in affixFile.suffixRules) {
@@ -36,14 +44,6 @@ class HunspellAffixRuleIndex {
       (_prefixByHead[key] ??= []).add(rule);
     }
   }
-
-  /// Suffix rules bucketed by the last character of their `append`, with
-  /// the empty-`append` rules filed under the empty string key.
-  final Map<String, List<HunspellAffixRule>> _suffixByTail;
-
-  /// Prefix rules bucketed by the first character of their `append`, with
-  /// the empty-`append` rules filed under the empty string key.
-  final Map<String, List<HunspellAffixRule>> _prefixByHead;
 
   /// The suffix rules worth trying against [form]: those whose `append`
   /// ends in [form]'s last character, plus every empty-`append` rule.

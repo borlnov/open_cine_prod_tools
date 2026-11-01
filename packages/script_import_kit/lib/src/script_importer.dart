@@ -23,17 +23,17 @@ import 'package:script_import_kit/src/readers/fdx_script_reader.dart';
 /// ([ScriptImportFormat.fountain] only exists so that a caller can name
 /// that case).
 class ScriptImporter {
-  /// Creates a [ScriptImporter].
-  const ScriptImporter({
-    this.finalDraftReader = const FdxScriptReader(),
-    this.celtxReader = const CeltxScriptReader(),
-  });
-
   /// The reader used for a Final Draft file.
   final FdxScriptReader finalDraftReader;
 
   /// The reader used for a Celtx project.
   final CeltxScriptReader celtxReader;
+
+  /// Creates a [ScriptImporter].
+  const ScriptImporter({
+    this.finalDraftReader = const FdxScriptReader(),
+    this.celtxReader = const CeltxScriptReader(),
+  });
 
   /// Reads the screenplay held in [bytes], picking the reader from
   /// [fileName]'s extension.

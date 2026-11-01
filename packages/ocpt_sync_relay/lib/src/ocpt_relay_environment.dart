@@ -41,14 +41,6 @@ const defaultRelayDbPath = 'relay.sqlite';
 /// `bin/ocpt_sync_relay.dart`'s job, via `shelf_io.serve(binding.server.handler, ...)` — so this
 /// wiring stays coverable by a plain test that never opens a socket either.
 class OcptRelayBinding {
-  /// Pairs [server] with the [store] backing it and the [port] it was resolved to listen on.
-  const OcptRelayBinding({
-    required this.server,
-    required this.store,
-    required this.port,
-    required this.dbPath,
-  });
-
   /// The constructed relay server, ready to be handed to `shelf_io.serve`.
   final OcptRelayServer server;
 
@@ -64,6 +56,14 @@ class OcptRelayBinding {
   /// (or [defaultRelayDbPath] when it was unset). Safe to log at startup — unlike the enrolment
   /// secret, it carries no credential.
   final String dbPath;
+
+  /// Pairs [server] with the [store] backing it and the [port] it was resolved to listen on.
+  const OcptRelayBinding({
+    required this.server,
+    required this.store,
+    required this.port,
+    required this.dbPath,
+  });
 }
 
 /// Reads [environment] (typically `Platform.environment`) and builds an [OcptRelayServer] and the

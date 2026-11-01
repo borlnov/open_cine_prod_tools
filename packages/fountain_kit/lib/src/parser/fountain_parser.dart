@@ -14,11 +14,6 @@ import 'package:fountain_kit/src/parser/fountain_line_classifier.dart';
 /// the title page pre-pass, before it is frozen into an immutable
 /// [FountainTitlePageEntry].
 class _PendingTitleEntry {
-  /// Creates a [_PendingTitleEntry] starting at [startLine].
-  _PendingTitleEntry({required this.key, required this.startLine})
-    : values = [],
-      endLine = startLine;
-
   /// The entry key, exactly as written in the source.
   final String key;
 
@@ -30,19 +25,16 @@ class _PendingTitleEntry {
 
   /// The global line number of the last value line accumulated so far.
   int endLine;
+
+  /// Creates a [_PendingTitleEntry] starting at [startLine].
+  _PendingTitleEntry({required this.key, required this.startLine})
+    : values = [],
+      endLine = startLine;
 }
 
 /// A boneyard or standalone-note span found by a pre-pass, still expressed
 /// in raw offsets before it is turned into a [FountainBlock].
 class _ScrubbedSpan {
-  /// Creates a [_ScrubbedSpan].
-  const _ScrubbedSpan({
-    required this.startOffset,
-    required this.endOffset,
-    required this.text,
-    required this.isBoneyard,
-  });
-
   /// The character offset, in the document source, of the first character
   /// of this span (including its markers).
   final int startOffset;
@@ -57,6 +49,14 @@ class _ScrubbedSpan {
   /// Whether this span is a boneyard comment (`true`) or a standalone note
   /// (`false`).
   final bool isBoneyard;
+
+  /// Creates a [_ScrubbedSpan].
+  const _ScrubbedSpan({
+    required this.startOffset,
+    required this.endOffset,
+    required this.text,
+    required this.isBoneyard,
+  });
 }
 
 /// Parses Fountain screenplay source text into a [FountainDocument].
@@ -77,9 +77,6 @@ class _ScrubbedSpan {
 /// incremental `reparseRange` entry point that only redoes the passes for a
 /// changed region of the document.
 class FountainParser {
-  /// Creates a [FountainParser].
-  const FountainParser();
-
   /// Matches a title page key at the start of a line, for example `Draft
   /// date` in `Draft date: 1/1/2026`.
   static final RegExp _titleKeyPattern = RegExp('^([A-Za-z][A-Za-z0-9 ]*):');
@@ -90,6 +87,9 @@ class FountainParser {
   /// Matches an inline or standalone authoring note, possibly spanning
   /// several lines.
   static final RegExp _notePattern = RegExp(r'\[\[[\s\S]*?\]\]');
+
+  /// Creates a [FountainParser].
+  const FountainParser();
 
   /// Parses [source] into a [FountainDocument].
   FountainDocument parse(String source) {

@@ -12,6 +12,10 @@
 /// a `.` that merely appears *inside* a longer condition (where it does
 /// mean "any one character" at that position, like every other atom).
 class HunspellAffixCondition {
+  /// The compiled atoms, one per matched position, or `null` for the
+  /// unconditional (bare `.`) condition.
+  final List<_HunspellConditionAtom>? _atoms;
+
   /// Creates a [HunspellAffixCondition]. Prefer [HunspellAffixCondition.parse].
   const HunspellAffixCondition._(this._atoms);
 
@@ -47,10 +51,6 @@ class HunspellAffixCondition {
     return HunspellAffixCondition._(atoms);
   }
 
-  /// The compiled atoms, one per matched position, or `null` for the
-  /// unconditional (bare `.`) condition.
-  final List<_HunspellConditionAtom>? _atoms;
-
   /// Whether [stem] satisfies this condition when checked at its end (the
   /// position a `SFX` rule's condition is defined to match).
   bool matchesEnd(String stem) => _matches(stem, fromEnd: true);
@@ -82,6 +82,15 @@ class HunspellAffixCondition {
 /// character (hunspell's `.` standing for "any character" even mid
 /// condition), or a `[abc]`/`[^abc]` class.
 class _HunspellConditionAtom {
+  /// The literal character this atom matches, or `null` for a class atom.
+  final String? _literal;
+
+  /// The class this atom tests membership of, or `null` for a literal atom.
+  final Set<String>? _members;
+
+  /// Whether [_members] is negated (a `[^...]` class).
+  final bool _negated;
+
   /// Creates an atom matching exactly [literal], or any character at all
   /// if [literal] is `.`.
   const _HunspellConditionAtom.literal(String literal)
@@ -95,15 +104,6 @@ class _HunspellConditionAtom {
     : _literal = null,
       _members = members,
       _negated = negated;
-
-  /// The literal character this atom matches, or `null` for a class atom.
-  final String? _literal;
-
-  /// The class this atom tests membership of, or `null` for a literal atom.
-  final Set<String>? _members;
-
-  /// Whether [_members] is negated (a `[^...]` class).
-  final bool _negated;
 
   /// Whether this atom matches the single character [char].
   bool matches(String char) {

@@ -15,11 +15,6 @@ import 'package:meta/meta.dart';
 /// them for its own non-`Equatable` types.
 @immutable
 class SpellRange {
-  /// Creates a [SpellRange] covering `[start, end)`.
-  const SpellRange(this.start, this.end)
-    : assert(start >= 0, 'start must not be negative'),
-      assert(end >= start, 'end must not precede start');
-
   /// The offset of the first UTF-16 code unit covered by this range.
   final int start;
 
@@ -27,10 +22,15 @@ class SpellRange {
   final int end;
 
   @override
-  bool operator ==(Object other) => other is SpellRange && other.start == start && other.end == end;
+  int get hashCode => Object.hash(start, end);
+
+  /// Creates a [SpellRange] covering `[start, end)`.
+  const SpellRange(this.start, this.end)
+    : assert(start >= 0, 'start must not be negative'),
+      assert(end >= start, 'end must not precede start');
 
   @override
-  int get hashCode => Object.hash(start, end);
+  bool operator ==(Object other) => other is SpellRange && other.start == start && other.end == end;
 
   @override
   String toString() => 'SpellRange($start, $end)';

@@ -25,17 +25,6 @@ import 'package:fountain_kit/src/parser/fountain_line_type.dart';
 /// inches (not columns) because the PDF renderer's own math is in
 /// inches-to-points.
 class FountainScriptLine extends Equatable {
-  /// Creates a [FountainScriptLine].
-  const FountainScriptLine({
-    required this.runs,
-    required this.lineType,
-    required this.leftIndentInches,
-    required this.alignment,
-    required this.isSceneHeading,
-    this.sceneNumber,
-    this.isSynthetic = false,
-  });
-
   /// The line's text, already split into inline-styled runs. Empty for a
   /// blank spacer line or a preserved blank dialogue line (both are real,
   /// distinct lines that still occupy one row of the page).
@@ -107,6 +96,22 @@ class FountainScriptLine extends Equatable {
     return result;
   }
 
+  /// Creates a [FountainScriptLine].
+  const FountainScriptLine({
+    required this.runs,
+    required this.lineType,
+    required this.leftIndentInches,
+    required this.alignment,
+    required this.isSceneHeading,
+    this.sceneNumber,
+    this.isSynthetic = false,
+  });
+
+  @override
+  String toString() =>
+      'FountainScriptLine($lineType, "$plainText", '
+      'indent: ${leftIndentInches}in)';
+
   @override
   List<Object?> get props => [
     runs,
@@ -117,9 +122,4 @@ class FountainScriptLine extends Equatable {
     sceneNumber,
     isSynthetic,
   ];
-
-  @override
-  String toString() =>
-      'FountainScriptLine($lineType, "$plainText", '
-      'indent: ${leftIndentInches}in)';
 }

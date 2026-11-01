@@ -26,16 +26,6 @@ import 'package:fountain_kit/src/models/fountain_source_range.dart';
 /// came from, which keeps every existing round-trip and wrapping test
 /// comparing runs by content alone.
 class FountainStyledRun extends Equatable {
-  /// Creates a [FountainStyledRun].
-  const FountainStyledRun({
-    required this.text,
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUnderline = false,
-    this.isNote = false,
-    this.sourceRange,
-  });
-
   /// The run's text.
   ///
   /// For an emphasis run (any combination of [isBold], [isItalic],
@@ -76,8 +66,15 @@ class FountainStyledRun extends Equatable {
   /// assume the two are the same scale.
   final FountainSourceRange? sourceRange;
 
-  @override
-  List<Object?> get props => [text, isBold, isItalic, isUnderline, isNote];
+  /// Creates a [FountainStyledRun].
+  const FountainStyledRun({
+    required this.text,
+    this.isBold = false,
+    this.isItalic = false,
+    this.isUnderline = false,
+    this.isNote = false,
+    this.sourceRange,
+  });
 
   @override
   String toString() {
@@ -90,4 +87,7 @@ class FountainStyledRun extends Equatable {
     final style = flags.isEmpty ? 'plain' : flags.join('+');
     return 'FountainStyledRun($style, "$text")';
   }
+
+  @override
+  List<Object?> get props => [text, isBold, isItalic, isUnderline, isNote];
 }

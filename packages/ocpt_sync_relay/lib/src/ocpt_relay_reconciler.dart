@@ -29,14 +29,14 @@ import 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';
 /// known to either side is a no-op to re-send, so reconciling twice, or against a cursor reset to
 /// zero, converges to the same state as reconciling once.
 class OcptRelayReconciler {
-  /// Creates a reconciler moving changesets between [store] (this relay's own) and [upstream].
-  const OcptRelayReconciler({required this.store, required this.upstream});
-
   /// This relay's own storage — where a push reads from and a pull writes to.
   final OcptRelayStore store;
 
   /// The upstream relay this reconciler pushes to and pulls from.
   final OcptRelayUpstreamClient upstream;
+
+  /// Creates a reconciler moving changesets between [store] (this relay's own) and [upstream].
+  const OcptRelayReconciler({required this.store, required this.upstream});
 
   /// Reconciles [projectId]'s changeset log with [upstream]: first push, then pull, then save the
   /// cursors this run advanced. [enrolmentSecret] is forwarded to every push

@@ -14,15 +14,15 @@ import 'package:script_import_kit/src/models/script_import_failure.dart';
 /// caller's job, driven by [failure].
 @immutable
 class ScriptImportException implements Exception {
-  /// Creates a [ScriptImportException].
-  const ScriptImportException(this.failure, {this.details});
-
   /// Why the file could not be read.
   final ScriptImportFailure failure;
 
   /// Developer-facing context about the failure, or `null` when there is
   /// nothing to add to [failure] itself.
   final String? details;
+
+  /// Creates a [ScriptImportException].
+  const ScriptImportException(this.failure, {this.details});
 
   @override
   String toString() {

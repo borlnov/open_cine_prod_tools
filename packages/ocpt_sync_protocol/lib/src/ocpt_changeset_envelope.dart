@@ -20,47 +20,6 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// looks inside it — a relay built against this protocol never learns a table name, a column
 /// name or a row id.
 class OcptChangesetEnvelope extends Equatable {
-  /// Creates an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
-  /// every envelope this build writes should carry; a caller decoding one off the wire uses
-  /// [OcptChangesetEnvelope.fromJson] instead, which reads the format the envelope actually
-  /// declares.
-  const OcptChangesetEnvelope({
-    required this.changesetId,
-    required this.originDeviceId,
-    required this.lamport,
-    required this.createdAt,
-    required this.payload,
-    this.protocolFormat = currentProtocolFormat,
-  });
-
-  /// Parses an envelope from the JSON object a relay stores or transmits it as.
-  ///
-  /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `protocolFormat` is newer than
-  /// [currentProtocolFormat] — this build cannot know what such an envelope means and refuses to
-  /// guess — and [OcptSyncMalformedDataError] when a required field is missing or of the wrong
-  /// type. An **older** `protocolFormat` is accepted: per
-  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s sibling rule for this
-  /// protocol, no stable release has shipped yet, so there is no older shape to upgrade from
-  /// today, and the fields below are simply read as they are.
-  factory OcptChangesetEnvelope.fromJson(Map<String, dynamic> json) {
-    final protocolFormat = OcptSyncWireJson.integer(json, _protocolFormatKey);
-    if (protocolFormat > currentProtocolFormat) {
-      throw OcptSyncUnsupportedFormatError(
-        subject: 'changeset envelope',
-        foundFormat: protocolFormat,
-        knownUpTo: currentProtocolFormat,
-      );
-    }
-    return OcptChangesetEnvelope(
-      changesetId: OcptSyncWireJson.string(json, _changesetIdKey),
-      originDeviceId: OcptSyncWireJson.string(json, _originDeviceIdKey),
-      lamport: OcptSyncWireJson.integer(json, _lamportKey),
-      createdAt: OcptSyncWireJson.dateTime(json, _createdAtKey),
-      payload: base64Decode(OcptSyncWireJson.string(json, _payloadKey)),
-      protocolFormat: protocolFormat,
-    );
-  }
-
   /// The wire format this build writes, and the highest one it can read.
   ///
   /// Mirrors the overwrite-vs-create discipline `OcptProjectVersionCodec.currentPayloadFormat`
@@ -103,6 +62,47 @@ class OcptChangesetEnvelope extends Equatable {
   /// The wire format this envelope declares itself to be written in.
   final int protocolFormat;
 
+  /// Creates an envelope. [protocolFormat] defaults to [currentProtocolFormat], which is what
+  /// every envelope this build writes should carry; a caller decoding one off the wire uses
+  /// [OcptChangesetEnvelope.fromJson] instead, which reads the format the envelope actually
+  /// declares.
+  const OcptChangesetEnvelope({
+    required this.changesetId,
+    required this.originDeviceId,
+    required this.lamport,
+    required this.createdAt,
+    required this.payload,
+    this.protocolFormat = currentProtocolFormat,
+  });
+
+  /// Parses an envelope from the JSON object a relay stores or transmits it as.
+  ///
+  /// Throws [OcptSyncUnsupportedFormatError] when [json]'s `protocolFormat` is newer than
+  /// [currentProtocolFormat] — this build cannot know what such an envelope means and refuses to
+  /// guess — and [OcptSyncMalformedDataError] when a required field is missing or of the wrong
+  /// type. An **older** `protocolFormat` is accepted: per
+  /// `docs/adr/0029-schema-versions-frozen-at-stable-releases.md`'s sibling rule for this
+  /// protocol, no stable release has shipped yet, so there is no older shape to upgrade from
+  /// today, and the fields below are simply read as they are.
+  factory OcptChangesetEnvelope.fromJson(Map<String, dynamic> json) {
+    final protocolFormat = OcptSyncWireJson.integer(json, _protocolFormatKey);
+    if (protocolFormat > currentProtocolFormat) {
+      throw OcptSyncUnsupportedFormatError(
+        subject: 'changeset envelope',
+        foundFormat: protocolFormat,
+        knownUpTo: currentProtocolFormat,
+      );
+    }
+    return OcptChangesetEnvelope(
+      changesetId: OcptSyncWireJson.string(json, _changesetIdKey),
+      originDeviceId: OcptSyncWireJson.string(json, _originDeviceIdKey),
+      lamport: OcptSyncWireJson.integer(json, _lamportKey),
+      createdAt: OcptSyncWireJson.dateTime(json, _createdAtKey),
+      payload: base64Decode(OcptSyncWireJson.string(json, _payloadKey)),
+      protocolFormat: protocolFormat,
+    );
+  }
+
   /// Serialises this envelope to the JSON object a relay stores or transmits it as.
   Map<String, dynamic> toJson() => {
     _changesetIdKey: changesetId,
@@ -114,6 +114,12 @@ class OcptChangesetEnvelope extends Equatable {
   };
 
   @override
+  String toString() =>
+      'OcptChangesetEnvelope(changesetId: $changesetId, originDeviceId: $originDeviceId, '
+      'lamport: $lamport, createdAt: $createdAt, payload: ${payload.length} bytes, '
+      'protocolFormat: $protocolFormat)';
+
+  @override
   List<Object?> get props => [
     changesetId,
     originDeviceId,
@@ -122,10 +128,4 @@ class OcptChangesetEnvelope extends Equatable {
     payload,
     protocolFormat,
   ];
-
-  @override
-  String toString() =>
-      'OcptChangesetEnvelope(changesetId: $changesetId, originDeviceId: $originDeviceId, '
-      'lamport: $lamport, createdAt: $createdAt, payload: ${payload.length} bytes, '
-      'protocolFormat: $protocolFormat)';
 }

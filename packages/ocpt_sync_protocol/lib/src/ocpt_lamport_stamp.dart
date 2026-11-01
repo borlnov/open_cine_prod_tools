@@ -14,15 +14,15 @@ import 'package:equatable/equatable.dart';
 /// device-local Lamport counter, never a relay `OcptSequenceNumber`: a relay's own counter cannot
 /// play this role once a set relay and a prep relay both assign sequence numbers on the same day.
 class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp> {
-  /// Creates a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
-  /// moment of the write it describes.
-  const OcptLamportStamp({required this.version, required this.deviceId});
-
   /// The device-local Lamport counter reached at the moment of the write this stamp describes.
   final int version;
 
   /// The device that made the write this stamp describes.
   final String deviceId;
+
+  /// Creates a stamp from the device-local Lamport counter [version] reached by [deviceId] at the
+  /// moment of the write it describes.
+  const OcptLamportStamp({required this.version, required this.deviceId});
 
   /// Orders this stamp against [other]: a higher [version] sorts after a lower one, and two equal
   /// versions are ordered by comparing [deviceId] lexicographically.
@@ -40,8 +40,8 @@ class OcptLamportStamp extends Equatable implements Comparable<OcptLamportStamp>
   bool wins(OcptLamportStamp other) => compareTo(other) > 0;
 
   @override
-  List<Object?> get props => [version, deviceId];
+  String toString() => 'OcptLamportStamp(version: $version, deviceId: $deviceId)';
 
   @override
-  String toString() => 'OcptLamportStamp(version: $version, deviceId: $deviceId)';
+  List<Object?> get props => [version, deviceId];
 }

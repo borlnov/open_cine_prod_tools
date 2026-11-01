@@ -15,6 +15,37 @@ import 'package:ocpt_sync_protocol/src/ocpt_sync_wire_json.dart';
 /// Defined alongside the rest of the wire format, so that snapshot upload and download add no
 /// protocol churn on top of what the changeset log already committed to.
 class OcptSnapshotDescriptor extends Equatable {
+  /// The wire format this build writes, and the highest one it can read.
+  ///
+  /// Independent of `OcptChangesetEnvelope.currentProtocolFormat`: a snapshot and a changeset
+  /// evolve for different reasons and are read at different times, exactly as
+  /// `OcptProjectVersionCodec.currentPayloadFormat` is kept independent of the database's own
+  /// schema version.
+  static const currentSnapshotFormat = 1;
+
+  static const _snapshotIdKey = 'snapshotId';
+  static const _sequenceUpToKey = 'sequenceUpTo';
+  static const _byteLengthKey = 'byteLength';
+  static const _contentDigestKey = 'contentDigest';
+  static const _snapshotFormatKey = 'snapshotFormat';
+
+  /// The UUID identifying this snapshot.
+  final String snapshotId;
+
+  /// The last sequence number this snapshot already reflects: a replica that has read up to this
+  /// position can skip straight to whatever comes after, instead of replaying the whole log.
+  final OcptSequenceNumber sequenceUpTo;
+
+  /// The size, in bytes, of the snapshot's own opaque payload — not carried by this descriptor,
+  /// only sized by it — as stored by the relay's snapshot route.
+  final int byteLength;
+
+  /// A digest of the snapshot's own bytes, for a replica to verify what it downloads.
+  final String contentDigest;
+
+  /// The wire format this descriptor declares itself to be written in.
+  final int snapshotFormat;
+
   /// Creates a descriptor. [snapshotFormat] defaults to [currentSnapshotFormat], which is what
   /// every snapshot this build writes should carry; a caller decoding one off the wire uses
   /// [OcptSnapshotDescriptor.fromJson] instead, which reads the format the descriptor actually
@@ -52,37 +83,6 @@ class OcptSnapshotDescriptor extends Equatable {
     );
   }
 
-  /// The wire format this build writes, and the highest one it can read.
-  ///
-  /// Independent of `OcptChangesetEnvelope.currentProtocolFormat`: a snapshot and a changeset
-  /// evolve for different reasons and are read at different times, exactly as
-  /// `OcptProjectVersionCodec.currentPayloadFormat` is kept independent of the database's own
-  /// schema version.
-  static const currentSnapshotFormat = 1;
-
-  static const _snapshotIdKey = 'snapshotId';
-  static const _sequenceUpToKey = 'sequenceUpTo';
-  static const _byteLengthKey = 'byteLength';
-  static const _contentDigestKey = 'contentDigest';
-  static const _snapshotFormatKey = 'snapshotFormat';
-
-  /// The UUID identifying this snapshot.
-  final String snapshotId;
-
-  /// The last sequence number this snapshot already reflects: a replica that has read up to this
-  /// position can skip straight to whatever comes after, instead of replaying the whole log.
-  final OcptSequenceNumber sequenceUpTo;
-
-  /// The size, in bytes, of the snapshot's own opaque payload — not carried by this descriptor,
-  /// only sized by it — as stored by the relay's snapshot route.
-  final int byteLength;
-
-  /// A digest of the snapshot's own bytes, for a replica to verify what it downloads.
-  final String contentDigest;
-
-  /// The wire format this descriptor declares itself to be written in.
-  final int snapshotFormat;
-
   /// Serialises this descriptor to the JSON object a relay stores or transmits it as.
   Map<String, dynamic> toJson() => {
     _snapshotIdKey: snapshotId,
@@ -93,10 +93,10 @@ class OcptSnapshotDescriptor extends Equatable {
   };
 
   @override
-  List<Object?> get props => [snapshotId, sequenceUpTo, byteLength, contentDigest, snapshotFormat];
-
-  @override
   String toString() =>
       'OcptSnapshotDescriptor(snapshotId: $snapshotId, sequenceUpTo: $sequenceUpTo, '
       'byteLength: $byteLength, contentDigest: $contentDigest, snapshotFormat: $snapshotFormat)';
+
+  @override
+  List<Object?> get props => [snapshotId, sequenceUpTo, byteLength, contentDigest, snapshotFormat];
 }

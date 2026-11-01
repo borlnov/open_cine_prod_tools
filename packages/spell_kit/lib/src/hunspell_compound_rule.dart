@@ -9,9 +9,9 @@ import 'package:spell_kit/src/hunspell_compound_rule_element.dart';
 /// piece drawn from the dictionary and carrying the matching element's
 /// flag.
 class HunspellCompoundRule {
-  /// Creates a [HunspellCompoundRule].
-  const HunspellCompoundRule(this.elements);
-
   /// The pattern's elements, in the order they must be matched.
   final List<HunspellCompoundRuleElement> elements;
+
+  /// Creates a [HunspellCompoundRule].
+  const HunspellCompoundRule(this.elements);
 }

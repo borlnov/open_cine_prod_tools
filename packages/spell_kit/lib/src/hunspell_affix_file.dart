@@ -18,6 +18,95 @@ import 'package:spell_kit/src/hunspell_rep_rule.dart';
 /// rescanning earlier lines to find it — rescanning backwards for every
 /// rule line is what made a throw-away spike's French load cost 621 ms.
 class HunspellAffixFile {
+  /// Hunspell's documented default `BREAK` set, in force whenever a `.aff`
+  /// file declares no `BREAK` directive at all (an explicit `BREAK 0` is a
+  /// different thing: it means no breaking, and is represented as an empty
+  /// [breakPatterns] rather than falling back to this default).
+  static final List<HunspellBreakPattern> _defaultBreakPatterns = [
+    _parseBreakPattern('-'),
+    _parseBreakPattern('^-'),
+    _parseBreakPattern(r'-$'),
+  ];
+
+  /// Whether flags are two characters wide (`FLAG long`) rather than one.
+  ///
+  /// Hunspell's other two widths, `num` (decimal flag numbers separated by
+  /// commas) and `UTF-8` (a single UTF-8-encoded character), are used by
+  /// neither bundled dictionary; a `FLAG` value other than `long` is
+  /// treated as the single-character default.
+  final bool flagLong;
+
+  /// The characters tried, in order, when generating a one-edit suggestion.
+  final String tryChars;
+
+  /// Extra characters (beyond letters) a word may be made of, as declared
+  /// by `WORDCHARS`.
+  final String wordChars;
+
+  /// Each `MAP` group: a run of characters the suggester treats as mutually
+  /// interchangeable (typically a base letter and its accented forms).
+  final List<String> mapGroups;
+
+  /// The `REP` substitution table, in the file's own declared order.
+  final List<HunspellRepRule> repRules;
+
+  /// The `ICONV` table, applied to a word before every lookup.
+  final List<HunspellConvRule> iconvRules;
+
+  /// The `OCONV` table. Parsed and exposed, but never applied by this
+  /// package: a suggestion is inserted into the writer's own text, and
+  /// silently converting, for example, `'` to `’` would be an edit the
+  /// writer never asked for.
+  final List<HunspellConvRule> oconvRules;
+
+  /// The flag marking a dictionary entry as valid but never suggested, or
+  /// `null` if the file declares none.
+  final String? noSuggestFlag;
+
+  /// The flag marking a dictionary entry as not a word by itself — only
+  /// valid once an affix has applied to it — or `null` if the file
+  /// declares none.
+  final String? needAffixFlag;
+
+  /// The flag marking a prefix or suffix rule as usable only alongside its
+  /// circumfix partner, or `null` if the file declares none.
+  final String? circumfixFlag;
+
+  /// The flag marking a dictionary entry as matching only its exact typed
+  /// casing, or `null` if the file declares none.
+  final String? keepCaseFlag;
+
+  /// The flag marking a dictionary entry as never known, however it is
+  /// typed, or `null` if the file declares none.
+  final String? forbiddenWordFlag;
+
+  /// The flag marking a dictionary entry as usable only as a
+  /// `COMPOUNDRULE` piece, never bare and never as an affix stem, or `null`
+  /// if the file declares none.
+  final String? onlyInCompoundFlag;
+
+  /// Whether a `PFX`/`SFX` rule's `strip` may consume an entire stem,
+  /// leaving nothing of the original word before the affix was applied.
+  final bool fullStrip;
+
+  /// The minimum length, in characters, of every piece of a
+  /// `COMPOUNDRULE` match (hunspell's default is 3).
+  final int compoundMin;
+
+  /// The parsed `COMPOUNDRULE` patterns.
+  final List<HunspellCompoundRule> compoundRules;
+
+  /// The effective `BREAK` patterns: either the file's own, an explicit
+  /// empty list for a declared `BREAK 0`, or [_defaultBreakPatterns] when
+  /// the file declares no `BREAK` directive at all.
+  final List<HunspellBreakPattern> breakPatterns;
+
+  /// Every parsed `PFX` rule, across every flag.
+  final List<HunspellAffixRule> prefixRules;
+
+  /// Every parsed `SFX` rule, across every flag.
+  final List<HunspellAffixRule> suffixRules;
+
   /// Creates a [HunspellAffixFile]. Prefer [HunspellAffixFile.parse].
   const HunspellAffixFile({
     required this.flagLong,
@@ -208,95 +297,6 @@ class HunspellAffixFile {
     );
   }
 
-  /// Hunspell's documented default `BREAK` set, in force whenever a `.aff`
-  /// file declares no `BREAK` directive at all (an explicit `BREAK 0` is a
-  /// different thing: it means no breaking, and is represented as an empty
-  /// [breakPatterns] rather than falling back to this default).
-  static final List<HunspellBreakPattern> _defaultBreakPatterns = [
-    _parseBreakPattern('-'),
-    _parseBreakPattern('^-'),
-    _parseBreakPattern(r'-$'),
-  ];
-
-  /// Whether flags are two characters wide (`FLAG long`) rather than one.
-  ///
-  /// Hunspell's other two widths, `num` (decimal flag numbers separated by
-  /// commas) and `UTF-8` (a single UTF-8-encoded character), are used by
-  /// neither bundled dictionary; a `FLAG` value other than `long` is
-  /// treated as the single-character default.
-  final bool flagLong;
-
-  /// The characters tried, in order, when generating a one-edit suggestion.
-  final String tryChars;
-
-  /// Extra characters (beyond letters) a word may be made of, as declared
-  /// by `WORDCHARS`.
-  final String wordChars;
-
-  /// Each `MAP` group: a run of characters the suggester treats as mutually
-  /// interchangeable (typically a base letter and its accented forms).
-  final List<String> mapGroups;
-
-  /// The `REP` substitution table, in the file's own declared order.
-  final List<HunspellRepRule> repRules;
-
-  /// The `ICONV` table, applied to a word before every lookup.
-  final List<HunspellConvRule> iconvRules;
-
-  /// The `OCONV` table. Parsed and exposed, but never applied by this
-  /// package: a suggestion is inserted into the writer's own text, and
-  /// silently converting, for example, `'` to `’` would be an edit the
-  /// writer never asked for.
-  final List<HunspellConvRule> oconvRules;
-
-  /// The flag marking a dictionary entry as valid but never suggested, or
-  /// `null` if the file declares none.
-  final String? noSuggestFlag;
-
-  /// The flag marking a dictionary entry as not a word by itself — only
-  /// valid once an affix has applied to it — or `null` if the file
-  /// declares none.
-  final String? needAffixFlag;
-
-  /// The flag marking a prefix or suffix rule as usable only alongside its
-  /// circumfix partner, or `null` if the file declares none.
-  final String? circumfixFlag;
-
-  /// The flag marking a dictionary entry as matching only its exact typed
-  /// casing, or `null` if the file declares none.
-  final String? keepCaseFlag;
-
-  /// The flag marking a dictionary entry as never known, however it is
-  /// typed, or `null` if the file declares none.
-  final String? forbiddenWordFlag;
-
-  /// The flag marking a dictionary entry as usable only as a
-  /// `COMPOUNDRULE` piece, never bare and never as an affix stem, or `null`
-  /// if the file declares none.
-  final String? onlyInCompoundFlag;
-
-  /// Whether a `PFX`/`SFX` rule's `strip` may consume an entire stem,
-  /// leaving nothing of the original word before the affix was applied.
-  final bool fullStrip;
-
-  /// The minimum length, in characters, of every piece of a
-  /// `COMPOUNDRULE` match (hunspell's default is 3).
-  final int compoundMin;
-
-  /// The parsed `COMPOUNDRULE` patterns.
-  final List<HunspellCompoundRule> compoundRules;
-
-  /// The effective `BREAK` patterns: either the file's own, an explicit
-  /// empty list for a declared `BREAK 0`, or [_defaultBreakPatterns] when
-  /// the file declares no `BREAK` directive at all.
-  final List<HunspellBreakPattern> breakPatterns;
-
-  /// Every parsed `PFX` rule, across every flag.
-  final List<HunspellAffixRule> prefixRules;
-
-  /// Every parsed `SFX` rule, across every flag.
-  final List<HunspellAffixRule> suffixRules;
-
   /// Whether [flags] (a dictionary entry's or a rule's raw, concatenated
   /// flag string) contains [flag], striding one or two characters at a
   /// time depending on [flagLong].
@@ -317,14 +317,6 @@ class HunspellAffixFile {
 /// The state carried forward while a `PFX`/`SFX` block's rule lines are
 /// being read, remembered rather than re-derived from earlier lines.
 class _PendingAffixBlock {
-  /// Creates a [_PendingAffixBlock] for a just-read header line.
-  _PendingAffixBlock({
-    required this.kind,
-    required this.flag,
-    required this.crossProduct,
-    required this.remaining,
-  });
-
   /// `'PFX'` or `'SFX'`.
   final String kind;
 
@@ -336,19 +328,27 @@ class _PendingAffixBlock {
 
   /// How many more rule lines are expected before this block closes.
   int remaining;
+
+  /// Creates a [_PendingAffixBlock] for a just-read header line.
+  _PendingAffixBlock({
+    required this.kind,
+    required this.flag,
+    required this.crossProduct,
+    required this.remaining,
+  });
 }
 
 /// The state carried forward while a counted block (`MAP`, `REP`, `ICONV`,
 /// `OCONV`, `BREAK`, `COMPOUNDRULE`) is being read.
 class _PendingCountedBlock {
-  /// Creates a [_PendingCountedBlock] for a just-read header line.
-  _PendingCountedBlock({required this.remaining, required this.onLine});
-
   /// How many more data lines are expected before this block closes.
   int remaining;
 
   /// Called with each data line's value (the keyword already stripped).
   final void Function(String line) onLine;
+
+  /// Creates a [_PendingCountedBlock] for a just-read header line.
+  _PendingCountedBlock({required this.remaining, required this.onLine});
 }
 
 /// Returns the part of [line] after its first whitespace-delimited token
@@ -362,14 +362,6 @@ String _valueAfterKeyword(String line) {
 /// rule line, before the append text and continuation flags have been
 /// pulled apart from each other.
 class _ParsedAffixRuleLine {
-  /// Creates a [_ParsedAffixRuleLine].
-  const _ParsedAffixRuleLine({
-    required this.strip,
-    required this.append,
-    required this.continuationFlags,
-    required this.condition,
-  });
-
   /// The text to strip (empty for hunspell's `0`).
   final String strip;
 
@@ -382,6 +374,14 @@ class _ParsedAffixRuleLine {
 
   /// The raw (not yet compiled) condition text.
   final String condition;
+
+  /// Creates a [_ParsedAffixRuleLine].
+  const _ParsedAffixRuleLine({
+    required this.strip,
+    required this.append,
+    required this.continuationFlags,
+    required this.condition,
+  });
 }
 
 /// Parses one `PFX`/`SFX` rule line's fields, given [line] with the block's

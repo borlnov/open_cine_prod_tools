@@ -41,26 +41,26 @@ enum _WordCase {
 /// One case-folded form of a typed word tried against the dictionary, and
 /// whether it is the word exactly as typed.
 class _CaseCandidate {
-  /// Creates a [_CaseCandidate].
-  const _CaseCandidate({required this.form, required this.isExactTyped});
-
   /// The form to look up.
   final String form;
 
   /// Whether [form] equals the word exactly as the writer typed it. A
   /// `KEEPCASE`-flagged entry may only be matched by such a candidate.
   final bool isExactTyped;
+
+  /// Creates a [_CaseCandidate].
+  const _CaseCandidate({required this.form, required this.isExactTyped});
 }
 
 /// The outcome of a successful dictionary lookup (bare, single-affix, or
 /// cross-product): the flags of the entry that ultimately matched, needed
 /// to honour `KEEPCASE`.
 class _LookupResult {
-  /// Creates a [_LookupResult].
-  const _LookupResult(this.flags);
-
   /// The matched entry's raw, concatenated flag string.
   final String flags;
+
+  /// Creates a [_LookupResult].
+  const _LookupResult(this.flags);
 }
 
 /// Checks whether a word is known to a [SpellDictionary].
@@ -72,14 +72,6 @@ class _LookupResult {
 /// that a lookup considers a few dozen candidate rules instead of every
 /// rule the dictionary declares.
 class SpellChecker {
-  /// Creates a [SpellChecker] over [dictionary].
-  SpellChecker(this.dictionary, {int memoCapacity = _defaultMemoCapacity})
-    : _memo = LinkedHashMap(),
-      _extraWordsExact = const {},
-      _extraWordsCaseInsensitive = const {},
-      ruleIndex = HunspellAffixRuleIndex(dictionary.affixFile),
-      _memoCapacity = memoCapacity;
-
   /// The dictionary this checker looks words up in.
   final SpellDictionary dictionary;
 
@@ -102,6 +94,14 @@ class SpellChecker {
 
   /// The lowercased form of every extra word with no interior capital.
   Set<String> _extraWordsCaseInsensitive;
+
+  /// Creates a [SpellChecker] over [dictionary].
+  SpellChecker(this.dictionary, {int memoCapacity = _defaultMemoCapacity})
+    : _memo = LinkedHashMap(),
+      _extraWordsExact = const {},
+      _extraWordsCaseInsensitive = const {},
+      ruleIndex = HunspellAffixRuleIndex(dictionary.affixFile),
+      _memoCapacity = memoCapacity;
 
   /// Sets the learned and ignored words a caller wants treated as known in
   /// addition to the dictionary itself.

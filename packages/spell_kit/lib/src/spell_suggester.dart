@@ -20,12 +20,12 @@ const int _defaultSuggestionLimit = 5;
 /// of the whole dictionary per request, for candidates the first two tiers
 /// already cover on a typo.
 class SpellSuggester {
+  /// The checker suggestions are validated against.
+  final SpellChecker checker;
+
   /// Creates a [SpellSuggester] using [checker] both to validate
   /// candidates and to read the dictionary they are drawn from.
   const SpellSuggester(this.checker);
-
-  /// The checker suggestions are validated against.
-  final SpellChecker checker;
 
   /// Suggests up to [limit] corrections for [word], deduplicated, with
   /// [word]'s own capitalisation carried onto each one.

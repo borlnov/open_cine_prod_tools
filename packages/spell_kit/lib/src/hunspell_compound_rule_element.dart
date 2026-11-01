@@ -8,12 +8,12 @@ import 'package:spell_kit/src/hunspell_compound_rule_quantifier.dart';
 /// One element of a [HunspellCompoundRule]'s pattern: a flag a compound
 /// piece must carry, and how many consecutive pieces may carry it.
 class HunspellCompoundRuleElement {
-  /// Creates a [HunspellCompoundRuleElement].
-  const HunspellCompoundRuleElement({required this.flag, required this.quantifier});
-
   /// The flag a compound piece must carry to satisfy this element.
   final String flag;
 
   /// How many consecutive pieces this element accepts.
   final HunspellCompoundRuleQuantifier quantifier;
+
+  /// Creates a [HunspellCompoundRuleElement].
+  const HunspellCompoundRuleElement({required this.flag, required this.quantifier});
 }

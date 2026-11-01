@@ -11,15 +11,6 @@
 /// means a replica or a relay talking to a newer peer reports a clear, typed reason instead of
 /// silently misreading bytes it does not understand.
 class OcptSyncUnsupportedFormatError implements Exception {
-  /// Creates an error reporting that [foundFormat] is newer than [knownUpTo], the highest format
-  /// this build of `ocpt_sync_protocol` can read, for the wire shape named by [subject] (for
-  /// example `"changeset envelope"` or `"snapshot descriptor"`).
-  const OcptSyncUnsupportedFormatError({
-    required this.subject,
-    required this.foundFormat,
-    required this.knownUpTo,
-  });
-
   /// Which wire shape declared the unsupported format, for example `"changeset envelope"`.
   final String subject;
 
@@ -28,6 +19,15 @@ class OcptSyncUnsupportedFormatError implements Exception {
 
   /// The highest format this build of the protocol can read.
   final int knownUpTo;
+
+  /// Creates an error reporting that [foundFormat] is newer than [knownUpTo], the highest format
+  /// this build of `ocpt_sync_protocol` can read, for the wire shape named by [subject] (for
+  /// example `"changeset envelope"` or `"snapshot descriptor"`).
+  const OcptSyncUnsupportedFormatError({
+    required this.subject,
+    required this.foundFormat,
+    required this.knownUpTo,
+  });
 
   @override
   String toString() =>

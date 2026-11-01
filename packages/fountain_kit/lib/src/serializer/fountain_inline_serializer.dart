@@ -27,14 +27,14 @@ import 'package:fountain_kit/src/parser/fountain_inline_parser.dart';
 /// cleanly. A lone marker character that does not pair up with anything
 /// (and so already round-trips as plain text) is never escaped.
 class FountainInlineSerializer {
-  /// Creates a [FountainInlineSerializer].
-  const FountainInlineSerializer();
-
   /// The marker tokens [write] recognizes, tried longest-first, matching
   /// [FountainInlineParser]'s own matching order.
   static const List<String> _markerTokens = ['***', '**', '*', '_'];
 
   static const FountainInlineParser _parser = FountainInlineParser();
+
+  /// Creates a [FountainInlineSerializer].
+  const FountainInlineSerializer();
 
   /// Renders [runs] as a single marked-up Fountain source line.
   String write(List<FountainStyledRun> runs) {
