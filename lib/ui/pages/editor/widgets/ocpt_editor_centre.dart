@@ -103,6 +103,13 @@ class OcptEditorCentre extends StatelessWidget {
       );
     }
 
+    // Read here, and closed over: the styled editor flushes its pending edit from its own
+    // `deactivate`, which runs after this widget was itself deactivated (the shell moves its centre
+    // between the row and the drawers, and leaving the page does the same), so a `context.read` made
+    // when the callback runs would look up an inactive element and lose the edit.
+    final editorBloc = context.read<OcptEditorBloc>();
+    final spellCheckBloc = context.read<OcptEditorSpellCheckBloc>();
+
     final editingSurface = isRawMode
         ? OcptEditorSourceField(
             controller: textController,
@@ -118,20 +125,13 @@ class OcptEditorCentre extends StatelessWidget {
             usesPaperColorsWhileFluid: isPhoneWidth,
             areSceneNumbersVisible: state.areStyledSceneNumbersVisible,
             isSpellCheckVisible: state.isSpellCheckVisible,
-            onTextChanged: (text) =>
-                context.read<OcptEditorBloc>().add(OcptEditorTextChangedEvent(text: text)),
-            onCaretLineChanged: (line) =>
-                context.read<OcptEditorBloc>().add(OcptEditorCaretMovedEvent(line: line)),
+            onTextChanged: (text) => editorBloc.add(OcptEditorTextChangedEvent(text: text)),
+            onCaretLineChanged: (line) => editorBloc.add(OcptEditorCaretMovedEvent(line: line)),
             jumpRequest: state.jumpRequest,
             styledController: styledController,
-            onSpellingSuggestionsRequested: (word) =>
-                context.read<OcptEditorSpellCheckBloc>().spellingSuggestionsFor(word),
-            onWordIgnored: (word) => context.read<OcptEditorSpellCheckBloc>().add(
-              OcptEditorWordIgnoredEvent(word: word),
-            ),
-            onWordLearned: (word) => context.read<OcptEditorSpellCheckBloc>().add(
-              OcptEditorWordLearnedEvent(word: word),
-            ),
+            onSpellingSuggestionsRequested: spellCheckBloc.spellingSuggestionsFor,
+            onWordIgnored: (word) => spellCheckBloc.add(OcptEditorWordIgnoredEvent(word: word)),
+            onWordLearned: (word) => spellCheckBloc.add(OcptEditorWordLearnedEvent(word: word)),
           );
 
     return Column(
