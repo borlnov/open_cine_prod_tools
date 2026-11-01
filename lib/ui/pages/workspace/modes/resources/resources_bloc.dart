@@ -29,7 +29,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_resources_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
@@ -278,7 +277,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         }
       }
 
-      emitter(state.copyWith(snapshot: snapshot));
+      emitter(state.copyWithReloadedSnapshot(snapshot: snapshot));
       return true;
     } catch (error, stackTrace) {
       _logger.e(
@@ -287,7 +286,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(hasWriteError: true));
+      emitter(state.copyWithWriteError());
       return false;
     }
   }
@@ -329,13 +328,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoadedWithoutProject(
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
-          forcePreviewedVersionIdValue: true,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptResourcesSelectionCause.load,
         ),
       );
       return;
@@ -364,24 +359,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
       emitter(
         _revealed(
-          state.copyWith(
-            isLoading: false,
+          state.copyToLoaded(
             title: project.name,
             currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
             previewedVersionId: previewedVersion?.id,
-            forcePreviewedVersionIdValue: previewedVersion == null,
             snapshot: snapshot,
             pageSetup: pageSetup,
             mileageRates: mileageRates,
             setIdsWithPlan: setIdsWithPlan,
-            forceSelectedPersonIdValue: true,
-            forceSelectedRoleIdValue: true,
-            forceSelectedLocationIdValue: true,
-            forceSelectedElementIdValue: true,
             leftDockFraction: leftDockFraction,
             rightDockFraction: rightDockFraction,
-            selectionEpoch: state.selectionEpoch + 1,
-            selectionCause: OcptResourcesSelectionCause.load,
           ),
           revealRequest,
         ),
@@ -408,7 +395,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return loaded;
     }
 
-    final tabbed = loaded.copyWith(activeTab: revealRequest.tab);
+    final tabbed = loaded.copyWithRevealedTab(tab: revealRequest.tab);
     final recordId = revealRequest.recordId;
     final snapshot = loaded.snapshot;
     if (recordId == null || snapshot == null) {
@@ -418,19 +405,19 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     return switch (revealRequest.tab) {
       OcptResourcesTab.people =>
         snapshot.people.any((person) => person.id == recordId)
-            ? tabbed.copyWith(selectedPersonId: recordId)
+            ? tabbed.copyWithRevealedPerson(personId: recordId)
             : tabbed,
       OcptResourcesTab.roles =>
         snapshot.roles.any((role) => role.id == recordId)
-            ? tabbed.copyWith(selectedRoleId: recordId)
+            ? tabbed.copyWithRevealedRole(roleId: recordId)
             : tabbed,
       OcptResourcesTab.locations =>
         snapshot.locations.any((location) => location.id == recordId)
-            ? tabbed.copyWith(selectedLocationId: recordId)
+            ? tabbed.copyWithRevealedLocation(locationId: recordId)
             : tabbed,
       OcptResourcesTab.elements =>
         snapshot.elements.any((element) => element.id == recordId)
-            ? tabbed.copyWith(selectedElementId: recordId)
+            ? tabbed.copyWithRevealedElement(elementId: recordId)
             : tabbed,
     };
   }
@@ -519,7 +506,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
 
       emitter(
-        state.copyWith(snapshot: snapshot, currencyCode: currencyCode ?? ocptDefaultCurrencyCode),
+        state.copyWithReloadedProjectSettings(
+          snapshot: snapshot,
+          currencyCode: currencyCode ?? ocptDefaultCurrencyCode,
+        ),
       );
     });
   }
@@ -541,18 +531,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     final isSameTab = state.activeTab == event.tab;
 
-    emitter(
-      state.copyWith(
-        activeTab: event.tab,
-        forceSelectedPersonIdValue: !isSameTab,
-        forceSelectedRoleIdValue: !isSameTab,
-        forceSelectedLocationIdValue: !isSameTab,
-        forceSelectedElementIdValue: !isSameTab,
-        searchQuery: isSameTab ? null : "",
-        selectionEpoch: isSameTab ? null : state.selectionEpoch + 1,
-        selectionCause: isSameTab ? null : OcptResourcesSelectionCause.tab,
-      ),
-    );
+    emitter(state.copyWithSelectedTab(tab: event.tab, isSameTab: isSameTab));
   }
 
   /// Selects person `event.personId`.
@@ -571,13 +550,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedPersonId: event.personId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.person,
-      ),
-    );
+    emitter(state.copyWithSelectedPerson(personId: event.personId));
   }
 
   /// Writes every pending edit of the views directly to the database, without touching [state].
@@ -616,13 +589,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     final isAlreadyOnRolesTab = state.activeTab == OcptResourcesTab.roles;
 
     emitter(
-      state.copyWith(
-        selectedRoleId: event.roleId,
-        activeTab: OcptResourcesTab.roles,
-        searchQuery: isAlreadyOnRolesTab ? null : "",
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.role,
-      ),
+      state.copyWithSelectedRole(roleId: event.roleId, isAlreadyOnRolesTab: isAlreadyOnRolesTab),
     );
   }
 
@@ -639,17 +606,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ) async {
     await runPendingWritesFlushers();
 
-    emitter(
-      state.copyWith(
-        activeTab: OcptResourcesTab.people,
-        selectedPersonId: event.personId,
-        forceSelectedRoleIdValue: true,
-        forceSelectedLocationIdValue: true,
-        forceSelectedElementIdValue: true,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.personSheetOpened,
-      ),
-    );
+    emitter(state.copyWithOpenedPersonSheet(personId: event.personId));
   }
 
   /// Selects location `event.locationId`.
@@ -668,13 +625,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedLocationId: event.locationId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.location,
-      ),
-    );
+    emitter(state.copyWithSelectedLocation(locationId: event.locationId));
   }
 
   /// Resolves set `event.setId`'s own first linked sequence, in screenplay order
@@ -701,8 +652,8 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       emitter(
-        state.copyWith(
-          pendingShotListReveal: (
+        state.copyWithShotListReveal(
+          reveal: (
             episodeId: firstLinkedScene.screenplayId,
             sceneId: firstLinkedScene.sceneId,
             setId: event.setId,
@@ -725,7 +676,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesShotListRevealDismissedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(forcePendingShotListRevealValue: true));
+    emitter(state.copyWithShotListRevealDismissed());
   }
 
   /// Selects element `event.elementId`.
@@ -744,13 +695,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        selectedElementId: event.elementId,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.element,
-      ),
-    );
+    emitter(state.copyWithSelectedElement(elementId: event.elementId));
   }
 
   /// Switches to the roles tab and selects role `event.roleId`, the element sheet's
@@ -765,17 +710,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ) async {
     await runPendingWritesFlushers();
 
-    emitter(
-      state.copyWith(
-        activeTab: OcptResourcesTab.roles,
-        selectedRoleId: event.roleId,
-        forceSelectedPersonIdValue: true,
-        forceSelectedLocationIdValue: true,
-        forceSelectedElementIdValue: true,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.roleSheetOpened,
-      ),
-    );
+    emitter(state.copyWithOpenedRoleSheet(roleId: event.roleId));
   }
 
   /// Toggles the left (list) dock's visibility.
@@ -783,7 +718,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesLeftPanelToggledEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(isListPanelVisible: !state.isListPanelVisible));
+    emitter(state.copyWithToggledListPanel());
   }
 
   /// Toggles whether the search field is shown.
@@ -797,15 +732,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesSearchToggledEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    final isOpening = !state.isSearchVisible;
-
-    emitter(
-      state.copyWith(
-        isSearchVisible: isOpening,
-        isListPanelVisible: isOpening ? true : null,
-        searchQuery: isOpening ? null : "",
-      ),
-    );
+    emitter(state.copyWithToggledSearch());
   }
 
   /// Records the search field's current text.
@@ -817,7 +744,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesSearchQueryChangedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(searchQuery: event.query));
+    emitter(state.copyWithSearchQuery(query: event.query));
   }
 
   /// Selects a tab of the right dock (the already-active tab closes the dock, any other one opens
@@ -832,12 +759,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   ) async {
     final isAlreadyActive = state.rightDockTab == event.tab;
 
-    emitter(
-      state.copyWith(
-        rightDockTab: isAlreadyActive ? null : event.tab,
-        forceRightDockTabValue: isAlreadyActive,
-      ),
-    );
+    emitter(state.copyWithToggledRightDockTab(tab: event.tab, isAlreadyActive: isAlreadyActive));
 
     if (!isAlreadyActive && event.tab == OcptResourcesRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
@@ -852,11 +774,11 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     Emitter<OcptResourcesState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(forceRightDockTabValue: true));
+      emitter(state.copyWithRightDockClosed());
       return;
     }
 
-    emitter(state.copyWith(rightDockTab: OcptResourcesRightDockTab.versions));
+    emitter(state.copyWithVersionsDockOpened());
     add(const OcptProjectWorkingCopyRefreshRequestedEvent());
   }
 
@@ -865,7 +787,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRightDockClosedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(forceRightDockTabValue: true));
+    emitter(state.copyWithRightDockClosed());
   }
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
@@ -883,7 +805,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       await _propertiesManager.resourcesRightDockFraction.store(right);
     }
 
-    emitter(state.copyWith(leftDockFraction: left, rightDockFraction: right));
+    emitter(state.copyWithDockFractions(left: left, right: right));
   }
 
   /// Restores both dock fractions to their defaults, persisting them.
@@ -897,9 +819,9 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     );
 
     emitter(
-      state.copyWith(
-        leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
-        rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
+      state.copyWithDockFractions(
+        left: OcptWorkspaceDock.leftDefaultFraction,
+        right: OcptWorkspaceDock.rightDefaultFraction,
       ),
     );
   }
@@ -909,7 +831,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesWriteFailedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: true));
+    emitter(state.copyWithWriteError());
   }
 
   /// Raises the transient write error and tells every view bloc to drop the edits it holds, since
@@ -919,13 +841,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesPendingEditsLostEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(
-      state.copyWith(
-        hasWriteError: true,
-        lostEditsEpoch: state.lostEditsEpoch + 1,
-        reloadEpoch: state.reloadEpoch + 1,
-      ),
-    );
+    emitter(state.copyWithPendingEditsLost());
   }
 
   /// Selects the record a view bloc has just created, in the list of `event.tab`, without switching
@@ -934,17 +850,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesRecordCreatedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(
-      switch (event.tab) {
-        OcptResourcesTab.people => state.copyWith(selectedPersonId: event.recordId),
-        OcptResourcesTab.roles => state.copyWith(selectedRoleId: event.recordId),
-        OcptResourcesTab.locations => state.copyWith(selectedLocationId: event.recordId),
-        OcptResourcesTab.elements => state.copyWith(selectedElementId: event.recordId),
-      }.copyWith(
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.created,
-      ),
-    );
+    emitter(state.copyWithCreatedRecord(tab: event.tab, recordId: event.recordId));
   }
 
   /// Clears the selection of `event.tab`'s list when it is the record a view bloc has just deleted.
@@ -964,16 +870,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       return;
     }
 
-    emitter(
-      state.copyWith(
-        forceSelectedPersonIdValue: event.tab == OcptResourcesTab.people,
-        forceSelectedRoleIdValue: event.tab == OcptResourcesTab.roles,
-        forceSelectedLocationIdValue: event.tab == OcptResourcesTab.locations,
-        forceSelectedElementIdValue: event.tab == OcptResourcesTab.elements,
-        selectionEpoch: state.selectionEpoch + 1,
-        selectionCause: OcptResourcesSelectionCause.dropped,
-      ),
-    );
+    emitter(state.copyWithDroppedRecord(tab: event.tab));
   }
 
   /// Dismisses the transient write error currently shown.
@@ -981,7 +878,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     OcptResourcesWriteErrorDismissedEvent event,
     Emitter<OcptResourcesState> emitter,
   ) async {
-    emitter(state.copyWith(hasWriteError: false));
+    emitter(state.copyWithWriteErrorDismissed());
   }
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}

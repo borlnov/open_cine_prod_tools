@@ -28,6 +28,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 
+export 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_state_copies.dart';
+
 /// The state of `OcptResourcesBloc`, the mode bloc: the catalogue, the selection, the chrome and
 /// the project versions and package mixins.
 ///
