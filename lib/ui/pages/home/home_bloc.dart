@@ -55,7 +55,7 @@ import 'package:path/path.dart' as p;
 /// unpacked `.ocpt` through the very same compatibility gate this bloc puts every other project
 /// file through.
 class OcptHomeBloc extends BlocForMixin<OcptHomeState>
-    with MixinOcptProjectPackageBloc<OcptHomeState> {
+    with MixinOcptProjectPackageBloc<OcptHomeState>, MixinAsyncInitBloc<OcptHomeState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "home_bloc";
 
@@ -105,9 +105,8 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
        _fileSelectorManager = fileSelectorManager ?? globalGetIt().get<FileSelectorManager>(),
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        super(const OcptHomeState.init()) {
-    add(const OcptHomeRefreshRequestedEvent());
     _recentProjectsSubscription = _propertiesManager.recentProjects.updateStream.listen(
-      (_) => add(const OcptHomeRefreshRequestedEvent()),
+      (_) => add(const AsyncInitEvent()),
     );
   }
 
@@ -115,7 +114,6 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptHomeRefreshRequestedEvent>(_onRefreshRequested);
     on<OcptHomeCreateProjectRequestedEvent>(_onCreateProjectRequested);
     on<OcptHomeOpenProjectRequestedEvent>(_onOpenProjectRequested);
     on<OcptHomeShareProjectRequestedEvent>(_onShareProjectRequested);
@@ -153,6 +151,17 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     return super.disposeLifeCycle();
   }
 
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the recent projects list for the first time, see [_refreshRecentProjects]; adding an
+  /// [AsyncInitEvent] again reloads it.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptHomeState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _refreshRecentProjects(emit);
+  }
+
   /// Reloads the recent projects list, recomputes which of them still exist on disk, and probes
   /// the format of every one that does.
   ///
@@ -161,10 +170,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// two verdicts an open would refuse outright ([OcptProjectFileVerdict.newer] and
   /// [OcptProjectFileVerdict.foreignDevBuild]); a migratable [OcptProjectFileVerdict.older] file is
   /// not a problem to flag ahead of time, and is left to the open flow to offer as it always has.
-  Future<void> _onRefreshRequested(
-    OcptHomeRefreshRequestedEvent event,
-    Emitter<OcptHomeState> emitter,
-  ) async {
+  Future<void> _refreshRecentProjects(Emitter<OcptHomeState> emitter) async {
     final projects = await _propertiesManager.recentProjects.load() ?? const [];
     final entries = [
       for (final project in projects)
@@ -202,7 +208,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
   }
 
   /// Shows the native save-file dialog on desktop (or resolves a free file path with no dialog on
@@ -230,7 +236,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
@@ -302,7 +308,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }
@@ -327,7 +333,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushRouteAndRefreshOnReturn(OcptRoute.sharing, emitter);
   }
@@ -380,7 +386,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     Emitter<OcptHomeState> emitter,
   ) async {
     await _propertiesManager.removeRecentProject(event.path);
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
   }
 
   /// Clears the transient error currently shown, if any.
@@ -487,7 +493,7 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
       return;
     }
 
-    await _onRefreshRequested(const OcptHomeRefreshRequestedEvent(), emitter);
+    await _refreshRecentProjects(emitter);
     emitter(state.copyWith(isBusy: false));
     await _pushRouteAndRefreshOnReturn(OcptRoute.workspace, emitter);
   }

@@ -10,13 +10,6 @@ sealed class OcptHomeEvent extends BlocEventForMixin {
   const OcptHomeEvent();
 }
 
-/// Requests a refresh of the recent projects list from the properties manager, recomputing
-/// whether each project's file still exists on disk.
-class OcptHomeRefreshRequestedEvent extends OcptHomeEvent {
-  /// Class constructor
-  const OcptHomeRefreshRequestedEvent();
-}
-
 /// Requests the creation of a new project named [name].
 ///
 /// On desktop this shows the native save-file dialog first, suggesting `<name>.ocpt` inside
