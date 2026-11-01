@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
@@ -25,8 +23,20 @@ class OcptEditorFindBarSlot extends StatelessWidget {
   /// Applies the bar to the live surface and carries out its replacements.
   final OcptEditorSearchSync searchSync;
 
+  /// Called with the search state when `Replace all` is pressed, to ask and carry it out.
+  ///
+  /// The page answers it with a context of its own: the slot is moved by the shell when the window
+  /// crosses the compact breakpoint, and a confirmation resolved afterwards must not be left with
+  /// the context of a slot that is gone.
+  final ValueChanged<OcptEditorSearchState> onReplaceAllRequested;
+
   /// Class constructor
-  const OcptEditorFindBarSlot({required this.isRawMode, required this.searchSync, super.key});
+  const OcptEditorFindBarSlot({
+    required this.isRawMode,
+    required this.searchSync,
+    required this.onReplaceAllRequested,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) => BlocBuilder<OcptEditorSearchBloc, OcptEditorSearchState>(
@@ -62,11 +72,7 @@ class OcptEditorFindBarSlot extends StatelessWidget {
         onReplaceRequested: () => isRawMode
             ? searchSync.requestRawReplace(search, searchBloc)
             : searchSync.requestStyledReplace(search, searchBloc),
-        onReplaceAllRequested: () => unawaited(
-          isRawMode
-              ? searchSync.requestRawReplaceAll(context, search)
-              : searchSync.requestStyledReplaceAll(context, search),
-        ),
+        onReplaceAllRequested: () => onReplaceAllRequested(search),
         onCloseRequested: () => searchBloc.add(const OcptEditorSearchClosedEvent()),
       );
     },

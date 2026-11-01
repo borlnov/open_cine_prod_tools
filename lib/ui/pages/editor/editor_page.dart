@@ -451,6 +451,12 @@ class _EditorViewState extends State<_EditorView> {
                   undoController: _undoHistoryController,
                   styledController: _styledEditorController,
                   searchSync: _searchSync,
+                  // The consumer's context stays mounted when the shell moves the centre.
+                  onReplaceAllRequested: (search) => unawaited(
+                    isRawMode
+                        ? _searchSync.requestRawReplaceAll(context, search)
+                        : _searchSync.requestStyledReplaceAll(context, search),
+                  ),
                 ),
                 statusBar: OcptEditorStatusBar(lastSavedAt: state.lastSavedAt),
                 dockLayoutController: _dockLayoutController,

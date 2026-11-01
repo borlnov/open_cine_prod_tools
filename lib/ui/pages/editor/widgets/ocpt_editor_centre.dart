@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_sync.dart';
@@ -76,6 +77,9 @@ class OcptEditorCentre extends StatelessWidget {
   /// Applies the find/replace bar to the live surface and carries out its replacements.
   final OcptEditorSearchSync searchSync;
 
+  /// Called with the search state when the find bar's `Replace all` is pressed.
+  final ValueChanged<OcptEditorSearchState> onReplaceAllRequested;
+
   /// Class constructor
   const OcptEditorCentre({
     required this.state,
@@ -89,6 +93,7 @@ class OcptEditorCentre extends StatelessWidget {
     required this.undoController,
     required this.styledController,
     required this.searchSync,
+    required this.onReplaceAllRequested,
     super.key,
   });
 
@@ -136,7 +141,11 @@ class OcptEditorCentre extends StatelessWidget {
 
     return Column(
       children: [
-        OcptEditorFindBarSlot(isRawMode: isRawMode, searchSync: searchSync),
+        OcptEditorFindBarSlot(
+          isRawMode: isRawMode,
+          searchSync: searchSync,
+          onReplaceAllRequested: onReplaceAllRequested,
+        ),
         Expanded(child: editingSurface),
       ],
     );

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_screenplay_editor.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 
@@ -79,6 +80,56 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(await harness.storedText(), contains("@SOMETHING MOVES IN THE DARK."));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  /// Opens the find bar with its replace row, types the query and the replacement, taps
+  /// `Replace all`, crosses the breakpoint with the confirmation open and confirms.
+  Future<void> replaceAllAcrossBreakpoint(WidgetTester tester) async {
+    final tr = harness.trOf(tester);
+    await harness.tapOverflowEntry(tester, tr.editorFindAndReplaceAction);
+    await tester.enterText(harness.barFields.first, "Something");
+    await tester.pumpAndSettle();
+    await tester.enterText(harness.barFields.last, "Anything");
+    await tester.pumpAndSettle();
+
+    await harness.tap(tester, find.text(tr.editorReplaceAllAction));
+    expect(find.byType(OcptConfirmDialog), findsOneWidget);
+
+    await resizeTo(tester, 700);
+    await tester.pumpAndSettle();
+    await harness.tap(tester, find.text(tr.editorReplaceAllConfirmAction).last);
+  }
+
+  testWidgets("raw mode: Replace all confirmed after crossing the breakpoint still replaces", (
+    tester,
+  ) async {
+    await harness.propertiesManager.editorMode.store(OcptEditorMode.raw);
+    await harness.mountWorkspace(tester);
+    // Raw mode is not available on a phone, but 700 px is a tablet.
+    await replaceAllAcrossBreakpoint(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(harness.rawText(tester), contains("Anything moves in the dark."));
+  });
+
+  testWidgets("styled mode: Replace all confirmed after crossing the breakpoint still replaces", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    try {
+      await harness.propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await harness.mountWorkspace(tester);
+      await replaceAllAcrossBreakpoint(tester);
+
+      expect(tester.takeException(), isNull);
+      final texts = [
+        for (var index = 0; index < styledDocument().nodeCount; index++)
+          (styledDocument().getNodeAt(index)! as ParagraphNode).text.toPlainText(),
+      ];
+      expect(texts, contains("Anything moves in the dark."));
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
