@@ -65,4 +65,22 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+
+  testWidgets("leaving the page right after a styled edit flushes it to the project", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    try {
+      await harness.propertiesManager.editorMode.store(OcptEditorMode.styled);
+      await harness.mount(tester);
+      await editLastBlock(tester);
+
+      await harness.unmount(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(await harness.storedText(), contains("@SOMETHING MOVES IN THE DARK."));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 }

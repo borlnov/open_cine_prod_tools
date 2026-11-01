@@ -108,6 +108,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The running autosave debounce timer, if any.
   Timer? _autosaveTimer;
 
+  /// The text of the latest [OcptEditorTextChangedEvent] added and not handled yet, if any.
+  ///
+  /// The styled editor hands its last edit over from its own `deactivate`, which runs just before
+  /// the bloc is closed, and an event is delivered to its handler asynchronously: [disposeLifeCycle]
+  /// would otherwise flush a text older than the one the user left behind.
+  String? _undeliveredText;
+
+  /// Whether [disposeLifeCycle] has started.
+  bool _isDisposing = false;
+
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
   int _nextJumpRequestId = 0;
 
@@ -186,6 +196,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
     onAwaited<OcptEditorSaveForExportRequestedEvent>(_onSaveForExportRequested);
     onAwaited<OcptEditorImportedTextAppliedEvent>(_onImportedTextApplied);
+  }
+
+  /// {@macro bloc.Bloc.add}
+  ///
+  /// Remembers the text of a [OcptEditorTextChangedEvent] until its handler has run, see
+  /// [_undeliveredText].
+  @override
+  void add(BlocEventForMixin event) {
+    if (event is OcptEditorTextChangedEvent) {
+      _undeliveredText = event.text;
+    }
+    super.add(event);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -466,6 +488,15 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorTextChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
+    if (_undeliveredText == event.text) {
+      _undeliveredText = null;
+    }
+
+    // The close has flushed this edit by itself: starting timers now would outlive the bloc.
+    if (_isDisposing) {
+      return;
+    }
+
     emitter(state.copyWith(text: event.text, isDirty: true));
 
     _parseTimer?.cancel();
@@ -947,17 +978,21 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// gone, so there is no UI left to surface it to.
   @override
   Future<void> disposeLifeCycle() async {
+    _isDisposing = true;
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
     _unregisterUnsavedChangesReporter();
 
+    // An edit handed over just before the close has not reached its handler yet: it is the newest
+    // text, so it is the one to flush.
+    final undeliveredText = _undeliveredText;
     final project = _projectsManager.currentProject;
-    if (project != null && state.isDirty && !state.isSaving) {
+    if (project != null && (state.isDirty || undeliveredText != null) && !state.isSaving) {
       try {
         await _screenplayService.saveScreenplayText(
           database: project.database,
           screenplayId: screenplayIdOf(project),
-          fountainText: state.text,
+          fountainText: undeliveredText ?? state.text,
           snapshotReason: OcptSnapshotReason.timer,
         );
       } catch (error, stackTrace) {
