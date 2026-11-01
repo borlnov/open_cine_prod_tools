@@ -580,8 +580,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
   not half-read. The codec owns `encode`, `decode` and `contentDigest`; the JSON keys, the
   field readers (which record the first read failure in one static that `decode` resets on entry and
   on exit) and each table's row converters sit in the `ocpt_version_*` files beside it, so a new
-  synchronised table gets its converter pair in the file of its area. Like the schema, the pre-stable format ladder was squashed away — no payload
-  older than format 1 exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
+  synchronised table gets its converter pair in the file of its area.
+  Like the schema, the pre-stable format ladder was squashed away — no payload older than format 1
+  exists. Formats 1 (0.1.0) and 2 (0.2.0) were additive, so an older payload decodes
   directly; format 3 (0.2.1) is the first that is not — a pre-3 payload's `shotCharacters` rows are
   dropped rather than reshaped into roles (ADR 0030) — and the retired format-1, format-2 and
   format-3 shapes are pinned in the codec test. Format 4 (0.3.0, the storyboard and floor plan
