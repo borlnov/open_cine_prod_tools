@@ -102,10 +102,48 @@ String _wizardFilterLabelOf(Tr tr, OcptBudgetState state) =>
       (OcptBudgetView.dashboard, _) => "",
     };
 
+/// The blocs an [OcptBudgetNewOutcome] is written through, read from a context **before** the
+/// wizard opens.
+///
+/// A flow awaits a dialog, and the view that started it can be gone when the dialog closes: below
+/// the compact breakpoint the workspace shell swaps its dock row for a stack, which unmounts every
+/// view of the mode. The blocs outlive the views, so a flow that holds them already writes what the
+/// user confirmed, where one that reads them off its context after the `await` would give up.
+class OcptBudgetNewOutcomeTargets {
+  /// The bloc of the quote.
+  final OcptBudgetExpensesBloc expensesBloc;
+
+  /// The bloc of the cash journal.
+  final OcptBudgetCashJournalBloc journalBloc;
+
+  /// The bloc of the financing plan and of the defrayals.
+  final OcptBudgetFinancingBloc financingBloc;
+
+  /// The bloc of the revenue sharing.
+  final OcptBudgetSharingBloc sharingBloc;
+
+  /// Class constructor
+  const OcptBudgetNewOutcomeTargets({
+    required this.expensesBloc,
+    required this.journalBloc,
+    required this.financingBloc,
+    required this.sharingBloc,
+  });
+
+  /// Reads the four blocs off [context].
+  factory OcptBudgetNewOutcomeTargets.of(BuildContext context) => OcptBudgetNewOutcomeTargets(
+    expensesBloc: context.read<OcptBudgetExpensesBloc>(),
+    journalBloc: context.read<OcptBudgetCashJournalBloc>(),
+    financingBloc: context.read<OcptBudgetFinancingBloc>(),
+    sharingBloc: context.read<OcptBudgetSharingBloc>(),
+  );
+}
+
 /// Opens the capture wizard fresh — no step already answered — promoted and pre-selected per the
 /// current route (the header band's own `+ New` button). Dispatches whatever
 /// [ocptBudgetApplyNewOutcome] says once the wizard closes with something.
 Future<void> ocptBudgetOpenNewWizard(BuildContext context, OcptBudgetState state) async {
+  final targets = OcptBudgetNewOutcomeTargets.of(context);
   final promotedFamily = _promotedGestureFamilyOf(state);
   final allowedGestures = _wizardGesturesForView(state);
   final outcome = await OcptBudgetNewDialog.show(
@@ -134,11 +172,8 @@ Future<void> ocptBudgetOpenNewWizard(BuildContext context, OcptBudgetState state
   if (outcome == null) {
     return;
   }
-  if (!context.mounted) {
-    return;
-  }
 
-  ocptBudgetApplyNewOutcome(context, state, outcome);
+  ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
 /// Turns a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
@@ -151,14 +186,14 @@ Future<void> ocptBudgetOpenNewWizard(BuildContext context, OcptBudgetState state
 /// whichever of the two events its own kind calls for — see that method's own doc comment for the
 /// mapping, carried over from the capture band the wizard replaced.
 void ocptBudgetApplyNewOutcome(
-  BuildContext context,
+  OcptBudgetNewOutcomeTargets targets,
   OcptBudgetState state,
   OcptBudgetNewOutcome outcome,
 ) {
-  final expensesBloc = context.read<OcptBudgetExpensesBloc>();
-  final journalBloc = context.read<OcptBudgetCashJournalBloc>();
-  final financingBloc = context.read<OcptBudgetFinancingBloc>();
-  final sharingBloc = context.read<OcptBudgetSharingBloc>();
+  final expensesBloc = targets.expensesBloc;
+  final journalBloc = targets.journalBloc;
+  final financingBloc = targets.financingBloc;
+  final sharingBloc = targets.sharingBloc;
 
   switch (outcome) {
     case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):
@@ -213,6 +248,7 @@ Future<void> ocptBudgetOpenEntryShortcut(
   OcptBudgetGesture gesture,
   OcptBudgetEntryFormFields prefill,
 ) async {
+  final targets = OcptBudgetNewOutcomeTargets.of(context);
   final outcome = await OcptBudgetNewDialog.show(
     context,
     initialGesture: gesture,
@@ -238,11 +274,8 @@ Future<void> ocptBudgetOpenEntryShortcut(
   if (outcome == null) {
     return;
   }
-  if (!context.mounted) {
-    return;
-  }
 
-  ocptBudgetApplyNewOutcome(context, state, outcome);
+  ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
 /// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
@@ -435,9 +468,6 @@ Future<void> ocptBudgetSettleCommitment(
     isSimplified: state.isSimplified,
   );
   if (outcome is! OcptBudgetEntryWizardResult) {
-    return;
-  }
-  if (!context.mounted) {
     return;
   }
 
@@ -675,6 +705,7 @@ Future<void> ocptBudgetCommitLine(
   OcptBudgetState state,
   String lineId,
 ) async {
+  final targets = OcptBudgetNewOutcomeTargets.of(context);
   final poste = state.postes
       .where((poste) => poste.lines.any((line) => line.id == lineId))
       .firstOrNull;
@@ -715,11 +746,8 @@ Future<void> ocptBudgetCommitLine(
   if (outcome == null) {
     return;
   }
-  if (!context.mounted) {
-    return;
-  }
 
-  ocptBudgetApplyNewOutcome(context, state, outcome);
+  ocptBudgetApplyNewOutcome(targets, state, outcome);
 }
 
 /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action,
@@ -787,9 +815,6 @@ Future<void> ocptBudgetPayLineDirectly(
     isSimplified: state.isSimplified,
   );
   if (outcome is! OcptBudgetEntryWizardResult) {
-    return;
-  }
-  if (!context.mounted) {
     return;
   }
 

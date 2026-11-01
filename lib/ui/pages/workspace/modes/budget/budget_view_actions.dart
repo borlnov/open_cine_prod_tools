@@ -58,9 +58,6 @@ Future<void> ocptBudgetEditEntry(
   if (result == null) {
     return;
   }
-  if (!context.mounted) {
-    return;
-  }
 
   journalBloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result));
 }
@@ -82,9 +79,6 @@ Future<void> ocptBudgetEditCommitment(
     isSimplified: state.isSimplified,
   );
   if (fields == null) {
-    return;
-  }
-  if (!context.mounted) {
     return;
   }
 
@@ -117,9 +111,6 @@ Future<void> ocptBudgetEditResource(
     isSimplified: state.isSimplified,
   );
   if (fields == null) {
-    return;
-  }
-  if (!context.mounted) {
     return;
   }
 
@@ -170,9 +161,6 @@ Future<void> ocptBudgetEditRevenue(
   if (fields == null) {
     return;
   }
-  if (!context.mounted) {
-    return;
-  }
 
   sharingBloc.add(OcptBudgetRevenueUpdateConfirmedEvent(revenueId: revenue.id, fields: fields));
 }
@@ -187,9 +175,6 @@ Future<void> ocptBudgetEditShare(
   final sharingBloc = context.read<OcptBudgetSharingBloc>();
   final fields = await OcptBudgetShareDialog.show(context, existing: share, people: state.people);
   if (fields == null) {
-    return;
-  }
-  if (!context.mounted) {
     return;
   }
 
