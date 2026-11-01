@@ -99,20 +99,18 @@ class OcptBudgetExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBudgetIoNotice(
-            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptBudgetIoNotice(
+              kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the quote of project "
@@ -156,20 +154,18 @@ class OcptBudgetExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBudgetIoNotice(
-            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptBudgetIoNotice(
+              kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the financing plan of project "
@@ -213,30 +209,27 @@ class OcptBudgetExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        if (outcome is OcptExportFailed) {
+          // The manager already logged why the workbook could not be built.
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
+            ),
+          );
+        } else {
+          emitter(
+            state.copyWithIoNotice(
+              ioNotice: OcptBudgetIoNotice(
+                kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+                path: outcome.savedPath,
+                wasShared: outcome.wasShared,
+              ),
+            ),
+          );
+        }
       }
-
-      if (outcome is OcptExportFailed) {
-        // The manager already logged why the workbook could not be built.
-        emitter(
-          state.copyWithIoNotice(
-            ioNotice: const OcptBudgetIoNotice(kind: OcptBudgetIoNoticeKind.exportFailed),
-          ),
-        );
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBudgetIoNotice(
-            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the cash journal of project "
@@ -280,20 +273,18 @@ class OcptBudgetExportBloc
         fileTypeLabel: event.fileTypeLabel,
         shareAnchor: event.shareAnchor,
       );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWithIoNotice(
-          ioNotice: OcptBudgetIoNotice(
-            kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
+      // The user cancelled the save dialog (a null outcome): nothing is reported.
+      if (outcome != null) {
+        emitter(
+          state.copyWithIoNotice(
+            ioNotice: OcptBudgetIoNotice(
+              kind: OcptBudgetIoNoticeKind.fileExportSucceeded,
+              path: outcome.savedPath,
+              wasShared: outcome.wasShared,
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to export the financial report of project "

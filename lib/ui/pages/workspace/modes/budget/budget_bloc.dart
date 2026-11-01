@@ -215,6 +215,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return false;
     }
 
+    var isReloaded = false;
     try {
       // A switch statement over an enum must name every value: a scope added to the enum does not
       // compile until it is read here.
@@ -225,7 +226,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         }
       }
 
-      return true;
+      isReloaded = true;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -233,8 +234,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         null,
         stackTrace,
       );
-      return false;
     }
+
+    return isReloaded;
   }
 
   /// Asks every view to write what it holds, and answers whether they all could.
