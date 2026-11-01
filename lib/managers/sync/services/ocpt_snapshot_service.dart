@@ -33,6 +33,7 @@ class OcptSnapshotService extends AbsOcptService {
   /// The service reading and writing the portable package a snapshot's bytes actually are.
   final OcptProjectPackageService packageService;
 
+  /// Get the directory the working directories of a build or an apply are created in.
   final Directory Function() _temporaryDirectory;
 
   /// Creates a service using [packageService] to read and write the portable package a snapshot's
@@ -180,5 +181,6 @@ class OcptSnapshotService extends AbsOcptService {
     }
   }
 
+  /// Get the system temporary directory, used when no other is given.
   static Directory _systemTempDirectory() => Directory.systemTemp;
 }

@@ -91,12 +91,22 @@ class OcptSyncSession {
   /// The logger this session writes to: a sub-logger built by the sync manager.
   final MixinActLogger _logger;
 
+  /// The current status, exposed through [status].
   OcptSyncStatus _status;
+
+  /// The controller behind [statusStream].
   final StreamController<OcptSyncStatus> _statusController;
+
+  /// The merge conflicts met so far, exposed through [conflicts].
   final List<OcptScreenplayMergeConflict> _conflicts;
 
+  /// The subscription to the new work the storage announces, or null while the session is stopped.
   StreamSubscription<void>? _newWorkSubscription;
+
+  /// The timer of the periodic sync, or null while the session is stopped.
   Timer? _pushTimer;
+
+  /// Whether the session is started.
   bool _isRunning;
 
   /// This session's current status. [statusStream] never replays it to a new listener — read this
@@ -188,6 +198,7 @@ class OcptSyncSession {
     }
   }
 
+  /// Run one sync through the changeset service and settle the status on its result.
   Future<void> _runSyncOnce() async {
     _setStatus(const OcptSyncStatusSyncing());
     try {
@@ -266,6 +277,7 @@ class OcptSyncSession {
     return count;
   }
 
+  /// Record [status], emit it on [statusStream] unless that is closed, and log it.
   void _setStatus(OcptSyncStatus status) {
     _status = status;
     if (!_statusController.isClosed) {

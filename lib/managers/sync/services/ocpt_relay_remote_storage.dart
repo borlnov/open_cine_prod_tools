@@ -49,13 +49,28 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's `404`, which [fetchLatestSnapshot] maps
 /// to `null` per its own contract.
 class OcptRelayRemoteStorage implements OcptRemoteStorage {
+  /// The name of the HTTP header carrying the bearer token.
   static const _authorizationHeader = 'Authorization';
+
+  /// The name of the HTTP header carrying the enrolment secret.
   static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+
+  /// The name of the HTTP content type header.
   static const _contentTypeHeader = 'Content-Type';
+
+  /// The content type of a JSON request body.
   static const _contentTypeJson = 'application/json';
+
+  /// The query parameter holding the cursor [readSince] reads after.
   static const _sinceParam = 'since';
+
+  /// The JSON key of the sequence number in the relay's answer.
   static const _sequenceKey = 'sequence';
+
+  /// The JSON key of the snapshot descriptor.
   static const _descriptorKey = 'descriptor';
+
+  /// The JSON key of the snapshot bytes, written in base 64.
   static const _bytesKey = 'bytes';
 
   /// The literal frame `OcptRelayServer` sends on new work — mirrors its own `_newWorkPing`
@@ -83,19 +98,33 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// The logger this transport writes to: a sub-logger built by `OcptSyncManager`.
   final MixinActLogger _logger;
 
+  /// The HTTP client every request goes through.
   final http.Client _httpClient;
 
   /// True when this transport created [_httpClient] itself (no [http.Client] was handed in), and
   /// so must close it itself from [dispose] rather than leaving that to whoever owns the client it
   /// was given.
   final bool _ownsHttpClient;
+
+  /// Opens the `events` socket.
   final OcptWebSocketConnector _webSocketConnector;
 
+  /// The controller behind [newWorkStream], or null until the stream is first listened to.
   StreamController<void>? _newWorkController;
+
+  /// The controller behind [presenceStream], or null until the stream is first listened to.
   StreamController<String>? _presenceController;
+
+  /// The `events` socket currently open, or null while none is.
   WebSocketChannel? _activeSocket;
+
+  /// The subscription to the frames of [_activeSocket], or null while none is open.
   StreamSubscription<Object?>? _activeSocketSubscription;
+
+  /// The timer of the scheduled reconnection, or null while none is waiting.
   Timer? _reconnectTimer;
+
+  /// Whether a stream has a listener, so the `events` socket should be open.
   bool _socketWanted;
 
   /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
@@ -180,6 +209,9 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
            ((uri) =>
                IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
 
+  /// Post [envelope] to the relay's changesets route, creating the project with the enrolment
+  /// secret
+  /// when there is one, and answer with the sequence number the relay assigned.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
     OcptChangesetEnvelope envelope,
@@ -201,6 +233,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     );
   });
 
+  /// Get the changesets the relay holds after [cursor], through its changesets route.
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptStoredChangeset>>> readSince(
     OcptSequenceNumber cursor,
@@ -223,6 +256,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     );
   });
 
+  /// Post [descriptor] and [bytes] to the relay's snapshot route.
   @override
   Future<StatusWithExtraInfo<OcptRemoteStorageStatus>> uploadSnapshot(
     OcptSnapshotDescriptor descriptor,
@@ -253,6 +287,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _activeSocket?.sink.add(opaquePayload);
   }
 
+  /// Get the relay's latest snapshot, or an answer without value when it has none (a 404).
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot() => _guarded(() async {
@@ -273,6 +308,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
   });
 
+  /// Mark the `events` socket as wanted and open it, unless it is open or waiting to reconnect.
   void _startWatchingEvents() {
     _socketWanted = true;
     if (_activeSocket != null || _reconnectTimer != null) {
@@ -299,6 +335,8 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _activeSocket = null;
   }
 
+  /// Open the `events` socket and route its frames, scheduling a reconnection when it cannot be
+  /// opened.
   void _connectEventsSocket() {
     if (!_socketWanted) {
       return;
@@ -360,6 +398,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _scheduleReconnect();
   }
 
+  /// Reconnect the `events` socket after [reconnectDelay], when it is still wanted.
   void _scheduleReconnect() {
     if (!_socketWanted) {
       return;
@@ -368,10 +407,13 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     _reconnectTimer = Timer(reconnectDelay, _connectEventsSocket);
   }
 
+  /// Get the URI of the project's changesets route.
   Uri _changesetsUri() => _projectUri('changesets');
 
+  /// Get the URI of the project's snapshot route.
   Uri _snapshotUri() => _projectUri('snapshot');
 
+  /// Get the URI of the project's `events` route, with the `ws` or `wss` scheme.
   Uri _eventsUri() {
     final httpUri = _projectUri('events');
 
@@ -389,11 +431,13 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     return relayBaseUri.replace(path: '$basePath/projects/$projectId/$suffix');
   }
 
+  /// Get the headers that authenticate a request, with the enrolment secret when asked and known.
   Map<String, String> _authHeaders({bool includeEnrolmentSecret = false}) => {
     _authorizationHeader: 'Bearer $token',
     if (includeEnrolmentSecret && enrolmentSecret != null) _enrolmentSecretHeader: enrolmentSecret!,
   };
 
+  /// Get the authentication headers plus the JSON content type.
   Map<String, String> _jsonHeaders({bool includeEnrolmentSecret = false}) => {
     ..._authHeaders(includeEnrolmentSecret: includeEnrolmentSecret),
     _contentTypeHeader: _contentTypeJson,

@@ -37,6 +37,8 @@ const double _frameHeightPt = 120;
 /// relative to [_frameHeightPt] — a very wide anamorphic or very tall portrait format still prints
 /// a frame that fits beside its neighbours rather than one that swallows the row.
 const double _minimumAspectRatio = 0.5;
+
+/// The widest aspect ratio a frame is sized to, see [_minimumAspectRatio].
 const double _maximumAspectRatio = 2.6;
 
 /// The fixed width, in points, of the key-information block leading every shot row.

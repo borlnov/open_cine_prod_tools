@@ -35,6 +35,7 @@ class _SeenPeer {
   /// so a peer with a wrong system clock still ages out on this replica's own schedule.
   DateTime lastSeen;
 
+  /// Class constructor
   _SeenPeer({required this.frame, required this.lastSeen});
 }
 
@@ -71,14 +72,25 @@ class OcptPresenceService extends AbsOcptService {
   /// injectable.
   final DateTime Function() clock;
 
+  /// The mode this replica reports in its frames, or null before one is set.
   OcptWorkspaceMode? _currentMode;
+
+  /// The heartbeat counter carried by this replica's frames.
   int _heartbeatCounter;
+
+  /// The last frame seen from each peer, by device id.
   final Map<String, _SeenPeer> _peers;
 
+  /// The subscription to the frames of the peers, or null while the service is stopped.
   StreamSubscription<String>? _presenceSubscription;
+
+  /// The timer of the periodic heartbeat, or null while the service is stopped.
   Timer? _heartbeatTimer;
+
+  /// Whether the service is started.
   bool _isRunning;
 
+  /// The controller behind [rosterStream].
   final StreamController<OcptPresenceRoster> _rosterController;
 
   /// The current roster — see this class's own doc comment for why a caller reads this once before
@@ -211,6 +223,7 @@ class OcptPresenceService extends AbsOcptService {
     return OcptPresenceRoster(participants: [_selfFrame, ...peerFrames], selfDeviceId: deviceId);
   }
 
+  /// Emit the current roster on [rosterStream], unless it is closed.
   void _emitRoster() {
     if (!_rosterController.isClosed) {
       _rosterController.add(_buildRoster());

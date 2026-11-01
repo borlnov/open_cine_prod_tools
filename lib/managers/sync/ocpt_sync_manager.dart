@@ -85,7 +85,11 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
   /// The logger this manager writes to, and the parent of every service's and session's own.
   final LogsHelper _logger;
+
+  /// The pairing service, built on first use and exposed through [pairingService].
   OcptPairingService? _pairingService;
+
+  /// The running sync session, or null when none is running.
   OcptSyncSession? _syncSession;
 
   /// This project's current presence service, or null when none is running — see

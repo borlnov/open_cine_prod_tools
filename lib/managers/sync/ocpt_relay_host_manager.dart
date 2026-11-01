@@ -156,12 +156,16 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// The logger this manager writes to.
   final LogsHelper _logger;
 
+  /// The platform manager telling whether the app runs on a mobile platform.
   final PlatformManager _platformManager;
 
+  /// The secrets manager handed in, or null to resolve the registered one on first use.
   OcptSecretsManager? _secretsManager;
 
+  /// The sync manager handed in, or null to resolve the registered one on first use.
   OcptSyncManager? _syncManager;
 
+  /// The properties manager handed in, or null to resolve the registered one on first use.
   OcptPropertiesManager? _propertiesManager;
 
   /// The address [startHosting] binds its socket to.
@@ -182,8 +186,13 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   /// keeper's closed stream would throw on it.
   bool _isDisposed;
 
+  /// The store of the hosted relay, or null while nothing is hosted.
   OcptRelayStore? _store;
+
+  /// The HTTP server of the hosted relay, or null while nothing is hosted.
   HttpServer? _httpServer;
+
+  /// The id of the project being hosted, or null while nothing is hosted.
   String? _hostedProjectId;
 
   /// This manager's current host state. [stateStream] never replays it to a new listener — read
@@ -610,6 +619,7 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     _hostedProjectId = null;
   }
 
+  /// Set the host state and emit it, unless the manager is disposed.
   void _setState(OcptRelayHostState state) {
     if (!_isDisposed) {
       _state.value = state;

@@ -494,6 +494,7 @@ class _OneLineRow {
   /// Whether this is a hold row rather than a run of shot blocks.
   bool get isHold => shots.isEmpty;
 
+  /// Create a row from its parts, for the factories below.
   _OneLineRow._({
     required this.slotId,
     required this.sceneId,

@@ -62,6 +62,7 @@ class OcptCallSheetDayRow {
   /// Whether this is a milestone row rather than a run of shot blocks.
   bool get isMilestone => milestoneCaption != null;
 
+  /// Create a row from its parts, for the factories below.
   OcptCallSheetDayRow._({
     required this.slotId,
     required this.sceneId,

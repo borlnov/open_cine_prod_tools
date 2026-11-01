@@ -64,6 +64,7 @@ class OcptRowStampService extends AbsWithLifeCycle {
   /// The stamps written so far, waiting for [flush].
   final List<OcptRowFieldVersionsTableCompanion> _pending;
 
+  /// Create a service for [deviceId] whose clock starts at [clock], with nothing pending.
   OcptRowStampService._({required this.deviceId, required int clock})
     : _pending = <OcptRowFieldVersionsTableCompanion>[],
       _clock = clock;
