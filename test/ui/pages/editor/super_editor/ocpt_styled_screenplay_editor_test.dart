@@ -1737,7 +1737,6 @@ void main() {
         exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
         parseDebounce: const Duration(milliseconds: 10),
         autosaveDebounce: const Duration(milliseconds: 30),
-        statisticsDebounce: const Duration(milliseconds: 30),
       );
       addTearDown(bloc.close);
 

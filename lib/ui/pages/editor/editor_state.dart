@@ -152,23 +152,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// need to be cleared once handled.
   final OcptEditorJumpRequest? jumpRequest;
 
-  /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
-  /// status bar, computed from [document] at [pageSetup]'s metrics.
-  ///
-  /// Lags [document] slightly further behind [text] than the parse debounce alone: recomputing it
-  /// paginates the whole screenplay, which is too heavy to run on every parse tick while typing
-  /// continuously (see `OcptEditorBloc`'s own statistics debounce).
-  final FountainScriptStatistics statistics;
-
-  /// The [FountainSceneStatistics] of the scene at [currentSceneIndex], or null while nothing is
-  /// parsed yet or the caret precedes every scene.
-  ///
-  /// Unlike [currentSceneIndex] itself, this doesn't recompute on every caret move: composing the
-  /// whole document to derive [FountainSceneStatistics.pageEighths] is the same "too heavy for
-  /// every frame" cost [statistics] already documents, so `OcptEditorBloc` only recomputes this on
-  /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
-  final FountainSceneStatistics? sceneStatistics;
-
   /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
   ///
   /// In this mode: a whole load, a screenplay text replaced by an action (an import, a title page
@@ -242,7 +225,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
 
   /// The index, in [scenes], of the scene containing [currentLine], or null while nothing is
   /// parsed yet or the caret precedes every scene. Cheap to derive live from state already
-  /// tracked, unlike [sceneStatistics].
+  /// tracked, unlike the scene statistics `OcptEditorStatisticsBloc` computes.
   int? get currentSceneIndex => currentSceneIndexFor(scenes, currentLine);
 
   /// Class constructor
@@ -269,8 +252,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.isSpellCheckVisible,
     required this.screenplayLanguage,
     required this.jumpRequest,
-    required this.statistics,
-    required this.sceneStatistics,
     required this.reloadEpoch,
     required this.selectionEpoch,
     required this.reloadCause,
@@ -309,8 +290,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       isSpellCheckVisible = true,
       screenplayLanguage = null,
       jumpRequest = null,
-      statistics = FountainScriptStatistics.empty,
-      sceneStatistics = null,
       reloadEpoch = 0,
       selectionEpoch = 0,
       reloadCause = OcptEditorReloadCause.none,
@@ -326,16 +305,13 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [document], [lastSavedAt], [jumpRequest] and [statistics] are only replaced when a new value
-  /// is given: they never go back to null (or, for [statistics], to
-  /// [FountainScriptStatistics.empty]) once set, so no force flag is needed for them.
-  /// [rightDockTab], [autoClosedRightDockTab], [sceneStatistics] and [screenplayLanguage] are only
-  /// replaced when a new value is given or their force flag is true, each with its
-  /// own force flag ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
-  /// [forceSceneStatisticsValue], [forceScreenplayLanguageValue]): all four legitimately go back to null during the editor's
-  /// lifetime (closing the dock, restoring it on a mode switch, the caret moving back before every
-  /// scene, a project's language being unset), so the "never goes back to null" shortcut used
-  /// above doesn't apply to them.
+  /// [document], [lastSavedAt] and [jumpRequest] are only replaced when a new value is given: they
+  /// never go back to null once set, so no force flag is needed for them. [rightDockTab],
+  /// [autoClosedRightDockTab] and [screenplayLanguage] are only replaced when a new value is given or
+  /// their force flag is true ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
+  /// [forceScreenplayLanguageValue]): all three legitimately go back to null during the editor's
+  /// lifetime (closing the dock, restoring it on a mode switch, a project's language being unset),
+  /// so the "never goes back to null" shortcut used above doesn't apply to them.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -366,9 +342,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool forceScreenplayLanguageValue = false,
     OcptEditorJumpRequest? jumpRequest,
     bool forceJumpRequestValue = false,
-    FountainScriptStatistics? statistics,
-    FountainSceneStatistics? sceneStatistics,
-    bool forceSceneStatisticsValue = false,
     int? reloadEpoch,
     int? selectionEpoch,
     OcptEditorReloadCause? reloadCause,
@@ -415,8 +388,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     screenplayLanguage:
         screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
     jumpRequest: jumpRequest ?? (forceJumpRequestValue ? null : this.jumpRequest),
-    statistics: statistics ?? this.statistics,
-    sceneStatistics: sceneStatistics ?? (forceSceneStatisticsValue ? null : this.sceneStatistics),
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     reloadCause: reloadCause ?? this.reloadCause,
@@ -514,8 +485,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     isSpellCheckVisible,
     screenplayLanguage,
     jumpRequest,
-    statistics,
-    sceneStatistics,
     reloadEpoch,
     selectionEpoch,
     reloadCause,

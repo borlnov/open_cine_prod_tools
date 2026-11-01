@@ -122,7 +122,6 @@ void main() {
     exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(seconds: 30),
-    statisticsDebounce: const Duration(milliseconds: 30),
   );
 
   /// Waits for the first state of [bloc] matching [predicate] (the current one included).

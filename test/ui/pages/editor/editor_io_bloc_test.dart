@@ -211,7 +211,6 @@ class _EditorStates {
   int get currentLine => mode.currentLine;
   OcptPageSetup get pageSetup => mode.pageSetup;
   List<FountainSceneHeading> get scenes => mode.scenes;
-  FountainScriptStatistics get statistics => mode.statistics;
   OcptEditorIoNotice? get ioNotice => io.ioNotice;
 }
 
@@ -303,7 +302,6 @@ void main() {
       exportManager: manager,
       parseDebounce: const Duration(milliseconds: 20),
       autosaveDebounce: const Duration(milliseconds: 60),
-      statisticsDebounce: const Duration(milliseconds: 30),
     );
     final io = OcptEditorIoBloc(
       modeBloc: mode,
@@ -503,12 +501,12 @@ void main() {
     await waitForState(bloc, (state) => !state.isLoading);
 
     bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
-    // The text/dirty change, the re-parse and the statistics recompute are three separate emissions
-    // of the mode, and the notice is the file exchange bloc's own, emitted once the mode holds the
-    // text: wait for the statistics recompute, the last of the mode's three, and for the notice.
+    // The text/dirty change and the re-parse are separate emissions of the mode, and the notice is
+    // the file exchange bloc's own, emitted once the mode holds the text: wait for the re-parse, the
+    // last of the mode's two, and for the notice.
     final state = await waitForState(
       bloc,
-      (state) => state.statistics.sceneCount != 0 && state.ioNotice != null,
+      (state) => state.scenes.isNotEmpty && state.ioNotice != null,
     );
 
     expect(state.text, importedText);
@@ -518,8 +516,6 @@ void main() {
     expect(state.scenes, hasLength(1));
     expect(state.scenes.single.headingText, "INT. OFFICE - DAY");
     expect(exportManager.lastImportFileTypeLabel, "Screenplay");
-    expect(state.statistics.sceneCount, 1);
-    expect(state.statistics.pageCount, 1);
 
     final snapshots = await readSnapshots();
     expect(snapshots.last.reason, OcptSnapshotReason.import);

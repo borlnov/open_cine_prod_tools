@@ -246,7 +246,6 @@ void main() {
     exportManager: exportManager ?? _InertExportManager(),
     parseDebounce: const Duration(milliseconds: 20),
     autosaveDebounce: const Duration(milliseconds: 60),
-    statisticsDebounce: const Duration(milliseconds: 30),
     selectedEpisodeId: selectedEpisodeId,
   );
 
@@ -280,7 +279,6 @@ void main() {
     expect(state.document, isNotNull);
     expect(state.scenes, isEmpty);
     expect(state.isDirty, isFalse);
-    expect(state.statistics, FountainScriptStatistics.empty);
 
     await bloc.close();
   });
@@ -329,28 +327,6 @@ void main() {
     await bloc.close();
   });
 
-  test(
-    'statistics are populated from the screenplay already on disk once the load completes',
-    () async {
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: editedText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-
-      final bloc = buildBloc();
-      final state = await waitForState(bloc, (state) => !state.isLoading);
-
-      expect(state.statistics.sceneCount, 1);
-      expect(state.statistics.pageCount, 1);
-      expect(state.statistics.wordCount, greaterThan(0));
-
-      await bloc.close();
-    },
-  );
-
   test('marks the text dirty on edit, then re-parses it after the debounce', () async {
     final bloc = buildBloc();
     await waitForState(bloc, (state) => !state.isLoading);
@@ -363,23 +339,6 @@ void main() {
 
     final parsedState = await waitForState(bloc, (state) => state.scenes.isNotEmpty);
     expect(parsedState.scenes.single.headingText, "INT. HOUSE - DAY");
-
-    await bloc.close();
-  });
-
-  test('statistics recompute, on their own debounce, once the parsed document changes', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-    expect(bloc.state.statistics, FountainScriptStatistics.empty);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    await waitForState(bloc, (state) => state.scenes.isNotEmpty);
-    // The document already reflects the edit, but the statistics debounce hasn't elapsed yet.
-    expect(bloc.state.statistics, FountainScriptStatistics.empty);
-
-    final state = await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
-    expect(state.statistics.pageCount, 1);
-    expect(state.statistics.wordCount, greaterThan(0));
 
     await bloc.close();
   });
@@ -419,68 +378,6 @@ void main() {
       await bloc.close();
     },
   );
-
-  test(
-    'sceneStatistics is recomputed on the parse debounce, for the scene under the caret',
-    () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      expect(bloc.state.sceneStatistics, isNull);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
-      // The document already reflects the edit once this resolves, but that alone must not have
-      // populated the scene statistics synchronously (they piggyback on the same parse tick, not a
-      // separate, earlier one).
-      final parsedState = await waitForState(bloc, (state) => state.scenes.length == 2);
-      expect(parsedState.sceneStatistics, isNotNull);
-      expect(parsedState.sceneStatistics!.wordCount, greaterThan(0));
-
-      await bloc.close();
-    },
-  );
-
-  test(
-    'sceneStatistics is recomputed immediately when the caret crosses into a different scene',
-    () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-
-      bloc.add(const OcptEditorTextChangedEvent(text: twoSceneText));
-      await waitForState(bloc, (state) => state.scenes.length == 2);
-      final firstSceneWords = bloc.state.sceneStatistics!.wordCount;
-
-      bloc.add(const OcptEditorCaretMovedEvent(line: 6));
-      final secondSceneState = await waitForState(
-        bloc,
-        (state) =>
-            state.currentSceneIndex == 1 && state.sceneStatistics!.wordCount != firstSceneWords,
-      );
-      // "EXT. GARDEN - NIGHT" (4) + "Action two here." (3).
-      expect(secondSceneState.sceneStatistics!.wordCount, 4 + 3);
-
-      await bloc.close();
-    },
-  );
-
-  test('sceneStatistics goes back to null once the caret moves back before every scene', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: "\n\n$twoSceneText"));
-    await waitForState(bloc, (state) => state.scenes.length == 2);
-    // The caret (still on line 0) precedes the first heading, now pushed to line 2.
-    expect(bloc.state.sceneStatistics, isNull);
-
-    bloc.add(const OcptEditorCaretMovedEvent(line: 2));
-    final withinFirstScene = await waitForState(bloc, (state) => state.sceneStatistics != null);
-    expect(withinFirstScene.currentSceneIndex, 0);
-
-    bloc.add(const OcptEditorCaretMovedEvent(line: 0));
-    final beforeEveryScene = await waitForState(bloc, (state) => state.sceneStatistics == null);
-    expect(beforeEveryScene.currentSceneIndex, isNull);
-
-    await bloc.close();
-  });
 
   test(
     'autosaves after the debounce, clearing the dirty flag and tagging the snapshot "timer"',
@@ -1054,52 +951,6 @@ void main() {
     expect(state.pageSetup, newSetup);
     expect(await projectsManager.loadCurrentProjectPageFormat(), OcptPageFormat.a4);
     expect(await propertiesManager.pageMargins.load(), newSetup.margins);
-
-    await bloc.close();
-  });
-
-  test('changing the page setup recomputes statistics for the new format immediately', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    bloc.add(const OcptEditorTextChangedEvent(text: editedText));
-    await waitForState(bloc, (state) => state.statistics.sceneCount == 1);
-
-    const newSetup = OcptPageSetup(
-      format: OcptPageFormat.a4,
-      margins: FountainPageMargins(
-        leftInches: 2,
-        rightInches: 0.5,
-        topInches: 0.75,
-        bottomInches: 0.75,
-      ),
-    );
-    bloc.add(const OcptEditorPageSetupChangedEvent(pageSetup: newSetup));
-
-    final state = await waitForState(bloc, (state) => state.pageSetup == newSetup);
-    expect(state.statistics, FountainScriptStatistics.of(state.document!, newSetup.toMetrics()));
-
-    await bloc.close();
-  });
-
-  test('the project settings changed event re-reads the page format and repaginates', () async {
-    final bloc = buildBloc();
-    await waitForState(bloc, (state) => !state.isLoading);
-
-    final otherFormat = bloc.state.pageSetup.format == OcptPageFormat.usLetter
-        ? OcptPageFormat.a4
-        : OcptPageFormat.usLetter;
-    // Written directly through the manager, the way the project settings page itself writes it
-    // — this bloc never sees the new value on an event, only the fact that something changed.
-    await projectsManager.saveCurrentProjectPageFormat(otherFormat);
-
-    bloc.add(const OcptEditorProjectSettingsChangedEvent());
-    final state = await waitForState(bloc, (state) => state.pageSetup.format == otherFormat);
-
-    expect(
-      state.statistics,
-      FountainScriptStatistics.of(state.document!, state.pageSetup.toMetrics()),
-    );
 
     await bloc.close();
   });

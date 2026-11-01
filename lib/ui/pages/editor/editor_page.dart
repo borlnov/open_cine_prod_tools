@@ -33,6 +33,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_editor_search_text_controller.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/ocpt_styled_editor_controller.dart';
@@ -111,6 +113,10 @@ class OcptEditorPage extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptEditorIoBloc(modeBloc: context.read<OcptEditorBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptEditorStatisticsBloc(modeBloc: context.read<OcptEditorBloc>()),
       ),
     ],
     child: const _EditorView(),
@@ -824,15 +830,19 @@ class _EditorViewState extends State<_EditorView> {
       activeTab: rightDockTab,
       isPreviewTabAvailable: isPreviewTabAvailable,
       previewChild: previewChild,
-      inspectorChild: OcptEditorInspectorPanel(
-        scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
-        sceneOrdinal: currentSceneIndex == null ? null : currentSceneIndex + 1,
-        statistics: state.sceneStatistics,
+      inspectorChild: BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
+        builder: (context, statistics) => OcptEditorInspectorPanel(
+          scene: currentSceneIndex == null ? null : state.scenes[currentSceneIndex],
+          sceneOrdinal: currentSceneIndex == null ? null : currentSceneIndex + 1,
+          statistics: statistics.sceneStatistics,
+        ),
       ),
-      metadataChild: OcptEditorMetadataPanel(
-        titlePage: state.document?.titlePage,
-        statistics: state.statistics,
-        onEditTitlePage: state.isPreviewingVersion ? null : () => _requestTitlePage(context),
+      metadataChild: BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
+        builder: (context, statistics) => OcptEditorMetadataPanel(
+          titlePage: state.document?.titlePage,
+          statistics: statistics.statistics,
+          onEditTitlePage: state.isPreviewingVersion ? null : () => _requestTitlePage(context),
+        ),
       ),
       versionsChild: _buildVersionsPanel(context, state),
       onTabSelected: (tab) =>
@@ -901,21 +911,26 @@ class _EditorViewState extends State<_EditorView> {
   /// Builds the shell's `statusBar`: the screenplay's own ordered counters (pages, scenes,
   /// characters, words, signs — the first three never dropped) plus the self-refreshing
   /// last-saved segment.
-  Widget _buildStatusBar(BuildContext context, OcptEditorState state) {
+  Widget _buildStatusBar(BuildContext context, OcptEditorState modeState) {
     final tr = Tr.of(context);
-    final statistics = state.statistics;
 
-    return OcptWorkspaceStatusBar(
-      counters: [
-        tr.editorStatsPages(statistics.pageCount),
-        tr.editorStatsScenes(statistics.sceneCount),
-        tr.editorStatsCharacters(statistics.speakingCharacterCount),
-        tr.editorStatsWords(statistics.wordCount),
-        tr.editorStatsSigns(statistics.signCount),
-      ],
-      nonDroppableCount: 3,
-      trailingText: OcptEditorSavedTimeSegment.textFor(context, state.lastSavedAt),
-      trailing: OcptEditorSavedTimeSegment(lastSavedAt: state.lastSavedAt),
+    return BlocBuilder<OcptEditorStatisticsBloc, OcptEditorStatisticsState>(
+      builder: (context, state) {
+        final statistics = state.statistics;
+
+        return OcptWorkspaceStatusBar(
+          counters: [
+            tr.editorStatsPages(statistics.pageCount),
+            tr.editorStatsScenes(statistics.sceneCount),
+            tr.editorStatsCharacters(statistics.speakingCharacterCount),
+            tr.editorStatsWords(statistics.wordCount),
+            tr.editorStatsSigns(statistics.signCount),
+          ],
+          nonDroppableCount: 3,
+          trailingText: OcptEditorSavedTimeSegment.textFor(context, modeState.lastSavedAt),
+          trailing: OcptEditorSavedTimeSegment(lastSavedAt: modeState.lastSavedAt),
+        );
+      },
     );
   }
 

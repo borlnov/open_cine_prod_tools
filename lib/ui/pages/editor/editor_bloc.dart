@@ -31,7 +31,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 
 /// This is the bloc class for the editor page.
 ///
@@ -41,12 +40,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index
 /// through [OcptScreenplayService] (which snapshots the previous text and reconciles the scene
 /// index) after a longer debounce. Manual saves (toolbar button, Ctrl+S) go through the same save
 /// path, only tagged [OcptSnapshotReason.manual] instead of [OcptSnapshotReason.timer].
-/// `OcptEditorState.statistics` is recomputed on its own debounce, restarted on every parse tick,
-/// since pagination is too heavy to run on every one of those.
-/// `OcptEditorState.sceneStatistics` composes the whole document too, but only to read off one
-/// scene's slice of it, so it is recomputed directly on the parse tick (never on every keystroke,
-/// since typing only reaches it through that debounce) plus whenever the caret lands on a
-/// different scene (a comparatively rare event, unlike typing).
+/// The counters belong to `OcptEditorStatisticsBloc`, which reads the document this bloc parses.
 ///
 /// When the bloc closes (the user leaves the page), any pending unsaved change is flushed with a
 /// best-effort save: the debounce timers are cancelled and the save runs directly against the
@@ -84,13 +78,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The default delay between the last edit and the autosave.
   static const defaultAutosaveDebounce = Duration(seconds: 2);
 
-  /// The default delay between the last parse tick and recomputing statistics, kept separate
-  /// from [defaultParseDebounce]: `FountainScriptComposer.compose` (which
-  /// `FountainScriptStatistics.of` calls to get the page count) measured at ~14 ms per pass on a
-  /// 141-page script, close enough to a frame budget that it must not run on every 150 ms parse
-  /// tick while the user is typing continuously.
-  static const defaultStatisticsDebounce = Duration(milliseconds: 500);
-
   /// The parser used to build the [FountainDocument] shown in the preview and the scene panel.
   static const _fountainParser = FountainParser();
 
@@ -115,17 +102,11 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The delay between the last edit and the autosave.
   final Duration _autosaveDebounce;
 
-  /// The delay between the last parse tick and recomputing statistics.
-  final Duration _statisticsDebounce;
-
   /// The running parse debounce timer, if any.
   Timer? _parseTimer;
 
   /// The running autosave debounce timer, if any.
   Timer? _autosaveTimer;
-
-  /// The running statistics debounce timer, if any.
-  Timer? _statisticsTimer;
 
   /// The id given to the next [OcptEditorJumpRequest], increased after each one.
   int _nextJumpRequestId = 0;
@@ -146,7 +127,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Class constructor
   ///
-  /// [parseDebounce], [autosaveDebounce] and [statisticsDebounce] are only meant to be overridden
+  /// [parseDebounce] and [autosaveDebounce] are only meant to be overridden
   /// by tests, to keep them fast and deterministic.
   OcptEditorBloc({
     OcptProjectsManager? projectsManager,
@@ -156,7 +137,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptExportManager? exportManager,
     Duration parseDebounce = defaultParseDebounce,
     Duration autosaveDebounce = defaultAutosaveDebounce,
-    Duration statisticsDebounce = defaultStatisticsDebounce,
     String? selectedEpisodeId,
   }) : _selectedEpisodeId = selectedEpisodeId,
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
@@ -168,7 +148,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
        _exportManager = exportManager ?? globalGetIt().get<OcptExportManager>(),
        _parseDebounce = parseDebounce,
        _autosaveDebounce = autosaveDebounce,
-       _statisticsDebounce = statisticsDebounce,
        super(const OcptEditorState.init()) {
     // The screenplay is the one thing in the app that lives in memory between two writes (the
     // autosave debounce), so this is the mode that has an answer to give when the projects manager
@@ -187,7 +166,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorLoadRequestedEvent>(_onLoadRequested);
     on<OcptEditorTextChangedEvent>(_onTextChanged);
     on<OcptEditorParseRequestedEvent>(_onParseRequested);
-    on<OcptEditorStatisticsRecomputeRequestedEvent>(_onStatisticsRecomputeRequested);
     on<OcptEditorSaveRequestedEvent>(_onSaveRequested);
     on<OcptEditorCaretMovedEvent>(_onCaretMoved);
     on<OcptEditorSceneJumpRequestedEvent>(_onSceneJumpRequested);
@@ -372,8 +350,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
           autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
           forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
-          statistics: _statisticsFor(document, state.pageSetup),
-          forceSceneStatisticsValue: true,
           reloadEpoch: state.reloadEpoch + 1,
           reloadCause: OcptEditorReloadCause.load,
         ),
@@ -387,11 +363,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
     final document = _fountainParser.parse(text);
     final pageSetup = await _loadPageSetup(project);
-    final sceneStats = _sceneStatisticsFor(
-      document,
-      pageSetup,
-      currentSceneIndexFor(document.scenes, state.currentLine),
-    );
 
     emitter(
       state.copyWith(
@@ -414,9 +385,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
         forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
-        statistics: _statisticsFor(document, pageSetup),
-        sceneStatistics: sceneStats,
-        forceSceneStatisticsValue: sceneStats == null,
         reloadEpoch: state.reloadEpoch + 1,
         reloadCause: OcptEditorReloadCause.load,
       ),
@@ -438,21 +406,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         margins:
             await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard(),
       );
-
-  /// Computes the statistics of [document] laid out at [pageSetup]'s metrics.
-  FountainScriptStatistics _statisticsFor(FountainDocument document, OcptPageSetup pageSetup) =>
-      FountainScriptStatistics.of(document, pageSetup.toMetrics());
-
-  /// Computes the statistics of the scene at [sceneIndex] in [document] laid out at [pageSetup]'s
-  /// metrics, or null if [sceneIndex] is null (the caret precedes every scene, or [document] has
-  /// no scenes at all).
-  FountainSceneStatistics? _sceneStatisticsFor(
-    FountainDocument document,
-    OcptPageSetup pageSetup,
-    int? sceneIndex,
-  ) => sceneIndex == null
-      ? null
-      : FountainSceneStatistics.of(document, pageSetup.toMetrics(), sceneIndex);
 
   /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
@@ -530,80 +483,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     });
   }
 
-  /// Re-parses the current text into a fresh document, recomputes the current scene's statistics
-  /// right away (cheap relative to [_scheduleStatisticsRecompute]'s script-wide pagination, and
-  /// tied to this same 150 ms parse debounce rather than typing itself), then (re)starts the
-  /// script-wide statistics debounce.
+  /// Re-parses the current text into a fresh document.
   ///
   /// The spell-check bloc requests its raw pass off the fresh document this emits, exactly where
-  /// `docs/architecture/screenplay.md` puts it: on this same parse debounce, never a keystroke.
+  /// `docs/architecture/screenplay.md` puts it: on this same parse debounce, never a keystroke. The
+  /// statistics bloc refreshes its counters off it too.
   Future<void> _onParseRequested(
     OcptEditorParseRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final document = _fountainParser.parse(state.text);
-    final sceneStats = _sceneStatisticsFor(
-      document,
-      state.pageSetup,
-      currentSceneIndexFor(document.scenes, state.currentLine),
-    );
-    emitter(
-      state.copyWith(
-        document: document,
-        sceneStatistics: sceneStats,
-        forceSceneStatisticsValue: sceneStats == null,
-      ),
-    );
-    _scheduleStatisticsRecompute();
-  }
-
-  /// (Re)starts the statistics debounce timer: while the user keeps typing, each parse tick
-  /// restarts it, so the heavy pagination pass behind `FountainScriptStatistics.of` only actually
-  /// runs once typing pauses for [_statisticsDebounce], never on every parse tick.
-  void _scheduleStatisticsRecompute() {
-    _statisticsTimer?.cancel();
-    _statisticsTimer = Timer(_statisticsDebounce, () {
-      if (!isClosed) {
-        add(const OcptEditorStatisticsRecomputeRequestedEvent());
-      }
-    });
-  }
-
-  /// Recomputes statistics from the current document and page setup, once the statistics
-  /// debounce elapses. A no-op if nothing has been parsed yet.
-  Future<void> _onStatisticsRecomputeRequested(
-    OcptEditorStatisticsRecomputeRequestedEvent event,
-    Emitter<OcptEditorState> emitter,
-  ) async {
-    final document = state.document;
-    if (document == null) {
-      return;
-    }
-    emitter(state.copyWith(statistics: _statisticsFor(document, state.pageSetup)));
-  }
-
-  /// Recomputes statistics for [document] at [pageSetup] and emits them immediately, cancelling
-  /// any pending debounced recompute so it doesn't redundantly fire again right after. Used by the
-  /// deliberate, infrequent actions (load, import, title-page edit, page-setup change) that should
-  /// show up-to-date counts at once rather than waiting out the typing debounce.
-  void _recomputeStatisticsNow({
-    required FountainDocument document,
-    required OcptPageSetup pageSetup,
-    required Emitter<OcptEditorState> emitter,
-  }) {
-    _statisticsTimer?.cancel();
-    final sceneStats = _sceneStatisticsFor(
-      document,
-      pageSetup,
-      currentSceneIndexFor(document.scenes, state.currentLine),
-    );
-    emitter(
-      state.copyWith(
-        statistics: _statisticsFor(document, pageSetup),
-        sceneStatistics: sceneStats,
-        forceSceneStatisticsValue: sceneStats == null,
-      ),
-    );
+    emitter(state.copyWith(document: _fountainParser.parse(state.text)));
   }
 
   /// Saves the current text to the project database, unless there is nothing dirty to save.
@@ -675,25 +564,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
   }
 
-  /// Records the source line the caret moved to, and, if that actually lands the caret on a
-  /// different scene, recomputes that scene's statistics right away rather than waiting for the
-  /// next parse tick — moving the caret is far rarer than typing a character, so this stays well
-  /// clear of the "never per keystroke" cost [OcptEditorState.sceneStatistics] documents.
+  /// Records the source line the caret moved to. The statistics bloc recomputes the scene's counters
+  /// when that lands the caret on a different scene.
   Future<void> _onCaretMoved(
     OcptEditorCaretMovedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    final previousSceneIndex = state.currentSceneIndex;
     emitter(state.copyWith(currentLine: event.line));
-
-    final document = state.document;
-    final newSceneIndex = state.currentSceneIndex;
-    if (document != null && newSceneIndex != previousSceneIndex) {
-      final sceneStats = _sceneStatisticsFor(document, state.pageSetup, newSceneIndex);
-      emitter(
-        state.copyWith(sceneStatistics: sceneStats, forceSceneStatisticsValue: sceneStats == null),
-      );
-    }
   }
 
   /// Emits a fresh jump request for the page to move the caret to the clicked scene's start.
@@ -879,9 +756,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _propertiesManager.spellCheckVisible.store(newValue);
   }
 
-  /// Persists the new page setup (format per-project, margins app-wide), applies it live, and
-  /// recomputes statistics immediately since [FountainScriptStatistics.pageCount] depends on the
-  /// page format.
+  /// Persists the new page setup (format per-project, margins app-wide), and applies it live. The
+  /// statistics bloc recomputes the counters at once, since the page count depends on the page
+  /// format.
   Future<void> _onPageSetupChanged(
     OcptEditorPageSetupChangedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -895,11 +772,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         reloadCause: OcptEditorReloadCause.pageSetup,
       ),
     );
-
-    final document = state.document;
-    if (document != null) {
-      _recomputeStatisticsNow(document: document, pageSetup: event.pageSetup, emitter: emitter);
-    }
   }
 
   /// Re-reads the project's page format and screenplay language after the project settings page
@@ -924,11 +796,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           reloadCause: OcptEditorReloadCause.pageSetup,
         ),
       );
-
-      final document = state.document;
-      if (document != null) {
-        _recomputeStatisticsNow(document: document, pageSetup: pageSetup, emitter: emitter);
-      }
     }
 
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
@@ -980,11 +847,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     emitter(state.copyWith(text: event.text, isDirty: false, currentLine: 0));
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-    _recomputeStatisticsNow(
-      document: state.document!,
-      pageSetup: state.pageSetup,
-      emitter: emitter,
-    );
     emitter(
       state.copyWith(
         reloadEpoch: state.reloadEpoch + 1,
@@ -1026,11 +888,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWith(text: newText));
     await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-    _recomputeStatisticsNow(
-      document: state.document!,
-      pageSetup: state.pageSetup,
-      emitter: emitter,
-    );
     emitter(
       state.copyWith(
         reloadEpoch: state.reloadEpoch + 1,
@@ -1073,7 +930,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
-    _statisticsTimer?.cancel();
 
     if (state.isDirty) {
       await _onSaveRequested(const OcptEditorSaveRequestedEvent(isManual: true), emitter);
@@ -1093,7 +949,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   Future<void> disposeLifeCycle() async {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
-    _statisticsTimer?.cancel();
     _unregisterUnsavedChangesReporter();
 
     final project = _projectsManager.currentProject;

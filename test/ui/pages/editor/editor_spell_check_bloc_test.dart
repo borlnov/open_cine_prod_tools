@@ -272,7 +272,6 @@ void main() {
       exportManager: _InertExportManager(),
       parseDebounce: const Duration(milliseconds: 20),
       autosaveDebounce: const Duration(milliseconds: 60),
-      statisticsDebounce: const Duration(milliseconds: 30),
     );
     final spell = OcptEditorSpellCheckBloc(
       modeBloc: mode,
