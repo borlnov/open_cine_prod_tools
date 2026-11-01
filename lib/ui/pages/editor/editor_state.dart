@@ -10,12 +10,14 @@ import 'package:open_cine_prod_tools/models/ocpt_project_package_report.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
@@ -34,6 +36,7 @@ export 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 /// reads come from there rather than being declared here.
 class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     with
+        MixinOcptModeState<OcptEditorState>,
         MixinOcptProjectVersionsState<OcptEditorState>,
         MixinOcptProjectPackageState<OcptEditorState> {
   /// Whether the screenplay is still being loaded from the project database.
@@ -200,6 +203,23 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// its own 150 ms parse debounce, or when a caret move actually lands on a different scene.
   final FountainSceneStatistics? sceneStatistics;
 
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.reloadEpoch}
+  ///
+  /// In this mode: a whole load, a screenplay text replaced by an action (an import, a title page
+  /// rewrite) and a page setup change. Typing moves nothing, it is what the parse debounce is for.
+  @override
+  final int reloadEpoch;
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeState.selectionEpoch}
+  ///
+  /// In this mode the only selection a command moves is the scene a jump request names; the caret
+  /// itself is [currentLine], read straight off the state.
+  @override
+  final int selectionEpoch;
+
+  /// What moved [reloadEpoch] the last time it advanced.
+  final OcptEditorReloadCause reloadCause;
+
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.projectVersions}
   @override
   final List<OcptProjectVersion> projectVersions;
@@ -289,6 +309,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.search,
     required this.statistics,
     required this.sceneStatistics,
+    required this.reloadEpoch,
+    required this.selectionEpoch,
+    required this.reloadCause,
     required this.projectVersions,
     required this.previewedVersionId,
     required this.workingCopy,
@@ -330,6 +353,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       search = const OcptEditorSearchState.init(),
       statistics = FountainScriptStatistics.empty,
       sceneStatistics = null,
+      reloadEpoch = 0,
+      selectionEpoch = 0,
+      reloadCause = OcptEditorReloadCause.none,
       projectVersions = const [],
       previewedVersionId = null,
       workingCopy = null,
@@ -396,6 +422,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool forceSceneStatisticsValue = false,
+    int? reloadEpoch,
+    int? selectionEpoch,
+    OcptEditorReloadCause? reloadCause,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -445,6 +474,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     search: search ?? this.search,
     statistics: statistics ?? this.statistics,
     sceneStatistics: sceneStatistics ?? (forceSceneStatisticsValue ? null : this.sceneStatistics),
+    reloadEpoch: reloadEpoch ?? this.reloadEpoch,
+    selectionEpoch: selectionEpoch ?? this.selectionEpoch,
+    reloadCause: reloadCause ?? this.reloadCause,
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
@@ -545,5 +577,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     search,
     statistics,
     sceneStatistics,
+    reloadEpoch,
+    selectionEpoch,
+    reloadCause,
   ];
 }

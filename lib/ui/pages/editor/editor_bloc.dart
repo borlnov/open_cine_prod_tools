@@ -22,6 +22,8 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_spell_checked_lines.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
@@ -29,6 +31,7 @@ import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
@@ -73,7 +76,8 @@ import 'package:spell_kit/spell_kit.dart';
 class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with
         MixinOcptProjectVersionsBloc<OcptEditorState>,
-        MixinOcptProjectPackageBloc<OcptEditorState> {
+        MixinOcptProjectPackageBloc<OcptEditorState>,
+        MixinOcptModeBloc<OcptEditorState, OcptEditorReloadScope> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "editor_bloc";
 
@@ -190,7 +194,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// `OcptWorkspacePage._buildActiveMode`'s own doc comment), so the field can never go stale.
   ///
   /// Null only for a project holding no episode at all: `OcptWorkspaceBloc` lands on the first one
-  /// before it clears `isLoading`, and a mode is never built before that, so [_screenplayIdOf]'s
+  /// before it clears `isLoading`, and a mode is never built before that, so [screenplayIdOf]'s
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   final String? _selectedEpisodeId;
@@ -302,7 +306,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
   /// selected (see [_selectedEpisodeId]'s own doc comment).
-  String _screenplayIdOf(OcptOpenProjectModel project) =>
+  String screenplayIdOf(OcptOpenProjectModel project) =>
       _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Saves the screenplay if it holds unsaved changes, so a preview about to swap the database
@@ -312,13 +316,75 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// the screenplay's point of view, clicking a version card is as deliberate as pressing Ctrl+S.
   @protected
   @override
-  Future<bool> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) async {
-    if (!state.isDirty) {
-      return true;
+  Future<bool> flushPendingProjectWrites(Emitter<OcptEditorState> emitter) =>
+      flushAllPendingWritesIn(emitter);
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.flushAllPendingWritesIn}
+  ///
+  /// Always true: a save that fails raises the transient save error, keeps the text dirty and is
+  /// not retried here, and the action behind the flush (a preview, a restore, an export, a package)
+  /// goes ahead on the text the database still holds, as it always did.
+  @protected
+  @override
+  Future<bool> flushAllPendingWritesIn(Emitter<OcptEditorState> emitter) async {
+    if (state.isDirty) {
+      await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
     }
 
-    await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
+    await runPendingWritesFlushers();
     return true;
+  }
+
+  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
+  ///
+  /// Nothing asks for it yet, see [OcptEditorReloadScope]. A read that fails is logged and answers
+  /// false.
+  @protected
+  @override
+  Future<bool> reloadScopesIn(
+    Set<OcptEditorReloadScope> scopes,
+    Emitter<OcptEditorState> emitter,
+  ) async {
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return false;
+    }
+
+    try {
+      String? text;
+
+      // A switch statement over an enum must name every value: a scope added to the enum does not
+      // compile until it is read here.
+      for (final scope in scopes) {
+        switch (scope) {
+          case OcptEditorReloadScope.screenplay:
+            text = await _screenplayService.loadScreenplayText(
+              database: project.database,
+              screenplayId: screenplayIdOf(project),
+            );
+        }
+      }
+
+      if (text != null) {
+        emitter(
+          state.copyWith(
+            text: text,
+            document: _fountainParser.parse(text),
+            reloadEpoch: state.reloadEpoch + 1,
+            reloadCause: OcptEditorReloadCause.textReplaced,
+          ),
+        );
+      }
+      return true;
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to read again the $scopes of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      return false;
+    }
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
@@ -412,6 +478,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
           forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
           statistics: _statisticsFor(document, state.pageSetup),
           forceSceneStatisticsValue: true,
+          reloadEpoch: state.reloadEpoch + 1,
+          reloadCause: OcptEditorReloadCause.load,
         ),
       );
       unawaited(_reconcileSpellCheckLanguage());
@@ -420,7 +488,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     final text = await _screenplayService.loadScreenplayText(
       database: project.database,
-      screenplayId: _screenplayIdOf(project),
+      screenplayId: screenplayIdOf(project),
     );
     final document = _fountainParser.parse(text);
     final pageSetup = await _loadPageSetup(project);
@@ -458,6 +526,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         statistics: _statisticsFor(document, pageSetup),
         sceneStatistics: sceneStats,
         forceSceneStatisticsValue: sceneStats == null,
+        reloadEpoch: state.reloadEpoch + 1,
+        reloadCause: OcptEditorReloadCause.load,
       ),
     );
 
@@ -700,7 +770,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     try {
       await _screenplayService.saveScreenplayText(
         database: project.database,
-        screenplayId: _screenplayIdOf(project),
+        screenplayId: screenplayIdOf(project),
         fountainText: textToSave,
         snapshotReason: reason,
       );
@@ -758,6 +828,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(
       state.copyWith(
         jumpRequest: OcptEditorJumpRequest(charOffset: event.charOffset, id: _nextJumpRequestId++),
+        selectionEpoch: state.selectionEpoch + 1,
       ),
     );
   }
@@ -1377,7 +1448,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     await _projectsManager.saveCurrentProjectPageFormat(event.pageSetup.format);
     await _propertiesManager.pageMargins.store(event.pageSetup.margins);
-    emitter(state.copyWith(pageSetup: event.pageSetup));
+    emitter(
+      state.copyWith(
+        pageSetup: event.pageSetup,
+        reloadEpoch: state.reloadEpoch + 1,
+        reloadCause: OcptEditorReloadCause.pageSetup,
+      ),
+    );
 
     final document = state.document;
     if (document != null) {
@@ -1411,7 +1488,13 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     if (pageFormat != null && pageFormat != state.pageSetup.format) {
       final pageSetup = state.pageSetup.copyWith(format: pageFormat);
-      emitter(state.copyWith(pageSetup: pageSetup));
+      emitter(
+        state.copyWith(
+          pageSetup: pageSetup,
+          reloadEpoch: state.reloadEpoch + 1,
+          reloadCause: OcptEditorReloadCause.pageSetup,
+        ),
+      );
 
       final document = state.document;
       if (document != null) {
@@ -1610,7 +1693,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
       await _screenplayService.saveScreenplayText(
         database: project.database,
-        screenplayId: _screenplayIdOf(project),
+        screenplayId: screenplayIdOf(project),
         fountainText: imported.fountainText,
         snapshotReason: OcptSnapshotReason.import,
       );
@@ -1631,6 +1714,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         document: state.document!,
         pageSetup: state.pageSetup,
         emitter: emitter,
+      );
+      emitter(
+        state.copyWith(
+          reloadEpoch: state.reloadEpoch + 1,
+          reloadCause: OcptEditorReloadCause.textReplaced,
+        ),
       );
     } catch (error, stackTrace) {
       _logger.e(
@@ -1692,6 +1781,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       document: state.document!,
       pageSetup: state.pageSetup,
       emitter: emitter,
+    );
+    emitter(
+      state.copyWith(
+        reloadEpoch: state.reloadEpoch + 1,
+        reloadCause: OcptEditorReloadCause.textReplaced,
+      ),
     );
   }
 
@@ -1904,7 +1999,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       try {
         await _screenplayService.saveScreenplayText(
           database: project.database,
-          screenplayId: _screenplayIdOf(project),
+          screenplayId: screenplayIdOf(project),
           fountainText: state.text,
           snapshotReason: OcptSnapshotReason.timer,
         );

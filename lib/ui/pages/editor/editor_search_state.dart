@@ -38,7 +38,7 @@ class OcptEditorSearchState extends Equatable {
 
   /// The id of the last request to (re)focus and select the find field, bumped on every "open".
   ///
-  /// The same idiom as [OcptEditorJumpRequest.id]: the bar remembers the last one it applied, so
+  /// The same idiom as `OcptEditorJumpRequest.id`: the bar remembers the last one it applied, so
   /// re-opening an already-open bar (or unfolding its replace row through Ctrl+H) still refocuses
   /// the find field even though [isOpen] itself doesn't change value.
   final int focusRequestId;

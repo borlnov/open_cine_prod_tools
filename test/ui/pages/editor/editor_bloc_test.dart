@@ -37,6 +37,8 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_pdf_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
+import 'package:open_cine_prod_tools/types/ocpt_editor_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -2789,6 +2791,153 @@ void main() {
       expect(manager.checkCalls, isEmpty);
 
       await bloc.close();
+    });
+  });
+
+  group('epochs and the mode contract', () {
+    test('the load moves the reload epoch once and names itself as the cause', () async {
+      final bloc = buildBloc();
+      final state = await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(state.reloadEpoch, 1);
+      expect(state.reloadCause, OcptEditorReloadCause.load);
+      expect(state.selectionEpoch, 0);
+
+      await bloc.close();
+    });
+
+    test('typing moves neither epoch', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      final state = await waitForState(bloc, (state) => state.document?.sourceText == editedText);
+
+      expect(state.reloadEpoch, 1);
+      expect(state.selectionEpoch, 0);
+
+      await bloc.close();
+    });
+
+    test('a scene jump request moves the selection epoch, the same scene twice too', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorSceneJumpRequestedEvent(charOffset: 4));
+      bloc.add(const OcptEditorSceneJumpRequestedEvent(charOffset: 4));
+      final state = await waitForState(bloc, (state) => state.selectionEpoch == 2);
+
+      expect(state.reloadEpoch, 1);
+
+      await bloc.close();
+    });
+
+    test('a page setup change moves the reload epoch with its own cause', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptEditorPageSetupChangedEvent(
+          pageSetup: OcptPageSetup(
+            format: OcptPageFormat.a4,
+            margins: FountainPageMargins.standard(),
+          ),
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.reloadEpoch == 2);
+
+      expect(state.reloadCause, OcptEditorReloadCause.pageSetup);
+
+      await bloc.close();
+    });
+
+    test('a title page rewrite moves the reload epoch as a replaced text', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(
+        const OcptEditorTitlePageChangedEvent(
+          title: "My Movie",
+          credit: "",
+          author: "",
+          draftDate: "",
+          contact: "",
+          source: "",
+        ),
+      );
+      final state = await waitForState(bloc, (state) => state.reloadEpoch == 2);
+
+      expect(state.reloadCause, OcptEditorReloadCause.textReplaced);
+
+      await bloc.close();
+    });
+
+    test('flushAllPendingWrites saves a dirty text as manual and answers true', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      await waitForState(bloc, (state) => state.isDirty);
+
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+
+      expect(bloc.state.isDirty, isFalse);
+      expect((await readSnapshots()).last.reason, OcptSnapshotReason.manual);
+
+      await bloc.close();
+    });
+
+    test('flushAllPendingWrites writes nothing when the text is clean', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+      expect(await readSnapshots(), isEmpty);
+
+      await bloc.close();
+    });
+
+    test('a failing save still answers true and keeps the text dirty', () async {
+      final bloc = buildBloc(screenplayService: const _FailingScreenplayService());
+      await waitForState(bloc, (state) => !state.isLoading);
+
+      bloc.add(const OcptEditorTextChangedEvent(text: editedText));
+      await waitForState(bloc, (state) => state.isDirty);
+
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+      expect(bloc.state.isDirty, isTrue);
+      expect(bloc.state.hasSaveError, isTrue);
+
+      await bloc.close();
+    });
+
+    test('reload of the screenplay scope reads the stored text and moves the epoch', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      final project = projectsManager.currentProject!;
+      await projectsManager.screenplayService.saveScreenplayText(
+        database: project.database,
+        screenplayId: project.primaryScreenplayId,
+        fountainText: editedText,
+        snapshotReason: OcptSnapshotReason.manual,
+      );
+
+      expect(await bloc.reload({OcptEditorReloadScope.screenplay}), isTrue);
+
+      expect(bloc.state.text, editedText);
+      expect(bloc.state.reloadEpoch, 2);
+      expect(bloc.state.reloadCause, OcptEditorReloadCause.textReplaced);
+
+      await bloc.close();
+    });
+
+    test('flushAllPendingWrites and reload answer at once on a closed bloc', () async {
+      final bloc = buildBloc();
+      await waitForState(bloc, (state) => !state.isLoading);
+      await bloc.close();
+
+      expect(await bloc.flushAllPendingWrites(), isFalse);
+      expect(await bloc.reload({OcptEditorReloadScope.screenplay}), isFalse);
     });
   });
 }
