@@ -168,7 +168,11 @@ seven documents a production runs on.
   nullable — no coordinates, or a phase that never happens at that latitude, prints nothing rather
   than a plausible wrong time. The time zone is the **device's own** for that date, which the day
   inspector says rather than hides.
-  `OcptScheduleService` is owned by `OcptProjectsManager` beside the other services. **A shot may be
+  `OcptScheduleService` is owned by `OcptProjectsManager` beside the other services, and is the one
+  entry to the schedule's writes: the days and their events (`OcptScheduleDaysOps`), the slots
+  (`OcptScheduleSlotsOps`), who is convoked (`OcptScheduleConvocationsOps`) and the blocks
+  (`OcptScheduleBlocksOps`) are stateless classes it forwards to, so it stays `const` and a test
+  double overriding one of its methods is still the one every caller reaches. **A shot may be
   placed as many times as the plan needs**: a shot interrupted by the meal break and resumed after
   it is two blocks on that day, not one, so `placeShot` only ever creates — a placement is moved and
   removed like any other block, and there is no operation keyed by shot. `loadShotPlacements`
