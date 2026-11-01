@@ -163,15 +163,20 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final OcptChangesetEnvelope envelope;
+    // Assigned by the read below whenever no refusal was recorded.
+    late final OcptChangesetEnvelope envelope;
+    shelf.Response? refusal;
     try {
       envelope = OcptChangesetEnvelope.fromJson(_decodeJsonObject(await request.readAsString()));
     } on FormatException catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, 'bad changeset envelope: $error');
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, 'bad changeset envelope: $error');
     } on OcptSyncMalformedDataError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
     } on OcptSyncUnsupportedFormatError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+      refusal = _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+    }
+    if (refusal != null) {
+      return refusal;
     }
 
     final sequence = store.append(projectId, envelope);
@@ -210,18 +215,23 @@ class OcptRelayServer {
       return rejection;
     }
 
-    final OcptSnapshotDescriptor descriptor;
-    final Uint8List bytes;
+    // Assigned by the read below whenever no refusal was recorded.
+    late final OcptSnapshotDescriptor descriptor;
+    late final Uint8List bytes;
+    shelf.Response? refusal;
     try {
       final json = _decodeJsonObject(await request.readAsString());
       descriptor = OcptSnapshotDescriptor.fromJson(_requireObject(json, _descriptorKey));
       bytes = base64Decode(_requireString(json, _bytesKey));
     } on FormatException catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, 'bad snapshot upload: $error');
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, 'bad snapshot upload: $error');
     } on OcptSyncMalformedDataError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
+      refusal = _errorResponse(400, OcptSyncErrorCode.malformed, error.reason);
     } on OcptSyncUnsupportedFormatError catch (error) {
-      return _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+      refusal = _errorResponse(400, OcptSyncErrorCode.unsupportedFormat, error.toString());
+    }
+    if (refusal != null) {
+      return refusal;
     }
 
     store.uploadSnapshot(projectId, descriptor, bytes);
