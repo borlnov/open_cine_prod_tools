@@ -16,7 +16,6 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
@@ -26,7 +25,6 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index
 export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
-export 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 
 /// The state of `OcptEditorBloc`.
 ///
@@ -160,10 +158,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
   final OcptEditorIoNotice? ioNotice;
 
-  /// The editor's find/replace state — see `OcptEditorSearchState`'s own doc comment for why it
-  /// lives here rather than in either editing surface.
-  final OcptEditorSearchState search;
-
   /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
   /// status bar, computed from [document] at [pageSetup]'s metrics.
   ///
@@ -282,7 +276,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.screenplayLanguage,
     required this.jumpRequest,
     required this.ioNotice,
-    required this.search,
     required this.statistics,
     required this.sceneStatistics,
     required this.reloadEpoch,
@@ -324,7 +317,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       screenplayLanguage = null,
       jumpRequest = null,
       ioNotice = null,
-      search = const OcptEditorSearchState.init(),
       statistics = FountainScriptStatistics.empty,
       sceneStatistics = null,
       reloadEpoch = 0,
@@ -352,8 +344,7 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// [forceSceneStatisticsValue], [forceScreenplayLanguageValue]): all four legitimately go back to null during the editor's
   /// lifetime (closing the dock, restoring it on a mode switch, the caret moving back before every
   /// scene, a project's language being unset), so the "never goes back to null" shortcut used
-  /// above doesn't apply to them. [search] is replaced wholesale (through its own
-  /// `OcptEditorSearchState.copyWith`), not flattened into this method's own parameter list.
+  /// above doesn't apply to them.
   @override
   OcptEditorState copyWith({
     bool? isLoading,
@@ -386,7 +377,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool forceJumpRequestValue = false,
     OcptEditorIoNotice? ioNotice,
     bool forceIoNoticeValue = false,
-    OcptEditorSearchState? search,
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool forceSceneStatisticsValue = false,
@@ -437,7 +427,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
         screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
     jumpRequest: jumpRequest ?? (forceJumpRequestValue ? null : this.jumpRequest),
     ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
-    search: search ?? this.search,
     statistics: statistics ?? this.statistics,
     sceneStatistics: sceneStatistics ?? (forceSceneStatisticsValue ? null : this.sceneStatistics),
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
@@ -538,7 +527,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     screenplayLanguage,
     jumpRequest,
     ioNotice,
-    search,
     statistics,
     sceneStatistics,
     reloadEpoch,

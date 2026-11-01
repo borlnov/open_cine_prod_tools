@@ -24,6 +24,8 @@ import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -97,6 +99,10 @@ class OcptEditorPage extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptEditorSpellCheckBloc(modeBloc: context.read<OcptEditorBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptEditorSearchBloc(modeBloc: context.read<OcptEditorBloc>()),
       ),
     ],
     child: const _EditorView(),
@@ -344,9 +350,17 @@ class _EditorViewState extends State<_EditorView> {
         ),
       },
       child: Scaffold(
-        body: BlocListener<OcptEditorSpellCheckBloc, OcptEditorSpellCheckState>(
-          listener: (context, spellState) =>
-              _syncSpellCheck(context.read<OcptEditorBloc>().state, spellState),
+        body: MultiBlocListener(
+          listeners: [
+            BlocListener<OcptEditorSpellCheckBloc, OcptEditorSpellCheckState>(
+              listener: (context, spellState) =>
+                  _syncSpellCheck(context.read<OcptEditorBloc>().state, spellState),
+            ),
+            BlocListener<OcptEditorSearchBloc, OcptEditorSearchState>(
+              listener: (context, search) =>
+                  _syncSearch(context.read<OcptEditorBloc>().state, search),
+            ),
+          ],
           child: BlocConsumer<OcptEditorBloc, OcptEditorState>(
             listener: _onStateChanged,
             builder: (context, state) {
@@ -703,7 +717,7 @@ class _EditorViewState extends State<_EditorView> {
     // landed in the screenplay instead of in the search.
     return Column(
       children: [
-        _buildFindBar(context, state, isRawMode: isRawMode),
+        _buildFindBar(context, isRawMode: isRawMode),
         Expanded(child: editingSurface),
       ],
     );
@@ -712,48 +726,59 @@ class _EditorViewState extends State<_EditorView> {
   /// Builds the find/replace bar, the first row of [_buildCentre]'s column, or the empty box that
   /// holds its place while the bar is closed — see [_buildCentre] on why that slot is never
   /// removed.
-  Widget _buildFindBar(BuildContext context, OcptEditorState state, {required bool isRawMode}) {
-    if (!state.search.isOpen) {
+  Widget _buildFindBar(BuildContext context, {required bool isRawMode}) =>
+      BlocBuilder<OcptEditorSearchBloc, OcptEditorSearchState>(
+        builder: (context, search) => _buildOpenFindBar(context, search, isRawMode: isRawMode),
+      );
+
+  /// Builds the find/replace bar for [search], or the empty box while it is closed.
+  Widget _buildOpenFindBar(
+    BuildContext context,
+    OcptEditorSearchState search, {
+    required bool isRawMode,
+  }) {
+    if (!search.isOpen) {
       return const SizedBox.shrink();
     }
 
     return OcptEditorFindBar(
-      query: state.search.query,
-      replacement: state.search.replacement,
-      isCaseSensitive: state.search.isCaseSensitive,
-      isWholeWord: state.search.isWholeWord,
-      isReplaceRowOpen: state.search.isReplaceRowOpen,
-      matchCount: state.search.matchCount,
-      currentMatchIndex: state.search.currentMatchIndex,
-      focusRequestId: state.search.focusRequestId,
+      query: search.query,
+      replacement: search.replacement,
+      isCaseSensitive: search.isCaseSensitive,
+      isWholeWord: search.isWholeWord,
+      isReplaceRowOpen: search.isReplaceRowOpen,
+      matchCount: search.matchCount,
+      currentMatchIndex: search.currentMatchIndex,
+      focusRequestId: search.focusRequestId,
       onQueryChanged: (query) =>
-          context.read<OcptEditorBloc>().add(OcptEditorSearchQueryChangedEvent(query: query)),
-      onReplacementChanged: (replacement) => context.read<OcptEditorBloc>().add(
+          context.read<OcptEditorSearchBloc>().add(OcptEditorSearchQueryChangedEvent(query: query)),
+      onReplacementChanged: (replacement) => context.read<OcptEditorSearchBloc>().add(
         OcptEditorSearchReplacementChangedEvent(replacement: replacement),
       ),
-      onCaseSensitivityToggled: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchCaseSensitivityToggledEvent()),
+      onCaseSensitivityToggled: () => context.read<OcptEditorSearchBloc>().add(
+        const OcptEditorSearchCaseSensitivityToggledEvent(),
+      ),
       onWholeWordToggled: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchWholeWordToggledEvent()),
+          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchWholeWordToggledEvent()),
       onNextRequested: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchNextRequestedEvent()),
+          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchNextRequestedEvent()),
       onPreviousRequested: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchPreviousRequestedEvent()),
+          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchPreviousRequestedEvent()),
       onReplaceRowToggled: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchReplaceRowToggledEvent()),
+          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchReplaceRowToggledEvent()),
       // Raw mode acts straight on `_textController`; styled mode goes through
       // `OcptStyledEditorController`, the styled editor's own bridge — either way the button
       // stays enabled the moment there's at least one match (`OcptEditorFindBar` itself gates
       // that on `matchCount`), which the repository rule admits no second, mode-specific path.
       onReplaceRequested: () =>
-          isRawMode ? _requestRawReplace(state) : _requestStyledReplace(state),
+          isRawMode ? _requestRawReplace(search) : _requestStyledReplace(search),
       onReplaceAllRequested: () => unawaited(
         isRawMode
-            ? _requestRawReplaceAll(context, state)
-            : _requestStyledReplaceAll(context, state),
+            ? _requestRawReplaceAll(context, search)
+            : _requestStyledReplaceAll(context, search),
       ),
       onCloseRequested: () =>
-          context.read<OcptEditorBloc>().add(const OcptEditorSearchClosedEvent()),
+          context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchClosedEvent()),
     );
   }
 
@@ -954,6 +979,13 @@ class _EditorViewState extends State<_EditorView> {
     setState(() {});
   }
 
+  /// Applies the find/replace bar's state onto the live editing surface, see [_syncRawSearch] and
+  /// [_syncStyledSearch].
+  void _syncSearch(OcptEditorState state, OcptEditorSearchState search) {
+    _syncRawSearch(state, search);
+    _syncStyledSearch(state, search);
+  }
+
   /// Opens the find/replace bar (Ctrl+F, Ctrl+H, or the `⋮` menu's `Find…` / `Find and replace…`
   /// entries).
   ///
@@ -962,25 +994,26 @@ class _EditorViewState extends State<_EditorView> {
   /// that entry, Ctrl+F/Ctrl+H stay bound at the page level whatever is on screen, so this is the
   /// one place that has to check.
   void _requestOpenSearch({required bool withReplaceRow}) {
-    final bloc = context.read<OcptEditorBloc>();
-    if (bloc.state.isPreviewingVersion) {
+    if (context.read<OcptEditorBloc>().state.isPreviewingVersion) {
       return;
     }
-    bloc.add(OcptEditorSearchOpenedEvent(withReplaceRow: withReplaceRow));
+    context.read<OcptEditorSearchBloc>().add(
+      OcptEditorSearchOpenedEvent(withReplaceRow: withReplaceRow),
+    );
   }
 
   /// Closes the find/replace bar (Escape).
   void _requestCloseSearch() {
-    context.read<OcptEditorBloc>().add(const OcptEditorSearchClosedEvent());
+    context.read<OcptEditorSearchBloc>().add(const OcptEditorSearchClosedEvent());
   }
 
-  /// The current find/replace query, built from [state], reused by every raw-mode search
+  /// The current find/replace query, built from [search], reused by every raw-mode search
   /// operation ([_syncRawSearch], [_requestRawReplace], [_requestRawReplaceAll]) so none of them
   /// can drift from what the bar itself last reported.
-  OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorState state) => OcptEditorSearchQuery(
-    query: state.search.query,
-    isCaseSensitive: state.search.isCaseSensitive,
-    isWholeWord: state.search.isWholeWord,
+  OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorSearchState search) => OcptEditorSearchQuery(
+    query: search.query,
+    isCaseSensitive: search.isCaseSensitive,
+    isWholeWord: search.isWholeWord,
   );
 
   /// Recomputes [_textController]'s matches from its own live text whenever the find/replace bar
@@ -998,14 +1031,13 @@ class _EditorViewState extends State<_EditorView> {
   ///   the bar is open never yanks the caret back to "the current match" on every keystroke — only
   ///   an actual navigation (opening the bar, Next/Previous, a query/option change, the current
   ///   match's own index moving because the match count changed) does.
-  void _syncRawSearch(OcptEditorState state) {
+  void _syncRawSearch(OcptEditorState state, OcptEditorSearchState search) {
     if (_liveMode(state) != OcptEditorMode.raw || state.isPreviewingVersion) {
       _lastReportedRawSearchInputs = null;
       _lastNavigatedRawSearchTarget = null;
       return;
     }
 
-    final search = state.search;
     if (!search.isOpen) {
       _textController.updateMatches(const [], null);
       _lastReportedRawSearchInputs = null;
@@ -1014,7 +1046,7 @@ class _EditorViewState extends State<_EditorView> {
     }
 
     final text = _textController.text;
-    final matches = _rawSearchQueryOf(state).matchesIn(text);
+    final matches = _rawSearchQueryOf(search).matchesIn(text);
     _textController.updateMatches(matches, search.currentMatchIndex);
 
     final reportedInputs = (
@@ -1025,7 +1057,7 @@ class _EditorViewState extends State<_EditorView> {
     );
     if (reportedInputs != _lastReportedRawSearchInputs) {
       _lastReportedRawSearchInputs = reportedInputs;
-      context.read<OcptEditorBloc>().add(
+      context.read<OcptEditorSearchBloc>().add(
         OcptEditorSearchMatchesReportedEvent(matchCount: matches.length),
       );
     }
@@ -1112,21 +1144,21 @@ class _EditorViewState extends State<_EditorView> {
   /// resulting [OcptEditorTextChangedEvent] flows through the existing reclassify/autosave
   /// debounces with no special case, and [_syncRawSearch] is what turns the edit into a fresh
   /// [OcptEditorSearchMatchesReportedEvent] on its own.
-  void _requestRawReplace(OcptEditorState state) {
-    final currentIndex = state.search.currentMatchIndex;
+  void _requestRawReplace(OcptEditorSearchState search) {
+    final currentIndex = search.currentMatchIndex;
     if (currentIndex == null) {
       return;
     }
 
     final text = _textController.text;
-    final query = _rawSearchQueryOf(state);
+    final query = _rawSearchQueryOf(search);
     final matches = query.matchesIn(text);
     if (currentIndex >= matches.length) {
       return;
     }
 
     final match = matches[currentIndex];
-    final replacement = state.search.replacement;
+    final replacement = search.replacement;
     final newText = text.replaceRange(match.start, match.end, replacement);
     final writtenEnd = match.start + replacement.length;
 
@@ -1140,7 +1172,7 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
     final nextIndex = newMatches.indexWhere((candidate) => candidate.start >= writtenEnd);
-    context.read<OcptEditorBloc>().add(
+    context.read<OcptEditorSearchBloc>().add(
       OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex == -1 ? 0 : nextIndex),
     );
   }
@@ -1148,9 +1180,9 @@ class _EditorViewState extends State<_EditorView> {
   /// Replaces every match in raw mode with the replacement field's text, behind
   /// [OcptConfirmDialog] naming how many matches will be replaced (the repository rule: an
   /// irreversible action is always confirmed by a dialog, never an inline yes/no).
-  Future<void> _requestRawReplaceAll(BuildContext context, OcptEditorState state) async {
+  Future<void> _requestRawReplaceAll(BuildContext context, OcptEditorSearchState search) async {
     final text = _textController.text;
-    final matches = _rawSearchQueryOf(state).matchesIn(text);
+    final matches = _rawSearchQueryOf(search).matchesIn(text);
     if (matches.isEmpty) {
       return;
     }
@@ -1170,7 +1202,7 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    final replacement = state.search.replacement;
+    final replacement = search.replacement;
     final buffer = StringBuffer();
     var cursor = 0;
     for (final match in matches) {
@@ -1198,9 +1230,9 @@ class _EditorViewState extends State<_EditorView> {
   /// [_lastNavigatedStyledSearchTarget] shows the navigation target actually changed, exactly like
   /// [_syncRawSearch] gates [_navigateToMatch] the same way (so typing elsewhere in the styled
   /// document never yanks the caret back onto "the current match" on every keystroke either).
-  void _syncStyledSearch(OcptEditorState state) {
+  void _syncStyledSearch(OcptEditorState state, OcptEditorSearchState search) {
     final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled;
-    if (!isStyledSurfaceLive || state.isPreviewingVersion || !state.search.isOpen) {
+    if (!isStyledSurfaceLive || state.isPreviewingVersion || !search.isOpen) {
       if (_lastNavigatedStyledSearchTarget != null) {
         _lastNavigatedStyledSearchTarget = null;
         _lastReportedStyledSearchMatchCount = null;
@@ -1209,7 +1241,6 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    final search = state.search;
     final navigationTarget = (
       query: search.query,
       isCaseSensitive: search.isCaseSensitive,
@@ -1271,7 +1302,8 @@ class _EditorViewState extends State<_EditorView> {
       }
     }
 
-    if (!isStyledSurfaceLive || !state.search.isOpen) {
+    final search = context.read<OcptEditorSearchBloc>();
+    if (!isStyledSurfaceLive || !search.state.isOpen) {
       return;
     }
 
@@ -1280,7 +1312,7 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
     _lastReportedStyledSearchMatchCount = matchCount;
-    bloc.add(OcptEditorSearchMatchesReportedEvent(matchCount: matchCount));
+    search.add(OcptEditorSearchMatchesReportedEvent(matchCount: matchCount));
   }
 
   /// Replaces the current match in styled mode (`OcptStyledEditorController.replaceCurrentMatch`),
@@ -1288,19 +1320,21 @@ class _EditorViewState extends State<_EditorView> {
   /// that controller method's own doc comment for why this can't simply keep the previous index,
   /// the same reason [_requestRawReplace] computes its own `nextIndex` by hand. A no-op (dispatches
   /// nothing) when the controller reports there's nothing left to select.
-  void _requestStyledReplace(OcptEditorState state) {
-    final nextIndex = _styledEditorController.replaceCurrentMatch(state.search.replacement);
+  void _requestStyledReplace(OcptEditorSearchState search) {
+    final nextIndex = _styledEditorController.replaceCurrentMatch(search.replacement);
     if (nextIndex == null) {
       return;
     }
-    context.read<OcptEditorBloc>().add(OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex));
+    context.read<OcptEditorSearchBloc>().add(
+      OcptEditorSearchCurrentMatchSelectedEvent(index: nextIndex),
+    );
   }
 
   /// Replaces every match in styled mode with the replacement field's text, behind
   /// [OcptConfirmDialog] naming how many matches will be replaced — the same repository rule
   /// [_requestRawReplaceAll] follows, reusing the exact same dialog copy so a replace-all reads
   /// identically whichever editing mode triggered it.
-  Future<void> _requestStyledReplaceAll(BuildContext context, OcptEditorState state) async {
+  Future<void> _requestStyledReplaceAll(BuildContext context, OcptEditorSearchState search) async {
     final matchCount = _styledEditorController.searchMatchCount;
     if (matchCount == 0) {
       return;
@@ -1321,7 +1355,7 @@ class _EditorViewState extends State<_EditorView> {
       return;
     }
 
-    _styledEditorController.replaceAllMatches(state.search.replacement);
+    _styledEditorController.replaceAllMatches(search.replacement);
   }
 
   /// Shows the import confirmation dialog, then dispatches the import request if the user
@@ -1591,8 +1625,7 @@ class _EditorViewState extends State<_EditorView> {
       }
     }
 
-    _syncRawSearch(state);
-    _syncStyledSearch(state);
+    _syncSearch(state, context.read<OcptEditorSearchBloc>().state);
     _syncSpellCheck(state, context.read<OcptEditorSpellCheckBloc>().state);
 
     if (state.hasSaveError) {

@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:equatable/equatable.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 
-/// The editor's live find/replace state — one search, kept in the bloc rather than in either
-/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle.
-class OcptEditorSearchState extends Equatable {
+/// The state of `OcptEditorSearchBloc`: the editor's live find/replace state — one search, kept in a
+/// bloc rather than in either editing surface, which is what lets it survive a raw ⇄ styled mode
+/// toggle.
+class OcptEditorSearchState extends BlocStateForMixin<OcptEditorSearchState> {
   /// Whether the find/replace bar is open at all.
   final bool isOpen;
 
@@ -68,11 +69,12 @@ class OcptEditorSearchState extends Equatable {
       currentMatchIndex = null,
       focusRequestId = 0;
 
-  /// Returns a copy of this state with the given fields replaced.
+  /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [currentMatchIndex] only goes back to null through [forceCurrentMatchIndexValue] — the
   /// "there is no match" state a plain `int?` field can't tell apart from "leave it as it is" on
   /// its own.
+  @override
   OcptEditorSearchState copyWith({
     bool? isOpen,
     bool? isReplaceRowOpen,
@@ -100,6 +102,7 @@ class OcptEditorSearchState extends Equatable {
   /// Object properties
   @override
   List<Object?> get props => [
+    ...super.props,
     isOpen,
     isReplaceRowOpen,
     query,
