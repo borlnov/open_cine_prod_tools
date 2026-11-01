@@ -73,6 +73,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
 - BLoC: ACT pattern (`BlocForMixin`, `BlocStateForMixin`, sealed events registered with
   `registerMixinEvents()` / `on<>`), pages split UI/bloc/state/event files. A page owns one bloc; a
   production mode owns a **mode bloc and one bloc per view** (below, ADR 0034).
+- **A bloc that loads when it is built loads in `initAsyncBloc`.** It mixes in `MixinAsyncInitBloc`
+  (last in the `with` list, so the other mixins' first events keep their order) and overrides
+  `initAsyncBloc({required emit})`, calling `super.initAsyncBloc(emit: emit)` first: the mixin
+  adds `AsyncInitEvent` itself, and the `await` on `super` lets the constructor finish before the
+  first read. A reload is `add(const AsyncInitEvent())`; a hook that already holds an emitter (a
+  version preview, `reloadFromProjectDatabase`) calls the private load method the init calls. A
+  load that carries a parameter, or reacts to the mode's state rather than initialises the bloc,
+  stays a named event (`OcptShotListFloorPlanPropsLoadRequestedEvent`, the versions mixin's
+  refresh). A bloc with nothing asynchronous to read at startup does not mix it in.
 
 - **A production mode is one mode bloc and one bloc per view** (ADR 0034;
   `lib/ui/pages/workspace/blocs/` holds the shared machinery, and its doc comments are the rules for

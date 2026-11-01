@@ -391,7 +391,7 @@ void main() {
 
     bloc.add(const OcptBreakdownProjectSettingsChangedEvent());
     // `_onProjectSettingsChanged` doesn't reload the snapshot itself; reload through a version
-    // preview round trip instead, which does go through `_onLoadRequested`.
+    // preview round trip instead, which does go through `_load`.
     bloc.add(const OcptProjectVersionCreationRequestedEvent(name: "Checkpoint", note: ""));
     final withVersion = await waitForState(bloc, (state) => state.projectVersions.isNotEmpty);
     final versionId = withVersion.projectVersions.single.id;

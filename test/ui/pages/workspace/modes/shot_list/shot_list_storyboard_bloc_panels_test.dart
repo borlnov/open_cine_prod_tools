@@ -377,7 +377,7 @@ void main() {
     // `MixinOcptProjectVersionsBloc` actually uses (the Versions panel's own card),
     // mirroring `OcptResourcesBloc`'s own "a person created before the version is
     // captured, so it belongs to it" test. `OcptShotListBloc.reloadFromProjectDatabase`
-    // is `_onLoadRequested`, which reads `_loadStoryboard` unconditionally, exactly as it
+    // is `_load`, which reads `_loadStoryboard` unconditionally, exactly as it
     // reads `_loadSnapshot` for the shots themselves — the board follows the identical
     // reload path a previewed version's shots already do.
     final mounted = await mountWithAPanel();
