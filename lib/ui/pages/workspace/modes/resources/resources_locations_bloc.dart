@@ -155,7 +155,7 @@ class OcptResourcesLocationsBloc
     _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
     if (state.pendingLocationFieldEdits.isNotEmpty || state.pendingSetFieldEdits.isNotEmpty) {
-      emitter(state.copyWith(pendingLocationFieldEdits: const {}, pendingSetFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
     }
   }
 
@@ -249,7 +249,7 @@ class OcptResourcesLocationsBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithLocationDeleted(
           pendingLocationFieldEdits: _pendingLocationsWithout(event.locationId),
           pendingSetFieldEdits: _pendingSetsWithout(setIds),
         ),
@@ -290,7 +290,7 @@ class OcptResourcesLocationsBloc
   ) async {
     final pending = Map<(String, OcptLocationField), String>.of(state.pendingLocationFieldEdits)
       ..[(event.locationId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingLocationFieldEdits: pending));
+    emitter(state.copyWithLocationFieldEditTyped(pendingLocationFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesLocationsFieldEditFlushRequestedEvent());
   }
@@ -304,7 +304,7 @@ class OcptResourcesLocationsBloc
   ) async {
     final pending = Map<(String, OcptSetField), String>.of(state.pendingSetFieldEdits)
       ..[(event.setId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingSetFieldEdits: pending));
+    emitter(state.copyWithSetFieldEditTyped(pendingSetFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesLocationsFieldEditFlushRequestedEvent());
   }
@@ -321,7 +321,7 @@ class OcptResourcesLocationsBloc
       cancelDebounce();
     }
 
-    emitter(state.copyWith(pendingSetFieldEdits: pendingWithoutSet));
+    emitter(state.copyWithSetRemoved(pendingSetFieldEdits: pendingWithoutSet));
 
     await _writeCatalogueChange(
       logContext: "remove set ${event.setId}",
@@ -366,7 +366,7 @@ class OcptResourcesLocationsBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(state.copyWith(pendingLocationFieldEdits: const {}, pendingSetFieldEdits: const {}));
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -393,7 +393,7 @@ class OcptResourcesLocationsBloc
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     emitter(
-      state.copyWith(
+      state.copyWithFieldEditsWritten(
         pendingLocationFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingLocationFieldEdits,
           written: pendingLocationEdits,
@@ -422,7 +422,7 @@ class OcptResourcesLocationsBloc
   /// This bloc empties its own maps as well, for the mode that is closing and no longer answers.
   Future<void> _loseEdits(Emitter<OcptResourcesLocationsState> emitter) async {
     await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
-    emitter(state.copyWith(pendingLocationFieldEdits: const {}, pendingSetFieldEdits: const {}));
+    emitter(state.copyWithFieldEditsCleared());
   }
 
   /// Writes every pending field edit directly to the database, bypassing the debounce timer, the

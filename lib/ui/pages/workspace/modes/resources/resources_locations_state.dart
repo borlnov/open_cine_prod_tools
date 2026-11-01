@@ -46,6 +46,45 @@ class OcptResourcesLocationsState extends BlocStateForMixin<OcptResourcesLocatio
     pendingSetFieldEdits: pendingSetFieldEdits ?? this.pendingSetFieldEdits,
   );
 
+  /// Copies this state with every pending field edit dropped, of the locations and of their sets.
+  OcptResourcesLocationsState copyWithFieldEditsCleared() =>
+      copyWith(pendingLocationFieldEdits: const {}, pendingSetFieldEdits: const {});
+
+  /// Copies this state with [pendingLocationFieldEdits] as the edits sitting in the debounce, a
+  /// location's field having just been typed into.
+  OcptResourcesLocationsState copyWithLocationFieldEditTyped({
+    required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
+  }) => copyWith(pendingLocationFieldEdits: pendingLocationFieldEdits);
+
+  /// Copies this state with [pendingSetFieldEdits] as the edits sitting in the debounce, a set's
+  /// field having just been typed into.
+  OcptResourcesLocationsState copyWithSetFieldEditTyped({
+    required Map<(String, OcptSetField), String> pendingSetFieldEdits,
+  }) => copyWith(pendingSetFieldEdits: pendingSetFieldEdits);
+
+  /// Copies this state with the edits left once the pending ones were written, each map replaced.
+  OcptResourcesLocationsState copyWithFieldEditsWritten({
+    required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
+    required Map<(String, OcptSetField), String> pendingSetFieldEdits,
+  }) => copyWith(
+    pendingLocationFieldEdits: pendingLocationFieldEdits,
+    pendingSetFieldEdits: pendingSetFieldEdits,
+  );
+
+  /// Copies this state with the edits left once a location was deleted, each map replaced.
+  OcptResourcesLocationsState copyWithLocationDeleted({
+    required Map<(String, OcptLocationField), String> pendingLocationFieldEdits,
+    required Map<(String, OcptSetField), String> pendingSetFieldEdits,
+  }) => copyWith(
+    pendingLocationFieldEdits: pendingLocationFieldEdits,
+    pendingSetFieldEdits: pendingSetFieldEdits,
+  );
+
+  /// Copies this state with [pendingSetFieldEdits] as the edits left once a set was removed.
+  OcptResourcesLocationsState copyWithSetRemoved({
+    required Map<(String, OcptSetField), String> pendingSetFieldEdits,
+  }) => copyWith(pendingSetFieldEdits: pendingSetFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingLocationFieldEdits, pendingSetFieldEdits];
