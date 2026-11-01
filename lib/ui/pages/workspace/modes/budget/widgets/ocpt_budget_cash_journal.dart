@@ -2,11 +2,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
@@ -14,47 +12,18 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection_step.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_header_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_metrics.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_shareable_reminder.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_statement_footer_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_upcoming_footer_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_upcoming_header_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_upcoming_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
-import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
-
-/// The `Date` column's own fixed width, in logical pixels.
-const double _ocptCashJournalDateColumnWidth = 92;
-
-/// The `Voucher` column's own fixed width, in logical pixels.
-const double _ocptCashJournalVoucherColumnWidth = 76;
-
-/// The `Poste` column's own fixed width, in logical pixels.
-const double _ocptCashJournalPosteColumnWidth = 200;
-
-/// The `Debit`, `Credit` and `Balance` columns' own fixed width, in logical pixels.
-const double _ocptCashJournalAmountColumnWidth = 108;
-
-/// The trailing `⋮` menu column's own fixed width, in logical pixels — matches
-/// `OcptBudgetCostTracking`'s own menu column, the same affordance drawn the same size.
-const double _ocptCashJournalMenuColumnWidth = 36;
-
-/// The narrowest the entry table is ever drawn at, in logical pixels: every fixed column's own
-/// width — 92 + 76 + 200 + 3 × 108 + 36 = 728 — plus the row's own 24 px inset
-/// ([ocptTableRowHorizontalPadding], symmetric) and 232 for a `Label` column that can still hold a
-/// wording: 728 + 24 + 232 = 984.
-///
-/// Below it the table **scrolls sideways inside its own frame** rather than being crushed: the
-/// `Label` column is the only flexible one, so a narrower centre used to drive it to nothing and
-/// the row overflowed — which is exactly what opening the right dock on a laptop screen does. No
-/// column is dropped and none shrinks; the reader gets a horizontal scrollbar and keeps the whole
-/// ledger, the treatment the rest of the app already gives a table too wide for its slot.
-const double _ocptCashJournalMinTableWidth = 984;
-
-/// Every entry row's own fixed height, in logical pixels.
-const double _ocptCashJournalRowHeight = 44;
-
-/// The header row's own fixed height, in logical pixels.
-const double _ocptCashJournalHeaderRowHeight = 36;
 
 /// The tools drawer's `Flux de trésorerie` page: the whole account book, in date order — **every
 /// movement the project has ever recorded, debit and credit alike**, read-only. The entry table
@@ -74,7 +43,7 @@ const double _ocptCashJournalHeaderRowHeight = 36;
 /// longer honours the header's own poste filter at all** (`ocptBudgetViewHonoursPosteFilter` is
 /// now `OcptBudgetView.expenses` alone): a bank statement reads across the whole account, not one
 /// category narrowed out of it, and mockup `4b` draws no filtered reading of this page. The closing
-/// balance ([_OcptCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own ruling
+/// balance ([OcptBudgetCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own ruling
 /// is that this is the production's bank account, and it does not change because a view narrowed to
 /// one poste.
 ///
@@ -244,7 +213,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                     // the same fixed column widths, so scrolling either alone would slide the
                     // figures out from under their own headings.
                     child: SizedBox(
-                      width: math.max(constraints.maxWidth, _ocptCashJournalMinTableWidth),
+                      width: math.max(constraints.maxWidth, ocptBudgetCashJournalMinTableWidth),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: ocptTableRowHorizontalPadding,
@@ -252,7 +221,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const _OcptCashJournalHeaderRow(),
+                            const OcptBudgetCashJournalHeaderRow(),
                             Expanded(
                               // A single scroll region for both sections, the statement's own
                               // entries first, `À venir` under them as slivers of its own — see the
@@ -261,7 +230,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                 slivers: [
                                   SliverList.builder(
                                     itemCount: rows.length,
-                                    itemBuilder: (context, index) => _OcptCashJournalRow(
+                                    itemBuilder: (context, index) => OcptBudgetCashJournalRow(
                                       row: rows[index],
                                       poste: _posteById(rows[index].entry.posteId),
                                       receipt: receiptsByEntryId[rows[index].entry.id],
@@ -284,7 +253,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                   ),
                                   if (rows.isNotEmpty) ...[
                                     SliverToBoxAdapter(
-                                      child: _OcptCashStatementFooterRow(
+                                      child: OcptBudgetCashStatementFooterRow(
                                         closingDate: rows.last.entry.date,
                                         balanceCents: totals.balanceCents,
                                         currencyCode: currencyCode,
@@ -292,7 +261,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                     ),
                                     if (shareableCents > 0)
                                       SliverToBoxAdapter(
-                                        child: _OcptCashShareableReminder(
+                                        child: OcptBudgetCashShareableReminder(
                                           shareableCents: shareableCents,
                                           currencyCode: currencyCode,
                                           onOpenSharing: onOpenSharing,
@@ -315,14 +284,16 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                       ),
                                   ],
                                   if (showsUpcoming) ...[
-                                    const SliverToBoxAdapter(child: _OcptCashUpcomingHeaderRow()),
+                                    const SliverToBoxAdapter(
+                                      child: OcptBudgetCashUpcomingHeaderRow(),
+                                    ),
                                     SliverList.builder(
                                       itemCount: projection.steps.length,
                                       itemBuilder: (context, index) {
                                         final step = projection.steps[index];
                                         final commitment = commitmentsById[step.commitmentId]!;
 
-                                        return _OcptCashUpcomingRow(
+                                        return OcptBudgetCashUpcomingRow(
                                           step: step,
                                           commitment: commitment,
                                           poste: _posteById(commitment.posteId),
@@ -336,7 +307,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                       },
                                     ),
                                     SliverToBoxAdapter(
-                                      child: _OcptCashUpcomingFooterRow(
+                                      child: OcptBudgetCashUpcomingFooterRow(
                                         totalDueCents:
                                             projection.openingBalanceCents -
                                             projection.finalBalanceCents,
@@ -410,719 +381,5 @@ class OcptBudgetCashJournal extends StatelessWidget {
     }
 
     return null;
-  }
-}
-
-/// The statement's own closing row, in the very same tinted style [_OcptCashUpcomingFooterRow]
-/// closes `À venir` with: the closing label past a span of the leading columns, nothing under
-/// `Debit` and `Credit`, and [balanceCents] under `Balance`. Mockup `4b` draws the two footers
-/// answering each other — the account's past closed here, its future closed below.
-///
-/// **This replaced a top band carrying the whole journal's debit, credit and balance.** Only the
-/// balance survives the move, which is the mockup's own reading and the honest one: on a running
-/// statement the debit and credit totals are the two halves of the very figure the last line
-/// already shows, and reading all three off a band pinned above a scrolled table invited comparing
-/// them against whichever rows happened to be on screen. Stated at the foot of the rows they add
-/// up, they can only be read as what they are. The coverage read-out the band carried under
-/// `Balance` follows the figure down, drawn under this row exactly as `À venir` draws its own.
-///
-/// [closingDate] is the last drawn entry's own date, never today's: a statement closes on its last
-/// movement, and a production that has recorded nothing this month holds a balance as of the day it
-/// last did, not as of the day somebody happened to open the page.
-class _OcptCashStatementFooterRow extends StatelessWidget {
-  /// The date the statement closes on — the last drawn entry's own.
-  final DateTime closingDate;
-
-  /// The whole journal's own balance (`OcptBudgetCashTotals.balanceCents`), in cents.
-  final int balanceCents;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Class constructor
-  const _OcptCashStatementFooterRow({
-    required this.closingDate,
-    required this.balanceCents,
-    required this.currencyCode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final locale = Localizations.localeOf(context).toString();
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
-      ),
-      child: SizedBox(
-        height: _ocptCashJournalRowHeight,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                tr.budgetCashJournalClosingBalanceLabel(
-                  DateFormat.yMMMd(locale).format(closingDate),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
-            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                ocptBudgetAmountLabel(balanceCents, currencyCode),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: _ocptCashJournalMenuColumnWidth),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A quiet reminder drawn under the closing balance: how much of the account is actually shareable,
-/// so the bank balance right above it is not mistaken for the amount to distribute — the two are
-/// different figures ([shareableCents] is the takings less the contributions to repay, the balance
-/// is cash on hand), and a production reading its account here reported taking one for the other.
-///
-/// **Not a subtraction of the balance, a reference beside it.** The balance and the shareable pot
-/// diverge on two independent terms — production spending the balance carries and the pot ignores,
-/// contributions the pot deducts whole whether or not they have gone back — so no honest arithmetic
-/// turns one into the other in a line. This states the pot as its own figure, worded as *of which*,
-/// and points at the view that computes it, rather than pretending to break the balance down.
-///
-/// Drawn only while [shareableCents] is above zero (see [OcptBudgetCashJournal.shareableCents]).
-class _OcptCashShareableReminder extends StatelessWidget {
-  /// The shareable pot, in cents — `OcptBudgetSharingPot.shareableCents`, always above zero here.
-  final int shareableCents;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Called when the `Revenue sharing` link is clicked, or null to draw the reminder without one.
-  final VoidCallback? onOpenSharing;
-
-  /// Class constructor
-  const _OcptCashShareableReminder({
-    required this.shareableCents,
-    required this.currencyCode,
-    required this.onOpenSharing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final captionStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 8,
-        children: [
-          Text(
-            tr.budgetCashJournalShareableReminder(
-              ocptBudgetAmountLabel(shareableCents, currencyCode),
-            ),
-            style: captionStyle,
-          ),
-          if (onOpenSharing != null)
-            InkWell(
-              key: const Key("ocptBudgetCashShareableReminderLink"),
-              onTap: onOpenSharing,
-              borderRadius: BorderRadius.circular(ocptRadiusSmall),
-              mouseCursor: ocptClickableCursor,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Text(
-                  tr.budgetHeaderSharingSegmentLabel,
-                  style: captionStyle?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The entry table's own header row: `Date`, `Voucher`, `Poste`, `Label`, `Debit`, `Credit`,
-/// `Balance`, then a blank cell over the `⋮` menu column — `Poste` ahead of `Label`, mirroring
-/// `OcptBudgetCostTracking`'s own pinned `Poste` column, since both readings of the very same
-/// expenses document now lead with the same identifying column.
-class _OcptCashJournalHeaderRow extends StatelessWidget {
-  /// Class constructor
-  const _OcptCashJournalHeaderRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      fontWeight: FontWeight.w600,
-    );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant)),
-      ),
-      child: SizedBox(
-        height: _ocptCashJournalHeaderRowHeight,
-        child: Row(
-          children: [
-            SizedBox(
-              width: _ocptCashJournalDateColumnWidth,
-              child: Text(tr.budgetCashJournalColumnDate.toUpperCase(), style: labelStyle),
-            ),
-            SizedBox(
-              width: _ocptCashJournalVoucherColumnWidth,
-              child: Text(tr.budgetCashJournalColumnVoucher.toUpperCase(), style: labelStyle),
-            ),
-            SizedBox(
-              width: _ocptCashJournalPosteColumnWidth,
-              child: Text(tr.budgetCostTrackingColumnPoste.toUpperCase(), style: labelStyle),
-            ),
-            Expanded(child: Text(tr.budgetCashJournalColumnLabel.toUpperCase(), style: labelStyle)),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                tr.budgetCashJournalColumnDebit.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                tr.budgetCashJournalColumnCredit.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                tr.budgetCashJournalColumnBalance.toUpperCase(),
-                textAlign: TextAlign.right,
-                style: labelStyle,
-              ),
-            ),
-            const SizedBox(width: _ocptCashJournalMenuColumnWidth),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One entry row: date, voucher number, poste, label, debit, credit, running balance, then its own
-/// `⋮` menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking
-/// the row itself only selects it, opening the right dock's fiche on it — never a write, so never
-/// withheld under a previewed version.
-///
-/// **Only the side money actually moved on is tinted** — a debit in [ColorScheme.error], a credit
-/// in [ColorScheme.primary], each read off the entry's own raw column rather than off the row's
-/// tax-inclusive figure, so the tint says which way the movement went and the figure says how much.
-/// Every ordinary entry moves on one side alone, so every ordinary row carries exactly one coloured
-/// cell: colouring both would paint an accent onto the untouched side's zero and leave a reader
-/// with two competing signals per line, which is the opposite of what the colour is there for.
-///
-/// Both figures print exactly as [ocptBudgetJournalRowsOf] gives them, zero included: an entry
-/// recorded entirely on one side of the account shows a real `0,00 €` on the other, never an
-/// invented dash. [row]'s own null figures ([OcptBudgetJournalRow.debitCents]/`.creditCents`/
-/// `.balanceAfterCents`, always null together for an entry that cannot be read tax-inclusive) print
-/// [ocptBudgetEmptyValue] instead, in the ordinary muted body colour rather than either accent.
-class _OcptCashJournalRow extends StatelessWidget {
-  /// The row this widget draws.
-  final OcptBudgetJournalRow row;
-
-  /// The poste [row]'s own entry names, or null while it names none.
-  final OcptBudgetPoste? poste;
-
-  /// This entry's own voucher, or null while it carries none.
-  final OcptAssetRef? receipt;
-
-  /// Whether this row's own entry is the one currently selected.
-  final bool isSelected;
-
-  /// Whether the header's simplified/detailed switch currently reads simplified.
-  final bool isSimplified;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Called when this row is clicked, or null while withheld.
-  final VoidCallback? onTap;
-
-  /// Called when this row's own `⋮` menu asks to edit it, or null while withheld.
-  final VoidCallback? onEditRequested;
-
-  /// Called when this row's own `⋮` menu asks to delete it, or null while withheld.
-  final VoidCallback? onDeletionRequested;
-
-  /// Class constructor
-  const _OcptCashJournalRow({
-    required this.row,
-    required this.poste,
-    required this.receipt,
-    required this.isSelected,
-    required this.isSimplified,
-    required this.currencyCode,
-    required this.onTap,
-    required this.onEditRequested,
-    required this.onDeletionRequested,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final entry = row.entry;
-    final locale = Localizations.localeOf(context).toString();
-    final dateLabel = DateFormat.yMMMd(locale).format(entry.date);
-    final debitCents = row.debitCents;
-    final creditCents = row.creditCents;
-    final balanceCents = row.balanceAfterCents;
-    final poste = this.poste;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: onTap == null ? null : ocptClickableCursor,
-      child: ColoredBox(
-        color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-            : Colors.transparent,
-        child: SizedBox(
-          height: _ocptCashJournalRowHeight,
-          child: Row(
-            children: [
-              SizedBox(
-                width: _ocptCashJournalDateColumnWidth,
-                child: Text(
-                  dateLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              SizedBox(
-                width: _ocptCashJournalVoucherColumnWidth,
-                child: Text(
-                  entry.voucherNumber,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              SizedBox(
-                width: _ocptCashJournalPosteColumnWidth,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    poste == null
-                        ? tr.budgetCashJournalNoPosteLabel
-                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: poste == null ? theme.colorScheme.onSurfaceVariant : null,
-                      fontStyle: poste == null ? FontStyle.italic : FontStyle.normal,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Row(
-                    children: [
-                      if (receipt != null) ...[
-                        _OcptCashJournalVoucherMarker(path: receipt!.path),
-                        const SizedBox(width: 6),
-                      ],
-                      Expanded(
-                        child: Text(
-                          entry.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              _amountCell(
-                context,
-                debitCents,
-                color: (debitCents != null && entry.debitCents != 0)
-                    ? theme.colorScheme.error
-                    : null,
-              ),
-              _amountCell(
-                context,
-                creditCents,
-                color: (creditCents != null && entry.creditCents != 0)
-                    ? theme.colorScheme.primary
-                    : null,
-              ),
-              _amountCell(context, balanceCents, bold: true),
-              SizedBox(
-                width: _ocptCashJournalMenuColumnWidth,
-                child: onEditRequested == null && onDeletionRequested == null
-                    ? null
-                    : PopupMenuButton<String>(
-                        tooltip: "",
-                        icon: const Icon(Icons.more_vert, size: 18),
-                        onSelected: (value) => switch (value) {
-                          "edit" => onEditRequested?.call(),
-                          "delete" => onDeletionRequested?.call(),
-                          _ => null,
-                        },
-                        itemBuilder: (context) => [
-                          if (onEditRequested != null)
-                            PopupMenuItem<String>(
-                              value: "edit",
-                              child: Text(tr.budgetFinancingEditAction),
-                            ),
-                          if (onDeletionRequested != null)
-                            PopupMenuItem<String>(
-                              value: "delete",
-                              child: Text(tr.budgetEntryDeleteAction),
-                            ),
-                        ],
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// One amount cell, right-aligned, printing [ocptBudgetEmptyValue] while [cents] is null.
-  Widget _amountCell(BuildContext context, int? cents, {Color? color, bool bold = false}) =>
-      SizedBox(
-        width: _ocptCashJournalAmountColumnWidth,
-        child: Text(
-          cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode),
-          textAlign: TextAlign.right,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
-        ),
-      );
-}
-
-/// The `À venir` section's own title row — one cell, unlike [_OcptCashJournalHeaderRow]'s own
-/// per-column headers, since every row under it borrows the statement's fixed widths rather than
-/// declaring column headings of its own (mockup `4b`'s own single-cell header).
-class _OcptCashUpcomingHeaderRow extends StatelessWidget {
-  /// Class constructor
-  const _OcptCashUpcomingHeaderRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 6),
-      child: Text(
-        tr.budgetCashUpcomingSectionTitle,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-/// One `À venir` row: a commitment falling due, still unsettled — [step]'s own cash figure, read
-/// against [commitment] so the row can print its own label and poste, [step] itself carrying
-/// neither. Clicking the row only selects it, opening the right dock's fiche on the commitment —
-/// never a write, so never withheld under a previewed version, exactly as [_OcptCashJournalRow]'s
-/// own click is never withheld.
-///
-/// Drawn in the very same fixed column widths [_OcptCashJournalRow] uses, so the two tables' amount
-/// columns line up — the `Voucher` and `⋮` menu columns print nothing, an unsettled commitment
-/// carrying neither a voucher of its own nor the entry table's `Modifier`/`Supprimer` menu (see the
-/// class doc comment for why this section carries no `⋮` menu at all). `Credit` and `Balance` print
-/// [ocptBudgetEmptyValue]: a commitment is a cost still owed, never a credit, and its own row
-/// contributes no running balance of its own — that reading is the footer's.
-class _OcptCashUpcomingRow extends StatelessWidget {
-  /// The projection step this row draws.
-  final OcptBudgetProjectionStep step;
-
-  /// The commitment [step] stands for.
-  final OcptBudgetCommitment commitment;
-
-  /// [commitment]'s own poste, or null while it names none still live.
-  final OcptBudgetPoste? poste;
-
-  /// Whether this row's own commitment is the one currently selected.
-  final bool isSelected;
-
-  /// Whether the header's simplified/detailed switch currently reads simplified.
-  final bool isSimplified;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Called when this row is clicked, or null while withheld.
-  final VoidCallback? onTap;
-
-  /// Class constructor
-  const _OcptCashUpcomingRow({
-    required this.step,
-    required this.commitment,
-    required this.poste,
-    required this.isSelected,
-    required this.isSimplified,
-    required this.currencyCode,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final locale = Localizations.localeOf(context).toString();
-    final dueDate = step.dueDate;
-    final poste = this.poste;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: onTap == null ? null : ocptClickableCursor,
-      child: ColoredBox(
-        color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: ocptSelectedStateAlpha)
-            : Colors.transparent,
-        child: SizedBox(
-          height: _ocptCashJournalRowHeight,
-          child: Row(
-            children: [
-              SizedBox(
-                width: _ocptCashJournalDateColumnWidth,
-                child: Text(
-                  dueDate == null
-                      ? tr.budgetCommittedNoDueDateLabel
-                      : DateFormat.yMMMd(locale).format(dueDate),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: dueDate == null ? theme.colorScheme.onSurfaceVariant : null,
-                    fontStyle: dueDate == null ? FontStyle.italic : FontStyle.normal,
-                  ),
-                ),
-              ),
-              const SizedBox(width: _ocptCashJournalVoucherColumnWidth),
-              SizedBox(
-                width: _ocptCashJournalPosteColumnWidth,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    poste == null
-                        ? tr.budgetCashJournalNoPosteLabel
-                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    commitment.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: _ocptCashJournalAmountColumnWidth,
-                child: Text(
-                  ocptBudgetAmountLabel(step.amountCents, currencyCode),
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              SizedBox(
-                width: _ocptCashJournalAmountColumnWidth,
-                child: Text(
-                  ocptBudgetEmptyValue,
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              SizedBox(
-                width: _ocptCashJournalAmountColumnWidth,
-                child: Text(
-                  ocptBudgetEmptyValue,
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              const SizedBox(width: _ocptCashJournalMenuColumnWidth),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The `À venir` section's own footer, in the mockup's own tinted style: [totalDueCents] under the
-/// `Debit` column, past a label spanning the leading ones, and [projectedBalanceCents]
-/// ([OcptBudgetProjection.finalBalanceCents]) under `Balance`, printing in [ColorScheme.error] once
-/// it goes negative — the one figure of this page that reads the account's future rather than its
-/// past, which is exactly why it is worth a tint of its own.
-class _OcptCashUpcomingFooterRow extends StatelessWidget {
-  /// The sum of every step's own [OcptBudgetProjectionStep.amountCents] — what falls due once
-  /// every `À venir` row has.
-  final int totalDueCents;
-
-  /// The balance the account would hold once every `À venir` row has fallen due —
-  /// [OcptBudgetProjection.finalBalanceCents].
-  final int projectedBalanceCents;
-
-  /// The project's currency, an ISO 4217 code.
-  final String currencyCode;
-
-  /// Class constructor
-  const _OcptCashUpcomingFooterRow({
-    required this.totalDueCents,
-    required this.projectedBalanceCents,
-    required this.currencyCode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final isNegative = projectedBalanceCents < 0;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
-      ),
-      child: SizedBox(
-        height: _ocptCashJournalRowHeight,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                tr.budgetCashUpcomingProjectedBalanceLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                ocptBudgetAmountLabel(totalDueCents, currencyCode),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(width: _ocptCashJournalAmountColumnWidth),
-            SizedBox(
-              width: _ocptCashJournalAmountColumnWidth,
-              child: Text(
-                ocptBudgetAmountLabel(projectedBalanceCents, currencyCode),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isNegative ? theme.colorScheme.error : null,
-                ),
-              ),
-            ),
-            const SizedBox(width: _ocptCashJournalMenuColumnWidth),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The small marker a row carries next to its own label when its entry carries a voucher — never a
-/// second column of text, just an icon whose tooltip says whether the referenced file still
-/// resolves, mirroring `OcptAssetFileLine`'s own "file not found" reading (ADR 0013).
-///
-/// A [StatefulWidget] (the documented exception) for the very reason `OcptAssetFileLine` is
-/// one: the answer belongs to nobody else and is worth asking once, not from `build`, which would
-/// run it on every frame the journal is rebuilt for an unrelated reason.
-class _OcptCashJournalVoucherMarker extends StatefulWidget {
-  /// The voucher's own referenced path.
-  final String path;
-
-  /// Class constructor
-  const _OcptCashJournalVoucherMarker({required this.path});
-
-  @override
-  State<_OcptCashJournalVoucherMarker> createState() => _OcptCashJournalVoucherMarkerState();
-}
-
-/// The state of [_OcptCashJournalVoucherMarker]: whether the referenced file was found, once asked.
-class _OcptCashJournalVoucherMarkerState extends State<_OcptCashJournalVoucherMarker> {
-  /// Whether the referenced file was there when it was last asked about.
-  late bool _exists = File(widget.path).existsSync();
-
-  @override
-  void didUpdateWidget(covariant _OcptCashJournalVoucherMarker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.path != oldWidget.path) {
-      _exists = File(widget.path).existsSync();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final isMissing = !_exists;
-
-    return Tooltip(
-      message: isMissing
-          ? tr.budgetCashJournalVoucherFileMissingTooltip
-          : tr.budgetCashJournalVoucherAttachedTooltip,
-      child: Icon(
-        isMissing ? Icons.error_outline : Icons.attach_file,
-        size: 14,
-        color: isMissing ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
-      ),
-    );
   }
 }
