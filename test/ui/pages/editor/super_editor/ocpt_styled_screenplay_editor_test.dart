@@ -253,14 +253,14 @@ Future<void> _pumpStandaloneEditor(
   await tester.pumpAndSettle();
 }
 
-/// Finds the page-simulation background painter (`_OcptPageSheetsPainter`) by the runtime name of
+/// Finds the page-simulation background painter (`OcptPageSheetsPainter`) by the runtime name of
 /// its painter: it's private to the production file, so it can't be named from here directly.
 Finder _pageSheetsPainterFinder() => find.byWidgetPredicate(
   (widget) =>
-      widget is CustomPaint && widget.painter.runtimeType.toString() == "_OcptPageSheetsPainter",
+      widget is CustomPaint && widget.painter.runtimeType.toString() == "OcptPageSheetsPainter",
 );
 
-/// Whether the page-simulation background painter (`_OcptPageSheetsPainter`, private to the
+/// Whether the page-simulation background painter (`OcptPageSheetsPainter`, private to the
 /// production file) is currently mounted: the most that can be asserted on it from outside its own
 /// library without exposing an otherwise-unneeded public type.
 bool _hasPageSheetsPainter() => _pageSheetsPainterFinder().evaluate().isNotEmpty;
