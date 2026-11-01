@@ -10,15 +10,6 @@ sealed class OcptEditorDocumentEvent extends OcptEditorEvent {
   const OcptEditorDocumentEvent();
 }
 
-/// Requests loading the current project's screenplay (text, title and page format) into the
-/// editor.
-///
-/// This is dispatched once by the bloc's own constructor; it isn't meant to be sent by widgets.
-class OcptEditorLoadRequestedEvent extends OcptEditorDocumentEvent {
-  /// Class constructor
-  const OcptEditorLoadRequestedEvent();
-}
-
 /// Reports that the source text was edited by the user.
 ///
 /// This marks the screenplay dirty and (re)starts the parse and autosave debounce timers.

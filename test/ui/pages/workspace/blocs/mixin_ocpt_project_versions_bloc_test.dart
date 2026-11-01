@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
@@ -299,7 +300,7 @@ void main() {
 
       // The screenplay moves on, outside the bloc, so the working copy and the version differ.
       await writeScreenplay(secondText);
-      bloc.add(const OcptEditorLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       await waitForState(bloc, (state) => state.text == secondText);
 
       bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));
@@ -330,7 +331,7 @@ void main() {
     final versionId = created.projectVersions.single.id;
 
     await writeScreenplay(secondText);
-    bloc.add(const OcptEditorLoadRequestedEvent());
+    bloc.add(const AsyncInitEvent());
     await waitForState(bloc, (state) => state.text == secondText);
 
     // Every state the preview and its exit go through, so the read-only flag can be checked
@@ -431,7 +432,7 @@ void main() {
     final versionId = created.projectVersions.single.id;
 
     await writeScreenplay(secondText);
-    bloc.add(const OcptEditorLoadRequestedEvent());
+    bloc.add(const AsyncInitEvent());
     await waitForState(bloc, (state) => state.text == secondText);
 
     // Asking only opens the card's own confirmation: nothing is written yet.
@@ -533,7 +534,7 @@ void main() {
       final versionId = created.projectVersions.single.id;
 
       await writeScreenplay(secondText);
-      bloc.add(const OcptEditorLoadRequestedEvent());
+      bloc.add(const AsyncInitEvent());
       await waitForState(bloc, (state) => state.text == secondText);
 
       bloc.add(OcptProjectVersionPreviewRequestedEvent(versionId: versionId));

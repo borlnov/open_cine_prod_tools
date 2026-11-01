@@ -64,7 +64,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with
         MixinOcptProjectVersionsBloc<OcptEditorState>,
         MixinOcptProjectPackageBloc<OcptEditorState>,
-        MixinOcptModeBloc<OcptEditorState, Never> {
+        MixinOcptModeBloc<OcptEditorState, Never>,
+        MixinAsyncInitBloc<OcptEditorState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "editor_bloc";
 
@@ -164,15 +165,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     _unregisterUnsavedChangesReporter = _projectsManager.registerUnsavedChangesReporter(
       () => state.isDirty,
     );
-
-    add(const OcptEditorLoadRequestedEvent());
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptEditorLoadRequestedEvent>(_onLoadRequested);
     on<OcptEditorTextChangedEvent>(_onTextChanged);
     on<OcptEditorParseRequestedEvent>(_onParseRequested);
     on<OcptEditorSaveRequestedEvent>(_onSaveRequested);
@@ -254,8 +252,18 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) =>
-      _onLoadRequested(const OcptEditorLoadRequestedEvent(), emitter);
+  Future<void> reloadFromProjectDatabase(Emitter<OcptEditorState> emitter) => _load(emitter);
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Loads the mode for the first time, see [_load]; adding an [AsyncInitEvent] again loads it
+  /// again.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptEditorState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _load(emit);
+  }
 
   /// Loads the current project's screenplay text, title and page format, and parses the text,
   /// together with the persisted preferred editor mode.
@@ -268,10 +276,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// which version is being previewed alongside the text it just read: what it read comes from that
   /// very version's in-memory database, and the two must reach the page together (see the hook's
   /// own doc comment).
-  Future<void> _onLoadRequested(
-    OcptEditorLoadRequestedEvent event,
-    Emitter<OcptEditorState> emitter,
-  ) async {
+  Future<void> _load(Emitter<OcptEditorState> emitter) async {
     final mode = await _propertiesManager.editorMode.load() ?? OcptEditorMode.styled;
     final isPageSimulationEnabled = await _propertiesManager.isPageSimulationEnabled.load() ?? true;
     final areStyledSceneNumbersVisible =
@@ -378,7 +383,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Computes how the right dock's active tab and its "auto-closed" memory should change when the
   /// editing mode becomes [newMode], applied identically by [_onModeToggled] and by
-  /// [_onLoadRequested] once the persisted mode is known.
+  /// [_load] once the persisted mode is known.
   ///
   /// - becoming a mode with no preview tab while that tab is active closes the dock and remembers
   ///   it in [autoClosedRightDockTab] (decision 4: styled mode has no preview tab at all, and
