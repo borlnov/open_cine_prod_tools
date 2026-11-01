@@ -6,35 +6,29 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+/// The file names of a bloc, or of a mixin that holds one's handlers.
+final _blocFile = RegExp(r"^(.+_bloc|mixin_.*bloc.*)\.dart$");
+
+/// The generic copies a bloc must not call.
+final _genericCopy = RegExp(r"\.(copyWith|copy\w+State)\s*\(");
+
 /// A bloc changes its state through a named method of that state (`copyWith<Intent>`,
 /// `copyTo<State>`), so a reader of the handler sees the change it makes rather than a bag of
 /// fields, and so the fields a change affects are set in one place. The generic `copyWith`, and
 /// the generic copy a state mixin declares, are the building blocks of those methods and nothing
 /// else.
 ///
-/// This reads the source of the blocs of every converted mode, and of the shared blocs those modes
-/// build on, and fails on a call to either generic copy. It is a source scan: a call hidden behind
-/// another name is not seen.
-const _modeFolders = <String>["shot_list", "schedule", "resources", "breakdown", "budget"];
-
-/// The shared blocs every mode builds on.
-const _sharedFolder = "lib/ui/pages/workspace/blocs";
-
-/// The generic copies a bloc must not call.
-final _genericCopy = RegExp(r"\.(copyWith|copy\w+State)\s*\(");
-
+/// This reads the source of every bloc under `lib/` (each `*_bloc.dart` and `mixin_*bloc*.dart`)
+/// and fails on a call to either generic copy. It is a source scan: a call hidden behind another
+/// name is not seen.
 void main() {
-  final files = <File>[
-    for (final mode in _modeFolders)
-      ...Directory(
-        "lib/ui/pages/workspace/modes/$mode",
-      ).listSync().whereType<File>().where((file) => file.path.endsWith("_bloc.dart")),
-    ...Directory(
-      _sharedFolder,
-    ).listSync().whereType<File>().where((file) => file.path.endsWith("_bloc.dart")),
-  ];
+  final files = Directory("lib")
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => _blocFile.hasMatch(file.uri.pathSegments.last))
+      .toList();
 
-  test("the blocs of the converted modes were found", () {
+  test("the blocs were found", () {
     expect(files, isNotEmpty);
   });
 

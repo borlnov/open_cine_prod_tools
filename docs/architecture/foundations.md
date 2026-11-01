@@ -194,8 +194,9 @@ the persistence, the project versions, the sync-ready data model and the read-on
     The two state mixins that serve every mode (versions and package) declare their named methods
     themselves, built on the generic copy each mode's state implements. A state whose file would
     grow too long keeps its named methods in an extension beside it, as the schedule does in
-    `schedule_state_copies.dart`. `mode_copy_method_test.dart` scans the blocs of the converted
-    modes and fails on a direct call.
+    `schedule_state_copies.dart`. The rule holds for every bloc of the app, not for the modes
+    alone: `mode_copy_method_test.dart` scans each `*_bloc.dart` and `mixin_*bloc*.dart` under
+    `lib/` and fails on a direct call.
   - **The widgets.** The mode builds the mode bloc, then every view bloc with `lazy: false`
     (`create: (context) => OcptShotListStoryboardBloc(modeBloc: context.read<OcptShotListBloc>())`):
     a view bloc registers its flusher when it is built, so one that no widget has read yet would
