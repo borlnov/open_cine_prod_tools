@@ -185,9 +185,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
     ahead of a dock tab change, a version preview, a package export and an export. The flush sites
     are read off the old handlers, never assumed from the idiom. A mode whose every write must
     refresh the `Versions` card does it once, in its reload hook, rather than in every view.
-  - **Never `state.copyWith(x: await …)`**: Dart evaluates the receiver before the `await`, so a
+  - **Never `state.copyWithX(y: await …)`**: Dart evaluates the receiver before the `await`, so a
     reload landing meanwhile is overwritten with the old state, epochs included. Await into a
     local first. A view never reads `modeBloc.state` across an `await` and trusts it afterwards.
+  - **A bloc never calls `copyWith`, nor a state mixin's generic copy.** It calls a named method
+    of the state, `copyWith<Intent>` or `copyTo<WantedState>`, which takes the change's values as
+    `required` parameters and sets every field the change affects, `force…Value` flags included.
+    The two state mixins that serve every mode (versions and package) declare their named methods
+    themselves, built on the generic copy each mode's state implements. A state whose file would
+    grow too long keeps its named methods in an extension beside it, as the schedule does in
+    `schedule_state_copies.dart`. `mode_copy_method_test.dart` scans the blocs of the converted
+    modes and fails on a direct call.
   - **The widgets.** The mode builds the mode bloc, then every view bloc with `lazy: false`
     (`create: (context) => OcptShotListStoryboardBloc(modeBloc: context.read<OcptShotListBloc>())`):
     a view bloc registers its flusher when it is built, so one that no widget has read yet would

@@ -39,11 +39,12 @@ Resources set carries across its three scopes, and the mode's two newest documen
     `…_floor_plan_placements_event.dart`), all extending the abstract `OcptShotListEvent` of
     `events/shot_list_base_event.dart` (a sealed class's subclasses must share its library, so the
     common base cannot be sealed); `shot_list_event.dart` only exports them. Each bloc has its own
-    state file; `shot_list_state.dart` keeps the mode's fields, constructor and `copyWith`, and the
-    reads derived on demand (`OcptShotListStateDerivedExtension`: the selections, the counters, the
-    role alerts, the coverage views, the set a heading suggests) live in their own file, which it
-    re-exports; `shot_list_state_delete_targets.dart` holds the reads that decide how far deleting a
-    symbol reaches. What a bloc decides without touching the state — which sequence, set or shot a
+    state file; `shot_list_state.dart` keeps the mode's fields, constructor, `copyWith` and the
+    named copies the bloc calls, and the reads derived on demand
+    (`OcptShotListStateDerivedExtension`: the selections, the counters, the role alerts, the
+    coverage views, the set a heading suggests) live in their own file, which it re-exports;
+    `shot_list_state_delete_targets.dart` holds the reads that decide how far deleting a symbol
+    reaches. What a bloc decides without touching the state — which sequence, set or shot a
     reveal or a selection lands on, the symbol lookup, a character symbol's default label — is
     `lib/models/rules/ocpt_shot_list_selection.dart`; the writes that need only domain values are
     service methods (`OcptShotListService.updateTextField`/`updateDifficulty`,
