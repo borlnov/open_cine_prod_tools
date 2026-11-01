@@ -17,13 +17,6 @@ import 'package:super_editor/super_editor.dart';
 /// together, in a single request.
 @immutable
 class OcptChangeNodeMetadataRequest implements EditRequest {
-  /// Creates an [OcptChangeNodeMetadataRequest].
-  const OcptChangeNodeMetadataRequest({
-    required this.nodeId,
-    required this.metadata,
-    this.isHistorical = true,
-  });
-
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
 
@@ -44,6 +37,20 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
   /// {@endtemplate}
   final bool isHistorical;
 
+  /// Object hash code
+  @override
+  int get hashCode =>
+      nodeId.hashCode ^
+      isHistorical.hashCode ^
+      Object.hashAllUnordered(metadata.entries.map((e) => Object.hash(e.key, e.value)));
+
+  /// Creates an [OcptChangeNodeMetadataRequest].
+  const OcptChangeNodeMetadataRequest({
+    required this.nodeId,
+    required this.metadata,
+    this.isHistorical = true,
+  });
+
   /// Object equality
   @override
   bool operator ==(Object other) =>
@@ -53,13 +60,6 @@ class OcptChangeNodeMetadataRequest implements EditRequest {
           nodeId == other.nodeId &&
           isHistorical == other.isHistorical &&
           _mapsEqual(metadata, other.metadata);
-
-  /// Object hash code
-  @override
-  int get hashCode =>
-      nodeId.hashCode ^
-      isHistorical.hashCode ^
-      Object.hashAllUnordered(metadata.entries.map((e) => Object.hash(e.key, e.value)));
 
   /// Whether [a] and [b] hold the same keys mapped to the same values (order-independent).
   static bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {

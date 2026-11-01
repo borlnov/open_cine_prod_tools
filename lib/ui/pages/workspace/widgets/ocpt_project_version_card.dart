@@ -470,13 +470,6 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final isNameEmpty = _nameController.text.trim().isEmpty;
@@ -521,4 +514,11 @@ class _OcptProjectVersionRenameFormState extends State<_OcptProjectVersionRename
 
   /// Reports the trimmed name and note to [_OcptProjectVersionRenameForm.onSave].
   void _save() => widget.onSave(_nameController.text.trim(), _noteController.text.trim());
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
 }

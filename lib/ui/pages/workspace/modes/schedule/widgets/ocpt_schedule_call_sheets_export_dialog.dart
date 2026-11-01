@@ -45,6 +45,10 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
     super.key,
   });
 
+  @override
+  State<OcptScheduleCallSheetsExportDialog> createState() =>
+      _OcptScheduleCallSheetsExportDialogState();
+
   /// Shows the dialog and returns the [OcptCallSheetExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptCallSheetExportOptions?> show(
@@ -60,10 +64,6 @@ class OcptScheduleCallSheetsExportDialog extends StatefulWidget {
       selectedDayId: selectedDayId,
     ),
   );
-
-  @override
-  State<OcptScheduleCallSheetsExportDialog> createState() =>
-      _OcptScheduleCallSheetsExportDialogState();
 }
 
 /// The state of [OcptScheduleCallSheetsExportDialog].

@@ -22,15 +22,15 @@ class OcptProjectVersionCreateDialog extends StatefulWidget {
   /// Class constructor
   const OcptProjectVersionCreateDialog({super.key});
 
+  @override
+  State<OcptProjectVersionCreateDialog> createState() => _OcptProjectVersionCreateDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptProjectVersionCreationFields?> show(BuildContext context) =>
       showDialog<OcptProjectVersionCreationFields>(
         context: context,
         builder: (context) => const OcptProjectVersionCreateDialog(),
       );
-
-  @override
-  State<OcptProjectVersionCreateDialog> createState() => _OcptProjectVersionCreateDialogState();
 }
 
 /// The state of [OcptProjectVersionCreateDialog].
@@ -43,13 +43,6 @@ class _OcptProjectVersionCreateDialogState extends State<OcptProjectVersionCreat
 
   /// The controller of the version note field.
   final _noteController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,5 +97,12 @@ class _OcptProjectVersionCreateDialogState extends State<OcptProjectVersionCreat
       name: _nameController.text.trim(),
       note: _noteController.text.trim(),
     ));
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 }

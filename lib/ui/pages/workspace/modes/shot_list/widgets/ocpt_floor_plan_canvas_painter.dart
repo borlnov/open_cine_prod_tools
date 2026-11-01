@@ -206,6 +206,25 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
     _paintScaleAndSilhouette(canvas, size);
   }
 
+  @override
+  bool shouldRepaint(covariant OcptFloorPlanCanvasPainter oldDelegate) =>
+      oldDelegate.sheet != sheet ||
+      oldDelegate.zoom != zoom ||
+      oldDelegate.pan != pan ||
+      oldDelegate.selectedSymbolId != selectedSymbolId ||
+      oldDelegate.arrowAnchorSymbolId != arrowAnchorSymbolId ||
+      oldDelegate.liveOverride != liveOverride ||
+      oldDelegate.symbolBorderColor != symbolBorderColor ||
+      oldDelegate.selectionColor != selectionColor ||
+      oldDelegate.arrowAnchorColor != arrowAnchorColor ||
+      oldDelegate.arrowColor != arrowColor ||
+      oldDelegate.labelTextColor != labelTextColor ||
+      oldDelegate.scaleColor != scaleColor ||
+      oldDelegate.scaleBarLabel != scaleBarLabel ||
+      oldDelegate.onionSkinOpacity != onionSkinOpacity ||
+      !const ListEquality<OcptFloorPlanMetricLine>().equals(oldDelegate.metricLines, metricLines) ||
+      oldDelegate.metricLineColor != metricLineColor;
+
   /// One movement or camera-move arrow: a quadratic bezier shaft through
   /// [OcptFloorPlanArrowShape.ctrlXM]/[OcptFloorPlanArrowShape.ctrlYM] when set, a straight shaft
   /// otherwise, with a small head at its own [OcptFloorPlanArrowShape.toXM]/
@@ -857,23 +876,4 @@ class OcptFloorPlanCanvasPainter extends CustomPainter {
       Offset(barRight - labelPainter.width, barY - _scaleBlockGap - labelPainter.height),
     );
   }
-
-  @override
-  bool shouldRepaint(covariant OcptFloorPlanCanvasPainter oldDelegate) =>
-      oldDelegate.sheet != sheet ||
-      oldDelegate.zoom != zoom ||
-      oldDelegate.pan != pan ||
-      oldDelegate.selectedSymbolId != selectedSymbolId ||
-      oldDelegate.arrowAnchorSymbolId != arrowAnchorSymbolId ||
-      oldDelegate.liveOverride != liveOverride ||
-      oldDelegate.symbolBorderColor != symbolBorderColor ||
-      oldDelegate.selectionColor != selectionColor ||
-      oldDelegate.arrowAnchorColor != arrowAnchorColor ||
-      oldDelegate.arrowColor != arrowColor ||
-      oldDelegate.labelTextColor != labelTextColor ||
-      oldDelegate.scaleColor != scaleColor ||
-      oldDelegate.scaleBarLabel != scaleBarLabel ||
-      oldDelegate.onionSkinOpacity != onionSkinOpacity ||
-      !const ListEquality<OcptFloorPlanMetricLine>().equals(oldDelegate.metricLines, metricLines) ||
-      oldDelegate.metricLineColor != metricLineColor;
 }

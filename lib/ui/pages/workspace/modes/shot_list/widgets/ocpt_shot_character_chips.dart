@@ -125,25 +125,6 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
   final TextEditingController _controller = TextEditingController();
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// Submits the typed name (trimmed) if it isn't empty, then collapses back to the chip either
-  /// way, clearing the field.
-  void _submit() {
-    final value = _controller.text.trim();
-    if (value.isNotEmpty) {
-      widget.onSubmitted(value);
-    }
-    setState(() {
-      _isEditing = false;
-      _controller.clear();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (!_isEditing) {
       return ActionChip(
@@ -167,5 +148,24 @@ class _OcptAddCharacterChipState extends State<_OcptAddCharacterChip> {
         onTapOutside: (_) => _submit(),
       ),
     );
+  }
+
+  /// Submits the typed name (trimmed) if it isn't empty, then collapses back to the chip either
+  /// way, clearing the field.
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isNotEmpty) {
+      widget.onSubmitted(value);
+    }
+    setState(() {
+      _isEditing = false;
+      _controller.clear();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -7,14 +7,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 /// The result of [OcptWysiwygCodec.encode]: the serialized Fountain source text, plus a mapping
 /// freshly built for that exact text (the inverse of [OcptWysiwygDecodeResult]).
 class OcptWysiwygEncodeResult {
-  /// Creates an [OcptWysiwygEncodeResult].
-  const OcptWysiwygEncodeResult({
-    required this.text,
-    required this.mapping,
-    this.titlePageNodeCount = 0,
-    this.titlePagePrefixLength = 0,
-  });
-
   /// The full Fountain source text serialized from the document.
   final String text;
 
@@ -29,4 +21,12 @@ class OcptWysiwygEncodeResult {
   /// See [OcptWysiwygDecodeResult.titlePagePrefixLength]; always 0 for a plain
   /// [OcptWysiwygCodec.encode] result.
   final int titlePagePrefixLength;
+
+  /// Creates an [OcptWysiwygEncodeResult].
+  const OcptWysiwygEncodeResult({
+    required this.text,
+    required this.mapping,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 }

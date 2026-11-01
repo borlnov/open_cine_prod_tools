@@ -33,6 +33,26 @@ class OcptDiagnosticsLogList extends StatelessWidget {
   /// Class constructor
   const OcptDiagnosticsLogList({this.categories, super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final manager = _resolveManager();
+
+    if (manager == null) {
+      return _OcptDiagnosticsEmptyBody(text: tr.diagnosticsEmpty);
+    }
+
+    return StreamBuilder<List<OcptDiagnosticsEntry>>(
+      initialData: manager.entries,
+      stream: manager.entriesStream,
+      builder: (context, snapshot) {
+        final entries = _filtered(snapshot.data ?? manager.entries);
+
+        return _OcptDiagnosticsBody(entries: entries, manager: manager);
+      },
+    );
+  }
+
   /// The registered [OcptDiagnosticsManager], or null when none can be resolved — see this class's
   /// own doc comment for why that is a real, tolerated case rather than a programmer error.
   OcptDiagnosticsManager? _resolveManager() {
@@ -59,26 +79,6 @@ class OcptDiagnosticsLogList extends StatelessWidget {
         if (wanted.contains(entry.category)) entry,
     ];
   }
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final manager = _resolveManager();
-
-    if (manager == null) {
-      return _OcptDiagnosticsEmptyBody(text: tr.diagnosticsEmpty);
-    }
-
-    return StreamBuilder<List<OcptDiagnosticsEntry>>(
-      initialData: manager.entries,
-      stream: manager.entriesStream,
-      builder: (context, snapshot) {
-        final entries = _filtered(snapshot.data ?? manager.entries);
-
-        return _OcptDiagnosticsBody(entries: entries, manager: manager);
-      },
-    );
-  }
 }
 
 /// The list's own body once a real [OcptDiagnosticsManager] is resolved: the copy-all/clear
@@ -86,14 +86,14 @@ class OcptDiagnosticsLogList extends StatelessWidget {
 /// [OcptDiagnosticsLogList] is given, or [OcptDiagnosticsLogList]'s own empty state when
 /// [entries] is empty.
 class _OcptDiagnosticsBody extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsBody({required this.entries, required this.manager});
-
   /// The entries this body renders — already filtered to [OcptDiagnosticsLogList.categories].
   final List<OcptDiagnosticsEntry> entries;
 
   /// The manager the toolbar's own copy/clear actions act on.
   final OcptDiagnosticsManager manager;
+
+  /// Class constructor
+  const _OcptDiagnosticsBody({required this.entries, required this.manager});
 
   @override
   Widget build(BuildContext context) {
@@ -141,11 +141,11 @@ class _OcptDiagnosticsBody extends StatelessWidget {
 /// [OcptDiagnosticsLogList]'s own empty state, shown both when no manager can be resolved at all
 /// and when a real, resolved one simply holds nothing (yet) for the current filter.
 class _OcptDiagnosticsEmptyBody extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsEmptyBody({required this.text});
-
   /// The message shown.
   final String text;
+
+  /// Class constructor
+  const _OcptDiagnosticsEmptyBody({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -166,14 +166,14 @@ class _OcptDiagnosticsEmptyBody extends StatelessWidget {
 /// [OcptDiagnosticsLevel.warning] — [OcptDiagnosticsLevel.info] renders in the ordinary body
 /// colour.
 class _OcptDiagnosticsLine extends StatelessWidget {
-  /// Class constructor
-  const _OcptDiagnosticsLine({required this.entry, required this.theme});
-
   /// The entry this line renders.
   final OcptDiagnosticsEntry entry;
 
   /// The theme this line's own colours are read off.
   final ThemeData theme;
+
+  /// Class constructor
+  const _OcptDiagnosticsLine({required this.entry, required this.theme});
 
   @override
   Widget build(BuildContext context) => Padding(

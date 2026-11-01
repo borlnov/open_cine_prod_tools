@@ -397,6 +397,54 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
   /// button, which calls [_fitToContent] directly, bypassing this guard on purpose) does.
   String? _framedSetId;
 
+  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
+  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
+  /// this shot only` group header.
+  String? get _focusShotCode {
+    final focusShotId = widget.focusShotId;
+    if (focusShotId == null) {
+      return null;
+    }
+    for (final shot in widget.shots) {
+      if (shot.id == focusShotId) {
+        return shot.code;
+      }
+    }
+    return null;
+  }
+
+  /// Each `View` group layer's own count of elements the canvas currently draws for the focused
+  /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
+  /// visibility filter — built the same way that filter's own `full` sheet is, so
+  /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
+  /// while [OcptFloorPlanView.floorPlanSet] is null (nothing to count yet).
+  Map<OcptFloorPlanLayer, int> get _layerElementCounts {
+    final floorPlanSet = widget.floorPlanSet;
+    if (floorPlanSet == null) {
+      return const {};
+    }
+
+    final sheet = OcptFloorPlanSheet.of(
+      floorPlanSet: floorPlanSet,
+      focusSceneId: widget.focusSceneId,
+      focusShotId: widget.focusShotId,
+      shotRankByShotId: widget.shotRankByShotId,
+      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
+      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
+    );
+
+    final counts = <OcptFloorPlanLayer, int>{};
+    for (final symbol in sheet.symbols) {
+      // The faint ghost of an overridden original is the same element as its override, drawn
+      // again at its old place: counting it would count that element twice.
+      if (symbol.isOverriddenOriginalGhost) {
+        continue;
+      }
+      counts[symbol.layer] = (counts[symbol.layer] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -419,13 +467,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     if (widget.floorPlanSet?.id != oldWidget.floorPlanSet?.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitToContentIfSetChanged());
     }
-  }
-
-  @override
-  void dispose() {
-    _viewportController.dispose();
-    _keyboardFocusNode.dispose();
-    super.dispose();
   }
 
   @override
@@ -574,54 +615,6 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
     );
   }
 
-  /// [OcptFloorPlanView.focusShotId]'s own display code (`12/3`) among
-  /// [OcptFloorPlanView.shots], or null while no shot is focused — the palette's own `Shot <code> —
-  /// this shot only` group header.
-  String? get _focusShotCode {
-    final focusShotId = widget.focusShotId;
-    if (focusShotId == null) {
-      return null;
-    }
-    for (final shot in widget.shots) {
-      if (shot.id == focusShotId) {
-        return shot.code;
-      }
-    }
-    return null;
-  }
-
-  /// Each `View` group layer's own count of elements the canvas currently draws for the focused
-  /// sequence/shot, before `OcptFloorPlanCanvas._sheetOf`'s own hidden-layers/hidden-cameras
-  /// visibility filter — built the same way that filter's own `full` sheet is, so
-  /// `OcptFloorPlanPalette`'s own counts never depend on the very toggles they sit next to. Empty
-  /// while [OcptFloorPlanView.floorPlanSet] is null (nothing to count yet).
-  Map<OcptFloorPlanLayer, int> get _layerElementCounts {
-    final floorPlanSet = widget.floorPlanSet;
-    if (floorPlanSet == null) {
-      return const {};
-    }
-
-    final sheet = OcptFloorPlanSheet.of(
-      floorPlanSet: floorPlanSet,
-      focusSceneId: widget.focusSceneId,
-      focusShotId: widget.focusShotId,
-      shotRankByShotId: widget.shotRankByShotId,
-      previousShotId: widget.isOnionSkinPreviousShown ? widget.previousShotId : null,
-      nextShotId: widget.isOnionSkinNextShown ? widget.nextShotId : null,
-    );
-
-    final counts = <OcptFloorPlanLayer, int>{};
-    for (final symbol in sheet.symbols) {
-      // The faint ghost of an overridden original is the same element as its override, drawn
-      // again at its old place: counting it would count that element twice.
-      if (symbol.isOverriddenOriginalGhost) {
-        continue;
-      }
-      counts[symbol.layer] = (counts[symbol.layer] ?? 0) + 1;
-    }
-    return counts;
-  }
-
   /// `←`/`→` walk the sequence's shots; `Escape` cancels the arrow tool's own pending anchor while
   /// one is pending; `Ctrl+D` duplicates the selected symbol — see the class doc comment.
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -758,5 +751,12 @@ class _OcptFloorPlanViewState extends State<OcptFloorPlanView> {
       centreMetres.dy,
       label: picked,
     );
+  }
+
+  @override
+  void dispose() {
+    _viewportController.dispose();
+    _keyboardFocusNode.dispose();
+    super.dispose();
   }
 }

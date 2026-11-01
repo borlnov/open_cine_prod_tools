@@ -15,17 +15,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_preview
 /// the editor is only as wide as the content area, why it is shifted back by one padding inset,
 /// and why the sheets are painted rather than laid out.
 class OcptStyledPageSimulationSurface extends StatelessWidget {
-  /// Creates an [OcptStyledPageSimulationSurface].
-  const OcptStyledPageSimulationSurface({
-    super.key,
-    required this.theme,
-    required this.layout,
-    required this.scrollController,
-    required this.pageCount,
-    required this.titlePageSheetCount,
-    required this.editor,
-  });
-
   /// The theme whose surface color is the backdrop on either side of the sheets.
   final ThemeData theme;
 
@@ -44,6 +33,17 @@ class OcptStyledPageSimulationSurface extends StatelessWidget {
 
   /// The editor, already stripped of its implicit scrollbar.
   final Widget editor;
+
+  /// Creates an [OcptStyledPageSimulationSurface].
+  const OcptStyledPageSimulationSurface({
+    super.key,
+    required this.theme,
+    required this.layout,
+    required this.scrollController,
+    required this.pageCount,
+    required this.titlePageSheetCount,
+    required this.editor,
+  });
 
   @override
   Widget build(BuildContext context) {

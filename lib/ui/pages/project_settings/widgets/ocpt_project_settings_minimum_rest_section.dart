@@ -140,12 +140,25 @@ class _OcptProjectSettingsMinimumRestFieldState
   }
 
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 96,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: tr.projectSettingsMinimumRestFieldHint,
+          suffixText: tr.projectSettingsMinimumRestSuffix,
+        ),
+      ),
+    );
   }
 
   /// Commits the field's current text once it loses focus.
@@ -185,24 +198,11 @@ class _OcptProjectSettingsMinimumRestFieldState
   }
 
   @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 96,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: tr.projectSettingsMinimumRestFieldHint,
-          suffixText: tr.projectSettingsMinimumRestSuffix,
-        ),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

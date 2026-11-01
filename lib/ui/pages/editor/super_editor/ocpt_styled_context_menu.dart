@@ -25,33 +25,9 @@ import 'package:super_editor/super_editor.dart';
 /// The document, the editor and the composer are resolved through callbacks at call time, since
 /// the styled editor replaces all three whenever its text is rebuilt from outside.
 final class OcptStyledContextMenu {
-  /// Creates an [OcptStyledContextMenu].
-  OcptStyledContextMenu({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required MutableDocumentComposer Function() composerOf,
-    required GlobalKey documentLayoutKey,
-    required FocusNode focusNode,
-    required OcptStyledSpellCheckRanges spellCheck,
-    required bool Function() isMounted,
-    required void Function(VoidCallback change) setState,
-    required Future<List<String>> Function(String word)? Function()
-    onSpellingSuggestionsRequestedOf,
-    required ValueChanged<String>? Function() onWordIgnoredOf,
-    required ValueChanged<String>? Function() onWordLearnedOf,
-  }) : controller = MenuController(),
-       _suggestions = const [],
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _composerOf = composerOf,
-       _documentLayoutKey = documentLayoutKey,
-       _focusNode = focusNode,
-       _spellCheck = spellCheck,
-       _isMounted = isMounted,
-       _setState = setState,
-       _onSpellingSuggestionsRequestedOf = onSpellingSuggestionsRequestedOf,
-       _onWordIgnoredOf = onWordIgnoredOf,
-       _onWordLearnedOf = onWordLearnedOf;
+  /// The controller opening/closing the right-click context menu ([OcptEditorContextMenu]), which
+  /// the owning widget's build also positions it with, at the tap [onSecondaryTapUp] resolved.
+  final MenuController controller;
 
   /// Resolves the document the menu acts on.
   final MutableDocument Function() _documentOf;
@@ -86,30 +62,6 @@ final class OcptStyledContextMenu {
   /// Resolves the owning widget's current learn-word callback.
   final ValueChanged<String>? Function() _onWordLearnedOf;
 
-  /// The controller opening/closing the right-click context menu ([OcptEditorContextMenu]), which
-  /// the owning widget's build also positions it with, at the tap [onSecondaryTapUp] resolved.
-  final MenuController controller;
-
-  /// The misspelled word the last right-click landed on, or null when it didn't — read by the
-  /// owning widget's build to gate [OcptEditorContextMenu]'s spelling group.
-  String? get misspelledWord => _misspelledWord;
-
-  /// Up to five spelling suggestions for [misspelledWord], fetched once when the menu opened —
-  /// never refetched on every rebuild.
-  List<String> get suggestions => _suggestions;
-
-  /// Whether the owning widget is still mounted.
-  bool get mounted => _isMounted();
-
-  /// The document the menu acts on.
-  MutableDocument get _document => _documentOf();
-
-  /// The editor executing the menu's requests.
-  Editor get _editor => _editorOf();
-
-  /// The composer holding the selection.
-  MutableDocumentComposer get _composer => _composerOf();
-
   /// The node id [_misspelledRange]/[_misspelledWord] belong to, or null when
   /// the last right-click didn't land on a misspelling. Set by [onSecondaryTapUp], read back by
   /// [applySuggestion] to know which node to rewrite.
@@ -126,6 +78,17 @@ final class OcptStyledContextMenu {
   /// Up to five spelling suggestions for [_misspelledWord], fetched once by
   /// [onSecondaryTapUp] when the menu opened — never refetched on every rebuild.
   List<String> _suggestions;
+
+  /// The misspelled word the last right-click landed on, or null when it didn't — read by the
+  /// owning widget's build to gate [OcptEditorContextMenu]'s spelling group.
+  String? get misspelledWord => _misspelledWord;
+
+  /// Up to five spelling suggestions for [misspelledWord], fetched once when the menu opened —
+  /// never refetched on every rebuild.
+  List<String> get suggestions => _suggestions;
+
+  /// Whether the owning widget is still mounted.
+  bool get mounted => _isMounted();
 
   /// Whether [_composer]'s current selection is expanded, i.e. there is something for the
   /// right-click context menu's Cut/Copy entries to act on: read fresh on every the build, so it
@@ -154,6 +117,43 @@ final class OcptStyledContextMenu {
 
     return OcptFountainLineAttributions.typeOfAttributionValue(node.getMetadataValue("blockType"));
   }
+
+  /// The document the menu acts on.
+  MutableDocument get _document => _documentOf();
+
+  /// The editor executing the menu's requests.
+  Editor get _editor => _editorOf();
+
+  /// The composer holding the selection.
+  MutableDocumentComposer get _composer => _composerOf();
+
+  /// Creates an [OcptStyledContextMenu].
+  OcptStyledContextMenu({
+    required MutableDocument Function() documentOf,
+    required Editor Function() editorOf,
+    required MutableDocumentComposer Function() composerOf,
+    required GlobalKey documentLayoutKey,
+    required FocusNode focusNode,
+    required OcptStyledSpellCheckRanges spellCheck,
+    required bool Function() isMounted,
+    required void Function(VoidCallback change) setState,
+    required Future<List<String>> Function(String word)? Function()
+    onSpellingSuggestionsRequestedOf,
+    required ValueChanged<String>? Function() onWordIgnoredOf,
+    required ValueChanged<String>? Function() onWordLearnedOf,
+  }) : controller = MenuController(),
+       _suggestions = const [],
+       _documentOf = documentOf,
+       _editorOf = editorOf,
+       _composerOf = composerOf,
+       _documentLayoutKey = documentLayoutKey,
+       _focusNode = focusNode,
+       _spellCheck = spellCheck,
+       _isMounted = isMounted,
+       _setState = setState,
+       _onSpellingSuggestionsRequestedOf = onSpellingSuggestionsRequestedOf,
+       _onWordIgnoredOf = onWordIgnoredOf,
+       _onWordLearnedOf = onWordLearnedOf;
 
   /// Resolves the document position under a right-click and opens [controller] there.
   ///

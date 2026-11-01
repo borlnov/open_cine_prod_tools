@@ -71,6 +71,15 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
   /// null while it may not be used. **Only asks** — the mode opens `OcptConfirmDialog`.
   final ValueChanged<String>? onCandidateRemoveRequested;
 
+  /// [candidates], the retained one (if any) pinned first, every other one keeping its own
+  /// `sortKey` order.
+  List<OcptRoleCandidate> get _orderedCandidates => [
+    for (final candidate in candidates)
+      if (candidate.isRetained) candidate,
+    for (final candidate in candidates)
+      if (!candidate.isRetained) candidate,
+  ];
+
   /// Class constructor
   const OcptRoleSheetCandidatesCard({
     super.key,
@@ -83,15 +92,6 @@ class OcptRoleSheetCandidatesCard extends StatelessWidget {
     required this.onNotesChanged,
     required this.onCandidateRemoveRequested,
   });
-
-  /// [candidates], the retained one (if any) pinned first, every other one keeping its own
-  /// `sortKey` order.
-  List<OcptRoleCandidate> get _orderedCandidates => [
-    for (final candidate in candidates)
-      if (candidate.isRetained) candidate,
-    for (final candidate in candidates)
-      if (!candidate.isRetained) candidate,
-  ];
 
   @override
   Widget build(BuildContext context) {

@@ -59,6 +59,49 @@ class OcptConfirmDialog extends StatelessWidget {
     this.alternativeLabel,
   });
 
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final alternativeLabel = this.alternativeLabel;
+    final usesEnumResult = alternativeLabel != null;
+
+    return AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => usesEnumResult
+              ? globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
+                  OcptConfirmDialogResult.cancelled,
+                )
+              : globalGetIt().get<OcptRouterManager>().pop(),
+          child: Text(cancelLabel),
+        ),
+        if (alternativeLabel != null)
+          TextButton(
+            onPressed: () => globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
+              OcptConfirmDialogResult.alternative,
+            ),
+            child: Text(alternativeLabel),
+          ),
+        FilledButton(
+          onPressed: () => usesEnumResult
+              ? globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
+                  OcptConfirmDialogResult.confirmed,
+                )
+              : globalGetIt().get<OcptRouterManager>().pop<bool>(true),
+          style: isDestructive
+              ? FilledButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                )
+              : null,
+          child: Text(confirmLabel),
+        ),
+      ],
+    );
+  }
+
   /// Shows the dialog and returns true if the user confirmed the action, false or null if they
   /// cancelled it.
   ///
@@ -113,48 +156,5 @@ class OcptConfirmDialog extends StatelessWidget {
       ),
     );
     return result ?? OcptConfirmDialogResult.cancelled;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final alternativeLabel = this.alternativeLabel;
-    final usesEnumResult = alternativeLabel != null;
-
-    return AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => usesEnumResult
-              ? globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
-                  OcptConfirmDialogResult.cancelled,
-                )
-              : globalGetIt().get<OcptRouterManager>().pop(),
-          child: Text(cancelLabel),
-        ),
-        if (alternativeLabel != null)
-          TextButton(
-            onPressed: () => globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
-              OcptConfirmDialogResult.alternative,
-            ),
-            child: Text(alternativeLabel),
-          ),
-        FilledButton(
-          onPressed: () => usesEnumResult
-              ? globalGetIt().get<OcptRouterManager>().pop<OcptConfirmDialogResult>(
-                  OcptConfirmDialogResult.confirmed,
-                )
-              : globalGetIt().get<OcptRouterManager>().pop<bool>(true),
-          style: isDestructive
-              ? FilledButton.styleFrom(
-                  backgroundColor: colorScheme.error,
-                  foregroundColor: colorScheme.onError,
-                )
-              : null,
-          child: Text(confirmLabel),
-        ),
-      ],
-    );
   }
 }

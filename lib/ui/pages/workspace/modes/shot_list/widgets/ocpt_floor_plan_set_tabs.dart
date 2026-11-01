@@ -422,12 +422,6 @@ class _EditableTabNameState extends State<_EditableTabName> {
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => IntrinsicWidth(
     child: TextField(
       controller: _controller,
@@ -442,4 +436,10 @@ class _EditableTabNameState extends State<_EditableTabName> {
       ),
     ),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

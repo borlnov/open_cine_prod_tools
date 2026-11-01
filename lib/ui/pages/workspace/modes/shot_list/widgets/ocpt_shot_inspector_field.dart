@@ -129,13 +129,6 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final label = widget.label;
@@ -162,6 +155,13 @@ class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
   }
 }
 

@@ -97,6 +97,10 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
   /// `OcptStoryboardAnnotationOverlay`'s own doc comment.
   final ValueChanged<String>? onAnnotationSelected;
 
+  /// [onReordered], withheld whenever [activeAnnotationTool] is on — see the class doc comment.
+  void Function(String panelId, int newPosition)? get effectiveOnReordered =>
+      activeAnnotationTool == null ? onReordered : null;
+
   /// Class constructor
   const OcptStoryboardPanelStrip({
     super.key,
@@ -116,10 +120,6 @@ class OcptStoryboardPanelStrip extends StatelessWidget {
     required this.onLabelPlaced,
     required this.onAnnotationSelected,
   });
-
-  /// [onReordered], withheld whenever [activeAnnotationTool] is on — see the class doc comment.
-  void Function(String panelId, int newPosition)? get effectiveOnReordered =>
-      activeAnnotationTool == null ? onReordered : null;
 
   @override
   Widget build(BuildContext context) {

@@ -351,6 +351,15 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     onWordLearnedOf: () => widget.onWordLearned,
   );
 
+  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
+  /// `Undo` entry has anything to offer.
+  @override
+  bool get canUndo => _history.canUndo;
+
+  /// Whether the last undone gesture can still be put back (see [OcptStyledHistory.canRedo]).
+  @override
+  bool get canRedo => _history.canRedo;
+
   @override
   void initState() {
     super.initState();
@@ -427,19 +436,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _maybeApplyPendingJumpRequest();
   }
 
-  /// Applies [OcptStyledScreenplayEditor.jumpRequest] if it wasn't already applied by this widget
-  /// (whether it arrived through a rebuild, or was already pending the very first time this
-  /// widget was built, e.g. right after switching from raw to styled mode).
-  void _maybeApplyPendingJumpRequest() {
-    final jumpRequest = widget.jumpRequest;
-    if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
-      _lastAppliedJumpRequestId = jumpRequest.id;
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _jumpHandler.apply(jumpRequest.charOffset),
-      );
-    }
-  }
-
   @override
   void deactivate() {
     // `deactivate()` runs before `dispose()` for every removal from the tree (including the
@@ -449,61 +445,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     // by the time `dispose()` tears the editor down, there is nothing left to flush.
     _flushPendingSync();
     super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    widget.styledController?.detach(this);
-    _syncTimer?.cancel();
-    _disposeEditor();
-    _focusNode.dispose();
-    _pageScrollController.dispose();
-    super.dispose();
-  }
-
-  /// Runs a full pending debounced sync immediately, instead of waiting for [_syncTimer] to fire
-  /// on its own, settling a throwaway copy of the document rather than executing requests against
-  /// the live [_editor].
-  ///
-  /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
-  /// only caller) can fire while this exact subtree is itself mid-teardown (a mode toggle or
-  /// route change both remove this widget as part of an ancestor's own rebuild), and executing an
-  /// edit at that point can reach a document-layout component that Flutter has already
-  /// deactivated, crashing with "setState() called during build". A scratch [MutableDocument]/
-  /// `Editor`, never attached to any widget, carries none of that risk, and settling it before
-  /// encoding matters for more than cosmetics: encoding a node under a stale, not-yet-reclassified
-  /// `blockType` forces `FountainLineWriter` to bake a forcing-marker character into the output
-  /// text for it, and that character comes back on the very next decode as a genuine, sticky,
-  /// user-typed forcing marker — corrupting the node for good, well past this one flush.
-  void _flushPendingSync() {
-    if (_syncTimer == null || !_syncTimer!.isActive) {
-      return;
-    }
-    _syncTimer!.cancel();
-
-    // `List<DocumentNode>.of`, never a list narrowed to `ParagraphNode`: see
-    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `MutableDocument
-    // .reset()`. Moot for this particular document — the `Editor` below keeps history off, so
-    // `reset()` is never reached — but a scratch document built differently from every other one
-    // in this app is a trap for whoever copies this block next.
-    final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
-    final settledComposer = MutableDocumentComposer();
-    // History stays off on this one: it exists for a single synchronous settle-then-encode pass
-    // and is discarded a few lines below, never reaching a keyboard or a writer's Ctrl+Z. This is
-    // not an oversight to align with `_rebuildEditorFrom`'s own `Editor`.
-    final settledEditor = Editor(
-      editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
-      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
-        ..insert(0, ocptTitlePageGuardRequestHandler)
-        ..add(ocptChangeNodeMetadataRequestHandler)
-        ..add(ocptReplaceNodeTextRequestHandler),
-    );
-
-    OcptStyledDocumentSettle.settle(settledDocument, settledEditor);
-    _encodeAndReportIfChanged(settledDocument);
-
-    settledComposer.dispose();
-    settledEditor.dispose();
   }
 
   @override
@@ -660,6 +601,171 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
+  /// Takes back the writer's last gesture, plus everything this widget derived from it.
+  @override
+  void undo() => _history.undo();
+
+  /// Puts back the last undone gesture, or does nothing at all when [canRedo] refuses.
+  @override
+  void redo() => _history.redo();
+
+  /// Applies a manual block-type change to the current selection's extent node: bails out silently
+  /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
+  /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
+  /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
+  /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
+  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use,
+  /// so all three gestures behave identically) — then reports the fresh read state and hands focus
+  /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
+  /// briefly took to open.
+  @override
+  void applyBlockType(FountainLineType type) {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    final node = _document.getNodeById(selection.extent.nodeId);
+    if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
+      return;
+    }
+
+    _editor.execute([
+      ...ocptManualBlockTypeRequests(nodeId: node.id, type: type),
+      ...ocptParentheticalTemplateRequests(
+        nodeId: node.id,
+        type: type,
+        isNodeEmpty: node.text.isEmpty,
+      ),
+    ]);
+    _readState.report();
+    _focusNode.requestFocus();
+  }
+
+  /// Toggles [style] on the current selection: the composer's pending style preferences when
+  /// collapsed (so the next typed character carries it), or a `ToggleTextAttributionsRequest` over
+  /// the expanded selection otherwise. Bails out silently if there is no selection. Reports the
+  /// fresh read state and hands focus back to the editor afterwards, same as [applyBlockType].
+  @override
+  void applyToggleInlineStyle(OcptInlineStyle style) {
+    final selection = _composer.selection;
+    if (selection == null) {
+      return;
+    }
+
+    final attribution = OcptInlineStyleAttributions.attributionOf(style);
+    if (selection.isCollapsed) {
+      _composer.preferences.toggleStyle(attribution);
+    } else {
+      _editor.execute([
+        ToggleTextAttributionsRequest(documentRange: selection, attributions: {attribution}),
+      ]);
+    }
+
+    _readState.report();
+    _focusNode.requestFocus();
+  }
+
+  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
+  /// then immediately recomputes and (re-)navigates (see [OcptStyledSearch.recompute]).
+  @override
+  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
+    _search.update(query: query, currentMatchIndex: currentMatchIndex);
+  }
+
+  /// Replaces the current match with [replacement] and returns the index of the next one to land
+  /// on (see [OcptStyledSearch.replaceCurrentMatch]).
+  @override
+  int? replaceCurrentMatch(String replacement) => _search.replaceCurrentMatch(replacement);
+
+  /// Replaces every current match with [replacement] (see [OcptStyledSearch.replaceAllMatches]).
+  @override
+  void replaceAllMatches(String replacement) => _search.replaceAllMatches(replacement);
+
+  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
+  /// `OcptStyledSpellCheckRanges.styler`, replacing whatever it held before: every node this widget could
+  /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
+  /// added only for a node id [rangesByNodeId] actually names.
+  ///
+  /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
+  /// before it becomes a
+  /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
+  /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
+  /// ignored outright, and a range that no longer fits that node's own *current* text length is
+  /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
+  /// past the end of the text it addresses.
+  ///
+  /// Called both by [OcptStyledEditorController.attach] (a raw → styled mode switch while ranges
+  /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh
+  /// `OcptEditorState.styledSpellCheckRanges` down — neither call happens from inside
+  /// [_onDocumentChanged]'s own document-change listener, so this never needs the post-frame
+  /// deferral [_onDocumentChanged]'s own search recompute does (see that method's long comment):
+  /// the crash it guards against is specific to `markDirty()` firing synchronously inside
+  /// `Editor.execute()`'s still-open transaction, which is not where this method is ever reached
+  /// from.
+  @override
+  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
+    _spellCheck.update(rangesByNodeId);
+  }
+
+  /// Applies [OcptStyledScreenplayEditor.jumpRequest] if it wasn't already applied by this widget
+  /// (whether it arrived through a rebuild, or was already pending the very first time this
+  /// widget was built, e.g. right after switching from raw to styled mode).
+  void _maybeApplyPendingJumpRequest() {
+    final jumpRequest = widget.jumpRequest;
+    if (jumpRequest != null && jumpRequest.id != _lastAppliedJumpRequestId) {
+      _lastAppliedJumpRequestId = jumpRequest.id;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _jumpHandler.apply(jumpRequest.charOffset),
+      );
+    }
+  }
+
+  /// Runs a full pending debounced sync immediately, instead of waiting for [_syncTimer] to fire
+  /// on its own, settling a throwaway copy of the document rather than executing requests against
+  /// the live [_editor].
+  ///
+  /// Executing requests against [_editor] from here would be unsafe: [deactivate] (this method's
+  /// only caller) can fire while this exact subtree is itself mid-teardown (a mode toggle or
+  /// route change both remove this widget as part of an ancestor's own rebuild), and executing an
+  /// edit at that point can reach a document-layout component that Flutter has already
+  /// deactivated, crashing with "setState() called during build". A scratch [MutableDocument]/
+  /// `Editor`, never attached to any widget, carries none of that risk, and settling it before
+  /// encoding matters for more than cosmetics: encoding a node under a stale, not-yet-reclassified
+  /// `blockType` forces `FountainLineWriter` to bake a forcing-marker character into the output
+  /// text for it, and that character comes back on the very next decode as a genuine, sticky,
+  /// user-typed forcing marker — corrupting the node for good, well past this one flush.
+  void _flushPendingSync() {
+    if (_syncTimer == null || !_syncTimer!.isActive) {
+      return;
+    }
+    _syncTimer!.cancel();
+
+    // `List<DocumentNode>.of`, never a list narrowed to `ParagraphNode`: see
+    // `OcptWysiwygCodec.decode`'s own doc comment for what such a list does to `MutableDocument
+    // .reset()`. Moot for this particular document — the `Editor` below keeps history off, so
+    // `reset()` is never reached — but a scratch document built differently from every other one
+    // in this app is a trap for whoever copies this block next.
+    final settledDocument = MutableDocument(nodes: List<DocumentNode>.of(_document));
+    final settledComposer = MutableDocumentComposer();
+    // History stays off on this one: it exists for a single synchronous settle-then-encode pass
+    // and is discarded a few lines below, never reaching a keyboard or a writer's Ctrl+Z. This is
+    // not an oversight to align with `_rebuildEditorFrom`'s own `Editor`.
+    final settledEditor = Editor(
+      editables: {Editor.documentKey: settledDocument, Editor.composerKey: settledComposer},
+      requestHandlers: List<EditRequestHandler>.from(defaultRequestHandlers)
+        ..insert(0, ocptTitlePageGuardRequestHandler)
+        ..add(ocptChangeNodeMetadataRequestHandler)
+        ..add(ocptReplaceNodeTextRequestHandler),
+    );
+
+    OcptStyledDocumentSettle.settle(settledDocument, settledEditor);
+    _encodeAndReportIfChanged(settledDocument);
+
+    settledComposer.dispose();
+    settledEditor.dispose();
+  }
+
   /// Builds [_document], [_composer] and [_editor] from [text], and starts listening to document
   /// and selection changes.
   ///
@@ -772,23 +878,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// the writer's last gesture — merged onto that gesture (see [OcptStyledHistory.runDerivedPass]).
   void _runDerivedPass(void Function() derivedPass) => _history.runDerivedPass(derivedPass);
 
-  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
-  /// `Undo` entry has anything to offer.
-  @override
-  bool get canUndo => _history.canUndo;
-
-  /// Whether the last undone gesture can still be put back (see [OcptStyledHistory.canRedo]).
-  @override
-  bool get canRedo => _history.canRedo;
-
-  /// Takes back the writer's last gesture, plus everything this widget derived from it.
-  @override
-  void undo() => _history.undo();
-
-  /// Puts back the last undone gesture, or does nothing at all when [canRedo] refuses.
-  @override
-  void redo() => _history.redo();
-
   /// Renumbers every scene heading immediately (not debounced) and reports the corrected text
   /// upstream if it changed, right after [_rebuildEditorFrom] rebuilds the document from fresh
   /// text: this is what corrects a badly-ordered `#N#` typed in raw mode (or by any other means)
@@ -877,79 +966,6 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     _readState.report();
   }
 
-  /// Applies a manual block-type change to the current selection's extent node: bails out silently
-  /// if there is no selection, or its node isn't a `ParagraphNode` (mirroring
-  /// `ocptTabToCycleBlockType`'s own guard), otherwise sets the type and locks the block exactly
-  /// like the Tab-cycle gesture does — plus, when [type] is [FountainLineType.parenthetical] and
-  /// the node's text is still empty, inserts `()` and places the caret between the two parentheses
-  /// (see `ocptParentheticalTemplateRequests`, the same helper the Tab cycle and smart-Enter use,
-  /// so all three gestures behave identically) — then reports the fresh read state and hands focus
-  /// straight back to the editor — the toolbar's dropdown must never keep the keyboard focus it
-  /// briefly took to open.
-  @override
-  void applyBlockType(FountainLineType type) {
-    final selection = _composer.selection;
-    if (selection == null) {
-      return;
-    }
-
-    final node = _document.getNodeById(selection.extent.nodeId);
-    if (node is! ParagraphNode || OcptWysiwygCodec.isTitlePageNode(node)) {
-      return;
-    }
-
-    _editor.execute([
-      ...ocptManualBlockTypeRequests(nodeId: node.id, type: type),
-      ...ocptParentheticalTemplateRequests(
-        nodeId: node.id,
-        type: type,
-        isNodeEmpty: node.text.isEmpty,
-      ),
-    ]);
-    _readState.report();
-    _focusNode.requestFocus();
-  }
-
-  /// Toggles [style] on the current selection: the composer's pending style preferences when
-  /// collapsed (so the next typed character carries it), or a `ToggleTextAttributionsRequest` over
-  /// the expanded selection otherwise. Bails out silently if there is no selection. Reports the
-  /// fresh read state and hands focus back to the editor afterwards, same as [applyBlockType].
-  @override
-  void applyToggleInlineStyle(OcptInlineStyle style) {
-    final selection = _composer.selection;
-    if (selection == null) {
-      return;
-    }
-
-    final attribution = OcptInlineStyleAttributions.attributionOf(style);
-    if (selection.isCollapsed) {
-      _composer.preferences.toggleStyle(attribution);
-    } else {
-      _editor.execute([
-        ToggleTextAttributionsRequest(documentRange: selection, attributions: {attribution}),
-      ]);
-    }
-
-    _readState.report();
-    _focusNode.requestFocus();
-  }
-
-  /// Replaces the find/replace query and current-match index this widget highlights/navigates to,
-  /// then immediately recomputes and (re-)navigates (see [OcptStyledSearch.recompute]).
-  @override
-  void updateSearch({required OcptEditorSearchQuery? query, required int? currentMatchIndex}) {
-    _search.update(query: query, currentMatchIndex: currentMatchIndex);
-  }
-
-  /// Replaces the current match with [replacement] and returns the index of the next one to land
-  /// on (see [OcptStyledSearch.replaceCurrentMatch]).
-  @override
-  int? replaceCurrentMatch(String replacement) => _search.replaceCurrentMatch(replacement);
-
-  /// Replaces every current match with [replacement] (see [OcptStyledSearch.replaceAllMatches]).
-  @override
-  void replaceAllMatches(String replacement) => _search.replaceAllMatches(replacement);
-
   /// Reports `OcptStyledSpellCheckRanges.checkableTexts` up through [OcptStyledScreenplayEditor.styledController]
   /// (`OcptStyledEditorController.reportSpellCheckTexts`, which dedupes against what was last
   /// reported on its own — this method itself is called unconditionally, exactly like
@@ -960,29 +976,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     );
   }
 
-  /// Applies [rangesByNodeId] — the bloc's own answer, keyed by node id — to
-  /// `OcptStyledSpellCheckRanges.styler`, replacing whatever it held before: every node this widget could
-  /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
-  /// added only for a node id [rangesByNodeId] actually names.
-  ///
-  /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
-  /// before it becomes a
-  /// `TextError`: a node id [_document] no longer holds (a full rebuild since the ranges were
-  /// computed — an edit elsewhere, an import, a version restore, a page-simulation toggle) is
-  /// ignored outright, and a range that no longer fits that node's own *current* text length is
-  /// dropped rather than handed to `TextError.spelling`, which would otherwise build a `TextRange`
-  /// past the end of the text it addresses.
-  ///
-  /// Called both by [OcptStyledEditorController.attach] (a raw → styled mode switch while ranges
-  /// are already known) and, reactively, whenever `editor_page.dart` pushes a fresh
-  /// `OcptEditorState.styledSpellCheckRanges` down — neither call happens from inside
-  /// [_onDocumentChanged]'s own document-change listener, so this never needs the post-frame
-  /// deferral [_onDocumentChanged]'s own search recompute does (see that method's long comment):
-  /// the crash it guards against is specific to `markDirty()` firing synchronously inside
-  /// `Editor.execute()`'s still-open transaction, which is not where this method is ever reached
-  /// from.
   @override
-  void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId) {
-    _spellCheck.update(rangesByNodeId);
+  void dispose() {
+    widget.styledController?.detach(this);
+    _syncTimer?.cancel();
+    _disposeEditor();
+    _focusNode.dispose();
+    _pageScrollController.dispose();
+    super.dispose();
   }
 }

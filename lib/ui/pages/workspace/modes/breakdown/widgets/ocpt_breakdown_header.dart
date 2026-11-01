@@ -215,12 +215,6 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
@@ -247,6 +241,12 @@ class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
 

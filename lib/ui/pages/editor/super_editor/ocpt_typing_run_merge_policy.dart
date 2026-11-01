@@ -27,22 +27,11 @@ import 'package:super_editor/super_editor.dart';
 /// typing always starts its own undo step, and so does typing that resumes more than
 /// [maxMergeTime] after the previous run stopped.
 class OcptTypingRunMergePolicy implements HistoryGroupingPolicy {
-  /// Creates an [OcptTypingRunMergePolicy] merging runs no more than [maxMergeTime] apart.
-  const OcptTypingRunMergePolicy(this.maxMergeTime);
-
   /// How far apart two consecutive text insertions may be and still be merged into one undo step.
   final Duration maxMergeTime;
 
-  /// The changes of [transaction] that actually touch the document, i.e. everything but the
-  /// selection and composing-region bookkeeping every transaction carries (mirrors
-  /// [MergeRapidTextInputPolicy]'s own filter).
-  static Iterable<EditEvent> _contentChangesOf(CommandTransaction transaction) => transaction
-      .changes
-      .where((change) => change is! SelectionChangeEvent && change is! ComposingRegionChangeEvent);
-
-  /// Whether [change] is a character (or several) being inserted into a node's text.
-  static bool _isTextInsertion(EditEvent change) =>
-      change is DocumentEdit && change.change is TextInsertionEvent;
+  /// Creates an [OcptTypingRunMergePolicy] merging runs no more than [maxMergeTime] apart.
+  const OcptTypingRunMergePolicy(this.maxMergeTime);
 
   /// Merges [newTransaction] onto [previousTransaction] when the former is nothing but text
   /// insertions, the latter contains at least one, and they happened within [maxMergeTime] of each
@@ -73,4 +62,15 @@ class OcptTypingRunMergePolicy implements HistoryGroupingPolicy {
 
     return TransactionMerge.mergeOnTop;
   }
+
+  /// The changes of [transaction] that actually touch the document, i.e. everything but the
+  /// selection and composing-region bookkeeping every transaction carries (mirrors
+  /// [MergeRapidTextInputPolicy]'s own filter).
+  static Iterable<EditEvent> _contentChangesOf(CommandTransaction transaction) => transaction
+      .changes
+      .where((change) => change is! SelectionChangeEvent && change is! ComposingRegionChangeEvent);
+
+  /// Whether [change] is a character (or several) being inserted into a node's text.
+  static bool _isTextInsertion(EditEvent change) =>
+      change is DocumentEdit && change.change is TextInsertionEvent;
 }

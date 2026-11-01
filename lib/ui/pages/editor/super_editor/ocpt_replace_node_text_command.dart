@@ -10,9 +10,6 @@ import 'package:super_editor/super_editor.dart';
 /// a copy carrying the new text (metadata untouched), via `ParagraphNode.copyTextNodeWith`,
 /// mirroring [OcptChangeNodeMetadataCommand]'s own pattern.
 class OcptReplaceNodeTextCommand extends EditCommand {
-  /// Creates an [OcptReplaceNodeTextCommand].
-  const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});
-
   /// The id of the `ParagraphNode` whose text is being replaced.
   final String nodeId;
 
@@ -23,6 +20,9 @@ class OcptReplaceNodeTextCommand extends EditCommand {
   /// [OcptChangeNodeMetadataCommand].
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.undoable;
+
+  /// Creates an [OcptReplaceNodeTextCommand].
+  const OcptReplaceNodeTextCommand({required this.nodeId, required this.text});
 
   /// Applies the text replacement to the document.
   @override

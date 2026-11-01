@@ -41,6 +41,12 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
   /// The manager used to read this replica's own device id.
   final OcptPropertiesManager _propertiesManager;
 
+  /// The current project's writable file — a paired project's own pairing row and its ongoing sync
+  /// session both belong to the project **file**, never to a read-only preview
+  /// (`OcptOpenProjectModel.fileDatabase`'s own doc comment). The route that reaches this page is
+  /// guarded exactly like the workspace's own, so a project is always open by the time this runs.
+  OcptProjectDatabase get _database => _projectsManager.currentProject!.fileDatabase;
+
   /// Class constructor
   OcptSharingBloc({
     OcptProjectsManager? projectsManager,
@@ -51,12 +57,6 @@ class OcptSharingBloc extends BlocForMixin<OcptSharingState>
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        super(const OcptSharingState.init());
-
-  /// The current project's writable file — a paired project's own pairing row and its ongoing sync
-  /// session both belong to the project **file**, never to a read-only preview
-  /// (`OcptOpenProjectModel.fileDatabase`'s own doc comment). The route that reaches this page is
-  /// guarded exactly like the workspace's own, so a project is always open by the time this runs.
-  OcptProjectDatabase get _database => _projectsManager.currentProject!.fileDatabase;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

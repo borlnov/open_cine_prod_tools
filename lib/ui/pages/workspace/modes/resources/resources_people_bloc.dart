@@ -142,6 +142,120 @@ class OcptResourcesPeopleBloc
     emitter(state.copyWithFieldEditsLost(lostEditsEpoch: lostEditsEpoch));
   }
 
+  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// fired or there was none), writes each one through `OcptPeopleService.updatePerson`, then has
+  /// the mode read the catalogue again so every derived aggregate reflects what the database now
+  /// says, and only then forgets what it wrote, so what a field shows never falls back to a stale
+  /// stored value between the two. A no-op while nothing is pending. Answers whether there was
+  /// anything pending.
+  ///
+  /// A write that fails drops **every** edit of the mode and raises the one write error (see
+  /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
+  /// after a write that landed which fails only raises the write error: what was written is
+  /// forgotten and the other views keep what they hold, to be written in their turn. When the write landed and the `Versions` tab is the one showing, also asks the mode
+  /// to refresh its working-copy card.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date.
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptResourcesPeopleState> emitter) async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithFieldEditsCleared());
+      return true;
+    }
+
+    var isWritten = false;
+    try {
+      await _writeAllPendingFields(database: project.database, pending: pending);
+      isWritten = true;
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending resources field edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      await _loseEdits(emitter);
+    }
+
+    if (!isWritten) {
+      return true;
+    }
+
+    // A read that fails changes nothing here: the write landed, so what was written is forgotten
+    // all the same, and the mode has already raised the write error. Dropping the edits of the
+    // other views as well would lose what no write failure has touched.
+    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
+
+    emitter(
+      state.copyWithFieldEditsWritten(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
+
+    // The other of the two moments the working-copy card needs a fresh read for (see
+    // `OcptResourcesBloc._onRightDockTabSelected`): a field edit landing while the tab showing it
+    // is already open.
+    if (modeBloc.state.rightDockTab == OcptResourcesRightDockTab.versions) {
+      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+
+    return true;
+  }
+
+  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
+  /// bloc's own event queue and its state.
+  ///
+  /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
+  /// `OcptShotListBloc.flushPendingFieldEdits`: `deactivate()` runs before `dispose()` for every
+  /// removal from the tree (a mode switch swaps this whole subtree out, and so does the workspace's
+  /// own back navigation), so triggering the write here — rather than dispatching an event, which
+  /// would only be processed on a later microtask this widget might not survive to see — is what
+  /// guarantees the last [OcptResourcesBloc.defaultFieldEditDebounce] worth of typing isn't lost.
+  ///
+  /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
+  /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
+  /// fresh state is already gone anyway. A failure here is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingFields(database: project.database, pending: edits),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending resources field edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+  }
+
   /// Creates a new, blank person at the end of the address book, reads the catalogue again and
   /// selects the new person.
   ///
@@ -259,78 +373,6 @@ class OcptResourcesPeopleBloc
     await onFlushRequested(emitter);
   }
 
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
-  /// fired or there was none), writes each one through `OcptPeopleService.updatePerson`, then has
-  /// the mode read the catalogue again so every derived aggregate reflects what the database now
-  /// says, and only then forgets what it wrote, so what a field shows never falls back to a stale
-  /// stored value between the two. A no-op while nothing is pending. Answers whether there was
-  /// anything pending.
-  ///
-  /// A write that fails drops **every** edit of the mode and raises the one write error (see
-  /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
-  /// after a write that landed which fails only raises the write error: what was written is
-  /// forgotten and the other views keep what they hold, to be written in their turn. When the write landed and the `Versions` tab is the one showing, also asks the mode
-  /// to refresh its working-copy card.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date.
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptResourcesPeopleState> emitter) async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithFieldEditsCleared());
-      return true;
-    }
-
-    var isWritten = false;
-    try {
-      await _writeAllPendingFields(database: project.database, pending: pending);
-      isWritten = true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      await _loseEdits(emitter);
-    }
-
-    if (!isWritten) {
-      return true;
-    }
-
-    // A read that fails changes nothing here: the write landed, so what was written is forgotten
-    // all the same, and the mode has already raised the write error. Dropping the edits of the
-    // other views as well would lose what no write failure has touched.
-    await modeBloc.reload({OcptResourcesReloadScope.snapshot});
-
-    emitter(
-      state.copyWithFieldEditsWritten(
-        pendingFieldEdits: ocptPendingEditsAfterWrite(
-          current: state.pendingFieldEdits,
-          written: pending,
-        ),
-      ),
-    );
-
-    // The other of the two moments the working-copy card needs a fresh read for (see
-    // `OcptResourcesBloc._onRightDockTabSelected`): a field edit landing while the tab showing it
-    // is already open.
-    if (modeBloc.state.rightDockTab == OcptResourcesRightDockTab.versions) {
-      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-
-    return true;
-  }
-
   /// Tells the mode that writing the typed edits failed, which raises its write error and makes
   /// every view drop what it holds, this one included; waits for that, so the flush goes on to the
   /// other views with nothing left for them to write.
@@ -339,48 +381,6 @@ class OcptResourcesPeopleBloc
   Future<void> _loseEdits(Emitter<OcptResourcesPeopleState> emitter) async {
     await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
     emitter(state.copyWithFieldEditsCleared());
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing the debounce timer, the
-  /// bloc's own event queue and its state.
-  ///
-  /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
-  /// `OcptShotListBloc.flushPendingFieldEdits`: `deactivate()` runs before `dispose()` for every
-  /// removal from the tree (a mode switch swaps this whole subtree out, and so does the workspace's
-  /// own back navigation), so triggering the write here — rather than dispatching an event, which
-  /// would only be processed on a later microtask this widget might not survive to see — is what
-  /// guarantees the last [OcptResourcesBloc.defaultFieldEditDebounce] worth of typing isn't lost.
-  ///
-  /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
-  /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        pending,
-        (edits) => _writeAllPendingFields(database: project.database, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending resources field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
   }
 
   /// Writes a discrete change to the address book through [action] and has the mode read the

@@ -178,12 +178,6 @@ class _ShotListViewState extends State<_ShotListView> {
   }
 
   @override
-  void dispose() {
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => OcptShotListViewEffects(
     child: BlocConsumer<OcptShotListBloc, OcptShotListState>(
       listener: _onStateChanged,
@@ -973,5 +967,11 @@ class _ShotListViewState extends State<_ShotListView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

@@ -77,9 +77,6 @@ const String ocptSceneNumberMetadataKey = "ocptSceneNumber";
 /// edit): it never touches a live `Editor`, which keeps it trivial to unit test without pumping a
 /// widget tree, exactly like the `OcptFountainSuperDocument` class it replaces.
 class OcptWysiwygCodec {
-  /// Private constructor: this class only exposes static members.
-  const OcptWysiwygCodec._();
-
   /// The classifier used to turn a line's text into its [FountainLineType].
   static const _classifier = FountainLineClassifier();
 
@@ -92,6 +89,14 @@ class OcptWysiwygCodec {
   /// The serializer used to turn a node's styled inline runs back into marked-up display text.
   static const _inlineSerializer = FountainInlineSerializer();
 
+  /// The [FountainLineType]s Fountain (and Final Draft) auto-detection expects in uppercase, and
+  /// whose *stored* text this app therefore uppercases as the user types, not just its display.
+  static const Set<FountainLineType> _uppercasedTypes = {
+    FountainLineType.sceneHeading,
+    FountainLineType.character,
+    FountainLineType.transition,
+  };
+
   /// Mirrors [FountainLineClassifier]'s own (private) section-heading pattern, so a section
   /// node's display text can be recovered without re-deriving the leading `#` run's length here:
   /// see [decode]'s per-type stripping and the class doc comment on the section-level
@@ -102,11 +107,8 @@ class OcptWysiwygCodec {
   /// `#N#` tag on a scene heading line (e.g. `#4A#` in `INT. HOUSE #4A#`), captured as group 1.
   static final RegExp _sceneNumberPattern = RegExp(r'#([A-Za-z0-9.\-]+)#\s*$');
 
-  /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
-  /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
-  /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
-  static List<String> _splitLines(String text) =>
-      text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+  /// Private constructor: this class only exposes static members.
+  const OcptWysiwygCodec._();
 
   /// Decodes [text] into a fresh document: one `ParagraphNode` per non-blank source line, blank
   /// runs folded into [ocptBlankLinesBeforeMetadataKey] metadata (or, for a trailing run, into
@@ -223,49 +225,6 @@ class OcptWysiwygCodec {
   static List<ParagraphNode> decodeNodesFromFountain(String text) {
     final (nodes, _, _) = _decodeLines(_splitLines(text));
     return nodes;
-  }
-
-  /// The shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
-  /// [lines] into one node per non-blank line (folding blank runs into
-  /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
-  /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
-  /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
-  /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
-  static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
-    final types = _classifier.classify(lines);
-
-    final nodes = <ParagraphNode>[];
-    final blankLinesBeforeByNode = <int>[];
-    var pendingBlanks = 0;
-
-    for (var index = 0; index < lines.length; index++) {
-      if (types[index] == FountainLineType.blank) {
-        pendingBlanks++;
-        continue;
-      }
-
-      final (strippedText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
-      final (displayText, sceneNumber) = types[index] == FountainLineType.sceneHeading
-          ? _extractSceneNumber(strippedText)
-          : (strippedText, null);
-      nodes.add(
-        ParagraphNode(
-          id: Editor.createNodeId(),
-          text: OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
-          metadata: {
-            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
-            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
-            ocptTypeLockedMetadataKey: false,
-            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
-            ocptSceneNumberMetadataKey: sceneNumber,
-          },
-        ),
-      );
-      blankLinesBeforeByNode.add(pendingBlanks);
-      pendingBlanks = 0;
-    }
-
-    return (nodes, blankLinesBeforeByNode, pendingBlanks);
   }
 
   /// Encodes [document] back into Fountain source text, the inverse of [decode]: rejoins each
@@ -595,14 +554,6 @@ class OcptWysiwygCodec {
     return requests;
   }
 
-  /// The [FountainLineType]s Fountain (and Final Draft) auto-detection expects in uppercase, and
-  /// whose *stored* text this app therefore uppercases as the user types, not just its display.
-  static const Set<FountainLineType> _uppercasedTypes = {
-    FountainLineType.sceneHeading,
-    FountainLineType.character,
-    FountainLineType.transition,
-  };
-
   /// Computes the requests needed to uppercase the text of every node currently classified as one
   /// of [_uppercasedTypes] whose text isn't already fully uppercase, preserving its attribution
   /// spans and (since uppercasing is 1:1 for the app's locales, leaving every character's offset
@@ -635,12 +586,6 @@ class OcptWysiwygCodec {
 
     return requests;
   }
-
-  /// Copies [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
-  /// never changes a string's length for this app's supported locales, so every span's (start, end)
-  /// offset still refers to the same run of characters.
-  static AttributedText _uppercased(AttributedText text, String upperText) =>
-      AttributedText(upperText, text.spans.copy(), text.placeholders);
 
   /// Computes the requests needed to bring every node's [ocptFountainNoteAttribution] spans back
   /// in sync with the `[[...]]` regions currently in its text, adding/removing spans only for a
@@ -706,6 +651,61 @@ class OcptWysiwygCodec {
 
     return requests;
   }
+
+  /// Splits [text] into its source lines, normalizing `\r\n`/`\r` line endings to `\n` first (the
+  /// same normalization `FountainParser.parse` applies), so folded blank-line counts and the
+  /// resulting [OcptWysiwygLineMapping] agree with the rest of the editor.
+  static List<String> _splitLines(String text) =>
+      text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
+
+  /// The shared per-line decoding loop behind [decode] and [decodeNodesFromFountain]: turns
+  /// [lines] into one node per non-blank line (folding blank runs into
+  /// [ocptBlankLinesBeforeMetadataKey] metadata) plus, in call order, the resulting nodes, their
+  /// blank-lines-before counts (same length, same order as the nodes) and the number of blank
+  /// lines still pending after the last non-blank line (the trailing run [decode] alone turns
+  /// into [OcptWysiwygDecodeResult.trailingBlankLines]).
+  static (List<ParagraphNode>, List<int>, int) _decodeLines(List<String> lines) {
+    final types = _classifier.classify(lines);
+
+    final nodes = <ParagraphNode>[];
+    final blankLinesBeforeByNode = <int>[];
+    var pendingBlanks = 0;
+
+    for (var index = 0; index < lines.length; index++) {
+      if (types[index] == FountainLineType.blank) {
+        pendingBlanks++;
+        continue;
+      }
+
+      final (strippedText, hadForcingMarker) = _stripDisplayText(lines[index], types[index]);
+      final (displayText, sceneNumber) = types[index] == FountainLineType.sceneHeading
+          ? _extractSceneNumber(strippedText)
+          : (strippedText, null);
+      nodes.add(
+        ParagraphNode(
+          id: Editor.createNodeId(),
+          text: OcptWysiwygInlineRuns.attributedTextFromRuns(_inlineParser.parseRuns(displayText)),
+          metadata: {
+            "blockType": OcptFountainLineAttributions.attributionOf(types[index]),
+            ocptBlankLinesBeforeMetadataKey: pendingBlanks,
+            ocptTypeLockedMetadataKey: false,
+            ocptHadForcingMarkerMetadataKey: hadForcingMarker,
+            ocptSceneNumberMetadataKey: sceneNumber,
+          },
+        ),
+      );
+      blankLinesBeforeByNode.add(pendingBlanks);
+      pendingBlanks = 0;
+    }
+
+    return (nodes, blankLinesBeforeByNode, pendingBlanks);
+  }
+
+  /// Copies [text]'s attribution spans and placeholders onto [upperText] unchanged: uppercasing
+  /// never changes a string's length for this app's supported locales, so every span's (start, end)
+  /// offset still refers to the same run of characters.
+  static AttributedText _uppercased(AttributedText text, String upperText) =>
+      AttributedText(upperText, text.spans.copy(), text.placeholders);
 
   /// Whether [type] is a dialogue-block element that keeps a dialogue group open (see
   /// [FountainLineClassifier]'s own equivalent private rule), used by [encode] to force

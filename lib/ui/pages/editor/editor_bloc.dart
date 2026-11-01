@@ -65,20 +65,30 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         MixinOcptProjectPackageBloc<OcptEditorState>,
         MixinOcptModeBloc<OcptEditorState, Never>,
         MixinAsyncInitBloc<OcptEditorState> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "editor_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
 
   /// The default delay between the last edit and the autosave.
   static const defaultAutosaveDebounce = Duration(seconds: 2);
 
+  /// The logger category linked to this BLoC.
+  static const _loggerCategory = "editor_bloc";
+
   /// The parser used to build the [FountainDocument] shown in the preview and the scene panel.
   static const _fountainParser = FountainParser();
+
+  /// A placeholder source range for the title-page entries built from a title-page change event's
+  /// fields: [FountainTitlePageWriter] only reads an entry's key and values, never its source
+  /// range, so this stands in without needing a real one.
+  static const _placeholderTitlePageEntryRange = FountainSourceRange(
+    startLine: 0,
+    endLine: 0,
+    startOffset: 0,
+    endOffset: 0,
+  );
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -130,6 +140,16 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   final String? _selectedEpisodeId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Class constructor
   ///
@@ -204,16 +224,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
     super.add(event);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
 
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
@@ -785,16 +795,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
     emitter(state.copyWithTextReplaced());
   }
-
-  /// A placeholder source range for the title-page entries built from a title-page change event's
-  /// fields: [FountainTitlePageWriter] only reads an entry's key and values, never its source
-  /// range, so this stands in without needing a real one.
-  static const _placeholderTitlePageEntryRange = FountainSourceRange(
-    startLine: 0,
-    endLine: 0,
-    startOffset: 0,
-    endOffset: 0,
-  );
 
   /// Rewrites the screenplay's title-page section from [event]'s six fields, saves the result
   /// (tagged [OcptSnapshotReason.manual]), and re-parses it.

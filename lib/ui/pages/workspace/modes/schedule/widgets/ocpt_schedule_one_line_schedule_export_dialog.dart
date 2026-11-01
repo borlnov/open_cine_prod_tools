@@ -38,6 +38,10 @@ class OcptScheduleOneLineScheduleExportDialog extends StatefulWidget {
     super.key,
   });
 
+  @override
+  State<OcptScheduleOneLineScheduleExportDialog> createState() =>
+      _OcptScheduleOneLineScheduleExportDialogState();
+
   /// Shows the dialog and returns the [OcptOneLineScheduleExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptOneLineScheduleExportOptions?> show(
@@ -48,10 +52,6 @@ class OcptScheduleOneLineScheduleExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleOneLineScheduleExportDialog(current: current, days: days),
   );
-
-  @override
-  State<OcptScheduleOneLineScheduleExportDialog> createState() =>
-      _OcptScheduleOneLineScheduleExportDialogState();
 }
 
 /// The state of [OcptScheduleOneLineScheduleExportDialog].

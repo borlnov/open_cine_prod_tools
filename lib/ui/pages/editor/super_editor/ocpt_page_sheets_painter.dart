@@ -24,18 +24,6 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_styled_pa
 /// than no number at all. The only thing this painter adds is the mapping from a *sheet* index to a
 /// *script* page number, which is [titlePageSheetCount].
 class OcptPageSheetsPainter extends CustomPainter {
-  /// Creates an [OcptPageSheetsPainter].
-  const OcptPageSheetsPainter({
-    required this.pageCount,
-    required this.titlePageSheetCount,
-    required this.pageHeight,
-    required this.pageGap,
-    required this.pageNumberTop,
-    required this.pageNumberRight,
-    required this.pageNumberStyle,
-    required this.scrollOffset,
-  });
-
   /// The number of simulated pages to paint.
   final int pageCount;
 
@@ -62,6 +50,18 @@ class OcptPageSheetsPainter extends CustomPainter {
   /// The current scroll offset of the document painted in front of this layer, in logical pixels.
   final double scrollOffset;
 
+  /// Creates an [OcptPageSheetsPainter].
+  const OcptPageSheetsPainter({
+    required this.pageCount,
+    required this.titlePageSheetCount,
+    required this.pageHeight,
+    required this.pageGap,
+    required this.pageNumberTop,
+    required this.pageNumberRight,
+    required this.pageNumberStyle,
+    required this.scrollOffset,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.white;
@@ -86,6 +86,17 @@ class OcptPageSheetsPainter extends CustomPainter {
     }
     canvas.restore();
   }
+
+  @override
+  bool shouldRepaint(covariant OcptPageSheetsPainter oldDelegate) =>
+      oldDelegate.pageCount != pageCount ||
+      oldDelegate.titlePageSheetCount != titlePageSheetCount ||
+      oldDelegate.pageHeight != pageHeight ||
+      oldDelegate.pageGap != pageGap ||
+      oldDelegate.pageNumberTop != pageNumberTop ||
+      oldDelegate.pageNumberRight != pageNumberRight ||
+      oldDelegate.pageNumberStyle != pageNumberStyle ||
+      oldDelegate.scrollOffset != scrollOffset;
 
   /// Paints the number of the sheet at index [page], whose own top edge sits at [top] in the
   /// canvas' (already scroll-translated) coordinates, or paints nothing when that sheet shows no
@@ -117,15 +128,4 @@ class OcptPageSheetsPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(pageNumberRight - textPainter.width, top + pageNumberTop));
     textPainter.dispose();
   }
-
-  @override
-  bool shouldRepaint(covariant OcptPageSheetsPainter oldDelegate) =>
-      oldDelegate.pageCount != pageCount ||
-      oldDelegate.titlePageSheetCount != titlePageSheetCount ||
-      oldDelegate.pageHeight != pageHeight ||
-      oldDelegate.pageGap != pageGap ||
-      oldDelegate.pageNumberTop != pageNumberTop ||
-      oldDelegate.pageNumberRight != pageNumberRight ||
-      oldDelegate.pageNumberStyle != pageNumberStyle ||
-      oldDelegate.scrollOffset != scrollOffset;
 }

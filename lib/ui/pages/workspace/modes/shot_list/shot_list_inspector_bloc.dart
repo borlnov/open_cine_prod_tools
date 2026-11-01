@@ -198,34 +198,6 @@ class OcptShotListInspectorBloc
     );
   }
 
-  /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
-  /// visible immediately, and (re)starts the field-edit debounce that eventually writes it.
-  Future<void> _onShotFieldChanged(
-    OcptShotListShotFieldChangedEvent event,
-    Emitter<OcptShotListInspectorState> emitter,
-  ) async {
-    final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
-      ..[OcptShotListShotFieldEditKey(shotId: event.shotId, field: event.field)] = event.rawValue;
-    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
-
-    restartDebounce(_fieldEditDebounce, const OcptShotListInspectorFieldEditFlushRequestedEvent());
-  }
-
-  /// Writes every pending field edit once the debounce elapses with no further typing.
-  ///
-  /// When something was written and the `Versions` tab is the one showing, also asks the mode to
-  /// refresh its working-copy card, as the mode itself does when a flush it runs lands.
-  Future<void> _onFieldEditFlushRequested(
-    OcptShotListInspectorFieldEditFlushRequestedEvent event,
-    Emitter<OcptShotListInspectorState> emitter,
-  ) async {
-    final hasWritten = await onFlushRequested(emitter);
-
-    if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
-      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-  }
-
   /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
   /// fired or there was none), writes each one through `OcptShotListService.updateShot`, then has
   /// the mode read the shot list and the suggestion lists again, so every derived aggregate and
@@ -326,6 +298,34 @@ class OcptShotListInspectorBloc
         null,
         stackTrace,
       );
+    }
+  }
+
+  /// Records the raw text just typed into `event.field` of shot `event.shotId` as a pending edit,
+  /// visible immediately, and (re)starts the field-edit debounce that eventually writes it.
+  Future<void> _onShotFieldChanged(
+    OcptShotListShotFieldChangedEvent event,
+    Emitter<OcptShotListInspectorState> emitter,
+  ) async {
+    final pending = Map<OcptShotListPendingEditKey, String>.of(state.pendingFieldEdits)
+      ..[OcptShotListShotFieldEditKey(shotId: event.shotId, field: event.field)] = event.rawValue;
+    emitter(state.copyWithTypedFieldEdits(pendingFieldEdits: pending));
+
+    restartDebounce(_fieldEditDebounce, const OcptShotListInspectorFieldEditFlushRequestedEvent());
+  }
+
+  /// Writes every pending field edit once the debounce elapses with no further typing.
+  ///
+  /// When something was written and the `Versions` tab is the one showing, also asks the mode to
+  /// refresh its working-copy card, as the mode itself does when a flush it runs lands.
+  Future<void> _onFieldEditFlushRequested(
+    OcptShotListInspectorFieldEditFlushRequestedEvent event,
+    Emitter<OcptShotListInspectorState> emitter,
+  ) async {
+    final hasWritten = await onFlushRequested(emitter);
+
+    if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
+      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
 

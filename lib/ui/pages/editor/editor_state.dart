@@ -221,11 +221,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   bool get isPreviewTabAvailable =>
       isPreviewTabAvailableFor(mode: mode, isReadOnly: isPreviewingVersion);
 
-  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
-  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
-  static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
-      mode == OcptEditorMode.raw && !isReadOnly;
-
   /// The scene headings of [document], in source order (empty while nothing is parsed).
   List<FountainSceneHeading> get scenes => document?.scenes ?? const [];
 
@@ -688,6 +683,11 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// cause [OcptEditorReloadCause.textReplaced].
   OcptEditorState copyWithTextReplaced() =>
       copyWith(reloadEpoch: reloadEpoch + 1, reloadCause: OcptEditorReloadCause.textReplaced);
+
+  /// The prospective form of [isPreviewTabAvailable]: whether the preview tab would exist in
+  /// [mode], with [isReadOnly] telling whether a project version is being previewed.
+  static bool isPreviewTabAvailableFor({required OcptEditorMode mode, required bool isReadOnly}) =>
+      mode == OcptEditorMode.raw && !isReadOnly;
 
   /// Object properties
   @override

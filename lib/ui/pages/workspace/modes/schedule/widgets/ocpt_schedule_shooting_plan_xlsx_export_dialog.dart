@@ -29,6 +29,10 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScheduleShootingPlanXlsxExportDialog({required this.days, super.key});
 
+  @override
+  State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
+      _OcptScheduleShootingPlanXlsxExportDialogState();
+
   /// Shows the dialog and returns the [OcptShootingPlanXlsxExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptShootingPlanXlsxExportOptions?> show(
@@ -38,10 +42,6 @@ class OcptScheduleShootingPlanXlsxExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleShootingPlanXlsxExportDialog(days: days),
   );
-
-  @override
-  State<OcptScheduleShootingPlanXlsxExportDialog> createState() =>
-      _OcptScheduleShootingPlanXlsxExportDialogState();
 }
 
 /// The state of [OcptScheduleShootingPlanXlsxExportDialog].

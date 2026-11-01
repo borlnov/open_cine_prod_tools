@@ -25,6 +25,9 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorTitlePageDialog({required this.current, super.key});
 
+  @override
+  State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
+
   /// Shows the dialog and returns the six field values the user applied, or null if they
   /// cancelled it.
   static Future<
@@ -44,9 +47,6 @@ class OcptEditorTitlePageDialog extends StatefulWidget {
         context: context,
         builder: (context) => OcptEditorTitlePageDialog(current: current),
       );
-
-  @override
-  State<OcptEditorTitlePageDialog> createState() => _OcptEditorTitlePageDialogState();
 }
 
 /// The state of [OcptEditorTitlePageDialog].
@@ -80,17 +80,6 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
     _draftDateController.text = current?.entry('Draft date')?.joinedValue ?? '';
     _contactController.text = current?.entry('Contact')?.joinedValue ?? '';
     _sourceController.text = current?.entry('Source')?.joinedValue ?? '';
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _creditController.dispose();
-    _authorController.dispose();
-    _draftDateController.dispose();
-    _contactController.dispose();
-    _sourceController.dispose();
-    super.dispose();
   }
 
   @override
@@ -157,5 +146,16 @@ class _OcptEditorTitlePageDialogState extends State<OcptEditorTitlePageDialog> {
       contact: _contactController.text.trim(),
       source: _sourceController.text.trim(),
     ));
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _creditController.dispose();
+    _authorController.dispose();
+    _draftDateController.dispose();
+    _contactController.dispose();
+    _sourceController.dispose();
+    super.dispose();
   }
 }

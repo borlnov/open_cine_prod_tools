@@ -104,6 +104,18 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called when [captureLabel]'s own button is clicked — null exactly when [captureLabel] is.
   final VoidCallback? onCaptureRequested;
 
+  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles, the expenses table
+  /// and the tools drawer's own cash-flow page are the three routes whose amounts follow it —
+  /// every other route either reads no second basis or no amount at all.
+  bool get _showsTaxBasisSwitch =>
+      view == OcptBudgetView.dashboard ||
+      view == OcptBudgetView.expenses ||
+      (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
+
+  /// Whether the current view honours the simplified/detailed switch —
+  /// `ocptBudgetViewHonoursPosteFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
+  bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
+
   /// Class constructor
   const OcptBudgetHeader({
     super.key,
@@ -169,18 +181,6 @@ class OcptBudgetHeader extends StatelessWidget {
       ),
     );
   }
-
-  /// Whether the tax-basis switch draws at all: the dashboard's own KPI tiles, the expenses table
-  /// and the tools drawer's own cash-flow page are the three routes whose amounts follow it —
-  /// every other route either reads no second basis or no amount at all.
-  bool get _showsTaxBasisSwitch =>
-      view == OcptBudgetView.dashboard ||
-      view == OcptBudgetView.expenses ||
-      (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
-
-  /// Whether the current view honours the simplified/detailed switch —
-  /// `ocptBudgetViewHonoursPosteFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
-  bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
 }
 
 /// One segment of any of this header's switches — a small bordered rounded container, the active

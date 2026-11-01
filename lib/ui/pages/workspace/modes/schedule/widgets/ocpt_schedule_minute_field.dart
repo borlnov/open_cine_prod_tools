@@ -96,12 +96,27 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   }
 
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onChanged = widget.onChanged;
+
+    if (onChanged == null) {
+      return Text(
+        widget.minute == null ? widget.emptyHint : ocptFormatDayMinute(widget.minute!),
+        style: theme.textTheme.bodySmall,
+      );
+    }
+
+    return SizedBox(
+      width: 64,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(isDense: true, hintText: widget.emptyHint),
+      ),
+    );
   }
 
   /// Commits the field's current text once it loses focus, mirroring the resources sheets' own
@@ -150,26 +165,11 @@ class _OcptScheduleMinuteFieldState extends State<OcptScheduleMinuteField> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onChanged = widget.onChanged;
-
-    if (onChanged == null) {
-      return Text(
-        widget.minute == null ? widget.emptyHint : ocptFormatDayMinute(widget.minute!),
-        style: theme.textTheme.bodySmall,
-      );
-    }
-
-    return SizedBox(
-      width: 64,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(isDense: true, hintText: widget.emptyHint),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

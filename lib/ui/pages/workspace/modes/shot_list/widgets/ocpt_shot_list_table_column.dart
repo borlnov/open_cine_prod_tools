@@ -93,13 +93,6 @@ enum OcptShotListTableColumn {
     this.alignment = TextAlign.left,
   });
 
-  /// The columns to lay out given the [visibleColumns] the user toggled on: every always-shown
-  /// column, plus the optional ones currently visible.
-  static List<OcptShotListTableColumn> visibleIn(Set<OcptShotListColumn> visibleColumns) => [
-    for (final column in OcptShotListTableColumn.values)
-      if (column.optionalColumn == null || visibleColumns.contains(column.optionalColumn)) column,
-  ];
-
   /// This column's header label.
   String label(Tr tr) {
     final optionalColumn = this.optionalColumn;
@@ -144,4 +137,11 @@ enum OcptShotListTableColumn {
     OcptShotListTableColumn.shootingDay => ocptShotPlacementLabel(context, placements),
     OcptShotListTableColumn.status => ocptShotStatusLabel(Tr.of(context), shot.status),
   };
+
+  /// The columns to lay out given the [visibleColumns] the user toggled on: every always-shown
+  /// column, plus the optional ones currently visible.
+  static List<OcptShotListTableColumn> visibleIn(Set<OcptShotListColumn> visibleColumns) => [
+    for (final column in OcptShotListTableColumn.values)
+      if (column.optionalColumn == null || visibleColumns.contains(column.optionalColumn)) column,
+  ];
 }

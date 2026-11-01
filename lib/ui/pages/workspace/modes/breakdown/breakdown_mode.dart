@@ -153,12 +153,6 @@ class _BreakdownViewState extends State<_BreakdownView> {
   }
 
   @override
-  void dispose() {
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => BlocConsumer<OcptBreakdownBloc, OcptBreakdownState>(
     listener: _onStateChanged,
     builder: (context, state) {
@@ -490,5 +484,11 @@ class _BreakdownViewState extends State<_BreakdownView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

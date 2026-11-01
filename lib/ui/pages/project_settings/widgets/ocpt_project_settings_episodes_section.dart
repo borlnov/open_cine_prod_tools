@@ -185,61 +185,6 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
   }
 
   @override
-  void dispose() {
-    _numberFocusNode
-      ..removeListener(_onNumberFocusChanged)
-      ..dispose();
-    _titleFocusNode
-      ..removeListener(_onTitleFocusChanged)
-      ..dispose();
-    _numberController.dispose();
-    _titleController.dispose();
-    super.dispose();
-  }
-
-  /// Commits the number field's current text once it loses focus.
-  void _onNumberFocusChanged() {
-    if (!_numberFocusNode.hasFocus) {
-      _commitNumber();
-    }
-  }
-
-  /// Commits the title field's current text once it loses focus.
-  void _onTitleFocusChanged() {
-    if (!_titleFocusNode.hasFocus) {
-      _commitTitle();
-    }
-  }
-
-  /// Parses the number field's current text and reports it: an unparseable or non-positive figure
-  /// reverts the field to whatever was last committed, exactly as the minimum rest field's own
-  /// zero-or-negative case does.
-  void _commitNumber() {
-    final parsed = int.tryParse(_numberController.text.trim());
-    if (parsed == null || parsed <= 0) {
-      _numberController.text = _lastReportedNumber.toString();
-      return;
-    }
-
-    _numberController.text = parsed.toString();
-    if (parsed != _lastReportedNumber) {
-      _lastReportedNumber = parsed;
-      widget.onNumberChanged(parsed);
-    }
-  }
-
-  /// Reports the title field's current text: any string is legal, the empty one included — an
-  /// untitled episode is an ordinary state (`OcptEpisode.title`'s own doc comment), never a
-  /// reversion.
-  void _commitTitle() {
-    final text = _titleController.text;
-    if (text != _lastReportedTitle) {
-      _lastReportedTitle = text;
-      widget.onTitleChanged(text);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
@@ -292,5 +237,60 @@ class _OcptProjectSettingsEpisodeRowState extends State<_OcptProjectSettingsEpis
           ),
       ],
     );
+  }
+
+  /// Commits the number field's current text once it loses focus.
+  void _onNumberFocusChanged() {
+    if (!_numberFocusNode.hasFocus) {
+      _commitNumber();
+    }
+  }
+
+  /// Commits the title field's current text once it loses focus.
+  void _onTitleFocusChanged() {
+    if (!_titleFocusNode.hasFocus) {
+      _commitTitle();
+    }
+  }
+
+  /// Parses the number field's current text and reports it: an unparseable or non-positive figure
+  /// reverts the field to whatever was last committed, exactly as the minimum rest field's own
+  /// zero-or-negative case does.
+  void _commitNumber() {
+    final parsed = int.tryParse(_numberController.text.trim());
+    if (parsed == null || parsed <= 0) {
+      _numberController.text = _lastReportedNumber.toString();
+      return;
+    }
+
+    _numberController.text = parsed.toString();
+    if (parsed != _lastReportedNumber) {
+      _lastReportedNumber = parsed;
+      widget.onNumberChanged(parsed);
+    }
+  }
+
+  /// Reports the title field's current text: any string is legal, the empty one included — an
+  /// untitled episode is an ordinary state (`OcptEpisode.title`'s own doc comment), never a
+  /// reversion.
+  void _commitTitle() {
+    final text = _titleController.text;
+    if (text != _lastReportedTitle) {
+      _lastReportedTitle = text;
+      widget.onTitleChanged(text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _numberFocusNode
+      ..removeListener(_onNumberFocusChanged)
+      ..dispose();
+    _titleFocusNode
+      ..removeListener(_onTitleFocusChanged)
+      ..dispose();
+    _numberController.dispose();
+    _titleController.dispose();
+    super.dispose();
   }
 }

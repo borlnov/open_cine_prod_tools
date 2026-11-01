@@ -112,6 +112,12 @@ abstract class AbsOcptViewBloc<
   /// The write [flushEditsWithoutState] is running, if any.
   Future<void>? _writeWithoutStateInFlight;
 
+  /// Whether this view is closing or closed, from which point `add` throws: `isClosed` stays false
+  /// until every handler still running has finished, a window in which the event queue is already
+  /// shut. Check this, not `isClosed`, before an `add` made from a timer or after an `await`.
+  @protected
+  bool get isClosing => _isClosing || isClosed;
+
   /// Class constructor
   ///
   /// The mode's epochs are read from its current state rather than waited for: a state stream does
@@ -137,78 +143,6 @@ abstract class AbsOcptViewBloc<
     on<OcptViewModeStateChangedEvent<MS>>(_onModeStateChangedEvent);
     on<OcptViewFlushRequestedEvent>(_onFlushRequested);
   }
-
-  /// Turns an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].
-  void _onModeState(MS modeState) {
-    // Only an epoch that grew is a move: a state older than one already seen (a handler that
-    // emitted from a copy taken before it waited) carries a lower epoch, and is not news.
-    final hasReloaded = modeState.reloadEpoch > _lastReloadEpoch;
-    final hasSelectionMoved = modeState.selectionEpoch > _lastSelectionEpoch;
-    if (!hasReloaded && !hasSelectionMoved) {
-      return;
-    }
-
-    _lastReloadEpoch = modeState.reloadEpoch;
-    _lastSelectionEpoch = modeState.selectionEpoch;
-    _editsWrittenWithoutState.clear();
-
-    if (isClosing) {
-      return;
-    }
-
-    _dispatchedReactions++;
-    add(
-      OcptViewModeStateChangedEvent<MS>(
-        modeState: modeState,
-        hasReloaded: hasReloaded,
-        hasSelectionMoved: hasSelectionMoved,
-      ),
-    );
-    _signalReaction();
-  }
-
-  /// Runs [onModeStateChanged], then counts the reaction as handled.
-  Future<void> _onModeStateChangedEvent(
-    OcptViewModeStateChangedEvent<MS> event,
-    Emitter<S> emitter,
-  ) async {
-    try {
-      await onModeStateChanged(event, emitter);
-    } finally {
-      _handledReactions++;
-      _signalReaction();
-    }
-  }
-
-  /// Wakes whoever waits in [_untilReactedToMode].
-  void _signalReaction() {
-    final signal = _reactionSignal;
-    _reactionSignal = Completer<void>();
-    signal.complete();
-  }
-
-  /// Completes once this view has reacted to every state the mode emitted so far, or once either
-  /// of them is going away.
-  Future<void> _untilReactedToMode() async {
-    while (!isClosing && !modeBloc.isClosed) {
-      final modeState = modeBloc.state;
-      final isUpToDate =
-          _lastReloadEpoch >= modeState.reloadEpoch &&
-          _lastSelectionEpoch >= modeState.selectionEpoch &&
-          _handledReactions >= _dispatchedReactions;
-      if (isUpToDate) {
-        return;
-      }
-
-      await _reactionSignal.future;
-    }
-  }
-
-  /// Whether this view is closing or closed, from which point `add` throws: `isClosed` stays false
-  /// until every handler still running has finished, a window in which the event queue is already
-  /// shut. Check this, not `isClosed`, before an `add` made from a timer or after an `await`.
-  @protected
-  bool get isClosing => _isClosing || isClosed;
 
   /// Asks the mode bloc for [event], or does nothing if the mode is closing. The only way a view
   /// should add an event to its mode: the mode may start to close while this view's handler is
@@ -347,6 +281,72 @@ abstract class AbsOcptViewBloc<
       if (identical(_writeWithoutStateInFlight, writing)) {
         _writeWithoutStateInFlight = null;
       }
+    }
+  }
+
+  /// Turns an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].
+  void _onModeState(MS modeState) {
+    // Only an epoch that grew is a move: a state older than one already seen (a handler that
+    // emitted from a copy taken before it waited) carries a lower epoch, and is not news.
+    final hasReloaded = modeState.reloadEpoch > _lastReloadEpoch;
+    final hasSelectionMoved = modeState.selectionEpoch > _lastSelectionEpoch;
+    if (!hasReloaded && !hasSelectionMoved) {
+      return;
+    }
+
+    _lastReloadEpoch = modeState.reloadEpoch;
+    _lastSelectionEpoch = modeState.selectionEpoch;
+    _editsWrittenWithoutState.clear();
+
+    if (isClosing) {
+      return;
+    }
+
+    _dispatchedReactions++;
+    add(
+      OcptViewModeStateChangedEvent<MS>(
+        modeState: modeState,
+        hasReloaded: hasReloaded,
+        hasSelectionMoved: hasSelectionMoved,
+      ),
+    );
+    _signalReaction();
+  }
+
+  /// Runs [onModeStateChanged], then counts the reaction as handled.
+  Future<void> _onModeStateChangedEvent(
+    OcptViewModeStateChangedEvent<MS> event,
+    Emitter<S> emitter,
+  ) async {
+    try {
+      await onModeStateChanged(event, emitter);
+    } finally {
+      _handledReactions++;
+      _signalReaction();
+    }
+  }
+
+  /// Wakes whoever waits in [_untilReactedToMode].
+  void _signalReaction() {
+    final signal = _reactionSignal;
+    _reactionSignal = Completer<void>();
+    signal.complete();
+  }
+
+  /// Completes once this view has reacted to every state the mode emitted so far, or once either
+  /// of them is going away.
+  Future<void> _untilReactedToMode() async {
+    while (!isClosing && !modeBloc.isClosed) {
+      final modeState = modeBloc.state;
+      final isUpToDate =
+          _lastReloadEpoch >= modeState.reloadEpoch &&
+          _lastSelectionEpoch >= modeState.selectionEpoch &&
+          _handledReactions >= _dispatchedReactions;
+      if (isUpToDate) {
+        return;
+      }
+
+      await _reactionSignal.future;
     }
   }
 

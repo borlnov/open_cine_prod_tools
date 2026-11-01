@@ -28,6 +28,9 @@ class OcptBudgetRevenueDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetRevenueDialog({super.key, required this.existing, required this.currencyCode});
 
+  @override
+  State<OcptBudgetRevenueDialog> createState() => _OcptBudgetRevenueDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetRevenueFormFields?> show(
     BuildContext context, {
@@ -37,9 +40,6 @@ class OcptBudgetRevenueDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetRevenueDialog(existing: existing, currencyCode: currencyCode),
   );
-
-  @override
-  State<OcptBudgetRevenueDialog> createState() => _OcptBudgetRevenueDialogState();
 }
 
 /// The state of [OcptBudgetRevenueDialog]: the form key it hands to [OcptBudgetRevenueFormBody] and

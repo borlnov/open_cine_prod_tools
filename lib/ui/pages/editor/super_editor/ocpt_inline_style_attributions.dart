@@ -12,15 +12,15 @@ import 'package:super_editor/super_editor.dart';
 /// controller/toolbar side only ever asks "is this style active" (checked directly against
 /// [attributionOf]'s result), never "what style does this arbitrary attribution mean".
 class OcptInlineStyleAttributions {
-  /// Private constructor: this class only exposes static members.
-  const OcptInlineStyleAttributions._();
-
   /// The attribution toggled for each [OcptInlineStyle].
   static const Map<OcptInlineStyle, Attribution> _attributionsByStyle = {
     OcptInlineStyle.bold: boldAttribution,
     OcptInlineStyle.italic: italicsAttribution,
     OcptInlineStyle.underline: underlineAttribution,
   };
+
+  /// Private constructor: this class only exposes static members.
+  const OcptInlineStyleAttributions._();
 
   /// The `Attribution` toggled when applying [style].
   static Attribution attributionOf(OcptInlineStyle style) => _attributionsByStyle[style]!;

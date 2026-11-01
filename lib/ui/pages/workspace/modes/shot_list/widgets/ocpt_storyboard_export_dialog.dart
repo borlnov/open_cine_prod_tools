@@ -32,6 +32,9 @@ class OcptStoryboardExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptStoryboardExportDialog({required this.current, super.key});
 
+  @override
+  State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
+
   /// Shows the dialog and returns the [OcptStoryboardExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptStoryboardExportOptions?> show(
@@ -41,9 +44,6 @@ class OcptStoryboardExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptStoryboardExportDialog(current: current),
   );
-
-  @override
-  State<OcptStoryboardExportDialog> createState() => _OcptStoryboardExportDialogState();
 }
 
 /// The state of [OcptStoryboardExportDialog].

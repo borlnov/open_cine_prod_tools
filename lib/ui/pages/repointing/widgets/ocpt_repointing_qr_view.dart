@@ -27,13 +27,13 @@ class OcptRepointingQrView extends StatelessWidget {
   /// The enrolment this project was just re-pointed to.
   final OcptRelayEnrolment enrolment;
 
-  /// Class constructor
-  const OcptRepointingQrView({required this.enrolment, super.key});
-
   /// [enrolment]'s own secret, masked to a fixed run of dots —
   /// `OcptSharingInviteView._maskedToken`'s own reasoning: nothing here is meant to narrow down
   /// what the hidden characters could be.
   String get _maskedSecret => "•" * 24;
+
+  /// Class constructor
+  const OcptRepointingQrView({required this.enrolment, super.key});
 
   @override
   Widget build(BuildContext context) {

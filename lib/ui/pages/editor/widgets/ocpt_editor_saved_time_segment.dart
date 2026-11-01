@@ -22,6 +22,9 @@ class OcptEditorSavedTimeSegment extends StatefulWidget {
   /// Class constructor
   const OcptEditorSavedTimeSegment({super.key, required this.lastSavedAt});
 
+  @override
+  State<OcptEditorSavedTimeSegment> createState() => _OcptEditorSavedTimeSegmentState();
+
   /// The saved-state text [lastSavedAt] renders right now, computed without building this widget.
   ///
   /// `OcptWorkspaceStatusBar`'s width-driven degradation needs a plain-text stand-in for this
@@ -34,9 +37,6 @@ class OcptEditorSavedTimeSegment extends StatefulWidget {
         ? tr.editorStatsNeverSaved
         : tr.editorStatsSavedRelative(formatRelativeTime(context, lastSavedAt));
   }
-
-  @override
-  State<OcptEditorSavedTimeSegment> createState() => _OcptEditorSavedTimeSegmentState();
 }
 
 /// The state of [OcptEditorSavedTimeSegment]: ticks a 30 s timer so the relative time stays
@@ -52,16 +52,16 @@ class _OcptEditorSavedTimeSegmentState extends State<OcptEditorSavedTimeSegment>
   }
 
   @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final text = OcptEditorSavedTimeSegment.textFor(context, widget.lastSavedAt);
     final style = Theme.of(context).textTheme.labelSmall;
 
     return Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }

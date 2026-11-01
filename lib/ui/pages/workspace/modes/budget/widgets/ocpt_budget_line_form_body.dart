@@ -69,6 +69,23 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
   /// The controller of the unit price field.
   late final TextEditingController _unitPriceController;
 
+  /// The fields this body would submit right now, or null while `Quantity` or `Unit price` does
+  /// not parse.
+  OcptBudgetLineFormFields? get _currentDraft {
+    final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
+    final unitAmountCents = ocptCostCentsOf(_unitPriceController.text);
+    if (quantityMilli == null || unitAmountCents == null) {
+      return null;
+    }
+
+    return OcptBudgetLineFormFields(
+      label: _labelController.text.trim(),
+      quantityMilli: quantityMilli,
+      unit: _unitController.text.trim(),
+      unitAmountCents: unitAmountCents,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -86,36 +103,6 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _quantityController.dispose();
-    _unitController.dispose();
-    _unitPriceController.dispose();
-    super.dispose();
-  }
-
-  /// Reports [_currentDraft] to the host — every controller listener calls this after applying its
-  /// own change.
-  void _report() => widget.onDraftChanged(_currentDraft);
-
-  /// The fields this body would submit right now, or null while `Quantity` or `Unit price` does
-  /// not parse.
-  OcptBudgetLineFormFields? get _currentDraft {
-    final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
-    final unitAmountCents = ocptCostCentsOf(_unitPriceController.text);
-    if (quantityMilli == null || unitAmountCents == null) {
-      return null;
-    }
-
-    return OcptBudgetLineFormFields(
-      label: _labelController.text.trim(),
-      quantityMilli: quantityMilli,
-      unit: _unitController.text.trim(),
-      unitAmountCents: unitAmountCents,
-    );
   }
 
   @override
@@ -178,5 +165,18 @@ class _OcptBudgetLineFormBodyState extends State<OcptBudgetLineFormBody> {
         ),
       ),
     );
+  }
+
+  /// Reports [_currentDraft] to the host — every controller listener calls this after applying its
+  /// own change.
+  void _report() => widget.onDraftChanged(_currentDraft);
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _quantityController.dispose();
+    _unitController.dispose();
+    _unitPriceController.dispose();
+    super.dispose();
   }
 }

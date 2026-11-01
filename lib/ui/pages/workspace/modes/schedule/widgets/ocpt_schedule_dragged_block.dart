@@ -10,12 +10,12 @@
 /// Shared by the row that starts the drag and the timetable that receives it, which live in two
 /// files.
 class OcptScheduleDraggedBlock {
-  /// Builds a drag payload.
-  const OcptScheduleDraggedBlock({required this.blockId, required this.sourceSlotId});
-
   /// The id of the block being dragged.
   final String blockId;
 
   /// The id of the slot the block belongs to at the moment the drag starts.
   final String sourceSlotId;
+
+  /// Builds a drag payload.
+  const OcptScheduleDraggedBlock({required this.blockId, required this.sourceSlotId});
 }

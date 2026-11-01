@@ -57,6 +57,10 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
         MixinOcptProjectVersionsState<OcptScheduleState>,
         MixinOcptProjectPackageState<OcptScheduleState>,
         MixinOcptModeState<OcptScheduleState> {
+  /// The hour a freshly created day event falls back to when its day has no live slot yet to read
+  /// an arrival off — see [newEventMinuteOf].
+  static const int _defaultDayEventFallbackMinute = 9 * 60;
+
   /// Whether the schedule read is still being loaded from the project database.
   final bool isLoading;
 
@@ -252,13 +256,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   /// The number of shots placed somewhere in the schedule — the status bar's own second counter.
   int get placedShotCount => snapshot?.placedShotIds.length ?? 0;
 
-  /// Every live shot of every episode's own shot list, across every sequence including the orphan
-  /// group, episode 1's before episode 2's — [shotListSnapshots]' own order.
-  List<OcptShot> get _allShots => [
-    for (final shotListSnapshot in shotListSnapshots)
-      for (final sequence in shotListSnapshot.sequences) ...sequence.shots,
-  ];
-
   /// The number of shots that still have no live block placing them — the status bar's own third
   /// counter, and what [unplacedGroups] lists.
   int get shotsLeftToPlaceCount {
@@ -317,10 +314,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
   Map<String, OcptRoleCandidate> get roleCandidateById =>
       planSnapshot?.roleCandidateById ?? const {};
 
-  /// The shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has since
-  /// been deleted). Delegates to [planSnapshot].
-  OcptShot? shotById(String shotId) => planSnapshot?.shotById(shotId);
-
   /// [selectedDayId]'s own live slots, in `sortKey` order (empty while none is selected, or the
   /// selected day carries none).
   List<OcptShootingSlot> get selectedDaySlots {
@@ -340,43 +333,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     final selectedDayId = this.selectedDayId;
     return selectedDayId == null ? const [] : (snapshot?.eventsByDayId[selectedDayId] ?? const []);
   }
-
-  /// The event [eventId] of the selected day, or null while it names none of
-  /// [selectedDayEvents] — what the day view's and the day inspector's own event label/notes fields
-  /// read their stored value off, there being no per-event map to keep in step with a fresh
-  /// snapshot.
-  OcptShootingDayEvent? selectedDayEventOf(String eventId) {
-    for (final event in selectedDayEvents) {
-      if (event.id == eventId) {
-        return event;
-      }
-    }
-    return null;
-  }
-
-  /// The guest attendance [guestId] among the guests of the selected day's [selectedDaySlots], or
-  /// null while it names no live guest of the selected day — what a slot card's own guest
-  /// reason/notes fields read their stored value off.
-  OcptShootingSlotGuest? selectedDayGuestOf(String guestId) {
-    for (final slot in selectedDaySlots) {
-      for (final guest in slot.guests) {
-        if (guest.id == guestId) {
-          return guest;
-        }
-      }
-    }
-    return null;
-  }
-
-  /// The hour a freshly created event of day [dayId] is first given — that day's own earliest
-  /// resolved slot start ([dayArrivalMinute]) when it has one, or 09:00 otherwise. Only ever a
-  /// **starting point**: the row's own minute field immediately lets the user correct it, so this
-  /// is never a claim about when anything actually happens on the day.
-  int newEventMinuteOf(String dayId) => dayArrivalMinute(dayId) ?? _defaultDayEventFallbackMinute;
-
-  /// The hour a freshly created day event falls back to when its day has no live slot yet to read
-  /// an arrival off — see [newEventMinuteOf].
-  static const int _defaultDayEventFallbackMinute = 9 * 60;
 
   /// Every real scene of every episode's own [shotListSnapshots], as an [OcptSceneShotSequence],
   /// episode 1's before episode 2's — what a hold block's own sequence picker offers.
@@ -461,35 +417,12 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     };
   }
 
-  /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
-  /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
-  /// all. Delegates to [planSnapshot].
-  OcptShootingDayTimelines? timelinesOfDay(String dayId) => planSnapshot?.timelinesOfDay(dayId);
-
-  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
-  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at
-  /// all (or while [planSnapshot] itself is null). Delegates to [planSnapshot].
-  List<OcptDayConvocation> convocationsOfDay(String dayId) =>
-      planSnapshot?.convocationsOfDay(dayId) ?? const [];
-
-  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots — or
-  /// null while it has no live slot at all. Delegates to [planSnapshot].
-  int? dayArrivalMinute(String dayId) => planSnapshot?.dayArrivalMinute(dayId);
-
-  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
-  /// has no location, or that location has no coordinates pinned yet. Delegates to [planSnapshot].
-  OcptSunTimes? sunTimesOfDay(String dayId) => planSnapshot?.sunTimesOfDay(dayId);
-
-  /// Every alert day [dayId] itself raises, in the order `ocptComputeScheduleAlerts` returned them
-  /// (hard before soft), empty while it raises none — what every day-level alert indicator of the
-  /// mode reads. Delegates to [planSnapshot].
-  List<OcptScheduleAlert> alertsOfDay(String dayId) =>
-      planSnapshot?.alertsByDayId[dayId] ?? const [];
-
-  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
-  /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
-  /// Delegates to [planSnapshot].
-  OcptLocation? firstLocationOfDay(String dayId) => planSnapshot?.firstLocationOfDay(dayId);
+  /// Every live shot of every episode's own shot list, across every sequence including the orphan
+  /// group, episode 1's before episode 2's — [shotListSnapshots]' own order.
+  List<OcptShot> get _allShots => [
+    for (final shotListSnapshot in shotListSnapshots)
+      for (final sequence in shotListSnapshot.sequences) ...sequence.shots,
+  ];
 
   /// Class constructor
   ///
@@ -576,6 +509,73 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
       projectPackagePendingExport = null,
       projectPackageNotice = null,
       projectPackagePendingExportTarget = null;
+
+  /// The shot [shotId] names, or null while [shotListSnapshots] hasn't loaded it (or it has since
+  /// been deleted). Delegates to [planSnapshot].
+  OcptShot? shotById(String shotId) => planSnapshot?.shotById(shotId);
+
+  /// The event [eventId] of the selected day, or null while it names none of
+  /// [selectedDayEvents] — what the day view's and the day inspector's own event label/notes fields
+  /// read their stored value off, there being no per-event map to keep in step with a fresh
+  /// snapshot.
+  OcptShootingDayEvent? selectedDayEventOf(String eventId) {
+    for (final event in selectedDayEvents) {
+      if (event.id == eventId) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  /// The guest attendance [guestId] among the guests of the selected day's [selectedDaySlots], or
+  /// null while it names no live guest of the selected day — what a slot card's own guest
+  /// reason/notes fields read their stored value off.
+  OcptShootingSlotGuest? selectedDayGuestOf(String guestId) {
+    for (final slot in selectedDaySlots) {
+      for (final guest in slot.guests) {
+        if (guest.id == guestId) {
+          return guest;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// The hour a freshly created event of day [dayId] is first given — that day's own earliest
+  /// resolved slot start ([dayArrivalMinute]) when it has one, or 09:00 otherwise. Only ever a
+  /// **starting point**: the row's own minute field immediately lets the user correct it, so this
+  /// is never a claim about when anything actually happens on the day.
+  int newEventMinuteOf(String dayId) => dayArrivalMinute(dayId) ?? _defaultDayEventFallbackMinute;
+
+  /// [dayId]'s own computed timelines (ADR 0015, as amended), one chain per live slot, joined
+  /// into a single [OcptShootingDayTimelines] — or null while the day has no live slot to chain at
+  /// all. Delegates to [planSnapshot].
+  OcptShootingDayTimelines? timelinesOfDay(String dayId) => planSnapshot?.timelinesOfDay(dayId);
+
+  /// Day [dayId]'s own whole call (ADR 0018): one `OcptDayConvocation` per person and per uncast
+  /// role linked to any of its live slots, empty while [dayId] names no day with a live slot at
+  /// all (or while [planSnapshot] itself is null). Delegates to [planSnapshot].
+  List<OcptDayConvocation> convocationsOfDay(String dayId) =>
+      planSnapshot?.convocationsOfDay(dayId) ?? const [];
+
+  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots — or
+  /// null while it has no live slot at all. Delegates to [planSnapshot].
+  int? dayArrivalMinute(String dayId) => planSnapshot?.dayArrivalMinute(dayId);
+
+  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
+  /// has no location, or that location has no coordinates pinned yet. Delegates to [planSnapshot].
+  OcptSunTimes? sunTimesOfDay(String dayId) => planSnapshot?.sunTimesOfDay(dayId);
+
+  /// Every alert day [dayId] itself raises, in the order `ocptComputeScheduleAlerts` returned them
+  /// (hard before soft), empty while it raises none — what every day-level alert indicator of the
+  /// mode reads. Delegates to [planSnapshot].
+  List<OcptScheduleAlert> alertsOfDay(String dayId) =>
+      planSnapshot?.alertsByDayId[dayId] ?? const [];
+
+  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
+  /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
+  /// Delegates to [planSnapshot].
+  OcptLocation? firstLocationOfDay(String dayId) => planSnapshot?.firstLocationOfDay(dayId);
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
@@ -717,34 +717,6 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
             : this.projectPackagePendingExportTarget),
   );
 
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
-  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
-  /// whether a copy made with them re-reads the data (see [copyWith]).
-  static bool _isDataReplacedBy({
-    required Object? snapshot,
-    required Object? shotListSnapshots,
-    required Object? episodes,
-    required Object? locations,
-    required Object? roles,
-    required Object? people,
-    required Object? elements,
-    required Object? roleCandidates,
-    required Object? minimumRestMinutes,
-    required bool forceMinimumRestMinutesValue,
-    required Object? pageSetup,
-  }) =>
-      snapshot != null ||
-      shotListSnapshots != null ||
-      episodes != null ||
-      locations != null ||
-      roles != null ||
-      people != null ||
-      elements != null ||
-      roleCandidates != null ||
-      minimumRestMinutes != null ||
-      forceMinimumRestMinutesValue ||
-      pageSetup != null;
-
   @override
   OcptScheduleState copyProjectVersionsState({
     List<OcptProjectVersion>? projectVersions,
@@ -793,6 +765,34 @@ class OcptScheduleState extends BlocStateForMixin<OcptScheduleState>
     projectPackagePendingExportTarget: projectPackagePendingExportTarget,
     forceProjectPackagePendingExportTargetValue: forceProjectPackagePendingExportTargetValue,
   );
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
+  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
+  /// whether a copy made with them re-reads the data (see [copyWith]).
+  static bool _isDataReplacedBy({
+    required Object? snapshot,
+    required Object? shotListSnapshots,
+    required Object? episodes,
+    required Object? locations,
+    required Object? roles,
+    required Object? people,
+    required Object? elements,
+    required Object? roleCandidates,
+    required Object? minimumRestMinutes,
+    required bool forceMinimumRestMinutesValue,
+    required Object? pageSetup,
+  }) =>
+      snapshot != null ||
+      shotListSnapshots != null ||
+      episodes != null ||
+      locations != null ||
+      roles != null ||
+      people != null ||
+      elements != null ||
+      roleCandidates != null ||
+      minimumRestMinutes != null ||
+      forceMinimumRestMinutesValue ||
+      pageSetup != null;
 
   /// Object properties
   @override

@@ -17,6 +17,25 @@ import 'package:super_editor/super_editor.dart';
 /// The document is resolved through a callback at call time, since the styled editor replaces it
 /// whenever its text is rebuilt from outside.
 final class OcptStyledSpellCheckRanges {
+  /// The styler painting the squiggles: `text.dart` already turns a component's
+  /// `TextComponentViewModel.spellingErrors` into the squiggle super_editor paints, so no styler of
+  /// our own is needed here. The underline colour is [ocptEditorSpellCheckErrorColor], the exact
+  /// colour the raw mode's own controller underlines with, so both surfaces read as the same
+  /// feature. Never rebuilt, since `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
+  /// survive across a build.
+  final SpellingAndGrammarStyler styler;
+
+  /// Resolves the document the ranges address.
+  final MutableDocument Function() _documentOf;
+
+  /// The misspelled ranges [update] last applied to [styler], keyed by node id and remembered here
+  /// too so a right-click can tell whether it landed inside one — [SpellingAndGrammarStyler]
+  /// itself exposes no getter to ask that of.
+  Map<String, List<SpellRange>> _lastRangesByNodeId;
+
+  /// The document the ranges address.
+  MutableDocument get _document => _documentOf();
+
   /// Creates an [OcptStyledSpellCheckRanges].
   OcptStyledSpellCheckRanges({required MutableDocument Function() documentOf})
     : styler = SpellingAndGrammarStyler(
@@ -26,25 +45,6 @@ final class OcptStyledSpellCheckRanges {
       ),
       _lastRangesByNodeId = const {},
       _documentOf = documentOf;
-
-  /// Resolves the document the ranges address.
-  final MutableDocument Function() _documentOf;
-
-  /// The styler painting the squiggles: `text.dart` already turns a component's
-  /// `TextComponentViewModel.spellingErrors` into the squiggle super_editor paints, so no styler of
-  /// our own is needed here. The underline colour is [ocptEditorSpellCheckErrorColor], the exact
-  /// colour the raw mode's own controller underlines with, so both surfaces read as the same
-  /// feature. Never rebuilt, since `addErrors`/`clearErrorsForNode`/`clearAllErrors` calls must
-  /// survive across a build.
-  final SpellingAndGrammarStyler styler;
-
-  /// The misspelled ranges [update] last applied to [styler], keyed by node id and remembered here
-  /// too so a right-click can tell whether it landed inside one — [SpellingAndGrammarStyler]
-  /// itself exposes no getter to ask that of.
-  Map<String, List<SpellRange>> _lastRangesByNodeId;
-
-  /// The document the ranges address.
-  MutableDocument get _document => _documentOf();
 
   /// Every checkable node text currently in [_document]: a [ParagraphNode] whose classified line
   /// type [ocptIsSpellCheckedLineType] accepts, and never a title-page field node

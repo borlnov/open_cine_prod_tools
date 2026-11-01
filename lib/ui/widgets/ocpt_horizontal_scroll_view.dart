@@ -43,12 +43,6 @@ class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
   final ScrollController _controller = ScrollController();
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => Scrollbar(
     controller: _controller,
     thumbVisibility: true,
@@ -60,4 +54,10 @@ class _OcptHorizontalScrollViewState extends State<OcptHorizontalScrollView> {
       child: widget.child,
     ),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

@@ -163,34 +163,6 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
     _lockOrientationForDeviceClass();
   }
 
-  /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
-  ///
-  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright;
-  /// a tablet has the space, so every orientation stays available. The two are told apart by the
-  /// screen's shortest side — the one measure that does not itself change when the device rotates —
-  /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
-  /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
-  /// constrain, and [PlatformManager.isMobile] gates the whole thing out there.
-  void _lockOrientationForDeviceClass() {
-    if (!globalGetIt().get<PlatformManager>().isMobile) {
-      return;
-    }
-
-    final isPhone = MediaQuery.sizeOf(context).shortestSide < ocptPhoneWidthBreakpoint;
-    unawaited(
-      SystemChrome.setPreferredOrientations(
-        isPhone
-            ? const [DeviceOrientation.portraitUp]
-            : const [
-                DeviceOrientation.portraitUp,
-                DeviceOrientation.portraitDown,
-                DeviceOrientation.landscapeLeft,
-                DeviceOrientation.landscapeRight,
-              ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -219,6 +191,34 @@ class _EdgeToEdgeShellState extends State<_EdgeToEdgeShell> {
         child: SafeArea(
           child: EnvBanner.displayAppBarBanner<OcptConfigManager>(child: widget.child),
         ),
+      ),
+    );
+  }
+
+  /// On a mobile build, pins a phone to portrait and leaves a tablet free to rotate.
+  ///
+  /// A phone has too little room to lay a production mode out in landscape, so it is kept upright;
+  /// a tablet has the space, so every orientation stays available. The two are told apart by the
+  /// screen's shortest side — the one measure that does not itself change when the device rotates —
+  /// against [ocptPhoneWidthBreakpoint], the same 600dp line Android's own `sw600dp` tablet
+  /// qualifier draws. A desktop build reaches none of this: it has no device orientation to
+  /// constrain, and [PlatformManager.isMobile] gates the whole thing out there.
+  void _lockOrientationForDeviceClass() {
+    if (!globalGetIt().get<PlatformManager>().isMobile) {
+      return;
+    }
+
+    final isPhone = MediaQuery.sizeOf(context).shortestSide < ocptPhoneWidthBreakpoint;
+    unawaited(
+      SystemChrome.setPreferredOrientations(
+        isPhone
+            ? const [DeviceOrientation.portraitUp]
+            : const [
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ],
       ),
     );
   }

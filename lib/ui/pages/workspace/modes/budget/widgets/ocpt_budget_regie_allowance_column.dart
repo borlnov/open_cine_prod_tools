@@ -83,6 +83,15 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
   /// takes whatever height the heading band leaves it — see [ocptBudgetRegieStackedMinRowCount].
   final double? tableHeight;
 
+  /// [people], keyed by their own id.
+  Map<String, OcptPerson> get _personById => {for (final person in people) person.id: person};
+
+  /// [roles], keyed by the person each one is played by — a role naming no person carries no key.
+  Map<String, OcptRole> get _roleByPersonId => {
+    for (final role in roles)
+      if (role.personId != null) role.personId!: role,
+  };
+
   /// Class constructor
   const OcptBudgetRegieAllowanceColumn({
     super.key,
@@ -102,15 +111,6 @@ class OcptBudgetRegieAllowanceColumn extends StatelessWidget {
     required this.onDeletionRequested,
     required this.onReimburseRequested,
   });
-
-  /// [people], keyed by their own id.
-  Map<String, OcptPerson> get _personById => {for (final person in people) person.id: person};
-
-  /// [roles], keyed by the person each one is played by — a role naming no person carries no key.
-  Map<String, OcptRole> get _roleByPersonId => {
-    for (final role in roles)
-      if (role.personId != null) role.personId!: role,
-  };
 
   @override
   Widget build(BuildContext context) {

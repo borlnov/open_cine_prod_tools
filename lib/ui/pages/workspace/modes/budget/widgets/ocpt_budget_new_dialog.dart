@@ -211,6 +211,9 @@ class OcptBudgetNewDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  @override
+  State<OcptBudgetNewDialog> createState() => _OcptBudgetNewDialogState();
+
   /// Shows the wizard and returns what the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetNewOutcome?> show(
     BuildContext context, {
@@ -267,9 +270,6 @@ class OcptBudgetNewDialog extends StatefulWidget {
       isSimplified: isSimplified,
     ),
   );
-
-  @override
-  State<OcptBudgetNewDialog> createState() => _OcptBudgetNewDialogState();
 }
 
 /// The state of [OcptBudgetNewDialog]: every answer, controller and draft the three steps share,
@@ -357,6 +357,34 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// controllers are disposed with this state.
   final _breakdown = OcptBudgetNewBreakdownSelection();
 
+  // Step 1 — the fifteen answers, grouped by document
+
+  /// The families in the order step 1 draws them: the promoted one first, unless `Show all` lifted
+  /// the filter.
+  List<OcptBudgetGestureFamily> get _orderedFamilies {
+    // `Show all` drops the promotion too, so the lifted list reads in the plain natural order — the
+    // quote first, exactly the dashboard's own unfiltered step 1.
+    final promoted = _showAll ? null : widget.promotedFamily;
+    if (promoted == null) {
+      return _ocptNewNaturalFamilyOrder;
+    }
+    return [
+      promoted,
+      for (final family in _ocptNewNaturalFamilyOrder)
+        if (family != promoted) family,
+    ];
+  }
+
+  // Step 3 — the money, or the form
+
+  /// Whether the wizard opened straight on the form, a prefilled shortcut — a commitment's own
+  /// `Pay`, a receipt, a payout, a repayment, the direct pay of a quote line, or `Commit this
+  /// line…` — skipping steps 1 and 2 (`initState`). There is then no step behind the form to return
+  /// to, so it offers `Cancel`, which closes the wizard, rather than `Back`, and its own trail
+  /// carries no `changer` link either: the reader came to do one thing, and closes the view if they
+  /// no longer want it, rather than being walked back through steps they never saw.
+  bool get _openedOnFormDirectly => widget.entryPrefill != null || widget.commitmentPrefill != null;
+
   @override
   void initState() {
     super.initState();
@@ -393,15 +421,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       _gesture = widget.initialGesture;
       _step = OcptBudgetNewStep.gesture;
     }
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _amountController.dispose();
-    _vatRateController.dispose();
-    _breakdown.dispose();
-    super.dispose();
   }
 
   @override
@@ -605,24 +624,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         : ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified);
   }
 
-  // Step 1 — the fifteen answers, grouped by document
-
-  /// The families in the order step 1 draws them: the promoted one first, unless `Show all` lifted
-  /// the filter.
-  List<OcptBudgetGestureFamily> get _orderedFamilies {
-    // `Show all` drops the promotion too, so the lifted list reads in the plain natural order — the
-    // quote first, exactly the dashboard's own unfiltered step 1.
-    final promoted = _showAll ? null : widget.promotedFamily;
-    if (promoted == null) {
-      return _ocptNewNaturalFamilyOrder;
-    }
-    return [
-      promoted,
-      for (final family in _ocptNewNaturalFamilyOrder)
-        if (family != promoted) family,
-    ];
-  }
-
   /// [family]'s own gestures that step 1 currently offers — every one of them while the filter is
   /// lifted or absent, only the offered ones otherwise. A family with none is drawn no heading.
   List<OcptBudgetGesture> _visibleGesturesOf(OcptBudgetGestureFamily family) {
@@ -722,16 +723,6 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
           : null,
     ),
   ];
-
-  // Step 3 — the money, or the form
-
-  /// Whether the wizard opened straight on the form, a prefilled shortcut — a commitment's own
-  /// `Pay`, a receipt, a payout, a repayment, the direct pay of a quote line, or `Commit this
-  /// line…` — skipping steps 1 and 2 (`initState`). There is then no step behind the form to return
-  /// to, so it offers `Cancel`, which closes the wizard, rather than `Back`, and its own trail
-  /// carries no `changer` link either: the reader came to do one thing, and closes the view if they
-  /// no longer want it, rather than being walked back through steps they never saw.
-  bool get _openedOnFormDirectly => widget.entryPrefill != null || widget.commitmentPrefill != null;
 
   /// The actions of step 3: `Cancel` or `Back`, and the primary action of the gesture in effect.
   List<Widget> _formActionsOf(Tr tr) {
@@ -964,5 +955,14 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         acceptedSuggestion: null,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _amountController.dispose();
+    _vatRateController.dispose();
+    _breakdown.dispose();
+    super.dispose();
   }
 }

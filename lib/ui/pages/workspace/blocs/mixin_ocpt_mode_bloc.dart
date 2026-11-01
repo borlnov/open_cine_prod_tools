@@ -62,6 +62,17 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Whether [close] was called, from which point nothing new can be dispatched to this bloc.
   bool _isClosing = false;
 
+  /// Whether this bloc is closing or closed, from which point `add` throws.
+  ///
+  /// `isClosed` is not enough: it stays false until every handler still running has finished, a
+  /// window in which the event queue is already shut and `add` already throws.
+  bool get isClosing => _isClosing || isClosed;
+
+  /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
+  /// without any widget having read it.
+  @visibleForTesting
+  int get pendingWritesFlusherCount => _flushers.length;
+
   /// Registers [flusher] to be asked to write what it holds, and returns the function that
   /// unregisters it again.
   ///
@@ -71,12 +82,6 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     _flushers.add(flusher);
     return () => _flushers.remove(flusher);
   }
-
-  /// Whether this bloc is closing or closed, from which point `add` throws.
-  ///
-  /// `isClosed` is not enough: it stays false until every handler still running has finished, a
-  /// window in which the event queue is already shut and `add` already throws.
-  bool get isClosing => _isClosing || isClosed;
 
   /// Adds [event] to this bloc, or does nothing if it is closing ([isClosing]).
   ///
@@ -139,24 +144,6 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
       }
     }
   }
-
-  /// Tells the oldest dispatcher waiting on [event] that its handler is done. Events are told
-  /// apart by identity; two equal events (a `const` one dispatched twice) are interchangeable, so
-  /// the oldest waiter is the one released.
-  void _completeAwaited(BlocEventForMixin event) {
-    final waiting = _awaited[event];
-    if (waiting != null && waiting.isNotEmpty) {
-      final completer = waiting.removeAt(0);
-      if (!completer.isCompleted) {
-        completer.complete();
-      }
-    }
-  }
-
-  /// How many flushers are registered, so a test can tell that every view bloc of a mode was built
-  /// without any widget having read it.
-  @visibleForTesting
-  int get pendingWritesFlusherCount => _flushers.length;
 
   /// Asks every registered flusher to write what it holds, one after the other, and answers
   /// whether any of them had something to write and whether any of them failed.
@@ -267,6 +254,19 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
 
     on<OcptModeFlushRequestedEvent>(_onFlushRequested);
     on<OcptModeReloadRequestedEvent<Scope>>(_onReloadRequested);
+  }
+
+  /// Tells the oldest dispatcher waiting on [event] that its handler is done. Events are told
+  /// apart by identity; two equal events (a `const` one dispatched twice) are interchangeable, so
+  /// the oldest waiter is the one released.
+  void _completeAwaited(BlocEventForMixin event) {
+    final waiting = _awaited[event];
+    if (waiting != null && waiting.isNotEmpty) {
+      final completer = waiting.removeAt(0);
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    }
   }
 
   /// Writes every pending edit, then tells the dispatcher.

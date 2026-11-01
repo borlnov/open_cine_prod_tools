@@ -10,13 +10,6 @@ import 'package:super_editor/super_editor.dart';
 /// `NodeChangeEvent` so the document layout re-renders the node (the same pattern
 /// `ChangeParagraphBlockTypeCommand` uses for `blockType` changes).
 class OcptChangeNodeMetadataCommand extends EditCommand {
-  /// Creates an [OcptChangeNodeMetadataCommand].
-  const OcptChangeNodeMetadataCommand({
-    required this.nodeId,
-    required this.metadata,
-    this.isHistorical = true,
-  });
-
   /// The id of the `ParagraphNode` whose metadata is being updated.
   final String nodeId;
 
@@ -32,6 +25,13 @@ class OcptChangeNodeMetadataCommand extends EditCommand {
   @override
   HistoryBehavior get historyBehavior =>
       isHistorical ? HistoryBehavior.undoable : HistoryBehavior.nonHistorical;
+
+  /// Creates an [OcptChangeNodeMetadataCommand].
+  const OcptChangeNodeMetadataCommand({
+    required this.nodeId,
+    required this.metadata,
+    this.isHistorical = true,
+  });
 
   /// Applies the metadata merge to the document.
   @override

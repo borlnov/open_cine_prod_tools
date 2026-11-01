@@ -61,6 +61,9 @@ class OcptCrewPositionPickerDialog extends StatefulWidget {
     this.allowCustomLabel = false,
   });
 
+  @override
+  State<OcptCrewPositionPickerDialog> createState() => _OcptCrewPositionPickerDialogState();
+
   /// Shows the dialog and returns what was picked, or null if the user dismissed it.
   static Future<OcptCrewPositionPickResult?> show(
     BuildContext context, {
@@ -75,9 +78,6 @@ class OcptCrewPositionPickerDialog extends StatefulWidget {
       allowCustomLabel: allowCustomLabel,
     ),
   );
-
-  @override
-  State<OcptCrewPositionPickerDialog> createState() => _OcptCrewPositionPickerDialogState();
 }
 
 /// The state of [OcptCrewPositionPickerDialog]: owns the search field and re-filters the promoted
@@ -91,16 +91,6 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
     super.initState();
     _searchController.addListener(_onQueryChanged);
   }
-
-  @override
-  void dispose() {
-    _searchController
-      ..removeListener(_onQueryChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _onQueryChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -195,11 +185,21 @@ class _OcptCrewPositionPickerDialogState extends State<OcptCrewPositionPickerDia
     );
   }
 
+  void _onQueryChanged() => setState(() {});
+
   /// [ref]'s own label: the catalogue's when it names one, [ref].customLabel otherwise — a
   /// promoted ref may itself be a free label, `ocptCrewPositionPrefillOf` promoting whatever a
   /// person declared.
   String _labelOf(Tr tr, OcptCrewPositionRef ref) =>
       ref.positionId.isEmpty ? ref.customLabel : ocptCrewPositionLabel(tr, ref.positionId);
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_onQueryChanged)
+      ..dispose();
+    super.dispose();
+  }
 }
 
 /// One heading, in a muted, bold caption — upper-case for [uppercase] (a department heading), left

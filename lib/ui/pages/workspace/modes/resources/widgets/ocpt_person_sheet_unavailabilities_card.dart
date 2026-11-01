@@ -262,12 +262,79 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   }
 
   @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _reasonFocusNode.dispose();
-    _reasonController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isReadOnly = widget.onUpdated == null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OcptDateRangeControl(
+                  startDate: _startDate,
+                  endDate: _endDate,
+                  onStartPressed: isReadOnly ? null : () => _pickDate(isStart: true),
+                  onEndPressed: isReadOnly ? null : () => _pickDate(isStart: false),
+                ),
+              ),
+              if (widget.onSlotAdded != null)
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16),
+                  tooltip: tr.resourcesAddUnavailabilitySlotTooltip,
+                  onPressed: () => widget.onSlotAdded!(_startDate, _endDate),
+                ),
+              if (widget.onRemoved != null)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  tooltip: tr.resourcesRemoveUnavailabilityTooltip,
+                  onPressed: widget.onRemoved,
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
+          if (_slot == OcptDayPartSlot.custom) ...[
+            const SizedBox(height: 6),
+            OcptTimeWindowControl(
+              startMinute: _startMinute,
+              endMinute: _endMinute,
+              onStartPressed: isReadOnly ? null : () => _pickTime(isStart: true),
+              onEndPressed: isReadOnly ? null : () => _pickTime(isStart: false),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            tr.resourcesUnavailabilityReasonLabel.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _reasonController,
+            focusNode: _reasonFocusNode,
+            readOnly: isReadOnly,
+            onChanged: isReadOnly ? null : _onReasonChanged,
+            minLines: _reasonMinLines,
+            maxLines: null,
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.resourcesUnavailabilityReasonHint,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Flushes a pending reason edit the moment the field loses focus.
@@ -397,78 +464,11 @@ class _OcptUnavailabilityRowState extends State<_OcptUnavailabilityRow> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final isReadOnly = widget.onUpdated == null;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: OcptDateRangeControl(
-                  startDate: _startDate,
-                  endDate: _endDate,
-                  onStartPressed: isReadOnly ? null : () => _pickDate(isStart: true),
-                  onEndPressed: isReadOnly ? null : () => _pickDate(isStart: false),
-                ),
-              ),
-              if (widget.onSlotAdded != null)
-                IconButton(
-                  icon: const Icon(Icons.add, size: 16),
-                  tooltip: tr.resourcesAddUnavailabilitySlotTooltip,
-                  onPressed: () => widget.onSlotAdded!(_startDate, _endDate),
-                ),
-              if (widget.onRemoved != null)
-                IconButton(
-                  icon: const Icon(Icons.close, size: 16),
-                  tooltip: tr.resourcesRemoveUnavailabilityTooltip,
-                  onPressed: widget.onRemoved,
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
-          if (_slot == OcptDayPartSlot.custom) ...[
-            const SizedBox(height: 6),
-            OcptTimeWindowControl(
-              startMinute: _startMinute,
-              endMinute: _endMinute,
-              onStartPressed: isReadOnly ? null : () => _pickTime(isStart: true),
-              onEndPressed: isReadOnly ? null : () => _pickTime(isStart: false),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            tr.resourcesUnavailabilityReasonLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          TextField(
-            controller: _reasonController,
-            focusNode: _reasonFocusNode,
-            readOnly: isReadOnly,
-            onChanged: isReadOnly ? null : _onReasonChanged,
-            minLines: _reasonMinLines,
-            maxLines: null,
-            style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: tr.resourcesUnavailabilityReasonHint,
-            ),
-          ),
-        ],
-      ),
-    );
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _reasonFocusNode.dispose();
+    _reasonController.dispose();
+    super.dispose();
   }
 }

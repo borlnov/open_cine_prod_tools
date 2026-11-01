@@ -11,9 +11,6 @@ import 'package:super_editor/super_editor.dart';
 /// The result of [computeOcptStyledTitlePageMetrics]: the vertical flow height a document's
 /// title-page field nodes occupy, and the Draft date/Contact row's own shift amount.
 class OcptStyledTitlePageMetrics {
-  /// Creates an [OcptStyledTitlePageMetrics].
-  const OcptStyledTitlePageMetrics({required this.flowHeight, required this.rowShift});
-
   /// The total vertical flow height, in logical pixels, the document's title-page field nodes
   /// occupy when rendered by `OcptFountainEditorStylesheet`'s title-page rule:
   /// `Σ (topGap(field) + wrappedLines(node) × lineHeight × fontScale)`, the top gap counted only
@@ -32,6 +29,9 @@ class OcptStyledTitlePageMetrics {
   /// `lineHeight` but correctly larger for a wrapped or Enter-split Draft date. 0 for a document
   /// with no Draft date node.
   final double rowShift;
+
+  /// Creates an [OcptStyledTitlePageMetrics].
+  const OcptStyledTitlePageMetrics({required this.flowHeight, required this.rowShift});
 }
 
 /// Computes [document]'s title-page flow height at [metrics] — the real vertical space

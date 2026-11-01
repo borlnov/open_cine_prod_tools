@@ -83,14 +83,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
         MixinOcptProjectPackageBloc<OcptResourcesState>,
         MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope>,
         MixinAsyncInitBloc<OcptResourcesState> {
+  /// The default delay between the last field edit and its autosave write, for the view blocs.
+  static const defaultFieldEditDebounce = Duration(seconds: 2);
+
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "resources_bloc";
 
   /// The logger this BLoC writes to.
   final LogsHelper _logger;
-
-  /// The default delay between the last field edit and its autosave write, for the view blocs.
-  static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -134,6 +134,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// (`OcptResourcesRolesBloc`, through [screenplayIdOf]) read it: every other read here — the
   /// people, the locations, the elements — is already the production's, not one screenplay's.
   final String? _selectedEpisodeId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Class constructor
   ///
@@ -203,16 +213,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     on<OcptResourcesDockLayoutResetEvent>(_onDockLayoutReset);
     on<OcptResourcesWriteErrorDismissedEvent>(_onWriteErrorDismissed);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
 
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
@@ -296,6 +296,16 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     await super.initAsyncBloc(emit: emit);
     await _load(emit);
   }
+
+  /// Writes every pending edit of the views directly to the database, without touching [state].
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring `OcptShotListBloc.flushPendingFieldEdits`:
+  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
+  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Loads the persisted dock fractions and the current project's whole resources catalogue.
   ///
@@ -544,16 +554,6 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
 
     emitter(state.copyWithSelectedPerson(personId: event.personId));
   }
-
-  /// Writes every pending edit of the views directly to the database, without touching [state].
-  ///
-  /// Called by the mode's own `deactivate()`, mirroring `OcptShotListBloc.flushPendingFieldEdits`:
-  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
-  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
-  /// write here — rather than dispatching an event, which would only be processed on a later
-  /// microtask this widget might not survive to see — is what guarantees the last
-  /// [defaultFieldEditDebounce] worth of typing isn't lost.
-  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Selects role `event.roleId`, and switches to the roles tab.
   ///

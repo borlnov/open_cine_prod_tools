@@ -82,6 +82,9 @@ class OcptScheduleLeftDock extends StatelessWidget {
   /// in the inspector. Never withheld — see the class doc comment.
   final ValueChanged<String> onShotSelected;
 
+  /// The total number of shots across every [unplacedGroups] entry.
+  int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
+
   /// Class constructor
   const OcptScheduleLeftDock({
     super.key,
@@ -231,9 +234,6 @@ class OcptScheduleLeftDock extends StatelessWidget {
       ],
     );
   }
-
-  /// The total number of shots across every [unplacedGroups] entry.
-  int get _totalUnplacedCount => unplacedGroups.fold(0, (sum, group) => sum + group.shots.length);
 
   /// [unplacedGroups] narrowed to the ones belonging to episode [screenplayId], in their own
   /// order.

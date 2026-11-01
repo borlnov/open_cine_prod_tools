@@ -89,19 +89,6 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
   /// [disposeLifeCycle].
   StreamSubscription<OcptOpenProjectModel?>? _currentProjectSubscription;
 
-  /// Class constructor
-  OcptWorkspaceBloc({
-    OcptPropertiesManager? propertiesManager,
-    OcptProjectsManager? projectsManager,
-    OcptSyncManager? syncManager,
-    OcptRelayHostManager? hostManager,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-       _syncManagerOverride = syncManager,
-       _hostManagerOverride = hostManager,
-       super(const OcptWorkspaceState.init());
-
   /// [_syncManagerOverride], or the one `globalGetIt()` holds when there is an app-wide manager
   /// environment that actually registered one, or null otherwise.
   ///
@@ -145,6 +132,19 @@ class OcptWorkspaceBloc extends BlocForMixin<OcptWorkspaceState>
         ? managers.get<OcptRelayHostManager>()
         : null;
   }
+
+  /// Class constructor
+  OcptWorkspaceBloc({
+    OcptPropertiesManager? propertiesManager,
+    OcptProjectsManager? projectsManager,
+    OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _syncManagerOverride = syncManager,
+       _hostManagerOverride = hostManager,
+       super(const OcptWorkspaceState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

@@ -27,17 +27,6 @@ const double _titlePageBottomGroupTopFraction = 0.22;
 /// much vertical flow the field consumes — the single definition both now share, built by
 /// [ocptTitlePageFieldLayoutOf].
 class OcptTitlePageFieldLayout {
-  /// Creates an [OcptTitlePageFieldLayout].
-  const OcptTitlePageFieldLayout({
-    required this.topGap,
-    required this.left,
-    this.right = 0,
-    required this.maxWidth,
-    required this.textAlign,
-    required this.fontScale,
-    required this.fontWeight,
-  });
-
   /// The top padding opened above the field's first node, in logical pixels
   /// (`Styles.padding.top`).
   final double topGap;
@@ -66,6 +55,17 @@ class OcptTitlePageFieldLayout {
   /// The field's font weight (only the Title field is bold; every other field is `null`, i.e. the
   /// body's own regular weight).
   final FontWeight? fontWeight;
+
+  /// Creates an [OcptTitlePageFieldLayout].
+  const OcptTitlePageFieldLayout({
+    required this.topGap,
+    required this.left,
+    this.right = 0,
+    required this.maxWidth,
+    required this.textAlign,
+    required this.fontScale,
+    required this.fontWeight,
+  });
 }
 
 /// Returns [key]'s typesetting at [layout], mirroring the PDF exporter's own title page

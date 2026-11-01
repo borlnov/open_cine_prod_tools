@@ -21,17 +21,17 @@ class OcptBudgetExpensesState extends BlocStateForMixin<OcptBudgetExpensesState>
   /// value while an edit is pending here.
   final Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits;
 
-  /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
-  /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
-  /// `OcptScheduleDayState.fieldValueOf` resolves a day's, a slot's or a block's own fields.
-  String fieldValueOf(String targetId, OcptBudgetField field, String storedValue) =>
-      pendingFieldEdits[(targetId, field)] ?? storedValue;
-
   /// Class constructor
   const OcptBudgetExpensesState({required this.pendingFieldEdits});
 
   /// Builds the state of a view that holds no typed edit.
   const OcptBudgetExpensesState.init() : pendingFieldEdits = const {};
+
+  /// [targetId]'s current value for [field] — a pending edit still sitting in [pendingFieldEdits],
+  /// or [storedValue] (the record's own value, read off the call site) otherwise, exactly as
+  /// `OcptScheduleDayState.fieldValueOf` resolves a day's, a slot's or a block's own fields.
+  String fieldValueOf(String targetId, OcptBudgetField field, String storedValue) =>
+      pendingFieldEdits[(targetId, field)] ?? storedValue;
 
   /// Copies this state, replacing what is given. [pendingFieldEdits] is always replaced wholesale:
   /// the caller always computes the full next map.

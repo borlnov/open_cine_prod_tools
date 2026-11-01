@@ -66,6 +66,9 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  @override
+  State<OcptBudgetCommitmentDialog> createState() => _OcptBudgetCommitmentDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetCommitmentFormFields?> show(
     BuildContext context, {
@@ -86,9 +89,6 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
       isSimplified: isSimplified,
     ),
   );
-
-  @override
-  State<OcptBudgetCommitmentDialog> createState() => _OcptBudgetCommitmentDialogState();
 }
 
 /// The state of [OcptBudgetCommitmentDialog]: the form key it hands to

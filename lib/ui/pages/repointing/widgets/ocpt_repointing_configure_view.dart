@@ -67,13 +67,6 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   int _scannerGeneration = 0;
 
   @override
-  void dispose() {
-    _relayAddressController.dispose();
-    _enrolmentSecretController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
@@ -208,6 +201,13 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     _enrolmentSecretController.text = enrolment.enrolmentSecret;
     setState(() => _isScanning = false);
     widget.onRepointRequested(enrolment.relayBaseUri, enrolment.enrolmentSecret);
+  }
+
+  @override
+  void dispose() {
+    _relayAddressController.dispose();
+    _enrolmentSecretController.dispose();
+    super.dispose();
   }
 }
 

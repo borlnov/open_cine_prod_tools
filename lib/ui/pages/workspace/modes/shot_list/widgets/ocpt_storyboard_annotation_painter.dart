@@ -133,6 +133,20 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
     }
   }
 
+  @override
+  bool shouldRepaint(covariant OcptStoryboardAnnotationOverlayPainter oldDelegate) =>
+      !_annotationsEqual(oldDelegate.annotations, annotations) ||
+      oldDelegate.selectedId != selectedId ||
+      oldDelegate.movementArrowColor != movementArrowColor ||
+      oldDelegate.cameraMoveArrowColor != cameraMoveArrowColor ||
+      oldDelegate.labelColor != labelColor ||
+      oldDelegate.selectedColor != selectedColor ||
+      oldDelegate.labelTextColor != labelTextColor ||
+      oldDelegate.labelBackgroundColor != labelBackgroundColor ||
+      oldDelegate.draftKind != draftKind ||
+      oldDelegate.draftStart != draftStart ||
+      oldDelegate.draftEnd != draftEnd;
+
   /// Paints one mark, dispatching on [kind]. Normalised coordinates are mapped to [size] here —
   /// the one place this painter does it — per the class doc comment's coordinate convention.
   void _paintMark({
@@ -365,20 +379,6 @@ class OcptStoryboardAnnotationOverlayPainter extends CustomPainter {
       travelled = next + dashLength;
     }
   }
-
-  @override
-  bool shouldRepaint(covariant OcptStoryboardAnnotationOverlayPainter oldDelegate) =>
-      !_annotationsEqual(oldDelegate.annotations, annotations) ||
-      oldDelegate.selectedId != selectedId ||
-      oldDelegate.movementArrowColor != movementArrowColor ||
-      oldDelegate.cameraMoveArrowColor != cameraMoveArrowColor ||
-      oldDelegate.labelColor != labelColor ||
-      oldDelegate.selectedColor != selectedColor ||
-      oldDelegate.labelTextColor != labelTextColor ||
-      oldDelegate.labelBackgroundColor != labelBackgroundColor ||
-      oldDelegate.draftKind != draftKind ||
-      oldDelegate.draftStart != draftStart ||
-      oldDelegate.draftEnd != draftEnd;
 
   /// Whether [a] and [b] hold the same marks in the same order — `Equatable`'s own `==` per
   /// element, already comparing every stored field.

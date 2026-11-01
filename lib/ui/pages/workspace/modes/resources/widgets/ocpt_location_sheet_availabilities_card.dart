@@ -288,12 +288,94 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
   }
 
   @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _noteFocusNode.dispose();
-    _noteController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tr = Tr.of(context);
+    final isReadOnly = widget.onUpdated == null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OcptDateRangeControl(
+                  startDate: _startDate,
+                  endDate: _endDate,
+                  onStartPressed: isReadOnly ? null : () => _pickDate(isStart: true),
+                  onEndPressed: isReadOnly ? null : () => _pickDate(isStart: false),
+                ),
+              ),
+              if (widget.onSlotAdded != null)
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16),
+                  tooltip: tr.resourcesAddLocationAvailabilitySlotTooltip,
+                  onPressed: () => widget.onSlotAdded!(_startDate, _endDate, _weekdays),
+                ),
+              if (widget.onRemoved != null)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  tooltip: tr.resourcesRemoveLocationAvailabilityTooltip,
+                  onPressed: widget.onRemoved,
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _OcptWeekdaySelector(value: _weekdays, onToggled: isReadOnly ? null : _toggleWeekday),
+          const SizedBox(height: 6),
+          OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
+          if (_slot == OcptDayPartSlot.custom) ...[
+            const SizedBox(height: 6),
+            OcptTimeWindowControl(
+              startMinute: _startMinute,
+              endMinute: _endMinute,
+              onStartPressed: isReadOnly ? null : () => _pickTime(isStart: true),
+              onEndPressed: isReadOnly ? null : () => _pickTime(isStart: false),
+            ),
+          ],
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              for (final kind in OcptLocationAvailabilityKind.values)
+                OcptSelectablePill(
+                  label: ocptLocationAvailabilityKindLabel(tr, kind),
+                  isSelected: kind == _kind,
+                  onPressed: isReadOnly ? null : () => _setKind(kind),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            tr.resourcesLocationAvailabilityNoteLabel.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _noteController,
+            focusNode: _noteFocusNode,
+            readOnly: isReadOnly,
+            onChanged: isReadOnly ? null : _onNoteChanged,
+            minLines: _noteMinLines,
+            maxLines: null,
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.resourcesLocationAvailabilityNoteHint,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Flushes a pending note edit the moment the field loses focus.
@@ -451,94 +533,12 @@ class _OcptAvailabilityRowState extends State<_OcptAvailabilityRow> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
-    final isReadOnly = widget.onUpdated == null;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusMedium),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: OcptDateRangeControl(
-                  startDate: _startDate,
-                  endDate: _endDate,
-                  onStartPressed: isReadOnly ? null : () => _pickDate(isStart: true),
-                  onEndPressed: isReadOnly ? null : () => _pickDate(isStart: false),
-                ),
-              ),
-              if (widget.onSlotAdded != null)
-                IconButton(
-                  icon: const Icon(Icons.add, size: 16),
-                  tooltip: tr.resourcesAddLocationAvailabilitySlotTooltip,
-                  onPressed: () => widget.onSlotAdded!(_startDate, _endDate, _weekdays),
-                ),
-              if (widget.onRemoved != null)
-                IconButton(
-                  icon: const Icon(Icons.close, size: 16),
-                  tooltip: tr.resourcesRemoveLocationAvailabilityTooltip,
-                  onPressed: widget.onRemoved,
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          _OcptWeekdaySelector(value: _weekdays, onToggled: isReadOnly ? null : _toggleWeekday),
-          const SizedBox(height: 6),
-          OcptDayPartSlotSelector(value: _slot, onChanged: isReadOnly ? null : _setSlot),
-          if (_slot == OcptDayPartSlot.custom) ...[
-            const SizedBox(height: 6),
-            OcptTimeWindowControl(
-              startMinute: _startMinute,
-              endMinute: _endMinute,
-              onStartPressed: isReadOnly ? null : () => _pickTime(isStart: true),
-              onEndPressed: isReadOnly ? null : () => _pickTime(isStart: false),
-            ),
-          ],
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final kind in OcptLocationAvailabilityKind.values)
-                OcptSelectablePill(
-                  label: ocptLocationAvailabilityKindLabel(tr, kind),
-                  isSelected: kind == _kind,
-                  onPressed: isReadOnly ? null : () => _setKind(kind),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr.resourcesLocationAvailabilityNoteLabel.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 4),
-          TextField(
-            controller: _noteController,
-            focusNode: _noteFocusNode,
-            readOnly: isReadOnly,
-            onChanged: isReadOnly ? null : _onNoteChanged,
-            minLines: _noteMinLines,
-            maxLines: null,
-            style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: tr.resourcesLocationAvailabilityNoteHint,
-            ),
-          ),
-        ],
-      ),
-    );
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _noteFocusNode.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 }
 

@@ -45,12 +45,6 @@ class _OcptScheduleSlotNoteFieldState extends State<OcptScheduleSlotNoteField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
     onChanged: widget.onChanged,
@@ -58,4 +52,10 @@ class _OcptScheduleSlotNoteFieldState extends State<OcptScheduleSlotNoteField> {
     style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

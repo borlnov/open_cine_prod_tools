@@ -15,9 +15,6 @@ import 'package:super_editor/super_editor.dart';
 /// "first handler that recognises the request wins" rule) while the request itself is dropped: no
 /// node is merged, deleted or otherwise touched, no changes are logged.
 class OcptNoOpCommand extends EditCommand {
-  /// Creates an [OcptNoOpCommand].
-  const OcptNoOpCommand();
-
   /// Not `HistoryBehavior.undoable`, on purpose: `Editor.endTransaction` decides whether a
   /// transaction joins history by checking `_transaction!.commands.isNotEmpty`, never by whether
   /// any of those commands actually changed anything. A refused title-page edit — Backspace at the
@@ -27,6 +24,9 @@ class OcptNoOpCommand extends EditCommand {
   /// keystroke away from the edit they actually meant to undo.
   @override
   HistoryBehavior get historyBehavior => HistoryBehavior.nonHistorical;
+
+  /// Creates an [OcptNoOpCommand].
+  const OcptNoOpCommand();
 
   /// Does nothing: the request is deliberately dropped.
   @override

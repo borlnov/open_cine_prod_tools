@@ -232,22 +232,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
     return null;
   }
 
-  /// The person [personId] names, or null when it is null or names nobody in the loaded address
-  /// book (a stale reference from a snapshot rebuilt underneath).
-  OcptPerson? personOf(String? personId) {
-    if (personId == null) {
-      return null;
-    }
-
-    for (final person in people) {
-      if (person.id == personId) {
-        return person;
-      }
-    }
-
-    return null;
-  }
-
   /// Every role of [snapshot], in display order (empty while nothing is loaded).
   List<OcptRole> get roles => snapshot?.roles ?? const [];
 
@@ -305,19 +289,6 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
           alert.screenplayRoleId == selectedRole.id || alert.handAddedRoleId == selectedRole.id,
     );
   }
-
-  /// The screenplay roles [alert]'s own orphaned role can be merged into: every live,
-  /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
-  /// orphaned banner's `Merge with:` chips.
-  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
-    for (final role in roles)
-      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
-  ];
-
-  /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
-  /// the empty list while nothing is loaded or [roleId] has none.
-  List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
-      snapshot?.candidatesByRoleId[roleId] ?? const [];
 
   /// Every location of [snapshot], in display order (empty while nothing is loaded).
   List<OcptLocation> get locations => snapshot?.locations ?? const [];
@@ -455,6 +426,35 @@ class OcptResourcesState extends BlocStateForMixin<OcptResourcesState>
       projectPackagePendingExport = null,
       projectPackageNotice = null,
       projectPackagePendingExportTarget = null;
+
+  /// The person [personId] names, or null when it is null or names nobody in the loaded address
+  /// book (a stale reference from a snapshot rebuilt underneath).
+  OcptPerson? personOf(String? personId) {
+    if (personId == null) {
+      return null;
+    }
+
+    for (final person in people) {
+      if (person.id == personId) {
+        return person;
+      }
+    }
+
+    return null;
+  }
+
+  /// The screenplay roles [alert]'s own orphaned role can be merged into: every live,
+  /// `isFromScreenplay` role of [roles] that isn't itself orphaned and isn't [alert]'s own — the
+  /// orphaned banner's `Merge with:` chips.
+  List<OcptRole> mergeTargetsOf(OcptRemovedRoleAlert alert) => [
+    for (final role in roles)
+      if (role.isFromScreenplay && role.orphanedName == null && role.id != alert.roleId) role,
+  ];
+
+  /// Every live candidacy of role [roleId], in its own `sortKey` order — [snapshot]'s own group, or
+  /// the empty list while nothing is loaded or [roleId] has none.
+  List<OcptRoleCandidate> candidatesOfRole(String roleId) =>
+      snapshot?.candidatesByRoleId[roleId] ?? const [];
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///

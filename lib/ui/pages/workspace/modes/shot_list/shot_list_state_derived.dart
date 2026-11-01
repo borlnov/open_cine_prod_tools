@@ -47,11 +47,6 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
     return selectedShotId == null ? null : snapshot?.shotsById[selectedShotId];
   }
 
-  /// [shotId]'s own panels, in order, or an empty list while [storyboardSnapshot] hasn't loaded yet
-  /// or the shot has none.
-  List<OcptStoryboardPanel> panelsOfShot(String shotId) =>
-      storyboardSnapshot?.panelsOfShot(shotId) ?? const [];
-
   /// The selected shot's own panels, or an empty list while no shot is selected.
   List<OcptStoryboardPanel> get panelsOfSelectedShot {
     final selectedShotId = this.selectedShotId;
@@ -86,21 +81,6 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
       ) ??
       false;
 
-  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for [sequence]'s own heading,
-  /// or null while it suggests none, or while it already names one of [sequence]'s own linked sets
-  /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
-  /// offering to link what is already linked.
-  String? suggestedSetIdOf(OcptSceneShotSequence sequence) {
-    final suggested = ocptSceneSetSuggestionOf(heading: sequence.heading, locations: locations);
-    if (suggested == null) {
-      return null;
-    }
-    final alreadyLinked = setsOfSelectedSequence.any(
-      (floorPlanSet) => floorPlanSet.id == suggested,
-    );
-    return alreadyLinked ? null : suggested;
-  }
-
   /// The set [selectedSetId] identifies, or null if none is selected (or the selected one
   /// disappeared from a freshly loaded [floorPlanSnapshot]).
   OcptFloorPlanSet? get selectedSet {
@@ -131,25 +111,6 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
   /// The selected sequence's own shot immediately after [selectedShotId]. See
   /// [previousShotOfSelectedShot].
   OcptShot? get nextShotOfSelectedShot => _neighbourShotOf(1);
-
-  /// [selectedShotId]'s own neighbour [offset] shots away in the selected sequence's own shot
-  /// order, or null while there is none (out of range, nothing selected, or the orphan group) — the
-  /// body [previousShotOfSelectedShot]/[nextShotOfSelectedShot] share.
-  OcptShot? _neighbourShotOf(int offset) {
-    final sequence = selectedSequence;
-    final selectedShotId = this.selectedShotId;
-    if (selectedShotId == null || sequence is! OcptSceneShotSequence) {
-      return null;
-    }
-
-    final shots = sequence.shots;
-    final index = shots.indexWhere((shot) => shot.id == selectedShotId);
-    final neighbourIndex = index + offset;
-    if (index < 0 || neighbourIndex < 0 || neighbourIndex >= shots.length) {
-      return null;
-    }
-    return shots[neighbourIndex];
-  }
 
   /// The total number of live panels across every shot of the selected sequence — the board
   /// header's own `· N panels` read-out.
@@ -189,6 +150,26 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
   /// variant of the shared role alert banner (ADR 0030, decision 2). Derived the same way
   /// [orphanedRoleAlerts] is.
   List<OcptRoleCollisionAlert> get roleCollisionAlerts => OcptRoleCollisionAlert.buildAll(roles);
+
+  /// [shotId]'s own panels, in order, or an empty list while [storyboardSnapshot] hasn't loaded yet
+  /// or the shot has none.
+  List<OcptStoryboardPanel> panelsOfShot(String shotId) =>
+      storyboardSnapshot?.panelsOfShot(shotId) ?? const [];
+
+  /// The id of the Resources set `ocptSceneSetSuggestionOf` suggests for [sequence]'s own heading,
+  /// or null while it suggests none, or while it already names one of [sequence]'s own linked sets
+  /// — the gallery's own starred card and the `＋ Set` menu's own top entry both read this, never
+  /// offering to link what is already linked.
+  String? suggestedSetIdOf(OcptSceneShotSequence sequence) {
+    final suggested = ocptSceneSetSuggestionOf(heading: sequence.heading, locations: locations);
+    if (suggested == null) {
+      return null;
+    }
+    final alreadyLinked = setsOfSelectedSequence.any(
+      (floorPlanSet) => floorPlanSet.id == suggested,
+    );
+    return alreadyLinked ? null : suggested;
+  }
 
   /// The roles [alert]'s own role can be merged into: every live, `isFromScreenplay` role of
   /// [roles] that isn't itself orphaned and isn't [alert]'s own — the orphaned banner's `Merge
@@ -267,5 +248,24 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
             OcptShotCoverageService.isRangeStale(range: range, sceneText: layout.sceneText))
           range.id,
     };
+  }
+
+  /// [selectedShotId]'s own neighbour [offset] shots away in the selected sequence's own shot
+  /// order, or null while there is none (out of range, nothing selected, or the orphan group) — the
+  /// body [previousShotOfSelectedShot]/[nextShotOfSelectedShot] share.
+  OcptShot? _neighbourShotOf(int offset) {
+    final sequence = selectedSequence;
+    final selectedShotId = this.selectedShotId;
+    if (selectedShotId == null || sequence is! OcptSceneShotSequence) {
+      return null;
+    }
+
+    final shots = sequence.shots;
+    final index = shots.indexWhere((shot) => shot.id == selectedShotId);
+    final neighbourIndex = index + offset;
+    if (index < 0 || neighbourIndex < 0 || neighbourIndex >= shots.length) {
+      return null;
+    }
+    return shots[neighbourIndex];
   }
 }

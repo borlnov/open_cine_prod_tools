@@ -19,6 +19,13 @@ class OcptBudgetNewBreakdownSelection {
   /// The quantity of each checked element, in thousandths, keyed by element id.
   final Map<String, int> quantityMilliByElementId;
 
+  /// The search text.
+  String query;
+
+  /// The poste every row inherits until it is given one of its own — the `File all under`
+  /// header's own answer, and the default half of [posteFor].
+  String? bulkPosteId;
+
   /// The quantity field controller of each element met so far, keyed by element id.
   final Map<String, TextEditingController> _quantityControllers;
 
@@ -26,12 +33,10 @@ class OcptBudgetNewBreakdownSelection {
   /// absent while the row still follows the bulk default.
   final Map<String, String> _posteOverrideByElementId;
 
-  /// The search text.
-  String query;
-
-  /// The poste every row inherits until it is given one of its own — the `File all under`
-  /// header's own answer, and the default half of [posteFor].
-  String? bulkPosteId;
+  /// Whether lines can be created: something is checked and every checked element resolves to a
+  /// poste — its own or the bulk default. A line with no poste is a row the quote has nowhere to
+  /// file.
+  bool get isReady => selectedIds.isNotEmpty && selectedIds.every((id) => posteFor(id) != null);
 
   /// Class constructor
   OcptBudgetNewBreakdownSelection()
@@ -95,11 +100,6 @@ class OcptBudgetNewBreakdownSelection {
   /// the bulk default — null while neither has been chosen, which is what keeps its line from being
   /// created.
   String? posteFor(String elementId) => _posteOverrideByElementId[elementId] ?? bulkPosteId;
-
-  /// Whether lines can be created: something is checked and every checked element resolves to a
-  /// poste — its own or the bulk default. A line with no poste is a row the quote has nowhere to
-  /// file.
-  bool get isReady => selectedIds.isNotEmpty && selectedIds.every((id) => posteFor(id) != null);
 
   /// The outcome creating the checked lines ends in, or null while nothing is checked or a checked
   /// row resolves no poste — [isReady] already withholds the button then, so this is the belt to

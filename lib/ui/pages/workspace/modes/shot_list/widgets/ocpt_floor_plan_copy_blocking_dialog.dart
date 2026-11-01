@@ -21,15 +21,6 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
   /// Class constructor
   const OcptFloorPlanCopyBlockingDialog({super.key, required this.candidates});
 
-  /// Shows the dialog and returns the picked shot's id, or null if the user dismissed it.
-  static Future<String?> show(
-    BuildContext context, {
-    required List<OcptFloorPlanCopyBlockingCandidate> candidates,
-  }) => showDialog<String>(
-    context: context,
-    builder: (context) => OcptFloorPlanCopyBlockingDialog(candidates: candidates),
-  );
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -62,4 +53,13 @@ class OcptFloorPlanCopyBlockingDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Shows the dialog and returns the picked shot's id, or null if the user dismissed it.
+  static Future<String?> show(
+    BuildContext context, {
+    required List<OcptFloorPlanCopyBlockingCandidate> candidates,
+  }) => showDialog<String>(
+    context: context,
+    builder: (context) => OcptFloorPlanCopyBlockingDialog(candidates: candidates),
+  );
 }

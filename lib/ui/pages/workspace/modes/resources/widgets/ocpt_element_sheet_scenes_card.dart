@@ -213,40 +213,6 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
   }
 
   @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _focusNode.dispose();
-    _quantityController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending edit the moment the row loses focus.
-  void _flushOnFocusLost() {
-    if (!_focusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that one of the two fields changed and (re)starts the debounce.
-  void _onFieldChanged(String text) {
-    _isDirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's current fields, if a local edit is actually waiting.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    widget.onUpdated?.call(quantity: _quantityController.text, notes: _notesController.text);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -316,6 +282,40 @@ class _OcptSceneLinkRowState extends State<_OcptSceneLinkRow> {
         ),
       ),
     );
+  }
+
+  /// Flushes a pending edit the moment the row loses focus.
+  void _flushOnFocusLost() {
+    if (!_focusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Records that one of the two fields changed and (re)starts the debounce.
+  void _onFieldChanged(String text) {
+    _isDirty = true;
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Reports the row's current fields, if a local edit is actually waiting.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    widget.onUpdated?.call(quantity: _quantityController.text, notes: _notesController.text);
+  }
+
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _focusNode.dispose();
+    _quantityController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 }
 

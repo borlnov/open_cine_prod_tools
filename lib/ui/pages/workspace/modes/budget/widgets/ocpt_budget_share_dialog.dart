@@ -31,6 +31,9 @@ class OcptBudgetShareDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetShareDialog({super.key, required this.existing, required this.people});
 
+  @override
+  State<OcptBudgetShareDialog> createState() => _OcptBudgetShareDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetShareFormFields?> show(
     BuildContext context, {
@@ -40,9 +43,6 @@ class OcptBudgetShareDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetShareDialog(existing: existing, people: people),
   );
-
-  @override
-  State<OcptBudgetShareDialog> createState() => _OcptBudgetShareDialogState();
 }
 
 /// The state of [OcptBudgetShareDialog]: the form key it hands to [OcptBudgetShareFormBody] and the

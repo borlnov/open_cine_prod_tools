@@ -18,12 +18,12 @@ class OcptNewProjectNameDialog extends StatefulWidget {
   /// Class constructor
   const OcptNewProjectNameDialog({super.key});
 
+  @override
+  State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
+
   /// Shows the dialog and returns the name entered by the user, or null if they cancelled it.
   static Future<String?> show(BuildContext context) =>
       showDialog<String>(context: context, builder: (context) => const OcptNewProjectNameDialog());
-
-  @override
-  State<OcptNewProjectNameDialog> createState() => _OcptNewProjectNameDialogState();
 }
 
 /// The state of [OcptNewProjectNameDialog].
@@ -33,12 +33,6 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
 
   /// The controller of the name text field.
   final _nameController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,5 +92,11 @@ class _OcptNewProjectNameDialogState extends State<OcptNewProjectNameDialog> {
       final trimmedName = _nameController.text.trim();
       globalGetIt().get<OcptRouterManager>().pop<String>(trimmedName);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

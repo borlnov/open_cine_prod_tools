@@ -9,6 +9,16 @@ import 'package:open_cine_prod_tools/ui/pages/editor/super_editor/ocpt_wysiwyg_c
 /// jump requests without the old model's "node index == line index" invariant, now that blank
 /// source lines are folded into node metadata instead of being their own node.
 class OcptWysiwygLineMapping {
+  /// The text [nodeIndexOfCharOffset] resolves a character offset against.
+  final String _sourceText;
+
+  /// The 0-based source line of each node, indexed by node index.
+  final List<int> _lineByNodeIndex;
+
+  /// The node index owning each 0-based source line (a blank line's entry points at the node
+  /// following it), indexed by line number.
+  final List<int> _nodeIndexByLine;
+
   /// Builds the mapping for [sourceText] (only [OcptWysiwygCodec] does), given, in node order, each node's (already resolved, in
   /// the case of [OcptWysiwygCodec.encode]'s dialogue-group override) blank-line-before count, and
   /// the number of blank lines trailing the last node.
@@ -35,16 +45,6 @@ class OcptWysiwygLineMapping {
       _nodeIndexByLine.add(lastNodeIndex);
     }
   }
-
-  /// The text [nodeIndexOfCharOffset] resolves a character offset against.
-  final String _sourceText;
-
-  /// The 0-based source line of each node, indexed by node index.
-  final List<int> _lineByNodeIndex;
-
-  /// The node index owning each 0-based source line (a blank line's entry points at the node
-  /// following it), indexed by line number.
-  final List<int> _nodeIndexByLine;
 
   /// The 0-based source line the node at [nodeIndex] sits on, accounting for every preceding
   /// node's [ocptBlankLinesBeforeMetadataKey] metadata; [nodeIndex] is clamped to a valid index.

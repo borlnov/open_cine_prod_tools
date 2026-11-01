@@ -77,6 +77,9 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     this.offerCashOrInKindChoice = false,
   });
 
+  @override
+  State<OcptBudgetResourceDialog> createState() => _OcptBudgetResourceDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetResourceFormFields?> show(
     BuildContext context, {
@@ -101,9 +104,6 @@ class OcptBudgetResourceDialog extends StatefulWidget {
       offerCashOrInKindChoice: offerCashOrInKindChoice,
     ),
   );
-
-  @override
-  State<OcptBudgetResourceDialog> createState() => _OcptBudgetResourceDialogState();
 }
 
 /// The state of [OcptBudgetResourceDialog]: the form key it hands to [OcptBudgetResourceFormBody]

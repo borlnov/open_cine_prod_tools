@@ -29,19 +29,10 @@ const String ocptProgrammaticNavigationSelectionReason = "ocptProgrammaticNaviga
 /// The document and the editor are resolved through callbacks at call time, since the styled
 /// editor replaces both whenever its text is rebuilt from outside.
 final class OcptStyledSearch {
-  /// Creates an [OcptStyledSearch].
-  OcptStyledSearch({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required GlobalKey documentLayoutKey,
-    required bool Function() isMounted,
-    required void Function(int count) onMatchCountReported,
-  }) : styler = OcptSearchMatchStyler(),
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _documentLayoutKey = documentLayoutKey,
-       _isMounted = isMounted,
-       _onMatchCountReported = onMatchCountReported;
+  /// This helper's half of the find/replace bar's highlight, handed to `SuperEditor` as a custom
+  /// style phase; never rebuilt, so `markDirty()` calls survive across a build rather than
+  /// resetting the highlight every frame.
+  final OcptSearchMatchStyler styler;
 
   /// Resolves the document the matches are computed over.
   final MutableDocument Function() _documentOf;
@@ -57,11 +48,6 @@ final class OcptStyledSearch {
 
   /// Called with the total match count every time the matches are recomputed.
   final void Function(int count) _onMatchCountReported;
-
-  /// This helper's half of the find/replace bar's highlight, handed to `SuperEditor` as a custom
-  /// style phase; never rebuilt, so `markDirty()` calls survive across a build rather than
-  /// resetting the highlight every frame.
-  final OcptSearchMatchStyler styler;
 
   /// The find/replace query [update] last set, or null while there is no active search —
   /// `editor_page.dart` sets this to null whenever the bar is closed, a different mode is active,
@@ -83,6 +69,20 @@ final class OcptStyledSearch {
 
   /// The editor executing the selection and replace requests.
   Editor get _editor => _editorOf();
+
+  /// Creates an [OcptStyledSearch].
+  OcptStyledSearch({
+    required MutableDocument Function() documentOf,
+    required Editor Function() editorOf,
+    required GlobalKey documentLayoutKey,
+    required bool Function() isMounted,
+    required void Function(int count) onMatchCountReported,
+  }) : styler = OcptSearchMatchStyler(),
+       _documentOf = documentOf,
+       _editorOf = editorOf,
+       _documentLayoutKey = documentLayoutKey,
+       _isMounted = isMounted,
+       _onMatchCountReported = onMatchCountReported;
 
   /// Every current match of [query], in document order (node order, then offset within the
   /// node) — the single computation [recompute], [replaceCurrentMatch] and

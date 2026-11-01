@@ -135,29 +135,6 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
   bool _isAdding = false;
 
   @override
-  void dispose() {
-    _addController.dispose();
-    _addFocusNode.dispose();
-    super.dispose();
-  }
-
-  /// Shows the inline add field and gives it the focus.
-  void _startAdding() {
-    setState(() => _isAdding = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _addFocusNode.requestFocus());
-  }
-
-  /// Submits whatever the add field currently holds, if not blank, then hides it again.
-  void _submit() {
-    final label = _addController.text.trim();
-    if (label.isNotEmpty) {
-      widget.onAdded?.call(label);
-    }
-    _addController.clear();
-    setState(() => _isAdding = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final onAdded = widget.onAdded;
@@ -189,6 +166,29 @@ class _OcptPersonSkillChipsState extends State<_OcptPersonSkillChips> {
             ActionChip(label: const Text("+"), onPressed: _startAdding),
       ],
     );
+  }
+
+  /// Shows the inline add field and gives it the focus.
+  void _startAdding() {
+    setState(() => _isAdding = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _addFocusNode.requestFocus());
+  }
+
+  /// Submits whatever the add field currently holds, if not blank, then hides it again.
+  void _submit() {
+    final label = _addController.text.trim();
+    if (label.isNotEmpty) {
+      widget.onAdded?.call(label);
+    }
+    _addController.clear();
+    setState(() => _isAdding = false);
+  }
+
+  @override
+  void dispose() {
+    _addController.dispose();
+    _addFocusNode.dispose();
+    super.dispose();
   }
 }
 

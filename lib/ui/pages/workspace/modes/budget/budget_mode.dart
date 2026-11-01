@@ -141,12 +141,6 @@ class _BudgetViewState extends State<_BudgetView> {
   }
 
   @override
-  void dispose() {
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
-  @override
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptBudgetBloc, OcptBudgetState>(
     listener: _onStateChanged,
@@ -635,5 +629,11 @@ class _BudgetViewState extends State<_BudgetView> {
         );
       context.read<OcptBudgetBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
     }
+  }
+
+  @override
+  void dispose() {
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

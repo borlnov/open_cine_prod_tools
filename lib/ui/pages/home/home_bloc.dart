@@ -92,6 +92,16 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
   /// reacting to that write is what puts its card on the grid.
   StreamSubscription<dynamic>? _recentProjectsSubscription;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
   /// Class constructor
   OcptHomeBloc({
     OcptPropertiesManager? propertiesManager,
@@ -129,28 +139,11 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     on<OcptHomeScreenplayImportErrorDismissedEvent>(_onScreenplayImportErrorDismissed);
   }
 
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
-
   /// Does nothing: no project is open from the home page, so there is no debounced field edit or
   /// pending autosave a mode would otherwise still be holding outside the database.
   @protected
   @override
   Future<bool> flushPendingProjectWrites(Emitter<OcptHomeState> emitter) async => true;
-
-  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
-  @override
-  Future<void> disposeLifeCycle() async {
-    await _recentProjectsSubscription?.cancel();
-    return super.disposeLifeCycle();
-  }
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -573,5 +566,12 @@ class OcptHomeBloc extends BlocForMixin<OcptHomeState>
     Emitter<OcptHomeState> emitter,
   ) async {
     emitter(state.copyWithScreenplayImportErrorDismissed());
+  }
+
+  /// {@macro act_foundation.MixinWithLifeCycleDispose.disposeLifeCycle}
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _recentProjectsSubscription?.cancel();
+    return super.disposeLifeCycle();
   }
 }

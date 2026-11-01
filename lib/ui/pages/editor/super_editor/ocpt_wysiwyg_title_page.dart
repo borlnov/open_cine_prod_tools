@@ -41,6 +41,17 @@ const List<String> ocptTitlePageFieldKeys = [
 /// The title-page half of `OcptWysiwygCodec`: builds the title-page field nodes from a parsed
 /// [FountainTitlePage] and folds live nodes back into the entries the title-page writer expects.
 final class OcptWysiwygTitlePage {
+  /// A placeholder source range for a title-page entry synthesized from live node text rather than
+  /// parsed from source: [FountainTitlePageWriter.apply] only ever reads an entry's key and values,
+  /// never its source range (see `editor_bloc.dart`'s own equivalent placeholder), so standing in
+  /// without a real one is safe.
+  static const _placeholderEntryRange = FountainSourceRange(
+    startLine: 0,
+    endLine: 0,
+    startOffset: 0,
+    endOffset: 0,
+  );
+
   const OcptWysiwygTitlePage._();
 
   /// The title page entry for [key] (`Author` also matching a source written as `Authors`, per
@@ -54,17 +65,6 @@ final class OcptWysiwygTitlePage {
         ? (titlePage.entry("Author") ?? titlePage.entry("Authors"))
         : titlePage.entry(key);
   }
-
-  /// A placeholder source range for a title-page entry synthesized from live node text rather than
-  /// parsed from source: [FountainTitlePageWriter.apply] only ever reads an entry's key and values,
-  /// never its source range (see `editor_bloc.dart`'s own equivalent placeholder), so standing in
-  /// without a real one is safe.
-  static const _placeholderEntryRange = FountainSourceRange(
-    startLine: 0,
-    endLine: 0,
-    startOffset: 0,
-    endOffset: 0,
-  );
 
   /// Builds the title-page field nodes `decodeWithTitlePage` prepends to the body: one node per
   /// [ocptTitlePageFieldKeys] field, in that fixed order, one per source line for a field spanning

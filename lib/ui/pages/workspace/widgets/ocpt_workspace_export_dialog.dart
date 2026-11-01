@@ -58,24 +58,6 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns what the user picked — one of [entries]' own values, or the
-  /// project package — or null if they cancelled it or picked no card at all.
-  static Future<OcptWorkspaceExportPick<T>?> show<T>(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required List<OcptWorkspaceExportEntry<T>> entries,
-    required bool isPreviewingVersion,
-  }) => showDialog<OcptWorkspaceExportPick<T>>(
-    context: context,
-    builder: (context) => OcptWorkspaceExportDialog<T>(
-      title: title,
-      message: message,
-      entries: entries,
-      isPreviewingVersion: isPreviewingVersion,
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -113,4 +95,22 @@ class OcptWorkspaceExportDialog<T> extends StatelessWidget {
       ],
     );
   }
+
+  /// Shows the dialog and returns what the user picked — one of [entries]' own values, or the
+  /// project package — or null if they cancelled it or picked no card at all.
+  static Future<OcptWorkspaceExportPick<T>?> show<T>(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required List<OcptWorkspaceExportEntry<T>> entries,
+    required bool isPreviewingVersion,
+  }) => showDialog<OcptWorkspaceExportPick<T>>(
+    context: context,
+    builder: (context) => OcptWorkspaceExportDialog<T>(
+      title: title,
+      message: message,
+      entries: entries,
+      isPreviewingVersion: isPreviewingVersion,
+    ),
+  );
 }

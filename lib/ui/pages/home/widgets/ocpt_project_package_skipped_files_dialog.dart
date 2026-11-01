@@ -30,13 +30,6 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectPackageSkippedFilesDialog({super.key, required this.skippedAssets});
 
-  /// Shows the dialog, and completes once the user has dismissed it.
-  static Future<void> show(BuildContext context, {required List<OcptSkippedAsset> skippedAssets}) =>
-      showDialog<void>(
-        context: context,
-        builder: (context) => OcptProjectPackageSkippedFilesDialog(skippedAssets: skippedAssets),
-      );
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -57,4 +50,11 @@ class OcptProjectPackageSkippedFilesDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Shows the dialog, and completes once the user has dismissed it.
+  static Future<void> show(BuildContext context, {required List<OcptSkippedAsset> skippedAssets}) =>
+      showDialog<void>(
+        context: context,
+        builder: (context) => OcptProjectPackageSkippedFilesDialog(skippedAssets: skippedAssets),
+      );
 }

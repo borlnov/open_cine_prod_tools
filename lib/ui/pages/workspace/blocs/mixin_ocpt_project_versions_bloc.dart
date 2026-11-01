@@ -49,8 +49,23 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   /// The logger category linked to this mixin.
   static const _loggerCategory = "project_versions_bloc";
 
+  /// The minimum delay this mixin lets pass between two working-copy captures that
+  /// [_onWorkingCopyRefreshRequested] performs, since [OcptProjectsManager.captureWorkingCopyState]
+  /// reads the whole project and that handler is dispatched on comparatively frequent events (a
+  /// tab reselection, a save). [_emitVersions] never goes through this: every one of its callers
+  /// just changed the project, so it always captures the truth through [_captureWorkingCopyState]
+  /// directly instead of through the throttled handler.
+  static const _workingCopyCaptureThrottle = Duration(seconds: 2);
+
   /// The logger this mixin writes to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
+
+  /// When the working copy was last captured, or null before the first one. Read and written by
+  /// [_captureWorkingCopyState] alone, which is the single primitive both capture paths share.
+  DateTime? _lastWorkingCopyCaptureAt;
+
+  /// The tail of every project-touching operation queued through [_serialized] so far.
+  Future<void> _pendingOperations = Future.value();
 
   /// {@template open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
   /// The manager owning the open project, its version list and the preview state.
@@ -90,40 +105,6 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   @protected
   Future<void> reloadFromProjectDatabase(Emitter<S> emitter);
 
-  /// The minimum delay this mixin lets pass between two working-copy captures that
-  /// [_onWorkingCopyRefreshRequested] performs, since [OcptProjectsManager.captureWorkingCopyState]
-  /// reads the whole project and that handler is dispatched on comparatively frequent events (a
-  /// tab reselection, a save). [_emitVersions] never goes through this: every one of its callers
-  /// just changed the project, so it always captures the truth through [_captureWorkingCopyState]
-  /// directly instead of through the throttled handler.
-  static const _workingCopyCaptureThrottle = Duration(seconds: 2);
-
-  /// When the working copy was last captured, or null before the first one. Read and written by
-  /// [_captureWorkingCopyState] alone, which is the single primitive both capture paths share.
-  DateTime? _lastWorkingCopyCaptureAt;
-
-  /// The tail of every project-touching operation queued through [_serialized] so far.
-  Future<void> _pendingOperations = Future.value();
-
-  /// Runs [operation] only once every operation already queued through this has settled, and
-  /// queues it in turn — the mixin's own way of making its handlers behave as if events were
-  /// processed sequentially, which several of them (see the class doc comment) depend on.
-  ///
-  /// [_emitVersions] in particular reads the version list and only then captures the working
-  /// copy, two separate awaits: without this, a slower, earlier operation's list read could land
-  /// in the very same emitted state as a later operation's working-copy capture, pairing data that
-  /// never coexisted (a version list from before a version existed, say, next to a working-copy
-  /// snapshot measured after it was created).
-  ///
-  /// A failed [operation] must not leave the queue stuck: whatever already reported the failure (a
-  /// notice, a logged error) has done its job, so [_pendingOperations] itself never carries the
-  /// error forward — only the [Future] handed back to the caller does.
-  Future<void> _serialized(Future<void> Function() operation) {
-    final result = _pendingOperations.then((_) => operation());
-    _pendingOperations = result.then((_) {}, onError: (_) {});
-    return result;
-  }
-
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   ///
   /// The initial refresh is dispatched from here rather than left to each mode's constructor, so a
@@ -149,6 +130,25 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     on<OcptProjectVersionNoticeDismissedEvent>(_onVersionNoticeDismissed);
 
     add(const OcptProjectVersionsRefreshRequestedEvent());
+  }
+
+  /// Runs [operation] only once every operation already queued through this has settled, and
+  /// queues it in turn — the mixin's own way of making its handlers behave as if events were
+  /// processed sequentially, which several of them (see the class doc comment) depend on.
+  ///
+  /// [_emitVersions] in particular reads the version list and only then captures the working
+  /// copy, two separate awaits: without this, a slower, earlier operation's list read could land
+  /// in the very same emitted state as a later operation's working-copy capture, pairing data that
+  /// never coexisted (a version list from before a version existed, say, next to a working-copy
+  /// snapshot measured after it was created).
+  ///
+  /// A failed [operation] must not leave the queue stuck: whatever already reported the failure (a
+  /// notice, a logged error) has done its job, so [_pendingOperations] itself never carries the
+  /// error forward — only the [Future] handed back to the caller does.
+  Future<void> _serialized(Future<void> Function() operation) {
+    final result = _pendingOperations.then((_) => operation());
+    _pendingOperations = result.then((_) {}, onError: (_) {});
+    return result;
   }
 
   /// Reloads the version list and the previewed version's id from the open project.

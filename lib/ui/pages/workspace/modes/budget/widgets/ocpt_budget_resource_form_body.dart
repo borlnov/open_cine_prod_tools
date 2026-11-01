@@ -174,6 +174,26 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
   /// `Poste` field.
   String? _posteId;
 
+  /// The fields this body would submit right now, or null while the `Amount` field's own figure
+  /// does not parse.
+  OcptBudgetResourceFormFields? get _currentDraft {
+    final amountCents = ocptCostCentsOf(_amountController.text);
+    if (amountCents == null) {
+      return null;
+    }
+
+    return OcptBudgetResourceFormFields(
+      groupKind: _groupKind,
+      personId: _personId,
+      label: _labelController.text.trim(),
+      amountCents: amountCents,
+      status: _status,
+      isReimbursable: _isReimbursable,
+      notes: _notesController.text.trim(),
+      posteId: _groupKind == OcptBudgetResourceGroupKind.inKind ? _posteId : null,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -198,38 +218,6 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _amountController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
-  /// `onChanged` call this after applying its own change.
-  void _report() => widget.onDraftChanged(_currentDraft);
-
-  /// The fields this body would submit right now, or null while the `Amount` field's own figure
-  /// does not parse.
-  OcptBudgetResourceFormFields? get _currentDraft {
-    final amountCents = ocptCostCentsOf(_amountController.text);
-    if (amountCents == null) {
-      return null;
-    }
-
-    return OcptBudgetResourceFormFields(
-      groupKind: _groupKind,
-      personId: _personId,
-      label: _labelController.text.trim(),
-      amountCents: amountCents,
-      status: _status,
-      isReimbursable: _isReimbursable,
-      notes: _notesController.text.trim(),
-      posteId: _groupKind == OcptBudgetResourceGroupKind.inKind ? _posteId : null,
-    );
   }
 
   @override
@@ -378,6 +366,10 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     );
   }
 
+  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// `onChanged` call this after applying its own change.
+  void _report() => widget.onDraftChanged(_currentDraft);
+
   /// The `Amount` field's own label, worded for [_groupKind] — see the class doc comment: an
   /// in-kind contribution's figure is what it is *valued at*, never an amount to be received.
   String _amountFieldLabel(Tr tr) => switch (_groupKind) {
@@ -412,6 +404,14 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     OcptBudgetResourceGroupKind.cash => tr.budgetResourceDialogStatusHelperCash,
     OcptBudgetResourceGroupKind.inKind => tr.budgetResourceDialogStatusHelperInKind,
   };
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 }
 
 /// The resource form's own `Group` picker: [choices] as a wrapped row of small, clickable chips —

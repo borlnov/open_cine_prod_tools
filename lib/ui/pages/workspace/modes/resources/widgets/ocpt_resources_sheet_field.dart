@@ -119,14 +119,6 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
     _focusNode.addListener(_onFocusChanged);
   }
 
-  /// Rebuilds so the error message appears the moment the field loses the focus, and disappears
-  /// again the moment it regains it.
-  void _onFocusChanged() {
-    if (widget.errorTextOf != null) {
-      setState(() {});
-    }
-  }
-
   @override
   void didUpdateWidget(covariant OcptResourcesSheetField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -135,23 +127,6 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
       _controller.text = widget.value;
       _trackedOwnerId = widget.ownerId;
     }
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// The message to show under the field right now: what [OcptResourcesSheetField.errorTextOf] says
-  /// about the current value, or null while the field has the focus or is never checked.
-  String? _resolveErrorText() {
-    final errorTextOf = widget.errorTextOf;
-    if (errorTextOf == null || _focusNode.hasFocus) {
-      return null;
-    }
-    return errorTextOf(_controller.text);
   }
 
   @override
@@ -188,5 +163,30 @@ class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
         ),
       ],
     );
+  }
+
+  /// Rebuilds so the error message appears the moment the field loses the focus, and disappears
+  /// again the moment it regains it.
+  void _onFocusChanged() {
+    if (widget.errorTextOf != null) {
+      setState(() {});
+    }
+  }
+
+  /// The message to show under the field right now: what [OcptResourcesSheetField.errorTextOf] says
+  /// about the current value, or null while the field has the focus or is never checked.
+  String? _resolveErrorText() {
+    final errorTextOf = widget.errorTextOf;
+    if (errorTextOf == null || _focusNode.hasFocus) {
+      return null;
+    }
+    return errorTextOf(_controller.text);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -55,16 +55,6 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
   /// Called with a link's id when its remove control is clicked, or null while it may not be used.
   final ValueChanged<String>? onLinkRemoved;
 
-  /// Class constructor
-  const OcptRoleSheetElementsCard({
-    super.key,
-    required this.roleId,
-    required this.elements,
-    required this.onElementLinked,
-    required this.onLinkUpdated,
-    required this.onLinkRemoved,
-  });
-
   /// The elements this role is linked to, paired with the id of the link saying so, in the
   /// catalogue's own order.
   ///
@@ -75,6 +65,16 @@ class OcptRoleSheetElementsCard extends StatelessWidget {
       for (final link in element.roleLinks)
         if (link.roleId == roleId) (element, link.id),
   ];
+
+  /// Class constructor
+  const OcptRoleSheetElementsCard({
+    super.key,
+    required this.roleId,
+    required this.elements,
+    required this.onElementLinked,
+    required this.onLinkUpdated,
+    required this.onLinkRemoved,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -193,39 +193,6 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
   }
 
   @override
-  void dispose() {
-    _flushIfDirty();
-    _debounce?.cancel();
-    _focusNode.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Flushes a pending edit the moment the row loses focus.
-  void _flushOnFocusLost() {
-    if (!_focusNode.hasFocus) {
-      _flushIfDirty();
-    }
-  }
-
-  /// Records that the note changed and (re)starts the debounce.
-  void _onFieldChanged(String text) {
-    _isDirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
-  }
-
-  /// Reports the row's current note, if a local edit is actually waiting.
-  void _flushIfDirty() {
-    _debounce?.cancel();
-    if (!_isDirty) {
-      return;
-    }
-    _isDirty = false;
-    widget.onUpdated?.call(_notesController.text);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -284,6 +251,39 @@ class _OcptRoleElementRowState extends State<_OcptRoleElementRow> {
         ),
       ),
     );
+  }
+
+  /// Flushes a pending edit the moment the row loses focus.
+  void _flushOnFocusLost() {
+    if (!_focusNode.hasFocus) {
+      _flushIfDirty();
+    }
+  }
+
+  /// Records that the note changed and (re)starts the debounce.
+  void _onFieldChanged(String text) {
+    _isDirty = true;
+    _debounce?.cancel();
+    _debounce = Timer(_localFieldDebounce, _flushIfDirty);
+  }
+
+  /// Reports the row's current note, if a local edit is actually waiting.
+  void _flushIfDirty() {
+    _debounce?.cancel();
+    if (!_isDirty) {
+      return;
+    }
+    _isDirty = false;
+    widget.onUpdated?.call(_notesController.text);
+  }
+
+  @override
+  void dispose() {
+    _flushIfDirty();
+    _debounce?.cancel();
+    _focusNode.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 }
 

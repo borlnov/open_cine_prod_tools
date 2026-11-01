@@ -50,6 +50,11 @@ class OcptScheduleDayBloc
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "schedule_day_bloc";
 
+  /// The start minute a slot created by [_onSlotCreated] is given: 08:00, mirroring
+  /// `OcptScheduleService`'s own private `_defaultStartMinute` (not exported, so this is its own
+  /// copy of the same figure).
+  static const int _defaultSlotStartMinute = 480;
+
   /// The logger this BLoC writes to.
   final LogsHelper _logger;
 
@@ -64,11 +69,6 @@ class OcptScheduleDayBloc
 
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
-
-  /// The start minute a slot created by [_onSlotCreated] is given: 08:00, mirroring
-  /// `OcptScheduleService`'s own private `_defaultStartMinute` (not exported, so this is its own
-  /// copy of the same figure).
-  static const int _defaultSlotStartMinute = 480;
 
   /// Class constructor
   ///
@@ -169,6 +169,92 @@ class OcptScheduleDayBloc
       cancelDebounce();
     }
     emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
+  }
+
+  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
+  /// fired or there was none), writes each one, then has the mode read the schedule again — which
+  /// also refreshes the working-copy card if the `Versions` tab is open — and only then forgets
+  /// what it wrote, so what a field shows never falls back to a stale stored value between the two.
+  /// A no-op while nothing is pending. Answers whether there was anything pending.
+  ///
+  /// When the mode could not read the schedule again the edits stay pending: they were written, but
+  /// what is on screen is still the older data.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date.
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptScheduleDayState> emitter) async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithFieldEditsCleared());
+      return true;
+    }
+
+    await _writeAllPendingFieldEdits(project, pending);
+    if (!await modeBloc.reload({OcptScheduleReloadScope.schedule})) {
+      // The write landed but the mode could not read it back, which the old handler let escape
+      // and so stopped the action behind the flush: answering that all went well would let a
+      // preview, an export or a restore run on the snapshot from before the write. The edit stays
+      // pending, and the next flush writes it again.
+      throw StateError("The data could not be read again after the pending edits were written");
+    }
+
+    emitter(
+      state.copyWithFlushedFieldEdits(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
+    return true;
+  }
+
+  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
+  /// and the bloc's own event queue.
+  ///
+  /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
+  /// `OcptBreakdownBloc.flushPendingFieldEdits`: `deactivate()` runs before `dispose()` for every
+  /// removal from the tree, so triggering the write here — rather than dispatching an event, which
+  /// would only be processed on a later microtask this widget might not survive to see — is what
+  /// guarantees the last [_fieldEditDebounce] worth of typing isn't lost. Unlike [onFlushRequested],
+  /// this never touches [state]: `emit` may only be called from inside a registered `on<Event>`
+  /// handler, and by the time this runs the widget tree that would show a fresh state is already
+  /// gone anyway. A failure here is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final edits = state.pendingFieldEdits;
+    if (edits.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        edits,
+        (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending schedule field edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
   }
 
   /// The ids of every row of [snapshot] a free-text field can be typed into: the days, the slots
@@ -676,92 +762,6 @@ class OcptScheduleDayBloc
     Emitter<OcptScheduleDayState> emitter,
   ) async {
     await onFlushRequested(emitter);
-  }
-
-  /// Writes every pending field edit immediately: cancels the debounce timer (a no-op if it already
-  /// fired or there was none), writes each one, then has the mode read the schedule again — which
-  /// also refreshes the working-copy card if the `Versions` tab is open — and only then forgets
-  /// what it wrote, so what a field shows never falls back to a stale stored value between the two.
-  /// A no-op while nothing is pending. Answers whether there was anything pending.
-  ///
-  /// When the mode could not read the schedule again the edits stay pending: they were written, but
-  /// what is on screen is still the older data.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date.
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptScheduleDayState> emitter) async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithFieldEditsCleared());
-      return true;
-    }
-
-    await _writeAllPendingFieldEdits(project, pending);
-    if (!await modeBloc.reload({OcptScheduleReloadScope.schedule})) {
-      // The write landed but the mode could not read it back, which the old handler let escape
-      // and so stopped the action behind the flush: answering that all went well would let a
-      // preview, an export or a restore run on the snapshot from before the write. The edit stays
-      // pending, and the next flush writes it again.
-      throw StateError("The data could not be read again after the pending edits were written");
-    }
-
-    emitter(
-      state.copyWithFlushedFieldEdits(
-        pendingFieldEdits: ocptPendingEditsAfterWrite(
-          current: state.pendingFieldEdits,
-          written: pending,
-        ),
-      ),
-    );
-    return true;
-  }
-
-  /// Writes every pending field edit directly to the database, bypassing both the debounce timer
-  /// and the bloc's own event queue.
-  ///
-  /// Called by the mode's own `deactivate()` (through the flushers it registered), mirroring
-  /// `OcptBreakdownBloc.flushPendingFieldEdits`: `deactivate()` runs before `dispose()` for every
-  /// removal from the tree, so triggering the write here — rather than dispatching an event, which
-  /// would only be processed on a later microtask this widget might not survive to see — is what
-  /// guarantees the last [_fieldEditDebounce] worth of typing isn't lost. Unlike [onFlushRequested],
-  /// this never touches [state]: `emit` may only be called from inside a registered `on<Event>`
-  /// handler, and by the time this runs the widget tree that would show a fresh state is already
-  /// gone anyway. A failure here is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final edits = state.pendingFieldEdits;
-    if (edits.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        edits,
-        (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending schedule field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
   }
 
   /// Writes every one of [edits] to [project]'s database, one write per entry — the shared write

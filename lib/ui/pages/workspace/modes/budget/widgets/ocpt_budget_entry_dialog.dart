@@ -105,6 +105,9 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     required this.isSimplified,
   });
 
+  @override
+  State<OcptBudgetEntryDialog> createState() => _OcptBudgetEntryDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetEntryFormFields?> show(
     BuildContext context, {
@@ -133,9 +136,6 @@ class OcptBudgetEntryDialog extends StatefulWidget {
       isSimplified: isSimplified,
     ),
   );
-
-  @override
-  State<OcptBudgetEntryDialog> createState() => _OcptBudgetEntryDialogState();
 }
 
 /// The state of [OcptBudgetEntryDialog]: the draft — one continuous set of controllers and fields.
@@ -239,15 +239,6 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       shareId: _shareId,
       personId: _personId,
     );
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _amountController.dispose();
-    _vatRateController.dispose();
-    _voucherController.dispose();
-    super.dispose();
   }
 
   @override
@@ -434,5 +425,14 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
         isReceiptDetached: _isReceiptDetached,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _amountController.dispose();
+    _vatRateController.dispose();
+    _voucherController.dispose();
+    super.dispose();
   }
 }

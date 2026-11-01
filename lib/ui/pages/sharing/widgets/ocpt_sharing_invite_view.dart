@@ -59,6 +59,11 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
   /// Whether the project token is currently shown in the clear.
   bool _isTokenVisible = false;
 
+  /// [OcptRelayInvite.token], masked to a fixed run of dots — never a partial reading of it, unlike
+  /// [OcptRelayInvite.toString]'s own log-friendly masking: nothing here is meant to narrow down
+  /// what the hidden characters could be.
+  String get _maskedToken => "•" * 24;
+
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -174,11 +179,6 @@ class _OcptSharingInviteViewState extends State<OcptSharingInviteView> {
       ),
     );
   }
-
-  /// [OcptRelayInvite.token], masked to a fixed run of dots — never a partial reading of it, unlike
-  /// [OcptRelayInvite.toString]'s own log-friendly masking: nothing here is meant to narrow down
-  /// what the hidden characters could be.
-  String get _maskedToken => "•" * 24;
 
   /// Copies [text] to the clipboard — fire-and-forget, exactly like the screenplay editor's own
   /// "Copy as Fountain" action.

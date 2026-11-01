@@ -390,28 +390,6 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     ];
   }
 
-  /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
-  /// symbol's own stored label.
-  static String symbolLabelValueOf(
-    OcptShotListState state,
-    OcptShotListFloorPlanPlacementsState placementsState,
-    String symbolId,
-  ) {
-    final pending =
-        placementsState.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
-    if (pending != null) {
-      return pending;
-    }
-    for (final floorPlanSet in state.setsOfSelectedSequence) {
-      for (final symbol in floorPlanSet.symbols) {
-        if (symbol.id == symbolId) {
-          return symbol.label;
-        }
-      }
-    }
-    return "";
-  }
-
   /// A move's own canvas callback: dispatches the plain move straight away, unless [symbolId]
   /// names a **set-scope** symbol whose own set is linked to two or more sequences, or a
   /// **scene-scope** one whose own sequence holds two or more shots, in which case it
@@ -539,6 +517,28 @@ class OcptShotListFloorPlanCentre extends StatelessWidget {
     return shotCount >= 2
         ? (setId: selectedSet.id, count: 0, level: OcptFloorPlanOverrideLevel.shot)
         : null;
+  }
+
+  /// [symbolId]'s current label value: a pending edit still in the bloc's debounce, or the
+  /// symbol's own stored label.
+  static String symbolLabelValueOf(
+    OcptShotListState state,
+    OcptShotListFloorPlanPlacementsState placementsState,
+    String symbolId,
+  ) {
+    final pending =
+        placementsState.pendingFieldEdits[OcptShotListSymbolLabelEditKey(symbolId: symbolId)];
+    if (pending != null) {
+      return pending;
+    }
+    for (final floorPlanSet in state.setsOfSelectedSequence) {
+      for (final symbol in floorPlanSet.symbols) {
+        if (symbol.id == symbolId) {
+          return symbol.label;
+        }
+      }
+    }
+    return "";
   }
 }
 

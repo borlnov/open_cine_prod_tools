@@ -61,6 +61,9 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
     required this.placedDayNumbersByShotId,
   });
 
+  @override
+  State<OcptScheduleShotPickerDialog> createState() => _OcptScheduleShotPickerDialogState();
+
   /// Shows the dialog and returns the id of the shot picked, or null if the user dismissed it.
   static Future<String?> show(
     BuildContext context, {
@@ -75,9 +78,6 @@ class OcptScheduleShotPickerDialog extends StatefulWidget {
       placedDayNumbersByShotId: placedDayNumbersByShotId,
     ),
   );
-
-  @override
-  State<OcptScheduleShotPickerDialog> createState() => _OcptScheduleShotPickerDialogState();
 }
 
 /// One episode's own section of the dialog's filtered list: its shot list snapshot's own
@@ -106,16 +106,6 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     super.initState();
     _searchController.addListener(_onQueryChanged);
   }
-
-  @override
-  void dispose() {
-    _searchController
-      ..removeListener(_onQueryChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _onQueryChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +169,8 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
       ],
     );
   }
+
+  void _onQueryChanged() => setState(() {});
 
   /// Every episode of [OcptScheduleShotPickerDialog.shotListSnapshots] with at least one sequence
   /// still matching the search field's own text, each such sequence's own shots already narrowed
@@ -262,6 +254,14 @@ class _OcptScheduleShotPickerDialogState extends State<OcptScheduleShotPickerDia
     }
 
     return null;
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_onQueryChanged)
+      ..dispose();
+    super.dispose();
   }
 }
 

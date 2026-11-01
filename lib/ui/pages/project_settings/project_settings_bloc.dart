@@ -93,23 +93,6 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
   /// a test hands in its own, since no url_launcher implementation answers under `flutter test`.
   final OcptFolderLauncher _launchFolder;
 
-  /// Class constructor
-  OcptProjectSettingsBloc({
-    OcptProjectsManager? projectsManager,
-    OcptExportManager? exportManager,
-    OcptSyncManager? syncManager,
-    OcptRelayHostManager? hostManager,
-    OcptPropertiesManager? propertiesManager,
-    OcptFolderLauncher? launchFolder,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
-       _exportManagerOverride = exportManager,
-       _syncManagerOverride = syncManager,
-       _hostManagerOverride = hostManager,
-       _propertiesManagerOverride = propertiesManager,
-       _launchFolder = launchFolder ?? launchUrl,
-       super(const OcptProjectSettingsState.init());
-
   /// The current project's database. The route that reaches this page is guarded exactly like the
   /// workspace's own, so a project is always open by the time an episode mutation runs.
   OcptProjectDatabase get _database => _projectsManager.currentProject!.database;
@@ -184,6 +167,23 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         ? managers.get<OcptPropertiesManager>()
         : null;
   }
+
+  /// Class constructor
+  OcptProjectSettingsBloc({
+    OcptProjectsManager? projectsManager,
+    OcptExportManager? exportManager,
+    OcptSyncManager? syncManager,
+    OcptRelayHostManager? hostManager,
+    OcptPropertiesManager? propertiesManager,
+    OcptFolderLauncher? launchFolder,
+  }) : _logger = buildOcptLogsHelper(_loggerCategory),
+       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+       _exportManagerOverride = exportManager,
+       _syncManagerOverride = syncManager,
+       _hostManagerOverride = hostManager,
+       _propertiesManagerOverride = propertiesManager,
+       _launchFolder = launchFolder ?? launchUrl,
+       super(const OcptProjectSettingsState.init());
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

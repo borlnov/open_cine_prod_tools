@@ -116,6 +116,35 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
   /// The end date currently picked, or null.
   DateTime? _endDate;
 
+  /// The fields this body would submit right now, or null while the `Quantity` or `Unit price`
+  /// fields' own figures do not parse.
+  OcptBudgetAllowanceFormFields? get _currentDraft {
+    final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
+    final unitAmountMilliCents = ocptMileageRateMilliCentsOf(_unitPriceController.text);
+    if (quantityMilli == null || unitAmountMilliCents == null) {
+      return null;
+    }
+
+    return OcptBudgetAllowanceFormFields(
+      personId: _personId,
+      kind: _kind,
+      label: _labelController.text.trim(),
+      date: _date,
+      endDate: _endDate,
+      quantityMilli: quantityMilli,
+      unitAmountMilliCents: unitAmountMilliCents,
+      notes: _notesController.text.trim(),
+    );
+  }
+
+  /// Whether the unit price is currently being picked from a scale rather than typed: a travel
+  /// defrayal, on a project that names at least one scale, with something other than
+  /// `Free amount…` chosen.
+  bool get _isPricedByScale =>
+      _kind == OcptBudgetAllowanceKind.travel &&
+      widget.mileageRates.isNotEmpty &&
+      _mileageRateId != null;
+
   @override
   void initState() {
     super.initState();
@@ -150,40 +179,6 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _quantityController.dispose();
-    _unitPriceController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
-  /// `onChanged` call this after applying its own change.
-  void _report() => widget.onDraftChanged(_currentDraft);
-
-  /// The fields this body would submit right now, or null while the `Quantity` or `Unit price`
-  /// fields' own figures do not parse.
-  OcptBudgetAllowanceFormFields? get _currentDraft {
-    final quantityMilli = ocptBudgetQuantityMilliOf(_quantityController.text);
-    final unitAmountMilliCents = ocptMileageRateMilliCentsOf(_unitPriceController.text);
-    if (quantityMilli == null || unitAmountMilliCents == null) {
-      return null;
-    }
-
-    return OcptBudgetAllowanceFormFields(
-      personId: _personId,
-      kind: _kind,
-      label: _labelController.text.trim(),
-      date: _date,
-      endDate: _endDate,
-      quantityMilli: quantityMilli,
-      unitAmountMilliCents: unitAmountMilliCents,
-      notes: _notesController.text.trim(),
-    );
   }
 
   @override
@@ -362,6 +357,10 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     );
   }
 
+  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// `onChanged` call this after applying its own change.
+  void _report() => widget.onDraftChanged(_currentDraft);
+
   /// The distance and rate the person currently picked would pre-fill, or null while they have
   /// neither — or while nobody is picked at all.
   ///
@@ -399,14 +398,6 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     _report();
   }
 
-  /// Whether the unit price is currently being picked from a scale rather than typed: a travel
-  /// defrayal, on a project that names at least one scale, with something other than
-  /// `Free amount…` chosen.
-  bool get _isPricedByScale =>
-      _kind == OcptBudgetAllowanceKind.travel &&
-      widget.mileageRates.isNotEmpty &&
-      _mileageRateId != null;
-
   /// The `Unit price` field's own helper: on a travel defrayal that no scale can price, it says
   /// where scales come from rather than leaving the reader to guess why none was offered.
   String? _unitPriceHelper(Tr tr) =>
@@ -435,6 +426,15 @@ class _OcptBudgetAllowanceFormBodyState extends State<OcptBudgetAllowanceFormBod
     OcptBudgetAllowanceKind.meal => tr.budgetAllowanceDialogQuantityHelperMeal,
     OcptBudgetAllowanceKind.other => tr.budgetAllowanceDialogQuantityHelperOther,
   };
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _quantityController.dispose();
+    _unitPriceController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 }
 
 /// The defrayal form's own `Nature` picker: `OcptBudgetAllowanceKind`'s own four values as a

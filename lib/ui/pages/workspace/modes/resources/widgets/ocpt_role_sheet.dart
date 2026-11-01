@@ -161,6 +161,39 @@ class OcptRoleSheet extends StatelessWidget {
   /// only ever reachable for a hand-added role, see [OcptRoleSheetEpisodesCard]'s own doc comment.
   final ValueChanged<Set<String>> onEpisodesChanged;
 
+  /// Whether deleting this role would actually remove it, which is what decides that the delete
+  /// action exists at all.
+  ///
+  /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
+  /// live rows, so the next save would insert that character right back as a fresh, uncast role —
+  /// the deletion would cost the casting and the notes without removing anything. Its existence
+  /// belongs to the screenplay, exactly as a scene's does to the scene index, so the way to remove
+  /// it is to remove the character's cues.
+  ///
+  /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
+  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from
+  /// a name matching a tombstoned, action-detected one — deliberately, since reading a name out of
+  /// an action line is a convention, not a syntax, and an acronym or a shouted word read as a
+  /// character needs a way out. Without this, that rule would have nothing to be reached by: the
+  /// sheet would offer no gesture at all to reject a false positive.
+  ///
+  /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
+  /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing
+  /// that matters here: nothing in the app will bring the row back once it is gone.
+  bool get _canBeDeleted =>
+      !role.isFromScreenplay ||
+      role.orphanedName != null ||
+      ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
+
+  /// Whether the sheet shows its own `Delete this role` action at the bottom.
+  ///
+  /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
+  /// variant already offers that very answer, paired with the other one — keeping it as a silent
+  /// role — and the two belong together. Repeating the action at the bottom of the sheet would ask
+  /// the same question twice, once with its alternative and once without. The collision variant
+  /// offers no delete of its own, so it never withholds this.
+  bool get _showsDeleteAction => _canBeDeleted && removedRoleAlert == null;
+
   /// Class constructor
   const OcptRoleSheet({
     super.key,
@@ -194,39 +227,6 @@ class OcptRoleSheet extends StatelessWidget {
     required this.onRoleElementRemoved,
     required this.onEpisodesChanged,
   });
-
-  /// Whether deleting this role would actually remove it, which is what decides that the delete
-  /// action exists at all.
-  ///
-  /// False for a role a dialogue cue still speaks: `OcptRoleIndexService.reconcile` only ever reads
-  /// live rows, so the next save would insert that character right back as a fresh, uncast role —
-  /// the deletion would cost the casting and the notes without removing anything. Its existence
-  /// belongs to the screenplay, exactly as a scene's does to the scene index, so the way to remove
-  /// it is to remove the character's cues.
-  ///
-  /// True for an **action-detected** role ([ocptRoleIsActionDetected]) even though the screenplay
-  /// still names it: `OcptRoleIndexService.reconcile`'s own rule 3 refuses to recreate a role from
-  /// a name matching a tombstoned, action-detected one — deliberately, since reading a name out of
-  /// an action line is a convention, not a syntax, and an acronym or a shouted word read as a
-  /// character needs a way out. Without this, that rule would have nothing to be reached by: the
-  /// sheet would offer no gesture at all to reject a false positive.
-  ///
-  /// True as well for a hand-added role, and for an orphaned one (whose character is gone, so
-  /// nothing will re-insert it) — the three cases this getter tells apart all share the one thing
-  /// that matters here: nothing in the app will bring the row back once it is gone.
-  bool get _canBeDeleted =>
-      !role.isFromScreenplay ||
-      role.orphanedName != null ||
-      ocptRoleIsActionDetected(isFromScreenplay: role.isFromScreenplay, kind: role.kind);
-
-  /// Whether the sheet shows its own `Delete this role` action at the bottom.
-  ///
-  /// An orphaned role is deletable but shows nothing here: the shared role alert banner's orphaned
-  /// variant already offers that very answer, paired with the other one — keeping it as a silent
-  /// role — and the two belong together. Repeating the action at the bottom of the sheet would ask
-  /// the same question twice, once with its alternative and once without. The collision variant
-  /// offers no delete of its own, so it never withholds this.
-  bool get _showsDeleteAction => _canBeDeleted && removedRoleAlert == null;
 
   @override
   Widget build(BuildContext context) {

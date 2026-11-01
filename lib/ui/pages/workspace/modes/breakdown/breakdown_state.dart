@@ -286,27 +286,6 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
     return snapshot == null ? const [] : ocptBreakdownSearchCandidatesOf(snapshot);
   }
 
-  /// [selectedTarget]'s own suggested occurrences, computed from scratch by [copyWith] whenever one
-  /// of the three things it derives from changes, and carried over unchanged otherwise.
-  ///
-  /// Empty while no target is selected — a passage is only ever suggested *for* something, and the
-  /// section that shows these is the selected target's own.
-  static List<OcptBreakdownSuggestion> _suggestionsOf({
-    required OcptBreakdownSnapshot? snapshot,
-    required String screenplayText,
-    required (OcptBreakdownTargetKind, String)? selectedTargetRef,
-  }) {
-    if (snapshot == null || selectedTargetRef == null) {
-      return const [];
-    }
-
-    return ocptBreakdownSuggestionsOf(
-      scenes: snapshot.scenes,
-      screenplayText: screenplayText,
-      target: selectedTargetRef,
-    );
-  }
-
   /// The raw `elements` row [selectedTarget] resolves to, or null while [selectedTarget] is null,
   /// names something other than an element, or — like [selectedTarget] itself — has disappeared
   /// from a freshly loaded [snapshot]. What the target inspector's Status, Category and Details
@@ -738,6 +717,27 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
         selectionEpoch: switchesToRecap ? selectionEpoch + 1 : null,
         selectionCause: switchesToRecap ? OcptBreakdownSelectionCause.centreView : null,
       );
+
+  /// [selectedTarget]'s own suggested occurrences, computed from scratch by [copyWith] whenever one
+  /// of the three things it derives from changes, and carried over unchanged otherwise.
+  ///
+  /// Empty while no target is selected — a passage is only ever suggested *for* something, and the
+  /// section that shows these is the selected target's own.
+  static List<OcptBreakdownSuggestion> _suggestionsOf({
+    required OcptBreakdownSnapshot? snapshot,
+    required String screenplayText,
+    required (OcptBreakdownTargetKind, String)? selectedTargetRef,
+  }) {
+    if (snapshot == null || selectedTargetRef == null) {
+      return const [];
+    }
+
+    return ocptBreakdownSuggestionsOf(
+      scenes: snapshot.scenes,
+      screenplayText: screenplayText,
+      target: selectedTargetRef,
+    );
+  }
 
   /// Object properties
   @override

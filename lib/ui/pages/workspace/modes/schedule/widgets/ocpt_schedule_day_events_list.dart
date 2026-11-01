@@ -254,18 +254,18 @@ class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLa
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
     onChanged: widget.onChanged,
     style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }
 
 /// An event row's own note field, below its hour and label line —
@@ -310,12 +310,6 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
     onChanged: widget.onChanged,
@@ -323,4 +317,10 @@ class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNot
     style: Theme.of(context).textTheme.bodySmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

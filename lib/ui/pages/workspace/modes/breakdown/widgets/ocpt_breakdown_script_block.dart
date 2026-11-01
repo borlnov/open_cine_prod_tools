@@ -389,6 +389,12 @@ TextAlign _textAlignOf(FountainElementLayout element) => switch (element.alignme
 /// How one word of the sheet is painted, decided once by `OcptBreakdownScriptBlock` per word from
 /// its own tag (if any) — see that class's own `_paintOf` for the rules.
 class _OcptBreakdownWordPaint {
+  /// A plain word: no tag, or one whose target does not resolve.
+  static const plain = _OcptBreakdownWordPaint();
+
+  /// A word that would overlap a live tag if the pending anchor's range closed on it.
+  static const blocked = _OcptBreakdownWordPaint(isBlocked: true);
+
   /// The tagged target's own colour, or null for a plain word (untagged, or its target gone) and
   /// for the two transient marks below, which never use a category colour.
   final Color? color;
@@ -425,6 +431,10 @@ class _OcptBreakdownWordPaint {
   /// in. An interior word trims neither end, so its whole-word wash still bridges to its neighbour.
   final bool trimTrailingAffix;
 
+  /// Whether this word wears the transient accent — the pending anchor or a word of the pending
+  /// range — rather than a category wash or nothing.
+  bool get isAccent => isPendingAnchor || isPendingRange;
+
   /// Class constructor
   const _OcptBreakdownWordPaint({
     this.color,
@@ -437,16 +447,6 @@ class _OcptBreakdownWordPaint {
     this.trimLeadingAffix = false,
     this.trimTrailingAffix = false,
   });
-
-  /// Whether this word wears the transient accent — the pending anchor or a word of the pending
-  /// range — rather than a category wash or nothing.
-  bool get isAccent => isPendingAnchor || isPendingRange;
-
-  /// A plain word: no tag, or one whose target does not resolve.
-  static const plain = _OcptBreakdownWordPaint();
-
-  /// A word that would overlap a live tag if the pending anchor's range closed on it.
-  static const blocked = _OcptBreakdownWordPaint(isBlocked: true);
 }
 
 /// A word's display runs split into the three parts a boundary highlight paints differently: the

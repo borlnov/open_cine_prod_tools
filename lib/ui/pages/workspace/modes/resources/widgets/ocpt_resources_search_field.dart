@@ -51,12 +51,6 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
@@ -87,5 +81,11 @@ class _OcptResourcesSearchFieldState extends State<OcptResourcesSearchField> {
   void _handleClear() {
     _controller.clear();
     widget.onChanged("");
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

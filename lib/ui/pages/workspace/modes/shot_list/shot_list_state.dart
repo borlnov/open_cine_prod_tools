@@ -463,27 +463,6 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
         pendingRevealRequest ?? (forcePendingRevealRequestValue ? null : this.pendingRevealRequest),
   );
 
-  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
-  /// whether a copy made with them re-reads the data (see [copyWith]).
-  static bool _isDataReplacedBy({
-    required Object? snapshot,
-    required Object? storyboardSnapshot,
-    required Object? floorPlanSnapshot,
-    required Object? locations,
-    required Object? setScopeSymbolsBySetId,
-    required Object? suggestions,
-    required Object? roles,
-    required Object? pageSetup,
-  }) =>
-      snapshot != null ||
-      storyboardSnapshot != null ||
-      floorPlanSnapshot != null ||
-      locations != null ||
-      setScopeSymbolsBySetId != null ||
-      suggestions != null ||
-      roles != null ||
-      pageSetup != null;
-
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsState.copyProjectVersionsState}
   @override
   OcptShotListState copyProjectVersionsState({
@@ -787,6 +766,27 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
 
   /// Copies this state with the write error dismissed.
   OcptShotListState copyWithWriteErrorDismissed() => copyWith(hasWriteError: false);
+
+  /// Whether any of the given pieces of data read from the project database is a new value, i.e.
+  /// whether a copy made with them re-reads the data (see [copyWith]).
+  static bool _isDataReplacedBy({
+    required Object? snapshot,
+    required Object? storyboardSnapshot,
+    required Object? floorPlanSnapshot,
+    required Object? locations,
+    required Object? setScopeSymbolsBySetId,
+    required Object? suggestions,
+    required Object? roles,
+    required Object? pageSetup,
+  }) =>
+      snapshot != null ||
+      storyboardSnapshot != null ||
+      floorPlanSnapshot != null ||
+      locations != null ||
+      setScopeSymbolsBySetId != null ||
+      suggestions != null ||
+      roles != null ||
+      pageSetup != null;
 
   /// Object properties
   @override

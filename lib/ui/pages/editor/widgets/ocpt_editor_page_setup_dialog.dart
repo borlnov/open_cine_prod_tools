@@ -24,6 +24,9 @@ class OcptEditorPageSetupDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorPageSetupDialog({required this.current, super.key});
 
+  @override
+  State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
+
   /// Shows the dialog and returns the [OcptPageSetup] the user applied, or null if they cancelled
   /// it.
   static Future<OcptPageSetup?> show(BuildContext context, {required OcptPageSetup current}) =>
@@ -31,9 +34,6 @@ class OcptEditorPageSetupDialog extends StatefulWidget {
         context: context,
         builder: (context) => OcptEditorPageSetupDialog(current: current),
       );
-
-  @override
-  State<OcptEditorPageSetupDialog> createState() => _OcptEditorPageSetupDialogState();
 }
 
 /// The state of [OcptEditorPageSetupDialog].
@@ -65,15 +65,6 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
     _rightController.text = margins.rightInches.toString();
     _topController.text = margins.topInches.toString();
     _bottomController.text = margins.bottomInches.toString();
-  }
-
-  @override
-  void dispose() {
-    _leftController.dispose();
-    _rightController.dispose();
-    _topController.dispose();
-    _bottomController.dispose();
-    super.dispose();
   }
 
   @override
@@ -307,5 +298,14 @@ class _OcptEditorPageSetupDialogState extends State<OcptEditorPageSetupDialog> {
       ),
     );
     globalGetIt().get<OcptRouterManager>().pop<OcptPageSetup>(setup);
+  }
+
+  @override
+  void dispose() {
+    _leftController.dispose();
+    _rightController.dispose();
+    _topController.dispose();
+    _bottomController.dispose();
+    super.dispose();
   }
 }

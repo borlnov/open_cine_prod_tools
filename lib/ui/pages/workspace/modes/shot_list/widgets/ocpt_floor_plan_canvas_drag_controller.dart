@@ -24,9 +24,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 class OcptFloorPlanCanvasDragController extends ChangeNotifier {
   OcptFloorPlanSymbolDragKind? _dragKind;
   bool _isDuplicatingDrag;
-
-  /// Class constructor
-  OcptFloorPlanCanvasDragController() : _isDuplicatingDrag = false;
   OcptFloorPlanSymbolLiveOverride? _liveOverride;
   OcptFloorPlanUnderlayDragKind? _underlayDragKind;
   ({double xM, double yM, double widthM, double heightM})? _liveUnderlayFrame;
@@ -47,6 +44,9 @@ class OcptFloorPlanCanvasDragController extends ChangeNotifier {
 
   /// The dragged arrow's own live bezier control point (metres), updated every frame of the drag.
   ({double xM, double yM})? get liveArrowCtrl => _liveArrowCtrl;
+
+  /// Class constructor
+  OcptFloorPlanCanvasDragController() : _isDuplicatingDrag = false;
 
   /// Starts a move drag on [symbol], arming the live preview at its own stored geometry.
   /// [isDuplicating] (`Alt` held at the start) makes it an `Alt`-drag duplicate: the live preview

@@ -67,12 +67,6 @@ class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasError = widget.errorText != null;
@@ -105,5 +99,11 @@ class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

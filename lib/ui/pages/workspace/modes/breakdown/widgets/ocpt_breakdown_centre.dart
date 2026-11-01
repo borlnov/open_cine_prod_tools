@@ -36,18 +36,6 @@ class OcptBreakdownCentre extends StatelessWidget {
   /// Class constructor
   const OcptBreakdownCentre({super.key, required this.state});
 
-  /// The compact role alert banner, or null while the whole cast is in order or a project version
-  /// is being previewed read-only.
-  Widget? _bannerOf(OcptBreakdownState state) {
-    final orphanedAlerts = state.orphanedRoleAlerts;
-    final collisionAlerts = state.roleCollisionAlerts;
-    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
-      return null;
-    }
-
-    return _RoleAlertBanner(orphanedAlerts: orphanedAlerts, collisionAlerts: collisionAlerts);
-  }
-
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBreakdownBloc>();
@@ -75,6 +63,18 @@ class OcptBreakdownCentre extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// The compact role alert banner, or null while the whole cast is in order or a project version
+  /// is being previewed read-only.
+  Widget? _bannerOf(OcptBreakdownState state) {
+    final orphanedAlerts = state.orphanedRoleAlerts;
+    final collisionAlerts = state.roleCollisionAlerts;
+    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
+      return null;
+    }
+
+    return _RoleAlertBanner(orphanedAlerts: orphanedAlerts, collisionAlerts: collisionAlerts);
   }
 }
 

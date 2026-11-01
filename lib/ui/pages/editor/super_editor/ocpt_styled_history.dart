@@ -11,17 +11,13 @@ import 'package:super_editor/super_editor.dart';
 /// The editor is resolved through a callback at call time, since the styled editor replaces it
 /// whenever its text is rebuilt from outside.
 final class OcptStyledHistory {
-  /// Creates an [OcptStyledHistory].
-  OcptStyledHistory({
-    required Editor Function() editorOf,
-    required void Function() syncSceneNumbers,
-    required void Function() reportReadState,
-  }) : mergePolicy = OcptSettleMergePolicy(),
-       _isRedoStackStale = false,
-       _isApplyingHistory = false,
-       _editorOf = editorOf,
-       _syncSceneNumbers = syncSceneNumbers,
-       _reportReadState = reportReadState;
+  /// The undo-grouping policy every editor this state builds runs on: what makes one Ctrl+Z
+  /// give back one gesture of the writer's plus everything this widget derived from it, rather
+  /// than one keystroke or one derived pass (see [OcptSettleMergePolicy]).
+  ///
+  /// Owned here rather than built per [Editor]: it carries the "a derived pass is running
+  /// right now" flag [runDerivedPass] raises, which every derived pass has to reach.
+  final OcptSettleMergePolicy mergePolicy;
 
   /// Resolves the editor whose history is undone and redone.
   final Editor Function() _editorOf;
@@ -31,17 +27,6 @@ final class OcptStyledHistory {
 
   /// Reports the fresh history state to the toolbar.
   final void Function() _reportReadState;
-
-  /// The editor whose history is undone and redone.
-  Editor get _editor => _editorOf();
-
-  /// The undo-grouping policy every editor this state builds runs on: what makes one Ctrl+Z
-  /// give back one gesture of the writer's plus everything this widget derived from it, rather
-  /// than one keystroke or one derived pass (see [OcptSettleMergePolicy]).
-  ///
-  /// Owned here rather than built per [Editor]: it carries the "a derived pass is running
-  /// right now" flag [runDerivedPass] raises, which every derived pass has to reach.
-  final OcptSettleMergePolicy mergePolicy;
 
   /// Whether the transactions the editor's `future` list still holds have been overtaken by an
   /// edit made since they were undone, i.e. whether a redo would replay them onto a document that
@@ -63,6 +48,30 @@ final class OcptStyledHistory {
   /// tells a restored document apart from an edit of the writer's.
   bool get isApplying => _isApplyingHistory;
 
+  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
+  /// `Undo` entry has anything to offer.
+  bool get canUndo => _editor.history.isNotEmpty;
+
+  /// Whether the last undone gesture can still be put back: there is one to put back, *and* no
+  /// edit has been made since it was undone (see [_isRedoStackStale] for why the second half
+  /// cannot be read off `Editor.future` alone).
+  bool get canRedo => !_isRedoStackStale && _editor.future.isNotEmpty;
+
+  /// The editor whose history is undone and redone.
+  Editor get _editor => _editorOf();
+
+  /// Creates an [OcptStyledHistory].
+  OcptStyledHistory({
+    required Editor Function() editorOf,
+    required void Function() syncSceneNumbers,
+    required void Function() reportReadState,
+  }) : mergePolicy = OcptSettleMergePolicy(),
+       _isRedoStackStale = false,
+       _isApplyingHistory = false,
+       _editorOf = editorOf,
+       _syncSceneNumbers = syncSceneNumbers,
+       _reportReadState = reportReadState;
+
   /// Marks the redo stack as overtaken by an edit made since the last undo.
   void markRedoStale() => _isRedoStackStale = true;
 
@@ -79,15 +88,6 @@ final class OcptStyledHistory {
   /// schedules them: `Editor.endTransaction` is what consults the policy, and it runs
   /// synchronously inside `execute`.
   void runDerivedPass(void Function() derivedPass) => mergePolicy.runDerivedPass(derivedPass);
-
-  /// Whether there is a gesture of the writer's left to take back, i.e. whether the `⋮` menu's
-  /// `Undo` entry has anything to offer.
-  bool get canUndo => _editor.history.isNotEmpty;
-
-  /// Whether the last undone gesture can still be put back: there is one to put back, *and* no
-  /// edit has been made since it was undone (see [_isRedoStackStale] for why the second half
-  /// cannot be read off `Editor.future` alone).
-  bool get canRedo => !_isRedoStackStale && _editor.future.isNotEmpty;
 
   /// Takes back the writer's last gesture, plus everything this widget derived from it (see
   /// [OcptSettleMergePolicy] for what makes those one step).

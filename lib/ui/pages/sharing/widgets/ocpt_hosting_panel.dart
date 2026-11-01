@@ -93,13 +93,6 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
   }
 
   @override
-  void dispose() {
-    _inviteController.dispose();
-    _portController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
@@ -188,6 +181,13 @@ class _OcptHostingPanelState extends State<OcptHostingPanel> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _inviteController.dispose();
+    _portController.dispose();
+    super.dispose();
+  }
 }
 
 /// [hostState]'s own status subtitle, shown under [OcptHostingPanel]'s own switch label.
@@ -205,14 +205,6 @@ String _statusLabel(Tr tr, OcptRelayHostState hostState) => switch (hostState) {
 /// host, and the port field re-binds the socket itself through [onPortChangeRequested] once
 /// "Appliquer" is pressed or the field is submitted — an invalid or empty port is silently ignored.
 class _OcptHostingAddressPortCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingAddressPortCard({
-    required this.state,
-    required this.portController,
-    required this.onAdvertisedAddressChanged,
-    required this.onPortChangeRequested,
-  });
-
   /// The state this card reads its own address/port facts off.
   final OcptHostingState state;
 
@@ -226,12 +218,13 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
   /// Called when the port field is applied, with the parsed port.
   final ValueChanged<int> onPortChangeRequested;
 
-  void _applyPort() {
-    final parsed = int.tryParse(portController.text.trim());
-    if (parsed != null) {
-      onPortChangeRequested(parsed);
-    }
-  }
+  /// Class constructor
+  const _OcptHostingAddressPortCard({
+    required this.state,
+    required this.portController,
+    required this.onAdvertisedAddressChanged,
+    required this.onPortChangeRequested,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +286,13 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
       ),
     );
   }
+
+  void _applyPort() {
+    final parsed = int.tryParse(portController.text.trim());
+    if (parsed != null) {
+      onPortChangeRequested(parsed);
+    }
+  }
 }
 
 /// The hosting panel's own QR-kind segmented button and the one QR it currently shows: a "join"
@@ -302,14 +302,14 @@ class _OcptHostingAddressPortCard extends StatelessWidget {
 /// pointing here — each with its own caption clarifying which is which, and a copy-link button
 /// copying the very same string the QR encodes.
 class _OcptHostingQrCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
-
   /// The state this card reads its own QR facts off.
   final OcptHostingState state;
 
   /// Called when the segmented button picks a different QR kind.
   final ValueChanged<OcptHostingQrKind> onQrKindChanged;
+
+  /// Class constructor
+  const _OcptHostingQrCard({required this.state, required this.onQrKindChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -376,11 +376,11 @@ class _OcptHostingQrCard extends StatelessWidget {
 /// `OcptPresenceIndicator`'s own reasoning — or [Tr.hostingNoPeers] while [roster] is null or
 /// empty.
 class _OcptHostingPeersCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingPeersCard({required this.roster});
-
   /// The roster this card draws, or null while none is known yet.
   final OcptPresenceRoster? roster;
+
+  /// Class constructor
+  const _OcptHostingPeersCard({required this.roster});
 
   @override
   Widget build(BuildContext context) {
@@ -419,11 +419,11 @@ class _OcptHostingPeersCard extends StatelessWidget {
 /// One connected-peer chip: [ocptPresenceColor]'s own deterministic dot, and [frame]'s own neutral
 /// `platform · <id fragment>` label.
 class _OcptHostingPeerChip extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingPeerChip({required this.frame});
-
   /// The frame this chip represents.
   final OcptPresenceFrame frame;
+
+  /// Class constructor
+  const _OcptHostingPeerChip({required this.frame});
 
   @override
   Widget build(BuildContext context) {
@@ -465,15 +465,6 @@ class _OcptHostingPeerChip extends StatelessWidget {
 /// opened ([isFormOpen]), it reveals an inline text field for the upstream `ocpt://join` invite and
 /// the "Réconcilier" button that runs it, plus [state]'s own result line once one exists.
 class _OcptHostingReconcileCard extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingReconcileCard({
-    required this.state,
-    required this.isFormOpen,
-    required this.controller,
-    required this.onOpenForm,
-    required this.onReconcileRequested,
-  });
-
   /// The state this card reads its own reconcile facts off.
   final OcptHostingState state;
 
@@ -488,6 +479,15 @@ class _OcptHostingReconcileCard extends StatelessWidget {
 
   /// Called when "Réconcilier" is pressed, with the field's own current text.
   final ValueChanged<String> onReconcileRequested;
+
+  /// Class constructor
+  const _OcptHostingReconcileCard({
+    required this.state,
+    required this.isFormOpen,
+    required this.controller,
+    required this.onOpenForm,
+    required this.onReconcileRequested,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -555,11 +555,11 @@ class _OcptHostingReconcileCard extends StatelessWidget {
 /// line otherwise — [OcptReconcileFailed.message] is never shown directly, exactly
 /// `OcptSharingState.pairingFailed`'s own reasoning (no `Tr` at the bloc layer to word it with).
 class _OcptHostingReconcileResultLine extends StatelessWidget {
-  /// Class constructor
-  const _OcptHostingReconcileResultLine({required this.outcome});
-
   /// The outcome this line renders.
   final OcptReconcileOutcome outcome;
+
+  /// Class constructor
+  const _OcptHostingReconcileResultLine({required this.outcome});
 
   @override
   Widget build(BuildContext context) {

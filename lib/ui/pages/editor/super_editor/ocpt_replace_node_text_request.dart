@@ -11,14 +11,18 @@ import 'package:super_editor/super_editor.dart';
 /// current selection offsets valid without a separate `ChangeSelectionRequest`).
 @immutable
 class OcptReplaceNodeTextRequest implements EditRequest {
-  /// Creates an [OcptReplaceNodeTextRequest].
-  const OcptReplaceNodeTextRequest({required this.nodeId, required this.text});
-
   /// The id of the `ParagraphNode` whose text is being replaced.
   final String nodeId;
 
   /// The new text for the node.
   final AttributedText text;
+
+  /// Object hash code
+  @override
+  int get hashCode => nodeId.hashCode ^ text.hashCode;
+
+  /// Creates an [OcptReplaceNodeTextRequest].
+  const OcptReplaceNodeTextRequest({required this.nodeId, required this.text});
 
   /// Object equality
   @override
@@ -28,8 +32,4 @@ class OcptReplaceNodeTextRequest implements EditRequest {
           runtimeType == other.runtimeType &&
           nodeId == other.nodeId &&
           text == other.text;
-
-  /// Object hash code
-  @override
-  int get hashCode => nodeId.hashCode ^ text.hashCode;
 }

@@ -15,25 +15,6 @@ import 'package:super_editor/super_editor.dart';
 /// The document, the editor and the line mapping are resolved through callbacks at call time,
 /// since the styled editor replaces all of them whenever its text is rebuilt from outside.
 final class OcptStyledJumpHandler {
-  /// Creates an [OcptStyledJumpHandler].
-  OcptStyledJumpHandler({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required OcptWysiwygLineMapping Function() mappingOf,
-    required int Function() titlePageNodeCountOf,
-    required int Function() titlePagePrefixLengthOf,
-    required GlobalKey documentLayoutKey,
-    required FocusNode focusNode,
-    required bool Function() isMounted,
-  }) : _documentOf = documentOf,
-       _editorOf = editorOf,
-       _mappingOf = mappingOf,
-       _titlePageNodeCountOf = titlePageNodeCountOf,
-       _titlePagePrefixLengthOf = titlePagePrefixLengthOf,
-       _documentLayoutKey = documentLayoutKey,
-       _focusNode = focusNode,
-       _isMounted = isMounted;
-
   /// Resolves the document the jump lands in.
   final MutableDocument Function() _documentOf;
 
@@ -66,6 +47,25 @@ final class OcptStyledJumpHandler {
 
   /// The editor executing the selection request.
   Editor get _editor => _editorOf();
+
+  /// Creates an [OcptStyledJumpHandler].
+  OcptStyledJumpHandler({
+    required MutableDocument Function() documentOf,
+    required Editor Function() editorOf,
+    required OcptWysiwygLineMapping Function() mappingOf,
+    required int Function() titlePageNodeCountOf,
+    required int Function() titlePagePrefixLengthOf,
+    required GlobalKey documentLayoutKey,
+    required FocusNode focusNode,
+    required bool Function() isMounted,
+  }) : _documentOf = documentOf,
+       _editorOf = editorOf,
+       _mappingOf = mappingOf,
+       _titlePageNodeCountOf = titlePageNodeCountOf,
+       _titlePagePrefixLengthOf = titlePagePrefixLengthOf,
+       _documentLayoutKey = documentLayoutKey,
+       _focusNode = focusNode,
+       _isMounted = isMounted;
 
   /// Moves the styled editor's selection to the start of the node containing [charOffset] of
   /// the line mapping's own source text, focuses the editor, and scrolls the target node's component

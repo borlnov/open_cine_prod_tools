@@ -99,14 +99,14 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         MixinOcptProjectPackageBloc<OcptShotListState>,
         MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>,
         MixinAsyncInitBloc<OcptShotListState> {
+  /// The default delay between the last field edit and its autosave write, for the view blocs.
+  static const defaultFieldEditDebounce = Duration(seconds: 2);
+
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_bloc";
 
   /// The logger this BLoC writes to.
   final LogsHelper _logger;
-
-  /// The default delay between the last field edit and its autosave write, for the view blocs.
-  static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -136,6 +136,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   final String? _selectedEpisodeId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Class constructor
   ///
@@ -203,16 +213,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     onAwaited<OcptShotListSetRemovedEvent>(_onSetRemoved);
     onAwaited<OcptShotListFloorPlanPlacementChangedEvent>(_onFloorPlanPlacementChanged);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
 
   /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
   /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
@@ -329,6 +329,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     await super.initAsyncBloc(emit: emit);
     await _load(emit);
   }
+
+  /// Writes every pending edit of the views directly to the database, without touching [state].
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring
+  /// `OcptStyledScreenplayEditor.deactivate()`: `deactivate()` runs before `dispose()` for every
+  /// removal from the tree (a mode switch swaps this whole subtree out, and so does the
+  /// workspace's own back navigation), so triggering the write here — rather than dispatching an
+  /// event, which would only be processed on a later microtask this widget might not survive to
+  /// see — is what guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Loads the persisted preferences and the current project's shot list, selecting its first
   /// sequence.
@@ -694,16 +704,6 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       addUnlessClosing(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }
-
-  /// Writes every pending edit of the views directly to the database, without touching [state].
-  ///
-  /// Called by the mode's own `deactivate()`, mirroring
-  /// `OcptStyledScreenplayEditor.deactivate()`: `deactivate()` runs before `dispose()` for every
-  /// removal from the tree (a mode switch swaps this whole subtree out, and so does the
-  /// workspace's own back navigation), so triggering the write here — rather than dispatching an
-  /// event, which would only be processed on a later microtask this widget might not survive to
-  /// see — is what guarantees the last [defaultFieldEditDebounce] worth of typing isn't lost.
-  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Deletes shot `event.shotId`, reselecting the sequence's own next first shot when it was the
   /// selected one (the sequence stays selected; null only while the sequence now holds none at all

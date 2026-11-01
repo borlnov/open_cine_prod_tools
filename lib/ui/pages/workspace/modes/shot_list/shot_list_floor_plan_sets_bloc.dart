@@ -63,9 +63,6 @@ class OcptShotListFloorPlanSetsBloc
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_floor_plan_sets_bloc";
 
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The centre X, in metres, a set's underlay is framed at the moment it is first imported —
   /// see [_onUnderlayImportRequested].
   static const _defaultUnderlayXM = 0.0;
@@ -79,6 +76,9 @@ class OcptShotListFloorPlanSetsBloc
 
   /// The height, in metres, a set's underlay is framed at the moment it is first imported.
   static const _defaultUnderlayHeightM = 4.0;
+
+  /// The logger this BLoC writes to.
+  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -199,6 +199,94 @@ class OcptShotListFloorPlanSetsBloc
     add(
       OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: event.modeState.selectedSequenceId),
     );
+  }
+
+  /// Writes every pending set name immediately: cancels the debounce timer (a no-op if it already
+  /// fired or there was none), writes each one, then has the mode read the floor plans and the
+  /// catalogue again and only then forgets them, so what a tab shows never falls back to a stale
+  /// stored name between the two. A no-op while nothing is pending.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date.
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptShotListFloorPlanSetsState> emitter) async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithFieldEditsCleared());
+      return true;
+    }
+
+    try {
+      await _writeAllPendingEdits(project: project, pending: pending);
+      await modeBloc.reload({
+        OcptShotListReloadScope.floorPlans,
+        OcptShotListReloadScope.locations,
+      });
+      emitter(
+        state.copyWithFlushedFieldEdits(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending set name of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      emitter(
+        state.copyToFlushFailed(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  /// Writes every pending set name directly to the database, bypassing the debounce timer, the
+  /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
+  /// leaving the tree, this bloc closing). A failure is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingEdits(project: project, pending: edits),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending set name of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
   }
 
   /// Reads the breakdown props of sequence `event.sequenceId` and offers them to the palette,
@@ -755,94 +843,6 @@ class OcptShotListFloorPlanSetsBloc
 
     if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-  }
-
-  /// Writes every pending set name immediately: cancels the debounce timer (a no-op if it already
-  /// fired or there was none), writes each one, then has the mode read the floor plans and the
-  /// catalogue again and only then forgets them, so what a tab shows never falls back to a stale
-  /// stored name between the two. A no-op while nothing is pending.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date.
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptShotListFloorPlanSetsState> emitter) async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithFieldEditsCleared());
-      return true;
-    }
-
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({
-        OcptShotListReloadScope.floorPlans,
-        OcptShotListReloadScope.locations,
-      });
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending set name of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyToFlushFailed(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    }
-
-    return true;
-  }
-
-  /// Writes every pending set name directly to the database, bypassing the debounce timer, the
-  /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
-  /// leaving the tree, this bloc closing). A failure is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending set name of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
     }
   }
 

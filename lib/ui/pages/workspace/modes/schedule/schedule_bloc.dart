@@ -132,6 +132,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// candidate's own convocation are resolved through on a day that does not shoot.
   final OcptRoleCandidatesService _roleCandidatesService;
 
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
+
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
@@ -200,16 +210,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     on<OcptScheduleShotSelectedEvent>(_onShotSelected);
     on<OcptScheduleProjectSettingsChangedEvent>(_onProjectSettingsChanged);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
 
   /// Writes whatever free-text field edit is still sitting in the field-edit debounce, so a preview
   /// about to swap the database can't send it into the previewed version instead, then clears the
@@ -313,6 +313,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     await super.initAsyncBloc(emit: emit);
     await _load(emit);
   }
+
+  /// Writes every pending edit of the views directly to the database, without touching [state].
+  ///
+  /// Called by the mode's own `deactivate()`, mirroring `OcptBreakdownBloc.flushPendingFieldEdits`:
+  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
+  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [defaultFieldEditDebounce] worth of typing isn't lost.
+  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Loads the current project's whole schedule read: the schedule itself, the shot list and the
   /// three resources catalogues.
@@ -790,16 +800,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     final run = await runPendingWritesFlushers();
     return !run.hasFailed;
   }
-
-  /// Writes every pending edit of the views directly to the database, without touching [state].
-  ///
-  /// Called by the mode's own `deactivate()`, mirroring `OcptBreakdownBloc.flushPendingFieldEdits`:
-  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
-  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
-  /// write here — rather than dispatching an event, which would only be processed on a later
-  /// microtask this widget might not survive to see — is what guarantees the last
-  /// [defaultFieldEditDebounce] worth of typing isn't lost.
-  Future<void> flushPendingFieldEdits() => runPendingWritesFlushersWithoutState();
 
   /// Dispatches [OcptProjectWorkingCopyRefreshRequestedEvent] while the `Versions` tab is the one
   /// currently open — see the class doc comment for why every write here counts as "a save landing

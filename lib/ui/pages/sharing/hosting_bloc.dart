@@ -62,6 +62,10 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
   /// online — see [_subscribeToPresence]/[_unsubscribeFromPresence].
   StreamSubscription<OcptPresenceRoster>? _presenceSubscription;
 
+  /// The current project — the route reaching this bloc is guarded exactly like the sharing bloc's
+  /// own, so a project is always open by the time this runs.
+  OcptOpenProjectModel get _project => _projectsManager.currentProject!;
+
   /// Class constructor
   OcptHostingBloc({
     OcptRelayHostManager? hostManager,
@@ -74,10 +78,6 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
        _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        super(const OcptHostingState.init());
-
-  /// The current project — the route reaching this bloc is guarded exactly like the sharing bloc's
-  /// own, so a project is always open by the time this runs.
-  OcptOpenProjectModel get _project => _projectsManager.currentProject!;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

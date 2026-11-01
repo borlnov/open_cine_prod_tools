@@ -97,18 +97,15 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
   /// scroll view's content (i.e. already including every margin/gap above it).
   List<double> _blockOffsets = const [];
 
+  /// The layout metrics matching the project's page setup.
+  FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
+
   @override
   void didUpdateWidget(OcptEditorPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentLine != widget.currentLine || oldWidget.document != widget.document) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _syncScrollToCurrentLine());
     }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   @override
@@ -251,9 +248,6 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
       ),
     ),
   );
-
-  /// The layout metrics matching the project's page setup.
-  FountainLayoutMetrics get _metrics => widget.pageSetup.toMetrics();
 
   /// Recomputes [_blocks], [_pages] and [_blockOffsets] if the document or the page-simulation
   /// flag changed since the last build.
@@ -413,5 +407,11 @@ class _OcptEditorPreviewState extends State<OcptEditorPreview> {
     }
 
     return candidate;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }

@@ -99,6 +99,11 @@ class OcptScheduleTimetableRow extends StatelessWidget {
   /// withheld — which also makes this row undraggable, [otherSlots] having nowhere left to matter.
   final ValueChanged<String>? onMovedToSlot;
 
+  /// Whether this row's own block names a sequence through `shooting_day_blocks.sceneId` — a hold
+  /// reserving one's time, or a rehearsal working it — which is what draws the sequence picker.
+  bool get _namesASequence =>
+      block.kind == OcptShootingBlockKind.hold || block.kind == OcptShootingBlockKind.rehearsal;
+
   /// Class constructor
   const OcptScheduleTimetableRow({
     super.key,
@@ -122,11 +127,6 @@ class OcptScheduleTimetableRow extends StatelessWidget {
     required this.onDeletionRequested,
     required this.onMovedToSlot,
   });
-
-  /// Whether this row's own block names a sequence through `shooting_day_blocks.sceneId` — a hold
-  /// reserving one's time, or a rehearsal working it — which is what draws the sequence picker.
-  bool get _namesASequence =>
-      block.kind == OcptShootingBlockKind.hold || block.kind == OcptShootingBlockKind.rehearsal;
 
   @override
   Widget build(BuildContext context) {

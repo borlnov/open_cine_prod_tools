@@ -54,6 +54,14 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// The logger this mixin writes to.
   final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
 
+  /// Whether a package is being written right now, which is what keeps a second `Export` from
+  /// starting one over it.
+  ///
+  /// A write streams a whole project and everything it references to disk: it can take long enough
+  /// for the user to reopen the panel, and two of them running against one save location is not a
+  /// thing this has to make sense of.
+  bool _isWritingProjectPackage = false;
+
   /// {@template open_cine_prod_tools.MixinOcptProjectPackageBloc.projectsManager}
   /// The manager owning the open project and the package service behind it.
   ///
@@ -85,14 +93,6 @@ mixin MixinOcptProjectPackageBloc<S extends MixinOcptProjectPackageState<S>> on 
   /// answers it once for both. Answers whether the export may go on: false writes no package.
   @protected
   Future<bool> flushPendingProjectWrites(Emitter<S> emitter);
-
-  /// Whether a package is being written right now, which is what keeps a second `Export` from
-  /// starting one over it.
-  ///
-  /// A write streams a whole project and everything it references to disk: it can take long enough
-  /// for the user to reopen the panel, and two of them running against one save location is not a
-  /// thing this has to make sense of.
-  bool _isWritingProjectPackage = false;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

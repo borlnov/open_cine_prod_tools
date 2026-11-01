@@ -48,20 +48,6 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
   /// Class constructor
   const _OcptDiagnosticsLogFileRow();
 
-  /// The file logger's own current log-file path, or null when file logging is disabled, its setup
-  /// failed, or no `OcptFileLoggingManager` can be resolved at all.
-  String? _resolveLogFilePath() {
-    if (AbsGlobalManager.instance == null) {
-      return null;
-    }
-
-    final managers = globalGetIt();
-
-    return managers.isRegistered<OcptFileLoggingManager>()
-        ? managers.get<OcptFileLoggingManager>().logFilePath
-        : null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -110,5 +96,19 @@ class _OcptDiagnosticsLogFileRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// The file logger's own current log-file path, or null when file logging is disabled, its setup
+  /// failed, or no `OcptFileLoggingManager` can be resolved at all.
+  String? _resolveLogFilePath() {
+    if (AbsGlobalManager.instance == null) {
+      return null;
+    }
+
+    final managers = globalGetIt();
+
+    return managers.isRegistered<OcptFileLoggingManager>()
+        ? managers.get<OcptFileLoggingManager>().logFilePath
+        : null;
   }
 }

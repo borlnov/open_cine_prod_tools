@@ -63,6 +63,9 @@ class OcptSharingPage extends StatelessWidget {
 /// Public, like `OcptProjectSettingsView`, for the same reason: a widget test pumps it directly
 /// with a `BlocProvider.value` wrapping an [OcptSharingBloc] built over injected managers.
 class OcptSharingView extends StatelessWidget {
+  final PlatformManager? _platformManager;
+  final bool? _isReadOnly;
+
   /// Class constructor
   ///
   /// [platformManager] and [isReadOnly] are the injectable seams over `globalGetIt()` a widget
@@ -71,47 +74,6 @@ class OcptSharingView extends StatelessWidget {
   const OcptSharingView({super.key, PlatformManager? platformManager, bool? isReadOnly})
     : _platformManager = platformManager,
       _isReadOnly = isReadOnly;
-
-  final PlatformManager? _platformManager;
-  final bool? _isReadOnly;
-
-  /// [_platformManager]'s own `isDesktop`, or the one `globalGetIt()` holds when there is an
-  /// app-wide manager environment that actually registered one, or false otherwise — the segmented
-  /// button (and the whole "Héberger sur ce poste" segment) never renders without a real desktop
-  /// platform underneath it, whether that is because a mode's own widget test never registered one
-  /// (harmless: nothing here tests hosting) or because the running build genuinely is mobile.
-  bool _isDesktop(BuildContext context) {
-    final override = _platformManager;
-    if (override != null) {
-      return override.isDesktop;
-    }
-    if (AbsGlobalManager.instance == null) {
-      return false;
-    }
-
-    final managers = globalGetIt();
-    return managers.isRegistered<PlatformManager>() && managers.get<PlatformManager>().isDesktop;
-  }
-
-  /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
-  /// manager environment registered one, or false otherwise — see [_isDesktop]'s own doc comment
-  /// for why a missing registration reads as the harmless case rather than a crash.
-  bool _readOnly(BuildContext context) {
-    final override = _isReadOnly;
-    if (override != null) {
-      return override;
-    }
-    if (AbsGlobalManager.instance == null) {
-      return false;
-    }
-
-    final managers = globalGetIt();
-    if (!managers.isRegistered<OcptProjectsManager>()) {
-      return false;
-    }
-
-    return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
-  }
 
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptSharingBloc, OcptSharingState>(
@@ -150,6 +112,44 @@ class OcptSharingView extends StatelessWidget {
       );
     },
   );
+
+  /// [_platformManager]'s own `isDesktop`, or the one `globalGetIt()` holds when there is an
+  /// app-wide manager environment that actually registered one, or false otherwise — the segmented
+  /// button (and the whole "Héberger sur ce poste" segment) never renders without a real desktop
+  /// platform underneath it, whether that is because a mode's own widget test never registered one
+  /// (harmless: nothing here tests hosting) or because the running build genuinely is mobile.
+  bool _isDesktop(BuildContext context) {
+    final override = _platformManager;
+    if (override != null) {
+      return override.isDesktop;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return false;
+    }
+
+    final managers = globalGetIt();
+    return managers.isRegistered<PlatformManager>() && managers.get<PlatformManager>().isDesktop;
+  }
+
+  /// [_isReadOnly], or [OcptProjectsManager.currentProject]'s own `isReadOnly` when an app-wide
+  /// manager environment registered one, or false otherwise — see [_isDesktop]'s own doc comment
+  /// for why a missing registration reads as the harmless case rather than a crash.
+  bool _readOnly(BuildContext context) {
+    final override = _isReadOnly;
+    if (override != null) {
+      return override;
+    }
+    if (AbsGlobalManager.instance == null) {
+      return false;
+    }
+
+    final managers = globalGetIt();
+    if (!managers.isRegistered<OcptProjectsManager>()) {
+      return false;
+    }
+
+    return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
+  }
 
   /// The remote-relay segment's own content — the existing ① Configure / ② Invite switch, entirely
   /// unchanged by this segment's addition.
@@ -204,12 +204,12 @@ class OcptSharingView extends StatelessWidget {
 /// A `StatefulWidget` for the one piece of state that belongs to this screen alone: which segment
 /// is selected — defaulting to [_OcptSharingSegment.remote], per the approved layout.
 class _OcptSharingSegmentedBody extends StatefulWidget {
-  /// Class constructor
-  const _OcptSharingSegmentedBody({required this.remoteBody});
-
   /// The remote-relay segment's own content, built once by [OcptSharingView] so it isn't rebuilt
   /// every time the segment selection itself changes.
   final Widget remoteBody;
+
+  /// Class constructor
+  const _OcptSharingSegmentedBody({required this.remoteBody});
 
   @override
   State<_OcptSharingSegmentedBody> createState() => _OcptSharingSegmentedBodyState();

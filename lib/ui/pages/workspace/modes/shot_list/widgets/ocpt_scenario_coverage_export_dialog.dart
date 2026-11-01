@@ -33,6 +33,9 @@ class OcptScenarioCoverageExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptScenarioCoverageExportDialog({required this.current, super.key});
 
+  @override
+  State<OcptScenarioCoverageExportDialog> createState() => _OcptScenarioCoverageExportDialogState();
+
   /// Shows the dialog and returns the [OcptScenarioCoverageExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptScenarioCoverageExportOptions?> show(
@@ -42,9 +45,6 @@ class OcptScenarioCoverageExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScenarioCoverageExportDialog(current: current),
   );
-
-  @override
-  State<OcptScenarioCoverageExportDialog> createState() => _OcptScenarioCoverageExportDialogState();
 }
 
 /// The state of [OcptScenarioCoverageExportDialog].

@@ -100,12 +100,6 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
   }
 
   @override
-  void dispose() {
-    _scrollPosition?.removeListener(_handleGeometryChanged);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => CompositedTransformTarget(
     link: _link,
     child: OverlayPortal(
@@ -168,6 +162,12 @@ class _OcptBreakdownTagPopoverAnchorState extends State<OcptBreakdownTagPopoverA
     if (mounted) {
       setState(() {});
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollPosition?.removeListener(_handleGeometryChanged);
+    super.dispose();
   }
 }
 

@@ -144,6 +144,158 @@ class OcptBreakdownInspectorBloc
     }
   }
 
+  /// Writes every pending element field edit, scene notes edit and set rename immediately: cancels
+  /// the debounce timer (a no-op if it already fired or there was none), writes each one through
+  /// `OcptElementsService.updateElement`/`OcptBreakdownService.updateSceneBreakdown`/
+  /// `OcptLocationsService.updateSet`, has the mode read the snapshot again so every derived
+  /// aggregate reflects what the database now says, and only then forgets what it wrote, so what a
+  /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
+  /// pending. Answers whether there was anything pending.
+  ///
+  /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is not
+  /// read again, and the flush answers true all the same: the action behind it goes ahead on the
+  /// value the database holds. A read that fails after the write landed forgets what was written
+  /// too, the mode having logged why it could not read.
+  ///
+  /// When the write landed and the `Versions` tab is the one showing, also asks the mode to refresh
+  /// its working-copy card.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date (a selection, a right dock tab change, a tag write, a version preview, an
+  /// export).
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptBreakdownInspectorState> emitter) async {
+    cancelDebounce();
+
+    final pendingElementFields = state.pendingElementFieldEdits;
+    final pendingSceneNotes = state.pendingSceneNotesEdits;
+    final pendingSetNames = state.pendingSetNameEdits;
+    if (!_hasPendingEdits(state)) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithPendingEditsCleared());
+      return true;
+    }
+
+    var hasWritten = true;
+    try {
+      await _writeAllPendingFields(
+        database: project.database,
+        elementFields: pendingElementFields,
+        sceneNotes: pendingSceneNotes,
+        setNames: pendingSetNames,
+      );
+    } catch (error, stackTrace) {
+      hasWritten = false;
+      _logger.e(
+        "A problem occurred when tried to flush a pending breakdown field edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+
+    if (hasWritten) {
+      await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
+    }
+
+    emitter(
+      state.copyWithPendingEditsWritten(
+        pendingElementFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingElementFieldEdits,
+          written: pendingElementFields,
+        ),
+        pendingSceneNotesEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingSceneNotesEdits,
+          written: pendingSceneNotes,
+        ),
+        pendingSetNameEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingSetNameEdits,
+          written: pendingSetNames,
+        ),
+      ),
+    );
+
+    // The other of the two moments the working-copy card needs a fresh read for (see
+    // `OcptBreakdownBloc._onRightDockTabSelected`): a field edit landing while the tab showing it
+    // is already open.
+    if (hasWritten && modeBloc.state.rightDockTab == OcptBreakdownRightDockTab.versions) {
+      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
+    }
+
+    return true;
+  }
+
+  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
+  /// own event queue and its state.
+  ///
+  /// Called by the mode's own `deactivate()` (through the flusher this bloc registered):
+  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
+  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
+  /// write here — rather than dispatching an event, which would only be processed on a later
+  /// microtask this widget might not survive to see — is what guarantees the last
+  /// [_fieldEditDebounce] worth of typing isn't lost.
+  ///
+  /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
+  /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
+  /// fresh state is already gone anyway. A failure here is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final pendingElementFields = state.pendingElementFieldEdits;
+    final pendingSceneNotes = state.pendingSceneNotesEdits;
+    final pendingSetNames = state.pendingSetNameEdits;
+    if (!_hasPendingEdits(state)) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        pendingElementFields,
+        (edits) => _writeAllPendingFields(
+          database: project.database,
+          elementFields: edits,
+          sceneNotes: const {},
+          setNames: const {},
+        ),
+      );
+      await flushEditsWithoutState(
+        pendingSceneNotes,
+        (edits) => _writeAllPendingFields(
+          database: project.database,
+          elementFields: const {},
+          sceneNotes: edits,
+          setNames: const {},
+        ),
+      );
+      await flushEditsWithoutState(
+        pendingSetNames,
+        (edits) => _writeAllPendingFields(
+          database: project.database,
+          elementFields: const {},
+          sceneNotes: const {},
+          setNames: edits,
+        ),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending breakdown field edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+  }
+
   /// Whether [inspectorState] holds a typed edit of any of the three kinds.
   bool _hasPendingEdits(OcptBreakdownInspectorState inspectorState) =>
       inspectorState.pendingElementFieldEdits.isNotEmpty ||
@@ -339,158 +491,6 @@ class OcptBreakdownInspectorBloc
     Emitter<OcptBreakdownInspectorState> emitter,
   ) async {
     await onFlushRequested(emitter);
-  }
-
-  /// Writes every pending element field edit, scene notes edit and set rename immediately: cancels
-  /// the debounce timer (a no-op if it already fired or there was none), writes each one through
-  /// `OcptElementsService.updateElement`/`OcptBreakdownService.updateSceneBreakdown`/
-  /// `OcptLocationsService.updateSet`, has the mode read the snapshot again so every derived
-  /// aggregate reflects what the database now says, and only then forgets what it wrote, so what a
-  /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
-  /// pending. Answers whether there was anything pending.
-  ///
-  /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is not
-  /// read again, and the flush answers true all the same: the action behind it goes ahead on the
-  /// value the database holds. A read that fails after the write landed forgets what was written
-  /// too, the mode having logged why it could not read.
-  ///
-  /// When the write landed and the `Versions` tab is the one showing, also asks the mode to refresh
-  /// its working-copy card.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date (a selection, a right dock tab change, a tag write, a version preview, an
-  /// export).
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptBreakdownInspectorState> emitter) async {
-    cancelDebounce();
-
-    final pendingElementFields = state.pendingElementFieldEdits;
-    final pendingSceneNotes = state.pendingSceneNotesEdits;
-    final pendingSetNames = state.pendingSetNameEdits;
-    if (!_hasPendingEdits(state)) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithPendingEditsCleared());
-      return true;
-    }
-
-    var hasWritten = true;
-    try {
-      await _writeAllPendingFields(
-        database: project.database,
-        elementFields: pendingElementFields,
-        sceneNotes: pendingSceneNotes,
-        setNames: pendingSetNames,
-      );
-    } catch (error, stackTrace) {
-      hasWritten = false;
-      _logger.e(
-        "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
-
-    if (hasWritten) {
-      await modeBloc.reload({OcptBreakdownReloadScope.snapshot});
-    }
-
-    emitter(
-      state.copyWithPendingEditsWritten(
-        pendingElementFieldEdits: ocptPendingEditsAfterWrite(
-          current: state.pendingElementFieldEdits,
-          written: pendingElementFields,
-        ),
-        pendingSceneNotesEdits: ocptPendingEditsAfterWrite(
-          current: state.pendingSceneNotesEdits,
-          written: pendingSceneNotes,
-        ),
-        pendingSetNameEdits: ocptPendingEditsAfterWrite(
-          current: state.pendingSetNameEdits,
-          written: pendingSetNames,
-        ),
-      ),
-    );
-
-    // The other of the two moments the working-copy card needs a fresh read for (see
-    // `OcptBreakdownBloc._onRightDockTabSelected`): a field edit landing while the tab showing it
-    // is already open.
-    if (hasWritten && modeBloc.state.rightDockTab == OcptBreakdownRightDockTab.versions) {
-      addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-
-    return true;
-  }
-
-  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
-  /// own event queue and its state.
-  ///
-  /// Called by the mode's own `deactivate()` (through the flusher this bloc registered):
-  /// `deactivate()` runs before `dispose()` for every removal from the tree (a mode switch swaps
-  /// this whole subtree out, and so does the workspace's own back navigation), so triggering the
-  /// write here — rather than dispatching an event, which would only be processed on a later
-  /// microtask this widget might not survive to see — is what guarantees the last
-  /// [_fieldEditDebounce] worth of typing isn't lost.
-  ///
-  /// Unlike [onFlushRequested], this never touches [state]: `emit` may only be called from inside
-  /// a registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final pendingElementFields = state.pendingElementFieldEdits;
-    final pendingSceneNotes = state.pendingSceneNotesEdits;
-    final pendingSetNames = state.pendingSetNameEdits;
-    if (!_hasPendingEdits(state)) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        pendingElementFields,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: edits,
-          sceneNotes: const {},
-          setNames: const {},
-        ),
-      );
-      await flushEditsWithoutState(
-        pendingSceneNotes,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: const {},
-          sceneNotes: edits,
-          setNames: const {},
-        ),
-      );
-      await flushEditsWithoutState(
-        pendingSetNames,
-        (edits) => _writeAllPendingFields(
-          database: project.database,
-          elementFields: const {},
-          sceneNotes: const {},
-          setNames: edits,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending breakdown field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
   }
 
   /// Writes every entry of [elementFields] through `OcptElementsService.updateElement`, translating

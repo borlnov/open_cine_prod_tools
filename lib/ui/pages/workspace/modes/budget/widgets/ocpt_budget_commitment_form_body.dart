@@ -128,6 +128,27 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
   /// The status currently picked.
   late OcptBudgetCommitmentStatus _status;
 
+  /// The fields this body would submit right now, or null while `Amount` does not parse or
+  /// `Label`/`Poste` is still missing.
+  OcptBudgetCommitmentFormFields? get _currentDraft {
+    final amountCents = ocptCostCentsOf(_amountController.text);
+    final posteId = _posteId;
+    final label = _labelController.text.trim();
+    if (amountCents == null || posteId == null || label.isEmpty) {
+      return null;
+    }
+
+    return OcptBudgetCommitmentFormFields(
+      dueDate: _dueDate,
+      label: label,
+      posteId: posteId,
+      amountCents: amountCents,
+      isTaxInclusive: _isTaxInclusive,
+      vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
+      status: _status,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -158,42 +179,6 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _amountController.dispose();
-    _vatRateController.dispose();
-    super.dispose();
-  }
-
-  /// Reports both [_currentDraft] and [_missingFieldsHintOf] to the host — every controller
-  /// listener and every picker's own `onChanged` call this after applying its own change.
-  void _report() {
-    widget.onDraftChanged(_currentDraft);
-    widget.onMissingFieldsHintChanged(_missingFieldsHintOf());
-  }
-
-  /// The fields this body would submit right now, or null while `Amount` does not parse or
-  /// `Label`/`Poste` is still missing.
-  OcptBudgetCommitmentFormFields? get _currentDraft {
-    final amountCents = ocptCostCentsOf(_amountController.text);
-    final posteId = _posteId;
-    final label = _labelController.text.trim();
-    if (amountCents == null || posteId == null || label.isEmpty) {
-      return null;
-    }
-
-    return OcptBudgetCommitmentFormFields(
-      dueDate: _dueDate,
-      label: label,
-      posteId: posteId,
-      amountCents: amountCents,
-      isTaxInclusive: _isTaxInclusive,
-      vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
-      status: _status,
-    );
   }
 
   @override
@@ -287,6 +272,13 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     );
   }
 
+  /// Reports both [_currentDraft] and [_missingFieldsHintOf] to the host — every controller
+  /// listener and every picker's own `onChanged` call this after applying its own change.
+  void _report() {
+    widget.onDraftChanged(_currentDraft);
+    widget.onMissingFieldsHintChanged(_missingFieldsHintOf());
+  }
+
   /// The `VAT` field's own hint while it is left empty — mirrors `OcptBudgetEntryDialog`'s own
   /// reading exactly.
   String? _effectiveDefaultVatRateHint(Tr tr) {
@@ -317,6 +309,14 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     }
 
     return null;
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _amountController.dispose();
+    _vatRateController.dispose();
+    super.dispose();
   }
 }
 

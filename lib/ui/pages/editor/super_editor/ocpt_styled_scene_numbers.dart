@@ -110,6 +110,25 @@ List<EditRequest> sceneNumberNormalizationRequests(Document document, {bool isHi
 /// every [ParagraphComponentViewModel] regardless of node type would therefore swallow every other
 /// builder's nodes too, never letting them run at all.
 class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
+  /// The delegate every scene-heading node's actual paragraph rendering is built through.
+  static const _delegate = ParagraphComponentBuilder();
+
+  /// The scene number to paint next to each scene-heading node, keyed by node id; a node with no
+  /// entry (should not normally happen once every heading has been numbered) renders with no
+  /// number at all.
+  final Map<String, String> sceneNumbers;
+
+  /// The width of the gutter available to paint a number in, in logical pixels: the scene
+  /// heading's own left indent, i.e. the space between the page's left edge and where its text
+  /// starts.
+  final double gutterWidth;
+
+  /// The gap kept between the painted number and the heading's own text, in logical pixels.
+  final double numberGap;
+
+  /// The text style the number is painted with.
+  final TextStyle textStyle;
+
   /// Creates an [OcptSceneNumberGutterComponentBuilder]. Prefer
   /// [OcptSceneNumberGutterComponentBuilder.build] over calling this directly: it derives
   /// [gutterWidth] and [numberGap] from an `OcptEditorPreviewLayout` consistently with the rest
@@ -135,25 +154,6 @@ class OcptSceneNumberGutterComponentBuilder implements ComponentBuilder {
     numberGap: layout.glyphWidth,
     textStyle: textStyle,
   );
-
-  /// The delegate every scene-heading node's actual paragraph rendering is built through.
-  static const _delegate = ParagraphComponentBuilder();
-
-  /// The scene number to paint next to each scene-heading node, keyed by node id; a node with no
-  /// entry (should not normally happen once every heading has been numbered) renders with no
-  /// number at all.
-  final Map<String, String> sceneNumbers;
-
-  /// The width of the gutter available to paint a number in, in logical pixels: the scene
-  /// heading's own left indent, i.e. the space between the page's left edge and where its text
-  /// starts.
-  final double gutterWidth;
-
-  /// The gap kept between the painted number and the heading's own text, in logical pixels.
-  final double numberGap;
-
-  /// The text style the number is painted with.
-  final TextStyle textStyle;
 
   /// Delegates to [ParagraphComponentBuilder] for every node, but only actually claims scene
   /// heading nodes (returning null for every other node lets the next builder in the list handle

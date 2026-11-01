@@ -17,6 +17,13 @@ import 'package:spell_kit/spell_kit.dart';
 /// class lives in a different file; only [OcptStyledEditorController] is meant to call these
 /// methods, and only the styled editor's own state is meant to implement them.
 abstract class OcptStyledEditorControllerDelegate {
+  /// Whether there is a gesture of the writer's left for [undo] to take back.
+  bool get canUndo;
+
+  /// Whether there is an undone gesture left for [redo] to put back *and* it can still be put
+  /// back — no edit having been made since it was undone.
+  bool get canRedo;
+
   /// Applies a manual block-type change (dropdown selection) to the currently selected block.
   void applyBlockType(FountainLineType type);
 
@@ -46,13 +53,6 @@ abstract class OcptStyledEditorControllerDelegate {
   /// length, are dropped rather than fed to the styler
   /// (`docs/architecture/screenplay.md`).
   void updateSpellCheckRanges(Map<String, List<SpellRange>> rangesByNodeId);
-
-  /// Whether there is a gesture of the writer's left for [undo] to take back.
-  bool get canUndo;
-
-  /// Whether there is an undone gesture left for [redo] to put back *and* it can still be put
-  /// back — no edit having been made since it was undone.
-  bool get canRedo;
 
   /// Takes back the writer's last gesture, plus everything the editor derived from it; does
   /// nothing when [canUndo] is false.

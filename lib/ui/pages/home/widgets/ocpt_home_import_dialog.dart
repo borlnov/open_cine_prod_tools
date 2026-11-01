@@ -33,13 +33,6 @@ class OcptHomeImportDialog extends StatelessWidget {
   /// Class constructor
   const OcptHomeImportDialog({super.key});
 
-  /// Shows the dialog and returns the kind of import the user picked, or null if they cancelled it
-  /// or picked no card at all.
-  static Future<OcptHomeImportKind?> show(BuildContext context) => showDialog<OcptHomeImportKind>(
-    context: context,
-    builder: (context) => const OcptHomeImportDialog(),
-  );
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -67,4 +60,11 @@ class OcptHomeImportDialog extends StatelessWidget {
       ],
     );
   }
+
+  /// Shows the dialog and returns the kind of import the user picked, or null if they cancelled it
+  /// or picked no card at all.
+  static Future<OcptHomeImportKind?> show(BuildContext context) => showDialog<OcptHomeImportKind>(
+    context: context,
+    builder: (context) => const OcptHomeImportDialog(),
+  );
 }

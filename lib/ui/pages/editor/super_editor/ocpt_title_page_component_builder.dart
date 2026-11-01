@@ -72,14 +72,6 @@ import 'package:super_editor/super_editor.dart';
 /// too (see `OcptSceneNumberGutterComponentBuilder`'s own doc comment for the same fact, and the
 /// bug it and this builder both had before `blockType` was checked here).
 class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
-  /// Creates an [OcptTitlePageComponentBuilder].
-  OcptTitlePageComponentBuilder({
-    required this.placeholders,
-    required this.hintStyleBuilder,
-    required this.metrics,
-  }) : _rowShiftByNodeId = {},
-       _placeholderFieldKeyByNodeId = {};
-
   /// The placeholder text to show for an empty field, keyed by [ocptTitlePageFieldKeys] (a key
   /// missing an entry, which should not normally happen, simply never gets a hint shown for it):
   /// this builder resolves which node, if any, gets a given field's hint itself (see
@@ -113,6 +105,14 @@ class OcptTitlePageComponentBuilder extends ParagraphComponentBuilder {
   /// same layout pass (mirrors [_rowShiftByNodeId]'s own lifetime, see the class-level doc comment
   /// for why that pattern is safe here). Absent for every node that isn't a field's first.
   final Map<String, String> _placeholderFieldKeyByNodeId;
+
+  /// Creates an [OcptTitlePageComponentBuilder].
+  OcptTitlePageComponentBuilder({
+    required this.placeholders,
+    required this.hintStyleBuilder,
+    required this.metrics,
+  }) : _rowShiftByNodeId = {},
+       _placeholderFieldKeyByNodeId = {};
 
   @override
   SingleColumnLayoutComponentViewModel? createViewModel(Document document, DocumentNode node) {

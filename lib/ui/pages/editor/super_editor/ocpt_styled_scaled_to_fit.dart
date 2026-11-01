@@ -22,14 +22,6 @@ import 'package:flutter/widgets.dart';
 /// [SizedBox] silently clamps back to that width instead of achieving the page's own (see
 /// `OcptEditorPreview` for the same trap).
 class OcptStyledScaledToFit extends StatelessWidget {
-  /// Creates an [OcptStyledScaledToFit].
-  const OcptStyledScaledToFit({
-    super.key,
-    required this.constraints,
-    required this.pageWidth,
-    required this.page,
-  });
-
   /// The constraints the panel hands down, compared against [pageWidth].
   final BoxConstraints constraints;
 
@@ -38,6 +30,14 @@ class OcptStyledScaledToFit extends StatelessWidget {
 
   /// The page content to lay out at [pageWidth].
   final Widget page;
+
+  /// Creates an [OcptStyledScaledToFit].
+  const OcptStyledScaledToFit({
+    super.key,
+    required this.constraints,
+    required this.pageWidth,
+    required this.page,
+  });
 
   @override
   Widget build(BuildContext context) {

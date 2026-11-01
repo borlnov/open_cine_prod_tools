@@ -31,6 +31,17 @@ class OcptEditorMetadataPanel extends StatelessWidget {
   /// the button is then not rendered at all.
   final VoidCallback? onEditTitlePage;
 
+  /// The Author field's display value: the `Author` entry, falling back to the `Authors` spelling
+  /// (both accepted on parse), or a dash when neither is present.
+  String get _authorValue {
+    final author = _rawValueOf('Author');
+    if (author.isNotEmpty) {
+      return author;
+    }
+    final authors = _rawValueOf('Authors');
+    return authors.isEmpty ? _dash : authors;
+  }
+
   /// Class constructor
   const OcptEditorMetadataPanel({
     super.key,
@@ -108,16 +119,5 @@ class OcptEditorMetadataPanel extends StatelessWidget {
   String _displayValueOf(String key) {
     final value = _rawValueOf(key);
     return value.isEmpty ? _dash : value;
-  }
-
-  /// The Author field's display value: the `Author` entry, falling back to the `Authors` spelling
-  /// (both accepted on parse), or a dash when neither is present.
-  String get _authorValue {
-    final author = _rawValueOf('Author');
-    if (author.isNotEmpty) {
-      return author;
-    }
-    final authors = _rawValueOf('Authors');
-    return authors.isEmpty ? _dash : authors;
   }
 }

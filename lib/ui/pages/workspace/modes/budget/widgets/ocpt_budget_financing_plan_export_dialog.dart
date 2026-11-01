@@ -32,6 +32,10 @@ class OcptBudgetFinancingPlanExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBudgetFinancingPlanExportDialog({required this.current, super.key});
 
+  @override
+  State<OcptBudgetFinancingPlanExportDialog> createState() =>
+      _OcptBudgetFinancingPlanExportDialogState();
+
   /// Shows the dialog and returns the [OcptBudgetFinancingPlanExportOptions] the user applied, or
   /// null if they cancelled it.
   static Future<OcptBudgetFinancingPlanExportOptions?> show(
@@ -41,10 +45,6 @@ class OcptBudgetFinancingPlanExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBudgetFinancingPlanExportDialog(current: current),
   );
-
-  @override
-  State<OcptBudgetFinancingPlanExportDialog> createState() =>
-      _OcptBudgetFinancingPlanExportDialogState();
 }
 
 /// The state of [OcptBudgetFinancingPlanExportDialog].

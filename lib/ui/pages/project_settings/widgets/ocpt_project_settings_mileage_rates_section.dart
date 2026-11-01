@@ -193,16 +193,44 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
   }
 
   @override
-  void dispose() {
-    _labelFocusNode
-      ..removeListener(_onLabelFocusChanged)
-      ..dispose();
-    _rateFocusNode
-      ..removeListener(_onRateFocusChanged)
-      ..dispose();
-    _labelController.dispose();
-    _rateController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _labelController,
+            focusNode: _labelFocusNode,
+            onSubmitted: (_) => _commitLabel(),
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: tr.projectSettingsMileageRateLabelHint,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 110,
+          child: TextField(
+            controller: _rateController,
+            focusNode: _rateFocusNode,
+            onSubmitted: (_) => _commitRate(),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, size: 18),
+          tooltip: tr.projectSettingsMileageRateDeleteTooltip,
+          visualDensity: VisualDensity.compact,
+          onPressed: widget.onDeleteRequested,
+        ),
+      ],
+    );
   }
 
   /// Commits the label field's current text once it loses focus.
@@ -248,43 +276,15 @@ class _OcptProjectSettingsMileageRateRowState extends State<_OcptProjectSettings
   }
 
   @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _labelController,
-            focusNode: _labelFocusNode,
-            onSubmitted: (_) => _commitLabel(),
-            style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: tr.projectSettingsMileageRateLabelHint,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _rateController,
-            focusNode: _rateFocusNode,
-            onSubmitted: (_) => _commitRate(),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: theme.textTheme.bodySmall,
-            decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete_outline, size: 18),
-          tooltip: tr.projectSettingsMileageRateDeleteTooltip,
-          visualDensity: VisualDensity.compact,
-          onPressed: widget.onDeleteRequested,
-        ),
-      ],
-    );
+  void dispose() {
+    _labelFocusNode
+      ..removeListener(_onLabelFocusChanged)
+      ..dispose();
+    _rateFocusNode
+      ..removeListener(_onRateFocusChanged)
+      ..dispose();
+    _labelController.dispose();
+    _rateController.dispose();
+    super.dispose();
   }
 }

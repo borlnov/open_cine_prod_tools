@@ -105,13 +105,6 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
   }
 
   @override
-  void dispose() {
-    _textController.dispose();
-    _fieldFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
@@ -144,6 +137,13 @@ class _OcptBreakdownSetPickerPopoverState extends State<OcptBreakdownSetPickerPo
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _fieldFocusNode.dispose();
+    super.dispose();
   }
 }
 

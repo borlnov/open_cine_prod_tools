@@ -124,6 +124,26 @@ class OcptEditorSpellCheckBloc
     unawaited(_reconcileSpellCheckLanguage());
   }
 
+  /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
+  /// right-click context menu awaits before it can show its suggestion entries at all
+  /// (`docs/architecture/screenplay.md`). This is a plain method the page `await`s
+  /// rather than a dispatched event, deliberately: an event has no channel back to its caller, and
+  /// a right-click can afford the one isolate round trip this costs (~1 ms once the dictionary is
+  /// warm) far better than every other spell-check path in this bloc could afford waiting on one.
+  ///
+  /// Returns `const []` immediately, with no isolate round trip at all, while spell-checking is
+  /// off (either `OcptEditorState.isSpellCheckVisible` or `OcptEditorState.screenplayLanguage` says
+  /// so) or a version is being previewed — the same three conditions every other spell-check path
+  /// here guards on.
+  Future<List<String>> spellingSuggestionsFor(String word) {
+    if (modeBloc.state.isPreviewingVersion ||
+        !modeBloc.state.isSpellCheckVisible ||
+        modeBloc.state.screenplayLanguage == null) {
+      return Future.value(const []);
+    }
+    return _spellCheckManager.suggestionsFor(word);
+  }
+
   /// Turns what the mode's state moved, other than a whole load, into a check or a dictionary
   /// update.
   ///
@@ -362,26 +382,6 @@ class OcptEditorSpellCheckBloc
     }
 
     emitter(state.copyWithStyledRanges(ranges: event.ranges));
-  }
-
-  /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
-  /// right-click context menu awaits before it can show its suggestion entries at all
-  /// (`docs/architecture/screenplay.md`). This is a plain method the page `await`s
-  /// rather than a dispatched event, deliberately: an event has no channel back to its caller, and
-  /// a right-click can afford the one isolate round trip this costs (~1 ms once the dictionary is
-  /// warm) far better than every other spell-check path in this bloc could afford waiting on one.
-  ///
-  /// Returns `const []` immediately, with no isolate round trip at all, while spell-checking is
-  /// off (either `OcptEditorState.isSpellCheckVisible` or `OcptEditorState.screenplayLanguage` says
-  /// so) or a version is being previewed — the same three conditions every other spell-check path
-  /// here guards on.
-  Future<List<String>> spellingSuggestionsFor(String word) {
-    if (modeBloc.state.isPreviewingVersion ||
-        !modeBloc.state.isSpellCheckVisible ||
-        modeBloc.state.screenplayLanguage == null) {
-      return Future.value(const []);
-    }
-    return _spellCheckManager.suggestionsFor(word);
   }
 
   /// Answers [OcptEditorWordIgnoredEvent]: tells [OcptSpellCheckManager.ignoreWord] and re-issues a

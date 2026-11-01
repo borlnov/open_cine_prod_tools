@@ -125,6 +125,18 @@ class OcptElementSheet extends StatelessWidget {
   /// [onPersonSheetOpenRequested], which is handed over unconditionally for the same reason.
   final ValueChanged<String> onRoleSheetOpenRequested;
 
+  /// The roles wearing, carrying or made up with this element, in the order its links came in —
+  /// the cast's own. A link naming a role the cast no longer holds is left out by
+  /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
+  List<OcptRole> get _rolesConcerned {
+    final roleById = {for (final role in roles) role.id: role};
+
+    return [
+      for (final link in element.roleLinks)
+        if (roleById[link.roleId] case final role?) role,
+    ];
+  }
+
   /// Class constructor
   const OcptElementSheet({
     super.key,
@@ -245,18 +257,6 @@ class OcptElementSheet extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// The roles wearing, carrying or made up with this element, in the order its links came in —
-  /// the cast's own. A link naming a role the cast no longer holds is left out by
-  /// `OcptElementsService.loadElements` already, so nothing here has to guard against one.
-  List<OcptRole> get _rolesConcerned {
-    final roleById = {for (final role in roles) role.id: role};
-
-    return [
-      for (final link in element.roleLinks)
-        if (roleById[link.roleId] case final role?) role,
-    ];
   }
 }
 

@@ -114,15 +114,6 @@ class OcptEditorSearchSync {
     searchBloc.add(OcptEditorSearchMatchesReportedEvent(matchCount: matchCount));
   }
 
-  /// The current find/replace query, built from [search], reused by every raw-mode search
-  /// operation ([syncRaw], [requestRawReplace], [requestRawReplaceAll]) so none of them
-  /// can drift from what the bar itself last reported.
-  OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorSearchState search) => OcptEditorSearchQuery(
-    query: search.query,
-    isCaseSensitive: search.isCaseSensitive,
-    isWholeWord: search.isWholeWord,
-  );
-
   /// Recomputes [_textController]'s matches from its own live text whenever the find/replace bar
   /// is open in raw mode, paints them through [_textController]'s own
   /// [OcptEditorSearchTextController.updateMatches], reports the count to the bloc, and navigates
@@ -357,4 +348,13 @@ class OcptEditorSearchSync {
 
     _styledEditorController.replaceAllMatches(search.replacement);
   }
+
+  /// The current find/replace query, built from [search], reused by every raw-mode search
+  /// operation ([syncRaw], [requestRawReplace], [requestRawReplaceAll]) so none of them
+  /// can drift from what the bar itself last reported.
+  OcptEditorSearchQuery _rawSearchQueryOf(OcptEditorSearchState search) => OcptEditorSearchQuery(
+    query: search.query,
+    isCaseSensitive: search.isCaseSensitive,
+    isWholeWord: search.isWholeWord,
+  );
 }

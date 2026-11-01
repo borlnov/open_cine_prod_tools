@@ -34,12 +34,6 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
   final _inviteLinkController = TextEditingController();
 
   @override
-  void dispose() {
-    _inviteLinkController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
@@ -83,4 +77,10 @@ class _OcptJoiningManualViewState extends State<OcptJoiningManualView> {
   /// Hands the invite link field's own raw text to [OcptJoiningManualView.onJoinRequested] as
   /// typed — see this class's own doc comment for why nothing is validated here.
   void _onJoinPressed() => widget.onJoinRequested(_inviteLinkController.text);
+
+  @override
+  void dispose() {
+    _inviteLinkController.dispose();
+    super.dispose();
+  }
 }

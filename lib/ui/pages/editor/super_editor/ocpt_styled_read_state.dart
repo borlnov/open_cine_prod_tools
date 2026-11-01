@@ -15,19 +15,6 @@ import 'package:super_editor/super_editor.dart';
 /// The document and the composer are resolved through callbacks at call time, since the styled
 /// editor replaces both whenever its text is rebuilt from outside.
 final class OcptStyledReadState {
-  /// Creates an [OcptStyledReadState].
-  OcptStyledReadState({
-    required OcptStyledEditorController? Function() controllerOf,
-    required MutableDocument Function() documentOf,
-    required MutableDocumentComposer Function() composerOf,
-    required bool Function() canUndoOf,
-    required bool Function() canRedoOf,
-  }) : _controllerOf = controllerOf,
-       _documentOf = documentOf,
-       _composerOf = composerOf,
-       _canUndoOf = canUndoOf,
-       _canRedoOf = canRedoOf;
-
   /// Resolves the controller the read state is reported to, or null when there is none.
   final OcptStyledEditorController? Function() _controllerOf;
 
@@ -48,6 +35,19 @@ final class OcptStyledReadState {
 
   /// The composer holding the selection.
   MutableDocumentComposer get _composer => _composerOf();
+
+  /// Creates an [OcptStyledReadState].
+  OcptStyledReadState({
+    required OcptStyledEditorController? Function() controllerOf,
+    required MutableDocument Function() documentOf,
+    required MutableDocumentComposer Function() composerOf,
+    required bool Function() canUndoOf,
+    required bool Function() canRedoOf,
+  }) : _controllerOf = controllerOf,
+       _documentOf = documentOf,
+       _composerOf = composerOf,
+       _canUndoOf = canUndoOf,
+       _canRedoOf = canRedoOf;
 
   /// Refreshes [OcptStyledEditorController]'s read side (the toolbar's dropdown/B-I-U state, and
   /// whether there is anything left to undo or redo) from the caret's current node type, the

@@ -52,13 +52,6 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
   String? _relayAddressError;
 
   @override
-  void dispose() {
-    _relayAddressController.dispose();
-    _enrolmentSecretController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
@@ -170,5 +163,12 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
 
     setState(() => _relayAddressError = null);
     widget.onPairRequested(uri, _enrolmentSecretController.text);
+  }
+
+  @override
+  void dispose() {
+    _relayAddressController.dispose();
+    _enrolmentSecretController.dispose();
+    super.dispose();
   }
 }

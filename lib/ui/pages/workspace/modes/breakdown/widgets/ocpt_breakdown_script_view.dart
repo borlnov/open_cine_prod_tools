@@ -231,35 +231,6 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
   }
 
   @override
-  void dispose() {
-    _keyboardFocusNode.dispose();
-    super.dispose();
-  }
-
-  /// Focuses [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
-  /// reaches it — deferred a frame because the node is not yet attached to the tree during the
-  /// build that opens the selection.
-  void _grabKeyboardFocusAfterFrame() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _hasOpenSelection) {
-        _keyboardFocusNode.requestFocus();
-      }
-    });
-  }
-
-  /// Abandons an open selection on `Escape`, letting every other key (and every `Escape` while no
-  /// selection is open) fall through untouched.
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.escape &&
-        _hasOpenSelection) {
-      widget.onSelectionCancelled();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (widget.scenes.isEmpty) {
       return OcptWorkspaceEmptyMode(
@@ -355,6 +326,29 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     );
   }
 
+  /// Focuses [_keyboardFocusNode] once the current frame is done, so an open selection's `Escape`
+  /// reaches it — deferred a frame because the node is not yet attached to the tree during the
+  /// build that opens the selection.
+  void _grabKeyboardFocusAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _hasOpenSelection) {
+        _keyboardFocusNode.requestFocus();
+      }
+    });
+  }
+
+  /// Abandons an open selection on `Escape`, letting every other key (and every `Escape` while no
+  /// selection is open) fall through untouched.
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        _hasOpenSelection) {
+      widget.onSelectionCancelled();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   /// [scene]'s own slice of the screenplay text, clamped to its bounds: the load that read the
   /// scenes and the one that read the text are the same snapshot read, so the offsets always fit,
   /// but a scene sliced this way is never worth a `RangeError` over.
@@ -362,6 +356,12 @@ class _OcptBreakdownScriptViewState extends State<OcptBreakdownScriptView> {
     final start = scene.charStart.clamp(0, widget.screenplayText.length);
     final end = scene.charEnd.clamp(start, widget.screenplayText.length);
     return widget.screenplayText.substring(start, end);
+  }
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
   }
 }
 

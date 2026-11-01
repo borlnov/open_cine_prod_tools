@@ -41,6 +41,12 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
   /// The manager used to read this replica's own device id.
   final OcptPropertiesManager _propertiesManager;
 
+  /// The current project's writable file — a re-point moves the project **file**'s own pairing and
+  /// ongoing sync session, never a read-only preview's (`OcptOpenProjectModel.fileDatabase`'s own
+  /// doc comment). The route that reaches this page is guarded exactly like the sharing screen's
+  /// own, so a project is always open by the time this runs.
+  OcptProjectDatabase get _database => _projectsManager.currentProject!.fileDatabase;
+
   /// Class constructor
   OcptRepointingBloc({
     OcptProjectsManager? projectsManager,
@@ -51,12 +57,6 @@ class OcptRepointingBloc extends BlocForMixin<OcptRepointingState>
        _syncManager = syncManager ?? globalGetIt().get<OcptSyncManager>(),
        _propertiesManager = propertiesManager ?? globalGetIt().get<OcptPropertiesManager>(),
        super(const OcptRepointingState.init());
-
-  /// The current project's writable file — a re-point moves the project **file**'s own pairing and
-  /// ongoing sync session, never a read-only preview's (`OcptOpenProjectModel.fileDatabase`'s own
-  /// doc comment). The route that reaches this page is guarded exactly like the sharing screen's
-  /// own, so a project is always open by the time this runs.
-  OcptProjectDatabase get _database => _projectsManager.currentProject!.fileDatabase;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

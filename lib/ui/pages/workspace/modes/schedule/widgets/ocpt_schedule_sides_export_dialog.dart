@@ -52,6 +52,9 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
     super.key,
   });
 
+  @override
+  State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
+
   /// Shows the dialog and returns the [OcptSidesExportOptions] the user applied, or null if they
   /// cancelled it.
   static Future<OcptSidesExportOptions?> show(
@@ -64,9 +67,6 @@ class OcptScheduleSidesExportDialog extends StatefulWidget {
     builder: (context) =>
         OcptScheduleSidesExportDialog(current: current, days: days, selectedDayId: selectedDayId),
   );
-
-  @override
-  State<OcptScheduleSidesExportDialog> createState() => _OcptScheduleSidesExportDialogState();
 }
 
 /// The state of [OcptScheduleSidesExportDialog].

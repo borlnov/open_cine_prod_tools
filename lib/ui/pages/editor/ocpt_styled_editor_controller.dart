@@ -65,6 +65,13 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// [updateReadState]; false while detached.
   bool _canRedo;
 
+  /// Whether [dispose] was already called, checked by a pending [_notifySafely] deferral before it
+  /// finally calls `notifyListeners()`: a post-frame callback can otherwise easily outlive this
+  /// controller (for example in a widget test that tears its tree down, disposing this controller,
+  /// before the next frame that would have run the callback ever gets pumped), and
+  /// `ChangeNotifier.notifyListeners()` asserts when called after [dispose].
+  bool _disposed;
+
   /// The match count the toolbar/page should currently show for the styled mode's own search.
   int get searchMatchCount => _searchMatchCount;
 
@@ -73,24 +80,6 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// `_onStyledEditorControllerChanged`) and dispatches a fresh bloc event whenever it actually
   /// changed, mirroring [searchMatchCount]'s own pattern.
   Map<String, String> get spellCheckTextsByNodeId => _spellCheckTextsByNodeId;
-
-  /// Whether [dispose] was already called, checked by a pending [_notifySafely] deferral before it
-  /// finally calls `notifyListeners()`: a post-frame callback can otherwise easily outlive this
-  /// controller (for example in a widget test that tears its tree down, disposing this controller,
-  /// before the next frame that would have run the callback ever gets pumped), and
-  /// `ChangeNotifier.notifyListeners()` asserts when called after [dispose].
-  bool _disposed;
-
-  /// Class constructor
-  OcptStyledEditorController()
-    : _currentBlockType = FountainLineType.action,
-      _activeInlineStyles = const {},
-      _searchMatchCount = 0,
-      _spellCheckRangesByNodeId = const {},
-      _spellCheckTextsByNodeId = const {},
-      _canUndo = false,
-      _canRedo = false,
-      _disposed = false;
 
   /// Whether a live styled editor is currently attached; false in raw mode.
   bool get isAttached => _delegate != null;
@@ -111,6 +100,17 @@ class OcptStyledEditorController extends ChangeNotifier {
   /// edit has overtaken, and this mirrors that same predicate rather than recomputing one of its
   /// own. False while detached (raw mode).
   bool get canRedo => _canRedo;
+
+  /// Class constructor
+  OcptStyledEditorController()
+    : _currentBlockType = FountainLineType.action,
+      _activeInlineStyles = const {},
+      _searchMatchCount = 0,
+      _spellCheckRangesByNodeId = const {},
+      _spellCheckTextsByNodeId = const {},
+      _canUndo = false,
+      _canRedo = false,
+      _disposed = false;
 
   /// Requests that the writer's last gesture be taken back, forwarded to the attached delegate; a
   /// no-op while detached (raw mode).

@@ -86,14 +86,14 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         MixinOcptProjectPackageBloc<OcptBudgetState>,
         MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope>,
         MixinAsyncInitBloc<OcptBudgetState> {
+  /// The default delay between the last field edit and its autosave write, for the expenses view.
+  static const defaultFieldEditDebounce = Duration(seconds: 2);
+
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "budget_bloc";
 
   /// The logger this BLoC writes to.
   final LogsHelper _logger;
-
-  /// The default delay between the last field edit and its autosave write, for the expenses view.
-  static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -109,6 +109,16 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Reads the whole budget from the open project, see [OcptBudgetSnapshotLoader].
   final OcptBudgetSnapshotLoader _loader;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Class constructor
   ///
@@ -162,16 +172,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetRevenueSelectedEvent>(_onRevenueSelected);
     on<OcptBudgetShareSelectedEvent>(_onShareSelected);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
 
   /// Has every view write what it holds, so a preview about to swap the database can't send a typed
   /// edit into the previewed version instead, then clears the selection: whatever it named out of
@@ -240,18 +240,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     return isReloaded;
   }
 
-  /// Asks every view to write what it holds, and answers whether they all could.
-  ///
-  /// Nothing in this mode catches a failed write: the view that failed keeps its edit pending, the
-  /// views after it are still asked, and the action this flush was for (a selection, a view or dock
-  /// change, an export, a version preview) does not happen. Selecting a resource, a taking, a share
-  /// or a receipt, going back and creating a record never ask: an edit typed before them is written
-  /// by its own debounce.
-  Future<bool> _flushAllPendingWrites() async {
-    final run = await runPendingWritesFlushers();
-    return !run.hasFailed;
-  }
-
   /// Writes every pending edit of the views directly to the database, without touching [state].
   ///
   /// Called by the mode's own `deactivate()`, mirroring `OcptScheduleBloc.flushPendingFieldEdits`:
@@ -275,6 +263,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   Future<void> initAsyncBloc({required Emitter<OcptBudgetState> emit}) async {
     await super.initAsyncBloc(emit: emit);
     await _load(emit);
+  }
+
+  /// Asks every view to write what it holds, and answers whether they all could.
+  ///
+  /// Nothing in this mode catches a failed write: the view that failed keeps its edit pending, the
+  /// views after it are still asked, and the action this flush was for (a selection, a view or dock
+  /// change, an export, a version preview) does not happen. Selecting a resource, a taking, a share
+  /// or a receipt, going back and creating a record never ask: an edit typed before them is written
+  /// by its own debounce.
+  Future<bool> _flushAllPendingWrites() async {
+    final run = await runPendingWritesFlushers();
+    return !run.hasFailed;
   }
 
   /// Loads the current project's whole budget through [_loader] (which seeds the ten CNC postes on

@@ -14,21 +14,20 @@ import 'package:super_editor/super_editor.dart';
 /// The document and the editor are resolved through callbacks at call time, since the styled
 /// editor replaces both whenever its text is rebuilt from outside.
 final class OcptStyledPageSimulation {
-  /// Creates an [OcptStyledPageSimulation].
-  OcptStyledPageSimulation({
-    required MutableDocument Function() documentOf,
-    required Editor Function() editorOf,
-    required void Function(VoidCallback derivedPass) runDerivedPass,
-    required bool Function() isEnabled,
-    required OcptPageSetup Function() pageSetupOf,
-  }) : pageCount = 0,
-       titlePageSheetCount = 0,
-       trailingBottomPadding = 0,
-       _documentOf = documentOf,
-       _editorOf = editorOf,
-       _runDerivedPass = runDerivedPass,
-       _isEnabled = isEnabled,
-       _pageSetupOf = pageSetupOf;
+  /// The number of simulated pages the document currently spans while page simulation is on
+  /// (always 0 while it's off), set by [recompute].
+  int pageCount;
+
+  /// How many of those [pageCount] pages the title page takes up before the script itself starts
+  /// (always 0 while page simulation is off), set by [recompute]: the offset a painted sheet's
+  /// index needs before it means a **script** page number (see
+  /// [OcptStyledPagination.titlePageSheetCount]).
+  int titlePageSheetCount;
+
+  /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
+  /// scrollable content reaches all the way down to the last simulated page's own bottom margin
+  /// (always 0 while page simulation is off), set by [recompute].
+  double trailingBottomPadding;
 
   /// Resolves the document the pagination is computed over.
   final MutableDocument Function() _documentOf;
@@ -45,33 +44,27 @@ final class OcptStyledPageSimulation {
   /// Resolves the page setup driving the layout metrics.
   final OcptPageSetup Function() _pageSetupOf;
 
-  /// The number of simulated pages the document currently spans while page simulation is on
-  /// (always 0 while it's off), set by [recompute].
-  int pageCount;
-
-  /// How many of those [pageCount] pages the title page takes up before the script itself starts
-  /// (always 0 while page simulation is off), set by [recompute]: the offset a painted sheet's
-  /// index needs before it means a **script** page number (see
-  /// [OcptStyledPagination.titlePageSheetCount]).
-  int titlePageSheetCount;
-
-  /// The extra bottom padding the stylesheet's `documentPadding` needs so the document's
-  /// scrollable content reaches all the way down to the last simulated page's own bottom margin
-  /// (always 0 while page simulation is off), set by [recompute].
-  double trailingBottomPadding;
-
   /// The document the pagination is computed over.
   MutableDocument get _document => _documentOf();
 
   /// The editor executing the page-start requests.
   Editor get _editor => _editorOf();
 
-  /// The exact top padding (in logical pixels) [node] currently carries in
-  /// [ocptStartsNewPageMetadataKey] metadata, or 0 if it doesn't start a page.
-  static double _pageStartPaddingOf(ParagraphNode node) {
-    final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
-    return value is double ? value : 0;
-  }
+  /// Creates an [OcptStyledPageSimulation].
+  OcptStyledPageSimulation({
+    required MutableDocument Function() documentOf,
+    required Editor Function() editorOf,
+    required void Function(VoidCallback derivedPass) runDerivedPass,
+    required bool Function() isEnabled,
+    required OcptPageSetup Function() pageSetupOf,
+  }) : pageCount = 0,
+       titlePageSheetCount = 0,
+       trailingBottomPadding = 0,
+       _documentOf = documentOf,
+       _editorOf = editorOf,
+       _runDerivedPass = runDerivedPass,
+       _isEnabled = isEnabled,
+       _pageSetupOf = pageSetupOf;
 
   /// Recomputes which nodes start a fresh simulated page (their exact top padding stored as
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
@@ -131,5 +124,12 @@ final class OcptStyledPageSimulation {
     pageCount = pagination.pageCount;
     titlePageSheetCount = pagination.titlePageSheetCount;
     trailingBottomPadding = pagination.trailingBottomPadding;
+  }
+
+  /// The exact top padding (in logical pixels) [node] currently carries in
+  /// [ocptStartsNewPageMetadataKey] metadata, or 0 if it doesn't start a page.
+  static double _pageStartPaddingOf(ParagraphNode node) {
+    final value = node.getMetadataValue(ocptStartsNewPageMetadataKey);
+    return value is double ? value : 0;
   }
 }

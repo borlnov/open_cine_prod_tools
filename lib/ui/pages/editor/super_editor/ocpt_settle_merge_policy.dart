@@ -44,9 +44,6 @@ const Duration ocptTypingMergeWindow = Duration(milliseconds: 700);
 /// history by this class at all: that one is refused history by its own commands instead (see
 /// `sceneNumberNormalizationRequests`'s `isHistorical`).
 class OcptSettleMergePolicy implements HistoryGroupingPolicy {
-  /// Creates an [OcptSettleMergePolicy].
-  OcptSettleMergePolicy() : _isSettling = false;
-
   /// The policies a transaction closed outside a derived pass is judged by: super_editor's own
   /// repeat-selection policy, plus this app's own typing-run policy in place of
   /// [MergeRapidTextInputPolicy] (see [OcptTypingRunMergePolicy] for why the stock one cannot be
@@ -60,6 +57,9 @@ class OcptSettleMergePolicy implements HistoryGroupingPolicy {
   /// belongs to the editor's own settle/renumber/repaginate work rather than to a gesture of the
   /// writer's. Raised only by [runDerivedPass].
   bool _isSettling;
+
+  /// Creates an [OcptSettleMergePolicy].
+  OcptSettleMergePolicy() : _isSettling = false;
 
   /// Runs [derivedPass] with the settling flag raised, so every transaction it closes merges onto
   /// the transaction that caused it instead of becoming an undo step of its own.

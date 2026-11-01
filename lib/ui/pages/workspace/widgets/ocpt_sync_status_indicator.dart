@@ -42,21 +42,6 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// read-only preview (`isReadOnly`) all four are withheld — a null callback, never merely a
 /// disabled one, exactly as every other affordance that writes does.
 class OcptSyncStatusIndicator extends StatelessWidget {
-  /// Class constructor
-  ///
-  /// [syncManager] and [routerManager] are the injectable seams over `globalGetIt()` a widget test
-  /// hands in instead. [isReadOnly] defaults to reading
-  /// [OcptProjectsManager.currentProject]'s own `isReadOnly` through `globalGetIt()`, so a test can
-  /// simply pass the boolean it wants rather than fake the whole projects manager for it.
-  const OcptSyncStatusIndicator({
-    super.key,
-    OcptSyncManager? syncManager,
-    OcptRouterManager? routerManager,
-    bool? isReadOnly,
-  }) : _syncManager = syncManager,
-       _routerManager = routerManager,
-       _isReadOnly = isReadOnly;
-
   final OcptSyncManager? _syncManager;
   final OcptRouterManager? _routerManager;
   final bool? _isReadOnly;
@@ -105,6 +90,21 @@ class OcptSyncStatusIndicator extends StatelessWidget {
     return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
   }
 
+  /// Class constructor
+  ///
+  /// [syncManager] and [routerManager] are the injectable seams over `globalGetIt()` a widget test
+  /// hands in instead. [isReadOnly] defaults to reading
+  /// [OcptProjectsManager.currentProject]'s own `isReadOnly` through `globalGetIt()`, so a test can
+  /// simply pass the boolean it wants rather than fake the whole projects manager for it.
+  const OcptSyncStatusIndicator({
+    super.key,
+    OcptSyncManager? syncManager,
+    OcptRouterManager? routerManager,
+    bool? isReadOnly,
+  }) : _syncManager = syncManager,
+       _routerManager = routerManager,
+       _isReadOnly = isReadOnly;
+
   @override
   Widget build(BuildContext context) {
     final manager = _sync;
@@ -146,14 +146,6 @@ class OcptSyncStatusIndicator extends StatelessWidget {
 /// [_OcptSyncStatusPanel] on tap, over the exact `MenuAnchor`/`builder` idiom
 /// `OcptLocationSheetHeader`'s own colour bar already uses for a popover triggered by a badge.
 class _OcptSyncStatusBadge extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusBadge({
-    required this.status,
-    required this.onSyncNowRequested,
-    required this.onSharingRequested,
-    required this.onSwitchRelayRequested,
-  });
-
   /// The status this badge (and the panel it opens) renders.
   final OcptSyncStatus status;
 
@@ -168,6 +160,14 @@ class _OcptSyncStatusBadge extends StatelessWidget {
   /// Called when the panel's `Changer de relais…` action is chosen, or null while the badge must
   /// withhold it (a read-only preview).
   final VoidCallback? onSwitchRelayRequested;
+
+  /// Class constructor
+  const _OcptSyncStatusBadge({
+    required this.status,
+    required this.onSyncNowRequested,
+    required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -217,14 +217,14 @@ class _OcptSyncStatusBadge extends StatelessWidget {
 /// The badge's leading glyph: a small spinner while [OcptSyncStatusSyncing], a static dot
 /// otherwise — the mock-up's own "small spinner" for the one state actually in flight.
 class _OcptSyncStatusGlyph extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusGlyph({required this.status, required this.color});
-
   /// The status deciding whether this glyph spins.
   final OcptSyncStatus status;
 
   /// The colour tinting the glyph, matching the badge's own text.
   final Color color;
+
+  /// Class constructor
+  const _OcptSyncStatusGlyph({required this.status, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -246,14 +246,6 @@ class _OcptSyncStatusGlyph extends StatelessWidget {
 /// The panel [_OcptSyncStatusBadge] opens on tap: the current state (plus the relay's own error
 /// message, when there is one) and the three actions the mock-up gives the indicator.
 class _OcptSyncStatusPanel extends StatelessWidget {
-  /// Class constructor
-  const _OcptSyncStatusPanel({
-    required this.status,
-    required this.onSyncNowRequested,
-    required this.onSharingRequested,
-    required this.onSwitchRelayRequested,
-  });
-
   /// The status this panel describes.
   final OcptSyncStatus status;
 
@@ -265,6 +257,14 @@ class _OcptSyncStatusPanel extends StatelessWidget {
 
   /// Forwarded from [_OcptSyncStatusBadge], see its own doc comment.
   final VoidCallback? onSwitchRelayRequested;
+
+  /// Class constructor
+  const _OcptSyncStatusPanel({
+    required this.status,
+    required this.onSyncNowRequested,
+    required this.onSharingRequested,
+    required this.onSwitchRelayRequested,
+  });
 
   @override
   Widget build(BuildContext context) {

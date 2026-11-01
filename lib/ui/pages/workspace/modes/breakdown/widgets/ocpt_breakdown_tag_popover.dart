@@ -119,25 +119,6 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
   }
 
   @override
-  void dispose() {
-    _controller
-      ..removeListener(_onQueryChanged)
-      ..dispose();
-    _fieldFocusNode.dispose();
-    super.dispose();
-  }
-
-  /// Recomputes the results against the field's current text.
-  void _onQueryChanged() {
-    setState(() {
-      _results = ocptBreakdownSearchCatalogues(
-        query: _controller.text,
-        candidates: widget.candidates,
-      );
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -250,12 +231,31 @@ class _OcptBreakdownTagPopoverState extends State<OcptBreakdownTagPopover> {
     );
   }
 
+  /// Recomputes the results against the field's current text.
+  void _onQueryChanged() {
+    setState(() {
+      _results = ocptBreakdownSearchCatalogues(
+        query: _controller.text,
+        candidates: widget.candidates,
+      );
+    });
+  }
+
   /// The name a creation would use: the field's own trimmed text, falling back to the untouched
   /// passage when the user cleared it — a click on a category chip must never create a nameless
   /// element.
   String _nameFromField() {
     final trimmed = _controller.text.trim();
     return trimmed.isEmpty ? widget.taggedText : trimmed;
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_onQueryChanged)
+      ..dispose();
+    _fieldFocusNode.dispose();
+    super.dispose();
   }
 }
 

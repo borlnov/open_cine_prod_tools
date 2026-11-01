@@ -108,30 +108,6 @@ class OcptEditorDialogFlows {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
-  /// source and the typeset PDF. Both are always available — see `OcptEditorExportDocument`'s own
-  /// doc comment.
-  static List<OcptWorkspaceExportEntry<OcptEditorExportDocument>> _exportEntries(
-    BuildContext context,
-  ) {
-    final tr = Tr.of(context);
-
-    return [
-      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
-        value: OcptEditorExportDocument.fountain,
-        title: tr.editorExportFountainTitle,
-        description: tr.editorExportFountainDescription,
-        formatLabel: ".fountain",
-      ),
-      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
-        value: OcptEditorExportDocument.pdf,
-        title: tr.editorExportPdfTitle,
-        description: tr.editorExportPdfDescription,
-        formatLabel: "PDF",
-      ),
-    ];
-  }
-
   /// Opens the export panel, then dispatches the picked document's own request: the `.fountain`
   /// export event directly (it opens no options dialog of its own), or [_exportPdf], which
   /// opens the PDF export options dialog exactly as it always has.
@@ -170,43 +146,6 @@ class OcptEditorDialogFlows {
     }
   }
 
-  /// Shows the PDF export options dialog, then dispatches the export request if the user applied
-  /// it.
-  static Future<void> _exportPdf(BuildContext context, Rect? shareAnchor) async {
-    final bloc = context.read<OcptEditorIoBloc>();
-    final options = await OcptEditorExportPdfOptionsDialog.show(
-      context,
-      current: context.read<OcptEditorBloc>().state.pageSetup,
-    );
-    if (options == null) {
-      return;
-    }
-    if (!context.mounted) {
-      return;
-    }
-
-    bloc.add(
-      OcptEditorExportPdfRequestedEvent(
-        options: options,
-        fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
-        episodeTag: _episodeExportTag(context),
-        shareAnchor: shareAnchor,
-      ),
-    );
-  }
-
-  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
-  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
-  /// exactly as every other localized export payload already is.
-  static String? _episodeExportTag(BuildContext context) {
-    final workspaceState = context.read<OcptWorkspaceBloc>().state;
-    return ocptWorkspaceEpisodeExportTagOf(
-      context: context,
-      episodes: workspaceState.episodes,
-      selectedEpisodeId: workspaceState.selectedEpisodeId,
-    );
-  }
-
   /// Shows the title page dialog, then dispatches the edited fields if the user applied them.
   static Future<void> titlePage(BuildContext context) async {
     final bloc = context.read<OcptEditorBloc>();
@@ -229,20 +168,6 @@ class OcptEditorDialogFlows {
         draftDate: fields.draftDate,
         contact: fields.contact,
         source: fields.source,
-      ),
-    );
-  }
-
-  /// Dispatches the project package export, resolving here — the last place with a
-  /// [BuildContext] — the label the native save dialog carries.
-  ///
-  /// What happens next depends on what the project references: everything being there, the save
-  /// dialog opens straight away; anything missing, the bloc asks back through its own state and
-  /// [askAboutMissingPackagedFiles] is what puts that question on screen.
-  static void _projectPackageExport(BuildContext context) {
-    context.read<OcptEditorBloc>().add(
-      OcptProjectPackageExportRequestedEvent(
-        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
   }
@@ -296,5 +221,80 @@ class OcptEditorDialogFlows {
             : tr.editorExportPdfSuccessMessage(notice.path ?? ""),
       OcptEditorIoNoticeKind.pdfExportFailed => tr.editorExportPdfError,
     };
+  }
+
+  /// Builds the two entries the toolbar's `Export` button offers: the screenplay's own Fountain
+  /// source and the typeset PDF. Both are always available — see `OcptEditorExportDocument`'s own
+  /// doc comment.
+  static List<OcptWorkspaceExportEntry<OcptEditorExportDocument>> _exportEntries(
+    BuildContext context,
+  ) {
+    final tr = Tr.of(context);
+
+    return [
+      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
+        value: OcptEditorExportDocument.fountain,
+        title: tr.editorExportFountainTitle,
+        description: tr.editorExportFountainDescription,
+        formatLabel: ".fountain",
+      ),
+      OcptWorkspaceExportEntry<OcptEditorExportDocument>(
+        value: OcptEditorExportDocument.pdf,
+        title: tr.editorExportPdfTitle,
+        description: tr.editorExportPdfDescription,
+        formatLabel: "PDF",
+      ),
+    ];
+  }
+
+  /// Shows the PDF export options dialog, then dispatches the export request if the user applied
+  /// it.
+  static Future<void> _exportPdf(BuildContext context, Rect? shareAnchor) async {
+    final bloc = context.read<OcptEditorIoBloc>();
+    final options = await OcptEditorExportPdfOptionsDialog.show(
+      context,
+      current: context.read<OcptEditorBloc>().state.pageSetup,
+    );
+    if (options == null) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
+    bloc.add(
+      OcptEditorExportPdfRequestedEvent(
+        options: options,
+        fileTypeLabel: Tr.of(context).editorExportPdfFileTypeLabel,
+        episodeTag: _episodeExportTag(context),
+        shareAnchor: shareAnchor,
+      ),
+    );
+  }
+
+  /// The selected episode's own tag (`ep. 2`), or null while the open project holds one episode or
+  /// none — read here, the last place with a [BuildContext] before an export event is dispatched,
+  /// exactly as every other localized export payload already is.
+  static String? _episodeExportTag(BuildContext context) {
+    final workspaceState = context.read<OcptWorkspaceBloc>().state;
+    return ocptWorkspaceEpisodeExportTagOf(
+      context: context,
+      episodes: workspaceState.episodes,
+      selectedEpisodeId: workspaceState.selectedEpisodeId,
+    );
+  }
+
+  /// Dispatches the project package export, resolving here — the last place with a
+  /// [BuildContext] — the label the native save dialog carries.
+  ///
+  /// What happens next depends on what the project references: everything being there, the save
+  /// dialog opens straight away; anything missing, the bloc asks back through its own state and
+  /// [askAboutMissingPackagedFiles] is what puts that question on screen.
+  static void _projectPackageExport(BuildContext context) {
+    context.read<OcptEditorBloc>().add(
+      OcptProjectPackageExportRequestedEvent(
+        fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
+      ),
+    );
   }
 }

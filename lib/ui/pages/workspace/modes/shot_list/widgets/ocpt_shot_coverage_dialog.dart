@@ -82,6 +82,10 @@ class OcptShotCoverageDialog extends StatelessWidget {
   /// either of the dialog's own close actions.
   final VoidCallback onAnchorCancelled;
 
+  /// The total number of words across every block of [layout], the denominator of the footer's
+  /// `N words covered of M` counter.
+  int get _totalWordCount => layout.blocks.fold(0, (total, block) => total + block.words.length);
+
   /// Class constructor
   const OcptShotCoverageDialog({
     super.key,
@@ -96,15 +100,6 @@ class OcptShotCoverageDialog extends StatelessWidget {
     required this.onClearAll,
     required this.onAnchorCancelled,
   });
-
-  /// Cancels [pendingAnchor], if one is pending, then closes the dialog through
-  /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
-  void _cancelAnchorAndClose() {
-    if (pendingAnchor != null) {
-      onAnchorCancelled();
-    }
-    globalGetIt().get<OcptRouterManager>().pop();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,9 +242,14 @@ class OcptShotCoverageDialog extends StatelessWidget {
     );
   }
 
-  /// The total number of words across every block of [layout], the denominator of the footer's
-  /// `N words covered of M` counter.
-  int get _totalWordCount => layout.blocks.fold(0, (total, block) => total + block.words.length);
+  /// Cancels [pendingAnchor], if one is pending, then closes the dialog through
+  /// `OcptRouterManager` — what the × close button and the footer's own close button both do.
+  void _cancelAnchorAndClose() {
+    if (pendingAnchor != null) {
+      onAnchorCancelled();
+    }
+    globalGetIt().get<OcptRouterManager>().pop();
+  }
 }
 
 /// The simulated paper sheet the sequence is typeset on: white, at the page setup's own width, each
@@ -349,6 +349,36 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
   /// Called with a clicked word's own scene-relative start/end offsets.
   final void Function(int wordStartOffset, int wordEndOffset) onWordTapped;
 
+  /// The screenplay layout box [block]'s own line type is typeset in.
+  ///
+  /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
+  /// the layout has no block for at all) have no box of their own: they borrow the action box, so
+  /// a sequence carrying one still reads as a paragraph rather than disappearing.
+  FountainElementLayout get _elementLayout {
+    final metrics = previewLayout.metrics;
+    return switch (block.type) {
+      FountainLineType.sceneHeading => metrics.sceneHeading,
+      FountainLineType.character => metrics.character,
+      FountainLineType.parenthetical => metrics.parenthetical,
+      FountainLineType.dialogue => metrics.dialogue,
+      FountainLineType.transition => metrics.transition,
+      FountainLineType.centeredText => metrics.centeredText,
+      FountainLineType.lyrics => metrics.lyrics,
+      FountainLineType.action ||
+      FountainLineType.section ||
+      FountainLineType.synopsis ||
+      FountainLineType.pageBreak ||
+      FountainLineType.blank => metrics.action,
+    };
+  }
+
+  /// The horizontal alignment [block]'s element is typeset with.
+  TextAlign get _textAlign => switch (_elementLayout.alignment) {
+    FountainLayoutAlignment.center => TextAlign.center,
+    FountainLayoutAlignment.right => TextAlign.right,
+    FountainLayoutAlignment.left => TextAlign.left,
+  };
+
   /// Class constructor
   const _OcptShotCoverageSheetBlock({
     required this.layout,
@@ -428,36 +458,6 @@ class _OcptShotCoverageSheetBlock extends StatelessWidget {
       ),
     );
   }
-
-  /// The screenplay layout box [block]'s own line type is typeset in.
-  ///
-  /// The types that are never printed (a section, a synopsis, a page break — and the blank lines
-  /// the layout has no block for at all) have no box of their own: they borrow the action box, so
-  /// a sequence carrying one still reads as a paragraph rather than disappearing.
-  FountainElementLayout get _elementLayout {
-    final metrics = previewLayout.metrics;
-    return switch (block.type) {
-      FountainLineType.sceneHeading => metrics.sceneHeading,
-      FountainLineType.character => metrics.character,
-      FountainLineType.parenthetical => metrics.parenthetical,
-      FountainLineType.dialogue => metrics.dialogue,
-      FountainLineType.transition => metrics.transition,
-      FountainLineType.centeredText => metrics.centeredText,
-      FountainLineType.lyrics => metrics.lyrics,
-      FountainLineType.action ||
-      FountainLineType.section ||
-      FountainLineType.synopsis ||
-      FountainLineType.pageBreak ||
-      FountainLineType.blank => metrics.action,
-    };
-  }
-
-  /// The horizontal alignment [block]'s element is typeset with.
-  TextAlign get _textAlign => switch (_elementLayout.alignment) {
-    FountainLayoutAlignment.center => TextAlign.center,
-    FountainLayoutAlignment.right => TextAlign.right,
-    FountainLayoutAlignment.left => TextAlign.left,
-  };
 
   /// How [word] is currently painted: the anchor of a range being drawn wins over every coverage,
   /// and this shot's own coverage wins over another shot's.

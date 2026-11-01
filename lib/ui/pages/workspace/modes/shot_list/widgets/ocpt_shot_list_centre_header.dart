@@ -47,6 +47,11 @@ class OcptShotListCentreHeader extends StatelessWidget {
   /// What the active view needs on the header's trailing edge, built by the mode.
   final Widget trailing;
 
+  /// [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
+  /// only ever prints the panel count for the view that made it meaningful.
+  int? get _summaryPanelCount =>
+      isBoardAvailable && centreView == OcptShotListCentreView.board ? boardPanelCount : null;
+
   /// Class constructor
   const OcptShotListCentreHeader({
     super.key,
@@ -108,11 +113,6 @@ class OcptShotListCentreHeader extends StatelessWidget {
       ],
     );
   }
-
-  /// [boardPanelCount] when the board is what is actually shown, null otherwise — the summary
-  /// only ever prints the panel count for the view that made it meaningful.
-  int? get _summaryPanelCount =>
-      isBoardAvailable && centreView == OcptShotListCentreView.board ? boardPanelCount : null;
 }
 
 /// The sequence's own title line and the muted summary under it — the content

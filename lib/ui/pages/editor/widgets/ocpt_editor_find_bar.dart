@@ -151,34 +151,6 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
     _applyFocusRequestIfNeeded();
   }
 
-  /// Focuses [_findFocusNode] and selects the find field's whole content, once, the frame after
-  /// [OcptEditorFindBar.focusRequestId] changes to a value not yet applied.
-  void _applyFocusRequestIfNeeded() {
-    if (widget.focusRequestId == _lastAppliedFocusRequestId) {
-      return;
-    }
-    _lastAppliedFocusRequestId = widget.focusRequestId;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _findFocusNode.requestFocus();
-      _findController.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: _findController.text.length,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _findController.dispose();
-    _replaceController.dispose();
-    _findFocusNode.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -300,6 +272,34 @@ class _OcptEditorFindBarState extends State<OcptEditorFindBar> {
         ),
       ),
     );
+  }
+
+  /// Focuses [_findFocusNode] and selects the find field's whole content, once, the frame after
+  /// [OcptEditorFindBar.focusRequestId] changes to a value not yet applied.
+  void _applyFocusRequestIfNeeded() {
+    if (widget.focusRequestId == _lastAppliedFocusRequestId) {
+      return;
+    }
+    _lastAppliedFocusRequestId = widget.focusRequestId;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _findFocusNode.requestFocus();
+      _findController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _findController.text.length,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _findController.dispose();
+    _replaceController.dispose();
+    _findFocusNode.dispose();
+    super.dispose();
   }
 }
 

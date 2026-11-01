@@ -64,11 +64,11 @@ class OcptBudgetRead {
 /// It only reads. Which state the result lands in, and what is reconciled against it, is the mode
 /// bloc's.
 class OcptBudgetSnapshotLoader {
-  /// The manager used to read the project's currency, default VAT rate and prices.
-  final OcptProjectsManager _projectsManager;
-
   /// The ten CNC postes, already localized, seeded on the first read of an empty table.
   final List<OcptBudgetPosteSeed> seed;
+
+  /// The manager used to read the project's currency, default VAT rate and prices.
+  final OcptProjectsManager _projectsManager;
 
   /// The service used to read the quote: the postes and their lines.
   final OcptBudgetQuoteService _budgetQuoteService;

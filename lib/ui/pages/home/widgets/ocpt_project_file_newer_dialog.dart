@@ -34,15 +34,6 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
   /// Class constructor
   const OcptProjectFileNewerDialog({super.key, required this.compatibility});
 
-  /// Shows the dialog, and completes once the user has dismissed it.
-  static Future<void> show(
-    BuildContext context, {
-    required OcptProjectFileCompatibility compatibility,
-  }) => showDialog<void>(
-    context: context,
-    builder: (context) => OcptProjectFileNewerDialog(compatibility: compatibility),
-  );
-
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -93,4 +84,13 @@ class OcptProjectFileNewerDialog extends StatelessWidget {
             appVersionAtCreation,
           );
   }
+
+  /// Shows the dialog, and completes once the user has dismissed it.
+  static Future<void> show(
+    BuildContext context, {
+    required OcptProjectFileCompatibility compatibility,
+  }) => showDialog<void>(
+    context: context,
+    builder: (context) => OcptProjectFileNewerDialog(compatibility: compatibility),
+  );
 }

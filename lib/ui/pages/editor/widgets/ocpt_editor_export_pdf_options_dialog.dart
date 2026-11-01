@@ -26,6 +26,9 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
   /// Class constructor
   const OcptEditorExportPdfOptionsDialog({required this.current, super.key});
 
+  @override
+  State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();
+
   /// Shows the dialog and returns the [OcptPdfExportOptions] the user applied, or null if they
   /// cancelled it.
   static Future<OcptPdfExportOptions?> show(
@@ -35,9 +38,6 @@ class OcptEditorExportPdfOptionsDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptEditorExportPdfOptionsDialog(current: current),
   );
-
-  @override
-  State<OcptEditorExportPdfOptionsDialog> createState() => _OcptEditorExportPdfOptionsDialogState();
 }
 
 /// The state of [OcptEditorExportPdfOptionsDialog].

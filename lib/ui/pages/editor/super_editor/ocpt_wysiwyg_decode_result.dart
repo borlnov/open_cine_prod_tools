@@ -8,15 +8,6 @@ import 'package:super_editor/super_editor.dart';
 /// The result of [OcptWysiwygCodec.decode]: everything a caller needs to display a freshly decoded
 /// document and later serialize it back to Fountain text.
 class OcptWysiwygDecodeResult {
-  /// Creates an [OcptWysiwygDecodeResult].
-  const OcptWysiwygDecodeResult({
-    required this.document,
-    required this.mapping,
-    required this.trailingBlankLines,
-    this.titlePageNodeCount = 0,
-    this.titlePagePrefixLength = 0,
-  });
-
   /// The freshly built document: one `ParagraphNode` per non-blank source line, preceded by
   /// [titlePageNodeCount] title-page field nodes when [OcptWysiwygCodec.decodeWithTitlePage] built
   /// this result (always 0 for plain [OcptWysiwygCodec.decode]).
@@ -46,4 +37,13 @@ class OcptWysiwygDecodeResult {
   /// A caller translating a character offset of the full source text into a [mapping] char offset
   /// must subtract this first.
   final int titlePagePrefixLength;
+
+  /// Creates an [OcptWysiwygDecodeResult].
+  const OcptWysiwygDecodeResult({
+    required this.document,
+    required this.mapping,
+    required this.trailingBlankLines,
+    this.titlePageNodeCount = 0,
+    this.titlePagePrefixLength = 0,
+  });
 }

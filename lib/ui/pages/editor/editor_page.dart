@@ -235,27 +235,6 @@ class _EditorViewState extends State<_EditorView> {
     navigateToMatch: _rawScroller.navigateToMatch,
   );
 
-  @override
-  void initState() {
-    super.initState();
-    _textController.addListener(_onTextControllerChanged);
-    _styledEditorController.addListener(_onStyledEditorControllerChanged);
-    _undoHistoryController.addListener(_onRawHistoryChanged);
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    _editorScrollController.dispose();
-    _editorFocusNode.dispose();
-    _undoHistoryController.removeListener(_onRawHistoryChanged);
-    _undoHistoryController.dispose();
-    _styledEditorController.removeListener(_onStyledEditorControllerChanged);
-    _styledEditorController.dispose();
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
   /// Whether the window this page is laid out in is a phone ([ocptIsPhoneWidth]) narrow enough to
   /// force the styled editor as the only editing surface, and page simulation off, regardless of
   /// what [OcptEditorState.mode] and [OcptEditorState.isPageSimulationEnabled] are persisted as:
@@ -279,20 +258,13 @@ class _EditorViewState extends State<_EditorView> {
   /// room than a phone, but still not the width a real screenplay page wants.
   bool get _isCompactWidth => ocptIsCompactWidth(MediaQuery.sizeOf(context).width);
 
-  /// The editing mode actually driving which surface is live and wired up:
-  /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The
-  /// user's own raw/styled toggle (the toolbar icon, Ctrl+Shift+M) is left untouched by this —
-  /// it keeps persisting whatever the user picks, and widening the window back out returns to it.
-  OcptEditorMode _liveMode(OcptEditorState state) =>
-      _isPhoneWidth ? OcptEditorMode.styled : state.mode;
-
-  /// Whether page simulation is actually applied to the live editing surface:
-  /// [OcptEditorState.isPageSimulationEnabled], forced off at [_isPhoneWidth] for the same reason
-  /// [_liveMode] forces the mode — a real-size simulated page has no room to be legible on a
-  /// phone. The user's own toggle is left untouched the same way [_liveMode] leaves the mode
-  /// toggle untouched.
-  bool _isPageSimulationLive(OcptEditorState state) =>
-      state.isPageSimulationEnabled && !_isPhoneWidth;
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextControllerChanged);
+    _styledEditorController.addListener(_onStyledEditorControllerChanged);
+    _undoHistoryController.addListener(_onRawHistoryChanged);
+  }
 
   @override
   Widget build(BuildContext context) => Shortcuts(
@@ -470,6 +442,21 @@ class _EditorViewState extends State<_EditorView> {
       ),
     ),
   );
+
+  /// The editing mode actually driving which surface is live and wired up:
+  /// [OcptEditorState.mode], unless [_isPhoneWidth] forces the styled editor regardless. The
+  /// user's own raw/styled toggle (the toolbar icon, Ctrl+Shift+M) is left untouched by this —
+  /// it keeps persisting whatever the user picks, and widening the window back out returns to it.
+  OcptEditorMode _liveMode(OcptEditorState state) =>
+      _isPhoneWidth ? OcptEditorMode.styled : state.mode;
+
+  /// Whether page simulation is actually applied to the live editing surface:
+  /// [OcptEditorState.isPageSimulationEnabled], forced off at [_isPhoneWidth] for the same reason
+  /// [_liveMode] forces the mode — a real-size simulated page has no room to be legible on a
+  /// phone. The user's own toggle is left untouched the same way [_liveMode] leaves the mode
+  /// toggle untouched.
+  bool _isPageSimulationLive(OcptEditorState state) =>
+      state.isPageSimulationEnabled && !_isPhoneWidth;
 
   /// Builds the screenplay's `⋮` overflow menu entries: undo and redo, import and replace, find,
   /// find and replace, the page-simulation and scene-numbers toggles, page setup, title page, and
@@ -880,5 +867,18 @@ class _EditorViewState extends State<_EditorView> {
         );
       context.read<OcptEditorIoBloc>().add(const OcptEditorIoNoticeDismissedEvent());
     }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _editorScrollController.dispose();
+    _editorFocusNode.dispose();
+    _undoHistoryController.removeListener(_onRawHistoryChanged);
+    _undoHistoryController.dispose();
+    _styledEditorController.removeListener(_onStyledEditorControllerChanged);
+    _styledEditorController.dispose();
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

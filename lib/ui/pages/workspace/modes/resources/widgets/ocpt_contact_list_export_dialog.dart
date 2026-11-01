@@ -32,6 +32,9 @@ class OcptContactListExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptContactListExportDialog({required this.current, super.key});
 
+  @override
+  State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
+
   /// Shows the dialog and returns the [OcptContactListExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptContactListExportOptions?> show(
@@ -41,9 +44,6 @@ class OcptContactListExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptContactListExportDialog(current: current),
   );
-
-  @override
-  State<OcptContactListExportDialog> createState() => _OcptContactListExportDialogState();
 }
 
 /// The state of [OcptContactListExportDialog].

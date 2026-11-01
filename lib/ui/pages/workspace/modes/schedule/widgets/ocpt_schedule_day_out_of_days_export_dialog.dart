@@ -39,6 +39,10 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
     super.key,
   });
 
+  @override
+  State<OcptScheduleDayOutOfDaysExportDialog> createState() =>
+      _OcptScheduleDayOutOfDaysExportDialogState();
+
   /// Shows the dialog and returns the [OcptDayOutOfDaysExportOptions] the user applied, or null if
   /// they cancelled it.
   static Future<OcptDayOutOfDaysExportOptions?> show(
@@ -49,10 +53,6 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleDayOutOfDaysExportDialog(current: current, days: days),
   );
-
-  @override
-  State<OcptScheduleDayOutOfDaysExportDialog> createState() =>
-      _OcptScheduleDayOutOfDaysExportDialogState();
 }
 
 /// The state of [OcptScheduleDayOutOfDaysExportDialog].

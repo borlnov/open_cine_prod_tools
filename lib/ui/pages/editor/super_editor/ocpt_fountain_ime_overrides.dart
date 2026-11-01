@@ -30,11 +30,11 @@ import 'package:super_editor/super_editor.dart';
 /// be the delta's entire inserted text on its own. This keeps the interception limited to exactly
 /// the one gesture it exists for.
 class OcptFountainTabInterceptor extends DeltaTextInputClientDecorator {
-  /// Class constructor.
-  OcptFountainTabInterceptor({required this.onTabPressed});
-
   /// Called, instead of forwarding the delta, whenever a pure `"\t"` insertion is intercepted.
   final VoidCallback onTabPressed;
+
+  /// Class constructor.
+  OcptFountainTabInterceptor({required this.onTabPressed});
 
   /// Forwards every delta list to super_editor's own document IME client unchanged, except a pure
   /// `"\t"` insertion (see [_isPureTabInsertion]), which triggers [onTabPressed] and is never

@@ -34,9 +34,6 @@ class OcptEditorPreviewBlock extends StatelessWidget {
   /// The pixel layout the block is typeset with.
   final OcptEditorPreviewLayout layout;
 
-  /// Class constructor
-  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
-
   /// The base text style every preview run derives from: Courier Prime, black on the white page,
   /// rendered at exactly [layout]'s [OcptEditorPreviewLayout.lineHeight] (not a fixed factor: see
   /// that getter's own doc comment for why estimate and render must always agree).
@@ -59,6 +56,16 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     leadingDistribution: TextLeadingDistribution.even,
     color: Colors.black,
   );
+
+  /// The horizontal text alignment of [block]'s element.
+  TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
+    FountainLayoutAlignment.center => TextAlign.center,
+    FountainLayoutAlignment.right => TextAlign.right,
+    _ => TextAlign.left,
+  };
+
+  /// Class constructor
+  const OcptEditorPreviewBlock({super.key, required this.block, required this.layout});
 
   @override
   Widget build(BuildContext context) {
@@ -183,13 +190,6 @@ class OcptEditorPreviewBlock extends StatelessWidget {
     textAlign: _textAlign,
     textScaler: _textScaler,
   );
-
-  /// The horizontal text alignment of [block]'s element.
-  TextAlign get _textAlign => switch (_elementOf(block)?.alignment) {
-    FountainLayoutAlignment.center => TextAlign.center,
-    FountainLayoutAlignment.right => TextAlign.right,
-    _ => TextAlign.left,
-  };
 
   /// The layout box of [block]'s element, or null for blocks without one (e.g. page breaks).
   FountainElementLayout? _elementOf(FountainBlock block) => switch (block) {

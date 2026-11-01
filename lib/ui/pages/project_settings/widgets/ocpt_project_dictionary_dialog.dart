@@ -35,6 +35,9 @@ class OcptProjectDictionaryDialog extends StatefulWidget {
   /// Class constructor
   const OcptProjectDictionaryDialog({required this.words, super.key});
 
+  @override
+  State<OcptProjectDictionaryDialog> createState() => _OcptProjectDictionaryDialogState();
+
   /// Shows the dialog and returns the words it ends up reporting as added and removed against
   /// [words] — see [_OcptProjectDictionaryDialogState._close] for exactly how that diff is
   /// computed. Not `barrierDismissible`: an outside click would otherwise skip the very diff logic
@@ -47,9 +50,6 @@ class OcptProjectDictionaryDialog extends StatefulWidget {
     barrierDismissible: false,
     builder: (context) => OcptProjectDictionaryDialog(words: words),
   );
-
-  @override
-  State<OcptProjectDictionaryDialog> createState() => _OcptProjectDictionaryDialogState();
 }
 
 /// The state of [OcptProjectDictionaryDialog]: the working copy of the dictionary's words, the
@@ -83,30 +83,6 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
     super.initState();
     _filterController.addListener(_onFilterChanged);
     _addController.addListener(_onAddTextChanged);
-  }
-
-  @override
-  void dispose() {
-    _filterController
-      ..removeListener(_onFilterChanged)
-      ..dispose();
-    _addController
-      ..removeListener(_onAddTextChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  /// Re-filters the list on every keystroke of the filter field.
-  void _onFilterChanged() {
-    setState(() => _filterQuery = _filterController.text.trim().toLowerCase());
-  }
-
-  /// Clears a standing duplicate error the moment the add field is touched again — the user is
-  /// mid-correction, and the stale error would otherwise outlive the very keystroke fixing it.
-  void _onAddTextChanged() {
-    if (_addError != null) {
-      setState(() => _addError = null);
-    }
   }
 
   @override
@@ -164,6 +140,19 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
         actions: [FilledButton(onPressed: _close, child: Text(tr.projectDictionaryCloseAction))],
       ),
     );
+  }
+
+  /// Re-filters the list on every keystroke of the filter field.
+  void _onFilterChanged() {
+    setState(() => _filterQuery = _filterController.text.trim().toLowerCase());
+  }
+
+  /// Clears a standing duplicate error the moment the add field is touched again — the user is
+  /// mid-correction, and the stale error would otherwise outlive the very keystroke fixing it.
+  void _onAddTextChanged() {
+    if (_addError != null) {
+      setState(() => _addError = null);
+    }
   }
 
   /// Drops [word] from the working copy and closes its own removal question.
@@ -227,6 +216,17 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
       final byLowerCase = a.toLowerCase().compareTo(b.toLowerCase());
       return byLowerCase != 0 ? byLowerCase : a.compareTo(b);
     });
+
+  @override
+  void dispose() {
+    _filterController
+      ..removeListener(_onFilterChanged)
+      ..dispose();
+    _addController
+      ..removeListener(_onAddTextChanged)
+      ..dispose();
+    super.dispose();
+  }
 }
 
 /// The scrollable word list, or the one of its two empty-state lines that applies: the dictionary

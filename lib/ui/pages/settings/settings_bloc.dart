@@ -26,6 +26,9 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
         MixinSetWantedLocaleBloc<OcptSettingsState>,
         MixinActThemesBloc<ActThemesManager, OcptSettingsState>,
         MixinAsyncInitBloc<OcptSettingsState> {
+  /// The manager the preferences this page owns are read from and written to.
+  final OcptPropertiesManager _propertiesManager;
+
   /// Creates the settings bloc, with an initial state carrying the preferences the [LocalesManager]
   /// and the [ActThemesManager] currently hold, so the page opens on the options actually in use.
   ///
@@ -61,9 +64,6 @@ class OcptSettingsBloc extends BlocForMixin<OcptSettingsState>
 
   /// Private constructor taking the state the factory seeded from the managers.
   OcptSettingsBloc._(super.initialState, this._propertiesManager);
-
-  /// The manager the preferences this page owns are read from and written to.
-  final OcptPropertiesManager _propertiesManager;
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override

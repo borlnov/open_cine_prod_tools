@@ -24,16 +24,16 @@ class OcptWorkspaceDockLayoutController extends ChangeNotifier {
   /// The live right dock fraction.
   double _rightFraction;
 
-  /// Class constructor
-  OcptWorkspaceDockLayoutController({required double leftFraction, required double rightFraction})
-    : _leftFraction = leftFraction,
-      _rightFraction = rightFraction;
-
   /// The left dock's current fraction of the editing row's width.
   double get leftFraction => _leftFraction;
 
   /// The right dock's current fraction of the editing row's width.
   double get rightFraction => _rightFraction;
+
+  /// Class constructor
+  OcptWorkspaceDockLayoutController({required double leftFraction, required double rightFraction})
+    : _leftFraction = leftFraction,
+      _rightFraction = rightFraction;
 
   /// Sets the live left fraction to [value], notifying listeners if it actually changed.
   void setLeftFraction(double value) {

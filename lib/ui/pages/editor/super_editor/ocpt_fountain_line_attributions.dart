@@ -14,9 +14,6 @@ import 'package:super_editor/super_editor.dart';
 /// `ComponentBuilder` is needed, since `Styles.padding`, `Styles.maxWidth`, `Styles.textAlign` and
 /// `Styles.textStyle` already apply to any text-based component through this same mechanism.
 class OcptFountainLineAttributions {
-  /// Private constructor: this class only exposes static members.
-  const OcptFountainLineAttributions._();
-
   /// The `blockType` attribution used for each [FountainLineType].
   static const Map<FountainLineType, NamedAttribution> _attributionsByType = {
     FountainLineType.blank: NamedAttribution("fountainBlank"),
@@ -38,6 +35,9 @@ class OcptFountainLineAttributions {
   static final Map<String, FountainLineType> _typesByAttributionName = {
     for (final entry in _attributionsByType.entries) entry.value.name: entry.key,
   };
+
+  /// Private constructor: this class only exposes static members.
+  const OcptFountainLineAttributions._();
 
   /// The `blockType` attribution to store for a line classified as [type].
   static NamedAttribution attributionOf(FountainLineType type) => _attributionsByType[type]!;

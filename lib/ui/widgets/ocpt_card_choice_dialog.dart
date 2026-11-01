@@ -86,19 +86,6 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
     super.key,
   });
 
-  /// Shows the dialog and returns the [OcptCardChoiceEntry.value] of the card the user picked, or
-  /// null if they cancelled it or picked no card at all.
-  static Future<T?> show<T>(
-    BuildContext context, {
-    required String title,
-    required String message,
-    required List<OcptCardChoiceSection<T>> sections,
-  }) => showDialog<T>(
-    context: context,
-    builder: (context) =>
-        OcptCardChoiceDialog<T>(title: title, message: message, sections: sections),
-  );
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -158,6 +145,19 @@ class OcptCardChoiceDialog<T> extends StatelessWidget {
       ],
     );
   }
+
+  /// Shows the dialog and returns the [OcptCardChoiceEntry.value] of the card the user picked, or
+  /// null if they cancelled it or picked no card at all.
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required List<OcptCardChoiceSection<T>> sections,
+  }) => showDialog<T>(
+    context: context,
+    builder: (context) =>
+        OcptCardChoiceDialog<T>(title: title, message: message, sections: sections),
+  );
 }
 
 /// One group of [OcptCardChoiceDialog], its cards laid out as a grid of [crossAxisCount] columns

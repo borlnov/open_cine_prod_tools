@@ -124,12 +124,6 @@ class _ScheduleViewState extends State<_ScheduleView> {
   }
 
   @override
-  void dispose() {
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => BlocConsumer<OcptScheduleBloc, OcptScheduleState>(
     listener: _onStateChanged,
     builder: (context, state) {
@@ -772,5 +766,11 @@ class _ScheduleViewState extends State<_ScheduleView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

@@ -9,15 +9,6 @@ import 'package:flutter/material.dart';
 /// ([usePaperColors], see `OcptStyledScreenplayEditor.usesPaperColorsWhileFluid`), where it is
 /// white paper so the screenplay reads the way the desktop's simulated page does.
 class OcptStyledFluidSurface extends StatelessWidget {
-  /// Creates an [OcptStyledFluidSurface].
-  const OcptStyledFluidSurface({
-    super.key,
-    required this.theme,
-    required this.usePaperColors,
-    required this.scrollController,
-    required this.editor,
-  });
-
   /// The theme the ground color follows when [usePaperColors] is false.
   final ThemeData theme;
 
@@ -29,6 +20,15 @@ class OcptStyledFluidSurface extends StatelessWidget {
 
   /// The editor, already stripped of its implicit scrollbar.
   final Widget editor;
+
+  /// Creates an [OcptStyledFluidSurface].
+  const OcptStyledFluidSurface({
+    super.key,
+    required this.theme,
+    required this.usePaperColors,
+    required this.scrollController,
+    required this.editor,
+  });
 
   @override
   Widget build(BuildContext context) => Scrollbar(

@@ -46,15 +46,6 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
   /// of work; this controller only carries the flag.
   bool _showFieldOfView;
 
-  /// Class constructor
-  OcptFloorPlanViewportController({
-    required double zoom,
-    Offset pan = Offset.zero,
-    bool showFieldOfView = true,
-  }) : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom),
-       _pan = pan,
-       _showFieldOfView = showFieldOfView;
-
   /// The canvas's current zoom.
   double get zoom => _zoom;
 
@@ -63,6 +54,15 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
 
   /// Whether a camera's own field-of-view wedge is currently drawn. See [_showFieldOfView].
   bool get showFieldOfView => _showFieldOfView;
+
+  /// Class constructor
+  OcptFloorPlanViewportController({
+    required double zoom,
+    Offset pan = Offset.zero,
+    bool showFieldOfView = true,
+  }) : _zoom = zoom.clamp(ocptFloorPlanMinZoom, ocptFloorPlanMaxZoom),
+       _pan = pan,
+       _showFieldOfView = showFieldOfView;
 
   /// Sets the live zoom to [value] (clamped), notifying listeners if it actually changed.
   void setZoom(double value) {

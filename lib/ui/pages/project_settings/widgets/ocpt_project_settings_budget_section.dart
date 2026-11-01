@@ -191,12 +191,25 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   }
 
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 88,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: tr.projectSettingsBudgetVatRateFieldHint,
+          suffixText: tr.projectSettingsBudgetVatRateSuffix,
+        ),
+      ),
+    );
   }
 
   /// Commits the field's current text once it loses focus.
@@ -225,25 +238,12 @@ class _OcptProjectSettingsVatRateFieldState extends State<_OcptProjectSettingsVa
   }
 
   @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 88,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: tr.projectSettingsBudgetVatRateFieldHint,
-          suffixText: tr.projectSettingsBudgetVatRateSuffix,
-        ),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }
 
@@ -317,12 +317,20 @@ class _OcptProjectSettingsBudgetMoneyFieldState
   }
 
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 110,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: theme.textTheme.bodySmall,
+        decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
+      ),
+    );
   }
 
   /// Commits the field's current text once it loses focus.
@@ -361,19 +369,11 @@ class _OcptProjectSettingsBudgetMoneyFieldState
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: 110,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(isDense: true, suffixText: widget.suffixText),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -64,10 +64,6 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
     }
   }
 
-  /// Whether [path] names a file that is there right now.
-  static bool _fileExists(String? path) =>
-      path != null && path.isNotEmpty && File(path).existsSync();
-
   @override
   Widget build(BuildContext context) {
     final path = widget.path;
@@ -82,4 +78,8 @@ class _OcptReferencedImageState extends State<OcptReferencedImage> {
       errorBuilder: (context, error, stackTrace) => widget.fallbackBuilder(context),
     );
   }
+
+  /// Whether [path] names a file that is there right now.
+  static bool _fileExists(String? path) =>
+      path != null && path.isNotEmpty && File(path).existsSync();
 }

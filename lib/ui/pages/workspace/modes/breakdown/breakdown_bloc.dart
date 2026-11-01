@@ -87,14 +87,14 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
         MixinOcptProjectPackageBloc<OcptBreakdownState>,
         MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope>,
         MixinAsyncInitBloc<OcptBreakdownState> {
+  /// The default delay between the last field edit and its autosave write, for the inspector bloc.
+  static const defaultFieldEditDebounce = Duration(seconds: 2);
+
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "breakdown_bloc";
 
   /// The logger this BLoC writes to.
   final LogsHelper _logger;
-
-  /// The default delay between the last field edit and its autosave write, for the inspector bloc.
-  static const defaultFieldEditDebounce = Duration(seconds: 2);
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -139,6 +139,16 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   /// fallback to [OcptOpenProjectModel.primaryScreenplayId] is the honest last resort rather than a
   /// routine path.
   final String? _selectedEpisodeId;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
+  @protected
+  @override
+  OcptProjectsManager get projectsManager => _projectsManager;
+
+  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
+  @protected
+  @override
+  OcptExportManager get exportManager => _exportManager;
 
   /// Class constructor
   ///
@@ -201,22 +211,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     on<OcptBreakdownTargetSelectionClearedEvent>(_onTargetSelectionCleared);
     on<OcptBreakdownOccurrenceSelectedEvent>(_onOccurrenceSelected);
   }
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
-  @protected
-  @override
-  OcptProjectsManager get projectsManager => _projectsManager;
-
-  /// {@macro open_cine_prod_tools.MixinOcptProjectPackageBloc.exportManager}
-  @protected
-  @override
-  OcptExportManager get exportManager => _exportManager;
-
-  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
-  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
-  /// selected (see [_selectedEpisodeId]'s own doc comment).
-  String _screenplayIdOf(OcptOpenProjectModel project) =>
-      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Writes every pending edit of the views directly to the database, without touching [state].
   ///
@@ -309,6 +303,19 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await super.initAsyncBloc(emit: emit);
     await _load(emit);
   }
+
+  /// Persists the `Inspector` tab as the last right dock tab ahead of a selection of a target that
+  /// will land the user on it, for a caller that reads the snapshot again before it makes that
+  /// selection: the store is awaited here, so nothing is left to wait for between the read and the
+  /// selection, and the state they emit is not split by it.
+  Future<void> persistInspectorAsLastRightDockTab() =>
+      _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
+
+  /// The screenplay this bloc reads and writes: [_selectedEpisodeId], or [project]'s own
+  /// [OcptOpenProjectModel.primaryScreenplayId] on the one path that can reach here with none
+  /// selected (see [_selectedEpisodeId]'s own doc comment).
+  String _screenplayIdOf(OcptOpenProjectModel project) =>
+      _selectedEpisodeId ?? project.primaryScreenplayId;
 
   /// Loads the persisted dock fractions and the current project's whole breakdown read.
   ///
@@ -590,13 +597,6 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     await _propertiesManager.breakdownLastRightDockTab.store(tab);
     _storedLastRightDockTab = tab;
   }
-
-  /// Persists the `Inspector` tab as the last right dock tab ahead of a selection of a target that
-  /// will land the user on it, for a caller that reads the snapshot again before it makes that
-  /// selection: the store is awaited here, so nothing is left to wait for between the read and the
-  /// selection, and the state they emit is not split by it.
-  Future<void> persistInspectorAsLastRightDockTab() =>
-      _persistLastRightDockTab(OcptBreakdownRightDockTab.inspector);
 
   /// Applies and persists whichever dock fraction the ended drag gesture reports.
   Future<void> _onDockFractionsChanged(

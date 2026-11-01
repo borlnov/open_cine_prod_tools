@@ -73,16 +73,6 @@ class _SceneInspector extends StatelessWidget {
   /// Class constructor
   const _SceneInspector({required this.state, required this.inspectorState});
 
-  /// The default name the `+ Set` popover's own name field opens with, for the scene sheet of a
-  /// scene headed [heading]: the place that heading names (`ocptSceneHeadingPlaceOf` — its
-  /// interior/exterior prefix and its time of day dropped), falling back to the whole heading when
-  /// there is nothing left of it. The user may edit it before creating; only the starting text is
-  /// resolved here.
-  String _newSetNameOf(String heading) {
-    final place = ocptSceneHeadingPlaceOf(heading);
-    return place.isEmpty ? heading : place;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scene = state.selectedScene;
@@ -144,6 +134,16 @@ class _SceneInspector extends StatelessWidget {
       isReadOnly: isReadOnly,
     );
   }
+
+  /// The default name the `+ Set` popover's own name field opens with, for the scene sheet of a
+  /// scene headed [heading]: the place that heading names (`ocptSceneHeadingPlaceOf` — its
+  /// interior/exterior prefix and its time of day dropped), falling back to the whole heading when
+  /// there is nothing left of it. The user may edit it before creating; only the starting text is
+  /// resolved here.
+  String _newSetNameOf(String heading) {
+    final place = ocptSceneHeadingPlaceOf(heading);
+    return place.isEmpty ? heading : place;
+  }
 }
 
 /// The selected target's sheet.
@@ -167,70 +167,6 @@ class _TargetInspector extends StatelessWidget {
     required this.target,
     required this.onTagRemovalRequested,
   });
-
-  /// Where the resources mode should land when `Open in Resources` is clicked on [target]'s own
-  /// sheet: the tab that holds it, with its record already selected.
-  ///
-  /// A **set** has no sheet of its own — it lives in the sets card of the location that holds it —
-  /// so it is that location which is revealed, resolved here out of [OcptBreakdownState.sets]. A
-  /// set whose location has gone missing from the snapshot reveals the locations tab and nothing
-  /// on it, which is as close as the mode can honestly get.
-  OcptWorkspaceRevealRequest _revealRequestOf() => switch (target.kind) {
-    OcptBreakdownTargetKind.element => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.elements,
-      recordId: target.id,
-    ),
-    OcptBreakdownTargetKind.role => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.roles,
-      recordId: target.id,
-    ),
-    OcptBreakdownTargetKind.set => OcptResourcesRevealRequest(
-      tab: OcptResourcesTab.locations,
-      recordId: _locationIdOfSet(target.id),
-    ),
-  };
-
-  /// The id of the location holding the set [setId] names, or null while no set of
-  /// [OcptBreakdownState.sets] has that id.
-  String? _locationIdOfSet(String setId) {
-    for (final set in state.sets) {
-      if (set.id == setId) {
-        return set.locationId;
-      }
-    }
-
-    return null;
-  }
-
-  /// The person named by [personId] among [people], or null while [personId] is null or names
-  /// nobody in [people].
-  OcptPerson? _personById(List<OcptPerson> people, String? personId) {
-    if (personId == null) {
-      return null;
-    }
-
-    for (final person in people) {
-      if (person.id == personId) {
-        return person;
-      }
-    }
-
-    return null;
-  }
-
-  /// [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and `notes`
-  /// are ever asked for, the target inspector's other fields being single picks rather than typed
-  /// text.
-  String _storedElementFieldValue(OcptElement element, OcptElementField field) => switch (field) {
-    OcptElementField.name => element.name,
-    OcptElementField.subCategory => element.subCategory,
-    OcptElementField.quantity => element.quantity,
-    OcptElementField.notes => element.notes,
-    OcptElementField.ownerNotes ||
-    OcptElementField.storageNotes ||
-    OcptElementField.cost ||
-    OcptElementField.purposeNotes => "",
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -337,4 +273,68 @@ class _TargetInspector extends StatelessWidget {
       isReadOnly: isReadOnly,
     );
   }
+
+  /// Where the resources mode should land when `Open in Resources` is clicked on [target]'s own
+  /// sheet: the tab that holds it, with its record already selected.
+  ///
+  /// A **set** has no sheet of its own — it lives in the sets card of the location that holds it —
+  /// so it is that location which is revealed, resolved here out of [OcptBreakdownState.sets]. A
+  /// set whose location has gone missing from the snapshot reveals the locations tab and nothing
+  /// on it, which is as close as the mode can honestly get.
+  OcptWorkspaceRevealRequest _revealRequestOf() => switch (target.kind) {
+    OcptBreakdownTargetKind.element => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.elements,
+      recordId: target.id,
+    ),
+    OcptBreakdownTargetKind.role => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.roles,
+      recordId: target.id,
+    ),
+    OcptBreakdownTargetKind.set => OcptResourcesRevealRequest(
+      tab: OcptResourcesTab.locations,
+      recordId: _locationIdOfSet(target.id),
+    ),
+  };
+
+  /// The id of the location holding the set [setId] names, or null while no set of
+  /// [OcptBreakdownState.sets] has that id.
+  String? _locationIdOfSet(String setId) {
+    for (final set in state.sets) {
+      if (set.id == setId) {
+        return set.locationId;
+      }
+    }
+
+    return null;
+  }
+
+  /// The person named by [personId] among [people], or null while [personId] is null or names
+  /// nobody in [people].
+  OcptPerson? _personById(List<OcptPerson> people, String? personId) {
+    if (personId == null) {
+      return null;
+    }
+
+    for (final person in people) {
+      if (person.id == personId) {
+        return person;
+      }
+    }
+
+    return null;
+  }
+
+  /// [element]'s own stored value for `field` — only `name`, `subCategory`, `quantity` and `notes`
+  /// are ever asked for, the target inspector's other fields being single picks rather than typed
+  /// text.
+  String _storedElementFieldValue(OcptElement element, OcptElementField field) => switch (field) {
+    OcptElementField.name => element.name,
+    OcptElementField.subCategory => element.subCategory,
+    OcptElementField.quantity => element.quantity,
+    OcptElementField.notes => element.notes,
+    OcptElementField.ownerNotes ||
+    OcptElementField.storageNotes ||
+    OcptElementField.cost ||
+    OcptElementField.purposeNotes => "",
+  };
 }

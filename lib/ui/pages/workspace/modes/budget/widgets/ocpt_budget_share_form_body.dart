@@ -86,6 +86,24 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
   /// comment.
   String? _personId;
 
+  /// The fields this body would submit right now, or null while `_shareController`'s or
+  /// `_reinvestController`'s own percentage does not parse.
+  OcptBudgetShareFormFields? get _currentDraft {
+    final sharePermille = ocptPercentPermilleOf(_shareController.text);
+    final reinvestPermille = ocptPercentPermilleOf(_reinvestController.text);
+    if (sharePermille == null || reinvestPermille == null) {
+      return null;
+    }
+
+    return OcptBudgetShareFormFields(
+      personId: _personId,
+      label: _labelController.text.trim(),
+      sharePermille: sharePermille,
+      reinvestPermille: reinvestPermille,
+      notes: _notesController.text.trim(),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -110,37 +128,6 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _shareController.dispose();
-    _reinvestController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
-  /// `onChanged` call this after applying its own change.
-  void _report() => widget.onDraftChanged(_currentDraft);
-
-  /// The fields this body would submit right now, or null while `_shareController`'s or
-  /// `_reinvestController`'s own percentage does not parse.
-  OcptBudgetShareFormFields? get _currentDraft {
-    final sharePermille = ocptPercentPermilleOf(_shareController.text);
-    final reinvestPermille = ocptPercentPermilleOf(_reinvestController.text);
-    if (sharePermille == null || reinvestPermille == null) {
-      return null;
-    }
-
-    return OcptBudgetShareFormFields(
-      personId: _personId,
-      label: _labelController.text.trim(),
-      sharePermille: sharePermille,
-      reinvestPermille: reinvestPermille,
-      notes: _notesController.text.trim(),
-    );
   }
 
   @override
@@ -208,5 +195,18 @@ class _OcptBudgetShareFormBodyState extends State<OcptBudgetShareFormBody> {
         ),
       ),
     );
+  }
+
+  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// `onChanged` call this after applying its own change.
+  void _report() => widget.onDraftChanged(_currentDraft);
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _shareController.dispose();
+    _reinvestController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 }

@@ -25,8 +25,17 @@ import 'package:super_editor/super_editor.dart';
 /// consistent with the preview's, even though the styled editor is a fluid-width editing surface
 /// with no simulated page.
 class OcptFountainEditorStylesheet {
-  /// Private constructor: this class only exposes static members.
-  const OcptFountainEditorStylesheet._();
+  /// The fixed horizontal inset kept around the document even while page simulation is on (never
+  /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
+  /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
+  /// right at the document's edge — this margin sidesteps it entirely.
+  ///
+  /// It eats into the width available to every block's `Styles.maxWidth`, so a caller sizing the
+  /// editor to an exact content width (`OcptStyledScreenplayEditor`, while page simulation is on)
+  /// must widen its box by this inset on each side and shift it back by one, or every element
+  /// would wrap [horizontalDocumentPaddingInset] pixels early on each side and no longer share the
+  /// raw preview's wrap columns.
+  static const double horizontalDocumentPaddingInset = 8;
 
   /// The opacity applied to non-printing elements (sections and synopses), which never appear in
   /// the printed screenplay and so are dimmed to read as authoring scaffolding rather than
@@ -41,21 +50,12 @@ class OcptFountainEditorStylesheet {
   /// the surrounding text it's embedded in (a note is authoring scaffolding, never printed).
   static const double _noteInlineOpacity = 0.55;
 
-  /// The fixed horizontal inset kept around the document even while page simulation is on (never
-  /// 0): a zero horizontal `documentPadding` was found, empirically, to make `SuperEditor`
-  /// occasionally fail to open a live IME connection when the caret is placed by a simulated tap
-  /// right at the document's edge — this margin sidesteps it entirely.
-  ///
-  /// It eats into the width available to every block's `Styles.maxWidth`, so a caller sizing the
-  /// editor to an exact content width (`OcptStyledScreenplayEditor`, while page simulation is on)
-  /// must widen its box by this inset on each side and shift it back by one, or every element
-  /// would wrap [horizontalDocumentPaddingInset] pixels early on each side and no longer share the
-  /// raw preview's wrap columns.
-  static const double horizontalDocumentPaddingInset = 8;
-
   /// The vertical document padding used while page simulation is off (a small, fixed inset for
   /// the fluid, theme-following editing surface, top and bottom alike).
   static const double _fluidVerticalDocumentPaddingInset = 16;
+
+  /// Private constructor: this class only exposes static members.
+  const OcptFountainEditorStylesheet._();
 
   /// Builds the stylesheet for typesetting the styled editor at [metrics].
   ///

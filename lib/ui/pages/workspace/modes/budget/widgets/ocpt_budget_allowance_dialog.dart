@@ -43,6 +43,9 @@ class OcptBudgetAllowanceDialog extends StatefulWidget {
     required this.currencyCode,
   });
 
+  @override
+  State<OcptBudgetAllowanceDialog> createState() => _OcptBudgetAllowanceDialogState();
+
   /// Shows the dialog and returns the fields the user confirmed, or null if they cancelled it.
   static Future<OcptBudgetAllowanceFormFields?> show(
     BuildContext context, {
@@ -59,9 +62,6 @@ class OcptBudgetAllowanceDialog extends StatefulWidget {
       currencyCode: currencyCode,
     ),
   );
-
-  @override
-  State<OcptBudgetAllowanceDialog> createState() => _OcptBudgetAllowanceDialogState();
 }
 
 /// The state of [OcptBudgetAllowanceDialog]: the form key it hands to

@@ -61,13 +61,6 @@ const double _selfRingWidth = 2;
 /// No write action lives here: a peer's presence is a report, exactly like `OcptSyncStatus`, so
 /// nothing is ever withheld under a read-only preview.
 class OcptPresenceIndicator extends StatelessWidget {
-  /// Class constructor
-  ///
-  /// [syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
-  /// see [_sync]'s own doc comment.
-  const OcptPresenceIndicator({super.key, OcptSyncManager? syncManager})
-    : _syncManager = syncManager;
-
   final OcptSyncManager? _syncManager;
 
   /// [_syncManager], or the one `globalGetIt()` holds when there is an app-wide manager
@@ -86,6 +79,13 @@ class OcptPresenceIndicator extends StatelessWidget {
     final managers = globalGetIt();
     return managers.isRegistered<OcptSyncManager>() ? managers.get<OcptSyncManager>() : null;
   }
+
+  /// Class constructor
+  ///
+  /// [syncManager] is the injectable seam over `globalGetIt()` a widget test hands in instead —
+  /// see [_sync]'s own doc comment.
+  const OcptPresenceIndicator({super.key, OcptSyncManager? syncManager})
+    : _syncManager = syncManager;
 
   @override
   Widget build(BuildContext context) {
@@ -116,11 +116,11 @@ class OcptPresenceIndicator extends StatelessWidget {
 /// mirrors `OcptSyncStatusIndicator`'s own `_OcptSyncStatusBadge` and its `MenuAnchor`/`builder`
 /// idiom.
 class _OcptPresenceCluster extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresenceCluster({required this.roster});
-
   /// The roster this cluster draws.
   final OcptPresenceRoster roster;
+
+  /// Class constructor
+  const _OcptPresenceCluster({required this.roster});
 
   @override
   Widget build(BuildContext context) {
@@ -168,14 +168,14 @@ class _OcptPresenceCluster extends StatelessWidget {
 
 /// One cluster avatar, wrapped in the [Tooltip] naming [frame]'s own label and current mode.
 class _OcptPresenceAvatarTooltip extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresenceAvatarTooltip({required this.frame, required this.isSelf});
-
   /// The frame this avatar represents.
   final OcptPresenceFrame frame;
 
   /// Whether [frame] is this replica's own — draws the accent ring when true.
   final bool isSelf;
+
+  /// Class constructor
+  const _OcptPresenceAvatarTooltip({required this.frame, required this.isSelf});
 
   @override
   Widget build(BuildContext context) {
@@ -201,14 +201,14 @@ class _OcptPresenceAvatarTooltip extends StatelessWidget {
 /// The `+N` disc closing the cluster once the roster holds more participants than
 /// [_maxClusterAvatars] can show.
 class _OcptPresenceOverflowDisc extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresenceOverflowDisc({required this.count, required this.theme});
-
   /// How many participants are folded into this disc.
   final int count;
 
   /// The ambient theme, resolved once by the caller.
   final ThemeData theme;
+
+  /// Class constructor
+  const _OcptPresenceOverflowDisc({required this.count, required this.theme});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -234,14 +234,6 @@ class _OcptPresenceOverflowDisc extends StatelessWidget {
 /// [ocptPresenceColor]'s deterministic fill — the one glyph shared by the cluster and the popover
 /// row alike, only their `diameter` and `outlineColor` differ.
 class _OcptPresenceAvatar extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresenceAvatar({
-    required this.frame,
-    required this.isSelf,
-    required this.diameter,
-    this.outlineColor,
-  });
-
   /// The frame this disc represents.
   final OcptPresenceFrame frame;
 
@@ -254,6 +246,14 @@ class _OcptPresenceAvatar extends StatelessWidget {
   /// The colour drawn as a thin outline around a non-self disc, cutting it out from whatever sits
   /// behind it, or null for no outline at all (the popover row, which stands on its own).
   final Color? outlineColor;
+
+  /// Class constructor
+  const _OcptPresenceAvatar({
+    required this.frame,
+    required this.isSelf,
+    required this.diameter,
+    this.outlineColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -287,11 +287,11 @@ class _OcptPresenceAvatar extends StatelessWidget {
 /// replicas currently have it open, then one row per [roster] participant, in roster order (self
 /// first, per [OcptPresenceRoster]'s own contract).
 class _OcptPresencePopover extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresencePopover({required this.roster});
-
   /// The roster this popover describes.
   final OcptPresenceRoster roster;
+
+  /// Class constructor
+  const _OcptPresencePopover({required this.roster});
 
   @override
   Widget build(BuildContext context) {
@@ -334,14 +334,14 @@ class _OcptPresencePopover extends StatelessWidget {
 /// (with the `Vous` badge beside it while [isSelf]), and its current mode's label underneath, or
 /// nothing there while `frame.modeKey` is null or names no known [OcptWorkspaceMode].
 class _OcptPresencePopoverRow extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresencePopoverRow({required this.frame, required this.isSelf});
-
   /// The frame this row describes.
   final OcptPresenceFrame frame;
 
   /// Whether [frame] is this replica's own.
   final bool isSelf;
+
+  /// Class constructor
+  const _OcptPresencePopoverRow({required this.frame, required this.isSelf});
 
   @override
   Widget build(BuildContext context) {
@@ -395,11 +395,11 @@ class _OcptPresencePopoverRow extends StatelessWidget {
 
 /// The small `Vous` pill marking the popover's self row, tinted with the app's own accent colour.
 class _OcptPresenceSelfBadge extends StatelessWidget {
-  /// Class constructor
-  const _OcptPresenceSelfBadge({required this.label});
-
   /// The badge's own text.
   final String label;
+
+  /// Class constructor
+  const _OcptPresenceSelfBadge({required this.label});
 
   @override
   Widget build(BuildContext context) {

@@ -168,12 +168,6 @@ class _ResourcesViewState extends State<_ResourcesView> {
   }
 
   @override
-  void dispose() {
-    _dockLayoutController.dispose();
-    super.dispose();
-  }
-
-  @override
   @override
   Widget build(BuildContext context) => BlocConsumer<OcptResourcesBloc, OcptResourcesState>(
     listener: _onStateChanged,
@@ -664,5 +658,11 @@ class _ResourcesViewState extends State<_ResourcesView> {
         fileTypeLabel: Tr.of(context).projectPackageFileTypeLabel,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _dockLayoutController.dispose();
+    super.dispose();
   }
 }

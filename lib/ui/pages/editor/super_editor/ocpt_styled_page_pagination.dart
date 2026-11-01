@@ -19,15 +19,6 @@ const String ocptStartsNewPageMetadataKey = "ocptStartsNewPage";
 /// currently spans, and how much trailing bottom padding fills the last page out to its full
 /// height.
 class OcptStyledPagination {
-  /// Creates an [OcptStyledPagination].
-  const OcptStyledPagination({
-    required this.pageStartNodeIds,
-    required this.pageStartTopPaddings,
-    required this.pageCount,
-    required this.titlePageSheetCount,
-    required this.trailingBottomPadding,
-  });
-
   /// The ids of every `ParagraphNode` that starts a page other than the very first one (the
   /// document's first node never carries the flag: there is no page boundary to show above it).
   ///
@@ -65,6 +56,15 @@ class OcptStyledPagination {
   /// content simply ends wherever the last line of text happens to fall, leaving no space to
   /// scroll into so the last sheet's own bottom margin is never shown, only cropped short.
   final double trailingBottomPadding;
+
+  /// Creates an [OcptStyledPagination].
+  const OcptStyledPagination({
+    required this.pageStartNodeIds,
+    required this.pageStartTopPaddings,
+    required this.pageCount,
+    required this.titlePageSheetCount,
+    required this.trailingBottomPadding,
+  });
 }
 
 /// Buckets every `ParagraphNode` of [document] into simulated pages, the same line-estimation

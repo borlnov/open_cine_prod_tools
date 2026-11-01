@@ -793,12 +793,6 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final onChanged = widget.onChanged;
     if (onChanged == null) {
@@ -816,6 +810,12 @@ class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
       style: Theme.of(context).textTheme.bodySmall,
       decoration: const InputDecoration(isDense: true),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
 
@@ -901,12 +901,28 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
   }
 
   @override
-  void dispose() {
-    _focusNode
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onChanged = widget.onChanged;
+
+    if (onChanged == null) {
+      return Text(
+        ocptFormatMinuteDuration(widget.durationMinutes),
+        style: theme.textTheme.bodySmall,
+      );
+    }
+
+    return SizedBox(
+      width: 76,
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onSubmitted: (_) => _commit(),
+        keyboardType: TextInputType.number,
+        style: theme.textTheme.bodySmall,
+        decoration: const InputDecoration(isDense: true, suffixText: "min"),
+      ),
+    );
   }
 
   /// Commits the field's current text once it loses focus, mirroring `OcptScheduleMinuteField`'s
@@ -940,27 +956,11 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onChanged = widget.onChanged;
-
-    if (onChanged == null) {
-      return Text(
-        ocptFormatMinuteDuration(widget.durationMinutes),
-        style: theme.textTheme.bodySmall,
-      );
-    }
-
-    return SizedBox(
-      width: 76,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        onSubmitted: (_) => _commit(),
-        keyboardType: TextInputType.number,
-        style: theme.textTheme.bodySmall,
-        decoration: const InputDecoration(isDense: true, suffixText: "min"),
-      ),
-    );
+  void dispose() {
+    _focusNode
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
   }
 }

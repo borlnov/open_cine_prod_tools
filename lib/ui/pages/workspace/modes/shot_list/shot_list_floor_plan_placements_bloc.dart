@@ -138,6 +138,91 @@ class OcptShotListFloorPlanPlacementsBloc
     emitter(state.copyWithPrunedFieldEdits(pendingFieldEdits: pending));
   }
 
+  /// Writes every pending symbol label immediately: cancels the debounce timer (a no-op if it
+  /// already fired or there was none), writes each one, then has the mode read the floor plans
+  /// again and only then forgets what was written, so what a label shows never falls back to a
+  /// stale stored value between the two. A no-op while nothing is pending.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date.
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptShotListFloorPlanPlacementsState> emitter) async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithFieldEditsCleared());
+      return true;
+    }
+
+    try {
+      await _writeAllPendingEdits(project: project, pending: pending);
+      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+      emitter(
+        state.copyWithFlushedFieldEdits(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending symbol label of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      emitter(
+        state.copyToFlushFailed(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  /// Writes every pending symbol label directly to the database, bypassing the debounce timer, the
+  /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
+  /// leaving the tree, this bloc closing). A failure is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingEdits(project: project, pending: edits),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending symbol label of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+  }
+
   /// Deletes symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
   /// already been confirmed through `OcptConfirmDialog`, by the mode. The canvas bloc drops its
   /// selection of the symbol, and of the arrow, once the mode says the symbol was removed.
@@ -487,91 +572,6 @@ class OcptShotListFloorPlanPlacementsBloc
 
     if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-  }
-
-  /// Writes every pending symbol label immediately: cancels the debounce timer (a no-op if it
-  /// already fired or there was none), writes each one, then has the mode read the floor plans
-  /// again and only then forgets what was written, so what a label shows never falls back to a
-  /// stale stored value between the two. A no-op while nothing is pending.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date.
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptShotListFloorPlanPlacementsState> emitter) async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithFieldEditsCleared());
-      return true;
-    }
-
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending symbol label of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyToFlushFailed(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    }
-
-    return true;
-  }
-
-  /// Writes every pending symbol label directly to the database, bypassing the debounce timer, the
-  /// bloc's own event queue and its state — for the moments no handler can emit from (the mode
-  /// leaving the tree, this bloc closing). A failure is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending symbol label of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
     }
   }
 

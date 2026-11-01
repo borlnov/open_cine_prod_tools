@@ -34,6 +34,9 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
   /// Class constructor
   const OcptBreakdownSheetsExportDialog({required this.current, super.key});
 
+  @override
+  State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
+
   /// Shows the dialog and returns the [OcptBreakdownSheetsExportOptions] the user applied, or null
   /// if they cancelled it.
   static Future<OcptBreakdownSheetsExportOptions?> show(
@@ -43,9 +46,6 @@ class OcptBreakdownSheetsExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptBreakdownSheetsExportDialog(current: current),
   );
-
-  @override
-  State<OcptBreakdownSheetsExportDialog> createState() => _OcptBreakdownSheetsExportDialogState();
 }
 
 /// The state of [OcptBreakdownSheetsExportDialog].

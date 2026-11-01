@@ -74,9 +74,6 @@ class OcptEditorPreviewLayout {
   /// The width of one character column, in logical pixels.
   final double glyphWidth;
 
-  /// Class constructor
-  OcptEditorPreviewLayout({required this.metrics}) : glyphWidth = _measureGlyphWidth(fontSize);
-
   /// The single pixels-per-inch scale every measurement of this class derives from, horizontally
   /// AND vertically (see class doc comment for why that matters).
   double get pixelsPerInch => metrics.charsPerInch * glyphWidth;
@@ -111,27 +108,14 @@ class OcptEditorPreviewLayout {
   /// The bottom page margin, in logical pixels.
   double get marginBottom => metrics.marginBottomInches * pixelsPerInch;
 
+  /// Class constructor
+  OcptEditorPreviewLayout({required this.metrics}) : glyphWidth = _measureGlyphWidth(fontSize);
+
   /// The distance from the page's left edge to where [element]'s text starts, in logical pixels.
   double indentOf(FountainElementLayout element) => element.leftIndentColumns * glyphWidth;
 
   /// The maximum width available to [element]'s text before it wraps, in logical pixels.
   double widthOf(FountainElementLayout element) => element.maxWidthColumns * glyphWidth;
-
-  /// Returns the blocks of [document] that are part of the printed screenplay, in source order.
-  ///
-  /// Sections, synopses, notes and boneyard comments are editor-only constructs: they are never
-  /// printed, so the preview skips them entirely.
-  static List<FountainBlock> printableBlocks(FountainDocument document) => document.blocks
-      .where(
-        (block) => switch (block) {
-          FountainSection() ||
-          FountainSynopsis() ||
-          FountainNoteBlock() ||
-          FountainBoneyard() => false,
-          _ => true,
-        },
-      )
-      .toList(growable: false);
 
   /// Estimates the rendered height of [block], in logical pixels, including the trailing
   /// [blockSpacing].
@@ -181,13 +165,21 @@ class OcptEditorPreviewLayout {
     _ => 0,
   };
 
-  /// The full character cue line: the name, followed by its parenthetical extension if any.
-  static String _characterCueText(FountainCharacter character) =>
-      character.extension == null ? character.name : "${character.name} (${character.extension})";
-
-  /// Sums [wrappedLineCount] over [lines] at [maxColumns].
-  static int _sumOfWrappedLines(List<String> lines, int maxColumns) =>
-      lines.fold(0, (sum, line) => sum + wrappedLineCount(line, maxColumns));
+  /// Returns the blocks of [document] that are part of the printed screenplay, in source order.
+  ///
+  /// Sections, synopses, notes and boneyard comments are editor-only constructs: they are never
+  /// printed, so the preview skips them entirely.
+  static List<FountainBlock> printableBlocks(FountainDocument document) => document.blocks
+      .where(
+        (block) => switch (block) {
+          FountainSection() ||
+          FountainSynopsis() ||
+          FountainNoteBlock() ||
+          FountainBoneyard() => false,
+          _ => true,
+        },
+      )
+      .toList(growable: false);
 
   /// Returns how many lines [text] wraps to in a box [maxColumns] characters wide, using a greedy
   /// word wrap (which is what text layout does for a fixed-pitch font). An empty [text] still
@@ -215,6 +207,14 @@ class OcptEditorPreviewLayout {
 
     return lineCount;
   }
+
+  /// The full character cue line: the name, followed by its parenthetical extension if any.
+  static String _characterCueText(FountainCharacter character) =>
+      character.extension == null ? character.name : "${character.name} (${character.extension})";
+
+  /// Sums [wrappedLineCount] over [lines] at [maxColumns].
+  static int _sumOfWrappedLines(List<String> lines, int maxColumns) =>
+      lines.fold(0, (sum, line) => sum + wrappedLineCount(line, maxColumns));
 
   /// Measures (and caches) the width of one Courier Prime glyph at [fontSize] logical pixels.
   static double _measureGlyphWidth(double fontSize) => _glyphWidthCache.putIfAbsent(fontSize, () {

@@ -184,6 +184,91 @@ class OcptShotListStoryboardBloc
     );
   }
 
+  /// Writes every pending edit immediately: cancels the debounce timer (a no-op if it already fired
+  /// or there was none), writes each one, then has the mode read the storyboard again and only then
+  /// forgets them, so what a field shows never falls back to a stale stored value between the two.
+  /// A no-op while nothing is pending.
+  ///
+  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
+  /// to be up to date.
+  @override
+  Future<bool> onFlushRequested(Emitter<OcptShotListStoryboardState> emitter) async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return false;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      emitter(state.copyWithFieldEditsCleared());
+      return true;
+    }
+
+    try {
+      await _writeAllPendingEdits(project: project, pending: pending);
+      await modeBloc.reload({OcptShotListReloadScope.storyboard});
+      emitter(
+        state.copyWithFlushedFieldEdits(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending storyboard edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      emitter(
+        state.copyToFlushFailed(
+          pendingFieldEdits: ocptPendingEditsAfterWrite(
+            current: state.pendingFieldEdits,
+            written: pending,
+          ),
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
+  /// own event queue and its state — for the moments no handler can emit from (the mode leaving the
+  /// tree, this bloc closing). A failure is only logged.
+  @override
+  Future<void> flushPendingWritesWithoutState() async {
+    cancelDebounce();
+
+    final pending = state.pendingFieldEdits;
+    if (pending.isEmpty) {
+      return;
+    }
+
+    final project = _projectsManager.currentProject;
+    if (project == null) {
+      return;
+    }
+
+    try {
+      await flushEditsWithoutState(
+        pending,
+        (edits) => _writeAllPendingEdits(project: project, pending: edits),
+      );
+    } catch (error, stackTrace) {
+      _logger.e(
+        "A problem occurred when tried to flush a pending storyboard edit of project "
+        "${project.primaryScreenplayId}: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+    }
+  }
+
   /// Selects panel `event.panelId` on the board, dispatched by a click on one of the selected
   /// shot's own panel frames. Clears the annotation tool and mark selection: both are scoped to
   /// the panel that was selected before this one (`OcptShotListStoryboardState.activeAnnotationTool`'s
@@ -592,91 +677,6 @@ class OcptShotListStoryboardBloc
 
     if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
-    }
-  }
-
-  /// Writes every pending edit immediately: cancels the debounce timer (a no-op if it already fired
-  /// or there was none), writes each one, then has the mode read the storyboard again and only then
-  /// forgets them, so what a field shows never falls back to a stale stored value between the two.
-  /// A no-op while nothing is pending.
-  ///
-  /// Called by the debounce firing, and by the mode ahead of every action that needs the database
-  /// to be up to date.
-  @override
-  Future<bool> onFlushRequested(Emitter<OcptShotListStoryboardState> emitter) async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return false;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      emitter(state.copyWithFieldEditsCleared());
-      return true;
-    }
-
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending storyboard edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyToFlushFailed(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    }
-
-    return true;
-  }
-
-  /// Writes every pending edit directly to the database, bypassing the debounce timer, the bloc's
-  /// own event queue and its state — for the moments no handler can emit from (the mode leaving the
-  /// tree, this bloc closing). A failure is only logged.
-  @override
-  Future<void> flushPendingWritesWithoutState() async {
-    cancelDebounce();
-
-    final pending = state.pendingFieldEdits;
-    if (pending.isEmpty) {
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      await flushEditsWithoutState(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending storyboard edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
     }
   }
 

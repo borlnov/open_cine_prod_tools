@@ -36,6 +36,17 @@ const double _dirtyMarkerSize = 6;
 /// Below [ocptCompactWidthBreakpoint] ([isCompact]), [title] and [modeLabel] are withheld outright
 /// — see [isCompact]'s own doc comment.
 class OcptWorkspaceToolbar extends StatelessWidget {
+  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize] square,
+  /// with no padding of its own around the glyph.
+  ///
+  /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
+  /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
+  /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
+  static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
+    minimumSize: const Size.square(ocpt_theme.ocptToolbarChromeButtonSize),
+    padding: EdgeInsets.zero,
+  );
+
   /// The title shown at the left of the toolbar (the open project's name).
   final String title;
 
@@ -123,17 +134,6 @@ class OcptWorkspaceToolbar extends StatelessWidget {
 
   /// The `⋮` overflow menu's entries. An empty list renders no `⋮` button at all.
   final List<PopupMenuEntry<void>> overflowEntries;
-
-  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize] square,
-  /// with no padding of its own around the glyph.
-  ///
-  /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
-  /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
-  /// else (shape, the selected wash, colors) is left to the `iconButtonTheme`.
-  static final ButtonStyle chromeButtonStyle = IconButton.styleFrom(
-    minimumSize: const Size.square(ocpt_theme.ocptToolbarChromeButtonSize),
-    padding: EdgeInsets.zero,
-  );
 
   /// Class constructor
   const OcptWorkspaceToolbar({

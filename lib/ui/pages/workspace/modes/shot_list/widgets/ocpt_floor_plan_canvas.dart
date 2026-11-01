@@ -404,28 +404,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   @override
-  void dispose() {
-    _wheelZoomSettleTimer?.cancel();
-    _drag
-      ..removeListener(_onDragChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  /// Redraws the canvas whenever a drag moves its live geometry.
-  void _onDragChanged() => setState(() {});
-
-  /// [globalPosition] converted into this canvas's own local coordinate space, through
-  /// [_canvasStackKey]'s `RenderBox` — the fix for a handle drag's own `onPanUpdate`, whose
-  /// `details.localPosition` is relative to the handle's own tiny hit box rather than to the
-  /// canvas. Falls back to [globalPosition] unchanged on the one frame the render object isn't
-  /// resolvable yet (defensive only).
-  Offset _resolveLocalPosition(Offset globalPosition) {
-    final renderObject = _canvasStackKey.currentContext?.findRenderObject();
-    return renderObject is RenderBox ? renderObject.globalToLocal(globalPosition) : globalPosition;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
@@ -684,6 +662,19 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
         );
       },
     );
+  }
+
+  /// Redraws the canvas whenever a drag moves its live geometry.
+  void _onDragChanged() => setState(() {});
+
+  /// [globalPosition] converted into this canvas's own local coordinate space, through
+  /// [_canvasStackKey]'s `RenderBox` — the fix for a handle drag's own `onPanUpdate`, whose
+  /// `details.localPosition` is relative to the handle's own tiny hit box rather than to the
+  /// canvas. Falls back to [globalPosition] unchanged on the one frame the render object isn't
+  /// resolvable yet (defensive only).
+  Offset _resolveLocalPosition(Offset globalPosition) {
+    final renderObject = _canvasStackKey.currentContext?.findRenderObject();
+    return renderObject is RenderBox ? renderObject.globalToLocal(globalPosition) : globalPosition;
   }
 
   /// Whether [symbol] may be dragged, resized, rotated, given a field of view or deleted: never a
@@ -992,5 +983,14 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
     }
 
     onArrowCurveChanged(arrow.arrowId, live.xM, live.yM);
+  }
+
+  @override
+  void dispose() {
+    _wheelZoomSettleTimer?.cancel();
+    _drag
+      ..removeListener(_onDragChanged)
+      ..dispose();
+    super.dispose();
   }
 }

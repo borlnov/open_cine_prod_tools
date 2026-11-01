@@ -857,16 +857,16 @@ class _SlotLabelFieldState extends State<_SlotLabelField> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) => TextField(
     controller: _controller,
     onChanged: widget.onChanged,
     style: Theme.of(context).textTheme.titleSmall,
     decoration: InputDecoration(isDense: true, hintText: widget.hintText),
   );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }

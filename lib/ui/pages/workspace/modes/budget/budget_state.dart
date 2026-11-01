@@ -94,18 +94,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// off this one field so neither has to learn about the sealed type.
   final OcptBudgetSelection? selection;
 
-  /// The id of the currently selected poste, or null while [selection] does not name one.
-  ///
-  /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
-  /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
-  /// two jobs, and that conflation was the fault: clicking a row in the quote silently filtered a
-  /// view the reader was not even looking at, and they found out on arriving there. What narrows a
-  /// view is [filterPosteId], which is only ever set by a gesture that says so.
-  String? get selectedPosteId => switch (selection) {
-    OcptBudgetPosteSelection(:final posteId) => posteId,
-    _ => null,
-  };
-
   /// The poste every view of the mode is currently narrowed to, or null for the whole project.
   ///
   /// **Mode-wide on purpose**, unlike [selectedPosteId]: it is set once, from the header, and holds
@@ -114,23 +102,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The three views with no poste dimension at all (the financing plan, the régie, the revenue
   /// sharing) say so rather than pretending to honour it.
   final String? filterPosteId;
-
-  /// The id of the currently selected financing resource, or null while [selection] does not name
-  /// one — the financing view's own selection, read exactly as [selectedPosteId] is, but drawn as a
-  /// plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
-  /// comment for why this view carries no inspector of its own.
-  String? get selectedResourceId => switch (selection) {
-    OcptBudgetResourceSelection(:final resourceId) => resourceId,
-    _ => null,
-  };
-
-  /// The id of the currently selected taking, or null while [selection] does not name one — the
-  /// resources tree's own revenue row reads and dispatches this, opening the fiche on it exactly
-  /// as [selectedResourceId] does for a resource row.
-  String? get selectedRevenueId => switch (selection) {
-    OcptBudgetRevenueSelection(:final revenueId) => revenueId,
-    _ => null,
-  };
 
   /// The id of the currently selected revenue sharing share, or null while none is — the sharing
   /// view's own right-column selection, mirroring [selectedRevenueId].
@@ -261,6 +232,35 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `OcptResourcesState.pageSetup` is, this mode carrying no screenplay of its own to typeset.
   final OcptPageSetup pageSetup;
 
+  /// The id of the currently selected poste, or null while [selection] does not name one.
+  ///
+  /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
+  /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
+  /// two jobs, and that conflation was the fault: clicking a row in the quote silently filtered a
+  /// view the reader was not even looking at, and they found out on arriving there. What narrows a
+  /// view is [filterPosteId], which is only ever set by a gesture that says so.
+  String? get selectedPosteId => switch (selection) {
+    OcptBudgetPosteSelection(:final posteId) => posteId,
+    _ => null,
+  };
+
+  /// The id of the currently selected financing resource, or null while [selection] does not name
+  /// one — the financing view's own selection, read exactly as [selectedPosteId] is, but drawn as a
+  /// plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
+  /// comment for why this view carries no inspector of its own.
+  String? get selectedResourceId => switch (selection) {
+    OcptBudgetResourceSelection(:final resourceId) => resourceId,
+    _ => null,
+  };
+
+  /// The id of the currently selected taking, or null while [selection] does not name one — the
+  /// resources tree's own revenue row reads and dispatches this, opening the fiche on it exactly
+  /// as [selectedResourceId] does for a resource row.
+  String? get selectedRevenueId => switch (selection) {
+    OcptBudgetRevenueSelection(:final revenueId) => revenueId,
+    _ => null,
+  };
+
   /// Every live poste of [snapshot], in display order (empty while nothing is loaded).
   List<OcptBudgetPoste> get postes => snapshot?.postes ?? const [];
 
@@ -302,25 +302,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
         entryCount: 0,
       );
 
-  /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
-  /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
-  /// honestly zero rather than a stand-in for an unknown figure.
-  int paidCentsOf(String posteId) => snapshot?.paidCentsOf(posteId) ?? 0;
-
-  /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
-  /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
-  int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
-
-  /// `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
-  /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
-  int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
-
-  /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
-  /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
-  /// why this `?? 0` is the ordinary reading, and why the financing view reads
-  /// [receivedByResourceId] itself for the one row kind that needs the other one.
-  int receivedCentsOf(String resourceId) => snapshot?.receivedCentsOf(resourceId) ?? 0;
-
   /// Every live taking of [snapshot], in `sortKey` order (empty while nothing is loaded).
   List<OcptBudgetRevenue> get revenues => snapshot?.revenues ?? const [];
 
@@ -359,14 +340,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// [resources]' own reimbursable ones, grouped by lender — empty while nothing is loaded. The
   /// `Repaying the contributions` card's own detail: who is owed what.
   List<OcptBudgetRepaymentLine> get repaymentLines => snapshot?.repaymentLines ?? const [];
-
-  /// `revenueId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
-  /// carries no entry against it. Mirrors [receivedCentsOf].
-  int receivedRevenueCentsOf(String revenueId) => snapshot?.receivedRevenueCentsOf(revenueId) ?? 0;
-
-  /// `shareId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
-  /// entry against it. Mirrors [receivedCentsOf].
-  int paidShareCentsOf(String shareId) => snapshot?.paidShareCentsOf(shareId) ?? 0;
 
   /// What has actually been paid against each poste of [snapshot], empty while nothing is loaded —
   /// the cost-tracking table reads this, per poste and folded into its own total row's `Payé`
@@ -551,6 +524,33 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       projectPackageNotice = null,
       projectPackagePendingExportTarget = null,
       pageSetup = const OcptPageSetup.standard();
+
+  /// `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
+  /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
+  /// honestly zero rather than a stand-in for an unknown figure.
+  int paidCentsOf(String posteId) => snapshot?.paidCentsOf(posteId) ?? 0;
+
+  /// `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
+
+  /// `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
+  /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
+
+  /// `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
+  /// why this `?? 0` is the ordinary reading, and why the financing view reads
+  /// [receivedByResourceId] itself for the one row kind that needs the other one.
+  int receivedCentsOf(String resourceId) => snapshot?.receivedCentsOf(resourceId) ?? 0;
+
+  /// `revenueId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// carries no entry against it. Mirrors [receivedCentsOf].
+  int receivedRevenueCentsOf(String revenueId) => snapshot?.receivedRevenueCentsOf(revenueId) ?? 0;
+
+  /// `shareId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or carries no
+  /// entry against it. Mirrors [receivedCentsOf].
+  int paidShareCentsOf(String shareId) => snapshot?.paidShareCentsOf(shareId) ?? 0;
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///

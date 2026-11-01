@@ -78,6 +78,23 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
   /// The status currently picked.
   late OcptBudgetRevenueStatus _status;
 
+  /// The fields this body would submit right now, or null while the `Amount` field's own figure
+  /// does not parse.
+  OcptBudgetRevenueFormFields? get _currentDraft {
+    final amountCents = ocptCostCentsOf(_amountController.text);
+    if (amountCents == null) {
+      return null;
+    }
+
+    return OcptBudgetRevenueFormFields(
+      date: _date,
+      label: _labelController.text.trim(),
+      amountCents: amountCents,
+      status: _status,
+      notes: _notesController.text.trim(),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -100,35 +117,6 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
         _report();
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _amountController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
-  /// `onChanged` call this after applying its own change.
-  void _report() => widget.onDraftChanged(_currentDraft);
-
-  /// The fields this body would submit right now, or null while the `Amount` field's own figure
-  /// does not parse.
-  OcptBudgetRevenueFormFields? get _currentDraft {
-    final amountCents = ocptCostCentsOf(_amountController.text);
-    if (amountCents == null) {
-      return null;
-    }
-
-    return OcptBudgetRevenueFormFields(
-      date: _date,
-      label: _labelController.text.trim(),
-      amountCents: amountCents,
-      status: _status,
-      notes: _notesController.text.trim(),
-    );
   }
 
   @override
@@ -197,6 +185,18 @@ class _OcptBudgetRevenueFormBodyState extends State<OcptBudgetRevenueFormBody> {
         ),
       ),
     );
+  }
+
+  /// Reports [_currentDraft] to the host — every controller listener and every picker's own
+  /// `onChanged` call this after applying its own change.
+  void _report() => widget.onDraftChanged(_currentDraft);
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 }
 
