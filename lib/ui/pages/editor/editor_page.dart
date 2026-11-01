@@ -24,6 +24,10 @@ import 'package:open_cine_prod_tools/types/ocpt_project_settings_reveal.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_spell_check_bloc.dart';
@@ -103,6 +107,10 @@ class OcptEditorPage extends StatelessWidget {
       BlocProvider(
         lazy: false,
         create: (context) => OcptEditorSearchBloc(modeBloc: context.read<OcptEditorBloc>()),
+      ),
+      BlocProvider(
+        lazy: false,
+        create: (context) => OcptEditorIoBloc(modeBloc: context.read<OcptEditorBloc>()),
       ),
     ],
     child: const _EditorView(),
@@ -360,6 +368,7 @@ class _EditorViewState extends State<_EditorView> {
               listener: (context, search) =>
                   _syncSearch(context.read<OcptEditorBloc>().state, search),
             ),
+            BlocListener<OcptEditorIoBloc, OcptEditorIoState>(listener: _onIoStateChanged),
           ],
           child: BlocConsumer<OcptEditorBloc, OcptEditorState>(
             listener: _onStateChanged,
@@ -1361,7 +1370,7 @@ class _EditorViewState extends State<_EditorView> {
   /// Shows the import confirmation dialog, then dispatches the import request if the user
   /// confirmed the replacement.
   Future<void> _requestImportAndReplace(BuildContext context) async {
-    final bloc = context.read<OcptEditorBloc>();
+    final bloc = context.read<OcptEditorIoBloc>();
     final tr = Tr.of(context);
     final confirmed = await OcptConfirmDialog.show(
       context,
@@ -1473,7 +1482,7 @@ class _EditorViewState extends State<_EditorView> {
       case OcptWorkspaceExportDocumentPick<OcptEditorExportDocument>(:final document):
         switch (document) {
           case OcptEditorExportDocument.fountain:
-            context.read<OcptEditorBloc>().add(
+            context.read<OcptEditorIoBloc>().add(
               OcptEditorExportRequestedEvent(
                 fileTypeLabel: tr.editorImportFileTypeLabel,
                 episodeTag: _episodeExportTag(context),
@@ -1491,10 +1500,10 @@ class _EditorViewState extends State<_EditorView> {
   /// Shows the PDF export options dialog, then dispatches the export request if the user applied
   /// it.
   Future<void> _requestExportPdf(BuildContext context, Rect? shareAnchor) async {
-    final bloc = context.read<OcptEditorBloc>();
+    final bloc = context.read<OcptEditorIoBloc>();
     final options = await OcptEditorExportPdfOptionsDialog.show(
       context,
-      current: bloc.state.pageSetup,
+      current: context.read<OcptEditorBloc>().state.pageSetup,
     );
     if (options == null) {
       return;
@@ -1635,14 +1644,6 @@ class _EditorViewState extends State<_EditorView> {
       context.read<OcptEditorBloc>().add(const OcptEditorSaveErrorDismissedEvent());
     }
 
-    final ioNotice = state.ioNotice;
-    if (ioNotice != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
-      context.read<OcptEditorBloc>().add(const OcptEditorIoNoticeDismissedEvent());
-    }
-
     final versionNotice = state.projectVersionNotice;
     if (versionNotice != null) {
       ScaffoldMessenger.of(context)
@@ -1667,6 +1668,17 @@ class _EditorViewState extends State<_EditorView> {
           SnackBar(content: Text(ocptProjectPackageNoticeMessage(context, packageNotice))),
         );
       context.read<OcptEditorBloc>().add(const OcptProjectPackageNoticeDismissedEvent());
+    }
+  }
+
+  /// Shows the outcome of an export or an import as a SnackBar, then dismisses it.
+  void _onIoStateChanged(BuildContext context, OcptEditorIoState ioState) {
+    final ioNotice = ioState.ioNotice;
+    if (ioNotice != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(_ioNoticeMessage(context, ioNotice))));
+      context.read<OcptEditorIoBloc>().add(const OcptEditorIoNoticeDismissedEvent());
     }
   }
 

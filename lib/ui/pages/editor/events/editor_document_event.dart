@@ -155,3 +155,29 @@ class OcptEditorTitlePageChangedEvent extends OcptEditorDocumentEvent {
   @override
   List<Object?> get props => [...super.props, title, credit, author, draftDate, contact, source];
 }
+
+/// Requests writing the unsaved text before an export reads it, and completes once it is written.
+///
+/// Dispatched by `OcptEditorIoBloc`, which waits for it; it isn't meant to be sent by widgets. The
+/// text is saved tagged `OcptSnapshotReason.export`, and the pending parse and autosave debounces are
+/// dropped.
+class OcptEditorSaveForExportRequestedEvent extends OcptEditorDocumentEvent {
+  /// Class constructor
+  const OcptEditorSaveForExportRequestedEvent();
+}
+
+/// Requests replacing the screenplay text with [text], the text an import has just written to the
+/// project, and completes once the mode's state holds it.
+///
+/// Dispatched by `OcptEditorIoBloc`, which waits for it; it isn't meant to be sent by widgets.
+class OcptEditorImportedTextAppliedEvent extends OcptEditorDocumentEvent {
+  /// The Fountain text the import wrote, which becomes the clean text of the editor.
+  final String text;
+
+  /// Class constructor
+  const OcptEditorImportedTextAppliedEvent({required this.text});
+
+  /// Object properties
+  @override
+  List<Object?> get props => [...super.props, text];
+}

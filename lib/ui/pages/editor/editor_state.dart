@@ -14,7 +14,6 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
-import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
@@ -22,8 +21,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 
-export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
-export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
 export 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
 
 /// The state of `OcptEditorBloc`.
@@ -155,9 +152,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   /// need to be cleared once handled.
   final OcptEditorJumpRequest? jumpRequest;
 
-  /// The transient export/import outcome currently shown as a SnackBar, or null if none is.
-  final OcptEditorIoNotice? ioNotice;
-
   /// The at-a-glance counters (page/scene/character/word/sign counts) shown in the editor's
   /// status bar, computed from [document] at [pageSetup]'s metrics.
   ///
@@ -275,7 +269,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     required this.isSpellCheckVisible,
     required this.screenplayLanguage,
     required this.jumpRequest,
-    required this.ioNotice,
     required this.statistics,
     required this.sceneStatistics,
     required this.reloadEpoch,
@@ -316,7 +309,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
       isSpellCheckVisible = true,
       screenplayLanguage = null,
       jumpRequest = null,
-      ioNotice = null,
       statistics = FountainScriptStatistics.empty,
       sceneStatistics = null,
       reloadEpoch = 0,
@@ -336,10 +328,9 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   ///
   /// [document], [lastSavedAt], [jumpRequest] and [statistics] are only replaced when a new value
   /// is given: they never go back to null (or, for [statistics], to
-  /// [FountainScriptStatistics.empty]) once set, so no force flag is needed for them. [ioNotice]
-  /// is only replaced when a new one is given or [forceIoNoticeValue] is true, exactly like
-  /// `OcptHomeState`'s own `error` field. [rightDockTab], [autoClosedRightDockTab],
-  /// [sceneStatistics] and [screenplayLanguage] follow the same idiom as [ioNotice], each with its
+  /// [FountainScriptStatistics.empty]) once set, so no force flag is needed for them.
+  /// [rightDockTab], [autoClosedRightDockTab], [sceneStatistics] and [screenplayLanguage] are only
+  /// replaced when a new value is given or their force flag is true, each with its
   /// own force flag ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
   /// [forceSceneStatisticsValue], [forceScreenplayLanguageValue]): all four legitimately go back to null during the editor's
   /// lifetime (closing the dock, restoring it on a mode switch, the caret moving back before every
@@ -375,8 +366,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     bool forceScreenplayLanguageValue = false,
     OcptEditorJumpRequest? jumpRequest,
     bool forceJumpRequestValue = false,
-    OcptEditorIoNotice? ioNotice,
-    bool forceIoNoticeValue = false,
     FountainScriptStatistics? statistics,
     FountainSceneStatistics? sceneStatistics,
     bool forceSceneStatisticsValue = false,
@@ -426,7 +415,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     screenplayLanguage:
         screenplayLanguage ?? (forceScreenplayLanguageValue ? null : this.screenplayLanguage),
     jumpRequest: jumpRequest ?? (forceJumpRequestValue ? null : this.jumpRequest),
-    ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice),
     statistics: statistics ?? this.statistics,
     sceneStatistics: sceneStatistics ?? (forceSceneStatisticsValue ? null : this.sceneStatistics),
     reloadEpoch: reloadEpoch ?? this.reloadEpoch,
@@ -526,7 +514,6 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     isSpellCheckVisible,
     screenplayLanguage,
     jumpRequest,
-    ioNotice,
     statistics,
     sceneStatistics,
     reloadEpoch,

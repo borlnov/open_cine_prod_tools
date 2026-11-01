@@ -23,7 +23,6 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
-import 'package:open_cine_prod_tools/types/ocpt_screenplay_import_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_state.dart';
@@ -206,11 +205,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     on<OcptEditorProjectSettingsChangedEvent>(_onProjectSettingsChanged);
     on<OcptEditorSaveErrorDismissedEvent>(_onSaveErrorDismissed);
     on<OcptEditorBackRequestedEvent>(_onBackRequested);
-    on<OcptEditorExportRequestedEvent>(_onExportRequested);
-    on<OcptEditorExportPdfRequestedEvent>(_onExportPdfRequested);
-    on<OcptEditorImportRequestedEvent>(_onImportRequested);
-    on<OcptEditorIoNoticeDismissedEvent>(_onIoNoticeDismissed);
     on<OcptEditorTitlePageChangedEvent>(_onTitlePageChanged);
+    onAwaited<OcptEditorSaveForExportRequestedEvent>(_onSaveForExportRequested);
+    onAwaited<OcptEditorImportedTextAppliedEvent>(_onImportedTextApplied);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -953,214 +950,47 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     emitter(state.copyWith(hasSaveError: false));
   }
 
-  /// Exports the current screenplay to a `.fountain` file.
+  /// Writes the unsaved text, tagged [OcptSnapshotReason.export], before an export reads it, so the
+  /// exported file matches exactly what the project stores.
   ///
-  /// Saves the current text first (tagged [OcptSnapshotReason.export]) if it's dirty, so the
-  /// exported file matches exactly what the project stores. A cancelled save dialog is a silent
-  /// no-op; a failure raises the transient export-failed notice.
-  Future<void> _onExportRequested(
-    OcptEditorExportRequestedEvent event,
+  /// The parse and autosave debounces are cancelled first: the save below is the one that counts, and
+  /// the export that asked for it hands the text over as it stands once this is done. A failed save
+  /// raises the transient save error like any other and the export carries on with the text.
+  Future<void> _onSaveForExportRequested(
+    OcptEditorSaveForExportRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
-    _statisticsTimer?.cancel();
 
     if (state.isDirty) {
       await _saveCurrentText(reason: OcptSnapshotReason.export, emitter: emitter);
     }
-
-    try {
-      final outcome = await _exportManager.exportFountain(
-        fountainText: state.text,
-        projectName: state.title,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptEditorIoNotice(
-            kind: OcptEditorIoNoticeKind.exportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the screenplay of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.exportFailed),
-        ),
-      );
-    }
   }
 
-  /// Exports the current screenplay to a PDF file.
-  ///
-  /// Saves the current text first (tagged [OcptSnapshotReason.export]) if it's dirty, so the
-  /// exported PDF matches exactly what the project stores. The document is re-parsed fresh from
-  /// [OcptEditorState.text] rather than reusing [OcptEditorState.document], since the latter lags
-  /// behind by the parse debounce. A cancelled save dialog is a silent no-op; a failure raises the
-  /// transient PDF-export-failed notice.
-  Future<void> _onExportPdfRequested(
-    OcptEditorExportPdfRequestedEvent event,
+  /// Replaces the screenplay text with the one an import has just written to the project: the text
+  /// is clean (the import saved it), the caret goes back to the first line, and the document and the
+  /// counters follow at once instead of waiting for the typing debounces.
+  Future<void> _onImportedTextApplied(
+    OcptEditorImportedTextAppliedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
-    _statisticsTimer?.cancel();
 
-    if (state.isDirty) {
-      await _saveCurrentText(reason: OcptSnapshotReason.export, emitter: emitter);
-    }
-
-    try {
-      final document = _fountainParser.parse(state.text);
-      final pageSetup = OcptPageSetup(format: event.options.format, margins: event.options.margins);
-      final outcome = await _exportManager.exportPdf(
-        document: document,
-        pageSetup: pageSetup,
-        projectName: state.title,
-        includeSceneNumbers: event.options.includeSceneNumbers,
-        includeTitlePage: event.options.includeTitlePage,
-        fileTypeLabel: event.fileTypeLabel,
-        episodeTag: event.episodeTag,
-        shareAnchor: event.shareAnchor,
-      );
-      if (outcome == null) {
-        // The user cancelled the save dialog.
-        return;
-      }
-
-      emitter(
-        state.copyWith(
-          ioNotice: OcptEditorIoNotice(
-            kind: OcptEditorIoNoticeKind.pdfExportSucceeded,
-            path: outcome.savedPath,
-            wasShared: outcome.wasShared,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to export the screenplay of project "
-        "${_projectsManager.currentProject?.primaryScreenplayId} to PDF: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.pdfExportFailed),
-        ),
-      );
-    }
-  }
-
-  /// Replaces the current screenplay text with the content of a picked screenplay file.
-  ///
-  /// The picked file may be a `.fountain`, an `.fdx` or a `.celtx`, the last two being converted
-  /// to Fountain as they are read, so what replaces the text is Fountain either way.
-  ///
-  /// If the editor is dirty, the current text is saved first (tagged
-  /// [OcptSnapshotReason.manual]) so the pre-import snapshot holds the user's latest keystrokes
-  /// rather than a stale database copy; the imported text is then saved, tagged
-  /// [OcptSnapshotReason.import], which snapshots the pre-import text. A cancelled file dialog is
-  /// a silent no-op; a file that cannot be read as a screenplay raises the transient
-  /// import-unreadable notice and replaces nothing, and a write failure raises the import-failed
-  /// one.
-  Future<void> _onImportRequested(
-    OcptEditorImportRequestedEvent event,
-    Emitter<OcptEditorState> emitter,
-  ) async {
-    final result = await _exportManager.pickAndReadScreenplay(fileTypeLabel: event.fileTypeLabel);
-    final imported = result.value;
-    if (!result.status.isSuccess || imported == null) {
-      // A cancelled dialog, or a selection that failed, is a silent no-op: the OS dialog itself
-      // already reported the latter. A file that could not be read is the one outcome worth
-      // stating, and it leaves the screenplay on screen exactly as it was.
-      if (result.status != OcptScreenplayImportStatus.cancelled) {
-        emitter(
-          state.copyWith(
-            ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importUnreadable),
-          ),
-        );
-      }
-      return;
-    }
-
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    try {
-      if (state.isDirty) {
-        await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
-      }
-
-      await _screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: screenplayIdOf(project),
-        fountainText: imported.fountainText,
-        snapshotReason: OcptSnapshotReason.import,
-      );
-
-      _parseTimer?.cancel();
-      _autosaveTimer?.cancel();
-
-      emitter(
-        state.copyWith(
-          text: imported.fountainText,
-          isDirty: false,
-          currentLine: 0,
-          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importSucceeded),
-        ),
-      );
-      await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-      _recomputeStatisticsNow(
-        document: state.document!,
-        pageSetup: state.pageSetup,
-        emitter: emitter,
-      );
-      emitter(
-        state.copyWith(
-          reloadEpoch: state.reloadEpoch + 1,
-          reloadCause: OcptEditorReloadCause.textReplaced,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import a fountain file into project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      emitter(
-        state.copyWith(
-          ioNotice: const OcptEditorIoNotice(kind: OcptEditorIoNoticeKind.importFailed),
-        ),
-      );
-    }
-  }
-
-  /// Clears the transient export/import notice currently shown, if any.
-  Future<void> _onIoNoticeDismissed(
-    OcptEditorIoNoticeDismissedEvent event,
-    Emitter<OcptEditorState> emitter,
-  ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWith(text: event.text, isDirty: false, currentLine: 0));
+    await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
+    _recomputeStatisticsNow(
+      document: state.document!,
+      pageSetup: state.pageSetup,
+      emitter: emitter,
+    );
+    emitter(
+      state.copyWith(
+        reloadEpoch: state.reloadEpoch + 1,
+        reloadCause: OcptEditorReloadCause.textReplaced,
+      ),
+    );
   }
 
   /// A placeholder source range for the title-page entries built from a title-page change event's
