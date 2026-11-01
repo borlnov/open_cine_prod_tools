@@ -323,9 +323,9 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
       return;
     }
 
-    final WebSocketChannel socket;
+    WebSocketChannel? opened;
     try {
-      socket = _webSocketConnector(_eventsUri());
+      opened = _webSocketConnector(_eventsUri());
     } on Object catch (error, stackTrace) {
       // The error of a failed connection names the relay's address, which is not logged.
       _logger.w(
@@ -334,10 +334,13 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
         stackTrace,
       );
       _scheduleReconnect();
+    }
 
+    if (opened == null) {
       return;
     }
 
+    final socket = opened;
     _activeSocket = socket;
     _activeSocketSubscription = socket.stream.listen(
       _routeIncomingFrame,
@@ -425,14 +428,17 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
     Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
   ) async {
+    ResultWithStatus<OcptRemoteStorageStatus, T> result;
     try {
-      return await call();
+      result = await call();
     } catch (error, stackTrace) {
-      return ResultWithStatus(
+      result = ResultWithStatus(
         status: OcptRemoteStorageStatus.unreachable,
         extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
       );
     }
+
+    return result;
   }
 
   /// The [OcptSyncError] [response]'s body decodes to when [response] is not a 2xx, or null when it

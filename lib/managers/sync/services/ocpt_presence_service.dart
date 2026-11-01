@@ -173,14 +173,13 @@ class OcptPresenceService extends AbsOcptService {
   /// thrown) or carries this replica's own [deviceId] (the relay never echoes a sender's own frame
   /// back to it, but this is defensive rather than load-bearing).
   void _handleInboundFrame(String raw) {
-    final OcptPresenceFrame frame;
+    OcptPresenceFrame? frame;
     try {
       frame = OcptPresenceFrame.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (error, stackTrace) {
       logger.w('Dropping a malformed presence frame: ${error.runtimeType}', null, stackTrace);
-      return;
     }
-    if (frame.deviceId == deviceId) {
+    if (frame == null || frame.deviceId == deviceId) {
       return;
     }
 

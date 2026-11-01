@@ -501,6 +501,21 @@ void main() {
       ]);
     });
 
+    test('reports a failure when the upstream refuses the reconcile', () async {
+      await reconcileManager.startHosting(
+        database: database,
+        projectFilePath: projectPath,
+        projectName: 'Les Vagues',
+        appVersion: '0.1.0',
+        deviceId: 'device-1',
+      );
+
+      final outcome = await reconcileManager.reconcileWithUpstream(invite);
+
+      expect(outcome, isA<OcptReconcileFailed>());
+      expect((outcome as OcptReconcileFailed).message, startsWith('Reconcile failed:'));
+    });
+
     test('pulls what the upstream holds while pushing what the local store holds', () async {
       await reconcileManager.startHosting(
         database: database,

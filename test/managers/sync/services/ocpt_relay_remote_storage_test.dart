@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:act_test_utility/act_test_utility.dart';
@@ -481,6 +482,34 @@ void main() {
 
       expect(presenceFrames, ['{"deviceId":"device-a"}']);
       expect(newWorkEvents, isEmpty);
+    });
+
+    test('retries after the socket could not be opened', () async {
+      final incoming = StreamController<dynamic>.broadcast();
+      var connectCount = 0;
+      final storage = OcptRelayRemoteStorage(
+        logger: const SilentLogger(),
+        relayBaseUri: relayBaseUri,
+        projectId: projectId,
+        token: token,
+        reconnectDelay: const Duration(milliseconds: 10),
+        httpClient: MockClient((request) async => http.Response('', 500)),
+        webSocketConnector: (uri) {
+          connectCount += 1;
+          if (connectCount == 1) {
+            throw const SocketException('unreachable');
+          }
+
+          return _FakeWebSocketChannel(incoming);
+        },
+      );
+      addTearDown(incoming.close);
+
+      final subscription = storage.newWorkStream.listen((_) {});
+      addTearDown(subscription.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(connectCount, 2);
     });
 
     test(

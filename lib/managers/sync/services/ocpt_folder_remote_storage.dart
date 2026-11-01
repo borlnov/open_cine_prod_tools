@@ -143,14 +143,17 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   Future<ResultWithStatus<OcptRemoteStorageStatus, T>> _guarded<T>(
     Future<ResultWithStatus<OcptRemoteStorageStatus, T>> Function() call,
   ) async {
+    ResultWithStatus<OcptRemoteStorageStatus, T> result;
     try {
-      return await call();
+      result = await call();
     } catch (error, stackTrace) {
-      return ResultWithStatus(
+      result = ResultWithStatus(
         status: OcptRemoteStorageStatus.unreachable,
         extraInfo: OcptSyncTransportFailure(error: error, stackTrace: stackTrace),
       );
     }
+
+    return result;
   }
 
   // No network and no other process to watch for on the common case of a plain local directory;

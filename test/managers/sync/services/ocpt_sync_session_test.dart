@@ -81,6 +81,9 @@ class _FakeChangesetService extends OcptChangesetService {
   int countUnpushedEditsCalls = 0;
   int unpushedEditCount = 0;
 
+  /// Whether [countUnpushedEdits] throws instead of answering.
+  bool isCountFailing = false;
+
   final List<Object> syncOnceOutcomes = [];
   final List<Object> pullAndApplyOutcomes = [];
 
@@ -115,6 +118,9 @@ class _FakeChangesetService extends OcptChangesetService {
     required String deviceId,
   }) async {
     countUnpushedEditsCalls++;
+    if (isCountFailing) {
+      throw StateError('database is closed');
+    }
 
     return unpushedEditCount;
   }
@@ -292,6 +298,16 @@ void main() {
     await session.start();
 
     expect(session.status, const OcptSyncStatusOffline(pendingEditCount: 2));
+  });
+
+  test('an offline status carries no pending count when the count itself fails', () async {
+    changesetService.isCountFailing = true;
+    changesetService.syncOnceOutcomes.add(Exception('connection refused'));
+
+    await session.start();
+
+    expect(session.status, const OcptSyncStatusOffline());
+    expect(changesetService.countUnpushedEditsCalls, 1);
   });
 
   test('the relay rejecting a request moves the status to error, with its message', () async {

@@ -402,32 +402,42 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
       }
       if (!bringUp.status.isSuccess) {
         await _failStart(bringUp.extraInfo ?? bringUp.status, null);
-        return;
+      } else {
+        await _goOnline(projectId: projectId, httpServer: httpServer, secret: secret);
       }
-
-      final lanAddresses = await _lanAddressResolver();
-      final host = lanAddresses.isNotEmpty
-          ? lanAddresses.first.address
-          : InternetAddress.loopbackIPv4.address;
-      if (lanAddresses.isEmpty) {
-        _logger.w(
-          'No non-loopback network interface was found while starting to host project '
-          '$projectId: advertising the loopback address, which only this machine can reach.',
-        );
-      }
-      final lanBaseUri = Uri(scheme: 'http', host: host, port: httpServer.port);
-
-      _hostedProjectId = projectId;
-      _setState(OcptRelayHostOnline(lanBaseUri: lanBaseUri, enrolmentSecret: secret));
-      OcptDiagnosticsManager.log(
-        category: OcptDiagnosticsCategory.hosting,
-        message: 'online: project=$projectId base=$lanBaseUri',
-        // The base URI is this machine's address on its network.
-        logMessage: 'online: project=$projectId',
-      );
     } catch (error, stackTrace) {
       await _failStart(error, stackTrace);
     }
+  }
+
+  /// Publishes the hosted project as online once the relay is bound and [startHosting] has paired
+  /// the project to it: resolves the address other devices reach this machine on and moves to
+  /// [OcptRelayHostOnline].
+  Future<void> _goOnline({
+    required String projectId,
+    required HttpServer httpServer,
+    required String secret,
+  }) async {
+    final lanAddresses = await _lanAddressResolver();
+    final host = lanAddresses.isNotEmpty
+        ? lanAddresses.first.address
+        : InternetAddress.loopbackIPv4.address;
+    if (lanAddresses.isEmpty) {
+      _logger.w(
+        'No non-loopback network interface was found while starting to host project '
+        '$projectId: advertising the loopback address, which only this machine can reach.',
+      );
+    }
+    final lanBaseUri = Uri(scheme: 'http', host: host, port: httpServer.port);
+
+    _hostedProjectId = projectId;
+    _setState(OcptRelayHostOnline(lanBaseUri: lanBaseUri, enrolmentSecret: secret));
+    OcptDiagnosticsManager.log(
+      category: OcptDiagnosticsCategory.hosting,
+      message: 'online: project=$projectId base=$lanBaseUri',
+      // The base URI is this machine's address on its network.
+      logMessage: 'online: project=$projectId',
+    );
   }
 
   /// Tears down whatever [startHosting] already opened, logs why it could not finish, and reports
@@ -506,18 +516,21 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
     }
 
     final upstream = OcptRelayUpstreamClient(baseUri: invite.relayBaseUri, token: invite.token);
+    OcptReconcileOutcome outcome;
     try {
       final reconciler = OcptRelayReconciler(store: store, upstream: upstream);
       final result = await reconciler.reconcileProject(projectId: projectId);
 
-      return OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
+      outcome = OcptReconcileSucceeded(pushed: result.pushed, pulled: result.pulled);
     } catch (error, stackTrace) {
       _logger.w('Reconcile with the upstream relay failed: ${error.runtimeType}', null, stackTrace);
 
-      return OcptReconcileFailed('Reconcile failed: $error');
+      outcome = OcptReconcileFailed('Reconcile failed: $error');
     } finally {
       upstream.close();
     }
+
+    return outcome;
   }
 
   /// The manager-layer half of "réhéberger au démarrage" (`docs/architecture/sync.md`): a

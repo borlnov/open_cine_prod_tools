@@ -8,6 +8,8 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_folder_remote_storage.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 
 /// Builds a changeset envelope distinguishable from any other only by [suffix], so a test can
 /// assert which one came back without caring about the rest of its fields.
@@ -130,6 +132,18 @@ void main() {
 
       expect(fetched!.$1, second);
       expect(fetched.$2, Uint8List.fromList([2]));
+    });
+  });
+
+  group('a directory that cannot be used', () {
+    test('answers unreachable, carrying the failure', () async {
+      final blocker = File('${tempDir.path}/blocker')..writeAsStringSync('x');
+      final unusable = OcptFolderRemoteStorage(Directory('${blocker.path}/log'));
+
+      final result = await unusable.append(_envelope('a'));
+
+      expect(result.status, OcptRemoteStorageStatus.unreachable);
+      expect(result.extraInfo, isA<OcptSyncTransportFailure>());
     });
   });
 

@@ -245,8 +245,9 @@ class OcptSyncSession {
   /// read itself failed — an [OcptSyncStatusOffline] with no count is still a valid status, per its
   /// own doc comment.
   Future<int?> _pendingEditCountOrNull() async {
+    int? count;
     try {
-      return await changesetService.countUnpushedEdits(
+      count = await changesetService.countUnpushedEdits(
         database: database,
         relayId: relayId,
         deviceId: deviceId,
@@ -257,9 +258,9 @@ class OcptSyncSession {
         null,
         stackTrace,
       );
-
-      return null;
     }
+
+    return count;
   }
 
   void _setStatus(OcptSyncStatus status) {
