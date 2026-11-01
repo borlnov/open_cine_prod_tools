@@ -1,0 +1,640 @@
+// SPDX-FileCopyrightText: 2026 Benoit Rolandeau <borlnov.obsessio@gmail.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
+import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
+import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_labels.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shooting_slot_crew_member.dart';
+import 'package:open_cine_prod_tools/types/ocpt_export_outcome.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import 'package:path/path.dart' as p;
+import 'ocpt_export_manager_test_doubles.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // A folder a call sheet export cannot write into logs the failure through appLogger(), which
+  // requires a global manager instance to be set; merely accessing it creates the (otherwise
+  // unused) singleton — the same fixture `ocpt_schedule_service_test.dart` uses.
+  setUpAll(() => OcptGlobalManager.instance);
+
+  late Directory tempDir;
+
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp("ocpt_export_manager_test_");
+  });
+
+  tearDown(() async {
+    await tempDir.delete(recursive: true);
+  });
+
+  group('exportGeneralCallSheets and exportNamedCallSheets', () {
+    const pageSetup = OcptPageSetup.standard();
+    const labels = OcptCallSheetLabels(
+      fileNamePrefix: "FDS",
+      documentTitle: "Call sheet",
+      dayTitles: {},
+      directorLine: "",
+      versionLabel: "Version",
+      dayTagPrefix: "D",
+      dayNumberLabel: "DAY",
+      recipientsSectionTitle: "Recipients",
+      namedRecipientLabel: "For",
+      crewNoteSectionTitle: "Note",
+      locationSectionTitle: "Location",
+      mapsLinkLabel: "Maps",
+      sunSectionTitle: "Sun",
+      civilDawnLabel: "Dawn",
+      sunriseLabel: "Sunrise",
+      sunsetLabel: "Sunset",
+      civilDuskLabel: "Dusk",
+      contactsSectionTitle: "Contacts",
+      crewDepartmentLabels: {},
+      crewPositionLabels: {},
+      hoursLinePrefix: "HOURS",
+      patLabel: "PAT",
+      presenceLabel: "PRESENCE",
+      arrivalHeader: "ARRIVAL",
+      departureLabel: "Departure",
+      toBringSectionTitle: "To bring",
+      blockKindLabels: {},
+      seqHeader: "SEQ",
+      plansHeader: "SHOTS",
+      effetHeader: "EFFECT",
+      decorsHeader: "SET",
+      rolesHeader: "ROLES",
+      castSectionTitle: "Cast",
+      roleHeader: "ROLE",
+      actorHeader: "ACTOR",
+      nameHeader: "NAME",
+      positionsHeader: "POSITION(S)",
+      phoneHeader: "PHONE",
+      emailHeader: "EMAIL",
+      crewListSectionTitle: "Crew",
+      castAndExtrasListSectionTitle: "Cast and extras",
+      emptyDayNote: "Nothing planned.",
+      unnamedPersonLabel: "No name",
+      eventsSectionTitle: "Events",
+      auditionsSectionTitle: "Auditions",
+      candidateHeader: "CANDIDAT",
+      candidatesSectionTitle: "Candidates",
+      guestsSectionTitle: "Guests",
+      guestReasonHeader: "Reason",
+    );
+
+    /// A one-day, one-slot, one-person schedule plan — enough for one general and one named call
+    /// sheet.
+    OcptSchedulePlanSnapshot buildPlan() {
+      final day = OcptShootingDay(
+        id: "day-1",
+        date: DateTime(2026, 1, 2),
+        dayNumber: 2,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final slot = const OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [
+          OcptShootingSlotCrewMember(
+            id: "crew-1",
+            slotId: "slot-1",
+            personId: "person-1",
+            positionId: "director",
+            customLabel: "",
+            notes: "",
+          ),
+        ],
+        cast: [],
+        guests: [],
+      );
+
+      return OcptSchedulePlanSnapshot.build(
+        schedule: OcptScheduleSnapshot.build(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: const {},
+          eventsByDayId: const {},
+        ),
+        shotLists: const [],
+        episodes: const [],
+        locations: const [],
+        roles: const [],
+        people: const [],
+        elements: const [],
+        minimumRestMinutes: null,
+      );
+    }
+
+    group('exportGeneralCallSheets', () {
+      test('a cancelled directory dialog returns null and writes nothing', () async {
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: FakeSaveLocationService(),
+        );
+
+        final result = await manager.exportGeneralCallSheets(
+          plan: buildPlan(),
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNull);
+        expect(tempDir.listSync(), isEmpty);
+      });
+
+      test('a chosen folder receives one PDF per day, named after its own tag', () async {
+        final saveLocationService = FakeSaveLocationService()..directoryResult = tempDir.path;
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        );
+
+        final result = await manager.exportGeneralCallSheets(
+          plan: buildPlan(),
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNotNull);
+        expect(result!.folderPath, tempDir.path);
+        expect(result.writtenFileNames, ["FDS-D2.pdf"]);
+        expect(result.failedFileNames, isEmpty);
+        expect(result.isComplete, isTrue);
+        expect(saveLocationService.lastConfirmButtonText, "Choose");
+
+        final writtenBytes = await File(p.join(tempDir.path, "FDS-D2.pdf")).readAsBytes();
+        expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+      });
+
+      test(
+        'a folder that cannot be written into is reported as a failed file, not a crash',
+        () async {
+          final saveLocationService = FakeSaveLocationService()
+            ..directoryResult = p.join(tempDir.path, "does-not-exist");
+          final manager = OcptExportManager(
+            fileSelectorManager: const FileSelectorManager(),
+            saveLocationService: saveLocationService,
+          );
+
+          final result = await manager.exportGeneralCallSheets(
+            plan: buildPlan(),
+            dayIds: const ["day-1"],
+            pageSetup: pageSetup,
+            labels: labels,
+            projectName: "My Movie",
+            confirmButtonText: "Choose",
+          );
+
+          expect(result, isNotNull);
+          expect(result!.writtenFileNames, isEmpty);
+          expect(result.failedFileNames, ["FDS-D2.pdf"]);
+          expect(result.isComplete, isFalse);
+        },
+      );
+    });
+
+    group('exportNamedCallSheets', () {
+      test('a cancelled directory dialog returns null and writes nothing', () async {
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: FakeSaveLocationService(),
+        );
+
+        final result = await manager.exportNamedCallSheets(
+          plan: buildPlan(),
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNull);
+        expect(tempDir.listSync(), isEmpty);
+      });
+
+      test('a chosen folder receives one PDF per convocation, none of them the crew '
+          'list', () async {
+        final saveLocationService = FakeSaveLocationService()..directoryResult = tempDir.path;
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        );
+
+        final result = await manager.exportNamedCallSheets(
+          plan: buildPlan(),
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNotNull);
+        expect(result!.folderPath, tempDir.path);
+        // `buildPlan` convokes exactly one person, holding no display name at all (blank first/last
+        // name), so the file name falls back to the labels' own unnamed-person fallback. Whether
+        // the named PDF is smaller than the general one — the crew list it never reads — is
+        // asserted at the service level (`ocpt_call_sheet_pdf_service_test.dart`), against a
+        // fixture with an actual crew to make the comparison meaningful; this manager-level test's
+        // own job is only that the right number of files land under the right names.
+        expect(result.writtenFileNames, ["FDS-D2-No-name.pdf"]);
+        expect(result.failedFileNames, isEmpty);
+
+        final writtenBytes = await File(p.join(tempDir.path, "FDS-D2-No-name.pdf")).readAsBytes();
+        expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+      });
+
+      test('convocationKeys narrows which people get their own file', () async {
+        final saveLocationService = FakeSaveLocationService()..directoryResult = tempDir.path;
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        );
+
+        final result = await manager.exportNamedCallSheets(
+          plan: buildPlan(),
+          dayIds: const ["day-1"],
+          convocationKeys: const {"nobody-selected"},
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNotNull);
+        expect(result!.writtenFileNames, isEmpty);
+      });
+
+      test('two convoked people whose names collide each keep a file of their own', () async {
+        final saveLocationService = FakeSaveLocationService()..directoryResult = tempDir.path;
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        );
+
+        // Two crew rows naming two people the address book holds nothing for: both read as the
+        // labels' own unnamed-person fallback, so both ask for the very same file name. The second
+        // one must not overwrite the first — that would be one person on the call list ending the
+        // export with no call sheet at all.
+        final plan = buildPlan();
+        final slot = plan.schedule.slotsByDayId["day-1"]!.first;
+        final collidingPlan = OcptSchedulePlanSnapshot.build(
+          schedule: OcptScheduleSnapshot.build(
+            days: plan.schedule.days,
+            slotsByDayId: {
+              "day-1": [
+                OcptShootingSlot(
+                  id: slot.id,
+                  shootingDayId: slot.shootingDayId,
+                  label: slot.label,
+                  locationId: slot.locationId,
+                  setId: slot.setId,
+                  anchorEdge: slot.anchorEdge,
+                  anchorMinute: slot.anchorMinute,
+                  anchorSlotId: slot.anchorSlotId,
+                  notes: slot.notes,
+                  crew: [
+                    ...slot.crew,
+                    const OcptShootingSlotCrewMember(
+                      id: "crew-2",
+                      slotId: "slot-1",
+                      personId: "person-2",
+                      positionId: "gaffer",
+                      customLabel: "",
+                      notes: "",
+                    ),
+                  ],
+                  cast: slot.cast,
+                  guests: slot.guests,
+                ),
+              ],
+            },
+            blocksByDayId: const {},
+            eventsByDayId: const {},
+          ),
+          shotLists: const [],
+          episodes: const [],
+          locations: const [],
+          roles: const [],
+          people: const [],
+          elements: const [],
+          minimumRestMinutes: null,
+        );
+
+        final result = await manager.exportNamedCallSheets(
+          plan: collidingPlan,
+          dayIds: const ["day-1"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNotNull);
+        expect(result!.writtenFileNames, ["FDS-D2-No-name.pdf", "FDS-D2-No-name-2.pdf"]);
+        expect(result.failedFileNames, isEmpty);
+        expect(tempDir.listSync().length, 2);
+      });
+
+      test('a two-day run writes one file per (recipient x day), a single-day recipient getting '
+          'exactly one and the two days never colliding', () async {
+        final saveLocationService = FakeSaveLocationService()..directoryResult = tempDir.path;
+        final manager = OcptExportManager(
+          fileSelectorManager: const FileSelectorManager(),
+          saveLocationService: saveLocationService,
+        );
+
+        // person-1 is convoked on both days and must therefore be printed twice, once per day; the
+        // day tag ("D2" vs "D3") already makes the two files distinct, so neither is suffixed even
+        // though every person here shares the very same blank display name. person-2 is convoked
+        // only on the second day and must therefore be printed exactly once.
+        final dayOne = OcptShootingDay(
+          id: "day-1",
+          date: DateTime(2026, 1, 2),
+          dayNumber: 2,
+          status: OcptShootingDayStatus.planned,
+          crewNote: "",
+          weatherNote: "",
+          notes: "",
+        );
+        final dayTwo = OcptShootingDay(
+          id: "day-2",
+          date: DateTime(2026, 1, 3),
+          dayNumber: 3,
+          status: OcptShootingDayStatus.planned,
+          crewNote: "",
+          weatherNote: "",
+          notes: "",
+        );
+        const slotOne = OcptShootingSlot(
+          id: "slot-1",
+          shootingDayId: "day-1",
+          label: "",
+          locationId: null,
+          setId: null,
+          anchorEdge: OcptShootingSlotAnchorEdge.start,
+          anchorMinute: 480,
+          anchorSlotId: null,
+          notes: "",
+          crew: [
+            OcptShootingSlotCrewMember(
+              id: "crew-1",
+              slotId: "slot-1",
+              personId: "person-1",
+              positionId: "director",
+              customLabel: "",
+              notes: "",
+            ),
+          ],
+          cast: [],
+          guests: [],
+        );
+        const slotTwo = OcptShootingSlot(
+          id: "slot-2",
+          shootingDayId: "day-2",
+          label: "",
+          locationId: null,
+          setId: null,
+          anchorEdge: OcptShootingSlotAnchorEdge.start,
+          anchorMinute: 480,
+          anchorSlotId: null,
+          notes: "",
+          crew: [
+            OcptShootingSlotCrewMember(
+              id: "crew-2",
+              slotId: "slot-2",
+              personId: "person-1",
+              positionId: "director",
+              customLabel: "",
+              notes: "",
+            ),
+            OcptShootingSlotCrewMember(
+              id: "crew-3",
+              slotId: "slot-2",
+              personId: "person-2",
+              positionId: "gaffer",
+              customLabel: "",
+              notes: "",
+            ),
+          ],
+          cast: [],
+          guests: [],
+        );
+
+        final twoDayPlan = OcptSchedulePlanSnapshot.build(
+          schedule: OcptScheduleSnapshot.build(
+            days: [dayOne, dayTwo],
+            slotsByDayId: {
+              "day-1": [slotOne],
+              "day-2": [slotTwo],
+            },
+            blocksByDayId: const {},
+            eventsByDayId: const {},
+          ),
+          shotLists: const [],
+          episodes: const [],
+          locations: const [],
+          roles: const [],
+          people: const [],
+          elements: const [],
+          minimumRestMinutes: null,
+        );
+
+        final result = await manager.exportNamedCallSheets(
+          plan: twoDayPlan,
+          dayIds: const ["day-1", "day-2"],
+          pageSetup: pageSetup,
+          labels: labels,
+          projectName: "My Movie",
+          confirmButtonText: "Choose",
+        );
+
+        expect(result, isNotNull);
+        expect(result!.writtenFileNames, [
+          "FDS-D2-No-name.pdf",
+          "FDS-D3-No-name.pdf",
+          "FDS-D3-No-name-2.pdf",
+        ]);
+        expect(result.failedFileNames, isEmpty);
+        expect(tempDir.listSync().length, 3);
+      });
+    });
+  });
+
+  group('exportShootingPlan', () {
+    const labels = OcptShootingPlanLabels(
+      fileNameSuffix: "shooting plan",
+      documentTitle: "Shooting plan",
+      dayTitles: {},
+      tenMinuteGridSectionTitle: "Ten-minute grid",
+      directorLine: "",
+      versionLabel: "Version",
+      dayTagPrefix: "D",
+      locationsGridTitle: "Summary - Locations",
+      sequencesGridTitle: "Summary - Sequences",
+      peopleGridTitle: "Summary - Crew and cast",
+      elementsGridTitle: "Summary - Elements",
+      locationsGridRowHeader: "Location",
+      sequencesGridRowHeader: "Sequence",
+      peopleGridRowHeader: "Position / Role",
+      elementsGridRowHeader: "Element",
+      elementCategoryLabels: {},
+      persoLabel: "Cast",
+      sequenceRowPrefix: "Seq.",
+      presenceMark: "x",
+      crewPositionLabels: {},
+      dayLocationLabel: "Location",
+      dayHoursLabel: "Hours",
+      daySetsLabel: "Sets",
+      dayTimetableLabel: "Timetable",
+      callTimeLabel: "call at",
+      estimatedEndLabel: "estimated end",
+      milestoneFromLabel: "From",
+      milestoneToLabel: "to",
+      blockKindLabels: {},
+      rolesLabel: "CAST",
+      hoursHeader: "Hours",
+      planHeader: "Plan",
+      shotSizeHeader: "Shot size",
+      moveHeader: "Move.",
+      framingHeader: "Frame",
+      commentHeader: "Comment",
+      emptyPlanNote: "Nothing planned yet.",
+      emptyDayScheduleNote: "Nothing planned for this day yet.",
+      eventsSectionTitle: "Events",
+      guestsSectionTitle: "Guests",
+      guestReasonHeader: "Reason",
+      nameHeader: "NAME",
+      hoursLinePrefix: "HOURS",
+      unnamedPersonLabel: "Unnamed",
+    );
+
+    /// A one-day, one-slot schedule plan — enough for one shooting plan document.
+    OcptSchedulePlanSnapshot buildPlan() {
+      final day = OcptShootingDay(
+        id: "day-1",
+        date: DateTime(2026, 1, 2),
+        dayNumber: 2,
+        status: OcptShootingDayStatus.planned,
+        crewNote: "",
+        weatherNote: "",
+        notes: "",
+      );
+      final slot = const OcptShootingSlot(
+        id: "slot-1",
+        shootingDayId: "day-1",
+        label: "",
+        locationId: null,
+        setId: null,
+        anchorEdge: OcptShootingSlotAnchorEdge.start,
+        anchorMinute: 480,
+        anchorSlotId: null,
+        notes: "",
+        crew: [],
+        cast: [],
+        guests: [],
+      );
+
+      return OcptSchedulePlanSnapshot.build(
+        schedule: OcptScheduleSnapshot.build(
+          days: [day],
+          slotsByDayId: {
+            "day-1": [slot],
+          },
+          blocksByDayId: const {},
+          eventsByDayId: const {},
+        ),
+        shotLists: const [],
+        episodes: const [],
+        locations: const [],
+        roles: const [],
+        people: const [],
+        elements: const [],
+        minimumRestMinutes: null,
+      );
+    }
+
+    Future<OcptExportOutcome?> export(OcptExportManager manager) => manager.exportShootingPlan(
+      plan: buildPlan(),
+      dayIds: const ["day-1"],
+      pageSetup: const OcptPageSetup.standard(),
+      labels: labels,
+      projectName: "My Movie",
+      includeTitlePage: true,
+      includeLocationsGrid: true,
+      includeSequencesGrid: true,
+      includePeopleGrid: true,
+      includeTenMinuteGrid: true,
+      includeElementsGrid: true,
+      fileTypeLabel: "PDF document",
+    );
+
+    test('a cancelled dialog returns null and writes nothing', () async {
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: FakeSaveLocationService(),
+      );
+
+      expect(await export(manager), isNull);
+      expect(tempDir.listSync(), isEmpty);
+    });
+
+    test('a chosen path receives a single PDF and is returned', () async {
+      final chosenPath = p.join(tempDir.path, "My Movie - shooting plan.pdf");
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: FakeSaveLocationService(result: chosenPath),
+      );
+
+      expect(await export(manager), OcptExportSaved(chosenPath));
+      final writtenBytes = await File(chosenPath).readAsBytes();
+      expect(ascii.decode(writtenBytes.sublist(0, 4)), "%PDF");
+    });
+
+    test('suggests the file name computed by OcptShootingPlanPdfService, suffixed', () async {
+      final saveLocationService = FakeSaveLocationService();
+      final manager = OcptExportManager(
+        fileSelectorManager: const FileSelectorManager(),
+        saveLocationService: saveLocationService,
+      );
+
+      await export(manager);
+
+      expect(saveLocationService.lastSuggestedFileName, "My Movie - shooting plan.pdf");
+      expect(saveLocationService.lastFileTypeLabel, "PDF document");
+      expect(saveLocationService.lastExtensions, const ["pdf"]);
+    });
+  });
+}
