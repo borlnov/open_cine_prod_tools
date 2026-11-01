@@ -7,64 +7,32 @@ import 'dart:io';
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_dashboard.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_header.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_help.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
-
-/// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
-/// dialog opened through `showDialog` — mirrors `schedule_mode_test.dart`'s own instance of this
-/// pattern.
-final _navigatorKey = GlobalKey<NavigatorState>();
-
-/// A router manager whose [pop] pops [_navigatorKey]'s own navigator.
-class _RecordingRouterManager extends OcptRouterManager {
-  @override
-  void pop<Y extends Object?>([Y? result]) {
-    final navigator = _navigatorKey.currentState;
-    if (navigator != null && navigator.canPop()) {
-      navigator.pop(result);
-    }
-  }
-}
-
-/// Wraps [child] with the localization delegates, [_navigatorKey], [ocptTheme]'s light theme and a
-/// bare [Scaffold] — mirrors `schedule_mode_test.dart`'s own `_wrapWithLocalization`.
-Widget _wrapWithLocalization(Widget child) => MaterialApp(
-  navigatorKey: _navigatorKey,
-  theme: ocptTheme.lightThemeData,
-  localizationsDelegates: const [
-    Tr.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: Tr.delegate.supportedLocales,
-  home: Scaffold(body: child),
-);
+import 'budget_mode_test_doubles.dart';
 
 void main() {
   late OcptPropertiesManager propertiesManager;
+
   late OcptProjectsManager projectsManager;
+
   late Directory tempDir;
 
   setUpAll(() async {
@@ -83,7 +51,7 @@ void main() {
     OcptGlobalManager.instance.managers
       ..registerSingleton<OcptPropertiesManager>(propertiesManager)
       ..registerSingleton<OcptProjectsManager>(projectsManager)
-      ..registerSingleton<OcptRouterManager>(_RecordingRouterManager())
+      ..registerSingleton<OcptRouterManager>(RecordingRouterManager())
       ..registerSingleton<OcptExportManager>(
         OcptExportManager(fileSelectorManager: const FileSelectorManager()),
       );
@@ -144,38 +112,10 @@ void main() {
     await openTools(tester, page: tr.budgetHeaderCashFlowSegmentLabel);
   }
 
-  /// Switches the centre to the tools drawer's own `Régie` page.
-  Future<void> openRegie(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openTools(tester, page: tr.budgetHeaderRegieSegmentLabel);
-  }
-
-  /// Switches the centre to the tools drawer's own revenue-sharing page.
-  Future<void> openSharing(WidgetTester tester) async {
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openTools(tester, page: tr.budgetHeaderSharingSegmentLabel);
-  }
-
   /// A finder scoped to the export panel's own `AlertDialog`, so its card titles can't collide
   /// with anything else on screen — mirrors `schedule_mode_test.dart`'s own `inPanel`.
   Finder inPanel(Finder matching) =>
       find.descendant(of: find.byType(AlertDialog), matching: matching);
-
-  /// The `⋮` menu of the poste row named [label], in the expenses table — needed because
-  /// `OcptBudgetCostTracking` draws its identity pane (a row's own name) and its amounts pane
-  /// (where a row's own `⋮` menu lives) as sibling subtrees sharing one vertical scroll, not one
-  /// ancestor of the other, so [find.ancestor]/[find.descendant] cannot connect the two.
-  Finder menuInRowOf(WidgetTester tester, String label) {
-    final rowY = tester.getCenter(find.text(label)).dy;
-    final menus = find.byType(PopupMenuButton<String>);
-    for (var index = 0; index < tester.widgetList(menus).length; index++) {
-      final candidate = menus.at(index);
-      if ((tester.getCenter(candidate).dy - rowY).abs() < 4) {
-        return candidate;
-      }
-    }
-    throw StateError("No ⋮ menu found level with the row naming '$label'");
-  }
 
   testWidgets("the ten CNC postes are seeded and shown on first entry", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
@@ -183,7 +123,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
 
     final statusBar = tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
@@ -215,7 +155,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
       // Opened without touching a single chip.
@@ -231,7 +171,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
@@ -245,7 +185,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -281,7 +221,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
@@ -305,7 +245,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
@@ -340,7 +280,7 @@ void main() {
       // affordance of its own — the daily gesture is the header's own button, opening the wizard.
       // Opened from `tools › cashFlow`, the cash-movement family is promoted and `J'ai payé
       // quelque chose` (recordExpense) arrives pre-selected, one click from step 2.
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openCashFlow(tester);
 
@@ -381,7 +321,7 @@ void main() {
       debitCents: 500,
     );
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openCashFlow(tester);
 
@@ -428,7 +368,7 @@ void main() {
         debitCents: 500,
       );
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openCashFlow(tester);
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -476,7 +416,7 @@ void main() {
       creditCents: 4000,
     );
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openResources(tester);
 
@@ -539,7 +479,7 @@ void main() {
     final previewResult = await projectsManager.previewVersion(versionId);
     expect(previewResult.status.isSuccess, isTrue);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openCashFlow(tester);
 
@@ -566,7 +506,7 @@ void main() {
       final previewResult = await projectsManager.previewVersion(versionId);
       expect(previewResult.status.isSuccess, isTrue);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openExpenses(tester);
 
@@ -604,7 +544,7 @@ void main() {
       );
       expect(lineId, isNotNull);
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openExpenses(tester);
 
@@ -647,7 +587,7 @@ void main() {
       amountCents: 500,
     );
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
@@ -705,7 +645,7 @@ void main() {
         amountCents: 5000,
       );
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openExpenses(tester);
 
@@ -776,7 +716,7 @@ void main() {
         amountCents: 25000,
       );
 
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+      await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
       await openCashFlow(tester);
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -845,7 +785,7 @@ void main() {
     final previewResult = await projectsManager.previewVersion(versionId);
     expect(previewResult.status.isSuccess, isTrue);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
@@ -878,7 +818,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -917,7 +857,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
+    await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -936,527 +876,5 @@ void main() {
 
     expect(find.text(tr.budgetRightDockHelpTabLabel), findsNothing);
     expect(find.byType(OcptBudgetHelp), findsNothing);
-  });
-
-  testWidgets("the Inspector tab is withheld on a view with nothing to inspect", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    // Selecting a poste in the quote opens the right dock on its inspector.
-    await openExpenses(tester);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-
-    // The régie has no poste and never puts one there, so the tab goes rather than showing a
-    // stale one — and the dock falls back to the help panel instead of closing.
-    await openRegie(tester);
-    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
-    expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
-    expect(find.byType(OcptBudgetHelp), findsOneWidget);
-
-    // Coming back brings the inspector back: the stored preference was never overwritten.
-    await openExpenses(tester);
-    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-    expect(find.byType(OcptBudgetHelp), findsNothing);
-  });
-
-  testWidgets("selecting a resource or a taking in the resources tree opens the Inspector tab", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final project = projectsManager.currentProject!;
-    final resourceId = await projectsManager.budgetFinancingService.createResource(
-      database: project.database,
-      label: "Regional grant",
-    );
-    final revenueId = await projectsManager.budgetSharingService.createRevenue(
-      database: project.database,
-      date: DateTime(2026, 3),
-      label: "Festival prize",
-    );
-    expect(resourceId, isNotNull);
-    expect(revenueId, isNotNull);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await openResources(tester);
-
-    // The subsidy sits under its own family's twisty, the taking under the `Takings` one.
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_right).last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text("Regional grant"));
-    await tester.pumpAndSettle();
-    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-    expect(find.text("Regional grant"), findsWidgets);
-
-    await tester.tap(find.text("Festival prize"));
-    await tester.pumpAndSettle();
-    expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-    expect(find.text("Festival prize"), findsWidgets);
-  });
-
-  testWidgets("the help panel follows the centre view, with no extra click", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
-    await tester.pumpAndSettle();
-
-    // The dashboard is the mode's default view now, so its own page opens first.
-    expect(find.text(tr.budgetHeaderDashboardTitle), findsWidgets);
-
-    // Switching to the cost-tracking table changes the help panel's page without touching the
-    // dock at all.
-    await openExpenses(tester);
-    expect(find.text(tr.budgetHelpExpensesBody5), findsOneWidget);
-    expect(find.text(tr.budgetHelpCashFlowBody5), findsNothing);
-
-    // Switching the header's own reading changes the help panel's page without touching the dock
-    // at all.
-    await openCashFlow(tester);
-
-    expect(find.text(tr.budgetHelpExpensesBody5), findsNothing);
-    expect(find.text(tr.budgetHelpCashFlowBody5), findsOneWidget);
-  });
-
-  testWidgets("the chain highlights the step the current route stands on", (tester) async {
-    // Comfortably wide, so the chain's own cells are read in the shape they normally wear.
-    tester.view.physicalSize = const Size(2200, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
-    await tester.pumpAndSettle();
-
-    // The current step wears no words of its own: it is announced, not drawn — the same
-    // wash-and-weight the header's own chips use. So the badge is looked for in the semantics
-    // tree.
-    Finder currentSteps() =>
-        find.bySemanticsLabel(RegExp(RegExp.escape(tr.budgetHelpChainCurrentStepBadge)));
-
-    // The cost report reads every column at once, so no single step of the chain stands for it
-    // in particular — driven explicitly, the dashboard no longer being the same route.
-    await openExpenses(tester);
-    expect(currentSteps(), findsNothing);
-
-    // Neither does the resources document's own top level — its tree reads both columns at once.
-    await openResources(tester);
-    expect(currentSteps(), findsNothing);
-
-    // Expenses read by date, the tools drawer's own cash flow page, is the expenses chain's own
-    // `Paid` step.
-    await openCashFlow(tester);
-    expect(currentSteps(), findsOneWidget);
-  });
-
-  testWidgets("offers the help panel under a previewed version", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-    expect(version, isNotNull);
-    final versionId = version!.id;
-    final previewResult = await projectsManager.previewVersion(versionId);
-    expect(previewResult.status.isSuccess, isTrue);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    // The help action is never withheld under a preview — it writes nothing.
-    await tester.tap(find.byTooltip(tr.workspaceHelpTooltip));
-    await tester.pumpAndSettle();
-
-    expect(find.text(tr.budgetRightDockHelpTabLabel), findsOneWidget);
-    expect(find.byType(OcptBudgetHelp), findsOneWidget);
-
-    // Driven onto the cost report explicitly — the mode no longer opens on it by default.
-    await openExpenses(tester);
-    expect(find.text(tr.budgetHelpExpensesBody5), findsOneWidget);
-
-    // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
-  });
-
-  testWidgets(
-    "the header's own capture button reads + Nouveau on all five routes, the dashboard included",
-    (tester) async {
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      final button = find.byKey(const Key("ocptBudgetHeaderCaptureButton"));
-
-      // The mode opens on the dashboard, which now offers the very same button as every other
-      // route — no route withholds it of its own accord any more, only a previewed version does.
-      expect(button, findsOneWidget);
-      expect(find.text(tr.budgetHeaderNewAction), findsOneWidget);
-
-      await openExpenses(tester);
-      expect(button, findsOneWidget);
-
-      await openResources(tester);
-      expect(button, findsOneWidget);
-
-      // The tools drawer's own cash flow page now offers it too — it carries no capture
-      // affordance of its own, but the daily gesture of recording a movement is one click away.
-      await openCashFlow(tester);
-      expect(button, findsOneWidget);
-
-      await openRegie(tester);
-      expect(button, findsOneWidget);
-
-      await openSharing(tester);
-      expect(button, findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    "the régie's own in-page defrayal button is gone — the header's own button is the only door "
-    "left",
-    (tester) async {
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      // The défraiements section draws nothing at all while the régie holds neither a shooting
-      // day nor a defrayal yet: one is seeded so the section itself is on screen.
-      final project = projectsManager.currentProject!;
-      await projectsManager.budgetAllowancesService.createAllowance(
-        database: project.database,
-        personId: null,
-        kind: OcptBudgetAllowanceKind.other,
-        label: "Taxi",
-        date: DateTime(2026, 3),
-        endDate: null,
-        quantityMilli: 1000,
-        unitAmountMilliCents: 2000000,
-        notes: "",
-      );
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-      await openRegie(tester);
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-      // The page's own creation button is gone — every defrayal is now typed through the wizard.
-      expect(find.text(tr.budgetRegieAllowancesSectionTitle), findsOneWidget);
-      expect(find.text(tr.budgetRegieAllowanceCreationAction), findsNothing);
-
-      // The header's own button, promoted to `defrayPerson`, one click from the defrayal form.
-      await tester.tap(find.byKey(const Key("ocptBudgetHeaderCaptureButton")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key("ocptBudgetNewSaveButton")), findsOneWidget);
-    },
-  );
-
-  testWidgets("the header's own capture button is withheld whole under a previewed version", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-    expect(version, isNotNull);
-    final versionId = version!.id;
-    final previewResult = await projectsManager.previewVersion(versionId);
-    expect(previewResult.status.isSuccess, isTrue);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-
-    // Driven onto every route that offers the button while live, so its absence here is the
-    // preview's own doing — not built at all, withheld, never disabled.
-    await openExpenses(tester);
-    expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
-
-    await openResources(tester);
-    expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
-
-    await openRegie(tester);
-    expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
-
-    await openSharing(tester);
-    expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
-
-    // Leave the preview so the working copy is what the next test opens onto.
-    await projectsManager.exitPreview();
-  });
-
-  testWidgets("selecting a poste row opens the fiche without narrowing any view", (tester) async {
-    tester.view.physicalSize = const Size(1750, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-    await tester.pumpAndSettle();
-    await openExpenses(tester);
-
-    final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-    // The right dock is closed until something is selected.
-    expect(find.byType(OcptBudgetFiche), findsNothing);
-
-    await tester.tap(
-      find.descendant(
-        of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Selected: the click opened the fiche on this very poste.
-    expect(find.byType(OcptBudgetFiche), findsOneWidget);
-
-    // Not filtered: the header draws no poste filter tag at all — the one place every view of
-    // the mode agrees on whether it is narrowed.
-    Finder filterTagIcon() =>
-        find.descendant(of: find.byType(OcptBudgetHeader), matching: find.byIcon(Icons.close));
-    expect(filterTagIcon(), findsNothing);
-
-    // The cash flow page, a document the filter would narrow if it were set, still lists every
-    // poste's own movement rather than one.
-    await openCashFlow(tester);
-    expect(filterTagIcon(), findsNothing);
-  });
-
-  testWidgets(
-    "a poste row's own ⋮ menu narrows the expenses table; the header's own filter tag stands on "
-    "every route and clears it everywhere at once",
-    (tester) async {
-      tester.view.physicalSize = const Size(1750, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-      await openExpenses(tester);
-
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-      // No tag drawn while nothing is filtered.
-      Finder filterTag() => find.descendant(
-        of: find.byType(OcptBudgetHeader),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
-      );
-      expect(filterTag(), findsNothing);
-
-      await tester.tap(menuInRowOf(tester, tr.budgetCncPosteArtisticRights));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(tr.budgetCostTrackingFilterOnlyAction));
-      await tester.pumpAndSettle();
-
-      // The header now draws the filter tag naming the poste — the mode is narrowed.
-      expect(filterTag(), findsOneWidget);
-
-      // And the narrowing is real, not merely announced by the tag: the expenses table has
-      // dropped every other poste.
-      Finder inCostTracking(Finder matching) =>
-          find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
-      expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
-      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsNothing);
-
-      // The tag still stands while a route that does not honour the filter is on screen — the
-      // tools drawer's own cash flow page still lists every poste's own movement rather than one.
-      await openCashFlow(tester);
-      expect(filterTag(), findsOneWidget);
-
-      // Clearing it, through the tag's own ✕, is read everywhere at once.
-      await openExpenses(tester);
-      await tester.tap(
-        find.descendant(of: find.byType(OcptBudgetHeader), matching: find.byIcon(Icons.close)),
-      );
-      await tester.pumpAndSettle();
-
-      expect(filterTag(), findsNothing);
-      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsOneWidget);
-    },
-  );
-
-  group("the floating add at a compact width", () {
-    testWidgets(
-      "is present at a compact width, and the header's own capture button is withheld — never "
-      "both at once",
-      (tester) async {
-        tester.view.physicalSize = const Size(700, 1000);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(FloatingActionButton), findsOneWidget);
-        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
-      },
-    );
-
-    testWidgets(
-      "is absent at a desktop width, where the header's own capture button is the only door",
-      (tester) async {
-        tester.view.physicalSize = const Size(1750, 900);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(FloatingActionButton), findsNothing);
-        expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
-      },
-    );
-
-    testWidgets("is drawn icon-only, with no visible label text of its own", (tester) async {
-      tester.view.physicalSize = const Size(700, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-
-      // Icon-only: no FloatingActionButton.extended drawing the label text, and the label lives
-      // on as the button's tooltip instead — the standing accessibility fallback.
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(find.byType(Icon), findsWidgets);
-      expect(
-        find.descendant(
-          of: find.byType(FloatingActionButton),
-          matching: find.text(tr.budgetHeaderNewAction),
-        ),
-        findsNothing,
-      );
-      expect(find.byTooltip(tr.budgetHeaderNewAction), findsOneWidget);
-    });
-
-    testWidgets(
-      "tapping it fires the header's own + New flow, creating a quote line and opening the "
-      "fiche on it",
-      (tester) async {
-        tester.view.physicalSize = const Size(700, 1000);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-
-        await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-        await tester.pumpAndSettle();
-        await openExpenses(tester);
-
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-        expect(find.byType(OcptBudgetFiche), findsNothing);
-
-        await tester.tap(find.byType(FloatingActionButton));
-        await tester.pumpAndSettle();
-
-        // The very same wizard the header's own capture button opens, its `addQuoteLine` gesture
-        // pre-selected for the expenses route — one click reaches step 2.
-        expect(find.byType(OcptBudgetNewDialog), findsOneWidget);
-        await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
-        await tester.pumpAndSettle();
-
-        // Step 2: which poste this line prices — scoped to the wizard, whose background still
-        // shows the very same poste name in the expenses table underneath it.
-        await tester.tap(
-          find.descendant(
-            of: find.byType(OcptBudgetNewDialog),
-            matching: find.text(tr.budgetCncPosteArtisticRights),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
-        await tester.pumpAndSettle();
-
-        // Step 3: the line's own form — label, quantity and unit price, in that order; the unit
-        // field between quantity and unit price is left blank, being optional.
-        final fields = find.descendant(
-          of: find.byType(OcptBudgetNewDialog),
-          matching: find.byType(TextFormField),
-        );
-        await tester.enterText(fields.at(0), "Camera rental");
-        await tester.enterText(fields.at(1), "1");
-        await tester.enterText(fields.at(3), "50.00");
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
-        await tester.pumpAndSettle();
-
-        // The line lands selected, the right dock opened on its own fiche — exactly what the
-        // header's own capture button already does for this same gesture
-        // (`OcptBudgetBloc._onLineCreated`).
-        expect(find.byType(OcptBudgetFiche), findsOneWidget);
-        expect(find.text("Camera rental"), findsWidgets);
-      },
-    );
-
-    testWidgets("is withheld under a previewed version", (tester) async {
-      tester.view.physicalSize = const Size(700, 1000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final version = await projectsManager.createProjectVersion(name: "v1", note: "");
-      expect(version, isNotNull);
-      final previewResult = await projectsManager.previewVersion(version!.id);
-      expect(previewResult.status.isSuccess, isTrue);
-
-      await tester.pumpWidget(_wrapWithLocalization(const OcptBudgetMode()));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(FloatingActionButton), findsNothing);
-
-      // Leave the preview so the working copy is what the next test opens onto.
-      await projectsManager.exitPreview();
-    });
   });
 }
