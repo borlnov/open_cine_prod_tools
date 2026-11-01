@@ -33,7 +33,6 @@ import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_editor_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -1236,33 +1235,13 @@ void main() {
       await bloc.close();
     });
 
-    test('reload of the screenplay scope reads the stored text and moves the epoch', () async {
-      final bloc = buildBloc();
-      await waitForState(bloc, (state) => !state.isLoading);
-      final project = projectsManager.currentProject!;
-      await projectsManager.screenplayService.saveScreenplayText(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-        fountainText: editedText,
-        snapshotReason: OcptSnapshotReason.manual,
-      );
-
-      expect(await bloc.reload({OcptEditorReloadScope.screenplay}), isTrue);
-
-      expect(bloc.state.text, editedText);
-      expect(bloc.state.reloadEpoch, 2);
-      expect(bloc.state.reloadCause, OcptEditorReloadCause.textReplaced);
-
-      await bloc.close();
-    });
-
     test('flushAllPendingWrites and reload answer at once on a closed bloc', () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
       await bloc.close();
 
       expect(await bloc.flushAllPendingWrites(), isFalse);
-      expect(await bloc.reload({OcptEditorReloadScope.screenplay}), isFalse);
+      expect(await bloc.reload({}), isFalse);
     });
   });
 }

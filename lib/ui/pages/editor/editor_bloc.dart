@@ -20,7 +20,6 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
-import 'package:open_cine_prod_tools/types/ocpt_editor_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -65,7 +64,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with
         MixinOcptProjectVersionsBloc<OcptEditorState>,
         MixinOcptProjectPackageBloc<OcptEditorState>,
-        MixinOcptModeBloc<OcptEditorState, OcptEditorReloadScope> {
+        MixinOcptModeBloc<OcptEditorState, Never> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "editor_bloc";
 
@@ -250,58 +249,6 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     await runPendingWritesFlushers();
     return true;
-  }
-
-  /// {@macro open_cine_prod_tools.MixinOcptModeBloc.reloadScopesIn}
-  ///
-  /// Nothing asks for it yet, see [OcptEditorReloadScope]. A read that fails is logged and answers
-  /// false.
-  @protected
-  @override
-  Future<bool> reloadScopesIn(
-    Set<OcptEditorReloadScope> scopes,
-    Emitter<OcptEditorState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return false;
-    }
-
-    try {
-      String? text;
-
-      // A switch statement over an enum must name every value: a scope added to the enum does not
-      // compile until it is read here.
-      for (final scope in scopes) {
-        switch (scope) {
-          case OcptEditorReloadScope.screenplay:
-            text = await _screenplayService.loadScreenplayText(
-              database: project.database,
-              screenplayId: screenplayIdOf(project),
-            );
-        }
-      }
-
-      if (text != null) {
-        emitter(
-          state.copyWith(
-            text: text,
-            document: _fountainParser.parse(text),
-            reloadEpoch: state.reloadEpoch + 1,
-            reloadCause: OcptEditorReloadCause.textReplaced,
-          ),
-        );
-      }
-      return true;
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to read again the $scopes of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      return false;
-    }
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}

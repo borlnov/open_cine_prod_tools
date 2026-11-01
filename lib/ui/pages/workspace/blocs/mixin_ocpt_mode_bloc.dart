@@ -235,9 +235,12 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// Reads again the parts of the shared data that [scopes] names, emits them with the state's
   /// `reloadEpoch` moved on, and answers whether it did: false when the read failed or nothing
   /// could be read. Called one at a time by [reloadSerially].
+  ///
+  /// A mode that no view asks to reload, because none writes its shared data behind its back,
+  /// declares [Never] as its [Scope] and keeps this default, which reads nothing.
   /// {@endtemplate}
   @protected
-  Future<bool> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter);
+  Future<bool> reloadScopesIn(Set<Scope> scopes, Emitter<S> emitter) async => false;
 
   /// Runs [action], a read of the shared data that ends in an emit, only once every action already
   /// queued through this has settled, and queues it in turn.
