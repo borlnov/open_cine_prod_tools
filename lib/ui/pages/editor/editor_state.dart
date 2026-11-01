@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
@@ -458,6 +459,211 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
     projectPackageNotice: projectPackageNotice,
     forceProjectPackageNoticeValue: forceProjectPackageNoticeValue,
   );
+
+  /// Copies this state as loaded when no project is open: the document and the display preferences
+  /// read, no version previewed, and the reload epoch moved with the cause
+  /// [OcptEditorReloadCause.load].
+  OcptEditorState copyToLoadedWithoutProject({
+    required FountainDocument document,
+    required OcptEditorMode mode,
+    required bool isPageSimulationEnabled,
+    required bool areStyledSceneNumbersVisible,
+    required bool isSpellCheckVisible,
+    required OcptScreenplayLanguage? screenplayLanguage,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    isLoading: false,
+    document: document,
+    mode: mode,
+    forcePreviewedVersionIdValue: true,
+    isPageSimulationEnabled: isPageSimulationEnabled,
+    areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    isSpellCheckVisible: isSpellCheckVisible,
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.load,
+  );
+
+  /// Copies this state as loaded from the open project: its [title], [text] and [document], the
+  /// version being previewed if any ([previewedVersionId] null when none is), and the display
+  /// preferences read, with the reload epoch moved and the cause [OcptEditorReloadCause.load].
+  OcptEditorState copyToLoaded({
+    required String title,
+    required OcptEditorMode mode,
+    required String? previewedVersionId,
+    required String text,
+    required FountainDocument document,
+    required OcptPageSetup pageSetup,
+    required bool isPageSimulationEnabled,
+    required bool areStyledSceneNumbersVisible,
+    required bool isSpellCheckVisible,
+    required OcptScreenplayLanguage? screenplayLanguage,
+    required double leftDockFraction,
+    required double rightDockFraction,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    isLoading: false,
+    title: title,
+    mode: mode,
+    previewedVersionId: previewedVersionId,
+    forcePreviewedVersionIdValue: previewedVersionId == null,
+    text: text,
+    document: document,
+    pageSetup: pageSetup,
+    isPageSimulationEnabled: isPageSimulationEnabled,
+    areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
+    isSpellCheckVisible: isSpellCheckVisible,
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+    leftDockFraction: leftDockFraction,
+    rightDockFraction: rightDockFraction,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.load,
+  );
+
+  /// Copies this state with the [text] the user just typed, which makes it dirty.
+  OcptEditorState copyWithTypedText({required String text}) => copyWith(text: text, isDirty: true);
+
+  /// Copies this state with the [document] parsed from the current text.
+  OcptEditorState copyWithParsedDocument({required FountainDocument document}) =>
+      copyWith(document: document);
+
+  /// Copies this state with a save under way.
+  OcptEditorState copyWithSaving() => copyWith(isSaving: true);
+
+  /// Copies this state with the save done at [lastSavedAt], [isDirty] telling whether the text moved
+  /// on meanwhile.
+  OcptEditorState copyWithSaved({required bool isDirty, required DateTime lastSavedAt}) =>
+      copyWith(isSaving: false, isDirty: isDirty, lastSavedAt: lastSavedAt);
+
+  /// Copies this state with the save ended on an error.
+  OcptEditorState copyWithSaveFailed() => copyWith(isSaving: false, hasSaveError: true);
+
+  /// Copies this state with the save error dismissed.
+  OcptEditorState copyWithSaveErrorDismissed() => copyWith(hasSaveError: false);
+
+  /// Copies this state with the caret on [currentLine].
+  OcptEditorState copyWithCurrentLine({required int currentLine}) =>
+      copyWith(currentLine: currentLine);
+
+  /// Copies this state with a [jumpRequest] for the editing surface, which moves the selection
+  /// epoch.
+  OcptEditorState copyWithJumpRequest({required OcptEditorJumpRequest jumpRequest}) =>
+      copyWith(jumpRequest: jumpRequest, selectionEpoch: selectionEpoch + 1);
+
+  /// Copies this state with the scene panel shown or hidden.
+  OcptEditorState copyWithScenePanelVisibility({required bool isScenePanelVisible}) =>
+      copyWith(isScenePanelVisible: isScenePanelVisible);
+
+  /// Copies this state with the right dock showing [tab], or closed when it [isAlreadyActive]; the
+  /// tab is remembered and the tab the dock was auto-closed from is forgotten.
+  OcptEditorState copyWithRightDockTabSelected({
+    required OcptEditorRightDockTab tab,
+    required bool isAlreadyActive,
+  }) => copyWith(
+    rightDockTab: isAlreadyActive ? null : tab,
+    forceRightDockTabValue: isAlreadyActive,
+    lastRightDockTab: tab,
+    forceAutoClosedRightDockTabValue: true,
+  );
+
+  /// Copies this state with the right dock closed, and the tab it was auto-closed from forgotten.
+  OcptEditorState copyWithRightDockClosed() =>
+      copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true);
+
+  /// Copies this state with the right dock reopened on [rightDockTab], and the tab it was
+  /// auto-closed from forgotten.
+  OcptEditorState copyWithRightDockReopened({required OcptEditorRightDockTab? rightDockTab}) =>
+      copyWith(rightDockTab: rightDockTab, forceAutoClosedRightDockTabValue: true);
+
+  /// Copies this state with the docks' widths set to [leftDockFraction] and [rightDockFraction].
+  OcptEditorState copyWithDockFractions({
+    required double? leftDockFraction,
+    required double? rightDockFraction,
+  }) => copyWith(leftDockFraction: leftDockFraction, rightDockFraction: rightDockFraction);
+
+  /// Copies this state switched to [mode], with the right dock moved as that switch requires.
+  OcptEditorState copyWithMode({
+    required OcptEditorMode mode,
+    required OcptEditorRightDockTab? rightDockTab,
+    required bool forceRightDockTabValue,
+    required OcptEditorRightDockTab? autoClosedRightDockTab,
+    required bool forceAutoClosedRightDockTabValue,
+  }) => copyWith(
+    mode: mode,
+    rightDockTab: rightDockTab,
+    forceRightDockTabValue: forceRightDockTabValue,
+    autoClosedRightDockTab: autoClosedRightDockTab,
+    forceAutoClosedRightDockTabValue: forceAutoClosedRightDockTabValue,
+  );
+
+  /// Copies this state with the page simulation switched on or off.
+  OcptEditorState copyWithPageSimulation({required bool isPageSimulationEnabled}) =>
+      copyWith(isPageSimulationEnabled: isPageSimulationEnabled);
+
+  /// Copies this state with the styled scene numbers shown or hidden.
+  OcptEditorState copyWithStyledSceneNumbers({required bool areStyledSceneNumbersVisible}) =>
+      copyWith(areStyledSceneNumbersVisible: areStyledSceneNumbersVisible);
+
+  /// Copies this state with the spell-check underlines shown or hidden.
+  OcptEditorState copyWithSpellCheckVisibility({required bool isSpellCheckVisible}) =>
+      copyWith(isSpellCheckVisible: isSpellCheckVisible);
+
+  /// Copies this state with the [pageSetup] replaced, which moves the reload epoch with the cause
+  /// [OcptEditorReloadCause.pageSetup].
+  OcptEditorState copyWithPageSetup({required OcptPageSetup pageSetup}) => copyWith(
+    pageSetup: pageSetup,
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.pageSetup,
+  );
+
+  /// Copies this state with the page setup moved to [pageFormat], which moves the reload epoch with
+  /// the cause [OcptEditorReloadCause.pageSetup].
+  OcptEditorState copyWithPageFormat({required OcptPageFormat pageFormat}) => copyWith(
+    pageSetup: pageSetup.copyWith(format: pageFormat),
+    reloadEpoch: reloadEpoch + 1,
+    reloadCause: OcptEditorReloadCause.pageSetup,
+  );
+
+  /// Copies this state with the project's [screenplayLanguage], null when it is unset.
+  OcptEditorState copyWithScreenplayLanguage({
+    required OcptScreenplayLanguage? screenplayLanguage,
+  }) => copyWith(
+    screenplayLanguage: screenplayLanguage,
+    forceScreenplayLanguageValue: screenplayLanguage == null,
+  );
+
+  /// Copies this state with the [text] an import just wrote: clean, with the caret back on the first
+  /// line.
+  OcptEditorState copyWithImportedText({required String text}) =>
+      copyWith(text: text, isDirty: false, currentLine: 0);
+
+  /// Copies this state with the [text] a title-page change just wrote.
+  OcptEditorState copyWithTitlePageText({required String text}) => copyWith(text: text);
+
+  /// Copies this state with the surfaces told to reload the text, through the reload epoch and the
+  /// cause [OcptEditorReloadCause.textReplaced].
+  OcptEditorState copyWithTextReplaced() =>
+      copyWith(reloadEpoch: reloadEpoch + 1, reloadCause: OcptEditorReloadCause.textReplaced);
 
   /// Object properties
   @override

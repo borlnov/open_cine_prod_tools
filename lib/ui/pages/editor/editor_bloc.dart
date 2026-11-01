@@ -19,7 +19,6 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_screenplay_
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
-import 'package:open_cine_prod_tools/types/ocpt_editor_reload_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
@@ -308,24 +307,19 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     if (project == null) {
       final document = _fountainParser.parse("");
       emitter(
-        state.copyWith(
-          isLoading: false,
+        state.copyToLoadedWithoutProject(
           document: document,
           mode: mode,
-          forcePreviewedVersionIdValue: true,
           isPageSimulationEnabled: isPageSimulationEnabled,
           areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
           isSpellCheckVisible: isSpellCheckVisible,
           screenplayLanguage: screenplayLanguage,
-          forceScreenplayLanguageValue: screenplayLanguage == null,
           leftDockFraction: leftDockFraction,
           rightDockFraction: rightDockFraction,
           rightDockTab: dockTabTransition.rightDockTab,
           forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
           autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
           forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
-          reloadEpoch: state.reloadEpoch + 1,
-          reloadCause: OcptEditorReloadCause.load,
         ),
       );
       return;
@@ -339,12 +333,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     final pageSetup = await _loadPageSetup(project);
 
     emitter(
-      state.copyWith(
-        isLoading: false,
+      state.copyToLoaded(
         title: project.name,
         mode: mode,
         previewedVersionId: previewedVersion?.id,
-        forcePreviewedVersionIdValue: previewedVersion == null,
         text: text,
         document: document,
         pageSetup: pageSetup,
@@ -352,15 +344,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         areStyledSceneNumbersVisible: areStyledSceneNumbersVisible,
         isSpellCheckVisible: isSpellCheckVisible,
         screenplayLanguage: screenplayLanguage,
-        forceScreenplayLanguageValue: screenplayLanguage == null,
         leftDockFraction: leftDockFraction,
         rightDockFraction: rightDockFraction,
         rightDockTab: dockTabTransition.rightDockTab,
         forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
         autoClosedRightDockTab: dockTabTransition.autoClosedRightDockTab,
         forceAutoClosedRightDockTabValue: dockTabTransition.forceAutoClosedRightDockTabValue,
-        reloadEpoch: state.reloadEpoch + 1,
-        reloadCause: OcptEditorReloadCause.load,
       ),
     );
   }
@@ -449,7 +438,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
       return;
     }
 
-    emitter(state.copyWith(text: event.text, isDirty: true));
+    emitter(state.copyWithTypedText(text: event.text));
 
     _parseTimer?.cancel();
     _parseTimer = Timer(_parseDebounce, () {
@@ -475,7 +464,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorParseRequestedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(document: _fountainParser.parse(state.text)));
+    emitter(state.copyWithParsedDocument(document: _fountainParser.parse(state.text)));
   }
 
   /// Saves the current text to the project database, unless there is nothing dirty to save.
@@ -513,7 +502,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
     _autosaveTimer?.cancel();
     final textToSave = state.text;
-    emitter(state.copyWith(isSaving: true));
+    emitter(state.copyWithSaving());
 
     try {
       await _screenplayService.saveScreenplayText(
@@ -523,13 +512,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         snapshotReason: reason,
       );
 
-      emitter(
-        state.copyWith(
-          isSaving: false,
-          isDirty: state.text != textToSave,
-          lastSavedAt: DateTime.now(),
-        ),
-      );
+      emitter(state.copyWithSaved(isDirty: state.text != textToSave, lastSavedAt: DateTime.now()));
 
       // The other of the two moments the working-copy card needs a fresh read for (see
       // `_onRightDockTabSelected`): a save that lands while the tab showing it is already open.
@@ -543,7 +526,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         null,
         stackTrace,
       );
-      emitter(state.copyWith(isSaving: false, hasSaveError: true));
+      emitter(state.copyWithSaveFailed());
     }
   }
 
@@ -553,7 +536,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorCaretMovedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(currentLine: event.line));
+    emitter(state.copyWithCurrentLine(currentLine: event.line));
   }
 
   /// Emits a fresh jump request for the page to move the caret to the clicked scene's start.
@@ -562,9 +545,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(
-      state.copyWith(
+      state.copyWithJumpRequest(
         jumpRequest: OcptEditorJumpRequest(charOffset: event.charOffset, id: _nextJumpRequestId++),
-        selectionEpoch: state.selectionEpoch + 1,
       ),
     );
   }
@@ -574,7 +556,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorScenePanelToggledEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(isScenePanelVisible: !state.isScenePanelVisible));
+    emitter(state.copyWithScenePanelVisibility(isScenePanelVisible: !state.isScenePanelVisible));
   }
 
   /// Selects a tab of the right dock (decision 3's toggle semantics: the already-active tab
@@ -587,14 +569,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     final isAlreadyActive = state.rightDockTab == event.tab;
-    emitter(
-      state.copyWith(
-        rightDockTab: isAlreadyActive ? null : event.tab,
-        forceRightDockTabValue: isAlreadyActive,
-        lastRightDockTab: event.tab,
-        forceAutoClosedRightDockTabValue: true,
-      ),
-    );
+    emitter(state.copyWithRightDockTabSelected(tab: event.tab, isAlreadyActive: isAlreadyActive));
 
     // Opening the `Versions` tab is one of the two moments `MixinOcptProjectVersionsBloc`'s
     // working-copy card needs a fresh read for: the other is a save landing while it is already
@@ -618,7 +593,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     if (state.rightDockTab != null) {
-      emitter(state.copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true));
+      emitter(state.copyWithRightDockClosed());
       return;
     }
 
@@ -626,9 +601,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
         !state.isPreviewTabAvailable && state.lastRightDockTab == OcptEditorRightDockTab.preview;
 
     emitter(
-      state.copyWith(
+      state.copyWithRightDockReopened(
         rightDockTab: isPreviewForbidden ? OcptEditorRightDockTab.syntax : state.lastRightDockTab,
-        forceAutoClosedRightDockTabValue: true,
       ),
     );
   }
@@ -639,7 +613,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorRightDockClosedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(forceRightDockTabValue: true, forceAutoClosedRightDockTabValue: true));
+    emitter(state.copyWithRightDockClosed());
   }
 
   /// Applies and persists whichever of [OcptEditorDockFractionsChangedEvent.left]/[.right] is
@@ -648,7 +622,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorDockFractionsChangedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(leftDockFraction: event.left, rightDockFraction: event.right));
+    emitter(
+      state.copyWithDockFractions(leftDockFraction: event.left, rightDockFraction: event.right),
+    );
 
     final left = event.left;
     if (left != null) {
@@ -666,7 +642,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     emitter(
-      state.copyWith(
+      state.copyWithDockFractions(
         leftDockFraction: OcptWorkspaceDock.leftDefaultFraction,
         rightDockFraction: OcptWorkspaceDock.rightDefaultFraction,
       ),
@@ -695,7 +671,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     );
 
     emitter(
-      state.copyWith(
+      state.copyWithMode(
         mode: newMode,
         rightDockTab: dockTabTransition.rightDockTab,
         forceRightDockTabValue: dockTabTransition.forceRightDockTabValue,
@@ -712,7 +688,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     final newValue = !state.isPageSimulationEnabled;
-    emitter(state.copyWith(isPageSimulationEnabled: newValue));
+    emitter(state.copyWithPageSimulation(isPageSimulationEnabled: newValue));
     await _propertiesManager.isPageSimulationEnabled.store(newValue);
   }
 
@@ -722,7 +698,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     final newValue = !state.areStyledSceneNumbersVisible;
-    emitter(state.copyWith(areStyledSceneNumbersVisible: newValue));
+    emitter(state.copyWithStyledSceneNumbers(areStyledSceneNumbersVisible: newValue));
     await _propertiesManager.styledSceneNumbersVisible.store(newValue);
   }
 
@@ -735,7 +711,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     Emitter<OcptEditorState> emitter,
   ) async {
     final newValue = !state.isSpellCheckVisible;
-    emitter(state.copyWith(isSpellCheckVisible: newValue));
+    emitter(state.copyWithSpellCheckVisibility(isSpellCheckVisible: newValue));
     await _propertiesManager.spellCheckVisible.store(newValue);
   }
 
@@ -748,13 +724,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     await _projectsManager.saveCurrentProjectPageFormat(event.pageSetup.format);
     await _propertiesManager.pageMargins.store(event.pageSetup.margins);
-    emitter(
-      state.copyWith(
-        pageSetup: event.pageSetup,
-        reloadEpoch: state.reloadEpoch + 1,
-        reloadCause: OcptEditorReloadCause.pageSetup,
-      ),
-    );
+    emitter(state.copyWithPageSetup(pageSetup: event.pageSetup));
   }
 
   /// Re-reads the project's page format and screenplay language after the project settings page
@@ -771,24 +741,12 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   ) async {
     final pageFormat = await _projectsManager.loadCurrentProjectPageFormat();
     if (pageFormat != null && pageFormat != state.pageSetup.format) {
-      final pageSetup = state.pageSetup.copyWith(format: pageFormat);
-      emitter(
-        state.copyWith(
-          pageSetup: pageSetup,
-          reloadEpoch: state.reloadEpoch + 1,
-          reloadCause: OcptEditorReloadCause.pageSetup,
-        ),
-      );
+      emitter(state.copyWithPageFormat(pageFormat: pageFormat));
     }
 
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     if (screenplayLanguage != state.screenplayLanguage) {
-      emitter(
-        state.copyWith(
-          screenplayLanguage: screenplayLanguage,
-          forceScreenplayLanguageValue: screenplayLanguage == null,
-        ),
-      );
+      emitter(state.copyWithScreenplayLanguage(screenplayLanguage: screenplayLanguage));
     }
   }
 
@@ -797,7 +755,7 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     OcptEditorSaveErrorDismissedEvent event,
     Emitter<OcptEditorState> emitter,
   ) async {
-    emitter(state.copyWith(hasSaveError: false));
+    emitter(state.copyWithSaveErrorDismissed());
   }
 
   /// Writes the unsaved text, tagged [OcptSnapshotReason.export], before an export reads it, so the
@@ -828,14 +786,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     _parseTimer?.cancel();
     _autosaveTimer?.cancel();
 
-    emitter(state.copyWith(text: event.text, isDirty: false, currentLine: 0));
+    emitter(state.copyWithImportedText(text: event.text));
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-    emitter(
-      state.copyWith(
-        reloadEpoch: state.reloadEpoch + 1,
-        reloadCause: OcptEditorReloadCause.textReplaced,
-      ),
-    );
+    emitter(state.copyWithTextReplaced());
   }
 
   /// A placeholder source range for the title-page entries built from a title-page change event's
@@ -868,15 +821,10 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     }
 
     _parseTimer?.cancel();
-    emitter(state.copyWith(text: newText));
+    emitter(state.copyWithTitlePageText(text: newText));
     await _saveCurrentText(reason: OcptSnapshotReason.manual, emitter: emitter);
     await _onParseRequested(const OcptEditorParseRequestedEvent(), emitter);
-    emitter(
-      state.copyWith(
-        reloadEpoch: state.reloadEpoch + 1,
-        reloadCause: OcptEditorReloadCause.textReplaced,
-      ),
-    );
+    emitter(state.copyWithTextReplaced());
   }
 
   /// Builds the title-page entries [event] describes, skipping every field left blank.
