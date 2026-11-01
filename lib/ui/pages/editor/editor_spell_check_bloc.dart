@@ -112,7 +112,7 @@ class OcptEditorSpellCheckBloc
     }
 
     state.caches.clear();
-    emitter(state.copyWith(rawSpellCheckRanges: const [], styledSpellCheckRanges: const {}));
+    emitter(state.copyWithRangesCleared());
 
     final project = _projectsManager.currentProject;
     if (project != null) {
@@ -167,7 +167,7 @@ class OcptEditorSpellCheckBloc
     Emitter<OcptEditorSpellCheckState> emitter,
   ) async {
     if (!modeBloc.state.isSpellCheckVisible) {
-      emitter(state.copyWith(rawSpellCheckRanges: const [], styledSpellCheckRanges: const {}));
+      emitter(state.copyWithRangesCleared());
     }
 
     unawaited(_reconcileSpellCheckLanguage());
@@ -231,7 +231,7 @@ class OcptEditorSpellCheckBloc
       return;
     }
 
-    emitter(state.copyWith(rawSpellCheckRanges: event.ranges));
+    emitter(state.copyWithRawRanges(ranges: event.ranges));
   }
 
   /// Answers [OcptEditorStyledSpellCheckTextsReportedEvent], the styled mode's own counterpart to
@@ -361,7 +361,7 @@ class OcptEditorSpellCheckBloc
       return;
     }
 
-    emitter(state.copyWith(styledSpellCheckRanges: event.ranges));
+    emitter(state.copyWithStyledRanges(ranges: event.ranges));
   }
 
   /// Returns up to five spelling suggestions for [word] — the answer the styled editor's
