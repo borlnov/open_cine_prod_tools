@@ -82,15 +82,15 @@ const int _maxDayColumnsPerPage = 12;
 /// never that chunk's: an actor's contract is negotiated over the shoot, not over whichever days
 /// happened to fall on one sheet.
 class OcptDayOutOfDaysPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptDayOutOfDaysPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptDayOutOfDaysPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the *Day Out of Days* of [projectName].
   ///

@@ -80,17 +80,6 @@ class OcptLocationsService extends AbsOcptService {
     await floorPlanService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await floorPlanService.disposeLifeCycle();
-    await assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Loads every live location of [database], in `sortKey` order, each joined with its live
   /// [OcptSet]s and scouting photos (both in `sortKey` order), with its availability windows (in
   /// start-date order, the order they are read in rather than one the user chose) and with the
@@ -745,4 +734,15 @@ class OcptLocationsService extends AbsOcptService {
     sceneIds: sceneIds,
     stamps: stamps,
   );
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

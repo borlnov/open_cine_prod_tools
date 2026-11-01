@@ -15,14 +15,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// is exactly what this block is — so this, and not the unit's whole day, is what their arrival,
 /// their PAT band and their departure are read off.
 class OcptConvocationAudition {
-  /// Builds an audition to feed to [ocptComputeDayConvocations].
-  const OcptConvocationAudition({
-    required this.slotId,
-    required this.startMinute,
-    required this.endMinute,
-    required this.candidacies,
-  });
-
   /// The id of the slot this audition sits in — what [OcptDayConvocation.slotIds] echoes back for a
   /// candidate, so a named call sheet can narrow the timetable to the unit they are expected on
   /// exactly as it does for everybody else.
@@ -41,4 +33,12 @@ class OcptConvocationAudition {
   /// this file knowing nothing of `role_candidates` beyond the two ids
   /// [OcptConvocationCandidacy] carries.
   final List<OcptConvocationCandidacy> candidacies;
+
+  /// Builds an audition to feed to [ocptComputeDayConvocations].
+  const OcptConvocationAudition({
+    required this.slotId,
+    required this.startMinute,
+    required this.endMinute,
+    required this.candidacies,
+  });
 }

@@ -58,6 +58,19 @@ class OcptScreenplayService extends AbsOcptService {
   /// The parser used to rebuild the scene index from the saved Fountain text.
   static const _fountainParser = FountainParser();
 
+  /// Resolves the device id every stamp this class' own writes carry, and every stamp its
+  /// collaborators make from the single [OcptRowStampService] a top-level method here seeds for its
+  /// own transaction — see [OcptDeviceIdGetter]. [saveScreenplayText] and [deleteEpisode] hand that
+  /// one instance to [_shotListService]/[_shotCoverageService]/[_roleIndexService]/
+  /// [_breakdownService]/[_scheduleService] as well as stamping `screenplays` and
+  /// `screenplay_snapshots` themselves with it; every other method that writes either table
+  /// ([createEpisode], [updateEpisode], [reorderEpisode], [snapshotOnProjectOpen]) seeds and
+  /// flushes its own, since none of them run inside another method's transaction.
+  /// [snapshotBeforeRestore] is the one exception: it always runs inside
+  /// `OcptProjectVersionsService._applyPayload`'s own already-seeded transaction, so it takes that
+  /// caller's instance instead of resolving a device id of its own.
+  final OcptDeviceIdGetter deviceId;
+
   /// The service used to reconcile the scene index after every save.
   final OcptSceneIndexService _sceneIndexService;
 
@@ -77,19 +90,6 @@ class OcptScreenplayService extends AbsOcptService {
   /// placing any of the episode's shots. See the class doc comment for why this edge only ever runs
   /// this way.
   final OcptScheduleService _scheduleService;
-
-  /// Resolves the device id every stamp this class' own writes carry, and every stamp its
-  /// collaborators make from the single [OcptRowStampService] a top-level method here seeds for its
-  /// own transaction — see [OcptDeviceIdGetter]. [saveScreenplayText] and [deleteEpisode] hand that
-  /// one instance to [_shotListService]/[_shotCoverageService]/[_roleIndexService]/
-  /// [_breakdownService]/[_scheduleService] as well as stamping `screenplays` and
-  /// `screenplay_snapshots` themselves with it; every other method that writes either table
-  /// ([createEpisode], [updateEpisode], [reorderEpisode], [snapshotOnProjectOpen]) seeds and
-  /// flushes its own, since none of them run inside another method's transaction.
-  /// [snapshotBeforeRestore] is the one exception: it always runs inside
-  /// `OcptProjectVersionsService._applyPayload`'s own already-seeded transaction, so it takes that
-  /// caller's instance instead of resolving a device id of its own.
-  final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
   const OcptScreenplayService({
@@ -120,21 +120,6 @@ class OcptScreenplayService extends AbsOcptService {
     await _roleIndexService.initLifeCycle();
     await _breakdownService.initLifeCycle();
     await _scheduleService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await _scheduleService.disposeLifeCycle();
-    await _breakdownService.disposeLifeCycle();
-    await _roleIndexService.disposeLifeCycle();
-    await _shotCoverageService.disposeLifeCycle();
-    await _shotListService.disposeLifeCycle();
-    await _sceneIndexService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
   }
 
   /// Loads the current Fountain text of the screenplay [screenplayId] in [database].
@@ -719,4 +704,19 @@ class OcptScreenplayService extends AbsOcptService {
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _scheduleService.disposeLifeCycle();
+    await _breakdownService.disposeLifeCycle();
+    await _roleIndexService.disposeLifeCycle();
+    await _shotCoverageService.disposeLifeCycle();
+    await _shotListService.disposeLifeCycle();
+    await _sceneIndexService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

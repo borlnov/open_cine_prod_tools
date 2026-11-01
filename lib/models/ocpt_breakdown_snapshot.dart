@@ -96,6 +96,17 @@ class OcptBreakdownSnapshot extends Equatable {
   /// could have flagged, and the scene inspector's own "to check" alert must still list it.
   final int needsCheckTagCount;
 
+  /// The name of every location of [locations], keyed by id — what names the place a set belongs
+  /// to.
+  ///
+  /// A set has no sheet of its own, so it is only ever shown *somewhere*: the scene inspector's own
+  /// sets row and the tag popover's set group both read a set as `<set> · <location>`
+  /// (`ocptBreakdownSetLabel`), two sets called `Cuisine` in two houses being the very case the
+  /// catalogue exists to tell apart.
+  Map<String, String> get locationNameById => {
+    for (final location in locations) location.id: location.name,
+  };
+
   /// Class constructor
   const OcptBreakdownSnapshot({
     required this.screenplayId,
@@ -229,17 +240,6 @@ class OcptBreakdownSnapshot extends Equatable {
       "taggedTargetCount: $taggedTargetCount, usedCategoryCount: $usedCategoryCount, "
       "toFindCount: $toFindCount, doneSceneCount: $doneSceneCount, "
       "needsCheckTagCount: $needsCheckTagCount)";
-
-  /// The name of every location of [locations], keyed by id — what names the place a set belongs
-  /// to.
-  ///
-  /// A set has no sheet of its own, so it is only ever shown *somewhere*: the scene inspector's own
-  /// sets row and the tag popover's set group both read a set as `<set> · <location>`
-  /// (`ocptBreakdownSetLabel`), two sets called `Cuisine` in two houses being the very case the
-  /// catalogue exists to tell apart.
-  Map<String, String> get locationNameById => {
-    for (final location in locations) location.id: location.name,
-  };
 
   /// Object properties
   @override

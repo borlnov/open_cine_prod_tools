@@ -40,10 +40,10 @@ class OcptScreenplayMergeConflict extends Equatable {
   });
 
   @override
-  List<Object?> get props => [screenplayId, baseText, localText, incomingText];
-
-  @override
   String toString() =>
       'OcptScreenplayMergeConflict(screenplayId: $screenplayId, baseText: $baseText, '
       'localText: $localText, incomingText: $incomingText)';
+
+  @override
+  List<Object?> get props => [screenplayId, baseText, localText, incomingText];
 }

@@ -49,14 +49,6 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// phone number and an e-mail address — never a postal address, which Benoit was asked about and
 /// chose to leave off a document that circulates to a whole crew.
 class _ContactRow {
-  /// Class constructor
-  const _ContactRow({
-    required this.name,
-    required this.position,
-    required this.phone,
-    required this.email,
-  });
-
   /// The person's own name, or the actor's while this is a cast row — empty for an uncast role,
   /// which `_textCell` then prints as an em dash.
   final String name;
@@ -69,6 +61,14 @@ class _ContactRow {
 
   /// The e-mail address, or empty for an uncast role.
   final String email;
+
+  /// Class constructor
+  const _ContactRow({
+    required this.name,
+    required this.position,
+    required this.phone,
+    required this.email,
+  });
 }
 
 /// One crew row, still carrying what it is grouped and sorted by before it is flattened into a
@@ -78,9 +78,6 @@ class _ContactRow {
 /// `ocptCrewPositions`, read within its department the way the schedule mode's positions matrix
 /// already orders its own rows.
 class _CrewRow {
-  /// Class constructor
-  const _CrewRow({required this.department, required this.positionIndex, required this.contact});
-
   /// The department this row's position belongs to, or null for the trailing group.
   final OcptCrewDepartment? department;
 
@@ -90,6 +87,9 @@ class _CrewRow {
 
   /// The row itself.
   final _ContactRow contact;
+
+  /// Class constructor
+  const _CrewRow({required this.department, required this.positionIndex, required this.contact});
 }
 
 /// One group of the crew table: its own band label, and the rows it holds.
@@ -118,15 +118,15 @@ typedef _ContactGroup = (String label, List<_ContactRow> rows);
 /// every export of this app measures a sheet with, and the Courier Prime variants all of them print
 /// in.
 class OcptContactListPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptContactListPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptContactListPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the contact list of [projectName].
   ///

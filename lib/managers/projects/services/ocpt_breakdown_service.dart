@@ -52,18 +52,18 @@ class _OcptBreakdownTagRefused implements Exception {
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 class OcptBreakdownService extends AbsOcptService {
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter]. [reconcileTags] and [tombstoneBreakdownOfScenes] never call it: both
+  /// write inside a caller's own transaction, and take that caller's own [OcptRowStampService]
+  /// instead.
+  final OcptDeviceIdGetter deviceId;
+
   /// The service used to mint the element a category chip creates, exactly as the resources mode's
   /// own element sheet would.
   final OcptElementsService _elementsService;
 
   /// The service used to ensure the `scene_sets` link a set tag implies.
   final OcptLocationsService _locationsService;
-
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter]. [reconcileTags] and [tombstoneBreakdownOfScenes] never call it: both
-  /// write inside a caller's own transaction, and take that caller's own [OcptRowStampService]
-  /// instead.
-  final OcptDeviceIdGetter deviceId;
 
   /// Class constructor
   const OcptBreakdownService({
@@ -82,17 +82,6 @@ class OcptBreakdownService extends AbsOcptService {
     await super.initLifeCycle();
     await _elementsService.initLifeCycle();
     await _locationsService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await _locationsService.disposeLifeCycle();
-    await _elementsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
   }
 
   /// Loads every live breakdown tag of [database], restricted to [screenplayId]'s scenes when
@@ -886,5 +875,16 @@ class OcptBreakdownService extends AbsOcptService {
     }
 
     return offsets;
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _locationsService.disposeLifeCycle();
+    await _elementsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

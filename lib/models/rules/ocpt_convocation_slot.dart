@@ -21,21 +21,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// linked to the audition block that sees them rather than to the unit
 /// ([OcptConvocationAudition], ADR 0024).
 class OcptConvocationSlot {
-  /// Builds a slot to feed to [ocptComputeDayConvocations].
-  const OcptConvocationSlot({
-    required this.id,
-    required this.startMinute,
-    required this.endMinute,
-    required this.shootingStartMinute,
-    required this.shootingEndMinute,
-    required this.filmingStartMinute,
-    required this.filmingEndMinute,
-    required this.personIds,
-    required this.uncastRoleIds,
-    required this.guestPersonIds,
-    required this.guestFreeNames,
-  });
-
   /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds]
   /// that includes it.
   final String id;
@@ -90,4 +75,19 @@ class OcptConvocationSlot {
   /// The free-named guests attending this slot — the discriminator's other half, each entry the
   /// guest's own verbatim `freeName`.
   final Set<String> guestFreeNames;
+
+  /// Builds a slot to feed to [ocptComputeDayConvocations].
+  const OcptConvocationSlot({
+    required this.id,
+    required this.startMinute,
+    required this.endMinute,
+    required this.shootingStartMinute,
+    required this.shootingEndMinute,
+    required this.filmingStartMinute,
+    required this.filmingEndMinute,
+    required this.personIds,
+    required this.uncastRoleIds,
+    required this.guestPersonIds,
+    required this.guestFreeNames,
+  });
 }

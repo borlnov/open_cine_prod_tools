@@ -75,16 +75,6 @@ class OcptFloorPlanService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Forwards to [OcptFloorPlanReadOps.loadFloorPlans].
   Future<OcptFloorPlanSnapshot> loadFloorPlans({
     required OcptProjectDatabase database,
@@ -735,60 +725,6 @@ class OcptFloorPlanService extends AbsOcptService {
     stamps: stamps,
   );
 
-  /// The scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
-  /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
-  /// another here rather than silently landing in whichever branch happens to be listed last.
-  ///
-  /// **Shot scope for `set`/`props` is allowed here only as an override** —
-  /// [_checkScopeInvariant] is what turns that back into "a
-  /// *non*-override shot-scope `set`/`props` symbol still throws", since this set alone cannot
-  /// express "allowed, but only conditionally".
-  static Set<OcptFloorPlanScope> _allowedScopesOf(OcptFloorPlanLayer layer) => switch (layer) {
-    OcptFloorPlanLayer.set => const {
-      OcptFloorPlanScope.set,
-      OcptFloorPlanScope.scene,
-      OcptFloorPlanScope.shot,
-    },
-    OcptFloorPlanLayer.cameras ||
-    OcptFloorPlanLayer.characters ||
-    OcptFloorPlanLayer.lights => const {OcptFloorPlanScope.shot},
-    // A breakdown prop is placed for one sequence's own coverage and may be re-dressed for one
-    // shot alone through a shot-scope override —
-    // set scope stays out of reach, a prop is never shared by the whole Resources set.
-    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene, OcptFloorPlanScope.shot},
-  };
-
-  /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
-  /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless
-  /// [hasOverride] is true: that layer is never natively shot-scope, only ever a shot override of
-  /// a scene-scope symbol. See this class's own doc comment for why this is the one place the
-  /// scope invariant is checked.
-  void _checkScopeInvariant({
-    required String? sceneId,
-    required String? shotId,
-    required OcptFloorPlanLayer layer,
-    required bool hasOverride,
-  }) {
-    final scope = ocptFloorPlanScopeOf(sceneId: sceneId, shotId: shotId);
-    final allowed = _allowedScopesOf(layer);
-    if (!allowed.contains(scope)) {
-      throw ArgumentError(
-        "A floor plan symbol's scope must be one of $allowed for layer $layer, but got $scope "
-        "(sceneId: $sceneId, shotId: $shotId)",
-      );
-    }
-
-    final isShotScopedSetOrProps =
-        scope == OcptFloorPlanScope.shot &&
-        (layer == OcptFloorPlanLayer.set || layer == OcptFloorPlanLayer.props);
-    if (isShotScopedSetOrProps && !hasOverride) {
-      throw ArgumentError(
-        "A shot-scope symbol of layer $layer must be a shot override (overridesSymbolId) of a "
-        "scene-scope symbol — it is never natively shot-scope",
-      );
-    }
-  }
-
   /// Masks [original] for one sequence ([sceneId]) or one shot ([shotId]) alone — exactly one of
   /// the two is non-null — a hidden override: sets `isHidden` on [existingOverride] when one
   /// already exists, or places one copied from [original]'s own geometry otherwise. What the
@@ -882,5 +818,69 @@ class OcptFloorPlanService extends AbsOcptService {
       overridesSymbolId: decision.symbolId,
     );
     return true;
+  }
+
+  /// Throws an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
+  /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless
+  /// [hasOverride] is true: that layer is never natively shot-scope, only ever a shot override of
+  /// a scene-scope symbol. See this class's own doc comment for why this is the one place the
+  /// scope invariant is checked.
+  void _checkScopeInvariant({
+    required String? sceneId,
+    required String? shotId,
+    required OcptFloorPlanLayer layer,
+    required bool hasOverride,
+  }) {
+    final scope = ocptFloorPlanScopeOf(sceneId: sceneId, shotId: shotId);
+    final allowed = _allowedScopesOf(layer);
+    if (!allowed.contains(scope)) {
+      throw ArgumentError(
+        "A floor plan symbol's scope must be one of $allowed for layer $layer, but got $scope "
+        "(sceneId: $sceneId, shotId: $shotId)",
+      );
+    }
+
+    final isShotScopedSetOrProps =
+        scope == OcptFloorPlanScope.shot &&
+        (layer == OcptFloorPlanLayer.set || layer == OcptFloorPlanLayer.props);
+    if (isShotScopedSetOrProps && !hasOverride) {
+      throw ArgumentError(
+        "A shot-scope symbol of layer $layer must be a shot override (overridesSymbolId) of a "
+        "scene-scope symbol — it is never natively shot-scope",
+      );
+    }
+  }
+
+  /// The scopes [layer] may land in — the scope matrix `OcptFloorPlanSymbolsTable`'s own doc
+  /// comment describes. A `switch` with no `default`: a sixth layer must be placed on one side or
+  /// another here rather than silently landing in whichever branch happens to be listed last.
+  ///
+  /// **Shot scope for `set`/`props` is allowed here only as an override** —
+  /// [_checkScopeInvariant] is what turns that back into "a
+  /// *non*-override shot-scope `set`/`props` symbol still throws", since this set alone cannot
+  /// express "allowed, but only conditionally".
+  static Set<OcptFloorPlanScope> _allowedScopesOf(OcptFloorPlanLayer layer) => switch (layer) {
+    OcptFloorPlanLayer.set => const {
+      OcptFloorPlanScope.set,
+      OcptFloorPlanScope.scene,
+      OcptFloorPlanScope.shot,
+    },
+    OcptFloorPlanLayer.cameras ||
+    OcptFloorPlanLayer.characters ||
+    OcptFloorPlanLayer.lights => const {OcptFloorPlanScope.shot},
+    // A breakdown prop is placed for one sequence's own coverage and may be re-dressed for one
+    // shot alone through a shot-scope override —
+    // set scope stays out of reach, a prop is never shared by the whole Resources set.
+    OcptFloorPlanLayer.props => const {OcptFloorPlanScope.scene, OcptFloorPlanScope.shot},
+  };
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

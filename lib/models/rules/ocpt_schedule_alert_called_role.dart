@@ -8,12 +8,12 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 /// onto the cast, through `fountain_kit`'s `normalizeCharacterName`. This file knows nothing of
 /// shots or characters beyond "[roleId] is wanted for [shotId]".
 class OcptScheduleAlertCalledRole {
-  /// Builds a called role to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertCalledRole({required this.roleId, required this.shotId});
-
   /// The role a placed shot calls for.
   final String roleId;
 
   /// The shot that calls for [roleId].
   final String shotId;
+
+  /// Builds a called role to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertCalledRole({required this.roleId, required this.shotId});
 }

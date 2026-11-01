@@ -18,14 +18,14 @@ class OcptProjectPackagePreflight extends Equatable {
   /// Every referenced file that is not where its row says it is.
   final List<OcptSkippedAsset> missingAssets;
 
+  /// Whether every referenced file is where it should be, and so nothing has to be asked.
+  bool get isComplete => missingAssets.isEmpty;
+
   /// Class constructor
   const OcptProjectPackagePreflight({
     required this.referencedAssetCount,
     required this.missingAssets,
   });
-
-  /// Whether every referenced file is where it should be, and so nothing has to be asked.
-  bool get isComplete => missingAssets.isEmpty;
 
   /// Object string representation, useful for debugging and logging.
   @override

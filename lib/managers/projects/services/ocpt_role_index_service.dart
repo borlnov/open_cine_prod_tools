@@ -96,17 +96,6 @@ class OcptRoleIndexService extends AbsOcptService {
     await roleCandidatesService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await roleCandidatesService.disposeLifeCycle();
-    await elementsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Forwards to [OcptRoleIndexReconcileOps.reconcile].
   Future<void> reconcile({
     required OcptProjectDatabase database,
@@ -578,5 +567,16 @@ class OcptRoleIndexService extends AbsOcptService {
         stamps: stamps,
       );
     }
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await roleCandidatesService.disposeLifeCycle();
+    await elementsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

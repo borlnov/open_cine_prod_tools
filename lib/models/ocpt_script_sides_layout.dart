@@ -117,6 +117,10 @@ class OcptScriptSidesLayout extends Equatable {
     );
   }
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptScriptSidesLayout(pages: ${pages.length})";
+
   /// Flattens [script]'s pages into one list of printed lines, in reading order — the same first
   /// move `OcptScenarioCoverageLayout._printedRowsOf` makes, and for the same reason: resolving a
   /// span against one flat list is what lets a scene spanning a page break be found in a single
@@ -242,10 +246,6 @@ class OcptScriptSidesLayout extends Equatable {
 
     return pages;
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptScriptSidesLayout(pages: ${pages.length})";
 
   /// Object properties
   @override

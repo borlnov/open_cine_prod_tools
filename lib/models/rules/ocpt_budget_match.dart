@@ -108,18 +108,18 @@ class _OcptBudgetMatchCandidate {
   /// than a match in its own right.
   final int wordOverlapCount;
 
+  /// Whether this candidate agreed with the draft on at least one of amount, date or wording —
+  /// [ocptBudgetMatchSuggestionsOf]'s own filter: a candidate agreeing on nothing is worse offered
+  /// than not offered at all.
+  bool get isWorthOffering =>
+      suggestion.matchesAmount || suggestion.matchesDate || suggestion.matchesWording;
+
   /// Class constructor
   const _OcptBudgetMatchCandidate({
     required this.suggestion,
     required this.dateDistanceDays,
     required this.wordOverlapCount,
   });
-
-  /// Whether this candidate agreed with the draft on at least one of amount, date or wording —
-  /// [ocptBudgetMatchSuggestionsOf]'s own filter: a candidate agreeing on nothing is worse offered
-  /// than not offered at all.
-  bool get isWorthOffering =>
-      suggestion.matchesAmount || suggestion.matchesDate || suggestion.matchesWording;
 }
 
 /// Ranks what a draft movement — [isDebit], [draftAmountCents], [draftDate] and

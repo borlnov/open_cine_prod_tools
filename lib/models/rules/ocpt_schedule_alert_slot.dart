@@ -9,16 +9,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 /// into exactly what the day-level rules need: its own resolved band, its location, and who is
 /// convoked on it and how.
 class OcptScheduleAlertSlot {
-  /// Builds a slot to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertSlot({
-    required this.id,
-    required this.startMinute,
-    required this.endMinute,
-    required this.locationId,
-    required this.personIds,
-    required this.convokedRoleIds,
-  });
-
   /// The slot's own id (`shooting_slots.id`), echoed back on every alert that names it.
   final String id;
 
@@ -43,4 +33,14 @@ class OcptScheduleAlertSlot {
   /// Unlike [personIds], which only ever names a human, an entry here may point at a role nobody
   /// has cast yet.
   final Set<String> convokedRoleIds;
+
+  /// Builds a slot to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertSlot({
+    required this.id,
+    required this.startMinute,
+    required this.endMinute,
+    required this.locationId,
+    required this.personIds,
+    required this.convokedRoleIds,
+  });
 }

@@ -74,6 +74,9 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// tax-inclusive, always" — and the verdict is the same three-way reading
 /// `ocptBudgetExportBalanceVerdict` gives it: no quote yet, covered, or short by an amount.
 class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptBudgetFinancingPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
@@ -82,9 +85,6 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     required super.logger,
     OcptCourierPrimeFontsLoader? fontsLoader,
   }) : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the financing plan of [projectName].
   ///

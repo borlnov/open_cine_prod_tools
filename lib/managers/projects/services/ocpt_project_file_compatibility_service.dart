@@ -130,41 +130,6 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     return compatibility;
   }
 
-  /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
-  /// (this build's schema, this build's version) once [fileSchemaVersion] is already known to be a
-  /// real one ([fileSchemaVersion] `> 0`).
-  OcptProjectFileVerdict _verdictFor({
-    required int fileSchemaVersion,
-    required int appSchemaVersion,
-    required String? fileWriter,
-    required String appVersion,
-  }) {
-    if (fileSchemaVersion > appSchemaVersion) {
-      return OcptProjectFileVerdict.newer;
-    }
-    if (fileSchemaVersion < appSchemaVersion) {
-      return OcptProjectFileVerdict.older;
-    }
-
-    // Same schema version: an unstamped file, or one written by this exact build, opens exactly as
-    // it always has.
-    if (fileWriter == null || fileWriter == appVersion) {
-      return OcptProjectFileVerdict.current;
-    }
-
-    // Two stable builds sharing a schema number share the same frozen shape — e.g. a patch release
-    // that changed no schema opening a file the previous stable release wrote.
-    final fileWriterVersion = OcptAppVersion.parse(fileWriter);
-    final runningVersion = OcptAppVersion.parse(appVersion);
-    if (!fileWriterVersion.isPreRelease && !runningVersion.isPreRelease) {
-      return OcptProjectFileVerdict.current;
-    }
-
-    // A pre-release is involved on either side, and the writer isn't this exact build: the shape
-    // isn't guaranteed to match the frozen release, so the file is refused.
-    return OcptProjectFileVerdict.foreignDevBuild;
-  }
-
   /// Where the copy of the project file at [filePath], still in format [fileSchemaVersion], is to
   /// be kept: beside the original, named after it, and free.
   ///
@@ -220,6 +185,41 @@ class OcptProjectFileCompatibilityService extends AbsOcptService {
     }
 
     return isWritten;
+  }
+
+  /// The decision function ADR 0029 states: compares the pair (file schema, file writer) against
+  /// (this build's schema, this build's version) once [fileSchemaVersion] is already known to be a
+  /// real one ([fileSchemaVersion] `> 0`).
+  OcptProjectFileVerdict _verdictFor({
+    required int fileSchemaVersion,
+    required int appSchemaVersion,
+    required String? fileWriter,
+    required String appVersion,
+  }) {
+    if (fileSchemaVersion > appSchemaVersion) {
+      return OcptProjectFileVerdict.newer;
+    }
+    if (fileSchemaVersion < appSchemaVersion) {
+      return OcptProjectFileVerdict.older;
+    }
+
+    // Same schema version: an unstamped file, or one written by this exact build, opens exactly as
+    // it always has.
+    if (fileWriter == null || fileWriter == appVersion) {
+      return OcptProjectFileVerdict.current;
+    }
+
+    // Two stable builds sharing a schema number share the same frozen shape — e.g. a patch release
+    // that changed no schema opening a file the previous stable release wrote.
+    final fileWriterVersion = OcptAppVersion.parse(fileWriter);
+    final runningVersion = OcptAppVersion.parse(appVersion);
+    if (!fileWriterVersion.isPreRelease && !runningVersion.isPreRelease) {
+      return OcptProjectFileVerdict.current;
+    }
+
+    // A pre-release is involved on either side, and the writer isn't this exact build: the shape
+    // isn't guaranteed to match the frozen release, so the file is refused.
+    return OcptProjectFileVerdict.foreignDevBuild;
   }
 
   /// The app version stamped into [database]'s `project_info` when the project was created, or

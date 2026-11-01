@@ -47,9 +47,6 @@ class OcptScriptPagePainter {
   /// The Courier Prime variants the body text is drawn with.
   final OcptCourierPrimeFonts fonts;
 
-  /// Class constructor
-  const OcptScriptPagePainter({required this.metrics, required this.fonts});
-
   /// The page's full width, in points.
   double get pageWidthPt => metrics.pageWidthInches * ocptPdfPointsPerInch;
 
@@ -79,6 +76,9 @@ class OcptScriptPagePainter {
   /// The `pdf` page format of a script page: the physical sheet with no margins of its own, since
   /// every line on it is absolutely positioned.
   PdfPageFormat get scriptPageFormat => PdfPageFormat(pageWidthPt, pageHeightPt);
+
+  /// Class constructor
+  const OcptScriptPagePainter({required this.metrics, required this.fonts});
 
   /// The distance, in points, from the page's top edge to the top of the printed row [row].
   double rowTopPt(int row) => marginTopPt + row * lineHeightPt;

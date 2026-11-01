@@ -48,8 +48,8 @@ class OcptChangeset extends Equatable {
   Uint8List encode() => Uint8List.fromList(utf8.encode(jsonEncode(toJson())));
 
   @override
-  List<Object?> get props => [fieldStamps];
+  String toString() => 'OcptChangeset(fieldStamps: $fieldStamps)';
 
   @override
-  String toString() => 'OcptChangeset(fieldStamps: $fieldStamps)';
+  List<Object?> get props => [fieldStamps];
 }

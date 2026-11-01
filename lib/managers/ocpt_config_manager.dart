@@ -28,19 +28,6 @@ class OcptConfigManagerBuilder extends AbstractConfigBuilder<OcptConfigManager> 
 /// hardcoded outside of this manager and its bundled YAML files.
 class OcptConfigManager extends AbsUsualConfigManager
     with MixinLocaleConfig, MixinThemesConfig, MixinLicensesConfig, MixinStoresConf {
-  /// Creates the config manager with the app's default logger.
-  OcptConfigManager()
-    : _fileLogEnabledVar = const NotNullableConfigVar<bool>(
-        'logs.file.enabled',
-        defaultValue: false,
-      ),
-      _fileLogLevelVar = const NotNullParserConfigVar<LogsLevel, String>(
-        'logs.file.level',
-        defaultValue: LogsLevel.info,
-        parser: LogsLevel.parseFromString,
-      ),
-      super(logger: appLogger());
-
   /// Whether app logs are also written to a rotating file (`logs.file.enabled`), read by
   /// `OcptFileLoggingManager`.
   final NotNullableConfigVar<bool> _fileLogEnabledVar;
@@ -54,4 +41,17 @@ class OcptConfigManager extends AbsUsualConfigManager
 
   /// The minimum level a line must reach to be written to that file.
   LogsLevel get fileLogLevel => _fileLogLevelVar.load();
+
+  /// Creates the config manager with the app's default logger.
+  OcptConfigManager()
+    : _fileLogEnabledVar = const NotNullableConfigVar<bool>(
+        'logs.file.enabled',
+        defaultValue: false,
+      ),
+      _fileLogLevelVar = const NotNullParserConfigVar<LogsLevel, String>(
+        'logs.file.level',
+        defaultValue: LogsLevel.info,
+        parser: LogsLevel.parseFromString,
+      ),
+      super(logger: appLogger());
 }

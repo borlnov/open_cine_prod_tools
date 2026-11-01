@@ -13,13 +13,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.d
 /// says the plan no longer fits there. A schedule that quietly absorbed the overlap would read as
 /// fine when it isn't; this is what lets the day view show the block in red instead.
 class OcptTimelineOverrun {
-  /// Builds an over-run record.
-  const OcptTimelineOverrun({
-    required this.blockId,
-    required this.reachedMinute,
-    required this.anchorMinute,
-  });
-
   /// The [OcptShootingTimelineBlock.id] whose anchor could not be honoured.
   final String blockId;
 
@@ -28,4 +21,11 @@ class OcptTimelineOverrun {
 
   /// The anchor the block was pinned to, which [reachedMinute] ran past.
   final int anchorMinute;
+
+  /// Builds an over-run record.
+  const OcptTimelineOverrun({
+    required this.blockId,
+    required this.reachedMinute,
+    required this.anchorMinute,
+  });
 }

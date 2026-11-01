@@ -146,6 +146,185 @@ class OcptSchedulePlanSnapshot extends Equatable {
   /// would pay for on every one of them.
   final Map<String, OcptShot> shotsById;
 
+  /// A map from every real scene's id to its own heading, built once across every entry of
+  /// [shotLists] — read by the two schedule PDF exports for a [OcptShootingBlockKind.hold] block's
+  /// own caption and the call sheet's own `EFFET` column (`ocptScheduleHeadingBySceneId`, now a
+  /// thin wrapper over this field), and by [effectCategoryOfDay] below for the agenda's own "Colour
+  /// by effect" tint — the very same join, so a printed call sheet and the agenda can never read a
+  /// heading differently.
+  ///
+  /// This is the **project's** map now, not one screenplay's (`docs/adr/0019`): a scene id is a
+  /// UUID, so merging every episode's own shot list into one map can never collide two scenes onto
+  /// one entry.
+  late final Map<String, String> headingBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
+  };
+
+  /// A map from every real scene's id to its own display scene number, built once across every
+  /// entry of [shotLists], alongside [headingBySceneId] and the very same way — read by the
+  /// one-line schedule's own `SEQ` column for every scene a hold or a shot block names, so a
+  /// printed sequence number can never disagree with the shot list's own reading of it. A shot
+  /// naming no scene at all (an orphaned one) has no entry here to read, which is why that column
+  /// falls back to the shot's own `ocptShotSceneNumberOf` rather than this map for such a shot.
+  ///
+  /// This is the **project's** map now, not one screenplay's, and it is safe for the same reason
+  /// [headingBySceneId] is: a scene id is a UUID, so no two episodes' scenes ever collide onto one
+  /// entry. Each episode's own [OcptSceneShotSequence.displaySceneNumber] already carries its own
+  /// `<episode>.<scene>` prefix, resolved by `OcptShotListService.loadShotList`'s own
+  /// `episodeNumber` at the moment that episode's shot list was read — so this map is where a
+  /// printed sequence code becomes unambiguous across a day that plays two episodes: `1.3` and
+  /// `2.4` read here exactly as their own shot lists built them, never renumbered against one
+  /// another.
+  late final Map<String, String> sceneNumberBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
+  };
+
+  /// A map from every real scene's id to the span, `[charStart, charEnd)`, of its own screenplay's
+  /// Fountain source that scene was indexed at — copied off the `scenes` row through the shot list
+  /// snapshot, exactly as [OcptSceneShotSequence.charStart]/`.charEnd` already carry it for the
+  /// scenario coverage editor. Built once across every entry of [shotLists], alongside
+  /// [headingBySceneId] and [sceneNumberBySceneId] and for the same reason: a caller walking a
+  /// whole shoot's worth of days must not rebuild the join per day, and a scene id being a UUID
+  /// keeps the merge across episodes as safe as theirs.
+  ///
+  /// This is what the sides export slices a day's own scenes out of each episode's own composed
+  /// script by: a side is the screenplay's real page, reprinted rather than re-typeset, and the
+  /// span is the address of the source text that page has to be sliced from —
+  /// [screenplayIdBySceneId] is what says which episode's own text to slice it out of.
+  late final Map<String, ({int charStart, int charEnd})> sceneSpanBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence)
+          sequence.sceneId: (charStart: sequence.charStart, charEnd: sequence.charEnd),
+  };
+
+  /// Every real scene's id onto the screenplay (episode) it belongs to, built once across every
+  /// entry of [shotLists] — what the sides export slices a day's own scenes per episode by (a day
+  /// regularly plays two of them), and what the two grouped surfaces (the left dock's own "shots
+  /// still to place" list and the shot picker dialog) band their own rows by.
+  late final Map<String, String> screenplayIdBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: shotList.screenplayId,
+  };
+
+  /// Every real scene's own [OcptSceneShotSequence], keyed by scene id, merged across every entry
+  /// of [shotLists] — built once so `OcptShootingPlanGrids` stops reaching into one screenplay's
+  /// own `shotList!.sequences` itself: it is the same join that class used to build inline, made
+  /// once per snapshot rather than once per grid.
+  late final Map<String, OcptSceneShotSequence> sceneSequenceBySceneId = {
+    for (final shotList in shotLists)
+      for (final sequence in shotList.sequences)
+        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence,
+  };
+
+  /// Every [OcptScheduleAlert] the eleven rules of `lib/models/rules/ocpt_schedule_alerts.dart`
+  /// raise over the whole schedule, computed **once**, on first read, rather than per read — see
+  /// the class doc comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why
+  /// this is a `late final` field rather than a getter.
+  ///
+  /// Every join that function needs onto `shots`, `roles`, `people` and `locations` happens here —
+  /// [_alertDayOf], [_roleIdByNormalizedName], [_permitWindowsByLocationId] and the location/people
+  /// mappings below — exactly as [_convocationSlotOf] joins onto `roles` for [convocationsOfDay].
+  /// `ocpt_schedule_alerts.dart` itself knows none of those tables.
+  late final List<OcptScheduleAlert> alerts = ocptComputeScheduleAlerts(
+    days: [for (final day in schedule.days) _alertDayOf(day)],
+    people: [
+      for (final person in people)
+        OcptScheduleAlertPerson(
+          id: person.id,
+          maxDailyPresenceMinutes: person.maxDailyPresenceMinutes,
+          unavailabilities: [
+            for (final unavailability in person.unavailabilities)
+              OcptScheduleAlertUnavailability(
+                id: unavailability.id,
+                startDate: unavailability.startDate,
+                endDate: unavailability.endDate,
+                dayPart: unavailability.slot,
+                startMinute: unavailability.startMinute,
+                endMinute: unavailability.endMinute,
+              ),
+          ],
+        ),
+    ],
+    roles: [for (final role in roles) OcptScheduleAlertRole(id: role.id, personId: role.personId)],
+    locationWindowsByLocationId: {
+      for (final location in locations)
+        location.id: [
+          for (final availability in location.availabilities)
+            OcptScheduleAlertLocationWindow(
+              startDate: availability.startDate,
+              endDate: availability.endDate,
+              weekdays: availability.weekdays,
+              dayPart: availability.slot,
+              startMinute: availability.startMinute,
+              endMinute: availability.endMinute,
+            ),
+        ],
+    },
+    minimumRestMinutes: minimumRestMinutes,
+    permitWindowsByLocationId: _permitWindowsByLocationId,
+  );
+
+  /// [alerts] grouped by the day each of them concerns (`ocptGroupScheduleAlertsByDay`) — what
+  /// every day-level indicator of the mode reads, so the day cards, the three agendas and the day
+  /// view's own summary band all mark exactly the days the `Alerts` panel lists.
+  ///
+  /// Derived from [alerts] rather than computed a second time, and `late final` for the same reason
+  /// it is: the whole-shoot walk runs once per snapshot, and this grouping rides on it. A day
+  /// raising nothing has no entry at all, and [OcptScheduleRoleUncastAlert] marks no day — see
+  /// `ocptGroupScheduleAlertsByDay` for why.
+  late final Map<String, List<OcptScheduleAlert>> alertsByDayId = ocptGroupScheduleAlertsByDay(
+    alerts,
+  );
+
+  /// Every day's own working person ids — everyone convoked on it as a human, cast or crew — built
+  /// once, alongside [alerts], out of [convocationsOfDay] over every live day: the presence grid's
+  /// own computed `working` reading ([presenceCellOf]) must agree with the `Convocations` panel
+  /// about who is convoked, so it reads off that very computation rather than a second join over
+  /// `shooting_slot_crew`/`shooting_slot_cast`.
+  ///
+  /// Reads [OcptDayConvocation.personId] alone, never [OcptDayConvocation.guestPersonId]: a guest
+  /// is never `working` here, being on set to watch a shoot is not being convoked to work, and
+  /// [OcptDayConvocation.personId] is already null on every guest convocation
+  /// ([OcptDayConvocation.isGuest]) by construction — there is nothing to filter out on purpose.
+  late final Map<String, Set<String>> _workingPersonIdsByDayId = {
+    for (final day in schedule.days)
+      day.id: {
+        for (final convocation in convocationsOfDay(day.id))
+          if (convocation.personId != null) convocation.personId!,
+      },
+  };
+
+  /// [locations]' own permit windows, at most one entry per location — this model holds one permit
+  /// document per location today ([OcptLocation.permitDocument]), while the pure rule reads a
+  /// **list** per location so the day a location can file several permits, this join is the only
+  /// thing that needs to change. A location with no permit document at all, or one recording
+  /// neither `OcptAssetRef.validFrom` nor `OcptAssetRef.validUntil`, contributes an **empty**
+  /// list — the caller's own reading of "no permit on file", which
+  /// `lib/models/rules/ocpt_schedule_alerts.dart`'s own permit rule treats identically to a
+  /// location that never declared one at all (that file's own doc comment).
+  late final Map<String, List<OcptSchedulePermitWindow>> _permitWindowsByLocationId = {
+    for (final location in locations)
+      location.id: [
+        if (location.permitDocument case final permit?)
+          if (permit.validFrom != null || permit.validUntil != null)
+            OcptSchedulePermitWindow(validFrom: permit.validFrom, validUntil: permit.validUntil),
+      ],
+  };
+
+  /// Every [OcptRole.name] of [roles], normalised through `fountain_kit`'s `normalizeCharacterName`
+  /// and keyed onto its own id — the same join `OcptCallSheetPdfService` and
+  /// `OcptShootingPlanPdfService` already read a shot's characters through. Built once, alongside
+  /// [alerts], rather than once per day.
+  late final Map<String, String> _roleIdByNormalizedName = {
+    for (final role in roles) normalizeCharacterName(role.name): role.id,
+  };
+
   /// Class constructor. Prefer [OcptSchedulePlanSnapshot.build], which derives [locationById],
   /// [setById], [roleById], [personById], [episodeById] and [shotsById] rather than asking a caller
   /// to keep them in step by hand.
@@ -304,6 +483,159 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
+  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
+  /// ([OcptShootingDayTimelines.dayStartMinute]) — or null while it has no live slot at all.
+  ///
+  /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
+  /// of its own slot's start any more, so the day's earliest slot start already is its earliest
+  /// arrival, with no convocation to compute for it. It reads the **resolved** start rather than a
+  /// stored column, an end-anchored slot's own start being a fact about its blocks (ADR 0015,
+  /// amended a second time).
+  int? dayArrivalMinute(String dayId) => timelinesOfDay(dayId)?.dayStartMinute;
+
+  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
+  /// has no location, or that location has no coordinates pinned yet.
+  OcptSunTimes? sunTimesOfDay(String dayId) {
+    final day = schedule.daysById[dayId];
+    final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    if (day == null || slots.isEmpty) {
+      return null;
+    }
+
+    final location = locationById[slots.first.locationId];
+    final latitude = location?.latitude;
+    final longitude = location?.longitude;
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+
+    return ocptSunTimesOf(date: day.date, latitudeDegrees: latitude, longitudeDegrees: longitude);
+  }
+
+  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
+  /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
+  OcptLocation? firstLocationOfDay(String dayId) {
+    final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
+    return slots.isEmpty ? null : locationById[slots.first.locationId];
+  }
+
+  /// The scene ids of every [OcptShootingBlockKind.shot] block placed on [dayId], deduplicated —
+  /// the scenes the day actually plays, which is what [elementsToBringOnDay] joins an element's own
+  /// [OcptElement.sceneLinks] against. A block naming no shot, or a shot with no scene (an orphaned
+  /// heading), contributes nothing: there is no scene id to test an element's own link against.
+  ///
+  /// Computed on every read rather than memoised: unlike [timelinesOfDay] or [headingBySceneId],
+  /// which the three agendas call once per day cell across a whole month grid, this is read at most
+  /// once per named call sheet [elementsToBringOnDay] renders — a walk over one day's own blocks,
+  /// no costlier than [firstLocationOfDay]'s own per-read scan just above.
+  Set<String> sceneIdsOfDay(String dayId) => {
+    for (final block in schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
+      if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
+        if (shotById(block.shotId!)?.sceneId case final sceneId?) sceneId,
+  };
+
+  /// Every role [dayId] convokes, across all of its live slots — the union of their own
+  /// `shooting_slot_cast` rows, which is what the *Day Out of Days* reads a cell from.
+  ///
+  /// Names **roles**, never actors, and deliberately so: a *Day Out of Days* is negotiated per
+  /// part, an uncast role is exactly as scheduled as a cast one, and recasting a part must not
+  /// redraw the document. It is the same set [_alertSlotOf] builds per slot for the position and
+  /// convocation rules, joined here across the whole day rather than per slot — a role convoked on
+  /// the morning unit and again in the evening is on that day once.
+  ///
+  /// Computed on every read rather than memoised, exactly as [sceneIdsOfDay] is and for the same
+  /// reason: it is a walk over one day's own slots, read once per printed day.
+  Set<String> convokedRoleIdsOfDay(String dayId) => {
+    for (final slot in schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[])
+      for (final member in slot.cast) member.roleId,
+  };
+
+  /// The live elements [personId] is due to bring to [dayId]: every [elements] row whose
+  /// [OcptElement.broughtByPersonId] is [personId] **and** at least one of whose
+  /// [OcptElement.sceneLinks] names a scene [sceneIdsOfDay] says the day actually plays — the join
+  /// a named call sheet's own "to bring" section reads. Sorted by [OcptElement.category] (the
+  /// enum's own declaration order, `prop` before `costume` before `other`) then by
+  /// [OcptElement.name], the grouping a printed list reads the way the resources mode's own
+  /// elements board already groups.
+  ///
+  /// Both conditions are deliberate, and neither alone is enough: an element [personId] brings but
+  /// that no scene of [dayId] needs is left off — a call sheet says what to bring **today**, not
+  /// everything that production ever assigned them — and an element a scene of [dayId] needs but
+  /// somebody else brings is exactly as absent, being nobody's own instruction to pack it. Nothing
+  /// here is guessed at: the two columns already say who brings what and where it is needed, and
+  /// this is their join, not a new fact invented for the call sheet.
+  List<OcptElement> elementsToBringOnDay({required String dayId, required String personId}) {
+    final sceneIds = sceneIdsOfDay(dayId);
+    final toBring = [
+      for (final element in elements)
+        if (element.broughtByPersonId == personId)
+          if (element.sceneLinks.any((link) => sceneIds.contains(link.sceneId))) element,
+    ];
+
+    toBring.sort((a, b) {
+      final categoryComparison = a.category.index.compareTo(b.category.index);
+      return categoryComparison != 0 ? categoryComparison : a.name.compareTo(b.name);
+    });
+    return toBring;
+  }
+
+  /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
+  /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four
+  /// categories when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when
+  /// nothing placed on [dayId] classifies at all. What `OcptScheduleAgendaColorMode.effect` tints a
+  /// day with, mirroring [firstLocationOfDay] for `OcptScheduleAgendaColorMode.location`.
+  ///
+  /// A [OcptShootingBlockKind.hold] block is deliberately left out, unlike [_calledRolesOfDay]'s
+  /// own restriction to shot blocks for a different reason here: it may name a sequence not yet
+  /// shot-listed at all, and a day is tinted by what is actually being **shot** on it, not by what
+  /// is merely blocked out for later.
+  OcptSceneEffectCategory? effectCategoryOfDay(String dayId) {
+    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
+
+    return ocptSceneEffectCategoryOf([
+      for (final block in blocks)
+        if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
+          if (shotById(block.shotId!)?.sceneId case final sceneId?) headingBySceneId[sceneId],
+    ]);
+  }
+
+  /// The presence grid's own effective cell for [personId] on [dayId] — entirely computed, in
+  /// order: [OcptPresenceCode.working] when [personId] is convoked on [dayId]
+  /// ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable] when they are not convoked but
+  /// one of their own [OcptPerson.unavailabilities] covers [dayId]'s own calendar date, or null
+  /// when neither applies — absence of information, never a claim. There is no override left to
+  /// consult first any more: schema v17 drops `shooting_presences` (`OcptProjectDatabase`'s own doc
+  /// comment), the grid having never needed to restate what the resources mode already recorded.
+  ///
+  /// The unavailability check here compares calendar dates alone, not the day-part overlap rule 1
+  /// of `lib/models/rules/ocpt_schedule_alerts.dart` refines against a slot's own band: a person
+  /// read as [OcptPresenceCode.unavailable] here is, by construction, convoked on **no** slot of
+  /// [dayId] at all (the `working` branch above already claimed that case), so there is no band
+  /// left to refine against — the two checks never fire on the same person on the same day, and can
+  /// therefore never disagree.
+  OcptPresenceCode? presenceCellOf({required String dayId, required String personId}) {
+    if (_workingPersonIdsByDayId[dayId]?.contains(personId) ?? false) {
+      return OcptPresenceCode.working;
+    }
+
+    final day = schedule.daysById[dayId];
+    final person = personById[personId];
+    if (day != null && person != null && _unavailabilityCoversDate(person, day.date)) {
+      return OcptPresenceCode.unavailable;
+    }
+
+    return null;
+  }
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptSchedulePlanSnapshot(shotListCount: ${shotLists.length}, "
+      "episodeCount: ${episodes.length}, locationCount: ${locations.length}, "
+      "roleCount: ${roles.length}, personCount: ${people.length}, "
+      "elementCount: ${elements.length}, roleCandidateCount: ${roleCandidates.length}, "
+      "minimumRestMinutes: $minimumRestMinutes)";
+
   /// The [OcptConvocationAudition] of every live [OcptShootingBlockKind.audition] block among
   /// [blocks] that names at least one candidacy [roleCandidateById] still holds, its hours read off
   /// [timelines]' own resolved entry for it.
@@ -457,249 +789,11 @@ class OcptSchedulePlanSnapshot extends Equatable {
     );
   }
 
-  /// Day [dayId]'s own earliest arrival — the minimum **resolved** start over its live slots
-  /// ([OcptShootingDayTimelines.dayStartMinute]) — or null while it has no live slot at all.
-  ///
-  /// Reads off the slots alone, not off who is convoked (ADR 0018): nothing pulls an arrival ahead
-  /// of its own slot's start any more, so the day's earliest slot start already is its earliest
-  /// arrival, with no convocation to compute for it. It reads the **resolved** start rather than a
-  /// stored column, an end-anchored slot's own start being a fact about its blocks (ADR 0015,
-  /// amended a second time).
-  int? dayArrivalMinute(String dayId) => timelinesOfDay(dayId)?.dayStartMinute;
-
   /// [shotId]'s own `estimatedDurationMs`, converted to minutes, or null while it has none yet (or
   /// the shot isn't loaded).
   int? _durationMinutesOfShot(String shotId) {
     final estimatedDurationMs = shotById(shotId)?.estimatedDurationMs;
     return estimatedDurationMs == null ? null : (estimatedDurationMs / 60000).round();
-  }
-
-  /// [dayId]'s own computed sun and twilight times (ADR 0016), or null while its first live slot
-  /// has no location, or that location has no coordinates pinned yet.
-  OcptSunTimes? sunTimesOfDay(String dayId) {
-    final day = schedule.daysById[dayId];
-    final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    if (day == null || slots.isEmpty) {
-      return null;
-    }
-
-    final location = locationById[slots.first.locationId];
-    final latitude = location?.latitude;
-    final longitude = location?.longitude;
-    if (latitude == null || longitude == null) {
-      return null;
-    }
-
-    return ocptSunTimesOf(date: day.date, latitudeDegrees: latitude, longitudeDegrees: longitude);
-  }
-
-  /// [dayId]'s own first live slot's location, or null while it has none — what a day's own tint
-  /// (`ocptScheduleDayLocationTint`) and its inspector's own "Locations" line are read off.
-  OcptLocation? firstLocationOfDay(String dayId) {
-    final slots = schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[];
-    return slots.isEmpty ? null : locationById[slots.first.locationId];
-  }
-
-  /// The scene ids of every [OcptShootingBlockKind.shot] block placed on [dayId], deduplicated —
-  /// the scenes the day actually plays, which is what [elementsToBringOnDay] joins an element's own
-  /// [OcptElement.sceneLinks] against. A block naming no shot, or a shot with no scene (an orphaned
-  /// heading), contributes nothing: there is no scene id to test an element's own link against.
-  ///
-  /// Computed on every read rather than memoised: unlike [timelinesOfDay] or [headingBySceneId],
-  /// which the three agendas call once per day cell across a whole month grid, this is read at most
-  /// once per named call sheet [elementsToBringOnDay] renders — a walk over one day's own blocks,
-  /// no costlier than [firstLocationOfDay]'s own per-read scan just above.
-  Set<String> sceneIdsOfDay(String dayId) => {
-    for (final block in schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[])
-      if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
-        if (shotById(block.shotId!)?.sceneId case final sceneId?) sceneId,
-  };
-
-  /// Every role [dayId] convokes, across all of its live slots — the union of their own
-  /// `shooting_slot_cast` rows, which is what the *Day Out of Days* reads a cell from.
-  ///
-  /// Names **roles**, never actors, and deliberately so: a *Day Out of Days* is negotiated per
-  /// part, an uncast role is exactly as scheduled as a cast one, and recasting a part must not
-  /// redraw the document. It is the same set [_alertSlotOf] builds per slot for the position and
-  /// convocation rules, joined here across the whole day rather than per slot — a role convoked on
-  /// the morning unit and again in the evening is on that day once.
-  ///
-  /// Computed on every read rather than memoised, exactly as [sceneIdsOfDay] is and for the same
-  /// reason: it is a walk over one day's own slots, read once per printed day.
-  Set<String> convokedRoleIdsOfDay(String dayId) => {
-    for (final slot in schedule.slotsByDayId[dayId] ?? const <OcptShootingSlot>[])
-      for (final member in slot.cast) member.roleId,
-  };
-
-  /// The live elements [personId] is due to bring to [dayId]: every [elements] row whose
-  /// [OcptElement.broughtByPersonId] is [personId] **and** at least one of whose
-  /// [OcptElement.sceneLinks] names a scene [sceneIdsOfDay] says the day actually plays — the join
-  /// a named call sheet's own "to bring" section reads. Sorted by [OcptElement.category] (the
-  /// enum's own declaration order, `prop` before `costume` before `other`) then by
-  /// [OcptElement.name], the grouping a printed list reads the way the resources mode's own
-  /// elements board already groups.
-  ///
-  /// Both conditions are deliberate, and neither alone is enough: an element [personId] brings but
-  /// that no scene of [dayId] needs is left off — a call sheet says what to bring **today**, not
-  /// everything that production ever assigned them — and an element a scene of [dayId] needs but
-  /// somebody else brings is exactly as absent, being nobody's own instruction to pack it. Nothing
-  /// here is guessed at: the two columns already say who brings what and where it is needed, and
-  /// this is their join, not a new fact invented for the call sheet.
-  List<OcptElement> elementsToBringOnDay({required String dayId, required String personId}) {
-    final sceneIds = sceneIdsOfDay(dayId);
-    final toBring = [
-      for (final element in elements)
-        if (element.broughtByPersonId == personId)
-          if (element.sceneLinks.any((link) => sceneIds.contains(link.sceneId))) element,
-    ];
-
-    toBring.sort((a, b) {
-      final categoryComparison = a.category.index.compareTo(b.category.index);
-      return categoryComparison != 0 ? categoryComparison : a.name.compareTo(b.name);
-    });
-    return toBring;
-  }
-
-  /// A map from every real scene's id to its own heading, built once across every entry of
-  /// [shotLists] — read by the two schedule PDF exports for a [OcptShootingBlockKind.hold] block's
-  /// own caption and the call sheet's own `EFFET` column (`ocptScheduleHeadingBySceneId`, now a
-  /// thin wrapper over this field), and by [effectCategoryOfDay] below for the agenda's own "Colour
-  /// by effect" tint — the very same join, so a printed call sheet and the agenda can never read a
-  /// heading differently.
-  ///
-  /// This is the **project's** map now, not one screenplay's (`docs/adr/0019`): a scene id is a
-  /// UUID, so merging every episode's own shot list into one map can never collide two scenes onto
-  /// one entry.
-  late final Map<String, String> headingBySceneId = {
-    for (final shotList in shotLists)
-      for (final sequence in shotList.sequences)
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.heading,
-  };
-
-  /// A map from every real scene's id to its own display scene number, built once across every
-  /// entry of [shotLists], alongside [headingBySceneId] and the very same way — read by the
-  /// one-line schedule's own `SEQ` column for every scene a hold or a shot block names, so a
-  /// printed sequence number can never disagree with the shot list's own reading of it. A shot
-  /// naming no scene at all (an orphaned one) has no entry here to read, which is why that column
-  /// falls back to the shot's own `ocptShotSceneNumberOf` rather than this map for such a shot.
-  ///
-  /// This is the **project's** map now, not one screenplay's, and it is safe for the same reason
-  /// [headingBySceneId] is: a scene id is a UUID, so no two episodes' scenes ever collide onto one
-  /// entry. Each episode's own [OcptSceneShotSequence.displaySceneNumber] already carries its own
-  /// `<episode>.<scene>` prefix, resolved by `OcptShotListService.loadShotList`'s own
-  /// `episodeNumber` at the moment that episode's shot list was read — so this map is where a
-  /// printed sequence code becomes unambiguous across a day that plays two episodes: `1.3` and
-  /// `2.4` read here exactly as their own shot lists built them, never renumbered against one
-  /// another.
-  late final Map<String, String> sceneNumberBySceneId = {
-    for (final shotList in shotLists)
-      for (final sequence in shotList.sequences)
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence.displaySceneNumber,
-  };
-
-  /// A map from every real scene's id to the span, `[charStart, charEnd)`, of its own screenplay's
-  /// Fountain source that scene was indexed at — copied off the `scenes` row through the shot list
-  /// snapshot, exactly as [OcptSceneShotSequence.charStart]/`.charEnd` already carry it for the
-  /// scenario coverage editor. Built once across every entry of [shotLists], alongside
-  /// [headingBySceneId] and [sceneNumberBySceneId] and for the same reason: a caller walking a
-  /// whole shoot's worth of days must not rebuild the join per day, and a scene id being a UUID
-  /// keeps the merge across episodes as safe as theirs.
-  ///
-  /// This is what the sides export slices a day's own scenes out of each episode's own composed
-  /// script by: a side is the screenplay's real page, reprinted rather than re-typeset, and the
-  /// span is the address of the source text that page has to be sliced from —
-  /// [screenplayIdBySceneId] is what says which episode's own text to slice it out of.
-  late final Map<String, ({int charStart, int charEnd})> sceneSpanBySceneId = {
-    for (final shotList in shotLists)
-      for (final sequence in shotList.sequences)
-        if (sequence is OcptSceneShotSequence)
-          sequence.sceneId: (charStart: sequence.charStart, charEnd: sequence.charEnd),
-  };
-
-  /// Every real scene's id onto the screenplay (episode) it belongs to, built once across every
-  /// entry of [shotLists] — what the sides export slices a day's own scenes per episode by (a day
-  /// regularly plays two of them), and what the two grouped surfaces (the left dock's own "shots
-  /// still to place" list and the shot picker dialog) band their own rows by.
-  late final Map<String, String> screenplayIdBySceneId = {
-    for (final shotList in shotLists)
-      for (final sequence in shotList.sequences)
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: shotList.screenplayId,
-  };
-
-  /// Every real scene's own [OcptSceneShotSequence], keyed by scene id, merged across every entry
-  /// of [shotLists] — built once so `OcptShootingPlanGrids` stops reaching into one screenplay's
-  /// own `shotList!.sequences` itself: it is the same join that class used to build inline, made
-  /// once per snapshot rather than once per grid.
-  late final Map<String, OcptSceneShotSequence> sceneSequenceBySceneId = {
-    for (final shotList in shotLists)
-      for (final sequence in shotList.sequences)
-        if (sequence is OcptSceneShotSequence) sequence.sceneId: sequence,
-  };
-
-  /// [dayId]'s own effect reading (`ocptSceneEffectCategoryOf`): the EFFET classification of every
-  /// [OcptShootingBlockKind.shot] block's own scene heading placed on it, one of the four
-  /// categories when they agree, [OcptSceneEffectCategory.mixed] when they don't, or null when
-  /// nothing placed on [dayId] classifies at all. What `OcptScheduleAgendaColorMode.effect` tints a
-  /// day with, mirroring [firstLocationOfDay] for `OcptScheduleAgendaColorMode.location`.
-  ///
-  /// A [OcptShootingBlockKind.hold] block is deliberately left out, unlike [_calledRolesOfDay]'s
-  /// own restriction to shot blocks for a different reason here: it may name a sequence not yet
-  /// shot-listed at all, and a day is tinted by what is actually being **shot** on it, not by what
-  /// is merely blocked out for later.
-  OcptSceneEffectCategory? effectCategoryOfDay(String dayId) {
-    final blocks = schedule.blocksByDayId[dayId] ?? const <OcptShootingDayBlock>[];
-
-    return ocptSceneEffectCategoryOf([
-      for (final block in blocks)
-        if (block.kind == OcptShootingBlockKind.shot && block.shotId != null)
-          if (shotById(block.shotId!)?.sceneId case final sceneId?) headingBySceneId[sceneId],
-    ]);
-  }
-
-  /// Every day's own working person ids — everyone convoked on it as a human, cast or crew — built
-  /// once, alongside [alerts], out of [convocationsOfDay] over every live day: the presence grid's
-  /// own computed `working` reading ([presenceCellOf]) must agree with the `Convocations` panel
-  /// about who is convoked, so it reads off that very computation rather than a second join over
-  /// `shooting_slot_crew`/`shooting_slot_cast`.
-  ///
-  /// Reads [OcptDayConvocation.personId] alone, never [OcptDayConvocation.guestPersonId]: a guest
-  /// is never `working` here, being on set to watch a shoot is not being convoked to work, and
-  /// [OcptDayConvocation.personId] is already null on every guest convocation
-  /// ([OcptDayConvocation.isGuest]) by construction — there is nothing to filter out on purpose.
-  late final Map<String, Set<String>> _workingPersonIdsByDayId = {
-    for (final day in schedule.days)
-      day.id: {
-        for (final convocation in convocationsOfDay(day.id))
-          if (convocation.personId != null) convocation.personId!,
-      },
-  };
-
-  /// The presence grid's own effective cell for [personId] on [dayId] — entirely computed, in
-  /// order: [OcptPresenceCode.working] when [personId] is convoked on [dayId]
-  /// ([_workingPersonIdsByDayId]), [OcptPresenceCode.unavailable] when they are not convoked but
-  /// one of their own [OcptPerson.unavailabilities] covers [dayId]'s own calendar date, or null
-  /// when neither applies — absence of information, never a claim. There is no override left to
-  /// consult first any more: schema v17 drops `shooting_presences` (`OcptProjectDatabase`'s own doc
-  /// comment), the grid having never needed to restate what the resources mode already recorded.
-  ///
-  /// The unavailability check here compares calendar dates alone, not the day-part overlap rule 1
-  /// of `lib/models/rules/ocpt_schedule_alerts.dart` refines against a slot's own band: a person
-  /// read as [OcptPresenceCode.unavailable] here is, by construction, convoked on **no** slot of
-  /// [dayId] at all (the `working` branch above already claimed that case), so there is no band
-  /// left to refine against — the two checks never fire on the same person on the same day, and can
-  /// therefore never disagree.
-  OcptPresenceCode? presenceCellOf({required String dayId, required String personId}) {
-    if (_workingPersonIdsByDayId[dayId]?.contains(personId) ?? false) {
-      return OcptPresenceCode.working;
-    }
-
-    final day = schedule.daysById[dayId];
-    final person = personById[personId];
-    if (day != null && person != null && _unavailabilityCoversDate(person, day.date)) {
-      return OcptPresenceCode.unavailable;
-    }
-
-    return null;
   }
 
   /// Whether any of [person]'s own recorded unavailabilities covers calendar [date] — comparing
@@ -729,91 +823,6 @@ class OcptSchedulePlanSnapshot extends Equatable {
 
     return false;
   }
-
-  /// [locations]' own permit windows, at most one entry per location — this model holds one permit
-  /// document per location today ([OcptLocation.permitDocument]), while the pure rule reads a
-  /// **list** per location so the day a location can file several permits, this join is the only
-  /// thing that needs to change. A location with no permit document at all, or one recording
-  /// neither `OcptAssetRef.validFrom` nor `OcptAssetRef.validUntil`, contributes an **empty**
-  /// list — the caller's own reading of "no permit on file", which
-  /// `lib/models/rules/ocpt_schedule_alerts.dart`'s own permit rule treats identically to a
-  /// location that never declared one at all (that file's own doc comment).
-  late final Map<String, List<OcptSchedulePermitWindow>> _permitWindowsByLocationId = {
-    for (final location in locations)
-      location.id: [
-        if (location.permitDocument case final permit?)
-          if (permit.validFrom != null || permit.validUntil != null)
-            OcptSchedulePermitWindow(validFrom: permit.validFrom, validUntil: permit.validUntil),
-      ],
-  };
-
-  /// Every [OcptScheduleAlert] the eleven rules of `lib/models/rules/ocpt_schedule_alerts.dart`
-  /// raise over the whole schedule, computed **once**, on first read, rather than per read — see
-  /// the class doc comment and [OcptSchedulePlanSnapshot]'s own constructor doc comment for why
-  /// this is a `late final` field rather than a getter.
-  ///
-  /// Every join that function needs onto `shots`, `roles`, `people` and `locations` happens here —
-  /// [_alertDayOf], [_roleIdByNormalizedName], [_permitWindowsByLocationId] and the location/people
-  /// mappings below — exactly as [_convocationSlotOf] joins onto `roles` for [convocationsOfDay].
-  /// `ocpt_schedule_alerts.dart` itself knows none of those tables.
-  late final List<OcptScheduleAlert> alerts = ocptComputeScheduleAlerts(
-    days: [for (final day in schedule.days) _alertDayOf(day)],
-    people: [
-      for (final person in people)
-        OcptScheduleAlertPerson(
-          id: person.id,
-          maxDailyPresenceMinutes: person.maxDailyPresenceMinutes,
-          unavailabilities: [
-            for (final unavailability in person.unavailabilities)
-              OcptScheduleAlertUnavailability(
-                id: unavailability.id,
-                startDate: unavailability.startDate,
-                endDate: unavailability.endDate,
-                dayPart: unavailability.slot,
-                startMinute: unavailability.startMinute,
-                endMinute: unavailability.endMinute,
-              ),
-          ],
-        ),
-    ],
-    roles: [for (final role in roles) OcptScheduleAlertRole(id: role.id, personId: role.personId)],
-    locationWindowsByLocationId: {
-      for (final location in locations)
-        location.id: [
-          for (final availability in location.availabilities)
-            OcptScheduleAlertLocationWindow(
-              startDate: availability.startDate,
-              endDate: availability.endDate,
-              weekdays: availability.weekdays,
-              dayPart: availability.slot,
-              startMinute: availability.startMinute,
-              endMinute: availability.endMinute,
-            ),
-        ],
-    },
-    minimumRestMinutes: minimumRestMinutes,
-    permitWindowsByLocationId: _permitWindowsByLocationId,
-  );
-
-  /// [alerts] grouped by the day each of them concerns (`ocptGroupScheduleAlertsByDay`) — what
-  /// every day-level indicator of the mode reads, so the day cards, the three agendas and the day
-  /// view's own summary band all mark exactly the days the `Alerts` panel lists.
-  ///
-  /// Derived from [alerts] rather than computed a second time, and `late final` for the same reason
-  /// it is: the whole-shoot walk runs once per snapshot, and this grouping rides on it. A day
-  /// raising nothing has no entry at all, and [OcptScheduleRoleUncastAlert] marks no day — see
-  /// `ocptGroupScheduleAlertsByDay` for why.
-  late final Map<String, List<OcptScheduleAlert>> alertsByDayId = ocptGroupScheduleAlertsByDay(
-    alerts,
-  );
-
-  /// Every [OcptRole.name] of [roles], normalised through `fountain_kit`'s `normalizeCharacterName`
-  /// and keyed onto its own id — the same join `OcptCallSheetPdfService` and
-  /// `OcptShootingPlanPdfService` already read a shot's characters through. Built once, alongside
-  /// [alerts], rather than once per day.
-  late final Map<String, String> _roleIdByNormalizedName = {
-    for (final role in roles) normalizeCharacterName(role.name): role.id,
-  };
 
   /// Builds [day]'s own [OcptScheduleAlertDay]: its live slots ([_alertSlotOf]), the timeline
   /// diagnostics [timelinesOfDay] already computes for it, and the roles a shot placed on it calls
@@ -888,15 +897,6 @@ class OcptSchedulePlanSnapshot extends Equatable {
 
     return calledRoles;
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptSchedulePlanSnapshot(shotListCount: ${shotLists.length}, "
-      "episodeCount: ${episodes.length}, locationCount: ${locations.length}, "
-      "roleCount: ${roles.length}, personCount: ${people.length}, "
-      "elementCount: ${elements.length}, roleCandidateCount: ${roleCandidates.length}, "
-      "minimumRestMinutes: $minimumRestMinutes)";
 
   /// Object properties
   @override

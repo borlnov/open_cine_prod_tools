@@ -23,14 +23,14 @@ import 'package:path/path.dart' as p;
 /// Every failure is logged and answered as a null outcome (or false), which the callers treat as a
 /// cancellation; the OS dialog has already told the user.
 class OcptExportWriteService extends AbsOcptService {
+  /// The platform manager telling a desktop platform from a mobile one.
+  final PlatformManager platformManager;
+
   /// The service showing the native save and folder dialogs.
   final OcptSaveLocationService _saveLocationService;
 
   /// The service handing files to the OS share sheet.
   final OcptShareService _shareService;
-
-  /// The platform manager telling a desktop platform from a mobile one.
-  final PlatformManager platformManager;
 
   /// Class constructor
   const OcptExportWriteService({

@@ -76,6 +76,10 @@ class OcptScenarioCoverageLayout extends Equatable {
   /// The summary page's rows: every sequence, in the snapshot's own order, orphan group last.
   final List<OcptCoverageSummaryRow> summary;
 
+  /// Whether any page needed more lanes than its margins hold: what the summary page prints its
+  /// "some bars share a lane" warning from.
+  bool get hasLaneOverflow => pages.any((page) => page.hasLaneOverflow);
+
   /// Class constructor
   const OcptScenarioCoverageLayout({
     required this.pages,
@@ -129,9 +133,16 @@ class OcptScenarioCoverageLayout extends Equatable {
     );
   }
 
-  /// Whether any page needed more lanes than its margins hold: what the summary page prints its
-  /// "some bars share a lane" warning from.
-  bool get hasLaneOverflow => pages.any((page) => page.hasLaneOverflow);
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptScenarioCoverageLayout(pages: ${pages.length}, legend: ${legend.length}, "
+      "summary: ${summary.length})";
+
+  /// The label [shot]'s bars and legend row carry: its abbreviation followed by its code
+  /// (`PM1/1`), or its code alone (`1/1`) while it has no abbreviation.
+  static String labelOf(OcptShot shot) =>
+      shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
 
   /// Flattens [script]'s pages into one list of printed rows, in reading order, each still
   /// knowing which page and which row of it it is.
@@ -189,11 +200,6 @@ class OcptScenarioCoverageLayout extends Equatable {
 
     return resolved;
   }
-
-  /// The label [shot]'s bars and legend row carry: its abbreviation followed by its code
-  /// (`PM1/1`), or its code alone (`1/1`) while it has no abbreviation.
-  static String labelOf(OcptShot shot) =>
-      shot.abbreviation.isEmpty ? shot.code : "${shot.abbreviation}${shot.code}";
 
   /// The bar segments [range] draws: one per page it reaches, each carrying the rows it spans on
   /// that page.
@@ -688,12 +694,6 @@ class OcptScenarioCoverageLayout extends Equatable {
   static String _shortened(String text) => text.length <= _maxUncoveredExtractLength
       ? text
       : "${text.substring(0, _maxUncoveredExtractLength).trimRight()}$_ellipsis";
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptScenarioCoverageLayout(pages: ${pages.length}, legend: ${legend.length}, "
-      "summary: ${summary.length})";
 
   /// Object properties
   @override

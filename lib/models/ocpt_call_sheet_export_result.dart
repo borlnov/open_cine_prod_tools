@@ -39,6 +39,9 @@ class OcptCallSheetExportResult extends Equatable {
   /// for the user to find — mobile's own outcome, `false` everywhere else.
   final bool wasShared;
 
+  /// Whether every file this run attempted was written successfully.
+  bool get isComplete => failedFileNames.isEmpty;
+
   /// Class constructor
   const OcptCallSheetExportResult({
     required this.folderPath,
@@ -46,9 +49,6 @@ class OcptCallSheetExportResult extends Equatable {
     required this.failedFileNames,
     this.wasShared = false,
   });
-
-  /// Whether every file this run attempted was written successfully.
-  bool get isComplete => failedFileNames.isEmpty;
 
   /// Object string representation, useful for debugging and logging.
   @override

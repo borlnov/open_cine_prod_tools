@@ -123,24 +123,6 @@ class OcptSceneIndexService extends AbsOcptService {
     });
   }
 
-  /// Builds the ordered list of [_ParsedScene] for [document], computing each scene's character
-  /// range as spanning from its heading's start offset to the next scene heading's start offset
-  /// (or the end of the document's source text for the last scene).
-  static List<_ParsedScene> _buildParsedScenes(FountainDocument document) {
-    final headings = document.scenes;
-
-    return [
-      for (var i = 0; i < headings.length; i++)
-        _ParsedScene(
-          heading: headings[i],
-          charStart: headings[i].sourceRange.startOffset,
-          charEnd: i + 1 < headings.length
-              ? headings[i + 1].sourceRange.startOffset
-              : document.sourceText.length,
-        ),
-    ];
-  }
-
   /// Tombstones every live scene of [screenplayId] and returns the ids it tombstoned, the cascade
   /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
   /// off — its shots and coverages, its breakdown — is keyed by `sceneId`, so the caller needs
@@ -169,6 +151,24 @@ class OcptSceneIndexService extends AbsOcptService {
     );
 
     return ids;
+  }
+
+  /// Builds the ordered list of [_ParsedScene] for [document], computing each scene's character
+  /// range as spanning from its heading's start offset to the next scene heading's start offset
+  /// (or the end of the document's source text for the last scene).
+  static List<_ParsedScene> _buildParsedScenes(FountainDocument document) {
+    final headings = document.scenes;
+
+    return [
+      for (var i = 0; i < headings.length; i++)
+        _ParsedScene(
+          heading: headings[i],
+          charStart: headings[i].sourceRange.startOffset,
+          charEnd: i + 1 < headings.length
+              ? headings[i + 1].sourceRange.startOffset
+              : document.sourceText.length,
+        ),
+    ];
   }
 
   /// Runs the three matching passes described in [reconcile] and returns the resulting plan.

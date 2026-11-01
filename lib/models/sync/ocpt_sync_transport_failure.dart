@@ -8,20 +8,20 @@ import 'package:equatable/equatable.dart';
 /// error the relay answered: the [error] itself and the [stackTrace] it was caught with, kept so
 /// the caller that decides what the failure means (a sync session going offline) can log both.
 class OcptSyncTransportFailure extends Equatable {
-  /// Class constructor
-  const OcptSyncTransportFailure({required this.error, this.stackTrace});
-
   /// The error the transport caught.
   final Object error;
 
   /// The stack trace [error] was caught with, when there was one.
   final StackTrace? stackTrace;
 
-  /// Object properties
-  @override
-  List<Object?> get props => [error];
+  /// Class constructor
+  const OcptSyncTransportFailure({required this.error, this.stackTrace});
 
   /// The caught error's own text, which is what a diagnostics line quotes.
   @override
   String toString() => error.toString();
+
+  /// Object properties
+  @override
+  List<Object?> get props => [error];
 }

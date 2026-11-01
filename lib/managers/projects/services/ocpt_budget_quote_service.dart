@@ -60,55 +60,6 @@ class OcptBudgetQuoteService extends AbsOcptService {
     ];
   }
 
-  /// Seeds [database]'s `budget_postes` table with [seed], **once**: only when the table holds
-  /// **no row at all, tombstones included**. A user who deleted every poste has not asked for them
-  /// back, and a table already holding rows — seeded earlier, or built up by hand on a project that
-  /// predates this seed list — is left exactly as it is.
-  ///
-  /// Guarded like every other write: a preview connection never gains a seeded row it would then
-  /// show as if the user had asked for it.
-  Future<void> _seedIfEmpty({
-    required OcptProjectDatabase database,
-    required List<OcptBudgetPosteSeed> seed,
-  }) async {
-    if (database.refusesUserWrite("seedBudgetPostes") || seed.isEmpty) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final anyRow = await (database.select(
-        database.ocptBudgetPostesTable,
-      )..limit(1)).getSingleOrNull();
-      if (anyRow != null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      final keys = ocptFractionalKeySequence(seed.length);
-      for (var i = 0; i < seed.length; i++) {
-        final posteSeed = seed[i];
-        await OcptRowStampService.writeAndStamp(
-          database: database,
-          table: database.ocptBudgetPostesTable,
-          rowId: posteSeed.id,
-          current: null,
-          next: OcptBudgetPosteRow(
-            id: posteSeed.id,
-            sortKey: keys[i],
-            isDeleted: false,
-            code: posteSeed.code,
-            label: posteSeed.label,
-            simpleLabel: posteSeed.simpleLabel,
-          ),
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
   /// Creates a new poste named [label], appended at the end of the catalogue, and returns its
   /// freshly generated id.
   ///
@@ -557,6 +508,55 @@ class OcptBudgetQuoteService extends AbsOcptService {
             break;
         }
       }
+    });
+  }
+
+  /// Seeds [database]'s `budget_postes` table with [seed], **once**: only when the table holds
+  /// **no row at all, tombstones included**. A user who deleted every poste has not asked for them
+  /// back, and a table already holding rows — seeded earlier, or built up by hand on a project that
+  /// predates this seed list — is left exactly as it is.
+  ///
+  /// Guarded like every other write: a preview connection never gains a seeded row it would then
+  /// show as if the user had asked for it.
+  Future<void> _seedIfEmpty({
+    required OcptProjectDatabase database,
+    required List<OcptBudgetPosteSeed> seed,
+  }) async {
+    if (database.refusesUserWrite("seedBudgetPostes") || seed.isEmpty) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final anyRow = await (database.select(
+        database.ocptBudgetPostesTable,
+      )..limit(1)).getSingleOrNull();
+      if (anyRow != null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      final keys = ocptFractionalKeySequence(seed.length);
+      for (var i = 0; i < seed.length; i++) {
+        final posteSeed = seed[i];
+        await OcptRowStampService.writeAndStamp(
+          database: database,
+          table: database.ocptBudgetPostesTable,
+          rowId: posteSeed.id,
+          current: null,
+          next: OcptBudgetPosteRow(
+            id: posteSeed.id,
+            sortKey: keys[i],
+            isDeleted: false,
+            code: posteSeed.code,
+            label: posteSeed.label,
+            simpleLabel: posteSeed.simpleLabel,
+          ),
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
     });
   }
 

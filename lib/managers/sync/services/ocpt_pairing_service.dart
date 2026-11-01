@@ -18,11 +18,11 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 /// storage (the user cleared it, a reinstall wiped it) is treated exactly like an unpaired project
 /// rather than as a pairing with an empty token, which is never a valid state to hand a transport.
 class OcptPairingService extends AbsOcptService {
-  /// Class constructor
-  const OcptPairingService({required super.logger, required this.secretsManager});
-
   /// Where the project token half of a pairing is read from and written to.
   final OcptSecretsManager secretsManager;
+
+  /// Class constructor
+  const OcptPairingService({required super.logger, required this.secretsManager});
 
   /// Upserts [database]'s `sync_pairings` row for [projectId] to [relayBaseUri] and stores [token]
   /// as its project token, replacing whatever pairing [projectId] had before.

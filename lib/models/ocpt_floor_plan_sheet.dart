@@ -336,6 +336,11 @@ class OcptFloorPlanSheet extends Equatable {
     );
   }
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
+
   /// The underlay shape of [floorPlanSet], or null while it has none placed — a set that has an
   /// `underlayAssetId` but no frame yet (mid-import) is treated the same as having none, since
   /// there is nothing yet to draw it at.
@@ -503,11 +508,6 @@ class OcptFloorPlanSheet extends Equatable {
     OcptFloorPlanLayer.lights => OcptFloorPlanSymbolGlyphKind.light,
     OcptFloorPlanLayer.set || OcptFloorPlanLayer.props => OcptFloorPlanSymbolGlyphKind.setElement,
   };
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptFloorPlanSheet(setId: $setId, symbols: ${symbols.length}, arrows: ${arrows.length})";
 
   /// Object properties
   @override

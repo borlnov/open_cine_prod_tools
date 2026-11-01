@@ -67,16 +67,16 @@ class _OcptFileLogMessage {
 /// Filters by [minLevel] alone, with no release-mode gating unlike the console logger's own
 /// filter: a crash-survivable file is exactly what a release build most needs.
 class _OcptFileLogFilter extends LogFilter {
-  /// Class constructor
-  _OcptFileLogFilter({LogsLevel minLevel = LogsLevel.all}) {
-    level = minLevel.toLoggerLevel;
-  }
-
   /// The minimum [LogsLevel] this filter lets through.
   LogsLevel get minLevel => _logsLevelFromLoggerLevel(level ?? Level.all);
 
   /// Sets the minimum [LogsLevel] this filter lets through.
   set minLevel(LogsLevel value) => level = value.toLoggerLevel;
+
+  /// Class constructor
+  _OcptFileLogFilter({LogsLevel minLevel = LogsLevel.all}) {
+    level = minLevel.toLoggerLevel;
+  }
 
   /// {@macro logger.LogFilter.shouldLog}
   @override
@@ -134,6 +134,18 @@ class OcptFileExternalLogger
   /// The log filter used to filter the log messages based on their level.
   late final _OcptFileLogFilter _logFilter;
 
+  /// The path of the file currently being written to — what an "open the log file" affordance
+  /// would open.
+  String get logFilePath => p.join(logDirectoryPath, _latestLogFileName);
+
+  /// {@macro act_logger_manager.MixinExternalLogger.minLevel.getter}
+  @override
+  LogsLevel get minLevel => _logFilter.minLevel;
+
+  /// {@macro act_logger_manager.MixinExternalLogger.minLevel.setter}
+  @override
+  set minLevel(LogsLevel value) => _logFilter.minLevel = value;
+
   /// Creates a file external logger writing under [logDirectoryPath], starting at [minLevel].
   ///
   /// [logDirectoryPath] is injectable so a test can point it at a temporary directory instead of
@@ -157,18 +169,6 @@ class OcptFileExternalLogger
       ),
     );
   }
-
-  /// The path of the file currently being written to — what an "open the log file" affordance
-  /// would open.
-  String get logFilePath => p.join(logDirectoryPath, _latestLogFileName);
-
-  /// {@macro act_logger_manager.MixinExternalLogger.minLevel.getter}
-  @override
-  LogsLevel get minLevel => _logFilter.minLevel;
-
-  /// {@macro act_logger_manager.MixinExternalLogger.minLevel.setter}
-  @override
-  set minLevel(LogsLevel value) => _logFilter.minLevel = value;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///

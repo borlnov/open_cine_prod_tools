@@ -36,6 +36,9 @@ class OcptCardChoiceEntry<T> extends Equatable {
   /// about what exists.
   final String? unavailableReason;
 
+  /// Whether this card can be picked right now.
+  bool get isAvailable => unavailableReason == null;
+
   /// Class constructor
   const OcptCardChoiceEntry({
     required this.value,
@@ -44,9 +47,6 @@ class OcptCardChoiceEntry<T> extends Equatable {
     required this.formatLabel,
     this.unavailableReason,
   });
-
-  /// Whether this card can be picked right now.
-  bool get isAvailable => unavailableReason == null;
 
   /// Object string representation, useful for debugging and logging.
   @override

@@ -33,11 +33,11 @@ sealed class OcptShootingPlanElementsGridRow extends Equatable {
 /// whole row in its own right, however it draws a band (a coloured `pw.TableRow`, a bolded XLSX
 /// row).
 class OcptShootingPlanElementsGridCategoryBand extends OcptShootingPlanElementsGridRow {
-  /// Class constructor
-  const OcptShootingPlanElementsGridCategoryBand({required this.label});
-
   /// The category's own already-resolved display label.
   final String label;
+
+  /// Class constructor
+  const OcptShootingPlanElementsGridCategoryBand({required this.label});
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -55,14 +55,14 @@ class OcptShootingPlanElementsGridCategoryBand extends OcptShootingPlanElementsG
 /// empty string otherwise — **never a quantity summed across that day's own scenes**, see
 /// [OcptShootingPlanGrids]'s own doc comment.
 class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGridRow {
-  /// Class constructor
-  const OcptShootingPlanElementsGridElementRow({required this.label, required this.cells});
-
   /// This row's own leading label.
   final String label;
 
   /// This row's own resolved value at every one of [OcptShootingPlanGrids.dayColumns], in order.
   final List<String> cells;
+
+  /// Class constructor
+  const OcptShootingPlanElementsGridElementRow({required this.label, required this.cells});
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -107,16 +107,6 @@ class OcptShootingPlanElementsGridElementRow extends OcptShootingPlanElementsGri
 /// service paginates them into fixed-size chunks for a landscape page, an XLSX service writes every
 /// one of them into a single sheet — two different answers to a question this model does not ask.
 class OcptShootingPlanGrids extends Equatable {
-  /// Class constructor. Prefer [OcptShootingPlanGrids.of].
-  const OcptShootingPlanGrids({
-    required this.slotColumns,
-    required this.dayColumns,
-    required this.locationsRows,
-    required this.sequencesRows,
-    required this.peopleRows,
-    required this.elementsRows,
-  });
-
   /// One column per live slot of every live day of `dayIds` that carries at least one, in the order
   /// given — a day with no live slot at all contributes no column.
   final List<OcptShootingPlanGridColumn> slotColumns;
@@ -144,6 +134,16 @@ class OcptShootingPlanGrids extends Equatable {
   /// actually plays, grouped under an [OcptElementCategory] band in the enum's own declaration
   /// order, each band's own elements sorted by name.
   final List<OcptShootingPlanElementsGridRow> elementsRows;
+
+  /// Class constructor. Prefer [OcptShootingPlanGrids.of].
+  const OcptShootingPlanGrids({
+    required this.slotColumns,
+    required this.dayColumns,
+    required this.locationsRows,
+    required this.sequencesRows,
+    required this.peopleRows,
+    required this.elementsRows,
+  });
 
   /// Builds the four grids of [plan] over [dayIds] — see the class doc comment for why every
   /// localized word arrives as a plain parameter or a map rather than a labels object.
@@ -200,6 +200,11 @@ class OcptShootingPlanGrids extends Equatable {
       ),
     );
   }
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptShootingPlanGrids(slotColumns: ${slotColumns.length}, dayColumns: ${dayColumns.length})";
 
   /// One `(day, slot)` pair per live slot of every live day of [dayIds] that carries at least one,
   /// in the order given — the raw material [slotColumns] is built from, and every one of the three
@@ -499,11 +504,6 @@ class OcptShootingPlanGrids extends Equatable {
     }
     return rows;
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptShootingPlanGrids(slotColumns: ${slotColumns.length}, dayColumns: ${dayColumns.length})";
 
   /// Object properties
   @override

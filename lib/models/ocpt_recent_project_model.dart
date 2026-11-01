@@ -65,6 +65,12 @@ class OcptRecentProjectModel extends Equatable {
     if (episodeCount != null) _episodeCountKey: episodeCount,
   };
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptRecentProjectModel(path: $path, name: $name, lastOpenedAt: $lastOpenedAt, "
+      "episodeCount: $episodeCount)";
+
   /// Parse the given [json] to a [OcptRecentProjectModel] object
   ///
   /// Returns null if the given [json] doesn't hold the expected keys or if one of its values
@@ -113,12 +119,6 @@ class OcptRecentProjectModel extends Equatable {
       episodeCount: episodeCountResult.value,
     );
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptRecentProjectModel(path: $path, name: $name, lastOpenedAt: $lastOpenedAt, "
-      "episodeCount: $episodeCount)";
 
   /// Object properties
   @override

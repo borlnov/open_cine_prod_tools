@@ -30,6 +30,11 @@ import 'package:uuid/uuid.dart';
 /// to be built from, or applied onto, a project at any schema version this build would otherwise
 /// migrate.
 class OcptSnapshotService extends AbsOcptService {
+  /// The service reading and writing the portable package a snapshot's bytes actually are.
+  final OcptProjectPackageService packageService;
+
+  final Directory Function() _temporaryDirectory;
+
   /// Creates a service using [packageService] to read and write the portable package a snapshot's
   /// bytes actually are.
   ///
@@ -46,13 +51,6 @@ class OcptSnapshotService extends AbsOcptService {
              logger: logger.createAbsSubLogger(subCategory: 'project_package'),
            ),
        _temporaryDirectory = temporaryDirectory ?? _systemTempDirectory;
-
-  static Directory _systemTempDirectory() => Directory.systemTemp;
-
-  /// The service reading and writing the portable package a snapshot's bytes actually are.
-  final OcptProjectPackageService packageService;
-
-  final Directory Function() _temporaryDirectory;
 
   /// Packages the project at [projectFilePath] and returns it as snapshot bytes, paired with the
   /// descriptor an `OcptRemoteStorage.uploadSnapshot` call carries alongside them.
@@ -181,4 +179,6 @@ class OcptSnapshotService extends AbsOcptService {
       );
     }
   }
+
+  static Directory _systemTempDirectory() => Directory.systemTemp;
 }

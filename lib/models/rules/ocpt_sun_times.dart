@@ -42,20 +42,6 @@ const double _ocptAstronomicalZenithDegrees = 108;
 /// summer solstice: Paris (48.85°N) already does. A null figure means exactly that this one does
 /// not exist on this day at this place; a caller prints nothing rather than a plausible wrong time.
 class OcptSunTimes {
-  /// Builds a computed set of sun times. Callers get one of these from [ocptSunTimesOf]; the
-  /// constructor is public only so tests can build fixtures without going through the algorithm.
-  const OcptSunTimes({
-    required this.sunriseMinute,
-    required this.sunsetMinute,
-    required this.civilDawnMinute,
-    required this.civilDuskMinute,
-    required this.nauticalDawnMinute,
-    required this.nauticalDuskMinute,
-    required this.astronomicalDawnMinute,
-    required this.astronomicalDuskMinute,
-    required this.utcOffsetUsed,
-  });
-
   /// When the sun's upper edge crosses the horizon in the morning, or null above the polar circle
   /// in summer (the sun never sets the night before) or in winter (it never rises at all).
   final int? sunriseMinute;
@@ -89,6 +75,20 @@ class OcptSunTimes {
   /// The device's own UTC offset for `date` (see [ocptSunTimesOf]) that every minute above was
   /// converted through, so a caller can show which one was used rather than leaving it implicit.
   final Duration utcOffsetUsed;
+
+  /// Builds a computed set of sun times. Callers get one of these from [ocptSunTimesOf]; the
+  /// constructor is public only so tests can build fixtures without going through the algorithm.
+  const OcptSunTimes({
+    required this.sunriseMinute,
+    required this.sunsetMinute,
+    required this.civilDawnMinute,
+    required this.civilDuskMinute,
+    required this.nauticalDawnMinute,
+    required this.nauticalDuskMinute,
+    required this.astronomicalDawnMinute,
+    required this.astronomicalDuskMinute,
+    required this.utcOffsetUsed,
+  });
 }
 
 /// Computes [OcptSunTimes] for [date] at [latitudeDegrees]/[longitudeDegrees] — positive north and

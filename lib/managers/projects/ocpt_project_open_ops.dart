@@ -91,6 +91,74 @@ abstract final class OcptProjectOpenOps {
     return result;
   }
 
+  /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
+  /// it the `OcptProjectsManager.currentProject`.
+  ///
+  /// If a project is already open, it's closed first — but only once the file's own format has been
+  /// read and accepted, so a refusal never costs the user the project they already had open.
+  ///
+  /// **A file written by another build never opens silently.** It is probed first
+  /// (`OcptProjectsManager.probeProjectFile`), and:
+  /// - a **newer** format is refused with [OcptProjectStatus.newerFormat]: it isn't opened, isn't
+  ///   touched and doesn't reach the recent projects list. Handing it to drift would stamp its
+  ///   `user_version` back down to this build's number while leaving the newer build's tables in
+  ///   place, which is not a failure the user could ever undo;
+  /// - a file at this build's own schema, but last written by a **pre-release build that isn't
+  ///   this exact build**, is refused the same way, with [OcptProjectStatus.foreignDevBuildFormat]:
+  ///   its shape isn't guaranteed to match the frozen release
+  ///   (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`);
+  /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
+  ///   true, which is the caller saying the user has been told what is about to happen. Only then
+  ///   is the copy written — at the path the probe named, so the promise and the write cannot drift
+  ///   apart — and the file handed to drift, whose `onUpgrade` migrates it as it always has;
+  /// - anything else opens exactly as it did before this gate existed.
+  static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
+    required String filePath,
+    required bool allowMigration,
+    required OcptOpenProjectModel? currentProject,
+    required String appVersion,
+    required LogsHelper logger,
+    required OcptPropertiesManager propertiesManager,
+    required OcptProjectFileCompatibilityService projectFileCompatibilityService,
+    required OcptScreenplayService screenplayService,
+    required OcptProjectFileCompatibility Function({required String filePath}) probeProjectFile,
+    required void Function(OcptOpenProjectModel project) onOpened,
+    required Future<void> Function() closeCurrentProject,
+  }) async {
+    OcptProjectDatabase? database;
+    ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel> result;
+    try {
+      result = await _openProjectFile(
+        filePath: filePath,
+        allowMigration: allowMigration,
+        currentProject: currentProject,
+        appVersion: appVersion,
+        logger: logger,
+        propertiesManager: propertiesManager,
+        projectFileCompatibilityService: projectFileCompatibilityService,
+        screenplayService: screenplayService,
+        probeProjectFile: probeProjectFile,
+        onDatabaseOpened: (opened) => database = opened,
+        onOpened: onOpened,
+        closeCurrentProject: closeCurrentProject,
+      );
+    } on SqliteException catch (error, stackTrace) {
+      logger.e("A project file appears corrupted: ${error.runtimeType}", null, stackTrace);
+      await database?.close();
+      result = const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
+    } catch (error, stackTrace) {
+      logger.e(
+        "A problem occurred when tried to open a project: ${error.runtimeType}",
+        null,
+        stackTrace,
+      );
+      await database?.close();
+      result = const ResultWithStatus(status: OcptProjectStatus.ioError);
+    }
+
+    return result;
+  }
+
   /// The body of [createProject], whose exceptions it turns into [OcptProjectStatus.ioError]:
   /// everything that can fail, in order. [onDatabaseOpened] hands the database over as soon as it
   /// exists, so the caller can close it if a later step throws.
@@ -166,74 +234,6 @@ abstract final class OcptProjectOpenOps {
     logger.i("A project was created: $screenplayId");
 
     return ResultWithStatus(status: OcptProjectStatus.ok, value: project);
-  }
-
-  /// Opens the project stored at [filePath], registers it in the recent projects list, and makes
-  /// it the `OcptProjectsManager.currentProject`.
-  ///
-  /// If a project is already open, it's closed first — but only once the file's own format has been
-  /// read and accepted, so a refusal never costs the user the project they already had open.
-  ///
-  /// **A file written by another build never opens silently.** It is probed first
-  /// (`OcptProjectsManager.probeProjectFile`), and:
-  /// - a **newer** format is refused with [OcptProjectStatus.newerFormat]: it isn't opened, isn't
-  ///   touched and doesn't reach the recent projects list. Handing it to drift would stamp its
-  ///   `user_version` back down to this build's number while leaving the newer build's tables in
-  ///   place, which is not a failure the user could ever undo;
-  /// - a file at this build's own schema, but last written by a **pre-release build that isn't
-  ///   this exact build**, is refused the same way, with [OcptProjectStatus.foreignDevBuildFormat]:
-  ///   its shape isn't guaranteed to match the frozen release
-  ///   (`docs/adr/0029-schema-versions-frozen-at-stable-releases.md`);
-  /// - an **older** format returns [OcptProjectStatus.migrationRequired] unless [allowMigration] is
-  ///   true, which is the caller saying the user has been told what is about to happen. Only then
-  ///   is the copy written — at the path the probe named, so the promise and the write cannot drift
-  ///   apart — and the file handed to drift, whose `onUpgrade` migrates it as it always has;
-  /// - anything else opens exactly as it did before this gate existed.
-  static Future<ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel>> openProject({
-    required String filePath,
-    required bool allowMigration,
-    required OcptOpenProjectModel? currentProject,
-    required String appVersion,
-    required LogsHelper logger,
-    required OcptPropertiesManager propertiesManager,
-    required OcptProjectFileCompatibilityService projectFileCompatibilityService,
-    required OcptScreenplayService screenplayService,
-    required OcptProjectFileCompatibility Function({required String filePath}) probeProjectFile,
-    required void Function(OcptOpenProjectModel project) onOpened,
-    required Future<void> Function() closeCurrentProject,
-  }) async {
-    OcptProjectDatabase? database;
-    ResultWithStatus<OcptProjectStatus, OcptOpenProjectModel> result;
-    try {
-      result = await _openProjectFile(
-        filePath: filePath,
-        allowMigration: allowMigration,
-        currentProject: currentProject,
-        appVersion: appVersion,
-        logger: logger,
-        propertiesManager: propertiesManager,
-        projectFileCompatibilityService: projectFileCompatibilityService,
-        screenplayService: screenplayService,
-        probeProjectFile: probeProjectFile,
-        onDatabaseOpened: (opened) => database = opened,
-        onOpened: onOpened,
-        closeCurrentProject: closeCurrentProject,
-      );
-    } on SqliteException catch (error, stackTrace) {
-      logger.e("A project file appears corrupted: ${error.runtimeType}", null, stackTrace);
-      await database?.close();
-      result = const ResultWithStatus(status: OcptProjectStatus.corruptedFile);
-    } catch (error, stackTrace) {
-      logger.e(
-        "A problem occurred when tried to open a project: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-      await database?.close();
-      result = const ResultWithStatus(status: OcptProjectStatus.ioError);
-    }
-
-    return result;
   }
 
   /// The body of [openProject], whose exceptions it turns into a status: everything that can fail,

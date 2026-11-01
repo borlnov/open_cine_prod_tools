@@ -75,6 +75,9 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// quote against a tax-inclusive actual would compare two different figures while looking like it
 /// compared one.
 class OcptBudgetFinancialReportPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptBudgetFinancialReportPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
@@ -83,9 +86,6 @@ class OcptBudgetFinancialReportPdfService extends AbsOcptService {
     required super.logger,
     OcptCourierPrimeFontsLoader? fontsLoader,
   }) : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the financial report of [projectName].
   ///

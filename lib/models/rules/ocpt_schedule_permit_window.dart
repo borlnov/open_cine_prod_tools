@@ -16,12 +16,12 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 /// dateless reads exactly as one that filed none, the same "absence of data is not a refusal"
 /// argument rule 3 already makes for a location declaring no availability window at all.
 class OcptSchedulePermitWindow {
-  /// Builds a permit window to feed to [ocptComputeScheduleAlerts].
-  const OcptSchedulePermitWindow({required this.validFrom, required this.validUntil});
-
   /// The date this permit becomes valid, or null while unbounded on that side.
   final DateTime? validFrom;
 
   /// The date this permit stops being valid, or null while unbounded on that side.
   final DateTime? validUntil;
+
+  /// Builds a permit window to feed to [ocptComputeScheduleAlerts].
+  const OcptSchedulePermitWindow({required this.validFrom, required this.validUntil});
 }

@@ -24,6 +24,44 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind_shooting_tim
 /// slot and the same scene, collapsed the way the reference call sheets do, or a single
 /// [milestoneCaption] naming a full-width band.
 class OcptCallSheetDayRow {
+  /// The slot this row's [shots] were placed on, or null for a milestone.
+  final String? slotId;
+
+  /// The scene this row's [shots] belong to, or null for a milestone or an orphaned shot.
+  final String? sceneId;
+
+  /// The heading of [sceneId], or null.
+  final String? heading;
+
+  /// The name of the set this row's slot is shot at, or null.
+  final String? decors;
+
+  /// The shots collapsed into this row — always exactly one until a following shot of the same
+  /// scene, on the same slot, is appended to it.
+  final List<OcptShot> shots;
+
+  /// This row's own caption, non-null exactly for a milestone.
+  final String? milestoneCaption;
+
+  /// The numbers of the roles this milestone's own band expects, sorted — always empty but for a
+  /// hair-and-make-up band, and empty there too while its slot convokes nobody.
+  final List<int> milestoneRoleNumbers;
+
+  /// Where this row starts, resolved.
+  final int startMinute;
+
+  /// Where this row ends, resolved — mutable so a following collapsed shot can extend it.
+  int? endMinute;
+
+  /// The trimmed, non-empty [OcptShootingDayBlock.crewNote]s of the blocks collapsed into this row,
+  /// in the blocks' own order — always at most one entry for a milestone row (one block), and
+  /// possibly several for a shot run once a following collapsed shot's own note is appended to it.
+  /// **Never** the block's own private `notes`, which this document never prints at all.
+  final List<String> crewNotes;
+
+  /// Whether this is a milestone row rather than a run of shot blocks.
+  bool get isMilestone => milestoneCaption != null;
+
   OcptCallSheetDayRow._({
     required this.slotId,
     required this.sceneId,
@@ -82,56 +120,10 @@ class OcptCallSheetDayRow {
     endMinute: endMinute,
     crewNotes: crewNote.trim().isEmpty ? [] : [crewNote.trim()],
   );
-
-  /// The slot this row's [shots] were placed on, or null for a milestone.
-  final String? slotId;
-
-  /// The scene this row's [shots] belong to, or null for a milestone or an orphaned shot.
-  final String? sceneId;
-
-  /// The heading of [sceneId], or null.
-  final String? heading;
-
-  /// The name of the set this row's slot is shot at, or null.
-  final String? decors;
-
-  /// The shots collapsed into this row — always exactly one until a following shot of the same
-  /// scene, on the same slot, is appended to it.
-  final List<OcptShot> shots;
-
-  /// This row's own caption, non-null exactly for a milestone.
-  final String? milestoneCaption;
-
-  /// The numbers of the roles this milestone's own band expects, sorted — always empty but for a
-  /// hair-and-make-up band, and empty there too while its slot convokes nobody.
-  final List<int> milestoneRoleNumbers;
-
-  /// Where this row starts, resolved.
-  final int startMinute;
-
-  /// Where this row ends, resolved — mutable so a following collapsed shot can extend it.
-  int? endMinute;
-
-  /// The trimmed, non-empty [OcptShootingDayBlock.crewNote]s of the blocks collapsed into this row,
-  /// in the blocks' own order — always at most one entry for a milestone row (one block), and
-  /// possibly several for a shot run once a following collapsed shot's own note is appended to it.
-  /// **Never** the block's own private `notes`, which this document never prints at all.
-  final List<String> crewNotes;
-
-  /// Whether this is a milestone row rather than a run of shot blocks.
-  bool get isMilestone => milestoneCaption != null;
 }
 
 /// One row of the day's own cast table.
 class OcptCallSheetCastRow {
-  /// Class constructor
-  const OcptCallSheetCastRow({
-    required this.role,
-    required this.actor,
-    required this.sceneNumbers,
-    required this.convocation,
-  });
-
   /// The role convoked.
   final OcptRole role;
 
@@ -145,6 +137,14 @@ class OcptCallSheetCastRow {
   /// slot at all — which should not happen for a role a cast row already names, but is read
   /// defensively rather than assumed.
   final OcptDayConvocation? convocation;
+
+  /// Class constructor
+  const OcptCallSheetCastRow({
+    required this.role,
+    required this.actor,
+    required this.sceneNumbers,
+    required this.convocation,
+  });
 }
 
 /// One printed row of the day's own audition table: an audition block's resolved hours, the part it
@@ -154,14 +154,6 @@ class OcptCallSheetCastRow {
 /// two rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
 /// alone.
 class OcptCallSheetAuditionRow {
-  /// Class constructor
-  const OcptCallSheetAuditionRow({
-    required this.startMinute,
-    required this.endMinute,
-    required this.roleLabel,
-    required this.candidateName,
-  });
-
   /// Where this audition starts, resolved off the timeline like every other hour on this sheet.
   final int startMinute;
 
@@ -178,19 +170,20 @@ class OcptCallSheetAuditionRow {
   /// deliberately not here: it sits in the day's own candidates directory, where a directory
   /// belongs.
   final String? candidateName;
+
+  /// Class constructor
+  const OcptCallSheetAuditionRow({
+    required this.startMinute,
+    required this.endMinute,
+    required this.roleLabel,
+    required this.candidateName,
+  });
 }
 
 /// One crew member's own contact: who they are, what they hold that day, and which department that
 /// position belongs to (null for a free-text `OcptShootingSlotCrewMember.customLabel` the catalogue
 /// has no department for).
 class OcptCallSheetCrewContact {
-  /// Class constructor
-  const OcptCallSheetCrewContact({
-    required this.person,
-    required this.positionLabel,
-    required this.department,
-  });
-
   /// The person themselves.
   final OcptPerson person;
 
@@ -200,20 +193,18 @@ class OcptCallSheetCrewContact {
 
   /// The department [positionLabel] belongs to, or null for a free-text position.
   final OcptCrewDepartment? department;
+
+  /// Class constructor
+  const OcptCallSheetCrewContact({
+    required this.person,
+    required this.positionLabel,
+    required this.department,
+  });
 }
 
 /// One row of the crew list or the cast-and-extras list — the two lists print the same shape, so
 /// they share this type.
 class OcptCallSheetPeopleListEntry {
-  /// Class constructor
-  const OcptCallSheetPeopleListEntry({
-    required this.name,
-    required this.positionOrRole,
-    required this.phone,
-    required this.email,
-    required this.scheduleLabel,
-  });
-
   /// The person's own display name, or [OcptCallSheetLabels.unnamedPersonLabel] for an uncast role.
   final String name;
 
@@ -229,15 +220,21 @@ class OcptCallSheetPeopleListEntry {
   /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation
   /// at all.
   final String scheduleLabel;
+
+  /// Class constructor
+  const OcptCallSheetPeopleListEntry({
+    required this.name,
+    required this.positionOrRole,
+    required this.phone,
+    required this.email,
+    required this.scheduleLabel,
+  });
 }
 
 /// One row of a named sheet's own "to bring" table: an element
 /// [OcptSchedulePlanSnapshot.elementsToBringOnDay] joined onto that sheet's own recipient, and the
 /// scene numbers of the day's own shots that play a scene it is linked to.
 class OcptCallSheetToBringRow {
-  /// Class constructor
-  const OcptCallSheetToBringRow({required this.element, required this.sceneNumbers});
-
   /// The element the recipient is due to bring.
   final OcptElement element;
 
@@ -247,6 +244,9 @@ class OcptCallSheetToBringRow {
   /// established the element belongs on this list, and a bare scene id would explain nothing on a
   /// printed page.
   final List<String> sceneNumbers;
+
+  /// Class constructor
+  const OcptCallSheetToBringRow({required this.element, required this.sceneNumbers});
 }
 
 /// Turns [orderedEntries] into the printed rows of the main table: a run of consecutive

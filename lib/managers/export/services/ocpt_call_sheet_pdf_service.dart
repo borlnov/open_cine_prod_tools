@@ -101,15 +101,15 @@ import 'package:pdf/widgets.dart' as pw;
 /// rules for the same reason — a printed page is read on its own, and the sheet it was stapled to
 /// is regularly not in the reader's hand.
 class OcptCallSheetPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptCallSheetPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptCallSheetPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name of the general call sheet of day [dayNumber] (`FDS-J2.pdf`).
   String callSheetFileName({required OcptCallSheetLabels labels, required int dayNumber}) =>

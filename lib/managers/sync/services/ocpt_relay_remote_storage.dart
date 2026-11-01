@@ -49,6 +49,97 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's `404`, which [fetchLatestSnapshot] maps
 /// to `null` per its own contract.
 class OcptRelayRemoteStorage implements OcptRemoteStorage {
+  static const _authorizationHeader = 'Authorization';
+  static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
+  static const _contentTypeHeader = 'Content-Type';
+  static const _contentTypeJson = 'application/json';
+  static const _sinceParam = 'since';
+  static const _sequenceKey = 'sequence';
+  static const _descriptorKey = 'descriptor';
+  static const _bytesKey = 'bytes';
+
+  /// The literal frame `OcptRelayServer` sends on new work — mirrors its own `_newWorkPing`
+  /// constant, which this class never imports (per this file's own doc comment) so it is repeated
+  /// here instead. Every other inbound frame on the `events` socket is routed to [presenceStream].
+  static const _newWorkFrame = 'new-work';
+
+  /// The relay instance this transport talks to, e.g. `https://relay.example.org/`.
+  final Uri relayBaseUri;
+
+  /// The project this transport reads and writes, as the relay names it in every route.
+  final String projectId;
+
+  /// The bearer token authenticating every request this transport makes against [projectId].
+  final String token;
+
+  /// The instance-wide secret letting [append] create [projectId] on the relay the first time it
+  /// is pushed there, or null when this pairing never needs to create a project (see the
+  /// constructor's own doc comment).
+  final String? enrolmentSecret;
+
+  /// How long [newWorkStream] waits after a dropped socket before reconnecting.
+  final Duration reconnectDelay;
+
+  /// The logger this transport writes to: a sub-logger built by `OcptSyncManager`.
+  final MixinActLogger _logger;
+
+  final http.Client _httpClient;
+
+  /// True when this transport created [_httpClient] itself (no [http.Client] was handed in), and
+  /// so must close it itself from [dispose] rather than leaving that to whoever owns the client it
+  /// was given.
+  final bool _ownsHttpClient;
+  final OcptWebSocketConnector _webSocketConnector;
+
+  StreamController<void>? _newWorkController;
+  StreamController<String>? _presenceController;
+  WebSocketChannel? _activeSocket;
+  StreamSubscription<Object?>? _activeSocketSubscription;
+  Timer? _reconnectTimer;
+  bool _socketWanted;
+
+  /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
+  ///
+  /// Connecting starts once either this stream or [presenceStream] gets its first listener, and
+  /// stops once both have no listener left, so an unpaired or idle transport never holds a socket
+  /// open. While listened to, a dropped connection (the relay restarting, a network blip) is
+  /// retried every [reconnectDelay] until it succeeds again; per
+  /// [OcptRemoteStorage.newWorkStream]'s own contract, nothing is emitted while disconnected — a
+  /// caller falls back to polling [readSince] during that window, exactly as it would for a
+  /// transport with no push channel at all.
+  @override
+  Stream<void> get newWorkStream {
+    // This controller lives for as long as the transport itself and is closed by dispose(), not
+    // at the end of this getter — the lint cannot see that far.
+    // ignore: close_sinks
+    final controller = _newWorkController ??= StreamController<void>.broadcast(
+      onListen: _startWatchingEvents,
+      onCancel: _stopWatchingEvents,
+    );
+
+    return controller.stream;
+  }
+
+  /// A broadcast stream emitting every frame the `events` WebSocket receives other than the literal
+  /// [_newWorkFrame] — a peer's own opaque presence payload, sent through its
+  /// [OcptRemoteStorage.sendPresence].
+  ///
+  /// Shares the same underlying socket and reconnect logic as [newWorkStream]: connecting starts
+  /// once either stream gets its first listener and stops once both are idle, and per
+  /// [OcptRemoteStorage.presenceStream]'s own contract, nothing is emitted while disconnected.
+  @override
+  Stream<String> get presenceStream {
+    // Lives for as long as the transport and is closed by dispose(), exactly like
+    // [_newWorkController] above.
+    // ignore: close_sinks
+    final controller = _presenceController ??= StreamController<String>.broadcast(
+      onListen: _startWatchingEvents,
+      onCancel: _stopWatchingEvents,
+    );
+
+    return controller.stream;
+  }
+
   /// Creates a transport talking to the relay at [relayBaseUri] for [projectId], authenticating
   /// every request with [token].
   ///
@@ -88,55 +179,6 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
            webSocketConnector ??
            ((uri) =>
                IOWebSocketChannel.connect(uri, headers: {_authorizationHeader: 'Bearer $token'}));
-
-  /// The logger this transport writes to: a sub-logger built by `OcptSyncManager`.
-  final MixinActLogger _logger;
-
-  static const _authorizationHeader = 'Authorization';
-  static const _enrolmentSecretHeader = 'X-Ocpt-Enrolment-Secret';
-  static const _contentTypeHeader = 'Content-Type';
-  static const _contentTypeJson = 'application/json';
-  static const _sinceParam = 'since';
-  static const _sequenceKey = 'sequence';
-  static const _descriptorKey = 'descriptor';
-  static const _bytesKey = 'bytes';
-
-  /// The literal frame `OcptRelayServer` sends on new work — mirrors its own `_newWorkPing`
-  /// constant, which this class never imports (per this file's own doc comment) so it is repeated
-  /// here instead. Every other inbound frame on the `events` socket is routed to [presenceStream].
-  static const _newWorkFrame = 'new-work';
-
-  /// The relay instance this transport talks to, e.g. `https://relay.example.org/`.
-  final Uri relayBaseUri;
-
-  /// The project this transport reads and writes, as the relay names it in every route.
-  final String projectId;
-
-  /// The bearer token authenticating every request this transport makes against [projectId].
-  final String token;
-
-  /// The instance-wide secret letting [append] create [projectId] on the relay the first time it
-  /// is pushed there, or null when this pairing never needs to create a project (see the
-  /// constructor's own doc comment).
-  final String? enrolmentSecret;
-
-  /// How long [newWorkStream] waits after a dropped socket before reconnecting.
-  final Duration reconnectDelay;
-
-  final http.Client _httpClient;
-
-  /// True when this transport created [_httpClient] itself (no [http.Client] was handed in), and
-  /// so must close it itself from [dispose] rather than leaving that to whoever owns the client it
-  /// was given.
-  final bool _ownsHttpClient;
-  final OcptWebSocketConnector _webSocketConnector;
-
-  StreamController<void>? _newWorkController;
-  StreamController<String>? _presenceController;
-  WebSocketChannel? _activeSocket;
-  StreamSubscription<Object?>? _activeSocketSubscription;
-  Timer? _reconnectTimer;
-  bool _socketWanted;
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
@@ -230,68 +272,6 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
 
     return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
   });
-
-  /// Releases every resource this transport holds: tears down the `events` WebSocket and its
-  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
-  /// would, closes both streams' own broadcast controllers, and — only when this transport created
-  /// its own [http.Client] rather than being handed one — closes that client too.
-  ///
-  /// [OcptRemoteStorage] declares no disposal method of its own (a folder-backed transport holds
-  /// nothing that needs releasing), so a caller pairing a project with a relay owns calling this
-  /// once it is done with the transport, exactly as it would for any other object it constructed
-  /// with its own resources.
-  void dispose() {
-    _stopWatchingEvents();
-    unawaited(_newWorkController?.close());
-    _newWorkController = null;
-    unawaited(_presenceController?.close());
-    _presenceController = null;
-    if (_ownsHttpClient) {
-      _httpClient.close();
-    }
-  }
-
-  /// A broadcast stream emitting one event per opaque ping the relay's `events` WebSocket sends.
-  ///
-  /// Connecting starts once either this stream or [presenceStream] gets its first listener, and
-  /// stops once both have no listener left, so an unpaired or idle transport never holds a socket
-  /// open. While listened to, a dropped connection (the relay restarting, a network blip) is
-  /// retried every [reconnectDelay] until it succeeds again; per
-  /// [OcptRemoteStorage.newWorkStream]'s own contract, nothing is emitted while disconnected — a
-  /// caller falls back to polling [readSince] during that window, exactly as it would for a
-  /// transport with no push channel at all.
-  @override
-  Stream<void> get newWorkStream {
-    // This controller lives for as long as the transport itself and is closed by dispose(), not
-    // at the end of this getter — the lint cannot see that far.
-    // ignore: close_sinks
-    final controller = _newWorkController ??= StreamController<void>.broadcast(
-      onListen: _startWatchingEvents,
-      onCancel: _stopWatchingEvents,
-    );
-
-    return controller.stream;
-  }
-
-  /// A broadcast stream emitting every frame the `events` WebSocket receives other than the literal
-  /// [_newWorkFrame] — a peer's own opaque presence payload, sent through its
-  /// [OcptRemoteStorage.sendPresence].
-  ///
-  /// Shares the same underlying socket and reconnect logic as [newWorkStream]: connecting starts
-  /// once either stream gets its first listener and stops once both are idle, and per
-  /// [OcptRemoteStorage.presenceStream]'s own contract, nothing is emitted while disconnected.
-  @override
-  Stream<String> get presenceStream {
-    // Lives for as long as the transport and is closed by dispose(), exactly like
-    // [_newWorkController] above.
-    // ignore: close_sinks
-    final controller = _presenceController ??= StreamController<String>.broadcast(
-      onListen: _startWatchingEvents,
-      onCancel: _stopWatchingEvents,
-    );
-
-    return controller.stream;
-  }
 
   void _startWatchingEvents() {
     _socketWanted = true;
@@ -450,5 +430,25 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
 
     return OcptSyncError.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Releases every resource this transport holds: tears down the `events` WebSocket and its
+  /// pending reconnect timer exactly as unsubscribing from [newWorkStream] and [presenceStream]
+  /// would, closes both streams' own broadcast controllers, and — only when this transport created
+  /// its own [http.Client] rather than being handed one — closes that client too.
+  ///
+  /// [OcptRemoteStorage] declares no disposal method of its own (a folder-backed transport holds
+  /// nothing that needs releasing), so a caller pairing a project with a relay owns calling this
+  /// once it is done with the transport, exactly as it would for any other object it constructed
+  /// with its own resources.
+  void dispose() {
+    _stopWatchingEvents();
+    unawaited(_newWorkController?.close());
+    _newWorkController = null;
+    unawaited(_presenceController?.close());
+    _presenceController = null;
+    if (_ownsHttpClient) {
+      _httpClient.close();
+    }
   }
 }

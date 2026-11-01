@@ -9,14 +9,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.d
 /// for — which is not always [OcptShootingTimelineBlock.durationMinutes], since that may have been
 /// null.
 class OcptShootingTimelineEntry {
-  /// Builds a placed entry.
-  const OcptShootingTimelineEntry({
-    required this.blockId,
-    required this.startMinute,
-    required this.endMinute,
-    required this.durationMinutes,
-  });
-
   /// The [OcptShootingTimelineBlock.id] this entry places.
   final String blockId;
 
@@ -30,4 +22,12 @@ class OcptShootingTimelineEntry {
   /// The duration this entry actually used: the block's own, its fallback, or the mode's default —
   /// whichever [ocptComputeSlotTimeline] fell back to.
   final int durationMinutes;
+
+  /// Builds a placed entry.
+  const OcptShootingTimelineEntry({
+    required this.blockId,
+    required this.startMinute,
+    required this.endMinute,
+    required this.durationMinutes,
+  });
 }

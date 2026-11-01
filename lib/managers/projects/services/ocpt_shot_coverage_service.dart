@@ -167,29 +167,6 @@ class OcptShotCoverageService extends AbsOcptService {
     return id;
   }
 
-  /// Whether two scene-relative ranges join: they overlap, they touch end to end, or the only
-  /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
-  /// is not worth keeping two ranges apart over.
-  static bool _joins({
-    required int firstStart,
-    required int firstEnd,
-    required int secondStart,
-    required int secondEnd,
-    required String sceneText,
-  }) {
-    if (firstStart < secondEnd && secondStart < firstEnd) {
-      return true;
-    }
-
-    final gapStart = firstEnd < secondStart ? firstEnd : secondEnd;
-    final gapEnd = firstEnd < secondStart ? secondStart : firstStart;
-    if (gapStart < 0 || gapEnd > sceneText.length || gapStart > gapEnd) {
-      return false;
-    }
-
-    return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
-  }
-
   /// Removes the single coverage range [rangeId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
@@ -465,20 +442,6 @@ class OcptShotCoverageService extends AbsOcptService {
     return overlappingShotIds.toList(growable: false);
   }
 
-  /// Sets `reasonByShotId[shotId]` to [reason], unless it already holds
-  /// [OcptShotCheckReason.coverageOutOfBounds]: that reason always wins over
-  /// [OcptShotCheckReason.coveredTextChanged] when a shot has ranges disagreeing for both causes.
-  static void _upgradeReason(
-    Map<String, OcptShotCheckReason> reasonByShotId,
-    String shotId,
-    OcptShotCheckReason reason,
-  ) {
-    if (reasonByShotId[shotId] == OcptShotCheckReason.coverageOutOfBounds) {
-      return;
-    }
-    reasonByShotId[shotId] = reason;
-  }
-
   /// The hex SHA-256 digest of [text]'s UTF-8 bytes.
   static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 
@@ -499,5 +462,42 @@ class OcptShotCoverageService extends AbsOcptService {
     }
     final coveredSubstring = sceneText.substring(range.startOffset, range.endOffset);
     return digestOf(coveredSubstring) != range.coveredTextDigest;
+  }
+
+  /// Whether two scene-relative ranges join: they overlap, they touch end to end, or the only
+  /// thing [sceneText] holds between them is whitespace. See [addRange] for why whitespace alone
+  /// is not worth keeping two ranges apart over.
+  static bool _joins({
+    required int firstStart,
+    required int firstEnd,
+    required int secondStart,
+    required int secondEnd,
+    required String sceneText,
+  }) {
+    if (firstStart < secondEnd && secondStart < firstEnd) {
+      return true;
+    }
+
+    final gapStart = firstEnd < secondStart ? firstEnd : secondEnd;
+    final gapEnd = firstEnd < secondStart ? secondStart : firstStart;
+    if (gapStart < 0 || gapEnd > sceneText.length || gapStart > gapEnd) {
+      return false;
+    }
+
+    return sceneText.substring(gapStart, gapEnd).trim().isEmpty;
+  }
+
+  /// Sets `reasonByShotId[shotId]` to [reason], unless it already holds
+  /// [OcptShotCheckReason.coverageOutOfBounds]: that reason always wins over
+  /// [OcptShotCheckReason.coveredTextChanged] when a shot has ranges disagreeing for both causes.
+  static void _upgradeReason(
+    Map<String, OcptShotCheckReason> reasonByShotId,
+    String shotId,
+    OcptShotCheckReason reason,
+  ) {
+    if (reasonByShotId[shotId] == OcptShotCheckReason.coverageOutOfBounds) {
+      return;
+    }
+    reasonByShotId[shotId] = reason;
   }
 }

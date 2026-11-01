@@ -25,10 +25,10 @@ import 'package:flutter/foundation.dart' show protected;
 /// top-level logger of its own. It is typed by the interface rather than by the concrete helper so
 /// a test can hand in a silent or a recording double.
 abstract class AbsOcptService extends AbsWithLifeCycle {
-  /// Class constructor
-  const AbsOcptService({required this.logger});
-
   /// The logger this service writes to: a sub-logger built by its owner.
   @protected
   final MixinActLogger logger;
+
+  /// Class constructor
+  const AbsOcptService({required this.logger});
 }

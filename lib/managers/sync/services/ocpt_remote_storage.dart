@@ -24,6 +24,24 @@ import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 /// sync error, [OcptRemoteStorageStatus.unreachable] for everything else the transport hit — and
 /// leave what to do about it (go offline, report an error) to the caller.
 abstract interface class OcptRemoteStorage {
+  /// Emits an event whenever new work — a changeset or a snapshot appended by another replica —
+  /// becomes available.
+  ///
+  /// Nothing about an event is meaningful beyond its arrival: a listener reacts by calling
+  /// [readSince] or [fetchLatestSnapshot] again, exactly as it would on a timer. The relay
+  /// implementation drives this from its WebSocket route; a transport with no way to observe
+  /// another replica's writes may emit nothing at all.
+  Stream<void> get newWorkStream;
+
+  /// Emits every opaque frame another replica sent through its own [sendPresence], in arrival
+  /// order.
+  ///
+  /// Exactly as opaque to this interface as [sendPresence]'s own payload — this stream carries
+  /// whatever a peer sent, unparsed, never a table name or a domain type. A transport with no way
+  /// to receive a peer's frames (a folder, say) emits nothing at all, exactly as
+  /// [newWorkStream] does in that case.
+  Stream<String> get presenceStream;
+
   /// Appends [envelope] to the project's changeset log and returns the sequence number the
   /// transport assigned it.
   ///
@@ -58,15 +76,6 @@ abstract interface class OcptRemoteStorage {
   Future<ResultWithStatus<OcptRemoteStorageStatus, (OcptSnapshotDescriptor, Uint8List)>>
   fetchLatestSnapshot();
 
-  /// Emits an event whenever new work — a changeset or a snapshot appended by another replica —
-  /// becomes available.
-  ///
-  /// Nothing about an event is meaningful beyond its arrival: a listener reacts by calling
-  /// [readSince] or [fetchLatestSnapshot] again, exactly as it would on a timer. The relay
-  /// implementation drives this from its WebSocket route; a transport with no way to observe
-  /// another replica's writes may emit nothing at all.
-  Stream<void> get newWorkStream;
-
   /// Sends [opaquePayload] to this project's other replicas, over the same channel [newWorkStream]
   /// listens on.
   ///
@@ -77,13 +86,4 @@ abstract interface class OcptRemoteStorage {
   /// is disconnected: the next call carries current state again, so nothing is lost that a caller
   /// needs to react to.
   void sendPresence(String opaquePayload);
-
-  /// Emits every opaque frame another replica sent through its own [sendPresence], in arrival
-  /// order.
-  ///
-  /// Exactly as opaque to this interface as [sendPresence]'s own payload — this stream carries
-  /// whatever a peer sent, unparsed, never a table name or a domain type. A transport with no way
-  /// to receive a peer's frames (a folder, say) emits nothing at all, exactly as
-  /// [newWorkStream] does in that case.
-  Stream<String> get presenceStream;
 }

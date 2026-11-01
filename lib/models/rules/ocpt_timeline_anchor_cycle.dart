@@ -15,10 +15,10 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// resolved as if [OcptShootingSlotAnchorEdge.start]-anchored at the earliest start the day had
 /// already resolved (minute 0 when the whole day cycles).
 class OcptTimelineAnchorCycle {
-  /// Builds a cycle record.
-  const OcptTimelineAnchorCycle({required this.slotIds});
-
   /// The [OcptShootingTimelineSlot.id]s that read one another round, in the order the resolution
   /// walked them, the first one being the one the walk came back to.
   final List<String> slotIds;
+
+  /// Builds a cycle record.
+  const OcptTimelineAnchorCycle({required this.slotIds});
 }

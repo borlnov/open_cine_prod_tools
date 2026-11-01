@@ -34,6 +34,17 @@ class OcptSceneRef extends Equatable {
   /// its own, and the caller (a bloc) is the one that already knows the project's episode count.
   final int? episodeNumber;
 
+  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// 1-based index among the screenplay's scenes — exactly what the styled screenplay editor
+  /// displays for a heading with no explicit number, and what `OcptSceneShotSequence` derives its
+  /// own `displaySceneNumber` as — prefixed with [episodeNumber] once the project holds more than
+  /// one.
+  String get displayNumber => ocptSceneDisplayNumberOf(
+    sceneNumber: sceneNumber,
+    position: position,
+    episodeNumber: episodeNumber,
+  );
+
   /// Class constructor
   const OcptSceneRef({
     required this.id,
@@ -53,17 +64,6 @@ class OcptSceneRef extends Equatable {
         sceneNumber: row.sceneNumber,
         episodeNumber: episodeNumber,
       );
-
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
-  /// 1-based index among the screenplay's scenes — exactly what the styled screenplay editor
-  /// displays for a heading with no explicit number, and what `OcptSceneShotSequence` derives its
-  /// own `displaySceneNumber` as — prefixed with [episodeNumber] once the project holds more than
-  /// one.
-  String get displayNumber => ocptSceneDisplayNumberOf(
-    sceneNumber: sceneNumber,
-    position: position,
-    episodeNumber: episodeNumber,
-  );
 
   /// Object string representation, useful for debugging and logging.
   @override

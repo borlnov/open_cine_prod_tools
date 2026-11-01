@@ -11,16 +11,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 
 /// One day, joined by the caller into everything the ten rules read about it.
 class OcptScheduleAlertDay {
-  /// Builds a day to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertDay({
-    required this.id,
-    required this.date,
-    required this.slots,
-    required this.overruns,
-    required this.fixedEndMisses,
-    required this.calledRoles,
-  });
-
   /// This day's own id.
   final String id;
 
@@ -42,4 +32,14 @@ class OcptScheduleAlertDay {
   /// keeps the first [OcptScheduleAlertCalledRole.shotId] it meets for a given role and ignores the
   /// rest.
   final List<OcptScheduleAlertCalledRole> calledRoles;
+
+  /// Builds a day to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertDay({
+    required this.id,
+    required this.date,
+    required this.slots,
+    required this.overruns,
+    required this.fixedEndMisses,
+    required this.calledRoles,
+  });
 }

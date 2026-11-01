@@ -24,22 +24,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// of them ride along on their own convocation, in [roleCandidateIds], rather than making a second
 /// convocation of their own — which is what stopped anybody receiving two call sheets for one day.
 class OcptDayConvocation {
-  /// Builds a computed day convocation.
-  const OcptDayConvocation({
-    required this.personId,
-    required this.roleId,
-    required this.guestPersonId,
-    required this.guestFreeName,
-    required this.roleCandidateIds,
-    required this.hasSlotConvocation,
-    required this.arrivalMinute,
-    required this.patStartMinute,
-    required this.patEndMinute,
-    required this.isPatBand,
-    required this.departureMinute,
-    required this.slotIds,
-  });
-
   /// The person this convocation is for (crew or cast), or null when another of the four fields
   /// names it instead.
   final String? personId;
@@ -74,44 +58,6 @@ class OcptDayConvocation {
   /// convocations panel's own candidates group. Always true for an uncast role and for a guest,
   /// neither of which is ever seen for a part.
   final bool hasSlotConvocation;
-
-  /// Whether this convocation is a guest's — either half of the discriminator, [guestPersonId] or
-  /// [guestFreeName].
-  bool get isGuest => guestPersonId != null || guestFreeName != null;
-
-  /// The key this convocation is picked by when named call sheets are asked for one recipient at a
-  /// time — its own [personId] or [roleId], the two arms of the discriminator a named sheet is ever
-  /// addressed to, and stable across the days of one export (somebody convoked on three days is one
-  /// recipient, ticked once).
-  ///
-  /// **A person is one recipient, whatever they do that day.** A sheet is addressed to somebody,
-  /// not to one of their reasons for being there: a person crewing the day and seen for a part
-  /// receives the one sheet carrying both, which is what [roleCandidateIds] riding on this
-  /// convocation is for.
-  ///
-  /// **Null for a guest** ([isGuest]), who is never a named sheet's recipient: they are on the day
-  /// and owed an hour, and the sheet an assistant director reads down is not addressed to them —
-  /// the same reason the trailing guest table exists rather than a guest row in the crew list. A
-  /// caller building that recipient list therefore filters on this being non-null and needs no
-  /// second rule of its own.
-  String? get selectionKey => personId ?? roleId;
-
-  /// Whether the day sees this person for a part at all — one candidacy is enough.
-  ///
-  /// What the directories that answer "who is expected for what" read: the printed candidates list
-  /// and the audition table both go through it, and both print one entry per candidacy rather than
-  /// one per person.
-  bool get isSeenForAPart => roleCandidateIds.isNotEmpty;
-
-  /// Whether being seen for a part is the **only** reason the day has for this person.
-  ///
-  /// What the convocations panel's own candidates group holds: somebody crewing the day and seen
-  /// for Marie at eleven belongs among the crew, with one band covering both, and only somebody the
-  /// day has nothing else for belongs under `Candidates`. Unlike [isGuest], neither this nor
-  /// [isSeenForAPart] changes anything about the figures below — a candidate arrives, is ready and
-  /// leaves exactly as everybody else does, off the audition blocks naming them (ADR 0024) joined
-  /// with whatever else the day asks of them.
-  bool get isOnlySeenForAPart => isSeenForAPart && !hasSlotConvocation;
 
   /// The earliest minute this person or role is expected — the minimum
   /// [OcptConvocationSlot.startMinute] over every slot they are linked to.
@@ -163,4 +109,58 @@ class OcptDayConvocation {
   /// their own auditions sit in, deduplicated, in the order it was given
   /// [OcptConvocationAudition]s.
   final List<String> slotIds;
+
+  /// Whether this convocation is a guest's — either half of the discriminator, [guestPersonId] or
+  /// [guestFreeName].
+  bool get isGuest => guestPersonId != null || guestFreeName != null;
+
+  /// The key this convocation is picked by when named call sheets are asked for one recipient at a
+  /// time — its own [personId] or [roleId], the two arms of the discriminator a named sheet is ever
+  /// addressed to, and stable across the days of one export (somebody convoked on three days is one
+  /// recipient, ticked once).
+  ///
+  /// **A person is one recipient, whatever they do that day.** A sheet is addressed to somebody,
+  /// not to one of their reasons for being there: a person crewing the day and seen for a part
+  /// receives the one sheet carrying both, which is what [roleCandidateIds] riding on this
+  /// convocation is for.
+  ///
+  /// **Null for a guest** ([isGuest]), who is never a named sheet's recipient: they are on the day
+  /// and owed an hour, and the sheet an assistant director reads down is not addressed to them —
+  /// the same reason the trailing guest table exists rather than a guest row in the crew list. A
+  /// caller building that recipient list therefore filters on this being non-null and needs no
+  /// second rule of its own.
+  String? get selectionKey => personId ?? roleId;
+
+  /// Whether the day sees this person for a part at all — one candidacy is enough.
+  ///
+  /// What the directories that answer "who is expected for what" read: the printed candidates list
+  /// and the audition table both go through it, and both print one entry per candidacy rather than
+  /// one per person.
+  bool get isSeenForAPart => roleCandidateIds.isNotEmpty;
+
+  /// Whether being seen for a part is the **only** reason the day has for this person.
+  ///
+  /// What the convocations panel's own candidates group holds: somebody crewing the day and seen
+  /// for Marie at eleven belongs among the crew, with one band covering both, and only somebody the
+  /// day has nothing else for belongs under `Candidates`. Unlike [isGuest], neither this nor
+  /// [isSeenForAPart] changes anything about the figures below — a candidate arrives, is ready and
+  /// leaves exactly as everybody else does, off the audition blocks naming them (ADR 0024) joined
+  /// with whatever else the day asks of them.
+  bool get isOnlySeenForAPart => isSeenForAPart && !hasSlotConvocation;
+
+  /// Builds a computed day convocation.
+  const OcptDayConvocation({
+    required this.personId,
+    required this.roleId,
+    required this.guestPersonId,
+    required this.guestFreeName,
+    required this.roleCandidateIds,
+    required this.hasSlotConvocation,
+    required this.arrivalMinute,
+    required this.patStartMinute,
+    required this.patEndMinute,
+    required this.isPatBand,
+    required this.departureMinute,
+    required this.slotIds,
+  });
 }

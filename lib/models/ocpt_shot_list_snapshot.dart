@@ -40,6 +40,9 @@ class OcptShotListSnapshot extends Equatable {
   /// been placed on any day yet; empty for a project with no schedule at all.
   final Map<String, List<OcptShotPlacement>> placementsByShotId;
 
+  /// The total number of shots across every sequence, orphan group included.
+  int get totalShotCount => shotsById.length;
+
   /// Class constructor
   const OcptShotListSnapshot({
     required this.screenplayId,
@@ -81,9 +84,6 @@ class OcptShotListSnapshot extends Equatable {
     shotsById: shotsById,
     placementsByShotId: placementsByShotId,
   );
-
-  /// The total number of shots across every sequence, orphan group included.
-  int get totalShotCount => shotsById.length;
 
   /// Object string representation, useful for debugging and logging.
   @override

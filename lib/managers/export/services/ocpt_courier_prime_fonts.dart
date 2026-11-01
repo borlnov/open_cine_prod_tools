@@ -17,14 +17,6 @@ const String _fontsAssetDirectory = "assets/fonts/courier_prime";
 /// every renderer rather than embedded by each of them: two exports of the same screenplay must
 /// print it with the very same glyphs. [OcptCourierPrimeFontsLoader] is what actually reads them.
 class OcptCourierPrimeFonts {
-  /// Creates an [OcptCourierPrimeFonts].
-  const OcptCourierPrimeFonts({
-    required this.regular,
-    required this.bold,
-    required this.italic,
-    required this.boldItalic,
-  });
-
   /// The regular (upright, non-bold) variant.
   final pw.Font regular;
 
@@ -36,6 +28,29 @@ class OcptCourierPrimeFonts {
 
   /// The bold-italic variant.
   final pw.Font boldItalic;
+
+  /// Creates an [OcptCourierPrimeFonts].
+  const OcptCourierPrimeFonts({
+    required this.regular,
+    required this.bold,
+    required this.italic,
+    required this.boldItalic,
+  });
+
+  /// The font variant matching [bold]/[italic], mirroring how a [FountainStyledRun]'s own flags
+  /// combine.
+  pw.Font variant({required bool bold, required bool italic}) {
+    if (bold && italic) {
+      return boldItalic;
+    }
+    if (bold) {
+      return this.bold;
+    }
+    if (italic) {
+      return this.italic;
+    }
+    return regular;
+  }
 
   /// Reads the 4 Courier Prime TTFs from the asset bundle and decodes each into a `pw.Font`.
   ///
@@ -64,20 +79,5 @@ class OcptCourierPrimeFonts {
       italic: variants[2],
       boldItalic: variants[3],
     );
-  }
-
-  /// The font variant matching [bold]/[italic], mirroring how a [FountainStyledRun]'s own flags
-  /// combine.
-  pw.Font variant({required bool bold, required bool italic}) {
-    if (bold && italic) {
-      return boldItalic;
-    }
-    if (bold) {
-      return this.bold;
-    }
-    if (italic) {
-      return this.italic;
-    }
-    return regular;
   }
 }

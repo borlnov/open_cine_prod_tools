@@ -16,14 +16,14 @@ sealed class OcptReconcileOutcome extends Equatable {
 /// action shows as "pushed N, pulled M" — see `OcptRelayReconciler.reconcileProject`'s own doc
 /// comment for exactly what each counts.
 final class OcptReconcileSucceeded extends OcptReconcileOutcome {
-  /// Class constructor
-  const OcptReconcileSucceeded({required this.pushed, required this.pulled});
-
   /// How many changesets this run sent to the upstream relay.
   final int pushed;
 
   /// How many changesets this run received from the upstream relay.
   final int pulled;
+
+  /// Class constructor
+  const OcptReconcileSucceeded({required this.pushed, required this.pulled});
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -37,11 +37,11 @@ final class OcptReconcileSucceeded extends OcptReconcileOutcome {
 /// The reconcile did not run, or did not complete. [message] is a human-readable detail meant for
 /// a log or a snackbar — never parsed.
 final class OcptReconcileFailed extends OcptReconcileOutcome {
-  /// Class constructor
-  const OcptReconcileFailed(this.message);
-
   /// A human-readable detail of what went wrong, meant for a log or a panel — never parsed.
   final String message;
+
+  /// Class constructor
+  const OcptReconcileFailed(this.message);
 
   /// Object string representation, useful for debugging and logging.
   @override

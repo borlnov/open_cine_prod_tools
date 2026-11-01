@@ -27,9 +27,9 @@ class OcptPresenceRoster extends Equatable {
   bool isSelf(OcptPresenceFrame frame) => frame.deviceId == selfDeviceId;
 
   @override
-  List<Object?> get props => [participants, selfDeviceId];
-
-  @override
   String toString() =>
       'OcptPresenceRoster(participants: $participants, selfDeviceId: $selfDeviceId)';
+
+  @override
+  List<Object?> get props => [participants, selfDeviceId];
 }

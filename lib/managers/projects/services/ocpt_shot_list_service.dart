@@ -46,6 +46,12 @@ import 'package:uuid/uuid.dart';
 /// so inserting or moving one writes exactly that one row rather than renumbering the whole group.
 /// `position` survives only as the legacy column ADR 0007 forbids dropping in place.
 class OcptShotListService extends AbsOcptService {
+  /// The placeholder shown in place of a scene number in an orphaned shot's [OcptShot.code]: the
+  /// scene the shot originally belonged to no longer exists, and its original number was never
+  /// stored (only its heading is, in [OcptShotRow.orphanedHeading]), so there is no real number
+  /// left to derive a code from.
+  static const _orphanSceneDisplayNumber = "—";
+
   /// The service a character resolved to no live role is created through
   /// (`OcptRoleIndexService.addRole`), by [resolveOrCreateRoleId]: a shot's characters are the
   /// production's `roles` (`docs/adr/0030-a-shots-characters-are-the-productions-roles.md`), so a
@@ -85,18 +91,6 @@ class OcptShotListService extends AbsOcptService {
     await roleIndexService.initLifeCycle();
     await storyboardService.initLifeCycle();
     await floorPlanService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await floorPlanService.disposeLifeCycle();
-    await storyboardService.disposeLifeCycle();
-    await roleIndexService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
   }
 
   /// Loads the whole shot list of [screenplayId] in [database]: every scene, in order, with its
@@ -226,43 +220,6 @@ class OcptShotListService extends AbsOcptService {
     }
 
     return OcptShotListSnapshot.build(screenplayId: screenplayId, sequences: sequences);
-  }
-
-  /// The placeholder shown in place of a scene number in an orphaned shot's [OcptShot.code]: the
-  /// scene the shot originally belonged to no longer exists, and its original number was never
-  /// stored (only its heading is, in [OcptShotRow.orphanedHeading]), so there is no real number
-  /// left to derive a code from.
-  static const _orphanSceneDisplayNumber = "—";
-
-  /// Builds the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
-  /// screenplay's scenes is [sceneIndex], prefixed with [episodeNumber] through
-  /// `ocptSceneDisplayNumberOf`.
-  ///
-  /// [shotRowsBySceneId] holds each scene's shots in the order the `sortKey` query returned them,
-  /// which is the order they display in and the order their codes are numbered from.
-  static OcptSceneShotSequence _buildSceneSequence(
-    OcptSceneRow sceneRow,
-    int sceneIndex,
-    int? episodeNumber,
-    Map<String, List<OcptShotRow>> shotRowsBySceneId,
-    OcptShot Function(OcptShotRow row, String sceneDisplayNumber, int rank) buildShot,
-  ) {
-    final displayNumber = ocptSceneDisplayNumberOf(
-      sceneNumber: sceneRow.sceneNumber,
-      position: sceneIndex,
-      episodeNumber: episodeNumber,
-    );
-    final shotRows = shotRowsBySceneId[sceneRow.id] ?? const <OcptShotRow>[];
-
-    return OcptSceneShotSequence(
-      sceneId: sceneRow.id,
-      heading: sceneRow.heading,
-      sceneNumber: sceneRow.sceneNumber,
-      displaySceneNumber: displayNumber,
-      charStart: sceneRow.charStart,
-      charEnd: sceneRow.charEnd,
-      shots: [for (var i = 0; i < shotRows.length; i++) buildShot(shotRows[i], displayNumber, i)],
-    );
   }
 
   /// Creates a new shot in scene [sceneId] of screenplay [screenplayId] in [database], appended at
@@ -689,4 +646,47 @@ class OcptShotListService extends AbsOcptService {
     name: name,
     roleIndexService: roleIndexService,
   );
+
+  /// Builds the [OcptSceneShotSequence] for the scene at [sceneRow], whose 0-based index among the
+  /// screenplay's scenes is [sceneIndex], prefixed with [episodeNumber] through
+  /// `ocptSceneDisplayNumberOf`.
+  ///
+  /// [shotRowsBySceneId] holds each scene's shots in the order the `sortKey` query returned them,
+  /// which is the order they display in and the order their codes are numbered from.
+  static OcptSceneShotSequence _buildSceneSequence(
+    OcptSceneRow sceneRow,
+    int sceneIndex,
+    int? episodeNumber,
+    Map<String, List<OcptShotRow>> shotRowsBySceneId,
+    OcptShot Function(OcptShotRow row, String sceneDisplayNumber, int rank) buildShot,
+  ) {
+    final displayNumber = ocptSceneDisplayNumberOf(
+      sceneNumber: sceneRow.sceneNumber,
+      position: sceneIndex,
+      episodeNumber: episodeNumber,
+    );
+    final shotRows = shotRowsBySceneId[sceneRow.id] ?? const <OcptShotRow>[];
+
+    return OcptSceneShotSequence(
+      sceneId: sceneRow.id,
+      heading: sceneRow.heading,
+      sceneNumber: sceneRow.sceneNumber,
+      displaySceneNumber: displayNumber,
+      charStart: sceneRow.charStart,
+      charEnd: sceneRow.charEnd,
+      shots: [for (var i = 0; i < shotRows.length; i++) buildShot(shotRows[i], displayNumber, i)],
+    );
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanService.disposeLifeCycle();
+    await storyboardService.disposeLifeCycle();
+    await roleIndexService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

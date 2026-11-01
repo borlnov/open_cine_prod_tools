@@ -11,14 +11,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 /// own (a caller compares one column's [dayId] against the one before it, exactly as
 /// `OcptShootingPlanGridSections.gridPage` already does).
 class OcptShootingPlanGridColumn extends Equatable {
-  /// Class constructor
-  const OcptShootingPlanGridColumn({
-    required this.dayId,
-    required this.dayNumber,
-    required this.slotId,
-    required this.slotLabel,
-  });
-
   /// The id of the day [slotId] belongs to.
   final String dayId;
 
@@ -31,6 +23,14 @@ class OcptShootingPlanGridColumn extends Equatable {
   /// The slot's own free-text label, verbatim — never substituted with a placeholder here, which is
   /// a drawing-time decision each caller makes for itself.
   final String slotLabel;
+
+  /// Class constructor
+  const OcptShootingPlanGridColumn({
+    required this.dayId,
+    required this.dayNumber,
+    required this.slotId,
+    required this.slotLabel,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

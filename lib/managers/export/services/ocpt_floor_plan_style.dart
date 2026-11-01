@@ -91,6 +91,52 @@ const double ocptFloorPlanSilhouetteMarginPt = 10;
 /// for text. [graphicsOf] is the one conversion into `PdfGraphics`'s own bottom-up space, applied
 /// only where this file draws through a raw canvas call.
 class OcptFloorPlanPageLayout {
+  /// The page's own content width, in points.
+  final double widthPt;
+
+  /// The page's own content height, in points.
+  final double heightPt;
+
+  /// The metre-space bounding box's own centre X, mapped to the page's own centre.
+  final double centerXM;
+
+  /// The metre-space bounding box's own centre Y, mapped to the page's own centre.
+  final double centerYM;
+
+  /// How many points one metre draws at, on this page (`ocptFloorPlanPixelsPerMetreAt`'s own
+  /// "logical pixel" read as a page point).
+  final double pixelsPerMetre;
+
+  /// The zoom [pixelsPerMetre] corresponds to, for `ocpt_floor_plan_geometry.dart`'s own
+  /// zoom-keyed rules ([ocptFloorPlanScaleBarLengthM]).
+  double get zoom => pixelsPerMetre / ocptFloorPlanBasePixelsPerMetre;
+
+  /// The reference silhouette's own radius, in points, at [pixelsPerMetre].
+  double get silhouetteRadiusPt => ocptFloorPlanCharacterFootprintM * pixelsPerMetre / 2;
+
+  /// The reference silhouette's own centre, in graphics space, bottom-right of the page.
+  Offset get silhouetteCentreGraphics => Offset(
+    widthPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
+    heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
+  );
+
+  /// The scale bar's own length, in metres, at [zoom] (`ocptFloorPlanScaleBarLengthM`).
+  double get scaleBarLengthM => ocptFloorPlanScaleBarLengthM(zoom: zoom, targetPixelLength: 72);
+
+  /// The scale bar's own top-down Y — just above the reference silhouette.
+  double get scaleBarTopDown =>
+      heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt * 2 - 10;
+
+  /// The scale bar's own right edge, in top-down X (and graphics X, the two coinciding on this
+  /// axis since no flip ever touches X).
+  double get scaleBarRightTopDown => widthPt - ocptFloorPlanSilhouetteMarginPt;
+
+  /// The scale bar's own left edge.
+  double get scaleBarLeftTopDown => scaleBarRightTopDown - _scaleBarLengthPt;
+
+  /// The scale bar's own length, in points.
+  double get _scaleBarLengthPt => ocptFloorPlanMetresToPixels(metres: scaleBarLengthM, zoom: zoom);
+
   /// Class constructor
   const OcptFloorPlanPageLayout({
     required this.widthPt,
@@ -182,26 +228,6 @@ class OcptFloorPlanPageLayout {
     );
   }
 
-  /// The page's own content width, in points.
-  final double widthPt;
-
-  /// The page's own content height, in points.
-  final double heightPt;
-
-  /// The metre-space bounding box's own centre X, mapped to the page's own centre.
-  final double centerXM;
-
-  /// The metre-space bounding box's own centre Y, mapped to the page's own centre.
-  final double centerYM;
-
-  /// How many points one metre draws at, on this page (`ocptFloorPlanPixelsPerMetreAt`'s own
-  /// "logical pixel" read as a page point).
-  final double pixelsPerMetre;
-
-  /// The zoom [pixelsPerMetre] corresponds to, for `ocpt_floor_plan_geometry.dart`'s own
-  /// zoom-keyed rules ([ocptFloorPlanScaleBarLengthM]).
-  double get zoom => pixelsPerMetre / ocptFloorPlanBasePixelsPerMetre;
-
   /// The screen point, in this page's own top-down space, `(xM, yM)` maps to — the fit-to-page
   /// sibling of `ocptFloorPlanScreenPointOf`'s own canvas-centred convention.
   Offset topDownPointOf(double xM, double yM) => Offset(
@@ -212,32 +238,6 @@ class OcptFloorPlanPageLayout {
   /// [topDown] converted into `PdfGraphics`'s own bottom-up space — the one flip every raw canvas
   /// call in this file applies, and the only one (see this class's own doc comment).
   Offset graphicsOf(Offset topDown) => Offset(topDown.dx, heightPt - topDown.dy);
-
-  /// The reference silhouette's own radius, in points, at [pixelsPerMetre].
-  double get silhouetteRadiusPt => ocptFloorPlanCharacterFootprintM * pixelsPerMetre / 2;
-
-  /// The reference silhouette's own centre, in graphics space, bottom-right of the page.
-  Offset get silhouetteCentreGraphics => Offset(
-    widthPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
-    heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt,
-  );
-
-  /// The scale bar's own length, in metres, at [zoom] (`ocptFloorPlanScaleBarLengthM`).
-  double get scaleBarLengthM => ocptFloorPlanScaleBarLengthM(zoom: zoom, targetPixelLength: 72);
-
-  /// The scale bar's own length, in points.
-  double get _scaleBarLengthPt => ocptFloorPlanMetresToPixels(metres: scaleBarLengthM, zoom: zoom);
-
-  /// The scale bar's own top-down Y — just above the reference silhouette.
-  double get scaleBarTopDown =>
-      heightPt - ocptFloorPlanSilhouetteMarginPt - silhouetteRadiusPt * 2 - 10;
-
-  /// The scale bar's own right edge, in top-down X (and graphics X, the two coinciding on this
-  /// axis since no flip ever touches X).
-  double get scaleBarRightTopDown => widthPt - ocptFloorPlanSilhouetteMarginPt;
-
-  /// The scale bar's own left edge.
-  double get scaleBarLeftTopDown => scaleBarRightTopDown - _scaleBarLengthPt;
 }
 
 /// [sheet]'s own symbols, minus the two kinds of ghost the canvas alone draws

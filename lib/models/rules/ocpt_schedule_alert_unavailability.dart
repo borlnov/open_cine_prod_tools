@@ -10,16 +10,6 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// — the mirror of `OcptPersonUnavailability`, minus the person's own id (the caller already groups
 /// these under [OcptScheduleAlertPerson]) and the free-text reason, which this file never reads.
 class OcptScheduleAlertUnavailability {
-  /// Builds an unavailability window to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertUnavailability({
-    required this.id,
-    required this.startDate,
-    required this.endDate,
-    required this.dayPart,
-    required this.startMinute,
-    required this.endMinute,
-  });
-
   /// This window's own id, echoed back on [OcptSchedulePersonUnavailableAlert.unavailabilityId].
   final String id;
 
@@ -39,4 +29,14 @@ class OcptScheduleAlertUnavailability {
   /// The end of the window in minutes from midnight, or null unless [dayPart] is
   /// [OcptDayPartSlot.custom].
   final int? endMinute;
+
+  /// Builds an unavailability window to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertUnavailability({
+    required this.id,
+    required this.startDate,
+    required this.endDate,
+    required this.dayPart,
+    required this.startMinute,
+    required this.endMinute,
+  });
 }

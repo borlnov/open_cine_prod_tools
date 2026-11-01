@@ -97,6 +97,11 @@ class OcptFieldStamp extends Equatable {
     _deviceIdKey: deviceId,
   };
 
+  @override
+  String toString() =>
+      'OcptFieldStamp(tableName: $tableName, rowId: $rowId, columnName: $columnName, '
+      'value: $value, version: $version, deviceId: $deviceId)';
+
   /// [value] turned into whatever `jsonEncode` can write: `int`, `double`, `String`, `bool` and
   /// `null` already are, and pass through untouched. A [Uint8List] is the one case that isn't — it
   /// is base64-encoded and nested one level under [_blobKey], which is what [_decodeValue] looks
@@ -118,9 +123,4 @@ class OcptFieldStamp extends Equatable {
 
   @override
   List<Object?> get props => [tableName, rowId, columnName, value, version, deviceId];
-
-  @override
-  String toString() =>
-      'OcptFieldStamp(tableName: $tableName, rowId: $rowId, columnName: $columnName, '
-      'value: $value, version: $version, deviceId: $deviceId)';
 }

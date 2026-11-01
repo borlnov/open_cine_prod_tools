@@ -82,15 +82,15 @@ const Map<int, pw.TableColumnWidth> _lineColumnWidths = {
 /// happens at is the shooting plan's own day agenda — printing it twice would be the two documents
 /// disagreeing about which one says when.
 class OcptOneLineSchedulePdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptOneLineSchedulePdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptOneLineSchedulePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the one-line schedule of [projectName].
   ///
@@ -471,6 +471,29 @@ class OcptOneLineSchedulePdfService extends AbsOcptService {
 /// which never folds with anything ([shots] always empty for one). See [_buildOneLineRows]'s own
 /// doc comment for why every other block kind gives no line at all.
 class _OneLineRow {
+  /// The slot this row's blocks were placed on.
+  final String slotId;
+
+  /// The scene this row's shots belong to, or the hold's own reserved scene — null for an orphaned
+  /// shot or a hold naming no sequence yet.
+  final String? sceneId;
+
+  /// The name of the set this row's slot is shot at, or null.
+  final String? decor;
+
+  /// The shots collapsed into this row — always exactly one until a following shot of the same
+  /// scene, on the same slot, is appended to it; always empty for a hold.
+  final List<OcptShot> shots;
+
+  /// Where this row starts, resolved.
+  final int startMinute;
+
+  /// Where this row ends, resolved — mutable so a following collapsed shot can extend it.
+  int endMinute;
+
+  /// Whether this is a hold row rather than a run of shot blocks.
+  bool get isHold => shots.isEmpty;
+
   _OneLineRow._({
     required this.slotId,
     required this.sceneId,
@@ -512,29 +535,6 @@ class _OneLineRow {
     startMinute: startMinute,
     endMinute: endMinute,
   );
-
-  /// The slot this row's blocks were placed on.
-  final String slotId;
-
-  /// The scene this row's shots belong to, or the hold's own reserved scene — null for an orphaned
-  /// shot or a hold naming no sequence yet.
-  final String? sceneId;
-
-  /// The name of the set this row's slot is shot at, or null.
-  final String? decor;
-
-  /// The shots collapsed into this row — always exactly one until a following shot of the same
-  /// scene, on the same slot, is appended to it; always empty for a hold.
-  final List<OcptShot> shots;
-
-  /// Where this row starts, resolved.
-  final int startMinute;
-
-  /// Where this row ends, resolved — mutable so a following collapsed shot can extend it.
-  int endMinute;
-
-  /// Whether this is a hold row rather than a run of shot blocks.
-  bool get isHold => shots.isEmpty;
 }
 
 /// Turns [orderedEntries] into the printed lines of [plan]'s own day: a run of consecutive

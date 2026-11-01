@@ -66,10 +66,10 @@ class OcptPresenceFrame extends Equatable {
   };
 
   @override
-  List<Object?> get props => [deviceId, platform, modeKey, heartbeat];
-
-  @override
   String toString() =>
       'OcptPresenceFrame(deviceId: $deviceId, platform: $platform, modeKey: $modeKey, '
       'heartbeat: $heartbeat)';
+
+  @override
+  List<Object?> get props => [deviceId, platform, modeKey, heartbeat];
 }

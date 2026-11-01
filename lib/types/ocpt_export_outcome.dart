@@ -15,9 +15,6 @@ import 'package:equatable/equatable.dart';
 /// could not even be built comes back as [OcptExportFailed], which the caller words as a failed
 /// export rather than a cancellation.
 sealed class OcptExportOutcome {
-  /// Class constructor
-  const OcptExportOutcome();
-
   /// The path the file was written to, only non-null for [OcptExportSaved].
   String? get savedPath => switch (this) {
     OcptExportSaved(:final path) => path,
@@ -27,6 +24,9 @@ sealed class OcptExportOutcome {
 
   /// Whether the bytes were handed to the OS share sheet rather than a picked save location.
   bool get wasShared => this is OcptExportShared;
+
+  /// Class constructor
+  const OcptExportOutcome();
 }
 
 /// The bytes were written to [path], picked through the native "save as" dialog.

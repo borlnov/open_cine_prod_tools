@@ -65,26 +65,6 @@ class OcptShootingDayAgendaGrid extends Equatable {
   /// grid is a different document.
   static const int stepMinutes = 10;
 
-  /// Class constructor
-  const OcptShootingDayAgendaGrid({
-    required this.isEmpty,
-    required this.startMinute,
-    required this.endMinute,
-    required this.columns,
-    required this.tiles,
-    required this.events,
-  });
-
-  /// The empty grid: no column, no tile, no event — see the class doc comment's own "day with
-  /// nothing on it" paragraph.
-  const OcptShootingDayAgendaGrid.empty()
-    : isEmpty = true,
-      startMinute = 0,
-      endMinute = 0,
-      columns = const [],
-      tiles = const [],
-      events = const [];
-
   /// Whether this grid has nothing to draw at all — [columns] came in empty, so no bound could be
   /// computed. A caller must check this before reading [rowCount] or drawing anything.
   final bool isEmpty;
@@ -110,6 +90,26 @@ class OcptShootingDayAgendaGrid extends Equatable {
 
   /// How many [stepMinutes]-wide rows the grid holds, 0 while [isEmpty].
   int get rowCount => isEmpty ? 0 : (endMinute - startMinute) ~/ stepMinutes;
+
+  /// Class constructor
+  const OcptShootingDayAgendaGrid({
+    required this.isEmpty,
+    required this.startMinute,
+    required this.endMinute,
+    required this.columns,
+    required this.tiles,
+    required this.events,
+  });
+
+  /// The empty grid: no column, no tile, no event — see the class doc comment's own "day with
+  /// nothing on it" paragraph.
+  const OcptShootingDayAgendaGrid.empty()
+    : isEmpty = true,
+      startMinute = 0,
+      endMinute = 0,
+      columns = const [],
+      tiles = const [],
+      events = const [];
 
   /// Builds the grid from [columns]' own resolved timelines and [events], both pure inputs — see
   /// this class's own doc comment for the rules this applies.
@@ -188,6 +188,13 @@ class OcptShootingDayAgendaGrid extends Equatable {
     );
   }
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: "
+      "${columns.length}, "
+      "tiles: ${tiles.length}, events: ${events.length})";
+
   /// [event] placed against the grid's already-snapped `[snappedStart, snappedEnd)` band: outside
   /// it on either side reads as [OcptShootingDayAgendaEventPlacement.beforeGrid]/`.afterGrid` with
   /// no [OcptShootingDayAgendaEventMarker.row], inside it as `.inGrid` with one.
@@ -261,13 +268,6 @@ class OcptShootingDayAgendaGrid extends Equatable {
     final quotient = value ~/ divisor;
     return (value > 0 && value % divisor != 0) ? quotient + 1 : quotient;
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptShootingDayAgendaGrid(isEmpty: $isEmpty, rowCount: $rowCount, columns: "
-      "${columns.length}, "
-      "tiles: ${tiles.length}, events: ${events.length})";
 
   /// Object properties
   @override

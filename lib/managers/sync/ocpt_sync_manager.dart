@@ -75,9 +75,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The logger category linked to this manager.
   static const _loggerCategory = "sync";
 
-  /// The logger this manager writes to, and the parent of every service's and session's own.
-  final LogsHelper _logger;
-
   /// The service turning a replica's own un-pushed local edits into a changeset, appending it to a
   /// relay, and applying every changeset a relay holds that this replica hasn't seen yet.
   final OcptChangesetService changesetService;
@@ -85,6 +82,39 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// The service turning a project into snapshot bytes and back — what [publishSnapshot] and
   /// [joinFromRelay] build on.
   final OcptSnapshotService snapshotService;
+
+  /// The logger this manager writes to, and the parent of every service's and session's own.
+  final LogsHelper _logger;
+  OcptPairingService? _pairingService;
+  OcptSyncSession? _syncSession;
+
+  /// This project's current presence service, or null when none is running — see
+  /// [startSyncSession].
+  OcptPresenceService? _presenceService;
+
+  /// Emits this manager's sync status across the whole session lifecycle — see [syncStatusChanges].
+  ///
+  /// A session's own [OcptSyncSession.statusStream] only exists while that session does, so a
+  /// caller reading it off the session sees nothing when a session starts or stops *after* it
+  /// subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
+  /// the new session's status onto it (seeded with the current one), and [stopSyncSession] closes
+  /// it out with a null.
+  ///
+  /// It emits every value it is given, even one equal to the previous: a session reporting the
+  /// same status again is still reported.
+  final ValueKeeperWithStream<OcptSyncStatus?> _syncStatus;
+
+  /// The subscription piping the running session's [OcptSyncSession.statusStream] onto
+  /// [_syncStatus], cancelled when the session stops.
+  StreamSubscription<OcptSyncStatus>? _sessionStatusForwarder;
+
+  /// Emits this manager's presence roster across the whole session lifecycle — the presence
+  /// counterpart of [_syncStatus], for the same reason.
+  final ValueKeeperWithStream<OcptPresenceRoster?> _presenceRoster;
+
+  /// The subscription piping the running presence service's [OcptPresenceService.rosterStream] onto
+  /// [_presenceRoster], cancelled when the service stops.
+  StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
 
   /// The service reading and writing a project's own relay pairing — what [pairProjectToRelay]
   /// saves the freshly minted pairing through before it ever talks to the relay.
@@ -98,20 +128,42 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// instead — built over a fake secure-storage channel, exactly as
   /// `ocpt_sync_manager_snapshot_test.dart` already does for [joinFromRelay].
   OcptPairingService get pairingService => _pairingService ??= _buildPairingService();
-  OcptPairingService? _pairingService;
 
-  /// Builds the lazily created [pairingService] and initialises it.
-  ///
-  /// The getter cannot wait, so the initialisation is not awaited: the service's own
-  /// `initLifeCycle()` does nothing today, and one that ever does must be built eagerly instead.
-  OcptPairingService _buildPairingService() {
-    final service = OcptPairingService(
-      logger: _logger.createSubLogger(subCategory: 'pairing'),
-      secretsManager: globalGetIt().get<OcptSecretsManager>(),
-    );
-    unawaited(service.initLifeCycle());
-    return service;
-  }
+  /// This project's current sync session, or null when none is running — see [startSyncSession].
+  OcptSyncSession? get syncSession => _syncSession;
+
+  /// The running session's current status, or null when no session is running. The session's own
+  /// status stream never replays this to a new listener — read this first to seed a fresh
+  /// subscriber, exactly as `OcptSyncSession.status`'s own doc comment says.
+  OcptSyncStatus? get syncStatus => _syncSession?.status;
+
+  /// The sync status across the whole session lifecycle: the running session's status, then null
+  /// once it stops. Unlike the running session's own status stream, which is null when no session
+  /// runs, it never goes null-*valued* to mean "no stream": it is one stream that outlives every
+  /// session, so a widget subscribing to it once (seeded with [syncStatus]) keeps reflecting the
+  /// truth as sessions start and stop underneath it. This is what the workspace's own status
+  /// indicator listens to, since its session starts only *after* the workspace has already been
+  /// built.
+  Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatus.valueStream;
+
+  // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
+  // https://github.com/borlnov/open_cine_prod_tools/issues/116
+  /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
+  /// empty list when no session is running.
+  List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];
+
+  /// The running presence service's current roster, or null when none is running.
+  /// [presenceRosterStream] never replays this to a new listener — read this first to seed a fresh
+  /// subscriber, exactly as [syncStatus]'s own doc comment says.
+  OcptPresenceRoster? get presenceRoster => _presenceService?.roster;
+
+  /// The running presence service's own roster stream, or null when none is running.
+  Stream<OcptPresenceRoster>? get presenceRosterStream => _presenceService?.rosterStream;
+
+  /// The presence roster across the whole session lifecycle — the presence counterpart of
+  /// [syncStatusChanges], and what the workspace's own presence indicator listens to for the same
+  /// reason. Seed a fresh subscriber with [presenceRoster].
+  Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRoster.valueStream;
 
   /// Class constructor
   ///
@@ -192,38 +244,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _logger.i("The sync manager started");
   }
 
-  /// This project's current sync session, or null when none is running — see [startSyncSession].
-  OcptSyncSession? get syncSession => _syncSession;
-  OcptSyncSession? _syncSession;
-
-  /// This project's current presence service, or null when none is running — see
-  /// [startSyncSession].
-  OcptPresenceService? _presenceService;
-
-  /// Emits this manager's sync status across the whole session lifecycle — see [syncStatusChanges].
-  ///
-  /// A session's own [OcptSyncSession.statusStream] only exists while that session does, so a
-  /// caller reading it off the session sees nothing when a session starts or stops *after* it
-  /// subscribed. This manager-level stream outlives any one session: [startSyncSession] pipes
-  /// the new session's status onto it (seeded with the current one), and [stopSyncSession] closes
-  /// it out with a null.
-  ///
-  /// It emits every value it is given, even one equal to the previous: a session reporting the
-  /// same status again is still reported.
-  final ValueKeeperWithStream<OcptSyncStatus?> _syncStatus;
-
-  /// The subscription piping the running session's [OcptSyncSession.statusStream] onto
-  /// [_syncStatus], cancelled when the session stops.
-  StreamSubscription<OcptSyncStatus>? _sessionStatusForwarder;
-
-  /// Emits this manager's presence roster across the whole session lifecycle — the presence
-  /// counterpart of [_syncStatus], for the same reason.
-  final ValueKeeperWithStream<OcptPresenceRoster?> _presenceRoster;
-
-  /// The subscription piping the running presence service's [OcptPresenceService.rosterStream] onto
-  /// [_presenceRoster], cancelled when the service stops.
-  StreamSubscription<OcptPresenceRoster>? _presenceRosterForwarder;
-
   /// Opens the relay transport [pairing] describes, for [projectId].
   ///
   /// [enrolmentSecret] is only ever needed the first time [projectId] is pushed to a relay that
@@ -240,16 +260,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
     token: pairing.token,
     enrolmentSecret: enrolmentSecret,
   );
-
-  /// The stable id [changesetService] keys a pairing's own delivery cursor by
-  /// (`sync_relay_cursors.relayId`): [pairing]'s relay base URL, stringified.
-  ///
-  /// This has to stay stable for as long as a project is paired with the same relay — restarting or
-  /// re-pairing to the very same address must not reset the cursor — and differ between two
-  /// different relays, since a device keeps one delivery cursor per relay and the same project can
-  /// live behind two relays in one day (the prep relay and the set relay). The relay base URL
-  /// already has exactly that shape, so nothing further is minted or stored for it.
-  static String relayIdFor(OcptProjectPairing pairing) => pairing.relayBaseUri.toString();
 
   /// Pairs [projectId] to the relay at [relayBaseUri], pushes this replica's own edits to create it
   /// there, publishes a first snapshot so a joiner can bootstrap, and starts the ongoing sync
@@ -505,13 +515,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return const StatusWithExtraInfo(status: OcptSyncFlowStatus.ok);
   }
 
-  /// The [OcptSyncFlowStatus] a failed [OcptRemoteStorageStatus] stands for.
-  OcptSyncFlowStatus _flowStatusOf(OcptRemoteStorageStatus status) => switch (status) {
-    OcptRemoteStorageStatus.ok => OcptSyncFlowStatus.ok,
-    OcptRemoteStorageStatus.rejected => OcptSyncFlowStatus.rejected,
-    OcptRemoteStorageStatus.unreachable => OcptSyncFlowStatus.unreachable,
-  };
-
   /// Fetches [storage]'s latest snapshot and materialises it as a new project under
   /// [parentDirectoryPath], pairing that new project with the relay [storage] talks to before
   /// handing back the `.ocpt` path it landed at.
@@ -586,21 +589,6 @@ class OcptSyncManager extends AbsWithLifeCycle {
     _logger.i("A project was joined from a relay: $projectId");
 
     return ResultWithStatus(status: OcptSyncFlowStatus.ok, value: projectFilePath);
-  }
-
-  /// The relay-side project id a freshly materialised snapshot already carries in its own
-  /// `sync_pairings` row — see [joinFromRelay]'s own doc comment for why that row is there at all.
-  ///
-  /// Read directly off the table rather than through [OcptPairingService.loadPairing]: that method
-  /// also requires the project's token to already sit in secure storage, which a joiner's fresh
-  /// install never has yet — the whole reason [joinFromRelay] is the one saving that pairing, not
-  /// reading an existing one.
-  ///
-  /// Returns null when the snapshot carries no such row: it cannot be identified on the relay it
-  /// was fetched from, and a snapshot from the network is not trusted to have one.
-  Future<String?> _readSnapshottedProjectId(OcptProjectDatabase database) async {
-    final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
-    return row?.projectId;
   }
 
   /// Starts keeping [projectId] in sync against [storage], replacing whatever session was running
@@ -753,43 +741,55 @@ class OcptSyncManager extends AbsWithLifeCycle {
     return OcptSyncSessionStatus.ok;
   }
 
-  /// The running session's current status, or null when no session is running. The session's own
-  /// status stream never replays this to a new listener — read this first to seed a fresh
-  /// subscriber, exactly as `OcptSyncSession.status`'s own doc comment says.
-  OcptSyncStatus? get syncStatus => _syncSession?.status;
-
-  /// The sync status across the whole session lifecycle: the running session's status, then null
-  /// once it stops. Unlike the running session's own status stream, which is null when no session
-  /// runs, it never goes null-*valued* to mean "no stream": it is one stream that outlives every
-  /// session, so a widget subscribing to it once (seeded with [syncStatus]) keeps reflecting the
-  /// truth as sessions start and stop underneath it. This is what the workspace's own status
-  /// indicator listens to, since its session starts only *after* the workspace has already been
-  /// built.
-  Stream<OcptSyncStatus?> get syncStatusChanges => _syncStatus.valueStream;
-
-  // TODO(borlnov): Read by the screen that resolves a screenplay conflict,
-  // https://github.com/borlnov/open_cine_prod_tools/issues/116
-  /// Every screenplay merge conflict the running session has raised so far, oldest first, or an
-  /// empty list when no session is running.
-  List<OcptScreenplayMergeConflict> get syncConflicts => _syncSession?.conflicts ?? const [];
-
-  /// The running presence service's current roster, or null when none is running.
-  /// [presenceRosterStream] never replays this to a new listener — read this first to seed a fresh
-  /// subscriber, exactly as [syncStatus]'s own doc comment says.
-  OcptPresenceRoster? get presenceRoster => _presenceService?.roster;
-
-  /// The running presence service's own roster stream, or null when none is running.
-  Stream<OcptPresenceRoster>? get presenceRosterStream => _presenceService?.rosterStream;
-
-  /// The presence roster across the whole session lifecycle — the presence counterpart of
-  /// [syncStatusChanges], and what the workspace's own presence indicator listens to for the same
-  /// reason. Seed a fresh subscriber with [presenceRoster].
-  Stream<OcptPresenceRoster?> get presenceRosterChanges => _presenceRoster.valueStream;
-
   /// Tells the running presence service this replica's own [mode] just changed, so it reaches
   /// every peer on the very next heartbeat rather than waiting for the current one to age. Does
   /// nothing when no presence service is running.
   void updatePresenceMode(OcptWorkspaceMode mode) => _presenceService?.updateMode(mode);
+
+  /// Builds the lazily created [pairingService] and initialises it.
+  ///
+  /// The getter cannot wait, so the initialisation is not awaited: the service's own
+  /// `initLifeCycle()` does nothing today, and one that ever does must be built eagerly instead.
+  OcptPairingService _buildPairingService() {
+    final service = OcptPairingService(
+      logger: _logger.createSubLogger(subCategory: 'pairing'),
+      secretsManager: globalGetIt().get<OcptSecretsManager>(),
+    );
+    unawaited(service.initLifeCycle());
+    return service;
+  }
+
+  /// The [OcptSyncFlowStatus] a failed [OcptRemoteStorageStatus] stands for.
+  OcptSyncFlowStatus _flowStatusOf(OcptRemoteStorageStatus status) => switch (status) {
+    OcptRemoteStorageStatus.ok => OcptSyncFlowStatus.ok,
+    OcptRemoteStorageStatus.rejected => OcptSyncFlowStatus.rejected,
+    OcptRemoteStorageStatus.unreachable => OcptSyncFlowStatus.unreachable,
+  };
+
+  /// The relay-side project id a freshly materialised snapshot already carries in its own
+  /// `sync_pairings` row — see [joinFromRelay]'s own doc comment for why that row is there at all.
+  ///
+  /// Read directly off the table rather than through [OcptPairingService.loadPairing]: that method
+  /// also requires the project's token to already sit in secure storage, which a joiner's fresh
+  /// install never has yet — the whole reason [joinFromRelay] is the one saving that pairing, not
+  /// reading an existing one.
+  ///
+  /// Returns null when the snapshot carries no such row: it cannot be identified on the relay it
+  /// was fetched from, and a snapshot from the network is not trusted to have one.
+  Future<String?> _readSnapshottedProjectId(OcptProjectDatabase database) async {
+    final row = await database.select(database.ocptSyncPairingsTable).getSingleOrNull();
+    return row?.projectId;
+  }
+
+  /// The stable id [changesetService] keys a pairing's own delivery cursor by
+  /// (`sync_relay_cursors.relayId`): [pairing]'s relay base URL, stringified.
+  ///
+  /// This has to stay stable for as long as a project is paired with the same relay — restarting or
+  /// re-pairing to the very same address must not reset the cursor — and differ between two
+  /// different relays, since a device keeps one delivery cursor per relay and the same project can
+  /// live behind two relays in one day (the prep relay and the set relay). The relay base URL
+  /// already has exactly that shape, so nothing further is minted or stored for it.
+  static String relayIdFor(OcptProjectPairing pairing) => pairing.relayBaseUri.toString();
 
   /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
   @override

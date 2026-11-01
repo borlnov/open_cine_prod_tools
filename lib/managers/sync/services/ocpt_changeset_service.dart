@@ -28,6 +28,9 @@ import 'package:uuid/uuid.dart';
 /// the same identifier `sync_relay_cursors.relayId` keys a replica's own delivery state by, since a
 /// device can be paired with more than one relay over its lifetime.
 class OcptChangesetService extends AbsOcptService {
+  /// The per-column merge every incoming changeset is applied through.
+  final OcptMergeService mergeService;
+
   /// Class constructor
   const OcptChangesetService({required super.logger, required this.mergeService});
 
@@ -39,19 +42,6 @@ class OcptChangesetService extends AbsOcptService {
     await super.initLifeCycle();
     await mergeService.initLifeCycle();
   }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await mergeService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
-  /// The per-column merge every incoming changeset is applied through.
-  final OcptMergeService mergeService;
 
   /// Generates the un-pushed local edits of [database] for [deviceId] and appends them to
   /// [storage] as one changeset, then advances [relayId]'s own `outboxHighWaterMark` so the same
@@ -274,6 +264,21 @@ class OcptChangesetService extends AbsOcptService {
     return stamps.length;
   }
 
+  /// [relayId]'s current `outboxHighWaterMark` against [database], as [pushLocalEdits] itself would
+  /// read it, wrapped as an [OcptSequenceNumber] — [OcptSequenceNumber.zero] when this replica has
+  /// appended nothing to [relayId] yet.
+  ///
+  /// A read-only counterpart to [_outboxHighWaterMark], for a caller outside this service that
+  /// needs the position a just-published changeset log stands at right now — the create-and-share
+  /// orchestration reads this immediately after [pushLocalEdits] to know what a snapshot it
+  /// publishes in the same breath should declare as its own [OcptSnapshotDescriptor.sequenceUpTo].
+  /// Behaviourally inert on its own, exactly like [countUnpushedEdits]: nothing about calling this
+  /// changes [relayId]'s cursor or anything else in [database].
+  Future<OcptSequenceNumber> highestAppendedSequence({
+    required OcptProjectDatabase database,
+    required String relayId,
+  }) async => OcptSequenceNumber(await _outboxHighWaterMark(database: database, relayId: relayId));
+
   /// [relayId]'s current `lastAppliedSequence` against [database], or [OcptSequenceNumber.zero]
   /// when this replica has never pulled anything from it yet.
   Future<OcptSequenceNumber> _lastAppliedSequence({
@@ -301,21 +306,6 @@ class OcptChangesetService extends AbsOcptService {
           lastAppliedSequence: Value(sequence.value),
         ),
       );
-
-  /// [relayId]'s current `outboxHighWaterMark` against [database], as [pushLocalEdits] itself would
-  /// read it, wrapped as an [OcptSequenceNumber] — [OcptSequenceNumber.zero] when this replica has
-  /// appended nothing to [relayId] yet.
-  ///
-  /// A read-only counterpart to [_outboxHighWaterMark], for a caller outside this service that
-  /// needs the position a just-published changeset log stands at right now — the create-and-share
-  /// orchestration reads this immediately after [pushLocalEdits] to know what a snapshot it
-  /// publishes in the same breath should declare as its own [OcptSnapshotDescriptor.sequenceUpTo].
-  /// Behaviourally inert on its own, exactly like [countUnpushedEdits]: nothing about calling this
-  /// changes [relayId]'s cursor or anything else in [database].
-  Future<OcptSequenceNumber> highestAppendedSequence({
-    required OcptProjectDatabase database,
-    required String relayId,
-  }) async => OcptSequenceNumber(await _outboxHighWaterMark(database: database, relayId: relayId));
 
   /// [relayId]'s current `outboxHighWaterMark` against [database], or `0` when this replica has
   /// never pushed anything to it yet.
@@ -384,5 +374,15 @@ class OcptChangesetService extends AbsOcptService {
     }
 
     return row.data;
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await mergeService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

@@ -11,14 +11,14 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_courier_prime
 /// PDF exports share one cache instead of holding one each. A renderer built without one (a test,
 /// typically) simply gets a loader of its own.
 class OcptCourierPrimeFontsLoader {
-  /// Class constructor
-  OcptCourierPrimeFontsLoader();
-
   /// The memoized loading future, populated on first use.
   ///
   /// A `Future` rather than the resolved fonts themselves, so two exports racing before the first
   /// load finishes both await the same load instead of triggering it twice.
   Future<OcptCourierPrimeFonts>? _future;
+
+  /// Class constructor
+  OcptCourierPrimeFontsLoader();
 
   /// Loads (once) and returns the embedded Courier Prime font set.
   Future<OcptCourierPrimeFonts> load() => _future ??= OcptCourierPrimeFonts.load();

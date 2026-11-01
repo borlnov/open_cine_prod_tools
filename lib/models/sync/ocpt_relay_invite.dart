@@ -21,8 +21,46 @@ import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 /// every value percent-encoded as an ordinary URI query parameter. [OcptRelayInvite.parse] reads that string back, rejecting anything that is not this exact shape — a QR code
 /// aimed at some unrelated app must fail cleanly rather than half-parse.
 class OcptRelayInvite extends Equatable {
+  static const String _scheme = 'ocpt';
+  static const String _host = 'join';
+  static const String _relayParam = 'r';
+  static const String _projectIdParam = 'p';
+  static const String _tokenParam = 't';
+
+  /// The relay this invite pairs to, e.g. `https://relay.example.org/`.
+  final Uri relayBaseUri;
+
+  /// The project this invite gives access to, matching `project_info.id`.
+  final String projectId;
+
+  /// The secret authenticating every request to [relayBaseUri] for [projectId]. Never logged or
+  /// displayed in full — see [toString].
+  final String token;
+
   /// Class constructor
   const OcptRelayInvite({required this.relayBaseUri, required this.projectId, required this.token});
+
+  /// Encodes this invite as the single string a QR code carries and [OcptRelayInvite.parse] reads
+  /// back: `ocpt://join?r=<relayBaseUri>&p=<projectId>&t=<token>`, every value percent-encoded.
+  String toInviteString() => Uri(
+    scheme: _scheme,
+    host: _host,
+    queryParameters: <String, String>{
+      _relayParam: relayBaseUri.toString(),
+      _projectIdParam: projectId,
+      _tokenParam: token,
+    },
+  ).toString();
+
+  /// A human-readable summary that never leaks [token] in full.
+  @override
+  String toString() {
+    final maskedToken = token.length <= 4
+        ? '***'
+        : '${token.substring(0, 2)}***${token.substring(token.length - 2)}';
+    return 'OcptRelayInvite(relayBaseUri: $relayBaseUri, projectId: $projectId, '
+        'token: $maskedToken)';
+  }
 
   /// Parses [inviteString] back into an [OcptRelayInvite], answering the matching failure status
   /// (and no value) when it is not an `ocpt://join` URI carrying all three of `r`, `p` and `t`
@@ -71,45 +109,7 @@ class OcptRelayInvite extends Equatable {
     );
   }
 
-  static const String _scheme = 'ocpt';
-  static const String _host = 'join';
-  static const String _relayParam = 'r';
-  static const String _projectIdParam = 'p';
-  static const String _tokenParam = 't';
-
-  /// The relay this invite pairs to, e.g. `https://relay.example.org/`.
-  final Uri relayBaseUri;
-
-  /// The project this invite gives access to, matching `project_info.id`.
-  final String projectId;
-
-  /// The secret authenticating every request to [relayBaseUri] for [projectId]. Never logged or
-  /// displayed in full — see [toString].
-  final String token;
-
-  /// Encodes this invite as the single string a QR code carries and [OcptRelayInvite.parse] reads
-  /// back: `ocpt://join?r=<relayBaseUri>&p=<projectId>&t=<token>`, every value percent-encoded.
-  String toInviteString() => Uri(
-    scheme: _scheme,
-    host: _host,
-    queryParameters: <String, String>{
-      _relayParam: relayBaseUri.toString(),
-      _projectIdParam: projectId,
-      _tokenParam: token,
-    },
-  ).toString();
-
   /// Object properties
   @override
   List<Object?> get props => [relayBaseUri, projectId, token];
-
-  /// A human-readable summary that never leaks [token] in full.
-  @override
-  String toString() {
-    final maskedToken = token.length <= 4
-        ? '***'
-        : '${token.substring(0, 2)}***${token.substring(token.length - 2)}';
-    return 'OcptRelayInvite(relayBaseUri: $relayBaseUri, projectId: $projectId, '
-        'token: $maskedToken)';
-  }
 }

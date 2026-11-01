@@ -51,14 +51,14 @@ final class OcptRelayHostStarting extends OcptRelayHostState {
 /// per-project secret that lets a peer's enrolment create the project on this relay — both are
 /// exactly what the "Héberger sur ce poste" panel's enrolment QR carries.
 final class OcptRelayHostOnline extends OcptRelayHostState {
-  /// Class constructor
-  const OcptRelayHostOnline({required this.lanBaseUri, required this.enrolmentSecret});
-
   /// The advertised LAN base URI a peer scans to reach this hosted relay.
   final Uri lanBaseUri;
 
   /// The stable per-project secret that grants project creation on this hosted relay.
   final String enrolmentSecret;
+
+  /// Class constructor
+  const OcptRelayHostOnline({required this.lanBaseUri, required this.enrolmentSecret});
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -72,11 +72,11 @@ final class OcptRelayHostOnline extends OcptRelayHostState {
 /// Bring-up failed — the socket could not be bound, the store could not be opened, or anything
 /// else went wrong before the relay ever started serving.
 final class OcptRelayHostFailed extends OcptRelayHostState {
-  /// Class constructor
-  const OcptRelayHostFailed(this.message);
-
   /// A human-readable detail of what went wrong, meant for a log or a panel — never parsed.
   final String message;
+
+  /// Class constructor
+  const OcptRelayHostFailed(this.message);
 
   /// Object string representation, useful for debugging and logging.
   @override

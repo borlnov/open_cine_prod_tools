@@ -113,22 +113,19 @@ class OcptProjectsManagerBuilder extends AbsLifeCycleFactory<OcptProjectsManager
 /// [projectVersionsService]: previewing swaps the database the modes read through for an in-memory
 /// one hydrated from the version's payload, and re-emits the project on [currentProjectStream].
 class OcptProjectsManager extends AbsWithLifeCycle {
-  /// The logger category linked to this manager.
-  static const _loggerCategory = "projects";
-
-  /// The logger this manager writes to, and the parent of every service's own.
-  final LogsHelper _logger;
-
-  /// The name of the folder created inside the platform's documents directory to hold projects
-  /// created/saved without the user picking a different location.
-  static const _defaultProjectsDirectoryName = "OpenCineProdTools";
-
   /// The extension used by project files, without the leading dot.
   ///
   /// The one definition lives in [ocptProjectFileExtension], which the package service reads too:
   /// a service may not import this manager, and the extension restated on the way down is one that
   /// could drift from the file this manager actually writes.
   static const projectFileExtension = ocptProjectFileExtension;
+
+  /// The logger category linked to this manager.
+  static const _loggerCategory = "projects";
+
+  /// The name of the folder created inside the platform's documents directory to hold projects
+  /// created/saved without the user picking a different location.
+  static const _defaultProjectsDirectoryName = "OpenCineProdTools";
 
   /// The app version stamped into newly created and migrated projects' `project_info` (see
   /// [createProject] and `_gateOnFileFormat`).
@@ -146,25 +143,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   // version-controlled default for every build that doesn't pass one.
   // ignore: do_not_use_environment
   static const _appVersion = String.fromEnvironment("APP_VERSION", defaultValue: "0.3.0");
-
-  /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
-  /// from and why it defaults the way it does.
-  ///
-  /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
-  /// (`docs/architecture/sync.md`) stamps a freshly published snapshot with this same
-  /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
-  /// one string from drifting out of step with what [createProject] and `_gateOnFileFormat` already
-  /// stamp into a project file.
-  String get appVersion => _appVersion;
-
-  /// The properties manager used to persist the recently opened projects list.
-  final OcptPropertiesManager _propertiesManager;
-
-  /// The seam `_defaultScreenplayLanguageForAppLocale` reads the app's UI language through.
-  final OcptAppLanguageCodeGetter _appLanguageCode;
-
-  /// The manager [newProjectsDirectory] branches on to tell a desktop platform from a mobile one.
-  final PlatformManager _platformManager;
 
   /// The service used to load/save a screenplay's text and manage its snapshots.
   final OcptScreenplayService screenplayService;
@@ -248,6 +226,18 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// copy a migration is answered with.
   final OcptProjectFileCompatibilityService projectFileCompatibilityService;
 
+  /// The logger this manager writes to, and the parent of every service's own.
+  final LogsHelper _logger;
+
+  /// The properties manager used to persist the recently opened projects list.
+  final OcptPropertiesManager _propertiesManager;
+
+  /// The seam `_defaultScreenplayLanguageForAppLocale` reads the app's UI language through.
+  final OcptAppLanguageCodeGetter _appLanguageCode;
+
+  /// The manager [newProjectsDirectory] branches on to tell a desktop platform from a mobile one.
+  final PlatformManager _platformManager;
+
   /// Whether a create/open/close operation is currently in progress.
   bool _isBusy;
 
@@ -263,6 +253,25 @@ class OcptProjectsManager extends AbsWithLifeCycle {
   /// setter only accepts a non-null value once past its initial state) because a project needs to
   /// be freely settable back to null whenever it's closed.
   late final ValueKeeperWithStream<OcptOpenProjectModel?> _currentProject;
+
+  /// The running build's own app version — see [_appVersion]'s own doc comment for where it comes
+  /// from and why it defaults the way it does.
+  ///
+  /// Exposed alongside it rather than duplicated: the Partager screen's own pairing call
+  /// (`docs/architecture/sync.md`) stamps a freshly published snapshot with this same
+  /// version, through `OcptSyncManager.pairProjectToRelay`, and reading it here is what keeps that
+  /// one string from drifting out of step with what [createProject] and `_gateOnFileFormat` already
+  /// stamp into a project file.
+  String get appVersion => _appVersion;
+
+  /// The project currently open, or null if none is.
+  OcptOpenProjectModel? get currentProject => _currentProject.value;
+
+  /// Emits the project currently open (or null) every time it changes.
+  Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
+
+  /// Whether any mode currently reports changes that haven't reached the database yet.
+  bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
 
   /// Class constructor
   ///
@@ -340,12 +349,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
        projectFileCompatibilityService = services.projectFileCompatibilityService,
        breakdownService = services.breakdownService,
        scheduleService = services.scheduleService;
-
-  /// The project currently open, or null if none is.
-  OcptOpenProjectModel? get currentProject => _currentProject.value;
-
-  /// Emits the project currently open (or null) every time it changes.
-  Stream<OcptOpenProjectModel?> get currentProjectStream => _currentProject.valueStream;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   @override
@@ -795,11 +798,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     return result.status;
   }
 
-  /// The app-wide page margins a version is measured and restored against, falling back to the
-  /// standard ones while the user has never set any.
-  Future<FountainPageMargins> _loadPageMargins() async =>
-      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
-
   /// Registers [reporter], which answers whether the caller holds changes that haven't reached the
   /// database yet, and returns the callback that unregisters it.
   ///
@@ -812,9 +810,6 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     _unsavedChangesReporters.add(reporter);
     return () => _unsavedChangesReporters.remove(reporter);
   }
-
-  /// Whether any mode currently reports changes that haven't reached the database yet.
-  bool get hasUnsavedChanges => _unsavedChangesReporters.any((reporter) => reporter());
 
   /// Enters the read-only preview of the version [versionId] of the [currentProject]: the version's
   /// payload is hydrated into an in-memory database, and *that* is what [currentProject] hands the
@@ -932,6 +927,11 @@ class OcptProjectsManager extends AbsWithLifeCycle {
     onSwapped: (movedProject) => _currentProject.value = movedProject,
     rememberProjectsDirectory: rememberProjectsDirectory,
   );
+
+  /// The app-wide page margins a version is measured and restored against, falling back to the
+  /// standard ones while the user has never set any.
+  Future<FountainPageMargins> _loadPageMargins() async =>
+      await _propertiesManager.pageMargins.load() ?? const FountainPageMargins.standard();
 
   /// The default [OcptAppLanguageCodeGetter]: the language of the app's own UI locale, as
   /// [LocalesManager] holds it.

@@ -9,9 +9,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.d
 /// One slot's own block, already placed on the day's clock — the raw material every reader of a
 /// day's timetable is built from, whichever of the two schedule PDF exports is reading it.
 class OcptOrderedScheduleEntry {
-  /// Class constructor
-  const OcptOrderedScheduleEntry({required this.slot, required this.block, required this.entry});
-
   /// The slot [block] belongs to.
   final OcptShootingSlot slot;
 
@@ -20,4 +17,7 @@ class OcptOrderedScheduleEntry {
 
   /// Where [block] is placed — the *resolved* clock, never a stored anchor.
   final OcptShootingTimelineEntry entry;
+
+  /// Class constructor
+  const OcptOrderedScheduleEntry({required this.slot, required this.block, required this.entry});
 }

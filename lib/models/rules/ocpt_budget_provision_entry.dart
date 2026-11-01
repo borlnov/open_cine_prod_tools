@@ -27,6 +27,13 @@ class OcptBudgetProvisionEntry extends Equatable {
   /// What the provisioning would do to it.
   final OcptBudgetProvisionOutcome outcome;
 
+  /// What the provisioning would stamp onto the line it writes.
+  String get digest => ocptBudgetProvisionDigestOf(
+    label: label,
+    quantityMilli: quantityMilli,
+    unitAmountCents: unitAmountCents,
+  );
+
   /// Class constructor
   const OcptBudgetProvisionEntry({
     required this.kind,
@@ -36,13 +43,6 @@ class OcptBudgetProvisionEntry extends Equatable {
     required this.unitAmountCents,
     required this.outcome,
   });
-
-  /// What the provisioning would stamp onto the line it writes.
-  String get digest => ocptBudgetProvisionDigestOf(
-    label: label,
-    quantityMilli: quantityMilli,
-    unitAmountCents: unitAmountCents,
-  );
 
   /// Object string representation, useful for debugging and logging.
   @override

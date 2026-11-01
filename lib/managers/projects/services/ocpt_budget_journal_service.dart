@@ -49,13 +49,13 @@ class OcptBudgetJournalService extends AbsOcptService {
     '^${RegExp.escape(_voucherNumberPrefix)}(\\d+)\$',
   );
 
-  /// The service used to mint and tombstone the `assets` rows referencing a voucher file.
-  final OcptAssetsService _assetsService;
-
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter]. [_tombstoneEntryReceipt] never calls it: it writes inside a caller's own
   /// transaction, and takes that caller's own [OcptRowStampService] instead.
   final OcptDeviceIdGetter deviceId;
+
+  /// The service used to mint and tombstone the `assets` rows referencing a voucher file.
+  final OcptAssetsService _assetsService;
 
   /// Class constructor
   const OcptBudgetJournalService({
@@ -71,16 +71,6 @@ class OcptBudgetJournalService extends AbsOcptService {
   Future<void> initLifeCycle() async {
     await super.initLifeCycle();
     await _assetsService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await _assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
   }
 
   /// Loads every live entry of [database], in `date` order, `sortKey` breaking a tie between two
@@ -424,25 +414,6 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
-  /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and
-  /// [clearEntryReceipt] (dropping one outright). Unguarded, like `OcptLocationsService
-  /// ._tombstonePermitDocument`: every caller has already refused the write on a previewed
-  /// database itself, or is running inside another guarded method's own transaction. Stamps through
-  /// [stamps] — the caller's own instance — rather than resolving a device id of its own.
-  Future<void> _tombstoneEntryReceipt({
-    required OcptProjectDatabase database,
-    required String entryId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final vouchers = await (database.select(
-      database.ocptAssetsTable,
-    )..where((table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not())).get();
-    for (final voucher in vouchers) {
-      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: stamps);
-    }
-  }
-
   /// Creates a new commitment against [posteId], appended at the end of the commitment list's own
   /// flat `sortKey` order, and returns its freshly generated id.
   ///
@@ -646,6 +617,25 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
+  /// Tombstones every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
+  /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and
+  /// [clearEntryReceipt] (dropping one outright). Unguarded, like `OcptLocationsService
+  /// ._tombstonePermitDocument`: every caller has already refused the write on a previewed
+  /// database itself, or is running inside another guarded method's own transaction. Stamps through
+  /// [stamps] — the caller's own instance — rather than resolving a device id of its own.
+  Future<void> _tombstoneEntryReceipt({
+    required OcptProjectDatabase database,
+    required String entryId,
+    required OcptRowStampService? stamps,
+  }) async {
+    final vouchers = await (database.select(
+      database.ocptAssetsTable,
+    )..where((table) => table.budgetEntryId.equals(entryId) & table.isDeleted.not())).get();
+    for (final voucher in vouchers) {
+      await _assetsService.tombstoneAsset(database: database, assetId: voucher.id, stamps: stamps);
+    }
+  }
+
   /// The next voucher number [createEntry] mints: one above the highest number parsed off any
   /// `budget_entries.voucherNumber` matching [_voucherNumberPattern] in [database], **tombstones
   /// included** — a number is never reused once handed out, even once the entry it named has since
@@ -670,12 +660,6 @@ class OcptBudgetJournalService extends AbsOcptService {
 
     return _voucherNumberOf(highest + 1);
   }
-
-  /// [number], formatted as [_voucherNumberPrefix] followed by three digits at least — `J-001`,
-  /// `J-002`, …, growing past three digits (`J-1000`) rather than wrapping once a project needs a
-  /// fourth.
-  static String _voucherNumberOf(int number) =>
-      '$_voucherNumberPrefix${number.toString().padLeft(3, '0')}';
 
   /// Every live entry row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetEntryRow>> _liveEntryRows(OcptProjectDatabase database) =>
@@ -706,4 +690,20 @@ class OcptBudgetJournalService extends AbsOcptService {
   }) => (database.select(
     database.ocptBudgetCommitmentsTable,
   )..where((table) => table.id.equals(commitmentId) & table.isDeleted.not())).getSingleOrNull();
+
+  /// [number], formatted as [_voucherNumberPrefix] followed by three digits at least — `J-001`,
+  /// `J-002`, …, growing past three digits (`J-1000`) rather than wrapping once a project needs a
+  /// fourth.
+  static String _voucherNumberOf(int number) =>
+      '$_voucherNumberPrefix${number.toString().padLeft(3, '0')}';
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await _assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

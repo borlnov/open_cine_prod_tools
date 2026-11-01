@@ -9,13 +9,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 /// One person of the address book, reduced to what rules 1 and 9 need about a human: their own
 /// [unavailabilities] and their recorded [maxDailyPresenceMinutes].
 class OcptScheduleAlertPerson {
-  /// Builds a person to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertPerson({
-    required this.id,
-    required this.maxDailyPresenceMinutes,
-    required this.unavailabilities,
-  });
-
   /// The person's own id, matched against a slot's own [OcptScheduleAlertSlot.personIds].
   final String id;
 
@@ -25,4 +18,11 @@ class OcptScheduleAlertPerson {
 
   /// This person's own recorded unavailabilities, in no particular order.
   final List<OcptScheduleAlertUnavailability> unavailabilities;
+
+  /// Builds a person to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertPerson({
+    required this.id,
+    required this.maxDailyPresenceMinutes,
+    required this.unavailabilities,
+  });
 }

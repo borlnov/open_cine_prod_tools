@@ -267,6 +267,10 @@ class OcptScriptWordLayout extends Equatable {
   List<OcptShotCoverageRange> rangesInReadingOrder(Iterable<OcptShotCoverageRange> ranges) =>
       _rangesOfThisScene(ranges).toList()..sort((a, b) => a.startOffset.compareTo(b.startOffset));
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptScriptWordLayout(sceneId: $sceneId, blockCount: ${blocks.length})";
+
   /// Filters [ranges] down to the ones belonging to this layout's own [sceneId], dropping ranges
   /// of any other scene a shot's whole range list may also carry.
   Iterable<OcptShotCoverageRange> _rangesOfThisScene(Iterable<OcptShotCoverageRange> ranges) =>
@@ -275,10 +279,6 @@ class OcptScriptWordLayout extends Equatable {
   /// Whether [range] overlaps the scene-relative `[startOffset, endOffset)` span.
   static bool _overlaps(OcptShotCoverageRange range, int startOffset, int endOffset) =>
       range.startOffset < endOffset && range.endOffset > startOffset;
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptScriptWordLayout(sceneId: $sceneId, blockCount: ${blocks.length})";
 
   /// Object properties
   @override

@@ -16,14 +16,6 @@ import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_
 /// only its own widget that draws the table, the section title and the labels object differing
 /// between them.
 class OcptScheduleGuestRow {
-  /// Class constructor
-  const OcptScheduleGuestRow({
-    required this.name,
-    required this.reason,
-    required this.notes,
-    required this.hours,
-  });
-
   /// The guest's own display name — the address-book person's, the free name, or the
   /// `unnamedPersonLabel` [ocptScheduleGuestRowsOfDay] was given while neither names anybody
   /// printable.
@@ -40,4 +32,12 @@ class OcptScheduleGuestRow {
 
   /// This guest's own arrival – departure band ([ocptScheduleArrivalDepartureLabel]).
   final String hours;
+
+  /// Class constructor
+  const OcptScheduleGuestRow({
+    required this.name,
+    required this.reason,
+    required this.notes,
+    required this.hours,
+  });
 }

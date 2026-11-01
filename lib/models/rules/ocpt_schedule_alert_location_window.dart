@@ -10,16 +10,6 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// its values count as covering, so the caller need not even resolve which one this is) and its
 /// free-text note.
 class OcptScheduleAlertLocationWindow {
-  /// Builds a location window to feed to [ocptComputeScheduleAlerts].
-  const OcptScheduleAlertLocationWindow({
-    required this.startDate,
-    required this.endDate,
-    required this.weekdays,
-    required this.dayPart,
-    required this.startMinute,
-    required this.endMinute,
-  });
-
   /// The first date this window covers.
   final DateTime startDate;
 
@@ -40,4 +30,14 @@ class OcptScheduleAlertLocationWindow {
   /// The end of the window in minutes from midnight, or null unless [dayPart] is
   /// [OcptDayPartSlot.custom].
   final int? endMinute;
+
+  /// Builds a location window to feed to [ocptComputeScheduleAlerts].
+  const OcptScheduleAlertLocationWindow({
+    required this.startDate,
+    required this.endDate,
+    required this.weekdays,
+    required this.dayPart,
+    required this.startMinute,
+    required this.endMinute,
+  });
 }

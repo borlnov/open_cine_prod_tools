@@ -15,15 +15,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_grids.dart';
 /// cell and a blank shot-table one. A caller substitutes its own "nothing here" mark for a
 /// genuinely missing value elsewhere; this model never does.
 class OcptShootingPlanGridRow extends Equatable {
-  /// Class constructor
-  const OcptShootingPlanGridRow({
-    required this.label,
-    required this.cells,
-    this.isBold = false,
-    this.isMuted = false,
-    this.isIndented = false,
-  });
-
   /// This row's own leading label (a location's name, a sequence's own tag, a crew position's or a
   /// role's own label).
   final String label;
@@ -42,6 +33,15 @@ class OcptShootingPlanGridRow extends Equatable {
   /// Whether [label] is meant to be printed indented — the locations grid's own nested `Perso.`
   /// row.
   final bool isIndented;
+
+  /// Class constructor
+  const OcptShootingPlanGridRow({
+    required this.label,
+    required this.cells,
+    this.isBold = false,
+    this.isMuted = false,
+    this.isIndented = false,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

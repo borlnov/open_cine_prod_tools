@@ -55,6 +55,36 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// The logger this manager writes to.
   final LogsHelper _logger;
 
+  /// The config manager this manager reads `logs.file.*` from, or null until [_config] resolves it.
+  OcptConfigManager? _configManager;
+
+  /// The logger manager this manager registers its file logger against, or null until [_logging]
+  /// resolves it.
+  LoggerManager? _loggerManager;
+
+  /// The seam [initLifeCycle] resolves the log directory's own path through.
+  final Future<String> Function() _resolveLogDirectoryPath;
+
+  /// The seam [initLifeCycle] reads to decide whether this platform gets a log file at all — true
+  /// on desktop, false on mobile.
+  final bool Function() _isDesktopPlatform;
+
+  /// The registered file logger, or null while file logging is disabled or its setup failed.
+  OcptFileExternalLogger? _fileLogger;
+
+  /// The rotating log file's own path, once file logging is enabled and set up; null while
+  /// disabled by config or after a setup failure.
+  String? get logFilePath => _fileLogger?.logFilePath;
+
+  /// The config manager this manager reads `logs.file.*` from — resolved through `globalGetIt()`
+  /// the first time it is actually needed, unless one was injected in the constructor.
+  OcptConfigManager get _config => _configManager ??= globalGetIt().get<OcptConfigManager>();
+
+  /// The logger manager this manager registers its file logger against — resolved through
+  /// `globalGetIt()` the first time it is actually needed, unless one was injected in the
+  /// constructor.
+  LoggerManager get _logging => _loggerManager ??= globalGetIt().get<LoggerManager>();
+
   /// Creates the manager.
   ///
   /// [configManager] and [loggerManager] are stored nullable and resolved lazily through
@@ -76,36 +106,6 @@ class OcptFileLoggingManager extends AbsWithLifeCycle {
        _loggerManager = loggerManager,
        _resolveLogDirectoryPath = resolveLogDirectoryPath ?? _defaultLogDirectoryPath,
        _isDesktopPlatform = isDesktopPlatform ?? _defaultIsDesktopPlatform;
-
-  /// The config manager this manager reads `logs.file.*` from, or null until [_config] resolves it.
-  OcptConfigManager? _configManager;
-
-  /// The config manager this manager reads `logs.file.*` from — resolved through `globalGetIt()`
-  /// the first time it is actually needed, unless one was injected in the constructor.
-  OcptConfigManager get _config => _configManager ??= globalGetIt().get<OcptConfigManager>();
-
-  /// The logger manager this manager registers its file logger against, or null until [_logging]
-  /// resolves it.
-  LoggerManager? _loggerManager;
-
-  /// The logger manager this manager registers its file logger against — resolved through
-  /// `globalGetIt()` the first time it is actually needed, unless one was injected in the
-  /// constructor.
-  LoggerManager get _logging => _loggerManager ??= globalGetIt().get<LoggerManager>();
-
-  /// The seam [initLifeCycle] resolves the log directory's own path through.
-  final Future<String> Function() _resolveLogDirectoryPath;
-
-  /// The seam [initLifeCycle] reads to decide whether this platform gets a log file at all — true
-  /// on desktop, false on mobile.
-  final bool Function() _isDesktopPlatform;
-
-  /// The registered file logger, or null while file logging is disabled or its setup failed.
-  OcptFileExternalLogger? _fileLogger;
-
-  /// The rotating log file's own path, once file logging is enabled and set up; null while
-  /// disabled by config or after a setup failure.
-  String? get logFilePath => _fileLogger?.logFilePath;
 
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   @override

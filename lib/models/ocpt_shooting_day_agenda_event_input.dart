@@ -10,13 +10,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
 /// already-localized label — the same trade [OcptShootingDayAgendaColumnInput.captionByBlockId]
 /// makes, for the same reason.
 class OcptShootingDayAgendaEventInput extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaEventInput({
-    required this.id,
-    required this.minute,
-    required this.label,
-  });
-
   /// The event's own id (`shooting_day_events.id`).
   final String id;
 
@@ -26,6 +19,13 @@ class OcptShootingDayAgendaEventInput extends Equatable {
 
   /// The event's own printable label.
   final String label;
+
+  /// Class constructor
+  const OcptShootingDayAgendaEventInput({
+    required this.id,
+    required this.minute,
+    required this.label,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

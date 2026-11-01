@@ -12,15 +12,15 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_pairing_service
 /// transport to let it create the project on the relay the first time it is pushed there, and is
 /// never persisted by anything — see `OcptRelayRemoteStorage`'s own doc comment.
 class OcptProjectPairing extends Equatable {
-  /// Class constructor
-  const OcptProjectPairing({required this.relayBaseUri, required this.token});
-
   /// The relay this project is paired with, e.g. `https://relay.example.org/`.
   final Uri relayBaseUri;
 
   /// The bearer token authenticating every request this pairing's replica makes to
   /// [relayBaseUri] for this project.
   final String token;
+
+  /// Class constructor
+  const OcptProjectPairing({required this.relayBaseUri, required this.token});
 
   /// Class properties
   @override

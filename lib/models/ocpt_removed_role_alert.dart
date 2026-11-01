@@ -23,6 +23,10 @@ class OcptRemovedRoleAlert extends Equatable {
   /// Class constructor
   const OcptRemovedRoleAlert({required this.roleId, required this.characterName});
 
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() => "OcptRemovedRoleAlert(roleId: $roleId, characterName: $characterName)";
+
   /// [role]'s own alert, or null while it is still found in the screenplay.
   static OcptRemovedRoleAlert? of(OcptRole role) {
     final orphanedName = role.orphanedName;
@@ -39,10 +43,6 @@ class OcptRemovedRoleAlert extends Equatable {
     for (final role in roles)
       if (OcptRemovedRoleAlert.of(role) case final alert?) alert,
   ];
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() => "OcptRemovedRoleAlert(roleId: $roleId, characterName: $characterName)";
 
   /// Object properties
   @override

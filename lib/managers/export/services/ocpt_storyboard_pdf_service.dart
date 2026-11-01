@@ -117,6 +117,12 @@ const double _annotationHeadAnglePt = 0.45;
 /// same service (and the very same `OcptFloorPlanSheet`-drawing code) the standalone floor plans
 /// PDF uses, so the two documents can never draw one set's plan two different ways.
 class OcptStoryboardPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
+  /// The service the floor plan sheets are drawn through, when appended after a sequence.
+  final OcptFloorPlanPdfService floorPlanPdfService;
+
   /// Creates an [OcptStoryboardPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font
@@ -133,25 +139,6 @@ class OcptStoryboardPdfService extends AbsOcptService {
          floorPlanPdfService: floorPlanPdfService,
        );
 
-  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
-  ///
-  /// Initialises the services this one owns, in the order they are listed in its constructor.
-  @override
-  Future<void> initLifeCycle() async {
-    await super.initLifeCycle();
-    await floorPlanPdfService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await floorPlanPdfService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Class constructor, taking the resolved [fontsLoader] so [floorPlanPdfService]'s own default
   /// can share it.
   OcptStoryboardPdfService._({
@@ -166,11 +153,14 @@ class OcptStoryboardPdfService extends AbsOcptService {
              fontsLoader: fontsLoader,
            );
 
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
-
-  /// The service the floor plan sheets are drawn through, when appended after a sequence.
-  final OcptFloorPlanPdfService floorPlanPdfService;
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await floorPlanPdfService.initLifeCycle();
+  }
 
   /// The `.pdf` file name to suggest when exporting the storyboard of [projectName]. See
   /// `OcptScenarioCoveragePdfService.coverageFileName`'s own doc comment for [suffix] and
@@ -668,5 +658,15 @@ class OcptStoryboardPdfService extends AbsOcptService {
       ..lineTo(left.dx, left.dy)
       ..lineTo(right.dx, right.dy)
       ..fillPath();
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await floorPlanPdfService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

@@ -16,12 +16,12 @@ class OcptCrewPositionRef extends Equatable {
   /// fits. Empty when [positionId] is set.
   final String customLabel;
 
-  /// Class constructor
-  const OcptCrewPositionRef({required this.positionId, required this.customLabel});
-
   /// True when this ref names neither a catalogue entry nor a free label — a crew row holding
   /// neither holds **no** position and must never count as one.
   bool get isEmpty => positionId.isEmpty && customLabel.isEmpty;
+
+  /// Class constructor
+  const OcptCrewPositionRef({required this.positionId, required this.customLabel});
 
   /// Object string representation, useful for debugging and logging.
   @override

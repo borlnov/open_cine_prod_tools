@@ -56,6 +56,9 @@ class OcptScheduleSnapshot extends Equatable {
   /// placements is read.
   final Set<String> placedShotIds;
 
+  /// The total number of live days.
+  int get dayCount => days.length;
+
   /// Class constructor
   const OcptScheduleSnapshot({
     required this.days,
@@ -90,9 +93,6 @@ class OcptScheduleSnapshot extends Equatable {
       placedShotIds: Set.unmodifiable(placedShotIds),
     );
   }
-
-  /// The total number of live days.
-  int get dayCount => days.length;
 
   /// Object string representation, useful for debugging and logging.
   @override

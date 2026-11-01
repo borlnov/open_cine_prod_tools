@@ -18,13 +18,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// end to wherever the blocks happened to land would say the studio was booked until a time nobody
 /// agreed to.
 class OcptTimelineFixedEndMiss {
-  /// Builds a missed-fixed-end record.
-  const OcptTimelineFixedEndMiss({
-    required this.slotId,
-    required this.fixedEndMinute,
-    required this.actualEndMinute,
-  });
-
   /// The [OcptShootingTimelineSlot.id] whose fixed end its own blocks did not land on.
   final String slotId;
 
@@ -33,4 +26,11 @@ class OcptTimelineFixedEndMiss {
 
   /// The minute the slot's chain actually ends at.
   final int actualEndMinute;
+
+  /// Builds a missed-fixed-end record.
+  const OcptTimelineFixedEndMiss({
+    required this.slotId,
+    required this.fixedEndMinute,
+    required this.actualEndMinute,
+  });
 }

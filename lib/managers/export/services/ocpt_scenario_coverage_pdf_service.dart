@@ -120,13 +120,6 @@ const Map<int, pw.TableColumnWidth> _legendColumnWidths = {
 /// appendices come *before* the body on purpose — the legend is the key to the colours the body is
 /// covered in, and a key nobody has read yet is of no use at the back of the document.
 class OcptScenarioCoveragePdfService extends AbsOcptService {
-  /// Creates an [OcptScenarioCoveragePdfService].
-  ///
-  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
-  /// a service built without one gets a loader of its own.
-  OcptScenarioCoveragePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
-    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
   /// [generate] call.
   ///
@@ -136,6 +129,13 @@ class OcptScenarioCoveragePdfService extends AbsOcptService {
 
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
+
+  /// Creates an [OcptScenarioCoveragePdfService].
+  ///
+  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
+  /// a service built without one gets a loader of its own.
+  OcptScenarioCoveragePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
+    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The `.pdf` file name to suggest when exporting the scenario coverage of [projectName].
   ///

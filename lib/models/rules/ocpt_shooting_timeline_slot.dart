@@ -9,15 +9,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// One slot of a day, ready to be chained by [ocptComputeShootingDayTimelines]: its own id, its own
 /// anchor and its own blocks, in the order [ocptComputeSlotTimeline] should place them in.
 class OcptShootingTimelineSlot {
-  /// Builds a slot to feed to [ocptComputeShootingDayTimelines].
-  const OcptShootingTimelineSlot({
-    required this.id,
-    required this.anchorEdge,
-    required this.anchorMinute,
-    required this.anchorSlotId,
-    required this.blocks,
-  });
-
   /// The slot's own id (`shooting_slots.id`).
   final String id;
 
@@ -36,4 +27,13 @@ class OcptShootingTimelineSlot {
   /// This slot's own blocks, in `sortKey` order — a block belongs to exactly one slot, so no block
   /// of the day appears in more than one [OcptShootingTimelineSlot].
   final List<OcptShootingTimelineBlock> blocks;
+
+  /// Builds a slot to feed to [ocptComputeShootingDayTimelines].
+  const OcptShootingTimelineSlot({
+    required this.id,
+    required this.anchorEdge,
+    required this.anchorMinute,
+    required this.anchorSlotId,
+    required this.blocks,
+  });
 }

@@ -37,6 +37,9 @@ class OcptBreakdownLegendEntry extends Equatable {
   /// [category].
   final int count;
 
+  /// This entry's own legend key: `(kind, category)`.
+  OcptBreakdownLegendKey get key => (kind, category);
+
   /// Class constructor
   const OcptBreakdownLegendEntry({
     required this.kind,
@@ -44,9 +47,6 @@ class OcptBreakdownLegendEntry extends Equatable {
     required this.color,
     required this.count,
   });
-
-  /// This entry's own legend key: `(kind, category)`.
-  OcptBreakdownLegendKey get key => (kind, category);
 
   /// Object properties
   @override

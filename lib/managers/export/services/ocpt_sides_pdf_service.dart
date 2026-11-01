@@ -63,13 +63,6 @@ const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 /// full script about how a page is laid out), and this service only wraps that drawing in the
 /// running head and foot a torn-off booklet page needs to say who and what it is.
 class OcptSidesPdfService extends AbsOcptService {
-  /// Creates an [OcptSidesPdfService].
-  ///
-  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
-  /// a service built without one gets a loader of its own.
-  OcptSidesPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
-    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
   /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
   /// [generate] call.
   ///
@@ -80,6 +73,13 @@ class OcptSidesPdfService extends AbsOcptService {
 
   /// The loader the embedded Courier Prime font set is read through.
   final OcptCourierPrimeFontsLoader fontsLoader;
+
+  /// Creates an [OcptSidesPdfService].
+  ///
+  /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
+  /// a service built without one gets a loader of its own.
+  OcptSidesPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
+    : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
 
   /// The `.pdf` file name to suggest when exporting the sides of [dayId], within [plan].
   ///

@@ -14,17 +14,6 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// The result of chaining every slot of a day, each independently: a day is a **set of parallel
 /// chains**, not one — see [ocptComputeShootingDayTimelines]'s own doc comment.
 class OcptShootingDayTimelines {
-  /// Builds a computed set of timelines.
-  const OcptShootingDayTimelines({
-    required this.bySlotId,
-    required this.entries,
-    required this.overruns,
-    required this.fixedEndMisses,
-    required this.anchorCycles,
-    required this.dayStartMinute,
-    required this.dayEndMinute,
-  });
-
   /// Each slot's own [OcptShootingSlotTimeline], keyed by [OcptShootingTimelineSlot.id].
   final Map<String, OcptShootingSlotTimeline> bySlotId;
 
@@ -55,4 +44,15 @@ class OcptShootingDayTimelines {
   /// last unit wraps. Null when every slot is empty (see [OcptShootingSlotTimeline.endMinute]'s own
   /// doc comment on what "empty" means for one slot).
   final int? dayEndMinute;
+
+  /// Builds a computed set of timelines.
+  const OcptShootingDayTimelines({
+    required this.bySlotId,
+    required this.entries,
+    required this.overruns,
+    required this.fixedEndMisses,
+    required this.anchorCycles,
+    required this.dayStartMinute,
+    required this.dayEndMinute,
+  });
 }

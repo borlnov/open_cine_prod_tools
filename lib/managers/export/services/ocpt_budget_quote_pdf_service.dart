@@ -78,15 +78,15 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
 /// map the caller hands in, this service resolving nothing itself
 /// (`docs/architecture/budget.md`'s own "A quote line can price a breakdown element").
 class OcptBudgetQuotePdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptBudgetQuotePdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptBudgetQuotePdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the quote of [projectName].
   ///

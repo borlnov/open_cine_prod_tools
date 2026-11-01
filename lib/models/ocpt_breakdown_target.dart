@@ -48,6 +48,9 @@ class OcptBreakdownTarget extends Equatable {
   /// inspector's "jump to" list and the recap's per-scene column read.
   final int occurrenceCount;
 
+  /// This target's colour, delegating to [ocptBreakdownColorOf].
+  int get color => ocptBreakdownColorOf(kind: kind, category: category);
+
   /// Class constructor
   const OcptBreakdownTarget({
     required this.kind,
@@ -58,9 +61,6 @@ class OcptBreakdownTarget extends Equatable {
     required this.sceneIds,
     required this.occurrenceCount,
   });
-
-  /// This target's colour, delegating to [ocptBreakdownColorOf].
-  int get color => ocptBreakdownColorOf(kind: kind, category: category);
 
   /// Object string representation, useful for debugging and logging.
   @override

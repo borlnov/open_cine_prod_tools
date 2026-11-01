@@ -21,6 +21,13 @@ import 'package:pdf/widgets.dart' as pw;
 /// for the drawing itself, so the screenplay it prints is the very same drawing the scenario
 /// coverage export prints under its bars.
 class OcptPdfExportService extends AbsOcptService {
+  /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
+  /// [generate] call.
+  static const FountainScriptComposer _composer = FountainScriptComposer();
+
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptPdfExportService].
   ///
   /// Deliberately not `const` (unlike the sibling `OcptFountainIoService`): this service loads its
@@ -29,13 +36,6 @@ class OcptPdfExportService extends AbsOcptService {
   /// own.
   OcptPdfExportService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The Fountain-to-page-layout engine, stateless so one instance is shared across every
-  /// [generate] call.
-  static const FountainScriptComposer _composer = FountainScriptComposer();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the project named [projectName], mirroring
   /// `OcptFountainIoService.fountainFileName`. [episodeTag] is the selected episode's own tag,

@@ -11,14 +11,14 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
 /// the captions) has already been turned into [OcptShootingDayAgendaGrid.tiles] by the time the
 /// grid is built.
 class OcptShootingDayAgendaColumn extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaColumn({required this.slotId, required this.label});
-
   /// The slot's own id.
   final String slotId;
 
   /// The slot's own free-text label.
   final String label;
+
+  /// Class constructor
+  const OcptShootingDayAgendaColumn({required this.slotId, required this.label});
 
   /// Object string representation, useful for debugging and logging.
   @override

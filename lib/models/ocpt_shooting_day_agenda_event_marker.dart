@@ -9,15 +9,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_tile.dart';
 /// One event drawn either as a full-width marker inside the grid's own rows, or as a leading or
 /// trailing one just outside them — see [OcptShootingDayAgendaEventPlacement].
 class OcptShootingDayAgendaEventMarker extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaEventMarker({
-    required this.eventId,
-    required this.label,
-    required this.minute,
-    required this.placement,
-    required this.row,
-  });
-
   /// The event's own id.
   final String eventId;
 
@@ -34,6 +25,15 @@ class OcptShootingDayAgendaEventMarker extends Equatable {
   /// when [placement] is [OcptShootingDayAgendaEventPlacement.inGrid], null otherwise: there is no
   /// row to name for a marker drawn outside the grid entirely.
   final int? row;
+
+  /// Class constructor
+  const OcptShootingDayAgendaEventMarker({
+    required this.eventId,
+    required this.label,
+    required this.minute,
+    required this.placement,
+    required this.row,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

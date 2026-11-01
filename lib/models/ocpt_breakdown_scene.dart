@@ -59,6 +59,16 @@ class OcptBreakdownScene extends Equatable {
   /// its own, and the caller (a bloc) is the one that already knows the project's episode count.
   final int? episodeNumber;
 
+  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
+  /// 1-based index among the screenplay's scenes — exactly what `OcptSceneRef.displayNumber` and
+  /// `OcptSceneShotSequence.displaySceneNumber` derive — prefixed with [episodeNumber] once the
+  /// project holds more than one.
+  String get displayNumber => ocptSceneDisplayNumberOf(
+    sceneNumber: sceneNumber,
+    position: position,
+    episodeNumber: episodeNumber,
+  );
+
   /// Class constructor
   const OcptBreakdownScene({
     required this.id,
@@ -93,16 +103,6 @@ class OcptBreakdownScene extends Equatable {
     status: breakdownRow?.status ?? OcptBreakdownSceneStatus.toDo,
     notes: breakdownRow?.notes ?? "",
     tags: tags,
-    episodeNumber: episodeNumber,
-  );
-
-  /// The number this scene is shown by: its own [sceneNumber] when it has one, otherwise its
-  /// 1-based index among the screenplay's scenes — exactly what `OcptSceneRef.displayNumber` and
-  /// `OcptSceneShotSequence.displaySceneNumber` derive — prefixed with [episodeNumber] once the
-  /// project holds more than one.
-  String get displayNumber => ocptSceneDisplayNumberOf(
-    sceneNumber: sceneNumber,
-    position: position,
     episodeNumber: episodeNumber,
   );
 

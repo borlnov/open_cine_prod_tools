@@ -61,28 +61,6 @@ const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 /// — the one conflict a user is ever asked to resolve, for a screenplay conflict view to read. This
 /// class only collects them; it builds no UI of its own.
 class OcptSyncSession {
-  /// Class constructor
-  ///
-  /// [pushInterval] defaults to [ocptDefaultSyncPushInterval]; a test hands in a much shorter one
-  /// so its own timer-driven assertions do not have to wait out the real default.
-  OcptSyncSession({
-    required MixinActLogger logger,
-    required this.projectId,
-    required this.database,
-    required this.deviceId,
-    required this.relayId,
-    required this.storage,
-    required this.changesetService,
-    this.pushInterval = ocptDefaultSyncPushInterval,
-  }) : _status = const OcptSyncStatusInSync(),
-       _statusController = StreamController<OcptSyncStatus>.broadcast(),
-       _conflicts = [],
-       _isRunning = false,
-       _logger = logger;
-
-  /// The logger this session writes to: a sub-logger built by the sync manager.
-  final MixinActLogger _logger;
-
   /// The project this session keeps in sync.
   final String projectId;
 
@@ -110,6 +88,9 @@ class OcptSyncSession {
   /// How often this session runs [OcptChangesetService.syncOnce] on its own timer.
   final Duration pushInterval;
 
+  /// The logger this session writes to: a sub-logger built by the sync manager.
+  final MixinActLogger _logger;
+
   OcptSyncStatus _status;
   final StreamController<OcptSyncStatus> _statusController;
   final List<OcptScreenplayMergeConflict> _conflicts;
@@ -132,6 +113,25 @@ class OcptSyncSession {
 
   /// True once [start] has run and [stop] has not been called since.
   bool get isRunning => _isRunning;
+
+  /// Class constructor
+  ///
+  /// [pushInterval] defaults to [ocptDefaultSyncPushInterval]; a test hands in a much shorter one
+  /// so its own timer-driven assertions do not have to wait out the real default.
+  OcptSyncSession({
+    required MixinActLogger logger,
+    required this.projectId,
+    required this.database,
+    required this.deviceId,
+    required this.relayId,
+    required this.storage,
+    required this.changesetService,
+    this.pushInterval = ocptDefaultSyncPushInterval,
+  }) : _status = const OcptSyncStatusInSync(),
+       _statusController = StreamController<OcptSyncStatus>.broadcast(),
+       _conflicts = [],
+       _isRunning = false,
+       _logger = logger;
 
   /// Runs an initial sync, then subscribes to [storage]'s [OcptRemoteStorage.newWorkStream] and
   /// starts the [pushInterval] timer.

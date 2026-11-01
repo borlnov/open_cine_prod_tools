@@ -47,6 +47,25 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// The logger category linked to this manager.
   static const _loggerCategory = "properties";
 
+  /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
+  static const _shotListColumnsSeparator = ",";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginLeftKey = "leftInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.rightInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginRightKey = "rightInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.topInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginTopKey = "topInches";
+
+  /// This is the key used to stringify or parse the [FountainPageMargins.bottomInches] from/to the
+  /// JSON object stored for [pageMargins].
+  static const _marginBottomKey = "bottomInches";
+
   /// The logger the stored-value parsers write to. Static: the parsers are handed to the items
   /// below before this manager exists.
   static final LogsHelper _logger = buildOcptLogsHelper(_loggerCategory);
@@ -242,25 +261,6 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   /// default directory in either case.
   final SharedPreferencesItem<String> lastProjectsDirectory;
 
-  /// The separator joining the [OcptShotListColumn] names stored for [shotListVisibleColumns].
-  static const _shotListColumnsSeparator = ",";
-
-  /// This is the key used to stringify or parse the [FountainPageMargins.leftInches] from/to the
-  /// JSON object stored for [pageMargins].
-  static const _marginLeftKey = "leftInches";
-
-  /// This is the key used to stringify or parse the [FountainPageMargins.rightInches] from/to the
-  /// JSON object stored for [pageMargins].
-  static const _marginRightKey = "rightInches";
-
-  /// This is the key used to stringify or parse the [FountainPageMargins.topInches] from/to the
-  /// JSON object stored for [pageMargins].
-  static const _marginTopKey = "topInches";
-
-  /// This is the key used to stringify or parse the [FountainPageMargins.bottomInches] from/to the
-  /// JSON object stored for [pageMargins].
-  static const _marginBottomKey = "bottomInches";
-
   /// This is the key used to store the app-wide page margins preference in the local storage.
   ///
   /// Margins are a rendering preference shared by every project (unlike the page format, which is
@@ -372,9 +372,6 @@ class OcptPropertiesManager extends AbstractPropertiesManager
   Future<void> setHostOnLaunch({required String projectId, required bool value}) =>
       SharedPreferencesItem<bool>(_hostOnLaunchKey(projectId)).store(value);
 
-  /// The local-storage key [projectId]'s own "host on launch" flag is stored under.
-  static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
-
   /// Add [project] to [recentProjects], or move it to the front if it's already there.
   ///
   /// The list is kept sorted with the most recently opened project first and capped at
@@ -409,6 +406,9 @@ class OcptPropertiesManager extends AbstractPropertiesManager
     updated[index] = updated[index].copyWith(path: newPath);
     await recentProjects.store(updated);
   }
+
+  /// The local-storage key [projectId]'s own "host on launch" flag is stored under.
+  static String _hostOnLaunchKey(String projectId) => 'HOST_ON_LAUNCH_$projectId';
 
   /// Parse the [value] stored in the local storage to the list of recent projects.
   ///

@@ -28,13 +28,6 @@ import 'package:path/path.dart' as p;
 /// boundary [OcptRemoteStorage] itself draws, kept here so this class can be exercised, and used,
 /// from a plain Dart isolate.
 class OcptFolderRemoteStorage implements OcptRemoteStorage {
-  /// Creates a transport rooted at [directory]. Neither [directory] nor its two subdirectories
-  /// need to exist yet — every method that writes creates what it needs first.
-  OcptFolderRemoteStorage(this.directory);
-
-  /// The directory this transport reads and writes `changesets/` and `snapshots/` under.
-  final Directory directory;
-
   /// The zero-padding width of a changeset file's name — wide enough that a project's whole
   /// history, appended one changeset at a time, never runs out of digits.
   static const _sequenceNumberWidth = 10;
@@ -46,9 +39,27 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
   static const _snapshotBytesExtension = '.bin';
   static const _latestSnapshotMarkerFileName = 'LATEST';
 
+  /// The directory this transport reads and writes `changesets/` and `snapshots/` under.
+  final Directory directory;
+
+  // No network and no other process to watch for on the common case of a plain local directory;
+  // a directory reached through a file-sync client only ever changes between app launches, which
+  // every replica already re-reads on `readSince`/`fetchLatestSnapshot` at startup. A relay's
+  // WebSocket route is what actually drives this stream once it exists.
+  @override
+  Stream<void> get newWorkStream => const Stream.empty();
+
+  // Mirrors newWorkStream above: no peer, nothing to receive.
+  @override
+  Stream<String> get presenceStream => const Stream.empty();
+
   Directory get _changesetsDir => Directory(p.join(directory.path, _changesetsDirName));
 
   Directory get _snapshotsDir => Directory(p.join(directory.path, _snapshotsDirName));
+
+  /// Creates a transport rooted at [directory]. Neither [directory] nor its two subdirectories
+  /// need to exist yet — every method that writes creates what it needs first.
+  OcptFolderRemoteStorage(this.directory);
 
   @override
   Future<ResultWithStatus<OcptRemoteStorageStatus, OcptSequenceNumber>> append(
@@ -137,6 +148,13 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
     return ResultWithStatus(status: OcptRemoteStorageStatus.ok, value: (descriptor, bytes));
   });
 
+  // A plain directory has no live peer to reach — sharing it is always through a file-sync client
+  // that only converges between launches, never a socket a presence heartbeat could ride. The call
+  // is accepted and dropped rather than refused: a caller of the shared `OcptRemoteStorage` seam
+  // never has to special-case this transport.
+  @override
+  void sendPresence(String opaquePayload) {}
+
   /// Runs [call], answering [OcptRemoteStorageStatus.unreachable] with the failure it caught when
   /// it throws anything at all: the file system and `dart:convert` are third-party boundaries, and
   /// a directory that cannot be read is the same thing to a caller as a relay that cannot be heard.
@@ -155,24 +173,6 @@ class OcptFolderRemoteStorage implements OcptRemoteStorage {
 
     return result;
   }
-
-  // No network and no other process to watch for on the common case of a plain local directory;
-  // a directory reached through a file-sync client only ever changes between app launches, which
-  // every replica already re-reads on `readSince`/`fetchLatestSnapshot` at startup. A relay's
-  // WebSocket route is what actually drives this stream once it exists.
-  @override
-  Stream<void> get newWorkStream => const Stream.empty();
-
-  // A plain directory has no live peer to reach — sharing it is always through a file-sync client
-  // that only converges between launches, never a socket a presence heartbeat could ride. The call
-  // is accepted and dropped rather than refused: a caller of the shared `OcptRemoteStorage` seam
-  // never has to special-case this transport.
-  @override
-  void sendPresence(String opaquePayload) {}
-
-  // Mirrors newWorkStream above: no peer, nothing to receive.
-  @override
-  Stream<String> get presenceStream => const Stream.empty();
 
   /// The highest sequence number already written under [changesetsDir], or
   /// [OcptSequenceNumber.zero] when it holds none — so that [append] always has a value to call

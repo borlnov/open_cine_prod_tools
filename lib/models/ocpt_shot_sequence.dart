@@ -19,9 +19,6 @@ sealed class OcptShotSequence extends Equatable {
   /// This sequence's shots, in display order.
   final List<OcptShot> shots;
 
-  /// Class constructor
-  const OcptShotSequence({required this.shots});
-
   /// The identifier a view selects this sequence by: the scene's own id for an
   /// [OcptSceneShotSequence], [OcptOrphanShotSequence.sequenceId] for the orphan group.
   ///
@@ -44,6 +41,9 @@ sealed class OcptShotSequence extends Equatable {
   /// The number of shots in this sequence not yet marked [OcptShotStatus.shot] (a shot still
   /// [OcptShotStatus.toShoot] or awaiting an [OcptShotStatus.retake] both still need shooting).
   int get shotsLeftToShoot => shots.where((shot) => shot.status != OcptShotStatus.shot).length;
+
+  /// Class constructor
+  const OcptShotSequence({required this.shots});
 }
 
 /// A sequence backed by a real screenplay scene.
@@ -73,6 +73,11 @@ class OcptSceneShotSequence extends OcptShotSequence {
   /// scene, copied from the scene's own `scenes` row. See [charStart].
   final int charEnd;
 
+  /// The scene's own id: a scene is never listed twice in a snapshot, so it already identifies
+  /// the sequence built from it.
+  @override
+  String get id => sceneId;
+
   /// Class constructor
   const OcptSceneShotSequence({
     required this.sceneId,
@@ -83,11 +88,6 @@ class OcptSceneShotSequence extends OcptShotSequence {
     required this.charEnd,
     required super.shots,
   });
-
-  /// The scene's own id: a scene is never listed twice in a snapshot, so it already identifies
-  /// the sequence built from it.
-  @override
-  String get id => sceneId;
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -122,13 +122,13 @@ class OcptOrphanShotSequence extends OcptShotSequence {
   /// [OcptSceneShotSequence] identifies itself by, and reads as what it is in a debugger.
   static const sequenceId = "orphans";
 
-  /// Class constructor
-  const OcptOrphanShotSequence({required super.shots});
-
   /// The constant [sequenceId]: there is exactly one orphan group per snapshot, so it needs no
   /// identifier of its own beyond a sentinel telling it apart from every scene.
   @override
   String get id => sequenceId;
+
+  /// Class constructor
+  const OcptOrphanShotSequence({required super.shots});
 
   /// Object string representation, useful for debugging and logging.
   @override

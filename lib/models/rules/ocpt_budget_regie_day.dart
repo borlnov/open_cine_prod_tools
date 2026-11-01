@@ -35,6 +35,17 @@ class OcptBudgetRegieDay extends Equatable {
   /// own reading.
   final int extraCount;
 
+  /// Every meal block this day's own timetable holds, one entry per sitting, in the order the
+  /// day's own blocks chain in — **empty when the day's timetable holds no meal block at all**,
+  /// which is a stated absence rather than a coincidental zero: the view reads this list's own
+  /// emptiness to print a dash rather than a total that looks like a confirmed "nobody eats today".
+  final List<OcptBudgetRegieMealSitting> mealSittings;
+
+  /// This day's own catering cost, priced over [mealCount] and [buffetCount] — see
+  /// [ocptBudgetRegieDaysOf]'s own doc comment for why a missing price leaves one of the two out
+  /// rather than the whole figure.
+  final OcptBudgetCoveredTotal cost;
+
   /// How many people the buffet actually has to serve today — [crewCount] plus [castCount] plus
   /// [extraCount]. A derived reading, not a field of its own: it would otherwise be a second copy
   /// of the very three counts it is computed from. **Unaffected by [mealSittings]**: the buffet is
@@ -47,22 +58,11 @@ class OcptBudgetRegieDay extends Equatable {
   /// borrowing [headCount] for a purpose it isn't named for.
   int get buffetCount => headCount;
 
-  /// Every meal block this day's own timetable holds, one entry per sitting, in the order the
-  /// day's own blocks chain in — **empty when the day's timetable holds no meal block at all**,
-  /// which is a stated absence rather than a coincidental zero: the view reads this list's own
-  /// emptiness to print a dash rather than a total that looks like a confirmed "nobody eats today".
-  final List<OcptBudgetRegieMealSitting> mealSittings;
-
   /// How many meals this day accounts for — the sum of every [mealSittings] entry's own
   /// [OcptBudgetRegieMealSitting.headCount]. A person fed at two sittings of the same day (lunch
   /// and dinner) is counted twice here, on purpose: they ate twice, and the production pays for
   /// both.
   int get mealCount => mealSittings.fold(0, (sum, sitting) => sum + sitting.headCount);
-
-  /// This day's own catering cost, priced over [mealCount] and [buffetCount] — see
-  /// [ocptBudgetRegieDaysOf]'s own doc comment for why a missing price leaves one of the two out
-  /// rather than the whole figure.
-  final OcptBudgetCoveredTotal cost;
 
   /// Class constructor
   const OcptBudgetRegieDay({

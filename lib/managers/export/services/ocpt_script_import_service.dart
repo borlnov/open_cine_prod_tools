@@ -57,16 +57,6 @@ class OcptScriptImportService extends AbsOcptService {
     await fountainIoService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await fountainIoService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Reads [bytes] as a screenplay, picking what to do with them from [fileName]'s extension.
   ///
   /// Returns [OcptScreenplayImportStatus.ok] with the Fountain text, or
@@ -120,5 +110,15 @@ class OcptScriptImportService extends AbsOcptService {
 
     return fileName.substring(dotIndex + 1).toLowerCase() ==
         OcptFountainIoService.fountainFileExtension;
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await fountainIoService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

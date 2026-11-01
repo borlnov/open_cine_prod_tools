@@ -14,14 +14,6 @@ import 'package:open_cine_prod_tools/types/ocpt_day_out_of_days_code.dart';
 /// entry at all rather than a code meaning "not working": the role is simply not on this shoot yet,
 /// or no longer is, and a mark there would be a claim about days the production has not committed.
 class OcptDayOutOfDaysRow extends Equatable {
-  /// Class constructor
-  const OcptDayOutOfDaysRow({
-    required this.roleId,
-    required this.codeByDayId,
-    required this.workedDayCount,
-    required this.heldDayCount,
-  });
-
   /// The role this row is about (`roles.id`).
   final String roleId;
 
@@ -37,6 +29,14 @@ class OcptDayOutOfDaysRow extends Equatable {
   /// How many [OcptDayOutOfDaysCode.hold] days this role's own span holds — the days it is owed
   /// without being called.
   final int heldDayCount;
+
+  /// Class constructor
+  const OcptDayOutOfDaysRow({
+    required this.roleId,
+    required this.codeByDayId,
+    required this.workedDayCount,
+    required this.heldDayCount,
+  });
 
   /// This role's own code on [dayId], or null when [dayId] falls outside its span.
   OcptDayOutOfDaysCode? codeOf(String dayId) => codeByDayId[dayId];

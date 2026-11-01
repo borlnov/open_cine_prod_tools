@@ -326,15 +326,6 @@ abstract final class OcptScheduleBlocksOps {
     });
   }
 
-  /// Whether a block of [kind] names a sequence through `shooting_day_blocks.sceneId`: a
-  /// [OcptShootingBlockKind.hold] reserves one's time, a [OcptShootingBlockKind.rehearsal] works
-  /// it, and no other kind has anything to say about a sequence.
-  ///
-  /// Written once and read by [createBlock] and [updateBlock] alike, so the two cannot come to
-  /// disagree about which kinds keep the column.
-  static bool _namesASequence(OcptShootingBlockKind kind) =>
-      kind == OcptShootingBlockKind.hold || kind == OcptShootingBlockKind.rehearsal;
-
   /// Moves block [blockId] to [newPosition] (0-based) within its own slot's timetable, by giving it
   /// a `sortKey` sitting between the two blocks it lands between there. Writes **exactly one row**.
   ///
@@ -493,4 +484,13 @@ abstract final class OcptScheduleBlocksOps {
       );
     }
   }
+
+  /// Whether a block of [kind] names a sequence through `shooting_day_blocks.sceneId`: a
+  /// [OcptShootingBlockKind.hold] reserves one's time, a [OcptShootingBlockKind.rehearsal] works
+  /// it, and no other kind has anything to say about a sequence.
+  ///
+  /// Written once and read by [createBlock] and [updateBlock] alike, so the two cannot come to
+  /// disagree about which kinds keep the column.
+  static bool _namesASequence(OcptShootingBlockKind kind) =>
+      kind == OcptShootingBlockKind.hold || kind == OcptShootingBlockKind.rehearsal;
 }

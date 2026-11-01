@@ -28,14 +28,14 @@ DateTime _systemClock() => DateTime.now();
 
 /// One peer this service currently knows to be present: its last heartbeat, and when it arrived.
 class _SeenPeer {
-  _SeenPeer({required this.frame, required this.lastSeen});
-
   /// The peer's own last frame.
   OcptPresenceFrame frame;
 
   /// When [frame] was recorded, read from [OcptPresenceService.clock] — never a peer's own claim,
   /// so a peer with a wrong system clock still ages out on this replica's own schedule.
   DateTime lastSeen;
+
+  _SeenPeer({required this.frame, required this.lastSeen});
 }
 
 /// Keeps one project's presence roster converging against its peers for as long as it runs — the
@@ -52,26 +52,6 @@ class _SeenPeer {
 /// [roster] seeds a fresh listener the way `OcptSyncSession.status` does, since [rosterStream]
 /// never replays its current value either (no ACT stream does, `CLAUDE.md`'s own pitfalls list).
 class OcptPresenceService extends AbsOcptService {
-  /// Class constructor
-  ///
-  /// [platform] defaults to [Platform.operatingSystem] — not usable as a literal default value,
-  /// since it is a runtime call, not a constant. [clock] defaults to the wall clock
-  /// ([_systemClock]); a test hands in its own so a peer's ageing past [peerTimeout] can be driven
-  /// deterministically instead of waiting on real time.
-  OcptPresenceService({
-    required super.logger,
-    required this.storage,
-    required this.deviceId,
-    String? platform,
-    this.heartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
-    this.peerTimeout = ocptDefaultPresencePeerTimeout,
-    this.clock = _systemClock,
-  }) : _heartbeatCounter = 0,
-       _peers = {},
-       _isRunning = false,
-       _rosterController = StreamController<OcptPresenceRoster>.broadcast(),
-       platform = platform ?? Platform.operatingSystem;
-
   /// The transport this service heartbeats over and listens to peers through.
   final OcptRemoteStorage storage;
 
@@ -101,6 +81,14 @@ class OcptPresenceService extends AbsOcptService {
 
   final StreamController<OcptPresenceRoster> _rosterController;
 
+  /// The current roster — see this class's own doc comment for why a caller reads this once before
+  /// ever listening to [rosterStream].
+  OcptPresenceRoster get roster => _buildRoster();
+
+  /// Emits every roster this service moves through from the moment a listener subscribes onward —
+  /// never its current value at subscription time (see [roster] and this class's own doc comment).
+  Stream<OcptPresenceRoster> get rosterStream => _rosterController.stream;
+
   /// This replica's own current frame — [_heartbeatCounter] only actually advances when
   /// [_sendHeartbeat] runs, so this always reflects the last heartbeat this replica sent (or,
   /// before [start] has ever run, the frame it would send first).
@@ -111,13 +99,25 @@ class OcptPresenceService extends AbsOcptService {
     heartbeat: _heartbeatCounter,
   );
 
-  /// The current roster — see this class's own doc comment for why a caller reads this once before
-  /// ever listening to [rosterStream].
-  OcptPresenceRoster get roster => _buildRoster();
-
-  /// Emits every roster this service moves through from the moment a listener subscribes onward —
-  /// never its current value at subscription time (see [roster] and this class's own doc comment).
-  Stream<OcptPresenceRoster> get rosterStream => _rosterController.stream;
+  /// Class constructor
+  ///
+  /// [platform] defaults to [Platform.operatingSystem] — not usable as a literal default value,
+  /// since it is a runtime call, not a constant. [clock] defaults to the wall clock
+  /// ([_systemClock]); a test hands in its own so a peer's ageing past [peerTimeout] can be driven
+  /// deterministically instead of waiting on real time.
+  OcptPresenceService({
+    required super.logger,
+    required this.storage,
+    required this.deviceId,
+    String? platform,
+    this.heartbeatInterval = ocptDefaultPresenceHeartbeatInterval,
+    this.peerTimeout = ocptDefaultPresencePeerTimeout,
+    this.clock = _systemClock,
+  }) : _heartbeatCounter = 0,
+       _peers = {},
+       _isRunning = false,
+       _rosterController = StreamController<OcptPresenceRoster>.broadcast(),
+       platform = platform ?? Platform.operatingSystem;
 
   /// Subscribes to [storage]'s [OcptRemoteStorage.presenceStream], sends this replica's first
   /// heartbeat, and starts the [heartbeatInterval] timer that keeps sending it and sweeps stale
@@ -150,17 +150,6 @@ class OcptPresenceService extends AbsOcptService {
     if (!_rosterController.isClosed) {
       await _rosterController.close();
     }
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Stops this service, so whoever built it releases it by disposing it rather than by calling
-  /// [stop] as well.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await stop();
-
-    return super.disposeLifeCycle();
   }
 
   /// Sets this replica's own current mode and sends a heartbeat immediately, so a mode change
@@ -226,5 +215,16 @@ class OcptPresenceService extends AbsOcptService {
     if (!_rosterController.isClosed) {
       _rosterController.add(_buildRoster());
     }
+  }
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Stops this service, so whoever built it releases it by disposing it rather than by calling
+  /// [stop] as well.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await stop();
+
+    return super.disposeLifeCycle();
   }
 }

@@ -17,14 +17,14 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 /// stored alongside it in `project_versions.summaryJson`: drawing the versions list must never mean
 /// deserializing and re-measuring every payload.
 class OcptProjectVersionSummary extends Equatable {
+  /// The all-zero summary, used for a version whose stored counters can't be read back.
+  static const empty = OcptProjectVersionSummary(pageCount: 0, brokenDownSequenceCount: 0);
+
   /// This is the key used to stringify or parse the [pageCount] from a JSON object
   static const _pageCountKey = "pageCount";
 
   /// This is the key used to stringify or parse the [brokenDownSequenceCount] from a JSON object
   static const _brokenDownSequenceCountKey = "brokenDownSequenceCount";
-
-  /// The all-zero summary, used for a version whose stored counters can't be read back.
-  static const empty = OcptProjectVersionSummary(pageCount: 0, brokenDownSequenceCount: 0);
 
   /// The number of printed pages the version's screenplays paginated to, at the page setup the
   /// version itself carries.
@@ -75,6 +75,12 @@ class OcptProjectVersionSummary extends Equatable {
     _pageCountKey: pageCount,
     _brokenDownSequenceCountKey: brokenDownSequenceCount,
   };
+
+  /// Object string representation, useful for debugging and logging.
+  @override
+  String toString() =>
+      "OcptProjectVersionSummary(pageCount: $pageCount, "
+      "brokenDownSequenceCount: $brokenDownSequenceCount)";
 
   /// Parse the given [json] to a [OcptProjectVersionSummary] object
   ///
@@ -132,12 +138,6 @@ class OcptProjectVersionSummary extends Equatable {
 
     return summary;
   }
-
-  /// Object string representation, useful for debugging and logging.
-  @override
-  String toString() =>
-      "OcptProjectVersionSummary(pageCount: $pageCount, "
-      "brokenDownSequenceCount: $brokenDownSequenceCount)";
 
   /// Object properties
   @override

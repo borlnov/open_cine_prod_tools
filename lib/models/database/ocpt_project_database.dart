@@ -251,91 +251,6 @@ part '../../generated/models/database/ocpt_project_database.g.dart';
   ],
 )
 class OcptProjectDatabase extends _$OcptProjectDatabase {
-  /// Whether this connection holds the read-only state of a project version being previewed,
-  /// rather than the working copy.
-  ///
-  /// Only `OcptProjectsManager.previewVersion` ever opens one: it hydrates an in-memory database
-  /// from a version's payload and hands it to the modes as `OcptOpenProjectModel.database`, while
-  /// the project file stays open, untouched, as `OcptOpenProjectModel.fileDatabase`. Everything
-  /// the user may not do to a version they are only reading is refused by [refusesUserWrite].
-  final bool isPreview;
-
-  /// Opens (creating it if needed) the project database stored at [file].
-  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
-
-  /// Opens the project database stored at [file] while another [OcptProjectDatabase] is still
-  /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
-  /// holds both for the instant between verifying the copy and closing the original.
-  ///
-  /// That overlap is what drift's "database class created multiple times" warning looks for, and
-  /// it is a false alarm here for the same reason as the version preview's
-  /// ([OcptProjectDatabase.memory]): the warning is about two databases sharing a [QueryExecutor],
-  /// and these two each own their own [NativeDatabase] on their own file.
-  OcptProjectDatabase.alongsideAnother(File file)
-    : isPreview = false,
-      super(_alongsideExecutor(file));
-
-  /// Opens a project database backed by an in-memory SQLite instance: the connection a version
-  /// preview is hydrated into ([isPreview] true), and the one the tests run against.
-  ///
-  /// Its content is lost as soon as the database is closed, which is precisely what a preview
-  /// wants: it never touches the project file.
-  OcptProjectDatabase.memory({bool isPreview = false})
-    : isPreview = isPreview,
-      super(_memoryExecutor(isPreview: isPreview));
-
-  /// The file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
-  /// multiple-instances warning first (see that constructor's own doc comment).
-  static QueryExecutor _alongsideExecutor(File file) {
-    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
-    return NativeDatabase(file);
-  }
-
-  /// The in-memory executor [OcptProjectDatabase.memory] runs on.
-  ///
-  /// Opening a preview is the one moment the app holds two [OcptProjectDatabase] at once — the
-  /// project file and the version being read — which is exactly what drift's
-  /// "database class created multiple times" warning looks for. That warning is about two
-  /// databases sharing a [QueryExecutor], and these two never can: this one is a private in-memory
-  /// instance, and the file stays behind `OcptOpenProjectModel.fileDatabase`. So the preview
-  /// silences it, rather than teaching everyone reading a debug log to ignore it.
-  static QueryExecutor _memoryExecutor({required bool isPreview}) {
-    if (isPreview) {
-      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-    }
-
-    return NativeDatabase.memory();
-  }
-
-  /// Whether the user-driven write named [operation] must be refused because it was handed a
-  /// preview connection, logging it when it is.
-  ///
-  /// {@template open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  /// **What this gates, precisely: the user may not edit what is on screen.** It is not a global
-  /// write lock on the project, and the difference matters as soon as the collaboration engine
-  /// exists: a merge applying an incoming changeset is not a user edit, it targets
-  /// `OcptOpenProjectModel.fileDatabase` rather than the previewed connection, and it must go
-  /// through whether or not a preview is up — a gate that swallowed it would silently drop
-  /// somebody else's work. Hence the question asked here is "was this call handed the preview
-  /// database?", never "is this project currently read-only?".
-  /// {@endtemplate}
-  ///
-  /// A refusal is a logged no-op rather than a thrown error: the UI is supposed to have hidden the
-  /// affordance already (a mode gates itself on `OcptOpenProjectModel.isReadOnly`), so reaching
-  /// here is a bug to be seen in the logs, not a failure the user can act on.
-  bool refusesUserWrite(String operation) {
-    if (!isPreview) {
-      return false;
-    }
-
-    appLogger().w(
-      "The write '$operation' was handed the read-only database of a project version "
-      "being previewed: it's ignored, the version on screen isn't editable",
-    );
-    return true;
-  }
-
   /// The schema version this build of the app writes, readable without a database to hand.
   ///
   /// [schemaVersion] is drift's own instance getter, and the compatibility gate has to know this
@@ -360,6 +275,15 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// See [currentSchemaVersion]'s own doc comment for the overwrite-vs-create rule these two
   /// constants drive together.
   static const lastStableSchemaVersion = 4;
+
+  /// Whether this connection holds the read-only state of a project version being previewed,
+  /// rather than the working copy.
+  ///
+  /// Only `OcptProjectsManager.previewVersion` ever opens one: it hydrates an in-memory database
+  /// from a version's payload and hands it to the modes as `OcptOpenProjectModel.database`, while
+  /// the project file stays open, untouched, as `OcptOpenProjectModel.fileDatabase`. Everything
+  /// the user may not do to a version they are only reading is refused by [refusesUserWrite].
+  final bool isPreview;
 
   /// {@macro drift.GeneratedDatabase.schemaVersion}
   @override
@@ -428,4 +352,80 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  /// Opens (creating it if needed) the project database stored at [file].
+  OcptProjectDatabase(File file) : isPreview = false, super(NativeDatabase(file));
+
+  /// Opens the project database stored at [file] while another [OcptProjectDatabase] is still
+  /// open on a different file: the destination of `OcptProjectsManager.moveCurrentProject`, which
+  /// holds both for the instant between verifying the copy and closing the original.
+  ///
+  /// That overlap is what drift's "database class created multiple times" warning looks for, and
+  /// it is a false alarm here for the same reason as the version preview's
+  /// ([OcptProjectDatabase.memory]): the warning is about two databases sharing a [QueryExecutor],
+  /// and these two each own their own [NativeDatabase] on their own file.
+  OcptProjectDatabase.alongsideAnother(File file)
+    : isPreview = false,
+      super(_alongsideExecutor(file));
+
+  /// Opens a project database backed by an in-memory SQLite instance: the connection a version
+  /// preview is hydrated into ([isPreview] true), and the one the tests run against.
+  ///
+  /// Its content is lost as soon as the database is closed, which is precisely what a preview
+  /// wants: it never touches the project file.
+  OcptProjectDatabase.memory({bool isPreview = false})
+    : isPreview = isPreview,
+      super(_memoryExecutor(isPreview: isPreview));
+
+  /// Whether the user-driven write named [operation] must be refused because it was handed a
+  /// preview connection, logging it when it is.
+  ///
+  /// {@template open_cine_prod_tools.OcptProjectDatabase.previewGuard}
+  /// **What this gates, precisely: the user may not edit what is on screen.** It is not a global
+  /// write lock on the project, and the difference matters as soon as the collaboration engine
+  /// exists: a merge applying an incoming changeset is not a user edit, it targets
+  /// `OcptOpenProjectModel.fileDatabase` rather than the previewed connection, and it must go
+  /// through whether or not a preview is up — a gate that swallowed it would silently drop
+  /// somebody else's work. Hence the question asked here is "was this call handed the preview
+  /// database?", never "is this project currently read-only?".
+  /// {@endtemplate}
+  ///
+  /// A refusal is a logged no-op rather than a thrown error: the UI is supposed to have hidden the
+  /// affordance already (a mode gates itself on `OcptOpenProjectModel.isReadOnly`), so reaching
+  /// here is a bug to be seen in the logs, not a failure the user can act on.
+  bool refusesUserWrite(String operation) {
+    if (!isPreview) {
+      return false;
+    }
+
+    appLogger().w(
+      "The write '$operation' was handed the read-only database of a project version "
+      "being previewed: it's ignored, the version on screen isn't editable",
+    );
+    return true;
+  }
+
+  /// The file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
+  /// multiple-instances warning first (see that constructor's own doc comment).
+  static QueryExecutor _alongsideExecutor(File file) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+    return NativeDatabase(file);
+  }
+
+  /// The in-memory executor [OcptProjectDatabase.memory] runs on.
+  ///
+  /// Opening a preview is the one moment the app holds two [OcptProjectDatabase] at once — the
+  /// project file and the version being read — which is exactly what drift's
+  /// "database class created multiple times" warning looks for. That warning is about two
+  /// databases sharing a [QueryExecutor], and these two never can: this one is a private in-memory
+  /// instance, and the file stays behind `OcptOpenProjectModel.fileDatabase`. So the preview
+  /// silences it, rather than teaching everyone reading a debug log to ignore it.
+  static QueryExecutor _memoryExecutor({required bool isPreview}) {
+    if (isPreview) {
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    }
+
+    return NativeDatabase.memory();
+  }
 }

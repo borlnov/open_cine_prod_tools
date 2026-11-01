@@ -76,9 +76,9 @@ enum OcptScheduleAlertKind {
   /// [OcptSchedulePermitNotValidAlert].
   permitNotValid(OcptScheduleAlertSeverity.soft);
 
-  /// Class constructor
-  const OcptScheduleAlertKind(this.severity);
-
   /// How urgently this kind of alert needs a human to look at it.
   final OcptScheduleAlertSeverity severity;
+
+  /// Class constructor
+  const OcptScheduleAlertKind(this.severity);
 }

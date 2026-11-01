@@ -33,51 +33,6 @@ import 'package:uuid/uuid.dart';
 /// **[deletePerson] is an erasure, not a plain tombstone**. See its own doc comment for exactly
 /// which columns are blanked.
 class OcptPeopleService extends AbsOcptService {
-  /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
-  /// signed image rights release. Held rather than reached for, exactly as
-  /// `OcptLocationsService` holds its own.
-  final OcptAssetsService assetsService;
-
-  /// The service owning the `role_candidates` rows, held so [deletePerson] can carry this person's
-  /// candidacies — and what was written about them at an audition — off with them.
-  ///
-  /// Held for the same reason [assetsService] is, and the edge runs the same way: that service
-  /// never reads `people`, so nothing here closes a circle.
-  final OcptRoleCandidatesService roleCandidatesService;
-
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
-  final OcptDeviceIdGetter deviceId;
-
-  /// Class constructor
-  const OcptPeopleService({
-    required super.logger,
-    required this.deviceId,
-    required this.assetsService,
-    required this.roleCandidatesService,
-  });
-
-  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
-  ///
-  /// Initialises the services this one owns, in the order they are listed in its constructor.
-  @override
-  Future<void> initLifeCycle() async {
-    await super.initLifeCycle();
-    await assetsService.initLifeCycle();
-    await roleCandidatesService.initLifeCycle();
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await roleCandidatesService.disposeLifeCycle();
-    await assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// The write [deletePerson] uses to blank a person's personal columns.
   ///
   /// **Every column of `people` is blanked, except the four that are not personal data**: `id`
@@ -130,6 +85,40 @@ class OcptPeopleService extends AbsOcptService {
     commuteKmMilli: Value(null),
     mileageRateId: Value(null),
   );
+
+  /// The service minting and tombstoning the `assets` rows a person owns — their photo and their
+  /// signed image rights release. Held rather than reached for, exactly as
+  /// `OcptLocationsService` holds its own.
+  final OcptAssetsService assetsService;
+
+  /// The service owning the `role_candidates` rows, held so [deletePerson] can carry this person's
+  /// candidacies — and what was written about them at an audition — off with them.
+  ///
+  /// Held for the same reason [assetsService] is, and the edge runs the same way: that service
+  /// never reads `people`, so nothing here closes a circle.
+  final OcptRoleCandidatesService roleCandidatesService;
+
+  /// Resolves the device id every stamp this service's own writes carry — see
+  /// [OcptDeviceIdGetter].
+  final OcptDeviceIdGetter deviceId;
+
+  /// Class constructor
+  const OcptPeopleService({
+    required super.logger,
+    required this.deviceId,
+    required this.assetsService,
+    required this.roleCandidatesService,
+  });
+
+  /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
+  ///
+  /// Initialises the services this one owns, in the order they are listed in its constructor.
+  @override
+  Future<void> initLifeCycle() async {
+    await super.initLifeCycle();
+    await assetsService.initLifeCycle();
+    await roleCandidatesService.initLifeCycle();
+  }
 
   /// Loads every live person of [database], in `sortKey` order, each joined with its live
   /// [OcptPersonPosition]s, [OcptPersonSkill]s and [OcptPersonUnavailability]s, and with the two
@@ -726,4 +715,15 @@ class OcptPeopleService extends AbsOcptService {
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await roleCandidatesService.disposeLifeCycle();
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

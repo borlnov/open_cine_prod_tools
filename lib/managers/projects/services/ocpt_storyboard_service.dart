@@ -52,16 +52,6 @@ class OcptStoryboardService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Loads every live panel of screenplay [screenplayId]'s shots, each carrying its resolved image
   /// path and its live annotations, keyed by shot id.
   ///
@@ -555,4 +545,14 @@ class OcptStoryboardService extends AbsOcptService {
             ..where((table) => table.panelId.equals(panelId) & table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

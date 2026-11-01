@@ -40,15 +40,6 @@ sealed class OcptBudgetAlert extends Equatable {
 /// (`ocptBudgetPosteStrainOf` answering [OcptBudgetPosteStrain.over]) — one alert per such poste,
 /// never re-deriving the comparison that function and [ocptBudgetVarianceCents] already answer.
 final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
-  /// Class constructor
-  const OcptBudgetPosteOverQuoteAlert({
-    required this.posteId,
-    required this.quotedAmountCents,
-    required this.paidCents,
-    required this.committedCents,
-    required this.varianceCents,
-  });
-
   /// The poste this alert is about.
   final String posteId;
 
@@ -64,6 +55,15 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
   /// By how much [paidCents] plus [committedCents] exceeds [quotedAmountCents] — always positive
   /// here, `ocptBudgetVarianceCents`'s own figure verbatim.
   final int varianceCents;
+
+  /// Class constructor
+  const OcptBudgetPosteOverQuoteAlert({
+    required this.posteId,
+    required this.quotedAmountCents,
+    required this.paidCents,
+    required this.committedCents,
+    required this.varianceCents,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override
@@ -85,14 +85,6 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
 /// date anybody has recorded. A reader must word the two differently rather than let the undated
 /// one silently print an empty date or fall back to today.
 final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
-  /// Class constructor
-  const OcptBudgetCashProjectionNegativeAlert({
-    required this.balanceCents,
-    required this.dueDate,
-    required this.fallingDueCents,
-    required this.balanceAfterCents,
-  });
-
   /// The journal's own balance today (`OcptBudgetCashTotals.balanceCents`), before the instalment
   /// that tips it under is taken out.
   final int balanceCents;
@@ -107,6 +99,14 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
   /// The balance once that instalment has fallen — negative, `OcptBudgetProjectionStep
   /// .balanceAfterCents` verbatim.
   final int balanceAfterCents;
+
+  /// Class constructor
+  const OcptBudgetCashProjectionNegativeAlert({
+    required this.balanceCents,
+    required this.dueDate,
+    required this.fallingDueCents,
+    required this.balanceAfterCents,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

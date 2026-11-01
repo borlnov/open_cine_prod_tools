@@ -59,15 +59,15 @@ import 'package:pdf/widgets.dart' as pw;
 /// always draw — [OcptFloorPlanShapeSections.paintUnderlayFrame], now the fallback rather than the
 /// rule.
 class OcptFloorPlanPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptFloorPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptFloorPlanPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the floor plans of [projectName]. See
   /// `OcptScenarioCoveragePdfService.coverageFileName`'s own doc comment for [suffix] and

@@ -29,8 +29,42 @@ import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 /// aimed at some unrelated app, or at the sharing screen's own `ocpt://join` invite, must fail
 /// cleanly rather than half-parse.
 class OcptRelayEnrolment extends Equatable {
+  static const String _scheme = 'ocpt';
+  static const String _host = 'relay';
+  static const String _relayParam = 'r';
+  static const String _secretParam = 'e';
+
+  /// The set relay this enrolment points at, e.g. `https://relay.example.org/`.
+  final Uri relayBaseUri;
+
+  /// The instance-wide secret authenticating the first append to [relayBaseUri] for whichever
+  /// project a device re-points there. Never logged or displayed in full — see [toString].
+  final String enrolmentSecret;
+
   /// Class constructor
   const OcptRelayEnrolment({required this.relayBaseUri, required this.enrolmentSecret});
+
+  /// Encodes this enrolment as the single string a QR code carries and
+  /// [OcptRelayEnrolment.parse] reads back: `ocpt://relay?r=<relayBaseUri>&e=<enrolmentSecret>`,
+  /// every value percent-encoded.
+  String toEnrolmentString() => Uri(
+    scheme: _scheme,
+    host: _host,
+    queryParameters: <String, String>{
+      _relayParam: relayBaseUri.toString(),
+      _secretParam: enrolmentSecret,
+    },
+  ).toString();
+
+  /// A human-readable summary that never leaks [enrolmentSecret] in full.
+  @override
+  String toString() {
+    final secretLength = enrolmentSecret.length;
+    final maskedSecret = secretLength <= 4
+        ? '***'
+        : '${enrolmentSecret.substring(0, 2)}***${enrolmentSecret.substring(secretLength - 2)}';
+    return 'OcptRelayEnrolment(relayBaseUri: $relayBaseUri, enrolmentSecret: $maskedSecret)';
+  }
 
   /// Parses [enrolmentString] back into an [OcptRelayEnrolment], answering the matching failure
   /// status (and no value) when it is not an `ocpt://relay` URI carrying both `r` and `e`
@@ -77,41 +111,7 @@ class OcptRelayEnrolment extends Equatable {
     );
   }
 
-  static const String _scheme = 'ocpt';
-  static const String _host = 'relay';
-  static const String _relayParam = 'r';
-  static const String _secretParam = 'e';
-
-  /// The set relay this enrolment points at, e.g. `https://relay.example.org/`.
-  final Uri relayBaseUri;
-
-  /// The instance-wide secret authenticating the first append to [relayBaseUri] for whichever
-  /// project a device re-points there. Never logged or displayed in full — see [toString].
-  final String enrolmentSecret;
-
-  /// Encodes this enrolment as the single string a QR code carries and
-  /// [OcptRelayEnrolment.parse] reads back: `ocpt://relay?r=<relayBaseUri>&e=<enrolmentSecret>`,
-  /// every value percent-encoded.
-  String toEnrolmentString() => Uri(
-    scheme: _scheme,
-    host: _host,
-    queryParameters: <String, String>{
-      _relayParam: relayBaseUri.toString(),
-      _secretParam: enrolmentSecret,
-    },
-  ).toString();
-
   /// Object properties
   @override
   List<Object?> get props => [relayBaseUri, enrolmentSecret];
-
-  /// A human-readable summary that never leaks [enrolmentSecret] in full.
-  @override
-  String toString() {
-    final secretLength = enrolmentSecret.length;
-    final maskedSecret = secretLength <= 4
-        ? '***'
-        : '${enrolmentSecret.substring(0, 2)}***${enrolmentSecret.substring(secretLength - 2)}';
-    return 'OcptRelayEnrolment(relayBaseUri: $relayBaseUri, enrolmentSecret: $maskedSecret)';
-  }
 }

@@ -68,16 +68,6 @@ class OcptElementsService extends AbsOcptService {
     await assetsService.initLifeCycle();
   }
 
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this one owns, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    await assetsService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
-  }
-
   /// Loads every live element of [database], in `sortKey` order, each joined with the live
   /// `scene_elements` links pointing at it (themselves in the screenplay's own scene order), the
   /// live `role_elements` ones (in the cast's own `sortKey` order) and with the photo it
@@ -270,44 +260,6 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// The code element [elementId] is given as [category] is written onto it: a freshly generated
-  /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
-  /// there is nothing to rewrite.
-  ///
-  /// Nothing is rewritten when [category] is absent (the caller is changing something else
-  /// entirely), when the element has disappeared underneath (a stale write), or when the category
-  /// written is the one the element already had — the last of the three being the one that matters:
-  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props
-  /// would hand it `PRP-4` for no reason at all.
-  Future<Value<String>> _codeAfterCategoryChangeOf({
-    required OcptProjectDatabase database,
-    required String elementId,
-    required Value<OcptElementCategory> category,
-  }) async {
-    if (!category.present) {
-      return const Value.absent();
-    }
-
-    final rows = await _liveElementRows(database);
-    final current = rows.where((row) => row.id == elementId).firstOrNull;
-    if (current == null || current.category == category.value) {
-      return const Value.absent();
-    }
-
-    return Value(
-      ocptElementCodeOf(
-        category: category.value,
-        // The element's own code is left out: it is about to stop belonging to the category it is
-        // numbered in, so it must not reserve a number there — and it can never collide with the
-        // numbers of the category it is joining.
-        existingCodes: [
-          for (final row in rows)
-            if (row.id != elementId) row.code,
-        ],
-      ),
-    );
-  }
-
   /// Tombstones element [elementId] in [database] and both kinds of link onto it — the
   /// `scene_elements` ones and the `role_elements` ones — along with it.
   ///
@@ -466,26 +418,6 @@ class OcptElementsService extends AbsOcptService {
     });
   }
 
-  /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
-  /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
-  /// caller's own instance.
-  Future<void> _tombstoneElementPhoto({
-    required OcptProjectDatabase database,
-    required String elementId,
-    required OcptRowStampService? stamps,
-  }) async {
-    final row = await (database.select(
-      database.ocptElementsTable,
-    )..where((table) => table.id.equals(elementId))).getSingleOrNull();
-
-    final photoAssetId = row?.photoAssetId;
-    if (photoAssetId == null) {
-      return;
-    }
-
-    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
-  }
-
   /// Moves element [elementId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two elements it lands between. Writes
   /// **exactly one row**.
@@ -629,6 +561,64 @@ class OcptElementsService extends AbsOcptService {
     required String sceneId,
   }) => OcptElementsSceneLinkOps.propsOfScene(database: database, sceneId: sceneId);
 
+  /// The code element [elementId] is given as [category] is written onto it: a freshly generated
+  /// one (`ocptElementCodeOf`, numbered within the category it is joining), or [Value.absent] when
+  /// there is nothing to rewrite.
+  ///
+  /// Nothing is rewritten when [category] is absent (the caller is changing something else
+  /// entirely), when the element has disappeared underneath (a stale write), or when the category
+  /// written is the one the element already had — the last of the three being the one that matters:
+  /// [ocptElementCodeOf] answers "the first free number", so regenerating `PRP-2` inside props
+  /// would hand it `PRP-4` for no reason at all.
+  Future<Value<String>> _codeAfterCategoryChangeOf({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required Value<OcptElementCategory> category,
+  }) async {
+    if (!category.present) {
+      return const Value.absent();
+    }
+
+    final rows = await _liveElementRows(database);
+    final current = rows.where((row) => row.id == elementId).firstOrNull;
+    if (current == null || current.category == category.value) {
+      return const Value.absent();
+    }
+
+    return Value(
+      ocptElementCodeOf(
+        category: category.value,
+        // The element's own code is left out: it is about to stop belonging to the category it is
+        // numbered in, so it must not reserve a number there — and it can never collide with the
+        // numbers of the category it is joining.
+        existingCodes: [
+          for (final row in rows)
+            if (row.id != elementId) row.code,
+        ],
+      ),
+    );
+  }
+
+  /// Tombstones whichever `assets` row element [elementId] currently names as its photo, if any.
+  /// Leaves `photoAssetId` alone: both callers write it themselves. Stamps through [stamps] — the
+  /// caller's own instance.
+  Future<void> _tombstoneElementPhoto({
+    required OcptProjectDatabase database,
+    required String elementId,
+    required OcptRowStampService? stamps,
+  }) async {
+    final row = await (database.select(
+      database.ocptElementsTable,
+    )..where((table) => table.id.equals(elementId))).getSingleOrNull();
+
+    final photoAssetId = row?.photoAssetId;
+    if (photoAssetId == null) {
+      return;
+    }
+
+    await assetsService.tombstoneAsset(database: database, assetId: photoAssetId, stamps: stamps);
+  }
+
   /// The live `scene_elements` links of every element of [elementIds], keyed by element id and
   /// ordered by the screenplay's own scene order.
   ///
@@ -733,4 +723,14 @@ class OcptElementsService extends AbsOcptService {
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this one owns, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    await assetsService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
+  }
 }

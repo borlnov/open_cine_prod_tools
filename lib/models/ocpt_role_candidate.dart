@@ -39,6 +39,9 @@ class OcptRoleCandidate extends Equatable {
   /// The impressions kept on this person for this part, free text.
   final String notes;
 
+  /// Whether this candidacy is the one that cast the part.
+  bool get isRetained => status == OcptRoleCandidateStatus.retained;
+
   /// Class constructor
   const OcptRoleCandidate({
     required this.id,
@@ -62,9 +65,6 @@ class OcptRoleCandidate extends Equatable {
     auditionedOn: row.auditionedOn,
     notes: row.notes,
   );
-
-  /// Whether this candidacy is the one that cast the part.
-  bool get isRetained => status == OcptRoleCandidateStatus.retained;
 
   /// Object string representation, useful for debugging and logging.
   @override

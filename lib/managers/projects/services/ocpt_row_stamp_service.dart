@@ -68,6 +68,56 @@ class OcptRowStampService extends AbsWithLifeCycle {
     : _pending = <OcptRowFieldVersionsTableCompanion>[],
       _clock = clock;
 
+  /// Raises this device's clock to at least the version each of [floorStamps] carries, through
+  /// [ocptMergedRowStampFloor].
+  ///
+  /// This is what a restore uses to fold the version's own stamps in as a floor, never as a value
+  /// written verbatim: the version being restored may itself carry a stamp above what the working
+  /// copy holds — a device that pushed a change, then had that very version restored to it — and
+  /// [writeAndStamp] must still leave every column it touches strictly above that stamp, not merely
+  /// above the working copy's own. See `OcptProjectVersionsService._applyPayload`. Calling this
+  /// after [_version] has already been reserved would leave stamps already handed out behind the
+  /// raised clock, so a caller folds every floor in before its first [writeAndStamp] call — exactly
+  /// how `_applyPayload` uses it, right after [seed] and before any restore write.
+  void raiseFloor(Iterable<OcptRowFieldVersionRow> floorStamps) {
+    for (final stamp in floorStamps) {
+      _clock = ocptMergedRowStampFloor(_clock, stamp.version);
+    }
+  }
+
+  /// Writes every stamp handed out since this instance was seeded into [database].
+  Future<void> flush(OcptProjectDatabase database) async {
+    if (_pending.isEmpty) {
+      return;
+    }
+
+    await database.batch(
+      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
+    );
+  }
+
+  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
+  /// of them carrying [_version], this instance's single shared tick.
+  void _stamp({
+    required TableInfo<Table, DataClass> table,
+    required String rowId,
+    required Iterable<String> columnNames,
+  }) {
+    final version = _version ??= ocptNextRowStampVersion(_clock);
+
+    for (final columnName in columnNames) {
+      _pending.add(
+        OcptRowFieldVersionsTableCompanion.insert(
+          targetTableName: table.actualTableName,
+          rowId: rowId,
+          columnName: columnName,
+          version: version,
+          deviceId: deviceId,
+        ),
+      );
+    }
+  }
+
   /// Seeds a new instance from the highest version [database] currently holds anywhere in
   /// `row_field_versions`, to be written by [deviceId].
   ///
@@ -85,23 +135,6 @@ class OcptRowStampService extends AbsWithLifeCycle {
     final row = await (database.selectOnly(table)..addColumns([maxVersion])).getSingleOrNull();
 
     return OcptRowStampService._(deviceId: deviceId, clock: row?.read(maxVersion) ?? 0);
-  }
-
-  /// Raises this device's clock to at least the version each of [floorStamps] carries, through
-  /// [ocptMergedRowStampFloor].
-  ///
-  /// This is what a restore uses to fold the version's own stamps in as a floor, never as a value
-  /// written verbatim: the version being restored may itself carry a stamp above what the working
-  /// copy holds — a device that pushed a change, then had that very version restored to it — and
-  /// [writeAndStamp] must still leave every column it touches strictly above that stamp, not merely
-  /// above the working copy's own. See `OcptProjectVersionsService._applyPayload`. Calling this
-  /// after [_version] has already been reserved would leave stamps already handed out behind the
-  /// raised clock, so a caller folds every floor in before its first [writeAndStamp] call — exactly
-  /// how `_applyPayload` uses it, right after [seed] and before any restore write.
-  void raiseFloor(Iterable<OcptRowFieldVersionRow> floorStamps) {
-    for (final stamp in floorStamps) {
-      _clock = ocptMergedRowStampFloor(_clock, stamp.version);
-    }
   }
 
   /// Writes [next] into [table] of [database], in place of [current] — or as a fresh row when
@@ -138,39 +171,6 @@ class OcptRowStampService extends AbsWithLifeCycle {
 
     await database.into(table).insertOnConflictUpdate(_fullyPresentCompanion(next));
     stamps?._stamp(table: table, rowId: rowId, columnNames: changedColumnNames);
-  }
-
-  /// Stamps [columnNames] of the row [rowId] of [table] as written, now, by [deviceId] — every one
-  /// of them carrying [_version], this instance's single shared tick.
-  void _stamp({
-    required TableInfo<Table, DataClass> table,
-    required String rowId,
-    required Iterable<String> columnNames,
-  }) {
-    final version = _version ??= ocptNextRowStampVersion(_clock);
-
-    for (final columnName in columnNames) {
-      _pending.add(
-        OcptRowFieldVersionsTableCompanion.insert(
-          targetTableName: table.actualTableName,
-          rowId: rowId,
-          columnName: columnName,
-          version: version,
-          deviceId: deviceId,
-        ),
-      );
-    }
-  }
-
-  /// Writes every stamp handed out since this instance was seeded into [database].
-  Future<void> flush(OcptProjectDatabase database) async {
-    if (_pending.isEmpty) {
-      return;
-    }
-
-    await database.batch(
-      (batch) => batch.insertAllOnConflictUpdate(database.ocptRowFieldVersionsTable, _pending),
-    );
   }
 
   /// [row] seen as an `UpdateCompanion` with every column marked present — even the null ones —

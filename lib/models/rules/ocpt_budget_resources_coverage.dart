@@ -42,11 +42,11 @@ class OcptBudgetResourcesCoverage extends Equatable {
   /// contribution needs no branch here.
   final int promisedCents;
 
-  /// [received]'s own amount plus [promisedCents] — the plan as it stands, arrived or not.
-  int get plannedCents => received.amountCents + promisedCents;
-
   /// How far [plannedCents] still falls short of [needs]' own amount, floored at zero.
   final int missingCents;
+
+  /// [received]'s own amount plus [promisedCents] — the plan as it stands, arrived or not.
+  int get plannedCents => received.amountCents + promisedCents;
 
   /// Whether the plan, arrived or promised, covers the quote — [plannedCents] at or above
   /// [needs]' own amount. Over-financing is still a plan that holds; a shortfall alone reads as

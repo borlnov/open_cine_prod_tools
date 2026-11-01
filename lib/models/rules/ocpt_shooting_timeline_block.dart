@@ -12,14 +12,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 /// place the chaining rule (ADR 0015, as amended) is implemented, and it must stay reachable from
 /// a plain unit test.
 class OcptShootingTimelineBlock {
-  /// Builds a block to feed to [ocptComputeSlotTimeline].
-  const OcptShootingTimelineBlock({
-    required this.id,
-    this.durationMinutes,
-    this.fallbackDurationMinutes,
-    this.anchorMinute,
-  });
-
   /// The block's own id (`shooting_day_blocks.id`), echoed back on every
   /// [OcptShootingTimelineEntry] and [OcptTimelineOverrun] that concerns it, so a caller can join
   /// the result back onto its rows.
@@ -37,4 +29,12 @@ class OcptShootingTimelineBlock {
   /// The block's `anchorMinute`, when it is pinned. A pinned block starts **exactly** here,
   /// unconditionally — see rule 3 on [ocptComputeSlotTimeline].
   final int? anchorMinute;
+
+  /// Builds a block to feed to [ocptComputeSlotTimeline].
+  const OcptShootingTimelineBlock({
+    required this.id,
+    this.durationMinutes,
+    this.fallbackDurationMinutes,
+    this.anchorMinute,
+  });
 }

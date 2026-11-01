@@ -155,6 +155,37 @@ class OcptPerson extends Equatable {
   /// The dates this person is known to be unavailable.
   final List<OcptPersonUnavailability> unavailabilities;
 
+  /// [firstName] and [lastName], space-joined, either side dropped when empty.
+  String get displayName => [firstName, lastName].where((part) => part.isNotEmpty).join(' ');
+
+  /// The upper-cased first letter of [firstName] and of [lastName], concatenated; empty when both
+  /// are empty.
+  String get initials => [
+    firstName,
+    lastName,
+  ].where((part) => part.isNotEmpty).map((part) => part[0].toUpperCase()).join();
+
+  /// This person's age in whole years as of now, or null while [birthDate] is unknown.
+  int? get age {
+    final birth = birthDate;
+    if (birth == null) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    var years = now.year - birth.year;
+    if (now.month < birth.month || (now.month == birth.month && now.day < birth.day)) {
+      years--;
+    }
+    return years;
+  }
+
+  /// Whether this person is a minor (under 18) as of now, or null while [age] is unknown.
+  bool? get isMinor {
+    final currentAge = age;
+    return currentAge == null ? null : currentAge < 18;
+  }
+
   /// Class constructor
   const OcptPerson({
     required this.id,
@@ -250,37 +281,6 @@ class OcptPerson extends Equatable {
     skills: skills,
     unavailabilities: unavailabilities,
   );
-
-  /// [firstName] and [lastName], space-joined, either side dropped when empty.
-  String get displayName => [firstName, lastName].where((part) => part.isNotEmpty).join(' ');
-
-  /// The upper-cased first letter of [firstName] and of [lastName], concatenated; empty when both
-  /// are empty.
-  String get initials => [
-    firstName,
-    lastName,
-  ].where((part) => part.isNotEmpty).map((part) => part[0].toUpperCase()).join();
-
-  /// This person's age in whole years as of now, or null while [birthDate] is unknown.
-  int? get age {
-    final birth = birthDate;
-    if (birth == null) {
-      return null;
-    }
-
-    final now = DateTime.now();
-    var years = now.year - birth.year;
-    if (now.month < birth.month || (now.month == birth.month && now.day < birth.day)) {
-      years--;
-    }
-    return years;
-  }
-
-  /// Whether this person is a minor (under 18) as of now, or null while [age] is unknown.
-  bool? get isMinor {
-    final currentAge = age;
-    return currentAge == null ? null : currentAge < 18;
-  }
 
   /// Object string representation, useful for debugging and logging.
   @override

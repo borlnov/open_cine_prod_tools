@@ -114,11 +114,6 @@ class OcptCallSheetLabels extends Equatable {
   /// `OcptShootingBlockKind.isFilming` and `OcptDayConvocation.isPatBand`.
   final String presenceLabel;
 
-  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
-  /// place that choice is written, so a named sheet's own band line, the day's own time band and
-  /// the cast table's own column header can never name the same kind of band differently.
-  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
-
   /// The header of a person's arrival figure — the cast table's own `ARRIVÉE` column, and a named
   /// sheet's own band line.
   final String arrivalHeader;
@@ -268,6 +263,11 @@ class OcptCallSheetLabels extends Equatable {
     required this.guestsSectionTitle,
     required this.guestReasonHeader,
   });
+
+  /// [patLabel] when [isPatBand] says the band covers filming, [presenceLabel] otherwise — the one
+  /// place that choice is written, so a named sheet's own band line, the day's own time band and
+  /// the cast table's own column header can never name the same kind of band differently.
+  String bandLabelOf({required bool isPatBand}) => isPatBand ? patLabel : presenceLabel;
 
   /// The title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";

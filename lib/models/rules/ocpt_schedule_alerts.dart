@@ -24,9 +24,6 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// a person's id, a role's id, a minute — and it is the panel that resolves a person's display name
 /// or localises a sentence around them, exactly as `OcptDayConvocation` carries no name either.
 sealed class OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleAlert({required this.dayId});
-
   /// The day this alert is about, or null for [OcptScheduleRoleUncastAlert] alone — a role's own
   /// casting is not a fact about any one day.
   final String? dayId;
@@ -36,6 +33,9 @@ sealed class OcptScheduleAlert {
 
   /// [kind]'s own [OcptScheduleAlertKind.severity].
   OcptScheduleAlertSeverity get severity => kind.severity;
+
+  /// Class constructor
+  const OcptScheduleAlert({required this.dayId});
 }
 
 /// **Hard, rule 1**: [personId] is linked to at least one slot of [dayId], and one of their
@@ -47,14 +47,6 @@ sealed class OcptScheduleAlert {
 /// see [ocptComputeScheduleAlerts]'s own doc comment for how [OcptDayPartSlot.morning] and
 /// [OcptDayPartSlot.afternoon] read a slot whose band runs past midnight.
 final class OcptSchedulePersonUnavailableAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptSchedulePersonUnavailableAlert({
-    required super.dayId,
-    required this.personId,
-    required this.unavailabilityId,
-    required this.slotIds,
-  });
-
   /// The person who is unavailable.
   final String personId;
 
@@ -69,6 +61,14 @@ final class OcptSchedulePersonUnavailableAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.personUnavailable;
+
+  /// Class constructor
+  const OcptSchedulePersonUnavailableAlert({
+    required super.dayId,
+    required this.personId,
+    required this.unavailabilityId,
+    required this.slotIds,
+  });
 }
 
 /// **Hard, rule 2**: [personId] is linked to both [firstSlotId] and [secondSlotId] of [dayId], and
@@ -81,14 +81,6 @@ final class OcptSchedulePersonUnavailableAlert extends OcptScheduleAlert {
 /// under this rule — it has no band yet to compare, so it stays silent rather than reading a zero-
 /// length placeholder as a conflict.
 final class OcptSchedulePersonDoubleBookedAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptSchedulePersonDoubleBookedAlert({
-    required super.dayId,
-    required this.personId,
-    required this.firstSlotId,
-    required this.secondSlotId,
-  });
-
   /// The person linked to both slots at once.
   final String personId;
 
@@ -101,6 +93,14 @@ final class OcptSchedulePersonDoubleBookedAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.personDoubleBooked;
+
+  /// Class constructor
+  const OcptSchedulePersonDoubleBookedAlert({
+    required super.dayId,
+    required this.personId,
+    required this.firstSlotId,
+    required this.secondSlotId,
+  });
 }
 
 /// **Hard, rule 3**: [slotId]'s own location ([locationId]) declares at least one
@@ -112,13 +112,6 @@ final class OcptSchedulePersonDoubleBookedAlert extends OcptScheduleAlert {
 /// be drowned in one alert per slot booked in it. This is the rule most likely to be "fixed"
 /// backwards later, so it is stated here twice.
 final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleLocationUncoveredAlert({
-    required super.dayId,
-    required this.slotId,
-    required this.locationId,
-  });
-
   /// The slot whose booking no declared window covers.
   final String slotId;
 
@@ -128,6 +121,13 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.locationUncovered;
+
+  /// Class constructor
+  const OcptScheduleLocationUncoveredAlert({
+    required super.dayId,
+    required this.slotId,
+    required this.locationId,
+  });
 }
 
 /// **Soft, rule 4**: [roleId] is called for by [shotId], a shot placed on
@@ -138,13 +138,6 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
 /// characters to a role is a join over `fountain_kit`'s `normalizeCharacterName`, done by the
 /// caller before this file ever sees a shot or a character name.
 final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleRoleNotConvokedAlert({
-    required super.dayId,
-    required this.roleId,
-    required this.shotId,
-  });
-
   /// The role a placed shot calls for and no slot of the day convokes.
   final String roleId;
 
@@ -155,6 +148,13 @@ final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleNotConvoked;
+
+  /// Class constructor
+  const OcptScheduleRoleNotConvokedAlert({
+    required super.dayId,
+    required this.roleId,
+    required this.shotId,
+  });
 }
 
 /// **Soft, rule 5**: [roleId] has no actor (`roles.personId` is null), and it is a role the
@@ -166,29 +166,21 @@ final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
 /// started yet would otherwise raise one of these per role in the whole cast, for nothing anybody
 /// can act on before a single day exists.
 final class OcptScheduleRoleUncastAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleRoleUncastAlert({required this.roleId}) : super(dayId: null);
-
   /// The role with no actor.
   final String roleId;
 
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.roleUncast;
+
+  /// Class constructor
+  const OcptScheduleRoleUncastAlert({required this.roleId}) : super(dayId: null);
 }
 
 /// **Soft, rule 6**: a straight pass-through of one [OcptTimelineOverrun] on
 /// [OcptScheduleAlert.dayId] — a pinned block the day's own chain could not reach without overlap
 /// (ADR 0015, as amended).
 final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleTimelineOverrunAlert({
-    required super.dayId,
-    required this.blockId,
-    required this.reachedMinute,
-    required this.anchorMinute,
-  });
-
   /// The [OcptTimelineOverrun.blockId] whose anchor could not be honoured.
   final String blockId;
 
@@ -201,20 +193,20 @@ final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.timelineOverrun;
+
+  /// Class constructor
+  const OcptScheduleTimelineOverrunAlert({
+    required super.dayId,
+    required this.blockId,
+    required this.reachedMinute,
+    required this.anchorMinute,
+  });
 }
 
 /// **Soft, rule 7**: a straight pass-through of one [OcptTimelineFixedEndMiss] on
 /// [OcptScheduleAlert.dayId] — an end-anchored slot whose own blocks did not land back on the fixed
 /// end that anchored them (ADR 0015, as amended twice).
 final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleFixedEndMissedAlert({
-    required super.dayId,
-    required this.slotId,
-    required this.fixedEndMinute,
-    required this.actualEndMinute,
-  });
-
   /// The [OcptTimelineFixedEndMiss.slotId] whose fixed end its own blocks did not land on.
   final String slotId;
 
@@ -227,6 +219,14 @@ final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.slotFixedEndMissed;
+
+  /// Class constructor
+  const OcptScheduleFixedEndMissedAlert({
+    required super.dayId,
+    required this.slotId,
+    required this.fixedEndMinute,
+    required this.actualEndMinute,
+  });
 }
 
 /// **Soft, rule 8**: on [OcptScheduleAlert.dayId], [personId]'s own computed presence
@@ -239,14 +239,6 @@ final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
 /// isn't either, so neither is this alert. A presence exactly equal to the recorded maximum does
 /// not fire.
 final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptSchedulePresenceExceededAlert({
-    required super.dayId,
-    required this.personId,
-    required this.presenceMinutes,
-    required this.maxDailyPresenceMinutes,
-  });
-
   /// The person whose day ran long.
   final String personId;
 
@@ -259,6 +251,14 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.presenceExceeded;
+
+  /// Class constructor
+  const OcptSchedulePresenceExceededAlert({
+    required super.dayId,
+    required this.personId,
+    required this.presenceMinutes,
+    required this.maxDailyPresenceMinutes,
+  });
 }
 
 /// **Soft, rule 9**: [personId]'s own departure on [previousDayId] and their arrival on
@@ -276,15 +276,6 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
 /// "no minimum applies" — the exact reading `people.maxDailyPresenceMinutes` already has for
 /// [OcptSchedulePresenceExceededAlert].
 final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptScheduleRestTimeAlert({
-    required super.dayId,
-    required this.personId,
-    required this.previousDayId,
-    required this.restMinutes,
-    required this.minimumRestMinutes,
-  });
-
   /// The person whose rest between two convoked days fell short.
   final String personId;
 
@@ -302,6 +293,15 @@ final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.restTime;
+
+  /// Class constructor
+  const OcptScheduleRestTimeAlert({
+    required super.dayId,
+    required this.personId,
+    required this.previousDayId,
+    required this.restMinutes,
+    required this.minimumRestMinutes,
+  });
 }
 
 /// **Soft, rule 10**: [slotId]'s own location ([locationId]) declares at least one dated
@@ -314,13 +314,6 @@ final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
 /// date" must never be read as the same thing, the way rule 3 already keeps "no availability
 /// window" apart from "a window that doesn't cover this slot".
 final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
-  /// Class constructor
-  const OcptSchedulePermitNotValidAlert({
-    required super.dayId,
-    required this.slotId,
-    required this.locationId,
-  });
-
   /// The slot whose booking no dated permit window covers.
   final String slotId;
 
@@ -330,6 +323,13 @@ final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
   /// This alert's own kind.
   @override
   OcptScheduleAlertKind get kind => OcptScheduleAlertKind.permitNotValid;
+
+  /// Class constructor
+  const OcptSchedulePermitNotValidAlert({
+    required super.dayId,
+    required this.slotId,
+    required this.locationId,
+  });
 }
 
 /// The minute at which [OcptDayPartSlot.morning] ends and [OcptDayPartSlot.afternoon] begins:

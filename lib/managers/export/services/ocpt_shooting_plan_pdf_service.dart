@@ -89,15 +89,15 @@ import 'package:pdf/widgets.dart' as pw;
 /// [OcptShootingPlanTimeGridSections.tenMinuteGridPage]'s own doc comment for the one it has to
 /// work around (no cell can span more than one row of a `pw.Table`).
 class OcptShootingPlanPdfService extends AbsOcptService {
+  /// The loader the embedded Courier Prime font set is read through.
+  final OcptCourierPrimeFontsLoader fontsLoader;
+
   /// Creates an [OcptShootingPlanPdfService].
   ///
   /// Pass the manager's own [fontsLoader] so every export of the app session shares one font cache;
   /// a service built without one gets a loader of its own.
   OcptShootingPlanPdfService({required super.logger, OcptCourierPrimeFontsLoader? fontsLoader})
     : fontsLoader = fontsLoader ?? OcptCourierPrimeFontsLoader();
-
-  /// The loader the embedded Courier Prime font set is read through.
-  final OcptCourierPrimeFontsLoader fontsLoader;
 
   /// The `.pdf` file name to suggest when exporting the shooting plan of [projectName].
   ///

@@ -16,14 +16,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.d
 /// because it may need a `Tr` this pure-Dart file must never import, exactly the trade
 /// `OcptScenarioCoverageLayout` makes for a bar's own label.
 class OcptShootingDayAgendaColumnInput extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaColumnInput({
-    required this.slotId,
-    required this.label,
-    required this.timeline,
-    required this.captionByBlockId,
-  });
-
   /// The slot's own id (`shooting_slots.id`).
   final String slotId;
 
@@ -38,6 +30,14 @@ class OcptShootingDayAgendaColumnInput extends Equatable {
   /// .blockId]. A block whose id has no entry here is skipped rather than drawn blank: a caller
   /// that forgot one is a bug to surface as a missing tile, not as an empty one.
   final Map<String, String> captionByBlockId;
+
+  /// Class constructor
+  const OcptShootingDayAgendaColumnInput({
+    required this.slotId,
+    required this.label,
+    required this.timeline,
+    required this.captionByBlockId,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

@@ -12,17 +12,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_day_agenda_grid.dart';
 /// renderer prints [caption] and the exact `[startMinute, endMinute)` inside the tile
 /// [startRow]..[startRow] + [rowSpan] - 1 spans.
 class OcptShootingDayAgendaTile extends Equatable {
-  /// Class constructor
-  const OcptShootingDayAgendaTile({
-    required this.blockId,
-    required this.slotId,
-    required this.caption,
-    required this.startMinute,
-    required this.endMinute,
-    required this.startRow,
-    required this.rowSpan,
-  });
-
   /// The block's own id (`shooting_day_blocks.id`).
   final String blockId;
 
@@ -49,6 +38,17 @@ class OcptShootingDayAgendaTile extends Equatable {
   /// 12-minute case) still occupies one whole row rather than a sliver of one — a grid can only
   /// draw whole rows, and a tile with no row of its own would be invisible.
   final int rowSpan;
+
+  /// Class constructor
+  const OcptShootingDayAgendaTile({
+    required this.blockId,
+    required this.slotId,
+    required this.caption,
+    required this.startMinute,
+    required this.endMinute,
+    required this.startRow,
+    required this.rowSpan,
+  });
 
   /// Object string representation, useful for debugging and logging.
   @override

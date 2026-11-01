@@ -37,10 +37,10 @@ final class OcptCleanThreeWayMerge extends OcptThreeWayMergeResult {
   const OcptCleanThreeWayMerge(this.mergedText);
 
   @override
-  List<Object?> get props => [mergedText];
+  String toString() => 'OcptCleanThreeWayMerge(mergedText: $mergedText)';
 
   @override
-  String toString() => 'OcptCleanThreeWayMerge(mergedText: $mergedText)';
+  List<Object?> get props => [mergedText];
 }
 
 /// `ocptThreeWayMerge` found at least one region both sides changed differently: `hunks` is every
@@ -56,10 +56,10 @@ final class OcptThreeWayMergeConflict extends OcptThreeWayMergeResult {
   const OcptThreeWayMergeConflict(this.hunks);
 
   @override
-  List<Object?> get props => [hunks];
+  String toString() => 'OcptThreeWayMergeConflict(hunks: $hunks)';
 
   @override
-  String toString() => 'OcptThreeWayMergeConflict(hunks: $hunks)';
+  List<Object?> get props => [hunks];
 }
 
 /// One base region a merge's two diverging sides changed differently: the base lines that region
@@ -82,12 +82,12 @@ class OcptThreeWayMergeHunk extends Equatable {
   });
 
   @override
-  List<Object?> get props => [baseLines, leftLines, rightLines];
-
-  @override
   String toString() =>
       'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: '
       '$rightLines)';
+
+  @override
+  List<Object?> get props => [baseLines, leftLines, rightLines];
 }
 
 /// Merges [left] and [right], two texts that independently diverged from their common ancestor

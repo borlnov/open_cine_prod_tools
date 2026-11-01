@@ -122,16 +122,6 @@ class OcptExportManager extends AbsWithLifeCycle {
   /// The logger category linked to this manager.
   static const _loggerCategory = "export";
 
-  /// The logger this manager writes to, and the parent of every service's own.
-  final LogsHelper _logger;
-
-  /// The manager used to show the native "open" dialog when importing.
-  final FileSelectorManager _fileSelectorManager;
-
-  /// Tells whether the write funnel shows the native save dialog or hands the bytes to the OS
-  /// share sheet instead.
-  final PlatformManager _platformManager;
-
   /// The service converting Fountain files to and from text.
   final OcptFountainIoService fountainIoService;
 
@@ -202,6 +192,16 @@ class OcptExportManager extends AbsWithLifeCycle {
 
   /// The service handing an export's bytes to the OS share sheet on mobile.
   final OcptShareService shareService;
+
+  /// The logger this manager writes to, and the parent of every service's own.
+  final LogsHelper _logger;
+
+  /// The manager used to show the native "open" dialog when importing.
+  final FileSelectorManager _fileSelectorManager;
+
+  /// Tells whether the write funnel shows the native save dialog or hands the bytes to the OS
+  /// share sheet instead.
+  final PlatformManager _platformManager;
 
   /// The write funnel every export goes through, built over [saveLocationService], [shareService]
   /// and the platform manager once the first export (or [initLifeCycle]) asks for it, so a test
@@ -340,11 +340,6 @@ class OcptExportManager extends AbsWithLifeCycle {
          logger: _sub(logger, 'resources_xlsx_export'),
        );
 
-  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
-  /// is handed.
-  static LogsHelper _sub(LogsHelper logger, String category) =>
-      logger.createSubLogger(subCategory: category);
-
   /// {@macro act_life_cycle.MixinWithLifeCycle.initLifeCycle}
   ///
   /// Initialises the services this manager builds, in the order its constructor builds them.
@@ -377,40 +372,6 @@ class OcptExportManager extends AbsWithLifeCycle {
     await resourcesXlsxExportService.initLifeCycle();
 
     _logger.i("The export manager started");
-  }
-
-  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
-  ///
-  /// Disposes the services this manager builds, in the reverse order they were initialised.
-  @override
-  Future<void> disposeLifeCycle() async {
-    _logger.i("The export manager is being disposed");
-    await resourcesXlsxExportService.disposeLifeCycle();
-    await shotListXlsxExportService.disposeLifeCycle();
-    await budgetCashJournalXlsxExportService.disposeLifeCycle();
-    await storyboardPdfService.disposeLifeCycle();
-    await floorPlanPdfService.disposeLifeCycle();
-    await budgetFinancialReportPdfService.disposeLifeCycle();
-    await budgetFinancingPlanPdfService.disposeLifeCycle();
-    await budgetQuotePdfService.disposeLifeCycle();
-    await contactListPdfService.disposeLifeCycle();
-    await sidesPdfService.disposeLifeCycle();
-    await oneLineSchedulePdfService.disposeLifeCycle();
-    await dayOutOfDaysPdfService.disposeLifeCycle();
-    await shootingPlanXlsxExportService.disposeLifeCycle();
-    await shootingPlanPdfService.disposeLifeCycle();
-    await callSheetPdfService.disposeLifeCycle();
-    await breakdownXlsxExportService.disposeLifeCycle();
-    await breakdownSheetsPdfService.disposeLifeCycle();
-    await scenarioCoveragePdfService.disposeLifeCycle();
-    await pdfExportService.disposeLifeCycle();
-    await scriptImportService.disposeLifeCycle();
-    await fountainIoService.disposeLifeCycle();
-    await _writer.disposeLifeCycle();
-    await shareService.disposeLifeCycle();
-    await saveLocationService.disposeLifeCycle();
-
-    return super.disposeLifeCycle();
   }
 
   /// Shows the native save dialog and writes [fountainText] to the chosen `.fountain` file.
@@ -972,5 +933,44 @@ class OcptExportManager extends AbsWithLifeCycle {
         sourceFileName: selectedFile.name,
       ),
     );
+  }
+
+  /// The sub-logger named [category] of [logger]: the one logger each service this manager builds
+  /// is handed.
+  static LogsHelper _sub(LogsHelper logger, String category) =>
+      logger.createSubLogger(subCategory: category);
+
+  /// {@macro act_life_cycle.MixinWithLifeCycleDispose.disposeLifeCycle}
+  ///
+  /// Disposes the services this manager builds, in the reverse order they were initialised.
+  @override
+  Future<void> disposeLifeCycle() async {
+    _logger.i("The export manager is being disposed");
+    await resourcesXlsxExportService.disposeLifeCycle();
+    await shotListXlsxExportService.disposeLifeCycle();
+    await budgetCashJournalXlsxExportService.disposeLifeCycle();
+    await storyboardPdfService.disposeLifeCycle();
+    await floorPlanPdfService.disposeLifeCycle();
+    await budgetFinancialReportPdfService.disposeLifeCycle();
+    await budgetFinancingPlanPdfService.disposeLifeCycle();
+    await budgetQuotePdfService.disposeLifeCycle();
+    await contactListPdfService.disposeLifeCycle();
+    await sidesPdfService.disposeLifeCycle();
+    await oneLineSchedulePdfService.disposeLifeCycle();
+    await dayOutOfDaysPdfService.disposeLifeCycle();
+    await shootingPlanXlsxExportService.disposeLifeCycle();
+    await shootingPlanPdfService.disposeLifeCycle();
+    await callSheetPdfService.disposeLifeCycle();
+    await breakdownXlsxExportService.disposeLifeCycle();
+    await breakdownSheetsPdfService.disposeLifeCycle();
+    await scenarioCoveragePdfService.disposeLifeCycle();
+    await pdfExportService.disposeLifeCycle();
+    await scriptImportService.disposeLifeCycle();
+    await fountainIoService.disposeLifeCycle();
+    await _writer.disposeLifeCycle();
+    await shareService.disposeLifeCycle();
+    await saveLocationService.disposeLifeCycle();
+
+    return super.disposeLifeCycle();
   }
 }

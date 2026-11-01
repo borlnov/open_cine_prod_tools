@@ -308,53 +308,6 @@ class OcptProjectVersionCodec extends AbsOcptService {
     return result;
   }
 
-  /// The walk of [decode], whose exceptions [decode] turns into a status: reads [payloadJson] and
-  /// answers the status of the first thing found wrong, or the payload itself.
-  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _decodeUnguarded(
-    String payloadJson,
-  ) {
-    final decoded = jsonDecode(payloadJson);
-    if (decoded is! Map<String, dynamic>) {
-      return _malformed("the payload isn't a JSON object");
-    }
-
-    final payloadFormat = OcptVersionJsonReader.readInt(
-      decoded,
-      OcptVersionJsonKeys.payloadFormatKey,
-    );
-    if (OcptVersionJsonReader.firstReadFailure != null) {
-      return _malformed(null);
-    }
-    if (payloadFormat > currentPayloadFormat) {
-      logger.w(
-        "The project version payload is written in the format $payloadFormat, while this "
-        "build of the app only knows up to $currentPayloadFormat: it was created by a later "
-        "version of Open Cine Prod Tools",
-      );
-      return const ResultWithStatus(
-        status: OcptProjectVersionPayloadStatus.unsupportedFutureFormat,
-      );
-    }
-
-    final payload = OcptVersionPayloadJson.fromJson(decoded, payloadFormat: payloadFormat);
-    if (OcptVersionJsonReader.firstReadFailure != null) {
-      return _malformed(null);
-    }
-
-    return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
-  }
-
-  /// The [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when it is
-  /// null, the first thing a field reader found wrong.
-  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _malformed(
-    String? reason,
-  ) {
-    logger.e(
-      "The project version payload can't be read: ${reason ?? OcptVersionJsonReader.firstReadFailure}",
-    );
-    return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
-  }
-
   /// The SHA-256 hex digest of [payload]'s canonical *content* — the primitive
   /// `OcptProjectVersionsService` builds both "is the working copy the same as this version?" and
   /// a restore's deduplicated safety version on top of. Stored on the row as
@@ -689,6 +642,53 @@ class OcptProjectVersionCodec extends AbsOcptService {
     };
 
     return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
+  }
+
+  /// The walk of [decode], whose exceptions [decode] turns into a status: reads [payloadJson] and
+  /// answers the status of the first thing found wrong, or the payload itself.
+  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _decodeUnguarded(
+    String payloadJson,
+  ) {
+    final decoded = jsonDecode(payloadJson);
+    if (decoded is! Map<String, dynamic>) {
+      return _malformed("the payload isn't a JSON object");
+    }
+
+    final payloadFormat = OcptVersionJsonReader.readInt(
+      decoded,
+      OcptVersionJsonKeys.payloadFormatKey,
+    );
+    if (OcptVersionJsonReader.firstReadFailure != null) {
+      return _malformed(null);
+    }
+    if (payloadFormat > currentPayloadFormat) {
+      logger.w(
+        "The project version payload is written in the format $payloadFormat, while this "
+        "build of the app only knows up to $currentPayloadFormat: it was created by a later "
+        "version of Open Cine Prod Tools",
+      );
+      return const ResultWithStatus(
+        status: OcptProjectVersionPayloadStatus.unsupportedFutureFormat,
+      );
+    }
+
+    final payload = OcptVersionPayloadJson.fromJson(decoded, payloadFormat: payloadFormat);
+    if (OcptVersionJsonReader.firstReadFailure != null) {
+      return _malformed(null);
+    }
+
+    return ResultWithStatus(status: OcptProjectVersionPayloadStatus.ok, value: payload);
+  }
+
+  /// The [OcptProjectVersionPayloadStatus.malformedPayload] answer, logging [reason] or, when it is
+  /// null, the first thing a field reader found wrong.
+  ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _malformed(
+    String? reason,
+  ) {
+    logger.e(
+      "The project version payload can't be read: ${reason ?? OcptVersionJsonReader.firstReadFailure}",
+    );
+    return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
   }
 
   /// [rows], sorted by [primaryKeyOf] and each turned into a JSON map (through the same

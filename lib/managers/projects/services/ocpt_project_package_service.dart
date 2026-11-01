@@ -196,35 +196,6 @@ class OcptProjectPackageService extends AbsOcptService {
     return result;
   }
 
-  /// Streams [manifest] and the staged database into the zip at [packageFilePath], followed by
-  /// every file [OcptProjectPackageManifest.assets] names.
-  ///
-  /// Each file is added through `ZipFileEncoder.addFile`, which reads it as a stream: the two
-  /// hundred scouting photos of an ordinary location scout never sit in memory at once.
-  Future<void> _writeArchive({
-    required String packageFilePath,
-    required String stagedDatabasePath,
-    required OcptProjectPackageManifest manifest,
-  }) async {
-    final encoder = ZipFileEncoder();
-    encoder.create(packageFilePath);
-
-    try {
-      final manifestBytes = utf8.encode(
-        const JsonEncoder.withIndent("  ").convert(manifest.toJson()),
-      );
-      encoder.addArchiveFile(ArchiveFile.bytes(ocptPackageManifestEntry, manifestBytes));
-
-      await encoder.addFile(File(stagedDatabasePath), ocptPackageDatabaseEntry);
-
-      for (final asset in manifest.assets) {
-        await encoder.addFile(File(asset.originalPath), asset.entry);
-      }
-    } finally {
-      await encoder.close();
-    }
-  }
-
   /// Unpacks the package at [packageFilePath] into a new folder inside [parentDirectoryPath], and
   /// says what landed.
   ///
@@ -273,6 +244,35 @@ class OcptProjectPackageService extends AbsOcptService {
       // user just imported stays held by the app — which on Windows means a file they cannot move,
       // rename or delete until they quit it.
       await archive.clear();
+    }
+  }
+
+  /// Streams [manifest] and the staged database into the zip at [packageFilePath], followed by
+  /// every file [OcptProjectPackageManifest.assets] names.
+  ///
+  /// Each file is added through `ZipFileEncoder.addFile`, which reads it as a stream: the two
+  /// hundred scouting photos of an ordinary location scout never sit in memory at once.
+  Future<void> _writeArchive({
+    required String packageFilePath,
+    required String stagedDatabasePath,
+    required OcptProjectPackageManifest manifest,
+  }) async {
+    final encoder = ZipFileEncoder();
+    encoder.create(packageFilePath);
+
+    try {
+      final manifestBytes = utf8.encode(
+        const JsonEncoder.withIndent("  ").convert(manifest.toJson()),
+      );
+      encoder.addArchiveFile(ArchiveFile.bytes(ocptPackageManifestEntry, manifestBytes));
+
+      await encoder.addFile(File(stagedDatabasePath), ocptPackageDatabaseEntry);
+
+      for (final asset in manifest.assets) {
+        await encoder.addFile(File(asset.originalPath), asset.entry);
+      }
+    } finally {
+      await encoder.close();
     }
   }
 

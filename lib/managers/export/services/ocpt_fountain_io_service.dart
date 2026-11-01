@@ -23,11 +23,11 @@ class OcptFountainIoService extends AbsOcptService {
   /// The project name suggested when nothing usable can be derived from the imported file.
   static const _fallbackProjectName = "Screenplay";
 
-  /// The characters illegal in a file name, dropped while sanitising a suggested name.
-  static final _illegalNameCharacters = RegExp(r'[/\\:*?"<>|]');
-
   /// The parser used to read a `.fountain` file's title page, to suggest a project name from it.
   static const _fountainParser = FountainParser();
+
+  /// The characters illegal in a file name, dropped while sanitising a suggested name.
+  static final _illegalNameCharacters = RegExp(r'[/\\:*?"<>|]');
 
   /// Class constructor
   const OcptFountainIoService({required super.logger});
