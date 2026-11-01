@@ -134,9 +134,7 @@ class OcptResourcesRolesBloc
     _lastLostEditsEpoch = lostEditsEpoch;
     cancelDebounce();
     if (state.pendingRoleFieldEdits.isNotEmpty || state.pendingCandidateFieldEdits.isNotEmpty) {
-      emitter(
-        state.copyWith(pendingRoleFieldEdits: const {}, pendingCandidateFieldEdits: const {}),
-      );
+      emitter(state.copyWithFieldEditsCleared());
     }
   }
 
@@ -197,7 +195,7 @@ class OcptResourcesRolesBloc
   ) async {
     final pending = Map<(String, OcptRoleField), String>.of(state.pendingRoleFieldEdits)
       ..[(event.roleId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingRoleFieldEdits: pending));
+    emitter(state.copyWithRoleFieldEditTyped(pendingRoleFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesRolesFieldEditFlushRequestedEvent());
   }
@@ -212,7 +210,7 @@ class OcptResourcesRolesBloc
     final pending = Map<(String, OcptRoleCandidateField), String>.of(
       state.pendingCandidateFieldEdits,
     )..[(event.candidateId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingCandidateFieldEdits: pending));
+    emitter(state.copyWithCandidateFieldEditTyped(pendingCandidateFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptResourcesRolesFieldEditFlushRequestedEvent());
   }
@@ -238,7 +236,7 @@ class OcptResourcesRolesBloc
         return;
       }
 
-      emitter(state.copyWith(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)));
+      emitter(state.copyWithRoleDeleted(pendingRoleFieldEdits: _pendingWithoutRole(event.roleId)));
       await addToModeAndWait(
         OcptResourcesRecordDroppedEvent(tab: OcptResourcesTab.roles, recordId: event.roleId),
       );
@@ -284,7 +282,9 @@ class OcptResourcesRolesBloc
       }
 
       emitter(
-        state.copyWith(pendingCandidateFieldEdits: _pendingWithoutCandidate(event.candidateId)),
+        state.copyWithCandidateRemoved(
+          pendingCandidateFieldEdits: _pendingWithoutCandidate(event.candidateId),
+        ),
       );
     } catch (error, stackTrace) {
       _logger.e(
@@ -339,9 +339,7 @@ class OcptResourcesRolesBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(
-        state.copyWith(pendingRoleFieldEdits: const {}, pendingCandidateFieldEdits: const {}),
-      );
+      emitter(state.copyWithFieldEditsCleared());
       return true;
     }
 
@@ -368,7 +366,7 @@ class OcptResourcesRolesBloc
     await modeBloc.reload({OcptResourcesReloadScope.snapshot});
 
     emitter(
-      state.copyWith(
+      state.copyWithFieldEditsWritten(
         pendingRoleFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingRoleFieldEdits,
           written: pendingRoleEdits,
@@ -397,7 +395,7 @@ class OcptResourcesRolesBloc
   /// This bloc empties its own maps as well, for the mode that is closing and no longer answers.
   Future<void> _loseEdits(Emitter<OcptResourcesRolesState> emitter) async {
     await addToModeAndWait(const OcptResourcesPendingEditsLostEvent());
-    emitter(state.copyWith(pendingRoleFieldEdits: const {}, pendingCandidateFieldEdits: const {}));
+    emitter(state.copyWithFieldEditsCleared());
   }
 
   /// Writes every pending field edit directly to the database, bypassing the debounce timer, the

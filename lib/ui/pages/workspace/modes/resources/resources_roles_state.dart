@@ -47,6 +47,42 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
     pendingCandidateFieldEdits: pendingCandidateFieldEdits ?? this.pendingCandidateFieldEdits,
   );
 
+  /// Copies this state with every pending field edit dropped, of the roles and of their candidates.
+  OcptResourcesRolesState copyWithFieldEditsCleared() =>
+      copyWith(pendingRoleFieldEdits: const {}, pendingCandidateFieldEdits: const {});
+
+  /// Copies this state with [pendingRoleFieldEdits] as the edits sitting in the debounce, a role's
+  /// field having just been typed into.
+  OcptResourcesRolesState copyWithRoleFieldEditTyped({
+    required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
+  }) => copyWith(pendingRoleFieldEdits: pendingRoleFieldEdits);
+
+  /// Copies this state with [pendingCandidateFieldEdits] as the edits sitting in the debounce, a
+  /// candidacy's field having just been typed into.
+  OcptResourcesRolesState copyWithCandidateFieldEditTyped({
+    required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
+  }) => copyWith(pendingCandidateFieldEdits: pendingCandidateFieldEdits);
+
+  /// Copies this state with the edits left once the pending ones were written, each map replaced.
+  OcptResourcesRolesState copyWithFieldEditsWritten({
+    required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
+    required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
+  }) => copyWith(
+    pendingRoleFieldEdits: pendingRoleFieldEdits,
+    pendingCandidateFieldEdits: pendingCandidateFieldEdits,
+  );
+
+  /// Copies this state with [pendingRoleFieldEdits] as the edits left once a role was deleted.
+  OcptResourcesRolesState copyWithRoleDeleted({
+    required Map<(String, OcptRoleField), String> pendingRoleFieldEdits,
+  }) => copyWith(pendingRoleFieldEdits: pendingRoleFieldEdits);
+
+  /// Copies this state with [pendingCandidateFieldEdits] as the edits left once a candidacy was
+  /// removed.
+  OcptResourcesRolesState copyWithCandidateRemoved({
+    required Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits,
+  }) => copyWith(pendingCandidateFieldEdits: pendingCandidateFieldEdits);
+
   /// Object properties
   @override
   List<Object?> get props => [...super.props, pendingRoleFieldEdits, pendingCandidateFieldEdits];
