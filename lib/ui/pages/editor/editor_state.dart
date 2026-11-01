@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
-import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_package_notice.dart';
@@ -14,192 +13,19 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_version_notice_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
+import 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_package_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_project_versions_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_dock.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index.dart';
 import 'package:spell_kit/spell_kit.dart';
 
-/// A request, produced by `OcptEditorBloc`, for the page to move the editor caret to
-/// [charOffset].
-///
-/// [id] increases with every request, so the page's bloc listener can tell a fresh request apart
-/// from the one it already applied even when two consecutive requests target the same offset
-/// (e.g. clicking the same scene twice).
-class OcptEditorJumpRequest extends Equatable {
-  /// The character offset, in the source text, to move the caret to.
-  final int charOffset;
-
-  /// The monotonically increasing identifier of this request.
-  final int id;
-
-  /// Class constructor
-  const OcptEditorJumpRequest({required this.charOffset, required this.id});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [charOffset, id];
-}
-
-/// The editor's live find/replace state — one search, kept in the bloc rather than in either
-/// editing surface, which is what lets it survive a raw ⇄ styled mode toggle.
-class OcptEditorSearchState extends Equatable {
-  /// Whether the find/replace bar is open at all.
-  final bool isOpen;
-
-  /// Whether the replace row is unfolded under the find row.
-  final bool isReplaceRowOpen;
-
-  /// The text currently searched for.
-  final String query;
-
-  /// The text a match is replaced by.
-  final String replacement;
-
-  /// Whether the search is case-sensitive.
-  final bool isCaseSensitive;
-
-  /// Whether the search only matches whole words.
-  final bool isWholeWord;
-
-  /// The number of matches the mounted editing surface last reported.
-  ///
-  /// Computed over what that surface actually shows — the raw source text, or a styled node's
-  /// display text — so the count can legitimately differ between the two modes for a query
-  /// holding markup (a forcing marker, a `#N#` tag, `*`/`_` emphasis): a search shows what the
-  /// user can see, not the underlying Fountain source the styled mode never displays.
-  final int matchCount;
-
-  /// The 0-based index, among [matchCount] matches, of the current one; null while there is none.
-  final int? currentMatchIndex;
-
-  /// The id of the last request to (re)focus and select the find field, bumped on every "open".
-  ///
-  /// The same idiom as [OcptEditorJumpRequest.id]: the bar remembers the last one it applied, so
-  /// re-opening an already-open bar (or unfolding its replace row through Ctrl+H) still refocuses
-  /// the find field even though [isOpen] itself doesn't change value.
-  final int focusRequestId;
-
-  /// Class constructor
-  const OcptEditorSearchState({
-    required this.isOpen,
-    required this.isReplaceRowOpen,
-    required this.query,
-    required this.replacement,
-    required this.isCaseSensitive,
-    required this.isWholeWord,
-    required this.matchCount,
-    required this.currentMatchIndex,
-    required this.focusRequestId,
-  });
-
-  /// Init class constructor
-  const OcptEditorSearchState.init()
-    : isOpen = false,
-      isReplaceRowOpen = false,
-      query = "",
-      replacement = "",
-      isCaseSensitive = false,
-      isWholeWord = false,
-      matchCount = 0,
-      currentMatchIndex = null,
-      focusRequestId = 0;
-
-  /// Returns a copy of this state with the given fields replaced.
-  ///
-  /// [currentMatchIndex] only goes back to null through [forceCurrentMatchIndexValue] — the
-  /// "there is no match" state a plain `int?` field can't tell apart from "leave it as it is" on
-  /// its own.
-  OcptEditorSearchState copyWith({
-    bool? isOpen,
-    bool? isReplaceRowOpen,
-    String? query,
-    String? replacement,
-    bool? isCaseSensitive,
-    bool? isWholeWord,
-    int? matchCount,
-    int? currentMatchIndex,
-    bool forceCurrentMatchIndexValue = false,
-    int? focusRequestId,
-  }) => OcptEditorSearchState(
-    isOpen: isOpen ?? this.isOpen,
-    isReplaceRowOpen: isReplaceRowOpen ?? this.isReplaceRowOpen,
-    query: query ?? this.query,
-    replacement: replacement ?? this.replacement,
-    isCaseSensitive: isCaseSensitive ?? this.isCaseSensitive,
-    isWholeWord: isWholeWord ?? this.isWholeWord,
-    matchCount: matchCount ?? this.matchCount,
-    currentMatchIndex:
-        currentMatchIndex ?? (forceCurrentMatchIndexValue ? null : this.currentMatchIndex),
-    focusRequestId: focusRequestId ?? this.focusRequestId,
-  );
-
-  /// Object properties
-  @override
-  List<Object?> get props => [
-    isOpen,
-    isReplaceRowOpen,
-    query,
-    replacement,
-    isCaseSensitive,
-    isWholeWord,
-    matchCount,
-    currentMatchIndex,
-    focusRequestId,
-  ];
-}
-
-/// The kind of transient notice `OcptEditorIoNotice` carries, one per export/import outcome.
-enum OcptEditorIoNoticeKind {
-  /// The screenplay was successfully exported to a `.fountain` file.
-  exportSucceeded,
-
-  /// Exporting the screenplay to a `.fountain` file failed.
-  exportFailed,
-
-  /// The screenplay text was successfully replaced by an imported screenplay file.
-  importSucceeded,
-
-  /// Importing a screenplay file to replace the screenplay text failed while it was being written
-  /// to the project: the file itself was read, so the screenplay on screen is the old one still.
-  importFailed,
-
-  /// The picked file could not be read as a screenplay at all, so nothing was replaced.
-  ///
-  /// Told apart from [importFailed] on purpose: this one names the file the user picked, which
-  /// picking another one fixes, where the other names the project's own write failing.
-  importUnreadable,
-
-  /// The screenplay was successfully exported to a PDF file.
-  pdfExportSucceeded,
-
-  /// Exporting the screenplay to a PDF file failed.
-  pdfExportFailed,
-}
-
-/// A transient notice, produced by `OcptEditorBloc`, reporting the outcome of an export or an
-/// import-and-replace, shown as a SnackBar then dismissed.
-class OcptEditorIoNotice extends Equatable {
-  /// The outcome this notice reports.
-  final OcptEditorIoNoticeKind kind;
-
-  /// The path the screenplay was exported to, only set when [kind] is
-  /// [OcptEditorIoNoticeKind.exportSucceeded] or [OcptEditorIoNoticeKind.pdfExportSucceeded] and
-  /// [wasShared] is false — a mobile export hands the file to the OS share sheet instead of
-  /// writing it to a path the user picked, so there is none to show.
-  final String? path;
-
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
-  final bool wasShared;
-
-  /// Class constructor
-  const OcptEditorIoNotice({required this.kind, this.path, this.wasShared = false});
-
-  /// Object properties
-  @override
-  List<Object?> get props => [kind, path, wasShared];
-}
+export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/editor_io_notice_kind.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/editor_jump_request.dart';
+export 'package:open_cine_prod_tools/ui/pages/editor/editor_search_state.dart';
 
 /// The state of `OcptEditorBloc`.
 ///
