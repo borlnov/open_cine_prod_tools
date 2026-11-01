@@ -51,6 +51,7 @@ import 'package:open_cine_prod_tools/types/ocpt_workspace_mode.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_cash_journal_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expenses_state.dart';
@@ -145,6 +146,10 @@ class OcptBudgetMode extends StatelessWidget {
         BlocProvider(
           lazy: false,
           create: (context) => OcptBudgetFinancingBloc(modeBloc: context.read<OcptBudgetBloc>()),
+        ),
+        BlocProvider(
+          lazy: false,
+          create: (context) => OcptBudgetCashJournalBloc(modeBloc: context.read<OcptBudgetBloc>()),
         ),
       ],
       child: const OcptBudgetViewEffects(child: _BudgetView()),
@@ -660,7 +665,6 @@ class _BudgetViewState extends State<_BudgetView> {
   /// current route, exactly as [_newButtonOf]'s own doc comment describes. Dispatches whatever
   /// [_handleNewOutcome] says once the wizard closes with something.
   Future<void> _handleNewRequested(BuildContext context, OcptBudgetState state) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final promotedFamily = _promotedGestureFamilyOf(state);
     final allowedGestures = _wizardGesturesForView(state);
     final outcome = await OcptBudgetNewDialog.show(
@@ -693,7 +697,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(context, bloc, state, outcome);
+    _handleNewOutcome(context, state, outcome);
   }
 
   /// Turns a fresh [OcptBudgetNewOutcome] into a write — every door that **creates** something
@@ -707,20 +711,20 @@ class _BudgetViewState extends State<_BudgetView> {
   /// mapping, carried over from the capture band the wizard replaced.
   void _handleNewOutcome(
     BuildContext context,
-    OcptBudgetBloc bloc,
     OcptBudgetState state,
     OcptBudgetNewOutcome outcome,
   ) {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final sharingBloc = context.read<OcptBudgetSharingBloc>();
 
     switch (outcome) {
       case OcptBudgetEntryWizardResult(:final fields, :final acceptedSuggestion):
         if (acceptedSuggestion == null) {
-          bloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
+          journalBloc.add(OcptBudgetEntryCreationConfirmedEvent(fields: fields));
         } else {
-          _handleEntryWizardSuggestionAccepted(bloc, state, acceptedSuggestion, fields);
+          _handleEntryWizardSuggestionAccepted(journalBloc, state, acceptedSuggestion, fields);
         }
       case OcptBudgetNewLineOutcome(:final posteId, :final fields):
         expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId, fields: fields));
@@ -735,7 +739,7 @@ class _BudgetViewState extends State<_BudgetView> {
           );
         }
       case OcptBudgetNewCommitmentOutcome(:final fields, :final lineId):
-        bloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
+        journalBloc.add(OcptBudgetCommitmentCreationConfirmedEvent(fields: fields, lineId: lineId));
       case OcptBudgetNewResourceOutcome(:final fields):
         financingBloc.add(OcptBudgetResourceCreationConfirmedEvent(fields: fields));
       case OcptBudgetNewRevenueOutcome(:final fields):
@@ -768,7 +772,6 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetGesture gesture,
     OcptBudgetEntryFormFields prefill,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
     final outcome = await OcptBudgetNewDialog.show(
       context,
       initialGesture: gesture,
@@ -798,7 +801,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(context, bloc, state, outcome);
+    _handleNewOutcome(context, state, outcome);
   }
 
   /// `C'est ça`: turns the wizard's own accepted [suggestion] and its plain [fields] into the write
@@ -815,7 +818,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// lets a defrayal be marked settled, so the label is the only trace this movement can leave of
   /// it.
   void _handleEntryWizardSuggestionAccepted(
-    OcptBudgetBloc bloc,
+    OcptBudgetCashJournalBloc journalBloc,
     OcptBudgetState state,
     OcptBudgetMatchSuggestion suggestion,
     OcptBudgetEntryFormFields fields,
@@ -828,7 +831,7 @@ class _BudgetViewState extends State<_BudgetView> {
         if (commitment == null) {
           return;
         }
-        bloc.add(
+        journalBloc.add(
           OcptBudgetCommitmentSettlementConfirmedEvent(
             commitmentId: commitment.id,
             fields: OcptBudgetEntryFormFields(
@@ -849,7 +852,7 @@ class _BudgetViewState extends State<_BudgetView> {
           ),
         );
       case OcptBudgetMatchCandidateKind.resource:
-        bloc.add(
+        journalBloc.add(
           OcptBudgetEntryCreationConfirmedEvent(
             fields: OcptBudgetEntryFormFields(
               date: fields.date,
@@ -869,7 +872,7 @@ class _BudgetViewState extends State<_BudgetView> {
           ),
         );
       case OcptBudgetMatchCandidateKind.revenue:
-        bloc.add(
+        journalBloc.add(
           OcptBudgetEntryCreationConfirmedEvent(
             fields: OcptBudgetEntryFormFields(
               date: fields.date,
@@ -889,7 +892,7 @@ class _BudgetViewState extends State<_BudgetView> {
           ),
         );
       case OcptBudgetMatchCandidateKind.defrayal:
-        bloc.add(
+        journalBloc.add(
           OcptBudgetEntryCreationConfirmedEvent(
             fields: OcptBudgetEntryFormFields(
               date: fields.date,
@@ -999,6 +1002,7 @@ class _BudgetViewState extends State<_BudgetView> {
   /// Builds the cost-tracking table.
   Widget _buildCostTracking(BuildContext context, OcptBudgetState state) {
     final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final elementLinkCounts = state.elementLinkCounts;
@@ -1062,8 +1066,9 @@ class _BudgetViewState extends State<_BudgetView> {
           : (commitment) => unawaited(_handleCommitmentSettleRequested(context, state, commitment)),
       onCommitmentUnsettleRequested: isReadOnly
           ? null
-          : (commitmentId) =>
-                bloc.add(OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId)),
+          : (commitmentId) => journalBloc.add(
+              OcptBudgetCommitmentUnsettleRequestedEvent(commitmentId: commitmentId),
+            ),
       onCommitmentDeletionRequested: isReadOnly
           ? null
           : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
@@ -1172,7 +1177,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetEntry entry,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final result = await OcptBudgetEntryDialog.show(
       context,
       existing: entry,
@@ -1193,13 +1198,13 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result));
+    journalBloc.add(OcptBudgetEntryUpdateConfirmedEvent(entryId: entry.id, fields: result));
   }
 
   /// Asks `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
   /// dispatches the deletion if the user answered `Delete`.
   Future<void> _handleEntryDeletionRequested(BuildContext context, String entryId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1216,7 +1221,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
+    journalBloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
   /// Opens the commitment dialog pre-filled with [commitment], then dispatches the update if the
@@ -1226,7 +1231,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetCommitment commitment,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final fields = await OcptBudgetCommitmentDialog.show(
       context,
       existing: commitment,
@@ -1242,13 +1247,15 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetCommitmentUpdateConfirmedEvent(commitmentId: commitment.id, fields: fields));
+    journalBloc.add(
+      OcptBudgetCommitmentUpdateConfirmedEvent(commitmentId: commitment.id, fields: fields),
+    );
   }
 
   /// Asks `OcptConfirmDialog` whether commitment [commitmentId] really is to be deleted, then
   /// dispatches the deletion if the user answered `Delete`.
   Future<void> _handleCommitmentDeletionRequested(BuildContext context, String commitmentId) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
@@ -1265,7 +1272,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
+    journalBloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitmentId));
   }
 
   /// Opens the capture wizard's own step 3 directly, on [OcptBudgetGesture.recordExpense],
@@ -1279,7 +1286,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetCommitment commitment,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final now = DateTime.now();
     // Offer what is still owed rather than the full commitment, expressed in the commitment's own
     // tax basis and rate so the payment entry carries the very VAT reading the commitment does. The
@@ -1356,7 +1363,7 @@ class _BudgetViewState extends State<_BudgetView> {
 
     // With the strip withheld the wizard can accept no suggestion, so settling this very commitment
     // is the only outcome left — no `acceptedSuggestion` branch is reachable here.
-    bloc.add(
+    journalBloc.add(
       OcptBudgetCommitmentSettlementConfirmedEvent(
         commitmentId: commitment.id,
         fields: outcome.fields,
@@ -1541,7 +1548,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     OcptBudgetResource resource,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final entryId = ocptBudgetLatestReceiptEntryIdOf(state.entries, resourceId: resource.id);
     if (entryId == null) {
       return;
@@ -1562,7 +1569,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
+    journalBloc.add(OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId));
   }
 
   /// Builds the catering-and-defrayals view: the catering it computes, the defrayals it lets a
@@ -2135,8 +2142,6 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     String lineId,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
-
     final poste = state.postes
         .where((poste) => poste.lines.any((line) => line.id == lineId))
         .firstOrNull;
@@ -2181,7 +2186,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    _handleNewOutcome(context, bloc, state, outcome);
+    _handleNewOutcome(context, state, outcome);
   }
 
   /// Opens the capture wizard to pay quote line [lineId] directly — its own `Pay` action,
@@ -2267,7 +2272,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetState state,
     String lineId,
   ) async {
-    final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final tr = Tr.of(context);
 
     final commitment = state.commitments
@@ -2301,7 +2306,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    bloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitment.id));
+    journalBloc.add(OcptBudgetCommitmentDeletionConfirmedEvent(commitmentId: commitment.id));
   }
 
   /// Asks `OcptConfirmDialog` whether quote line [lineId] really is to be deleted, then dispatches
@@ -2386,6 +2391,7 @@ class _BudgetViewState extends State<_BudgetView> {
     OcptBudgetExpensesState expensesState,
   ) {
     final bloc = context.read<OcptBudgetBloc>();
+    final journalBloc = context.read<OcptBudgetCashJournalBloc>();
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final elementNameByElementId = {for (final element in state.elements) element.id: element.name};
@@ -2469,7 +2475,7 @@ class _BudgetViewState extends State<_BudgetView> {
           : (commitmentId) => unawaited(_handleCommitmentDeletionRequested(context, commitmentId)),
       onCommitmentPromoteToQuoteRequested: isReadOnly || selectedCommitmentId == null
           ? null
-          : () => bloc.add(
+          : () => journalBloc.add(
               OcptBudgetCommitmentPromotedToQuoteEvent(commitmentId: selectedCommitmentId),
             ),
       onEntryEditRequested: isReadOnly
@@ -2480,10 +2486,10 @@ class _BudgetViewState extends State<_BudgetView> {
           : (entryId) => unawaited(_handleEntryDeletionRequested(context, entryId)),
       onEntryPromoteToQuoteRequested: isReadOnly || selectedEntryId == null
           ? null
-          : () => bloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: selectedEntryId)),
+          : () => journalBloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: selectedEntryId)),
       onEntryMoveOffQuoteRequested: isReadOnly || selectedEntryId == null
           ? null
-          : () => bloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: selectedEntryId)),
+          : () => journalBloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: selectedEntryId)),
       onResourceReceiptRequested: isReadOnly
           ? null
           : (resource) => unawaited(_handleResourceReceiptRequested(context, state, resource)),
