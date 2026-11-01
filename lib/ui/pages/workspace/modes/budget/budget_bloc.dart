@@ -280,15 +280,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetResourceUpdateConfirmedEvent>(_onResourceUpdateConfirmed);
     on<OcptBudgetResourceDeletionConfirmedEvent>(_onResourceDeletionConfirmed);
     on<OcptBudgetRevenueSelectedEvent>(_onRevenueSelected);
-    on<OcptBudgetRevenueCreationConfirmedEvent>(_onRevenueCreationConfirmed);
-    on<OcptBudgetRevenueUpdateConfirmedEvent>(_onRevenueUpdateConfirmed);
-    on<OcptBudgetRevenueReorderedEvent>(_onRevenueReordered);
-    on<OcptBudgetRevenueDeletionConfirmedEvent>(_onRevenueDeletionConfirmed);
     on<OcptBudgetShareSelectedEvent>(_onShareSelected);
-    on<OcptBudgetShareCreationConfirmedEvent>(_onShareCreationConfirmed);
-    on<OcptBudgetShareUpdateConfirmedEvent>(_onShareUpdateConfirmed);
-    on<OcptBudgetShareReorderedEvent>(_onShareReordered);
-    on<OcptBudgetShareDeletionConfirmedEvent>(_onShareDeletionConfirmed);
   }
 
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.projectsManager}
@@ -1071,7 +1063,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// ([OcptBudgetEntryFormFields.newRevenue]) and answers its fresh id, or null while it carries
   /// none — which is the ordinary case.
   ///
-  /// **Written exactly the way [_onRevenueCreationConfirmed] writes one**, through the same two
+  /// **Written exactly the way `OcptBudgetSharingBloc` writes one**, through the same two
   /// calls, so a taking born in the journal is indistinguishable from one born in the sharing
   /// view: the door differs, never the row.
   Future<String?> _createNewRevenueOf(
@@ -1111,7 +1103,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
   /// Creates the revenue-sharing participant `fields` carries as still-to-be-made
   /// ([OcptBudgetEntryFormFields.newShare]) and answers its fresh id, or null while it carries none
-  /// — mirrors [_createNewRevenueOf] exactly, written the way [_onShareCreationConfirmed] writes
+  /// — mirrors [_createNewRevenueOf] exactly, written the way `OcptBudgetSharingBloc` writes
   /// one.
   Future<String?> _createNewShareOf(
     OcptOpenProjectModel project,
@@ -1852,93 +1844,6 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Creates a new taking from `event.fields` and selects it — mirrors
-  /// [_onResourceCreationConfirmed]: `OcptBudgetSharingService.createRevenue` mints the row from a
-  /// date and a label alone, every other field written straight after through
-  /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call [_onRevenueUpdateConfirmed]
-  /// itself uses.
-  Future<void> _onRevenueCreationConfirmed(
-    OcptBudgetRevenueCreationConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final fields = event.fields;
-    final revenueId = await _budgetSharingService.createRevenueWithFields(
-      database: project.database,
-      fields: fields,
-    );
-
-    await _applyBudgetSnapshot(emitter, project);
-    if (revenueId != null) {
-      emitter(
-        state.copyWith(
-          selection: OcptBudgetRevenueSelection(revenueId),
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBudgetSelectionCause.created,
-        ),
-      );
-    }
-  }
-
-  /// Writes `event.fields` onto revenue `event.revenueId`.
-  Future<void> _onRevenueUpdateConfirmed(
-    OcptBudgetRevenueUpdateConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.writeRevenueFields(
-      database: project.database,
-      revenueId: event.revenueId,
-      fields: event.fields,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Moves revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
-  /// order — mirrors `OcptBudgetPosteReorderedEvent`'s own handler.
-  Future<void> _onRevenueReordered(
-    OcptBudgetRevenueReorderedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.reorderRevenue(
-      database: project.database,
-      revenueId: event.revenueId,
-      newPosition: event.newPosition,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Deletes taking `event.revenueId` for good, confirmed by the mode's own `OcptConfirmDialog` —
-  /// mirrors [_onResourceDeletionConfirmed].
-  Future<void> _onRevenueDeletionConfirmed(
-    OcptBudgetRevenueDeletionConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.deleteRevenue(
-      database: project.database,
-      revenueId: event.revenueId,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
   /// Selects share `event.shareId`, drawn as a plain highlight — mirrors [_onRevenueSelected]. A
   /// share id naming no live share is ignored.
   Future<void> _onShareSelected(
@@ -1956,86 +1861,5 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
         selectionCause: OcptBudgetSelectionCause.shareSelected,
       ),
     );
-  }
-
-  /// Creates a new share from `event.fields` and selects it — mirrors
-  /// [_onRevenueCreationConfirmed].
-  Future<void> _onShareCreationConfirmed(
-    OcptBudgetShareCreationConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    final fields = event.fields;
-    final shareId = await _budgetSharingService.createShareWithFields(
-      database: project.database,
-      fields: fields,
-    );
-
-    await _applyBudgetSnapshot(emitter, project);
-    if (shareId != null) {
-      emitter(
-        state.copyWith(
-          selectedShareId: shareId,
-          selectionEpoch: state.selectionEpoch + 1,
-          selectionCause: OcptBudgetSelectionCause.created,
-        ),
-      );
-    }
-  }
-
-  /// Writes `event.fields` onto share `event.shareId`.
-  Future<void> _onShareUpdateConfirmed(
-    OcptBudgetShareUpdateConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.writeShareFields(
-      database: project.database,
-      shareId: event.shareId,
-      fields: event.fields,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Moves share `event.shareId` to `event.newPosition` within the sharing view's own flat order —
-  /// mirrors [_onRevenueReordered].
-  Future<void> _onShareReordered(
-    OcptBudgetShareReorderedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.reorderShare(
-      database: project.database,
-      shareId: event.shareId,
-      newPosition: event.newPosition,
-    );
-    await _applyBudgetSnapshot(emitter, project);
-  }
-
-  /// Deletes share `event.shareId` for good, confirmed by the mode's own `OcptConfirmDialog` —
-  /// mirrors [_onRevenueDeletionConfirmed].
-  Future<void> _onShareDeletionConfirmed(
-    OcptBudgetShareDeletionConfirmedEvent event,
-    Emitter<OcptBudgetState> emitter,
-  ) async {
-    final project = _projectsManager.currentProject;
-    if (project == null) {
-      return;
-    }
-
-    await _budgetSharingService.deleteShare(database: project.database, shareId: event.shareId);
-    await _applyBudgetSnapshot(emitter, project);
   }
 }
