@@ -48,12 +48,12 @@ class OcptBudgetInlineField extends StatefulWidget {
   });
 
   @override
-  State<OcptBudgetInlineField> createState() => OcptBudgetInlineFieldState();
+  State<OcptBudgetInlineField> createState() => _OcptBudgetInlineFieldState();
 }
 
 /// The state of [OcptBudgetInlineField]: owns the controller, kept in sync with the widget's own
 /// authoritative value exactly as `OcptResourcesSheetField` keeps its own.
-class OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
+class _OcptBudgetInlineFieldState extends State<OcptBudgetInlineField> {
   /// The field's own text editing controller.
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 

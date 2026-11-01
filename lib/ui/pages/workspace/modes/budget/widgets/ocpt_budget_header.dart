@@ -52,7 +52,7 @@ const double _ocptBudgetSegmentPadding = 12;
 /// [onCaptureRequested] travel together, pushed to the right end of the band after every other
 /// control (mockups `4c`/`4d`) — a view with no capture at all (the dashboard, `tools ›
 /// cashFlow`) hands in null and this header draws nothing there, and, under a previewed version,
-/// `budget_mode.dart` hands in null too: **withheld whole, never disabled**, the standing rule for
+/// `OcptBudgetCentre` hands in null too: **withheld whole, never disabled**, the standing rule for
 /// an affordance a preview takes away. This header itself needs no `isReadOnly` flag of its own for
 /// that — the mode already decides what to hand in, exactly as it always has for every other
 /// contextual control here.
@@ -185,7 +185,7 @@ class OcptBudgetHeader extends StatelessWidget {
 
 /// One segment of any of this header's switches — a small bordered rounded container, the active
 /// segment filled `primary` and bolder, mirroring `OcptBreakdownHeader`'s own
-/// `_OcptBreakdownViewSwitch._buildSegment`.
+/// view switch segment.
 ///
 /// **[badgeCount], nullable and null on every switch but the view switch's own `Tableau de bord`
 /// segment**, draws a small pill after the label rather than forking this class in two: the

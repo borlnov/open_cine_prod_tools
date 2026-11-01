@@ -36,8 +36,8 @@ sealed class OcptBudgetNewOutcome extends Equatable {
 ///
 /// **Never turned into a domain write by whichever dialog produced it** — that mapping (a
 /// commitment settles, a resource or a revenue receives, a defrayal only ever leaves its own label
-/// behind) stays in `budget_mode.dart`, exactly where it lived for the capture band the wizard
-/// replaces (`OcptBudgetMode`'s own accepted-suggestion handler), because only the mode holds the
+/// behind) stays in `budget_wizard_flows.dart`, exactly where it lived for the capture band the
+/// wizard replaces (the mode's own accepted-suggestion handler), because only the mode holds the
 /// full commitments list a settlement needs to read a poste and a tax rate off. [fields] therefore
 /// carries the plain draft the strip was shown against — no poste, resource, revenue or share named
 /// — and the mode reads [acceptedSuggestion] to decide what those four fields ought to have been

@@ -23,11 +23,12 @@ class OcptBudgetCashJournalVoucherMarker extends StatefulWidget {
 
   @override
   State<OcptBudgetCashJournalVoucherMarker> createState() =>
-      OcptBudgetCashJournalVoucherMarkerState();
+      _OcptBudgetCashJournalVoucherMarkerState();
 }
 
-/// The state of [OcptBudgetCashJournalVoucherMarker]: whether the referenced file was found, once asked.
-class OcptBudgetCashJournalVoucherMarkerState extends State<OcptBudgetCashJournalVoucherMarker> {
+/// The state of [OcptBudgetCashJournalVoucherMarker]: whether the referenced file was found, once
+/// asked.
+class _OcptBudgetCashJournalVoucherMarkerState extends State<OcptBudgetCashJournalVoucherMarker> {
   /// Whether the referenced file was there when it was last asked about.
   late bool _exists = File(widget.path).existsSync();
 
