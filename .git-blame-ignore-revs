@@ -21,3 +21,66 @@ d8588ee3dfeac85afe2d684e1ff7a4a7b332e4f5
 
 # style: order class members in tests and tools
 2da87d7b41f9bb7efc36dddf3caeb7e1f184609a
+
+# docs: document managers
+37ba566dff5fc8d350d6fb6422d1ebeb70a10af2
+
+# docs: document models and rules
+6daad27d4ef07a2ec2d6a59f8bec82db4890e124
+
+# docs: document types
+a8fd6dd881370d5f4d4a581a481366ffafa101bc
+
+# docs: document the budget mode
+baa29cc7a83d45622dec7234aaa0c311edb3c48e
+
+# docs: document the shot_list mode
+d0afec3d68621ac576990d43fed358e898aedb71
+
+# docs: document the resources mode
+a0b7fc85dd27358938ee555eaf32c75fb281aace
+
+# docs: document the schedule mode
+0d0b742694be287c1512d27daf526e8d5bebca14
+
+# docs: document the breakdown mode
+33177559f3c16fa8d66370b7f1a7b86006aa870d
+
+# docs: document the editor page
+2df55a5e3fef7b118a8f2988001b983d02085d14
+
+# docs: document the workspace shell and pages
+e9fd4c7bedeb46070cdda47a90e0c9a520d263a5
+
+# docs: document the packages
+f6f8dba594f1845482ebd1166bd79b74402cb881
+
+# docs: document the tests and the tools
+54ac933b4c956156762f274fa20a4d0723010d4f
+
+# docs: start managers' doc comments with a verb
+55799be4ab9f941ceb76744bf05a8660f2b69728
+
+# docs: start models' doc comments with a verb
+359e86f9f6bf745e64c3899d0b7e9bb3d1c0725c
+
+# docs: start breakdown doc comments with a verb
+6442faeb4e8520c79b06914b90536564798ba5cb
+
+# docs: start budget doc comments with a verb
+1f0207ed8c55b15e797d02909e8038398f3d7db1
+
+# docs: start resources doc comments with a verb
+22536635456fe46bad52413485ea3b65036cb840
+
+# docs: start schedule doc comments with a verb
+a68e677668cbcdf5a7a2cbbbcf1d6922104e8b6e
+
+# docs: start shot list doc comments with a verb
+9b0782c977e358cf94fdb9fbc9b1ae12c3e5834b
+
+# docs: start UI doc comments with a verb
+958df1d5d1329b7e7f936ba13a2b10d26bed71bd
+
+# docs: start package and tool docs with a verb
+d5324a56e21248737044fdf57961ff2b78dbfc29
