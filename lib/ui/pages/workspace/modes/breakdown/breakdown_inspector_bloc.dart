@@ -139,13 +139,7 @@ class OcptBreakdownInspectorBloc
 
     cancelDebounce();
     if (_hasPendingEdits(state)) {
-      emitter(
-        state.copyWith(
-          pendingElementFieldEdits: const {},
-          pendingSceneNotesEdits: const {},
-          pendingSetNameEdits: const {},
-        ),
-      );
+      emitter(state.copyWithPendingEditsCleared());
     }
   }
 
@@ -262,7 +256,7 @@ class OcptBreakdownInspectorBloc
   ) async {
     final pending = Map<String, String>.of(state.pendingSceneNotesEdits)
       ..[event.sceneId] = event.rawValue;
-    emitter(state.copyWith(pendingSceneNotesEdits: pending));
+    emitter(state.copyWithSceneNotesEditTyped(pendingSceneNotesEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
@@ -319,7 +313,7 @@ class OcptBreakdownInspectorBloc
   ) async {
     final pending = Map<(String, OcptElementField), String>.of(state.pendingElementFieldEdits)
       ..[(event.elementId, event.field)] = event.rawValue;
-    emitter(state.copyWith(pendingElementFieldEdits: pending));
+    emitter(state.copyWithElementFieldEditTyped(pendingElementFieldEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
@@ -333,7 +327,7 @@ class OcptBreakdownInspectorBloc
   ) async {
     final pending = Map<String, String>.of(state.pendingSetNameEdits)
       ..[event.setId] = event.rawValue;
-    emitter(state.copyWith(pendingSetNameEdits: pending));
+    emitter(state.copyWithSetNameEditTyped(pendingSetNameEdits: pending));
 
     restartDebounce(_fieldEditDebounce, const OcptBreakdownFieldEditFlushRequestedEvent());
   }
@@ -378,13 +372,7 @@ class OcptBreakdownInspectorBloc
 
     final project = _projectsManager.currentProject;
     if (project == null) {
-      emitter(
-        state.copyWith(
-          pendingElementFieldEdits: const {},
-          pendingSceneNotesEdits: const {},
-          pendingSetNameEdits: const {},
-        ),
-      );
+      emitter(state.copyWithPendingEditsCleared());
       return true;
     }
 
@@ -411,7 +399,7 @@ class OcptBreakdownInspectorBloc
     }
 
     emitter(
-      state.copyWith(
+      state.copyWithPendingEditsWritten(
         pendingElementFieldEdits: ocptPendingEditsAfterWrite(
           current: state.pendingElementFieldEdits,
           written: pendingElementFields,

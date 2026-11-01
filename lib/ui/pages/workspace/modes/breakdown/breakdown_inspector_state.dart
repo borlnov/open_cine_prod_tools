@@ -67,6 +67,42 @@ class OcptBreakdownInspectorState extends BlocStateForMixin<OcptBreakdownInspect
     pendingSetNameEdits: pendingSetNameEdits ?? this.pendingSetNameEdits,
   );
 
+  /// Copies this state with every pending edit dropped.
+  OcptBreakdownInspectorState copyWithPendingEditsCleared() => copyWith(
+    pendingElementFieldEdits: const {},
+    pendingSceneNotesEdits: const {},
+    pendingSetNameEdits: const {},
+  );
+
+  /// Copies this state with [pendingSceneNotesEdits] as the notes sitting in the debounce, a
+  /// scene's notes having just been typed into.
+  OcptBreakdownInspectorState copyWithSceneNotesEditTyped({
+    required Map<String, String> pendingSceneNotesEdits,
+  }) => copyWith(pendingSceneNotesEdits: pendingSceneNotesEdits);
+
+  /// Copies this state with [pendingElementFieldEdits] as the edits sitting in the debounce, an
+  /// element's field having just been typed into.
+  OcptBreakdownInspectorState copyWithElementFieldEditTyped({
+    required Map<(String, OcptElementField), String> pendingElementFieldEdits,
+  }) => copyWith(pendingElementFieldEdits: pendingElementFieldEdits);
+
+  /// Copies this state with [pendingSetNameEdits] as the names sitting in the debounce, a set's
+  /// name having just been typed into.
+  OcptBreakdownInspectorState copyWithSetNameEditTyped({
+    required Map<String, String> pendingSetNameEdits,
+  }) => copyWith(pendingSetNameEdits: pendingSetNameEdits);
+
+  /// Copies this state with the edits left once the pending ones were written, each map replaced.
+  OcptBreakdownInspectorState copyWithPendingEditsWritten({
+    required Map<(String, OcptElementField), String> pendingElementFieldEdits,
+    required Map<String, String> pendingSceneNotesEdits,
+    required Map<String, String> pendingSetNameEdits,
+  }) => copyWith(
+    pendingElementFieldEdits: pendingElementFieldEdits,
+    pendingSceneNotesEdits: pendingSceneNotesEdits,
+    pendingSetNameEdits: pendingSetNameEdits,
+  );
+
   /// Object properties
   @override
   List<Object?> get props => [
