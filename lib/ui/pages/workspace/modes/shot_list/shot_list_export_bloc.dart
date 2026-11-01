@@ -101,7 +101,7 @@ class OcptShotListExportBloc
       if (outcome is OcptExportFailed) {
         // The manager already logged why the workbook could not be built.
         emitter(
-          state.copyWith(
+          state.copyWithIoNotice(
             ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.xlsxExportFailed),
           ),
         );
@@ -109,7 +109,7 @@ class OcptShotListExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptShotListIoNotice(
             kind: OcptShotListIoNoticeKind.xlsxExportSucceeded,
             path: outcome.savedPath,
@@ -125,7 +125,7 @@ class OcptShotListExportBloc
         stackTrace,
       );
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: const OcptShotListIoNotice(kind: OcptShotListIoNoticeKind.xlsxExportFailed),
         ),
       );
@@ -282,7 +282,7 @@ class OcptShotListExportBloc
       }
 
       emitter(
-        state.copyWith(
+        state.copyWithIoNotice(
           ioNotice: OcptShotListIoNotice(
             kind: succeededKind,
             path: outcome.savedPath,
@@ -297,7 +297,7 @@ class OcptShotListExportBloc
         null,
         stackTrace,
       );
-      emitter(state.copyWith(ioNotice: OcptShotListIoNotice(kind: failedKind)));
+      emitter(state.copyWithIoNotice(ioNotice: OcptShotListIoNotice(kind: failedKind)));
     }
   }
 
@@ -306,6 +306,6 @@ class OcptShotListExportBloc
     OcptShotListIoNoticeDismissedEvent event,
     Emitter<OcptShotListExportState> emitter,
   ) async {
-    emitter(state.copyWith(forceIoNoticeValue: true));
+    emitter(state.copyWithIoNoticeDismissed());
   }
 }
