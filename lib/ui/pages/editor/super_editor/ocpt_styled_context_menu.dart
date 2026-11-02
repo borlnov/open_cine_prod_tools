@@ -320,6 +320,54 @@ final class OcptStyledContextMenu {
     controller.close();
   }
 
+  /// Wrap [child] in the right-click context menu, wired to the entries this handler carries out
+  /// and to [onTypeSelected] for the block type.
+  ///
+  /// super_editor's own desktop gesture interactor handles no secondary mouse button at all
+  /// (verified against the pinned `0.3.0-dev.52`), so nothing else ever competes for the gesture.
+  ///
+  /// The `Listener` above the gesture detector is what dismisses that menu on a left click landing
+  /// back on the document (see [onPointerDownOverDocument]): `MenuAnchor` closes itself on a tap
+  /// outside its own `TapRegion` group, and its anchor child, [child], is part of that group, so
+  /// the whole editing surface would otherwise be the one place where clicking away left the menu
+  /// standing. It observes rather than competes: a `Listener` never enters the gesture arena, so
+  /// the click it sees still reaches super_editor and places the caret.
+  ///
+  /// No entry is ever withheld for a read-only preview here: `OcptEditorCentre` substitutes the
+  /// read-only `OcptEditorPreview` for both editing modes while a version is being previewed, so
+  /// the styled editor, and the menu it opens, is simply never mounted under one. There is no
+  /// `isReadOnly` flag to thread through because there is nothing here that would ever need one.
+  Widget wrap({required Widget child, required ValueChanged<FountainLineType> onTypeSelected}) {
+    final misspelledWord = _misspelledWord;
+
+    return OcptEditorContextMenu(
+      controller: controller,
+      childFocusNode: _focusNode,
+      misspelledWord: misspelledWord,
+      suggestions: _suggestions,
+      onSuggestionSelected: misspelledWord != null ? applySuggestion : null,
+      // Each of the two actions is additionally gated on the callback that would carry it out: a
+      // caller that wired none of them (a test, chiefly) must see the entry withheld rather than
+      // shown and inert, the repository-wide rule this menu already follows everywhere else.
+      onIgnoreWord: misspelledWord != null && _onWordIgnoredOf() != null ? ignoreWord : null,
+      onLearnWord: misspelledWord != null && _onWordLearnedOf() != null ? learnWord : null,
+      currentType: blockType,
+      onCut: hasExpandedSelection ? cutSelection : null,
+      onCopy: hasExpandedSelection ? copySelection : null,
+      onPaste: _composer.selection != null ? paste : null,
+      onSelectAll: _composer.selection != null ? selectAll : null,
+      onTypeSelected: blockType != null ? onTypeSelected : null,
+      child: Listener(
+        onPointerDown: onPointerDownOverDocument,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTapUp: onSecondaryTapUp,
+          child: child,
+        ),
+      ),
+    );
+  }
+
   /// Handle the right-click context menu's Copy entry: copies the current selection's Fountain
   /// source to
   /// the clipboard through [ocptCopySelectionToClipboard], the same helper the Ctrl+C key handler

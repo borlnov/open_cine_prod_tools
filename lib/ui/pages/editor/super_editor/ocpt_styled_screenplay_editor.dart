@@ -455,7 +455,7 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
     super.deactivate();
   }
 
-  /// Build the styled screenplay editor as an [OcptEditorContextMenu].
+  /// Build the styled screenplay editor, inside its right-click context menu.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -560,54 +560,8 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
           );
 
     // Wrapped once here, rather than once per branch above: a right-click anywhere over the
-    // document — fluid surface or simulated page alike — opens the same context menu.
-    // super_editor's own desktop gesture interactor handles no secondary mouse button at all
-    // (verified against the pinned `0.3.0-dev.52`), so nothing else ever competes for this gesture.
-    //
-    // The `Listener` above the gesture detector is what dismisses that menu on a left click landing
-    // back on the document (see `_onPointerDownOverDocument`): `MenuAnchor` closes itself on a tap
-    // outside its own `TapRegion` group, and its anchor child — everything below here — is part of
-    // that group, so the whole editing surface would otherwise be the one place where clicking away
-    // left the menu standing. It observes rather than competes: a `Listener` never enters the
-    // gesture arena, so the click it sees still reaches super_editor and places the caret.
-    //
-    // No entry is ever withheld for a read-only preview here: `OcptEditorCentre`
-    // substitutes the read-only `OcptEditorPreview` for both editing modes while a version is being
-    // previewed, so this widget — and the menu it opens — is simply never mounted under one. There
-    // is no `isReadOnly` flag to thread through because there is nothing here that would ever need
-    // one.
-    return OcptEditorContextMenu(
-      controller: _contextMenu.controller,
-      childFocusNode: _focusNode,
-      misspelledWord: _contextMenu.misspelledWord,
-      suggestions: _contextMenu.suggestions,
-      onSuggestionSelected: _contextMenu.misspelledWord != null
-          ? _contextMenu.applySuggestion
-          : null,
-      // Each of the two actions is additionally gated on the callback that would carry it out: a
-      // caller that wired none of them (a test, chiefly) must see the entry withheld rather than
-      // shown and inert, the repository-wide rule this menu already follows everywhere else.
-      onIgnoreWord: _contextMenu.misspelledWord != null && widget.onWordIgnored != null
-          ? _contextMenu.ignoreWord
-          : null,
-      onLearnWord: _contextMenu.misspelledWord != null && widget.onWordLearned != null
-          ? _contextMenu.learnWord
-          : null,
-      currentType: _contextMenu.blockType,
-      onCut: _contextMenu.hasExpandedSelection ? _contextMenu.cutSelection : null,
-      onCopy: _contextMenu.hasExpandedSelection ? _contextMenu.copySelection : null,
-      onPaste: _composer.selection != null ? _contextMenu.paste : null,
-      onSelectAll: _composer.selection != null ? _contextMenu.selectAll : null,
-      onTypeSelected: _contextMenu.blockType != null ? applyBlockType : null,
-      child: Listener(
-        onPointerDown: _contextMenu.onPointerDownOverDocument,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onSecondaryTapUp: _contextMenu.onSecondaryTapUp,
-          child: content,
-        ),
-      ),
-    );
+    // document, fluid surface or simulated page alike, opens the same context menu.
+    return _contextMenu.wrap(child: content, onTypeSelected: applyBlockType);
   }
 
   /// Take back the writer's last gesture, plus everything this widget derived from it.

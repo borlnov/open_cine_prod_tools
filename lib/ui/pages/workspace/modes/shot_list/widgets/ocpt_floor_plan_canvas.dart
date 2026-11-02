@@ -7,12 +7,10 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_set.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
-import 'package:open_cine_prod_tools/models/rules/ocpt_floor_plan_geometry.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_palette_drag_payload.dart';
@@ -27,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_gestures.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_painter.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_canvas_sheet.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_paint_layer.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_scope_bubble.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_handles.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_floor_plan_symbol_hit_overlay.dart';
@@ -409,8 +408,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// Build the floor plan canvas as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tr = Tr.of(context);
     final floorPlanSet = widget.floorPlanSet;
 
     // Defensive only: the mode never builds `OcptFloorPlanView`/this canvas at all while the
@@ -443,7 +440,6 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
               hiddenLayers: widget.hiddenLayers,
               hiddenCameraSymbolIds: widget.hiddenCameraSymbolIds,
             );
-            final barLengthM = ocptFloorPlanScaleBarLengthM(zoom: zoom);
 
             final selectedShape = ocptFloorPlanSymbolOf(sheet, widget.selectedSymbolId);
             final selectedArrow = ocptFloorPlanArrowOf(sheet, widget.selectedArrowId);
@@ -482,37 +478,17 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             sheet,
                           ),
                           onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
-                          // Its own layer: the plan repaints on every pan, zoom and drag frame, and
-                          // the widgets stacked over it do not repaint with it.
-                          child: RepaintBoundary(
-                            child: CustomPaint(
-                              size: canvasSize,
-                              painter: OcptFloorPlanCanvasPainter(
-                                sheet: sheet,
-                                zoom: zoom,
-                                pan: pan,
-                                selectedSymbolId: widget.selectedSymbolId,
-                                arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
-                                liveOverride: _drag.liveOverride ?? pendingScopeLiveOverride,
-                                symbolBorderColor: theme.colorScheme.outline,
-                                selectionColor: theme.colorScheme.primary,
-                                arrowAnchorColor: theme.colorScheme.secondary,
-                                arrowColor: theme.colorScheme.onSurface,
-                                labelTextColor: theme.colorScheme.onSurface,
-                                scaleColor: theme.colorScheme.onSurfaceVariant,
-                                scaleBarLabel: tr.shotListFloorPlanScaleBarLengthLabel(
-                                  ocptFloorPlanScaleBarLengthLabelOf(barLengthM),
-                                ),
-                                onionSkinOpacity: widget.onionSkinOpacity,
-                                metricLines: ocptFloorPlanMetricLinesOf(
-                                  sheet: sheet,
-                                  selected: selectedShape,
-                                  isMetricsShown: widget.isMetricsShown,
-                                  tr: tr,
-                                ),
-                                metricLineColor: theme.colorScheme.tertiary,
-                              ),
-                            ),
+                          child: OcptFloorPlanPaintLayer(
+                            sheet: sheet,
+                            canvasSize: canvasSize,
+                            zoom: zoom,
+                            pan: pan,
+                            selectedSymbolId: widget.selectedSymbolId,
+                            selectedSymbol: selectedShape,
+                            arrowAnchorSymbolId: widget.pendingArrowAnchorSymbolId,
+                            liveOverride: _drag.liveOverride ?? pendingScopeLiveOverride,
+                            onionSkinOpacity: widget.onionSkinOpacity,
+                            isMetricsShown: widget.isMetricsShown,
                           ),
                         ),
                       ),
