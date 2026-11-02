@@ -31,17 +31,6 @@ class _WidgetFunctionFinder extends RecursiveAstVisitor<void> {
   /// The name of every offending function found.
   final offences = <String>[];
 
-  /// Record [name] when [returnType] names a widget.
-  void _check(TypeAnnotation? returnType, String name, {required bool isOverride}) {
-    if (returnType is! NamedType || name == "build" || isOverride) {
-      return;
-    }
-
-    if (_isWidgetType(returnType.name.lexeme)) {
-      offences.add(name);
-    }
-  }
-
   /// Check the method.
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
@@ -58,6 +47,17 @@ class _WidgetFunctionFinder extends RecursiveAstVisitor<void> {
   void visitFunctionDeclaration(FunctionDeclaration node) {
     _check(node.returnType, node.name.lexeme, isOverride: false);
     super.visitFunctionDeclaration(node);
+  }
+
+  /// Record [name] when [returnType] names a widget.
+  void _check(TypeAnnotation? returnType, String name, {required bool isOverride}) {
+    if (returnType is! NamedType || name == "build" || isOverride) {
+      return;
+    }
+
+    if (_isWidgetType(returnType.name.lexeme)) {
+      offences.add(name);
+    }
   }
 }
 
