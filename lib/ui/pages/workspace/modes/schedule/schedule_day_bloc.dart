@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -868,6 +869,7 @@ class OcptScheduleDayBloc
   ///
   /// Stops at the first write that failed and answers its failure, leaving the entries after it
   /// unwritten.
+  @useResult
   Future<OcptDatabaseOutcome> _writeAllPendingFieldEdits(
     OcptOpenProjectModel project,
     Map<OcptSchedulePendingFieldKey, String> edits,

@@ -10,6 +10,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
@@ -314,7 +315,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   @override
   Future<void> initAsyncBloc({required Emitter<OcptScheduleState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Write every pending edit of the views directly to the database, without touching [state].
@@ -340,6 +341,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ///
   /// Answers false when the schedule could not be read, in which case nothing is emitted and the
   /// caller stops there.
+  @useResult
   Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.scheduleLeftDockFraction.load() ??
@@ -462,6 +464,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }
 
   /// Read [project]'s whole schedule.
+  @useResult
   Future<OcptDatabaseResult<OcptScheduleSnapshot>> _loadScheduleSnapshot(
     OcptOpenProjectModel project,
   ) => _scheduleService.loadSchedule(database: project.database);
@@ -745,7 +748,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _applyScheduleSnapshot(emitter);
+    final _ = await _applyScheduleSnapshot(emitter);
   }
 
   /// Write a new status onto the selected day.
@@ -767,7 +770,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _applyScheduleSnapshot(emitter);
+    final _ = await _applyScheduleSnapshot(emitter);
   }
 
   /// Duplicate a day and select the new one.
@@ -817,7 +820,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _applyScheduleSnapshot(emitter);
+    final _ = await _applyScheduleSnapshot(emitter);
   }
 
   /// Re-read the schedule and apply it, reconciling the selected day and block against what the
@@ -827,6 +830,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   ///
   /// Answers false when the read failed, so that a handler with something left to do after it
   /// stops there. With no project open nothing is read and nothing fails: that answers true.
+  @useResult
   Future<bool> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
     final isRead = await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
 
@@ -843,6 +847,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// pending, and going on would show, print or replace the data without it. Moving
   /// the selected day, block or shot, switching the centre view and going back do **not** flush: an
   /// edit typed before them is written by its own debounce, whichever day is showing by then.
+  @useResult
   Future<bool> _flushAllPendingWrites(Emitter<OcptScheduleState> emitter) async {
     final run = await runPendingWritesFlushers();
     return !run.hasFailed;
@@ -877,6 +882,6 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
   ) async {
-    await _load(emitter);
+    final _ = await _load(emitter);
   }
 }

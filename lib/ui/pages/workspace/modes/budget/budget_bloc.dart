@@ -10,6 +10,7 @@ import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -269,7 +270,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   @override
   Future<void> initAsyncBloc({required Emitter<OcptBudgetState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Ask every view to write what it holds, and answer whether they all could.
@@ -279,6 +280,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// change, an export, a version preview) does not happen. Selecting a resource, a taking, a share
   /// or a receipt, going back and creating a record never ask: an edit typed before them is written
   /// by its own debounce.
+  @useResult
   Future<bool> _flushAllPendingWrites() async {
     final run = await runPendingWritesFlushers();
     return !run.hasFailed;
@@ -295,6 +297,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ///
   /// Answers false when the budget could not be read, in which case nothing is emitted and the
   /// caller stops there.
+  @useResult
   Future<bool> _load(Emitter<OcptBudgetState> emitter) async {
     final rightDockFraction =
         await _propertiesManager.budgetRightDockFraction.load() ??
@@ -679,6 +682,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// way.
   ///
   /// Answers false when the budget could not be read, in which case nothing is emitted.
+  @useResult
   Future<bool> _readBudgetSnapshot(
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,

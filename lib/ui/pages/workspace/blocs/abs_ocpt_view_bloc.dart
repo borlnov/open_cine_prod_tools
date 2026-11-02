@@ -277,6 +277,7 @@ abstract class AbsOcptViewBloc<
 
   /// Write the entries of [pending] that were not written yet through [write], see
   /// [flushEditsWithoutState].
+  @useResult
   Future<OcptDatabaseOutcome> _flushEdits<K, V, R>(
     Map<K, V> pending,
     Future<R> Function(Map<K, V> edits) write,

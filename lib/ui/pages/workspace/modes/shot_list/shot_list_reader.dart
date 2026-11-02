@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
@@ -91,6 +92,7 @@ class OcptShotListReader {
   ///
   /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
   /// not be read.
+  @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
   ) async {

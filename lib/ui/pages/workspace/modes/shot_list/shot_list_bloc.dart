@@ -9,6 +9,7 @@ import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/export/ocpt_export_manager.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
@@ -338,7 +339,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   @override
   Future<void> initAsyncBloc({required Emitter<OcptShotListState> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _load(emit);
+    final _ = await _load(emit);
   }
 
   /// Write every pending edit of the views directly to the database, without touching [state].
@@ -364,6 +365,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   ///
   /// Answers false when the shot list could not be read, in which case nothing is emitted and the
   /// caller stops there.
+  @useResult
   Future<bool> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.shotListLeftDockFraction.load() ??

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
@@ -98,6 +99,7 @@ class OcptBudgetSnapshotLoader {
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
   /// Answers the failure of the first read that failed, in place of the whole read.
+  @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
     final accounts = await _budgetQuoteService.loadAccounts(database: database, seed: seed);

@@ -6,6 +6,7 @@ import 'package:act_dart_result/act_dart_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scenario_coverage_labels.dart';
@@ -328,6 +329,7 @@ String ocptShotPlacementLabel(BuildContext context, List<OcptShotPlacement> plac
 /// [OcptShotDurationStatus.malformed]: the shot inspector's own choice, on seeing it, is to leave
 /// the shot's stored duration untouched rather than write anything, and to mark the field in
 /// error. A successful answer with no value is the "no estimate" one.
+@useResult
 ResultWithStatus<OcptShotDurationStatus, int> ocptParseShotDuration(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed == ocptShotListEmptyValue) {
