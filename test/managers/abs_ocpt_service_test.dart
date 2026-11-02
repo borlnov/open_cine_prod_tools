@@ -23,6 +23,7 @@ class _Service extends AbsOcptService {
   Future<OcptDatabaseOutcome> write(Future<void> Function() body) => guardOutcome("write", body);
 }
 
+/// Guard the boundary a service answers through.
 void main() {
   late FakeLogger logger;
   late _Service service;
