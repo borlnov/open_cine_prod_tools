@@ -343,126 +343,175 @@ class OcptScheduleDayView extends StatelessWidget {
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
-    return ListView(
-      children: [
-        _OcptScheduleDaySummaryBand(
-          day: day,
-          blocks: blocks,
-          timeline: timeline,
-          dayArrivalMinute: dayArrivalMinute,
-          sunTimes: sunTimes,
-          alerts: alerts,
-          onAlertsOpenRequested: onAlertsOpenRequested,
+    final anchorSourceBySlotId = {for (final other in slots) other.id: other.anchorSlotId};
+    final leading = <Widget>[
+      _OcptScheduleDaySummaryBand(
+        day: day,
+        blocks: blocks,
+        timeline: timeline,
+        dayArrivalMinute: dayArrivalMinute,
+        sunTimes: sunTimes,
+        alerts: alerts,
+        onAlertsOpenRequested: onAlertsOpenRequested,
+      ),
+      const SizedBox(height: 16),
+    ];
+    final trailing = <Widget>[
+      if (onSlotAdded != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: OutlinedButton.icon(
+            onPressed: onSlotAdded,
+            icon: const Icon(Icons.add, size: 16),
+            label: Text(tr.scheduleAddSlotAction),
+          ),
+        ),
+      if (events.isNotEmpty || onEventAdded != null) ...[
+        _OcptScheduleDayEventsBand(
+          events: events,
+          eventLabelValueOf: eventLabelValueOf,
+          eventNotesValueOf: eventNotesValueOf,
+          onEventAdded: onEventAdded,
+          onEventMinuteChanged: onEventMinuteChanged,
+          onEventLabelChanged: onEventLabelChanged,
+          onEventNotesChanged: onEventNotesChanged,
+          onEventDeletionRequested: onEventDeletionRequested,
         ),
         const SizedBox(height: 16),
-        for (final (index, slot) in slots.indexed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 11),
-            child: OcptScheduleSlotCard(
-              slot: slot,
-              location: slot.locationId == null ? null : locationById[slot.locationId],
-              set: slot.setId == null ? null : setById[slot.setId],
-              locations: locations,
-              personById: personById,
-              roleById: roleById,
-              roleCandidateById: roleCandidateById,
-              people: people,
-              roles: roles,
-              labelValue: slotLabelValueOf(slot.id),
-              onLabelChanged: onSlotLabelChanged == null
-                  ? null
-                  : (value) => onSlotLabelChanged!(slot.id, value),
-              notesValue: slotNotesValueOf(slot.id),
-              onNotesChanged: onSlotNotesChanged == null
-                  ? null
-                  : (value) => onSlotNotesChanged!(slot.id, value),
-              onPlaceChanged: onSlotPlaceChanged == null
-                  ? null
-                  : (locationId, setId) => onSlotPlaceChanged!(slot.id, locationId, setId),
-              onAnchorChanged: onSlotAnchorChanged == null
-                  ? null
-                  : (edge, minute, sourceSlotId) =>
-                        onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
-              anchorSourceBySlotId: {for (final other in slots) other.id: other.anchorSlotId},
-              onMovedUp: onSlotMoved == null || index == 0
-                  ? null
-                  : () => onSlotMoved!(slot.id, index - 1),
-              onMovedDown: onSlotMoved == null || index == slots.length - 1
-                  ? null
-                  : () => onSlotMoved!(slot.id, index + 1),
-              onDeletionRequested: onSlotDeletionRequested == null
-                  ? null
-                  : () => onSlotDeletionRequested!(slot.id),
-              onCrewMemberAdded: onSlotCrewMemberAdded == null
-                  ? null
-                  : (personId) => onSlotCrewMemberAdded!(slot.id, personId),
-              onCrewMemberPositionChanged: onSlotCrewMemberPositionChanged,
-              onCrewMemberRemoved: onSlotCrewMemberRemoved,
-              onCastRoleAdded: onSlotCastRoleAdded == null
-                  ? null
-                  : (roleId) => onSlotCastRoleAdded!(slot.id, roleId),
-              onCastRoleRemoved: onSlotCastRoleRemoved,
-              onGuestAdded: onSlotGuestAdded == null
-                  ? null
-                  : (personId) => onSlotGuestAdded!(slot.id, personId),
-              onGuestRemoved: onSlotGuestRemoved,
-              guestReasonValueOf: slotGuestReasonValueOf,
-              onGuestReasonChanged: onSlotGuestReasonChanged,
-              guestNotesValueOf: slotGuestNotesValueOf,
-              onGuestNotesChanged: onSlotGuestNotesChanged,
-              blocks: blocks,
-              timeline: timeline?.bySlotId[slot.id],
-              shotOf: shotOf,
-              selectedBlockId: selectedBlockId,
-              sequences: sequences,
-              otherSlots: [
-                for (final other in slots)
-                  if (other.id != slot.id) (other.id, slotLabelValueOf(other.id)),
-              ],
-              onBlockSelected: onBlockSelected,
-              onBlockReordered: onBlockReordered,
-              onBlockDurationChanged: onBlockDurationChanged,
-              onBlockAnchorChanged: onBlockAnchorChanged,
-              onShotStatusChanged: onShotStatusChanged,
-              onBlockSequenceChanged: onBlockSequenceChanged,
-              onBlockCandidateAdded: onBlockCandidateAdded,
-              onBlockCandidateRemoved: onBlockCandidateRemoved,
-              onBlockDeletionRequested: onBlockDeletionRequested,
-              onBlockAdded: onBlockAdded == null ? null : (kind) => onBlockAdded!(slot.id, kind),
-              onShotBlockRequested: onShotBlockRequested == null
-                  ? null
-                  : () => onShotBlockRequested!(slot.id),
-              onBlockMovedToSlot: onBlockMovedToSlot,
-            ),
-          ),
-        if (onSlotAdded != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: OutlinedButton.icon(
-              onPressed: onSlotAdded,
-              icon: const Icon(Icons.add, size: 16),
-              label: Text(tr.scheduleAddSlotAction),
-            ),
-          ),
-        if (events.isNotEmpty || onEventAdded != null) ...[
-          _OcptScheduleDayEventsBand(
-            events: events,
-            eventLabelValueOf: eventLabelValueOf,
-            eventNotesValueOf: eventNotesValueOf,
-            onEventAdded: onEventAdded,
-            onEventMinuteChanged: onEventMinuteChanged,
-            onEventLabelChanged: onEventLabelChanged,
-            onEventNotesChanged: onEventNotesChanged,
-            onEventDeletionRequested: onEventDeletionRequested,
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (day.crewNote.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),
-        ],
-        const SizedBox(height: 24),
       ],
+      if (day.crewNote.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(day.crewNote, style: Theme.of(context).textTheme.bodySmall),
+      ],
+      const SizedBox(height: 24),
+    ];
+
+    return ListView.builder(
+      itemCount: leading.length + slots.length + trailing.length,
+      itemBuilder: (context, index) {
+        if (index < leading.length) {
+          return leading[index];
+        }
+
+        final slotIndex = index - leading.length;
+        if (slotIndex >= slots.length) {
+          return trailing[slotIndex - slots.length];
+        }
+
+        return _OcptScheduleDaySlotEntry(
+          view: this,
+          index: slotIndex,
+          anchorSourceBySlotId: anchorSourceBySlotId,
+        );
+      },
+    );
+  }
+}
+
+/// One slot of the day, its card padded away from the next: the part of [OcptScheduleDayView] that
+/// is rebuilt per slot, so the list builds only the slots that are on screen.
+class _OcptScheduleDaySlotEntry extends StatelessWidget {
+  /// The day view whose callbacks and lookups the card is wired to.
+  final OcptScheduleDayView view;
+
+  /// The position of the slot within [OcptScheduleDayView.slots].
+  final int index;
+
+  /// `{slot id: id of the slot it is anchored to}`, across every slot of the day.
+  final Map<String, String?> anchorSourceBySlotId;
+
+  /// Class constructor
+  const _OcptScheduleDaySlotEntry({
+    required this.view,
+    required this.index,
+    required this.anchorSourceBySlotId,
+  });
+
+  /// Build the schedule day slot entry as a [Padding].
+  @override
+  Widget build(BuildContext context) {
+    final slot = view.slots[index];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: OcptScheduleSlotCard(
+        slot: slot,
+        location: slot.locationId == null ? null : view.locationById[slot.locationId],
+        set: slot.setId == null ? null : view.setById[slot.setId],
+        locations: view.locations,
+        personById: view.personById,
+        roleById: view.roleById,
+        roleCandidateById: view.roleCandidateById,
+        people: view.people,
+        roles: view.roles,
+        labelValue: view.slotLabelValueOf(slot.id),
+        onLabelChanged: view.onSlotLabelChanged == null
+            ? null
+            : (value) => view.onSlotLabelChanged!(slot.id, value),
+        notesValue: view.slotNotesValueOf(slot.id),
+        onNotesChanged: view.onSlotNotesChanged == null
+            ? null
+            : (value) => view.onSlotNotesChanged!(slot.id, value),
+        onPlaceChanged: view.onSlotPlaceChanged == null
+            ? null
+            : (locationId, setId) => view.onSlotPlaceChanged!(slot.id, locationId, setId),
+        onAnchorChanged: view.onSlotAnchorChanged == null
+            ? null
+            : (edge, minute, sourceSlotId) =>
+                  view.onSlotAnchorChanged!(slot.id, edge, minute, sourceSlotId),
+        anchorSourceBySlotId: anchorSourceBySlotId,
+        onMovedUp: view.onSlotMoved == null || index == 0
+            ? null
+            : () => view.onSlotMoved!(slot.id, index - 1),
+        onMovedDown: view.onSlotMoved == null || index == view.slots.length - 1
+            ? null
+            : () => view.onSlotMoved!(slot.id, index + 1),
+        onDeletionRequested: view.onSlotDeletionRequested == null
+            ? null
+            : () => view.onSlotDeletionRequested!(slot.id),
+        onCrewMemberAdded: view.onSlotCrewMemberAdded == null
+            ? null
+            : (personId) => view.onSlotCrewMemberAdded!(slot.id, personId),
+        onCrewMemberPositionChanged: view.onSlotCrewMemberPositionChanged,
+        onCrewMemberRemoved: view.onSlotCrewMemberRemoved,
+        onCastRoleAdded: view.onSlotCastRoleAdded == null
+            ? null
+            : (roleId) => view.onSlotCastRoleAdded!(slot.id, roleId),
+        onCastRoleRemoved: view.onSlotCastRoleRemoved,
+        onGuestAdded: view.onSlotGuestAdded == null
+            ? null
+            : (personId) => view.onSlotGuestAdded!(slot.id, personId),
+        onGuestRemoved: view.onSlotGuestRemoved,
+        guestReasonValueOf: view.slotGuestReasonValueOf,
+        onGuestReasonChanged: view.onSlotGuestReasonChanged,
+        guestNotesValueOf: view.slotGuestNotesValueOf,
+        onGuestNotesChanged: view.onSlotGuestNotesChanged,
+        blocks: view.blocks,
+        timeline: view.timeline?.bySlotId[slot.id],
+        shotOf: view.shotOf,
+        selectedBlockId: view.selectedBlockId,
+        sequences: view.sequences,
+        otherSlots: [
+          for (final other in view.slots)
+            if (other.id != slot.id) (other.id, view.slotLabelValueOf(other.id)),
+        ],
+        onBlockSelected: view.onBlockSelected,
+        onBlockReordered: view.onBlockReordered,
+        onBlockDurationChanged: view.onBlockDurationChanged,
+        onBlockAnchorChanged: view.onBlockAnchorChanged,
+        onShotStatusChanged: view.onShotStatusChanged,
+        onBlockSequenceChanged: view.onBlockSequenceChanged,
+        onBlockCandidateAdded: view.onBlockCandidateAdded,
+        onBlockCandidateRemoved: view.onBlockCandidateRemoved,
+        onBlockDeletionRequested: view.onBlockDeletionRequested,
+        onBlockAdded: view.onBlockAdded == null
+            ? null
+            : (kind) => view.onBlockAdded!(slot.id, kind),
+        onShotBlockRequested: view.onShotBlockRequested == null
+            ? null
+            : () => view.onShotBlockRequested!(slot.id),
+        onBlockMovedToSlot: view.onBlockMovedToSlot,
+      ),
     );
   }
 }

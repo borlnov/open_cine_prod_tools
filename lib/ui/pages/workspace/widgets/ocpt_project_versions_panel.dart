@@ -114,34 +114,55 @@ class OcptProjectVersionsPanel extends StatelessWidget {
     final tr = Tr.of(context);
     final workingCopy = this.workingCopy;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          tr.projectVersionsPanelTitle,
-          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+    final leading = <Widget>[
+      Text(
+        tr.projectVersionsPanelTitle,
+        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        tr.projectVersionsPanelSubtitle,
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 12),
+      if (workingCopy != null)
+        OcptProjectWorkingCopyCard(
+          workingCopy: workingCopy,
+          baseVersionName: _baseVersionName(workingCopy.baseVersionId),
+          onCreateRequested: onCreateRequested,
         ),
-        const SizedBox(height: 4),
+      if (versions.isEmpty)
         Text(
-          tr.projectVersionsPanelSubtitle,
+          tr.projectVersionsEmptyHint,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
-        const SizedBox(height: 12),
-        if (workingCopy != null)
-          OcptProjectWorkingCopyCard(
-            workingCopy: workingCopy,
-            baseVersionName: _baseVersionName(workingCopy.baseVersionId),
-            onCreateRequested: onCreateRequested,
-          ),
-        if (versions.isEmpty)
-          Text(
-            tr.projectVersionsEmptyHint,
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          )
-        else
-          for (final version in versions)
-            _OcptProjectVersionPanelEntry(key: ValueKey(version.id), panel: this, version: version),
-      ],
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: leading.length + versions.length,
+      // A card keeps its own state (a rename in progress) across a version being added or removed
+      // above it, which only works when the list can find a keyed card's new index.
+      findChildIndexCallback: (key) {
+        if (key is! ValueKey<String>) {
+          return null;
+        }
+
+        final versionIndex = versions.indexWhere((version) => version.id == key.value);
+        return versionIndex < 0 ? null : leading.length + versionIndex;
+      },
+      itemBuilder: (context, index) {
+        if (index < leading.length) {
+          return leading[index];
+        }
+
+        final version = versions[index - leading.length];
+        return _OcptProjectVersionPanelEntry(
+          key: ValueKey(version.id),
+          panel: this,
+          version: version,
+        );
+      },
     );
   }
 
