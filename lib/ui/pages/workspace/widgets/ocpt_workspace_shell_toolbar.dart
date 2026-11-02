@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_export_share_anchor
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_workspace_episode_label.dart';
 
 /// The value the episode selector's `Manage episodes…` entry carries, distinct from every episode
-/// id (a UUID, never empty) — see [OcptWorkspaceShellToolbar._buildEpisodeSelector]'s own doc
+/// id (a UUID, never empty) — see [_OcptToolbarEpisodeSelector]'s own doc
 /// comment for why a [PopupMenuButton] cannot carry a null value for an entry that must still be
 /// selectable.
 const String _manageEpisodesOption = "";
@@ -65,23 +65,69 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
 
   /// Build the workspace shell toolbar as an [OcptWorkspaceToolbar].
   @override
-  Widget build(BuildContext context) => OcptWorkspaceToolbar(
-    title: shell.title,
-    isDirty: shell.isDirty,
-    isReadOnly: shell.isReadOnly,
-    isCompact: isCompact,
-    onBack: shell.onBack,
-    episodeControl: _buildEpisodeControl(context, isPhone, isCompact),
-    actions: shell.toolbarActions,
-    modeLabel: shell.modeLabel,
-    presenceIndicator: const OcptPresenceIndicator(),
-    exportAction: isPhone ? null : _buildExportAction(context),
-    dockToggles: _buildDockToggles(context),
-    saveAction: _buildSaveAction(context),
-    projectSettingsAction: isPhone ? null : _buildProjectSettingsAction(context),
-    helpAction: isPhone ? null : _buildHelpAction(context),
-    overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : shell.overflowEntries,
-  );
+  Widget build(BuildContext context) {
+    final onExportRequested = shell.onExportRequested;
+    final onEpisodeSelected = shell.onEpisodeSelected;
+    final onAddEpisodeRequested = shell.onAddEpisodeRequested;
+    final onProjectSettingsRequested = shell.onProjectSettingsRequested;
+    final onHelpRequested = shell.onHelpRequested;
+    final onSave = shell.onSave;
+    final onLeftDockToggled = this.onLeftDockToggled;
+    final onRightDockToggled = this.onRightDockToggled;
+
+    // The selector gives width up off a phone, being as long as the user made the episode's title;
+    // on a phone it is a fixed icon and stays out of the toolbar's flexible width entirely.
+    final episodeSelector = onEpisodeSelected == null || shell.episodes.length <= 1
+        ? null
+        : _OcptToolbarEpisodeSelector(
+            shell: shell,
+            isPhone: isPhone,
+            onEpisodeSelected: onEpisodeSelected,
+          );
+
+    return OcptWorkspaceToolbar(
+      title: shell.title,
+      isDirty: shell.isDirty,
+      isReadOnly: shell.isReadOnly,
+      isCompact: isCompact,
+      onBack: shell.onBack,
+      episodeControl: episodeSelector != null
+          ? (isPhone ? episodeSelector : Flexible(child: episodeSelector))
+          : (!isCompact && onAddEpisodeRequested != null && shell.episodes.length == 1
+                ? Flexible(child: _OcptToolbarAddEpisodeAction(onPressed: onAddEpisodeRequested))
+                : null),
+      actions: shell.toolbarActions,
+      modeLabel: shell.modeLabel,
+      presenceIndicator: const OcptPresenceIndicator(),
+      exportAction: isPhone || onExportRequested == null
+          ? null
+          : _OcptToolbarExportAction(onExportRequested: onExportRequested),
+      dockToggles: [
+        if (onLeftDockToggled != null)
+          _OcptToolbarDockToggle(
+            isRight: false,
+            isToggledOn: isLeftDockToggledOn,
+            onPressed: onLeftDockToggled,
+          ),
+        if (onRightDockToggled != null)
+          _OcptToolbarDockToggle(
+            isRight: true,
+            isToggledOn: isRightDockToggledOn,
+            onPressed: onRightDockToggled,
+          ),
+      ],
+      saveAction: onSave == null
+          ? null
+          : _OcptToolbarSaveAction(isSaving: shell.isSaving, onSave: onSave),
+      projectSettingsAction: isPhone || onProjectSettingsRequested == null
+          ? null
+          : _OcptToolbarProjectSettingsAction(onPressed: onProjectSettingsRequested),
+      helpAction: isPhone || onHelpRequested == null
+          ? null
+          : _OcptToolbarHelpAction(onPressed: onHelpRequested),
+      overflowEntries: isPhone ? _buildPhoneOverflowEntries(context) : shell.overflowEntries,
+    );
+  }
 
   /// Build the `⋮` overflow entries on a phone: the export, project-settings and help actions the
   /// toolbar folded out of its own slots, above the mode's own
@@ -132,35 +178,41 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
         PopupMenuItem<void>(onTap: onHelpRequested, child: Text(tr.workspaceHelpTooltip)),
     ];
   }
+}
 
-  /// Build the toolbar's `Export` control, or null when the mode withheld it — no control is
-  /// rendered at all then, rather than a disabled one.
-  ///
-  /// Unlike the chrome's icon-only controls, this one carries its own label: an export is not the
-  /// kind of gesture a bare glyph reads as, so it does not take [OcptWorkspaceToolbar
-  /// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
-  /// [TextButton]'s own default touch target.
-  ///
-  /// That last part takes **two** overrides, and neither alone is enough.
-  /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
-  /// over the [ocpt_theme.ocptToolbarChromeButtonSize] minimum below — the very reason the
-  /// `iconButtonTheme` already shrink-wraps every icon button of the app. [VisualDensity.standard]
-  /// is the one that actually shows: a [TextButton] takes its density from the ambient theme, which
-  /// on a desktop platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so
-  /// this button drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default
-  /// density being standard whatever the theme says. Beware that `flutter test` reports the Android
-  /// density unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a
-  /// widget test cannot see by default.
-  ///
-  /// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
-  /// its `RenderBox` at tap time — the anchor [OcptWorkspaceShell.onExportRequested] hands down for
-  /// the OS share sheet's iPad/Mac popover — without this widget itself needing a [GlobalKey].
-  Widget? _buildExportAction(BuildContext context) {
-    final onExportRequested = shell.onExportRequested;
-    if (onExportRequested == null) {
-      return null;
-    }
+/// The toolbar's `Export` control. The toolbar renders none at all, rather than a disabled one,
+/// when the mode withheld it.
+///
+/// Unlike the chrome's icon-only controls, this one carries its own label: an export is not the
+/// kind of gesture a bare glyph reads as, so it does not take [OcptWorkspaceToolbar
+/// .chromeButtonStyle]'s square shape, and is sized to the toolbar band rather than to
+/// [TextButton]'s own default touch target.
+///
+/// That last part takes **two** overrides, and neither alone is enough.
+/// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
+/// over the [ocpt_theme.ocptToolbarChromeButtonSize] minimum below — the very reason the
+/// `iconButtonTheme` already shrink-wraps every icon button of the app. [VisualDensity.standard]
+/// is the one that actually shows: a [TextButton] takes its density from the ambient theme, which
+/// on a desktop platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so
+/// this button drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default
+/// density being standard whatever the theme says. Beware that `flutter test` reports the Android
+/// density unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a
+/// widget test cannot see by default.
+///
+/// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
+/// its `RenderBox` at tap time — the anchor [OcptWorkspaceShell.onExportRequested] hands down for
+/// the OS share sheet's iPad/Mac popover — without this widget itself needing a [GlobalKey].
+class _OcptToolbarExportAction extends StatelessWidget {
+  /// Called with the control's own screen bounds when it is tapped, for the OS share sheet's
+  /// anchor.
+  final ValueSetter<Rect?> onExportRequested;
 
+  /// Class constructor
+  const _OcptToolbarExportAction({required this.onExportRequested});
+
+  /// Build the toolbar export action as a [Tooltip].
+  @override
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
 
     return Tooltip(
@@ -181,58 +233,52 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Build whatever fills the toolbar's episode slot: the selector for a project holding several
-  /// episodes, the `Add an episode…` button for one holding a single one, or null for neither.
-  ///
-  /// The two guard themselves on [OcptWorkspaceShell.episodes]'s own length, so the order they are
-  /// tried in never decides anything: a project can't be both at once.
-  ///
-  /// On a phone ([isPhone]) the selector reduces to an icon-only chrome button: the real control
-  /// carries a label as wide as the episode's own title, which the phone toolbar has no room for
-  /// beside the mode's own controls, and a label-bearing control squeezed into a `Flexible` there
-  /// overflows its own icon rather than ellipsizing cleanly. The label lives in the tooltip then.
-  ///
-  /// Below [ocptCompactWidthBreakpoint] ([isCompact]) the `Add an episode…` button is withheld
-  /// outright rather than reduced further — it is a discovery affordance nobody is looking for, and
-  /// there is no room left to spend on one at that width. The selector is unaffected: it still
-  /// reduces to its own phone-width icon trigger, since a project already known to be a series must
-  /// still let its episode be switched, and [ocptPhoneWidthBreakpoint] is always below
-  /// [ocptCompactWidthBreakpoint], so a phone never has to reduce the button — it never sees it.
-  Widget? _buildEpisodeControl(BuildContext context, bool isPhone, bool isCompact) =>
-      _buildEpisodeSelector(context, isPhone) ??
-      (isCompact ? null : _buildAddEpisodeAction(context));
+/// The toolbar's episode selector. The toolbar renders none at all, rather than a disabled one,
+/// when [OcptWorkspaceShell.onEpisodeSelected] is null or [OcptWorkspaceShell.episodes] holds at
+/// most one.
+///
+/// The trigger reads the selected episode's own label; the menu lists every episode with the
+/// selected one marked, followed by `Manage episodes…` when
+/// [OcptWorkspaceShell.onProjectSettingsRequested] is wired (see the class doc comment for why it
+/// is that callback rather than a new one). That entry carries [_manageEpisodesOption] rather
+/// than null: a [PopupMenuButton] cannot carry a null value for an entry that must still be
+/// selectable, since it can't tell that apart from the menu being dismissed without a pick
+/// (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the same workaround, for the same
+/// reason).
+///
+/// The toolbar wraps it in a [Flexible] off a phone, because an episode's
+/// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
+/// the control that gives width up, its trigger ellipsizing like the project title beside it. On
+/// a phone ([isPhone]) it is an icon-only fixed trigger instead (its label in the tooltip), since
+/// the phone toolbar has no room to ellipsize a title beside the mode's own controls.
+class _OcptToolbarEpisodeSelector extends StatelessWidget {
+  /// The shell whose episodes the selector lists.
+  final OcptWorkspaceShell shell;
 
-  /// Build the toolbar's episode selector, or null when [OcptWorkspaceShell.onEpisodeSelected] is
-  /// null or [OcptWorkspaceShell.episodes] holds at most one — no control is rendered at all then,
-  /// rather than a disabled one, exactly like [_buildExportAction].
-  ///
-  /// The trigger reads the selected episode's own label; the menu lists every episode with the
-  /// selected one marked, followed by `Manage episodes…` when
-  /// [OcptWorkspaceShell.onProjectSettingsRequested] is wired (see the class doc comment for why it
-  /// is that callback rather than a new one). That entry carries [_manageEpisodesOption] rather
-  /// than null: a [PopupMenuButton] cannot carry a null value for an entry that must still be
-  /// selectable, since it can't tell that apart from the menu being dismissed without a pick
-  /// (`OcptResourcesPersonPicker`'s own `_nobodyOption` is the same workaround, for the same
-  /// reason).
-  ///
-  /// It wraps itself in a [Flexible] — the toolbar wraps nothing itself — because an episode's
-  /// title is as long as the user made it: on a window too narrow for the whole toolbar, this is
-  /// the control that gives width up, its trigger ellipsizing like the project title beside it. On
-  /// a phone ([isPhone]) it is an icon-only fixed trigger instead (its label in the tooltip), since
-  /// the phone toolbar has no room to ellipsize a title beside the mode's own controls.
-  Widget? _buildEpisodeSelector(BuildContext context, bool isPhone) {
-    final onEpisodeSelected = shell.onEpisodeSelected;
-    if (onEpisodeSelected == null || shell.episodes.length <= 1) {
-      return null;
-    }
+  /// Whether the window is phone-wide: the trigger then reduces to its icon.
+  final bool isPhone;
 
+  /// Called with the id of the episode picked.
+  final ValueChanged<String> onEpisodeSelected;
+
+  /// Class constructor
+  const _OcptToolbarEpisodeSelector({
+    required this.shell,
+    required this.isPhone,
+    required this.onEpisodeSelected,
+  });
+
+  /// Build the toolbar episode selector as a [PopupMenuButton].
+  @override
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
     final onProjectSettingsRequested = shell.onProjectSettingsRequested;
     final selected = _episodeById(shell.selectedEpisodeId);
 
-    final button = PopupMenuButton<String>(
+    return PopupMenuButton<String>(
       tooltip: tr.workspaceEpisodeSelectorTooltip,
       borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
       onSelected: (value) => value == _manageEpisodesOption
@@ -292,72 +338,6 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
               ),
             ),
     );
-
-    // On a phone the trigger is a fixed, icon-only chrome button, so it stays out of the toolbar's
-    // flexible width entirely; only on a wider window does it share (and give up) that width.
-    return isPhone ? button : Flexible(child: button);
-  }
-
-  /// Build the toolbar's `Add an episode…` button, or null when
-  /// [OcptWorkspaceShell.onAddEpisodeRequested] is null or [OcptWorkspaceShell.episodes] holds
-  /// anything other than exactly one.
-  ///
-  /// The empty list is deliberately not the button's case either: it means the project's episodes
-  /// haven't loaded yet, and a button flashing in for one frame before the selector replaces it
-  /// would be a lie about a project that turns out to be a series.
-  ///
-  /// It is dressed as the selector it stands in for rather than as an action: muted foreground,
-  /// [TextTheme.bodySmall], no fill. Sizing it to the toolbar band takes the same two overrides
-  /// [_buildExportAction] documents at length, and neither alone is enough.
-  ///
-  /// It is laid out by hand rather than as a [TextButton.icon] so its label sits in a [Flexible]:
-  /// this control shares the toolbar's flexible width with the project title, and a window too
-  /// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
-  ///
-  /// Never called at all below [ocptCompactWidthBreakpoint] — [_buildEpisodeControl] withholds it
-  /// there itself — and [ocptPhoneWidthBreakpoint] is always below that breakpoint too, so this
-  /// method never has to reduce itself to an icon-only trigger the way the selector does: by the
-  /// time it runs, the toolbar is already wide enough for its label.
-  Widget? _buildAddEpisodeAction(BuildContext context) {
-    final onAddEpisodeRequested = shell.onAddEpisodeRequested;
-    if (onAddEpisodeRequested == null || shell.episodes.length != 1) {
-      return null;
-    }
-
-    final tr = Tr.of(context);
-    final theme = Theme.of(context);
-
-    return Flexible(
-      child: Tooltip(
-        message: tr.workspaceAddEpisodeTooltip,
-        child: TextButton(
-          onPressed: onAddEpisodeRequested,
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurfaceVariant,
-            textStyle: theme.textTheme.bodySmall,
-            minimumSize: const Size(0, ocpt_theme.ocptToolbarChromeButtonSize),
-            maximumSize: const Size(double.infinity, ocpt_theme.ocptToolbarChromeButtonSize),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.standard,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.playlist_add, size: 16),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  tr.workspaceAddEpisodeAction,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   /// Get the episode of [OcptWorkspaceShell.episodes] whose id is [id], or null while [id] is null
@@ -373,60 +353,130 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
 
     return null;
   }
+}
 
-  /// Build the toolbar's dock toggles, left one first, skipping whichever side has no callback.
-  ///
-  /// Both wear the same sidebar glyph, the right one mirrored, so the pair reads as one control
-  /// per side of the workspace; the `iconButtonTheme` paints the open one with its accent wash.
-  ///
-  /// What a tap does and which state the button reads is the shell's decision, handed in resolved:
-  /// above [ocptCompactWidthBreakpoint] a tap calls the mode's own
-  /// [OcptWorkspaceShell.onToggleLeftDock]/[OcptWorkspaceShell.onToggleRightDock] and the button's
-  /// selected state reads the mode's own flag, while below it the very same buttons drive the
-  /// shell's drawers instead, so the mode never has to know its dock became a drawer.
-  List<Widget> _buildDockToggles(BuildContext context) {
+/// The toolbar's `Add an episode…` button. The toolbar renders none when
+/// [OcptWorkspaceShell.onAddEpisodeRequested] is null or [OcptWorkspaceShell.episodes] holds
+/// anything other than exactly one.
+///
+/// The empty list is deliberately not the button's case either: it means the project's episodes
+/// haven't loaded yet, and a button flashing in for one frame before the selector replaces it
+/// would be a lie about a project that turns out to be a series.
+///
+/// It is dressed as the selector it stands in for rather than as an action: muted foreground,
+/// [TextTheme.bodySmall], no fill. Sizing it to the toolbar band takes the same two overrides
+/// [_OcptToolbarExportAction] documents at length, and neither alone is enough.
+///
+/// It is laid out by hand rather than as a [TextButton.icon] so its label sits in a [Flexible]:
+/// this control shares the toolbar's flexible width with the project title, and a window too
+/// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
+///
+/// Never built at all below [ocptCompactWidthBreakpoint] — the toolbar withholds it there — and [ocptPhoneWidthBreakpoint] is always below that breakpoint too, so this
+/// widget never has to reduce itself to an icon-only trigger the way the selector does: by the
+/// time it runs, the toolbar is already wide enough for its label.
+class _OcptToolbarAddEpisodeAction extends StatelessWidget {
+  /// Called when the button is tapped.
+  final VoidCallback onPressed;
+
+  /// Class constructor
+  const _OcptToolbarAddEpisodeAction({required this.onPressed});
+
+  /// Build the toolbar add episode action as a [Tooltip].
+  @override
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final onLeftDockToggled = this.onLeftDockToggled;
-    final onRightDockToggled = this.onRightDockToggled;
+    final theme = Theme.of(context);
 
-    return [
-      if (onLeftDockToggled != null)
-        IconButton(
-          icon: Icon(
-            isLeftDockToggledOn ? Icons.view_sidebar : Icons.view_sidebar_outlined,
-            size: 24,
-          ),
-          tooltip: tr.workspaceToggleLeftDockTooltip,
-          isSelected: isLeftDockToggledOn,
-          style: OcptWorkspaceToolbar.chromeButtonStyle,
-          onPressed: onLeftDockToggled,
+    return Tooltip(
+      message: tr.workspaceAddEpisodeTooltip,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: theme.colorScheme.onSurfaceVariant,
+          textStyle: theme.textTheme.bodySmall,
+          minimumSize: const Size(0, ocpt_theme.ocptToolbarChromeButtonSize),
+          maximumSize: const Size(double.infinity, ocpt_theme.ocptToolbarChromeButtonSize),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.standard,
         ),
-      if (onRightDockToggled != null)
-        IconButton(
-          icon: Transform.flip(
-            flipX: true,
-            child: Icon(
-              isRightDockToggledOn ? Icons.view_sidebar : Icons.view_sidebar_outlined,
-              size: 24,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.playlist_add, size: 16),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                tr.workspaceAddEpisodeAction,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          tooltip: tr.workspaceToggleRightDockTooltip,
-          isSelected: isRightDockToggledOn,
-          style: OcptWorkspaceToolbar.chromeButtonStyle,
-          onPressed: onRightDockToggled,
+          ],
         ),
-    ];
+      ),
+    );
   }
+}
 
-  /// Build the toolbar's save control — the button, or the same-sized spinner while
-  /// [OcptWorkspaceShell.isSaving] — or null when the mode has nothing to save.
-  Widget? _buildSaveAction(BuildContext context) {
-    final onSave = shell.onSave;
-    if (onSave == null) {
-      return null;
-    }
+/// One of the toolbar's dock toggles: the left or the right one.
+///
+/// Both wear the same sidebar glyph, the right one mirrored, so the pair reads as one control
+/// per side of the workspace; the `iconButtonTheme` paints the open one with its accent wash.
+///
+/// What a tap does and which state the button reads is the shell's decision, handed in resolved:
+/// above [ocptCompactWidthBreakpoint] a tap calls the mode's own
+/// [OcptWorkspaceShell.onToggleLeftDock]/[OcptWorkspaceShell.onToggleRightDock] and the button's
+/// selected state reads the mode's own flag, while below it the very same buttons drive the
+/// shell's drawers instead, so the mode never has to know its dock became a drawer.
+class _OcptToolbarDockToggle extends StatelessWidget {
+  /// Whether this is the right toggle, rather than the left one.
+  final bool isRight;
 
-    if (shell.isSaving) {
+  /// Whether the toggle shows as on.
+  final bool isToggledOn;
+
+  /// Called when the toggle is tapped.
+  final VoidCallback onPressed;
+
+  /// Class constructor
+  const _OcptToolbarDockToggle({
+    required this.isRight,
+    required this.isToggledOn,
+    required this.onPressed,
+  });
+
+  /// Build the toolbar dock toggle as an [IconButton].
+  @override
+  Widget build(BuildContext context) {
+    final tr = Tr.of(context);
+    final glyph = Icon(isToggledOn ? Icons.view_sidebar : Icons.view_sidebar_outlined, size: 24);
+
+    return IconButton(
+      icon: isRight ? Transform.flip(flipX: true, child: glyph) : glyph,
+      tooltip: isRight ? tr.workspaceToggleRightDockTooltip : tr.workspaceToggleLeftDockTooltip,
+      isSelected: isToggledOn,
+      style: OcptWorkspaceToolbar.chromeButtonStyle,
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// The toolbar's save control: the button, or the same-sized spinner while the shell is saving.
+class _OcptToolbarSaveAction extends StatelessWidget {
+  /// Whether the shell is saving.
+  final bool isSaving;
+
+  /// Called when the button is tapped.
+  final VoidCallback onSave;
+
+  /// Class constructor
+  const _OcptToolbarSaveAction({required this.isSaving, required this.onSave});
+
+  /// Build the toolbar save action as the button or the spinner.
+  @override
+  Widget build(BuildContext context) {
+    if (isSaving) {
       return const SizedBox.square(
         dimension: ocpt_theme.ocptToolbarChromeButtonSize,
         child: Center(
@@ -442,36 +492,42 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
       onPressed: onSave,
     );
   }
+}
 
-  /// Build the toolbar's project settings action, or null when the mode withheld it.
-  Widget? _buildProjectSettingsAction(BuildContext context) {
-    final onProjectSettingsRequested = shell.onProjectSettingsRequested;
-    if (onProjectSettingsRequested == null) {
-      return null;
-    }
+/// The toolbar's project settings action.
+class _OcptToolbarProjectSettingsAction extends StatelessWidget {
+  /// Called when the button is tapped.
+  final VoidCallback onPressed;
 
-    return IconButton(
-      icon: const Icon(Icons.settings_outlined, size: 24),
-      tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
-      style: OcptWorkspaceToolbar.chromeButtonStyle,
-      onPressed: onProjectSettingsRequested,
-    );
-  }
+  /// Class constructor
+  const _OcptToolbarProjectSettingsAction({required this.onPressed});
 
-  /// Build the toolbar's `Help` action, or null when the mode withheld it.
-  Widget? _buildHelpAction(BuildContext context) {
-    final onHelpRequested = shell.onHelpRequested;
-    if (onHelpRequested == null) {
-      return null;
-    }
+  /// Build the toolbar project settings action as an [IconButton].
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: const Icon(Icons.settings_outlined, size: 24),
+    tooltip: Tr.of(context).workspaceProjectSettingsTooltip,
+    style: OcptWorkspaceToolbar.chromeButtonStyle,
+    onPressed: onPressed,
+  );
+}
 
-    return IconButton(
-      icon: const Icon(Icons.help_outline, size: 24),
-      tooltip: Tr.of(context).workspaceHelpTooltip,
-      style: OcptWorkspaceToolbar.chromeButtonStyle,
-      onPressed: onHelpRequested,
-    );
-  }
+/// The toolbar's `Help` action.
+class _OcptToolbarHelpAction extends StatelessWidget {
+  /// Called when the button is tapped.
+  final VoidCallback onPressed;
+
+  /// Class constructor
+  const _OcptToolbarHelpAction({required this.onPressed});
+
+  /// Build the toolbar help action as an [IconButton].
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: const Icon(Icons.help_outline, size: 24),
+    tooltip: Tr.of(context).workspaceHelpTooltip,
+    style: OcptWorkspaceToolbar.chromeButtonStyle,
+    onPressed: onPressed,
+  );
 }
 
 /// The phone-width, icon-only trigger of the episode selector: a fixed chrome-sized glyph pair (an
