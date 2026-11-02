@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_expe
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_cash_journal_bloc_test_doubles.dart';
 
 /// Run the tests of the budget cash journal bloc journal entries.
@@ -117,13 +118,15 @@ void main() {
         final otherAccountId = loaded.accounts[1].id;
         final project = projectsManager.currentProject!;
 
-        await projectsManager.budgetJournalService.createEntry(
-          database: project.database,
-          date: DateTime(2026),
-          label: "Camera rental",
-          accountId: accountId,
-          debitCents: 5000,
-        );
+        await projectsManager.budgetJournalService
+            .createEntry(
+              database: project.database,
+              date: DateTime(2026),
+              label: "Camera rental",
+              accountId: accountId,
+              debitCents: 5000,
+            )
+            .maybeValueOrFail;
 
         bloc.add(const OcptBudgetProjectSettingsChangedEvent());
         final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
@@ -300,18 +303,18 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "Original",
-        accountId: accountId,
-        debitCents: 1000,
-      );
-      await projectsManager.budgetJournalService.setEntryReceipt(
-        database: project.database,
-        entryId: entryId!,
-        path: "/tmp/first.pdf",
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026),
+            label: "Original",
+            accountId: accountId,
+            debitCents: 1000,
+          )
+          .maybeValueOrFail;
+      await projectsManager.budgetJournalService
+          .setEntryReceipt(database: project.database, entryId: entryId!, path: "/tmp/first.pdf")
+          .maybeValueOrFail;
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
       await waitForState(bloc, (state) => state.receiptsByEntryId.isNotEmpty);
@@ -352,18 +355,18 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "Original",
-        accountId: accountId,
-        debitCents: 1000,
-      );
-      await projectsManager.budgetJournalService.setEntryReceipt(
-        database: project.database,
-        entryId: entryId!,
-        path: "/tmp/receipt.pdf",
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026),
+            label: "Original",
+            accountId: accountId,
+            debitCents: 1000,
+          )
+          .maybeValueOrFail;
+      await projectsManager.budgetJournalService
+          .setEntryReceipt(database: project.database, entryId: entryId!, path: "/tmp/receipt.pdf")
+          .maybeValueOrFail;
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
       await waitForState(bloc, (state) => state.receiptsByEntryId.isNotEmpty);
@@ -401,12 +404,14 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "Camera deposit",
-        amountCents: 5000,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "Camera deposit",
+            amountCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -458,13 +463,15 @@ void main() {
       final otherAccountId = loaded.accounts[1].id;
       final project = projectsManager.currentProject!;
 
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "Original",
-        accountId: accountId,
-        debitCents: 1000,
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026),
+            label: "Original",
+            accountId: accountId,
+            debitCents: 1000,
+          )
+          .maybeValueOrFail;
       expect(entryId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -511,13 +518,15 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "To be deleted",
-        accountId: accountId,
-        debitCents: 500,
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026),
+            label: "To be deleted",
+            accountId: accountId,
+            debitCents: 500,
+          )
+          .maybeValueOrFail;
       expect(entryId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

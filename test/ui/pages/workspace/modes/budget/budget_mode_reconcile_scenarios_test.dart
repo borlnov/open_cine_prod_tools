@@ -318,13 +318,15 @@ void main() {
     final accountId = await harness.seedAccount("Camera");
     await harness.seedLine(accountId, "Camera deposit");
     final resourceId = await harness.seedResource("Regional grant", 20000);
-    await harness.projectsManager.budgetJournalService.createEntry(
-      database: harness.database,
-      date: DateTime(2026),
-      label: "Grant instalment",
-      resourceId: resourceId,
-      creditCents: 4000,
-    );
+    await harness.projectsManager.budgetJournalService
+        .createEntry(
+          database: harness.database,
+          date: DateTime(2026),
+          label: "Grant instalment",
+          resourceId: resourceId,
+          creditCents: 4000,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

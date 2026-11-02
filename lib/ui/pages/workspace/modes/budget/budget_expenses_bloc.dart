@@ -512,7 +512,7 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    final commitmentId = await _budgetJournalService.createCommitment(
+    final commitmentCreated = await _budgetJournalService.createCommitment(
       database: project.database,
       accountId: account.id,
       label: line.label,
@@ -523,12 +523,17 @@ class OcptBudgetExpensesBloc
       // signed.
       lineId: line.id,
     );
+    if (commitmentCreated.isError) {
+      return;
+    }
+
+    final commitmentId = commitmentCreated.value;
     if (commitmentId == null) {
       return;
     }
 
     final fields = event.fields;
-    final entryId = await _budgetJournalService.createEntry(
+    final entryCreated = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
@@ -542,13 +547,20 @@ class OcptBudgetExpensesBloc
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
     );
+    if (entryCreated.isError) {
+      return;
+    }
 
+    final entryId = entryCreated.value;
     if (entryId != null) {
-      await _budgetJournalService.writeEntryReceiptChange(
+      final receiptWritten = await _budgetJournalService.writeEntryReceiptChange(
         database: project.database,
         entryId: entryId,
         fields: fields,
       );
+      if (receiptWritten.isError) {
+        return;
+      }
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});

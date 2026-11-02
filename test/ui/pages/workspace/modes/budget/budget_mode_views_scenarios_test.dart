@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_mode_scenarios_test_doubles.dart';
 
 /// Run the tests of the budget mode views scenarios.
@@ -209,13 +210,15 @@ void main() {
   ) async {
     final resourceId = await harness.seedResource("Regional grant", 20000);
     await harness.seedRevenue("Festival prize", 9000);
-    await harness.projectsManager.budgetJournalService.createEntry(
-      database: harness.database,
-      date: DateTime(2026),
-      label: "Grant instalment",
-      resourceId: resourceId,
-      creditCents: 4000,
-    );
+    await harness.projectsManager.budgetJournalService
+        .createEntry(
+          database: harness.database,
+          date: DateTime(2026),
+          label: "Grant instalment",
+          resourceId: resourceId,
+          creditCents: 4000,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);

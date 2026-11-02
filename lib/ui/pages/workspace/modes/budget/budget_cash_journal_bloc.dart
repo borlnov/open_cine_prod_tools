@@ -36,7 +36,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 /// `await modeBloc.reload(…)`. Nothing here is typed into a debounce, so it registers nothing to
 /// flush and reacts to nothing the mode does; and none of its handlers selects the row it wrote.
 ///
-/// **A write that fails is not caught.** The service's error stops the handler, so the writes that
+/// **A write that fails stops the handler.** The failure the service answers ends it there, so the writes that
 /// came before it stay in the database and the snapshot is not read again — a payment whose entry
 /// could not be written leaves the commitment it was recorded against behind.
 class OcptBudgetCashJournalBloc
@@ -132,7 +132,7 @@ class OcptBudgetCashJournalBloc
     }
 
     final shareId = shareCreated.value;
-    final entryId = await _budgetJournalService.createEntry(
+    final entryCreated = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
@@ -147,12 +147,20 @@ class OcptBudgetCashJournalBloc
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
     );
+    if (entryCreated.isError) {
+      return;
+    }
+
+    final entryId = entryCreated.value;
     if (entryId != null) {
-      await _budgetJournalService.writeEntryReceiptChange(
+      final receiptWritten = await _budgetJournalService.writeEntryReceiptChange(
         database: project.database,
         entryId: entryId,
         fields: fields,
       );
+      if (receiptWritten.isError) {
+        return;
+      }
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
@@ -206,7 +214,7 @@ class OcptBudgetCashJournalBloc
     }
 
     final shareId = shareCreated.value;
-    await _budgetJournalService.updateEntry(
+    final updated = await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: event.entryId,
       date: Value(fields.date),
@@ -223,11 +231,18 @@ class OcptBudgetCashJournalBloc
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),
       voucherNumber: voucherNumber == null ? const Value.absent() : Value(voucherNumber),
     );
-    await _budgetJournalService.writeEntryReceiptChange(
+    if (updated.isError) {
+      return;
+    }
+
+    final receiptWritten = await _budgetJournalService.writeEntryReceiptChange(
       database: project.database,
       entryId: event.entryId,
       fields: fields,
     );
+    if (receiptWritten.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -307,7 +322,14 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    await _budgetJournalService.deleteEntry(database: project.database, entryId: event.entryId);
+    final deleted = await _budgetJournalService.deleteEntry(
+      database: project.database,
+      entryId: event.entryId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -322,7 +344,7 @@ class OcptBudgetCashJournalBloc
     }
 
     final fields = event.fields;
-    await _budgetJournalService.createCommitment(
+    final created = await _budgetJournalService.createCommitment(
       database: project.database,
       accountId: fields.accountId,
       label: fields.label,
@@ -333,6 +355,9 @@ class OcptBudgetCashJournalBloc
       status: fields.status,
       lineId: event.lineId,
     );
+    if (created.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -349,7 +374,7 @@ class OcptBudgetCashJournalBloc
     }
 
     final fields = event.fields;
-    await _budgetJournalService.updateCommitment(
+    final updated = await _budgetJournalService.updateCommitment(
       database: project.database,
       commitmentId: event.commitmentId,
       dueDate: Value(fields.dueDate),
@@ -360,6 +385,9 @@ class OcptBudgetCashJournalBloc
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),
       status: Value(fields.status),
     );
+    if (updated.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -375,10 +403,14 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    await _budgetJournalService.deleteCommitment(
+    final deleted = await _budgetJournalService.deleteCommitment(
       database: project.database,
       commitmentId: event.commitmentId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -396,7 +428,7 @@ class OcptBudgetCashJournalBloc
     }
 
     final fields = event.fields;
-    final entryId = await _budgetJournalService.createEntry(
+    final entryCreated = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
       label: fields.label,
@@ -410,13 +442,20 @@ class OcptBudgetCashJournalBloc
       isTaxInclusive: fields.isTaxInclusive,
       vatRateBasisPoints: fields.vatRateBasisPoints,
     );
+    if (entryCreated.isError) {
+      return;
+    }
 
+    final entryId = entryCreated.value;
     if (entryId != null) {
-      await _budgetJournalService.writeEntryReceiptChange(
+      final receiptWritten = await _budgetJournalService.writeEntryReceiptChange(
         database: project.database,
         entryId: entryId,
         fields: fields,
       );
+      if (receiptWritten.isError) {
+        return;
+      }
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
@@ -466,7 +505,7 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    final commitmentId = await _budgetJournalService.createCommitment(
+    final commitmentCreated = await _budgetJournalService.createCommitment(
       database: project.database,
       accountId: accountId,
       label: entry.label,
@@ -475,15 +514,23 @@ class OcptBudgetCashJournalBloc
       vatRateBasisPoints: entry.vatRateBasisPoints,
       lineId: lineId,
     );
+    if (commitmentCreated.isError) {
+      return;
+    }
+
+    final commitmentId = commitmentCreated.value;
     if (commitmentId == null) {
       return;
     }
 
-    await _budgetJournalService.updateEntry(
+    final relinked = await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: entry.id,
       commitmentId: Value(commitmentId),
     );
+    if (relinked.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -508,11 +555,14 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    await _budgetJournalService.updateEntry(
+    final detached = await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: entry.id,
       accountId: const Value(null),
     );
+    if (detached.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -559,11 +609,14 @@ class OcptBudgetCashJournalBloc
       return;
     }
 
-    await _budgetJournalService.updateCommitment(
+    final relinked = await _budgetJournalService.updateCommitment(
       database: project.database,
       commitmentId: commitment.id,
       lineId: Value(lineId),
     );
+    if (relinked.isError) {
+      return;
+    }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -589,11 +642,14 @@ class OcptBudgetCashJournalBloc
       (entry) => entry.commitmentId == event.commitmentId,
     );
     for (final settlingEntry in settlingEntries) {
-      await _budgetJournalService.updateEntry(
+      final unsettled = await _budgetJournalService.updateEntry(
         database: project.database,
         entryId: settlingEntry.id,
         commitmentId: const Value(null),
       );
+      if (unsettled.isError) {
+        return;
+      }
     }
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});

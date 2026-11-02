@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the budget mode's cash journal: the `budget_entries` movements and the
@@ -75,7 +77,10 @@ class OcptBudgetJournalService extends AbsOcptService {
 
   /// Load every live entry of [database], in `date` order, `sortKey` breaking a tie between two
   /// entries recorded on the same day.
-  Future<List<OcptBudgetEntry>> loadEntries({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetEntry>>> loadEntries({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadEntries", () async {
     final rows =
         await (database.select(database.ocptBudgetEntriesTable)
               ..where((table) => table.isDeleted.not())
@@ -86,7 +91,7 @@ class OcptBudgetJournalService extends AbsOcptService {
             .get();
 
     return [for (final row in rows) OcptBudgetEntry.fromRow(row)];
-  }
+  });
 
   /// Load every live commitment of [database], in `dueDate` order with the undated ones **last**,
   /// `sortKey` breaking a tie between two commitments sharing a due date (or sharing no due date at
@@ -97,9 +102,10 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// when" should read as. Ordering by `dueDate.isNull()` first (`false` sorts before `true`) is
   /// what puts every dated commitment ahead of the undated ones, in their own date order, before
   /// `dueDate` itself is asked to order anything.
-  Future<List<OcptBudgetCommitment>> loadCommitments({
+  @useResult
+  Future<OcptDatabaseResult<List<OcptBudgetCommitment>>> loadCommitments({
     required OcptProjectDatabase database,
-  }) async {
+  }) => guardResult("loadCommitments", () async {
     final rows =
         await (database.select(database.ocptBudgetCommitmentsTable)
               ..where((table) => table.isDeleted.not())
@@ -111,7 +117,7 @@ class OcptBudgetJournalService extends AbsOcptService {
             .get();
 
     return [for (final row in rows) OcptBudgetCommitment.fromRow(row)];
-  }
+  });
 
   /// Load every live voucher of [database] — `OcptAssetKind.receipt`, `assets.budgetEntryId`
   /// naming the journal entry it evidences — keyed by that entry's own id.
@@ -122,7 +128,10 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// the only place the link is recorded (`setEntryReceipt`'s own doc comment argues why a second,
   /// redundant column on the entry itself would only be one more copy of the same fact to keep in
   /// step).
-  Future<Map<String, OcptAssetRef>> loadReceipts({required OcptProjectDatabase database}) async {
+  @useResult
+  Future<OcptDatabaseResult<Map<String, OcptAssetRef>>> loadReceipts({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadReceipts", () async {
     final rows =
         await (database.select(database.ocptAssetsTable)..where(
               (table) => table.kind.equalsValue(OcptAssetKind.receipt) & table.isDeleted.not(),
@@ -133,7 +142,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       for (final row in rows)
         if (row.budgetEntryId case final entryId?) entryId: OcptAssetRef.fromRow(row),
     };
-  }
+  });
 
   /// Create a new journal entry dated [date], appended at the end of the journal's own flat
   /// `sortKey` order, and return its freshly generated id.
@@ -142,7 +151,8 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// never types one in for a fresh entry, only [updateEntry] can change it afterwards.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createEntry({
+  @useResult
+  Future<OcptDatabaseResult<String>> createEntry({
     required OcptProjectDatabase database,
     required DateTime date,
     required String label,
@@ -156,7 +166,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     int creditCents = 0,
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
-  }) async {
+  }) => guardResult("createEntry", () async {
     if (database.refusesUserWrite("createEntry")) {
       return null;
     }
@@ -198,7 +208,7 @@ class OcptBudgetJournalService extends AbsOcptService {
 
       return id;
     });
-  }
+  });
 
   /// Update the fields of entry [entryId] in [database] that are passed as something other than
   /// [Value.absent], [voucherNumber] included: unlike `OcptBudgetLinesTable`'s `accountId`, a
@@ -207,7 +217,8 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// touches `sortKey` or `isDeleted`: those only change through [reorderEntry] and [deleteEntry].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateEntry({
+  @useResult
+  Future<OcptDatabaseOutcome> updateEntry({
     required OcptProjectDatabase database,
     required String entryId,
     Value<DateTime> date = const Value.absent(),
@@ -223,7 +234,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<String> voucherNumber = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateEntry", () async {
     if (database.refusesUserWrite("updateEntry")) {
       return;
     }
@@ -261,7 +272,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move entry [entryId] to [newPosition] (0-based) within the journal's own flat `sortKey`
   /// order, by giving it a `sortKey` sitting between the two entries it lands between. Writes
@@ -272,11 +283,12 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// moves it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderEntry({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderEntry({
     required OcptProjectDatabase database,
     required String entryId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderEntry", () async {
     if (database.refusesUserWrite("reorderEntry")) {
       return;
     }
@@ -309,7 +321,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone entry [entryId] and, in the same transaction, tombstone every live `assets` row
   /// naming it as its `OcptAssetKind.receipt` ([_tombstoneEntryReceipt]): the voucher goes with the
@@ -326,7 +338,11 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteEntry({required OcptProjectDatabase database, required String entryId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deleteEntry({
+    required OcptProjectDatabase database,
+    required String entryId,
+  }) => guardOutcome("deleteEntry", () async {
     if (database.refusesUserWrite("deleteEntry")) {
       return;
     }
@@ -350,7 +366,7 @@ class OcptBudgetJournalService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Reference the file at [path] as journal entry [entryId]'s own voucher, replacing whichever
   /// receipt it referenced before — tombstoned in the same transaction, since an entry has at most
@@ -366,11 +382,12 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// `quotedAmount`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> setEntryReceipt({
+  @useResult
+  Future<OcptDatabaseResult<String>> setEntryReceipt({
     required OcptProjectDatabase database,
     required String entryId,
     required String path,
-  }) async {
+  }) => guardResult("setEntryReceipt", () async {
     if (database.refusesUserWrite("setEntryReceipt")) {
       return null;
     }
@@ -391,7 +408,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       await stamps.flush(database);
       return id;
     });
-  }
+  });
 
   /// Drop journal entry [entryId]'s own reference to its voucher: the `assets` row is tombstoned.
   /// The file itself is never touched.
@@ -399,10 +416,11 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearEntryReceipt({
+  @useResult
+  Future<OcptDatabaseOutcome> clearEntryReceipt({
     required OcptProjectDatabase database,
     required String entryId,
-  }) async {
+  }) => guardOutcome("clearEntryReceipt", () async {
     if (database.refusesUserWrite("clearEntryReceipt")) {
       return;
     }
@@ -412,13 +430,14 @@ class OcptBudgetJournalService extends AbsOcptService {
       await _tombstoneEntryReceipt(database: database, entryId: entryId, stamps: stamps);
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Create a new commitment against [accountId], appended at the end of the commitment list's own
   /// flat `sortKey` order, and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createCommitment({
+  @useResult
+  Future<OcptDatabaseResult<String>> createCommitment({
     required OcptProjectDatabase database,
     required String accountId,
     required String label,
@@ -428,7 +447,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     int? vatRateBasisPoints,
     OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
     String? lineId,
-  }) async {
+  }) => guardResult("createCommitment", () async {
     if (database.refusesUserWrite("createCommitment")) {
       return null;
     }
@@ -464,7 +483,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update the fields of commitment [commitmentId] in [database] that are passed as something
   /// other than [Value.absent]. **Settlement is never written here any more** — it is read off
@@ -484,7 +503,8 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// (ADR 0010), which is a heavy price for a slip of the mouse.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateCommitment({
+  @useResult
+  Future<OcptDatabaseOutcome> updateCommitment({
     required OcptProjectDatabase database,
     required String commitmentId,
     Value<DateTime?> dueDate = const Value.absent(),
@@ -495,7 +515,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     Value<int?> vatRateBasisPoints = const Value.absent(),
     Value<OcptBudgetCommitmentStatus> status = const Value.absent(),
     Value<String?> lineId = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateCommitment", () async {
     if (database.refusesUserWrite("updateCommitment")) {
       return;
     }
@@ -531,18 +551,19 @@ class OcptBudgetJournalService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move commitment [commitmentId] to [newPosition] (0-based) within the commitment list's own
   /// flat `sortKey` order, by giving it a `sortKey` sitting between the two commitments it lands
   /// between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderCommitment({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderCommitment({
     required OcptProjectDatabase database,
     required String commitmentId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderCommitment", () async {
     if (database.refusesUserWrite("reorderCommitment")) {
       return;
     }
@@ -579,7 +600,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone commitment [commitmentId]. Nothing else in the schema ever names a commitment, so
   /// unlike [deleteEntry] there is no dangling reference to clear.
@@ -587,10 +608,11 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteCommitment({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteCommitment({
     required OcptProjectDatabase database,
     required String commitmentId,
-  }) async {
+  }) => guardOutcome("deleteCommitment", () async {
     if (database.refusesUserWrite("deleteCommitment")) {
       return;
     }
@@ -615,7 +637,7 @@ class OcptBudgetJournalService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone every live `assets` row naming [entryId] as its `OcptAssetKind.receipt` voucher —
   /// shared by [deleteEntry]'s own cascade, [setEntryReceipt] (replacing one) and

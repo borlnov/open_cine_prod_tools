@@ -133,12 +133,14 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "Original",
-        amountCents: 1000,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "Original",
+            amountCents: 1000,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -181,12 +183,14 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "To be deleted",
-        amountCents: 500,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "To be deleted",
+            amountCents: 500,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -208,12 +212,14 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "Camera deposit",
-        amountCents: 5000,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "Camera deposit",
+            amountCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -268,21 +274,25 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "Camera deposit",
-        amountCents: 5000,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "Camera deposit",
+            amountCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026, 4),
-        label: "Camera deposit",
-        accountId: accountId,
-        commitmentId: commitmentId,
-        debitCents: 5000,
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026, 4),
+            label: "Camera deposit",
+            accountId: accountId,
+            commitmentId: commitmentId,
+            debitCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(entryId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -321,29 +331,35 @@ void main() {
       final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      final commitmentId = await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId,
-        label: "Camera deposit",
-        amountCents: 5000,
-      );
+      final commitmentId = await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId,
+            label: "Camera deposit",
+            amountCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(commitmentId, isNotNull);
-      final firstEntryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026, 4),
-        label: "Deposit",
-        accountId: accountId,
-        commitmentId: commitmentId,
-        debitCents: 3000,
-      );
-      final secondEntryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026, 5),
-        label: "Balance",
-        accountId: accountId,
-        commitmentId: commitmentId,
-        debitCents: 2000,
-      );
+      final firstEntryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026, 4),
+            label: "Deposit",
+            accountId: accountId,
+            commitmentId: commitmentId,
+            debitCents: 3000,
+          )
+          .maybeValueOrFail;
+      final secondEntryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026, 5),
+            label: "Balance",
+            accountId: accountId,
+            commitmentId: commitmentId,
+            debitCents: 2000,
+          )
+          .maybeValueOrFail;
       expect(firstEntryId, isNotNull);
       expect(secondEntryId, isNotNull);
 
@@ -426,12 +442,14 @@ void main() {
           .createResource(database: project.database, label: "Regional grant")
           .maybeValueOrFail;
       expect(resourceId, isNotNull);
-      final entryId = await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Grant instalment",
-        creditCents: 5000,
-      );
+      final entryId = await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "Grant instalment",
+            creditCents: 5000,
+          )
+          .maybeValueOrFail;
       expect(entryId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

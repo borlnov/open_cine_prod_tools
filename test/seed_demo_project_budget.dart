@@ -174,79 +174,95 @@ Future<void> seedFinancing({
   // What is ordered but not yet paid. One is settled by the entry below it, so the expenses tree
   // reads a whole line → commitment → payment chain; the other two are still owed, which is what
   // the cash-flow page's own upcoming section and its projection read.
-  final costumesCommitmentId = (await budgetJournalService.createCommitment(
-    database: database,
-    accountId: accountIdOf("5"),
-    lineId: costumesLineId,
-    label: "Maison Couronne — period costumes",
-    dueDate: DateTime.utc(2026, 9, 20),
-    amountCents: 180000,
-    vatRateBasisPoints: 2000,
-    status: OcptBudgetCommitmentStatus.invoiceReceived,
-  ))!;
-  await budgetJournalService.createCommitment(
-    database: database,
-    accountId: accountIdOf("7"),
-    label: "Camera package, second week",
-    dueDate: DateTime.utc(2026, 9, 30),
-    amountCents: 117000,
-    vatRateBasisPoints: 2000,
-  );
-  await budgetJournalService.createCommitment(
-    database: database,
-    accountId: accountIdOf("8"),
-    label: "Studio Lumière — colour grading",
-    dueDate: DateTime.utc(2026, 11, 16),
-    amountCents: 220000,
-    vatRateBasisPoints: 2000,
-    status: OcptBudgetCommitmentStatus.contractSigned,
-  );
+  final costumesCommitmentId = (await budgetJournalService
+      .createCommitment(
+        database: database,
+        accountId: accountIdOf("5"),
+        lineId: costumesLineId,
+        label: "Maison Couronne — period costumes",
+        dueDate: DateTime.utc(2026, 9, 20),
+        amountCents: 180000,
+        vatRateBasisPoints: 2000,
+        status: OcptBudgetCommitmentStatus.invoiceReceived,
+      )
+      .valueOrFail);
+  await budgetJournalService
+      .createCommitment(
+        database: database,
+        accountId: accountIdOf("7"),
+        label: "Camera package, second week",
+        dueDate: DateTime.utc(2026, 9, 30),
+        amountCents: 117000,
+        vatRateBasisPoints: 2000,
+      )
+      .maybeValueOrFail;
+  await budgetJournalService
+      .createCommitment(
+        database: database,
+        accountId: accountIdOf("8"),
+        label: "Studio Lumière — colour grading",
+        dueDate: DateTime.utc(2026, 11, 16),
+        amountCents: 220000,
+        vatRateBasisPoints: 2000,
+        status: OcptBudgetCommitmentStatus.contractSigned,
+      )
+      .maybeValueOrFail;
 
   // The cash journal, including the credit that makes the reimbursable contribution received.
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2026, 8, 14),
-    label: "The production's own contribution paid in",
-    creditCents: 350000,
-    resourceId: ownContribution,
-  );
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2026, 9, 2),
-    label: "Camera package, first week",
-    accountId: accountIdOf("7"),
-    debitCents: 117000,
-    vatRateBasisPoints: 2000,
-  );
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2026, 9, 8),
-    label: "Boat charter",
-    accountId: accountIdOf("6"),
-    debitCents: 144000,
-    vatRateBasisPoints: 2000,
-  );
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2026, 9, 20),
-    label: "Maison Couronne — period costumes",
-    accountId: accountIdOf("5"),
-    commitmentId: costumesCommitmentId,
-    debitCents: 180000,
-    vatRateBasisPoints: 2000,
-  );
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2026, 8, 14),
+        label: "The production's own contribution paid in",
+        creditCents: 350000,
+        resourceId: ownContribution,
+      )
+      .maybeValueOrFail;
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2026, 9, 2),
+        label: "Camera package, first week",
+        accountId: accountIdOf("7"),
+        debitCents: 117000,
+        vatRateBasisPoints: 2000,
+      )
+      .maybeValueOrFail;
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2026, 9, 8),
+        label: "Boat charter",
+        accountId: accountIdOf("6"),
+        debitCents: 144000,
+        vatRateBasisPoints: 2000,
+      )
+      .maybeValueOrFail;
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2026, 9, 20),
+        label: "Maison Couronne — period costumes",
+        accountId: accountIdOf("5"),
+        commitmentId: costumesCommitmentId,
+        debitCents: 180000,
+        vatRateBasisPoints: 2000,
+      )
+      .maybeValueOrFail;
 
   // The premium came in above the line quoted for it, so account 9 reads over its own quote — the
   // one standing alert the demonstration project raises, and the reason the dashboard has an
   // alerts card to draw at all.
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2026, 8, 28),
-    label: "Production insurance — annual premium",
-    accountId: accountIdOf("9"),
-    debitCents: 102000,
-    vatRateBasisPoints: 2000,
-  );
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2026, 8, 28),
+        label: "Production insurance — annual premium",
+        accountId: accountIdOf("9"),
+        debitCents: 102000,
+        vatRateBasisPoints: 2000,
+      )
+      .maybeValueOrFail;
 
   // The takings, and what each of them has actually brought in.
   Future<String> revenue(
@@ -289,20 +305,24 @@ Future<void> seedFinancing({
     OcptBudgetRevenueStatus.invoiced,
   );
 
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2027, 2, 2),
-    label: "Audience award paid in",
-    creditCents: 300000,
-    revenueId: prize,
-  );
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2027, 3, 18),
-    label: "Distribution grant paid in",
-    creditCents: 220000,
-    revenueId: broadcast,
-  );
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2027, 2, 2),
+        label: "Audience award paid in",
+        creditCents: 300000,
+        revenueId: prize,
+      )
+      .maybeValueOrFail;
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2027, 3, 18),
+        label: "Distribution grant paid in",
+        creditCents: 220000,
+        revenueId: broadcast,
+      )
+      .maybeValueOrFail;
 }
 
 /// Seeds the revenue sharing: the takings and the shares that split them.
@@ -334,11 +354,13 @@ Future<void> seedSharing({
   await share("Nora", 100, 0);
   final editor = await share("Editor", 100, 500);
 
-  await budgetJournalService.createEntry(
-    database: database,
-    date: DateTime.utc(2027, 6, 12),
-    label: "Editor's share, first instalment",
-    debitCents: 8000,
-    shareId: editor,
-  );
+  await budgetJournalService
+      .createEntry(
+        database: database,
+        date: DateTime.utc(2027, 6, 12),
+        label: "Editor's share, first instalment",
+        debitCents: 8000,
+        shareId: editor,
+      )
+      .maybeValueOrFail;
 }

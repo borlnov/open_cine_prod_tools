@@ -316,12 +316,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.budgetJournalService.createEntry(
-      database: project.database,
-      date: DateTime(2026),
-      label: "To be deleted",
-      debitCents: 500,
-    );
+    await projectsManager.budgetJournalService
+        .createEntry(
+          database: project.database,
+          date: DateTime(2026),
+          label: "To be deleted",
+          debitCents: 500,
+        )
+        .maybeValueOrFail;
 
     await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
@@ -363,12 +365,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.budgetJournalService.createEntry(
-        database: project.database,
-        date: DateTime(2026),
-        label: "Bank fees",
-        debitCents: 500,
-      );
+      await projectsManager.budgetJournalService
+          .createEntry(
+            database: project.database,
+            date: DateTime(2026),
+            label: "Bank fees",
+            debitCents: 500,
+          )
+          .maybeValueOrFail;
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
@@ -411,13 +415,15 @@ void main() {
           amountCents: const Value(10000),
         )
         .okOrFail;
-    await projectsManager.budgetJournalService.createEntry(
-      database: project.database,
-      date: DateTime(2026),
-      label: "Regional grant",
-      resourceId: resourceId,
-      creditCents: 4000,
-    );
+    await projectsManager.budgetJournalService
+        .createEntry(
+          database: project.database,
+          date: DateTime(2026),
+          label: "Regional grant",
+          resourceId: resourceId,
+          creditCents: 4000,
+        )
+        .maybeValueOrFail;
 
     await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
@@ -469,12 +475,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    await projectsManager.budgetJournalService.createEntry(
-      database: project.database,
-      date: DateTime(2026),
-      label: "Frozen entry",
-      debitCents: 500,
-    );
+    await projectsManager.budgetJournalService
+        .createEntry(
+          database: project.database,
+          date: DateTime(2026),
+          label: "Frozen entry",
+          debitCents: 500,
+        )
+        .maybeValueOrFail;
 
     final version = await projectsManager.createProjectVersion(name: "v1", note: "");
     expect(version, isNotNull);
@@ -583,12 +591,14 @@ void main() {
         .createAccount(database: project.database, label: "Camera")
         .maybeValueOrFail;
     expect(accountId, isNotNull);
-    await projectsManager.budgetJournalService.createCommitment(
-      database: project.database,
-      accountId: accountId!,
-      label: "To be deleted",
-      amountCents: 500,
-    );
+    await projectsManager.budgetJournalService
+        .createCommitment(
+          database: project.database,
+          accountId: accountId!,
+          label: "To be deleted",
+          amountCents: 500,
+        )
+        .maybeValueOrFail;
 
     await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
     await tester.pumpAndSettle();
@@ -640,12 +650,14 @@ void main() {
           .createAccount(database: project.database, label: "Camera")
           .maybeValueOrFail;
       expect(accountId, isNotNull);
-      await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId!,
-        label: "Camera deposit",
-        amountCents: 5000,
-      );
+      await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId!,
+            label: "Camera deposit",
+            amountCents: 5000,
+          )
+          .maybeValueOrFail;
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
@@ -710,12 +722,14 @@ void main() {
           .createAccount(database: project.database, label: "Camera")
           .maybeValueOrFail;
       expect(accountId, isNotNull);
-      await projectsManager.budgetJournalService.createCommitment(
-        database: project.database,
-        accountId: accountId!,
-        label: "Atelier Verrier",
-        amountCents: 25000,
-      );
+      await projectsManager.budgetJournalService
+          .createCommitment(
+            database: project.database,
+            accountId: accountId!,
+            label: "Atelier Verrier",
+            amountCents: 25000,
+          )
+          .maybeValueOrFail;
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();
@@ -772,12 +786,14 @@ void main() {
         .createAccount(database: project.database, label: "Camera")
         .maybeValueOrFail;
     expect(accountId, isNotNull);
-    await projectsManager.budgetJournalService.createCommitment(
-      database: project.database,
-      accountId: accountId!,
-      label: "Frozen commitment",
-      amountCents: 500,
-    );
+    await projectsManager.budgetJournalService
+        .createCommitment(
+          database: project.database,
+          accountId: accountId!,
+          label: "Frozen commitment",
+          amountCents: 500,
+        )
+        .maybeValueOrFail;
 
     final version = await projectsManager.createProjectVersion(name: "v1", note: "");
     expect(version, isNotNull);

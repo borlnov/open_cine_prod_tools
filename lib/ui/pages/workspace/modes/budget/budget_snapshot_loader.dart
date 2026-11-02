@@ -98,11 +98,12 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the schedule, the accounts and their lines, the resources, the mileage
-  /// rates, the defrayals, the takings and the shares reads, in place of the whole read: they are
-  /// the only reads that answer a result so far. The cash journal's own reads still raise when the
-  /// database fails, and the caller catches what they raise. This sentence changes as that service
-  /// converts, each read then answering its failure in the same way.
+  /// Answers the failure of the schedule, the accounts and their lines, the cash journal's entries,
+  /// commitments and receipts, the resources, the mileage rates, the defrayals, the takings and the
+  /// shares reads, in place of the whole read: they are the only reads that answer a result so far.
+  /// The reads of the roles, the people, the elements, the locations and the project settings still
+  /// raise when the database fails, and the caller catches what they raise. This sentence changes
+  /// as those services convert, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
@@ -112,8 +113,21 @@ class OcptBudgetSnapshotLoader {
     }
 
     final accounts = accountsRead.value!;
-    final entries = await _budgetJournalService.loadEntries(database: database);
-    final commitments = await _budgetJournalService.loadCommitments(database: database);
+    final entriesRead = await _budgetJournalService.loadEntries(database: database);
+    if (entriesRead.isError) {
+      return OcptDatabaseResult(status: entriesRead.status, extraInfo: entriesRead.extraInfo);
+    }
+
+    final entries = entriesRead.value!;
+    final commitmentsRead = await _budgetJournalService.loadCommitments(database: database);
+    if (commitmentsRead.isError) {
+      return OcptDatabaseResult(
+        status: commitmentsRead.status,
+        extraInfo: commitmentsRead.extraInfo,
+      );
+    }
+
+    final commitments = commitmentsRead.value!;
     final resourcesRead = await _budgetFinancingService.loadResources(database: database);
     if (resourcesRead.isError) {
       return OcptDatabaseResult(status: resourcesRead.status, extraInfo: resourcesRead.extraInfo);
@@ -132,7 +146,12 @@ class OcptBudgetSnapshotLoader {
     }
 
     final shares = sharesRead.value!;
-    final receipts = await _budgetJournalService.loadReceipts(database: database);
+    final receiptsRead = await _budgetJournalService.loadReceipts(database: database);
+    if (receiptsRead.isError) {
+      return OcptDatabaseResult(status: receiptsRead.status, extraInfo: receiptsRead.extraInfo);
+    }
+
+    final receipts = receiptsRead.value!;
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();

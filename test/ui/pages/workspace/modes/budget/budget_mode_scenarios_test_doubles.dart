@@ -374,7 +374,7 @@ class _ScenarioBudgetJournalService extends OcptBudgetJournalService {
   /// Fail while the scenario asks for entry creations to fail, otherwise create the entry as the
   /// real service does.
   @override
-  Future<String?> createEntry({
+  Future<OcptDatabaseResult<String>> createEntry({
     required OcptProjectDatabase database,
     required DateTime date,
     required String label,
@@ -390,7 +390,10 @@ class _ScenarioBudgetJournalService extends OcptBudgetJournalService {
     int? vatRateBasisPoints,
   }) async {
     if (failures.failEntryCreation) {
-      throw StateError("entry creation intentionally failed for the scenario");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "entry creation intentionally failed for the scenario",
+      );
     }
 
     return super.createEntry(
@@ -518,11 +521,11 @@ class BudgetScenarioHarness {
 
   /// Reads the live journal entries back from the database.
   Future<List<OcptBudgetEntry>> readEntries() =>
-      projectsManager.budgetJournalService.loadEntries(database: database);
+      projectsManager.budgetJournalService.loadEntries(database: database).valueOrFail;
 
   /// Reads the live commitments back from the database.
   Future<List<OcptBudgetCommitment>> readCommitments() =>
-      projectsManager.budgetJournalService.loadCommitments(database: database);
+      projectsManager.budgetJournalService.loadCommitments(database: database).valueOrFail;
 
   /// Reads the live financing resources back from the database.
   Future<List<OcptBudgetResource>> readResources() =>
@@ -570,13 +573,15 @@ class BudgetScenarioHarness {
     int amountCents = 5000,
     String? lineId,
   }) async {
-    final id = await projectsManager.budgetJournalService.createCommitment(
-      database: database,
-      accountId: accountId,
-      label: label,
-      amountCents: amountCents,
-      lineId: lineId,
-    );
+    final id = await projectsManager.budgetJournalService
+        .createCommitment(
+          database: database,
+          accountId: accountId,
+          label: label,
+          amountCents: amountCents,
+          lineId: lineId,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 
@@ -587,14 +592,16 @@ class BudgetScenarioHarness {
     String? accountId,
     String? commitmentId,
   }) async {
-    final id = await projectsManager.budgetJournalService.createEntry(
-      database: database,
-      date: DateTime(2026),
-      label: label,
-      accountId: accountId,
-      commitmentId: commitmentId,
-      debitCents: debitCents,
-    );
+    final id = await projectsManager.budgetJournalService
+        .createEntry(
+          database: database,
+          date: DateTime(2026),
+          label: label,
+          accountId: accountId,
+          commitmentId: commitmentId,
+          debitCents: debitCents,
+        )
+        .maybeValueOrFail;
     return id!;
   }
 
