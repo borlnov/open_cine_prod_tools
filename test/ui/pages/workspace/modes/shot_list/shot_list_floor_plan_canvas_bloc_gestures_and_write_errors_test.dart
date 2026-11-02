@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_properties_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
@@ -34,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_canvas_bloc_test_doubles.dart';
 
 /// A floor plan service whose symbol placements and updates always fail, to exercise the canvas's
@@ -49,7 +51,7 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
 
   /// Fail as a refused symbol placement does.
   @override
-  Future<String?> placeSymbol({
+  Future<OcptDatabaseResult<String>> placeSymbol({
     required OcptProjectDatabase database,
     required String setId,
     required String? sceneId,
@@ -66,11 +68,14 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
     OcptFloorPlanSetElementShape? setElementShape,
     String? overridesSymbolId,
     bool isHidden = false,
-  }) async => throw StateError("symbol placement intentionally failed for the test");
+  }) async => const OcptDatabaseResult(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "symbol placement intentionally failed for the test",
+  );
 
   /// Fail as a refused symbol update does.
   @override
-  Future<void> updateSymbol({
+  Future<OcptDatabaseOutcome> updateSymbol({
     required OcptProjectDatabase database,
     required String symbolId,
     Value<double> xM = const Value.absent(),
@@ -83,7 +88,10 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
     Value<String> label = const Value.absent(),
     Value<OcptFloorPlanSetElementShape?> setElementShape = const Value.absent(),
     Value<bool> isHidden = const Value.absent(),
-  }) async => throw StateError("symbol update intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "symbol update intentionally failed for the test",
+  );
 }
 
 /// Run the tests of the shot list floor plan canvas bloc gestures and write errors.
@@ -429,16 +437,18 @@ void main() {
         final mode = mounted.mode;
         final canvas = canvasOf(mode);
         final project = projectsManager.currentProject!;
-        final wallId = (await projectsManager.floorPlanService.placeSymbol(
-          database: project.database,
-          setId: mode.state.selectedSetId!,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 6,
-          yM: 6,
-          setElementShape: OcptFloorPlanSetElementShape.wall,
-        ))!;
+        final wallId = (await projectsManager.floorPlanService
+            .placeSymbol(
+              database: project.database,
+              setId: mode.state.selectedSetId!,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 6,
+              yM: 6,
+              setElementShape: OcptFloorPlanSetElementShape.wall,
+            )
+            .valueOrFail);
         await mode.reload({OcptShotListReloadScope.floorPlans});
 
         placementsOf(mode).add(
@@ -574,16 +584,18 @@ void main() {
         final canvas = canvasOf(mode);
         final project = projectsManager.currentProject!;
         final setId = mode.state.selectedSetId!;
-        final otherId = (await projectsManager.floorPlanService.placeSymbol(
-          database: project.database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 3,
-          yM: 3,
-          setElementShape: OcptFloorPlanSetElementShape.wall,
-        ))!;
+        final otherId = (await projectsManager.floorPlanService
+            .placeSymbol(
+              database: project.database,
+              setId: setId,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 3,
+              yM: 3,
+              setElementShape: OcptFloorPlanSetElementShape.wall,
+            )
+            .valueOrFail);
         await mode.reload({OcptShotListReloadScope.floorPlans});
 
         placementsOf(mode).add(

@@ -164,15 +164,17 @@ void main() {
     await harness.projectsManager.storyboardService
         .addPanel(database: harness.database, shotId: shotIds.first)
         .maybeValueOrFail;
-    await harness.projectsManager.floorPlanService.placeSymbol(
-      database: harness.database,
-      setId: setId,
-      sceneId: null,
-      shotId: shotIds.first,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: 0,
-      yM: 0,
-    );
+    await harness.projectsManager.floorPlanService
+        .placeSymbol(
+          database: harness.database,
+          setId: setId,
+          sceneId: null,
+          shotId: shotIds.first,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 0,
+          yM: 0,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

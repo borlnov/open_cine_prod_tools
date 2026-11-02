@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_working_copy_state.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
@@ -45,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_bloc_test_doubles.dart';
 
 /// The fixed device id every stamping test double in this file uses.
@@ -117,7 +119,7 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
   /// Load the floor plans as the real service does, then hold the call when the next read is to be
   /// held.
   @override
-  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+  Future<OcptDatabaseResult<OcptFloorPlanSnapshot>> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
@@ -522,16 +524,18 @@ void main() {
         name: "NEWCOMER",
         kind: OcptRoleKind.silent,
       );
-      await projectsManager.floorPlanService.placeSymbol(
-        database: project.database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-        setElementShape: OcptFloorPlanSetElementShape.wall,
-      );
+      await projectsManager.floorPlanService
+          .placeSymbol(
+            database: project.database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+            setElementShape: OcptFloorPlanSetElementShape.wall,
+          )
+          .maybeValueOrFail;
       final rolesBefore = bloc.state.roles.length;
       expect(bloc.state.setScopeSymbolsBySetId[setId] ?? const [], isEmpty);
 

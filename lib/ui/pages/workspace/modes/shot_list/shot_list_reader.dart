@@ -91,8 +91,8 @@ class OcptShotListReader {
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
   /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
-  /// not be read. The reads of the shot list, the field suggestions, the floor plans, the
-  /// locations, the cast and the screenplay text still raise when the database fails.
+  /// not be read. The reads of the shot list, the field suggestions, the locations, the cast and
+  /// the screenplay text still raise when the database fails.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -131,8 +131,14 @@ class OcptShotListReader {
   /// Read the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through
   /// `OcptShotListState.setsOfSelectedSequence`.
-  Future<OcptFloorPlanSnapshot> loadFloorPlans(OcptOpenProjectModel project) => _floorPlanService
-      .loadFloorPlans(database: project.database, screenplayId: _screenplayIdOf(project));
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<OcptFloorPlanSnapshot>> loadFloorPlans(OcptOpenProjectModel project) =>
+      _floorPlanService.loadFloorPlans(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+      );
 
   /// Read the project's whole Resources catalogue — every location and its own sets, each
   /// carrying the scenes it is linked to — what the set tabs' `＋ Set` menu groups by, and what
@@ -144,7 +150,10 @@ class OcptShotListReader {
   /// Read the set-scope symbols of every live Resources set of the project, keyed by set id — the
   /// gallery thumbnails' content, which draw a set's own décor alone. Project-wide, like
   /// [loadLocations].
-  Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsBySetId(
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<Map<String, List<OcptFloorPlanSymbol>>>> loadSetScopeSymbolsBySetId(
     OcptOpenProjectModel project,
   ) => _floorPlanService.loadSetScopeSymbolsByProjectSetId(database: project.database);
 

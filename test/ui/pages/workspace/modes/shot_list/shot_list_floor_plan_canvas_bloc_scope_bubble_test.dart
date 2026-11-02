@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope_choice.dart';
@@ -50,12 +51,15 @@ class _ReadFailingFloorPlanService extends OcptFloorPlanService {
 
   /// Fail while told to, otherwise load the floor plans as the real service does.
   @override
-  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+  Future<OcptDatabaseResult<OcptFloorPlanSnapshot>> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
     if (failsReads) {
-      throw StateError("floor plans read intentionally failed for the test");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "floor plans read intentionally failed for the test",
+      );
     }
     return super.loadFloorPlans(database: database, screenplayId: screenplayId);
   }

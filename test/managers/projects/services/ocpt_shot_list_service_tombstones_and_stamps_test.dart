@@ -610,33 +610,39 @@ Action.
         sceneId: sceneId,
         name: "Kitchen",
       ))!;
-      final setSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final firstCameraId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: firstShotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 1,
-        yM: 1,
-      ))!;
-      final secondCameraId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: secondShotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 2,
-        yM: 2,
-      ))!;
+      final setSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final firstCameraId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: firstShotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      final secondCameraId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: secondShotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 2,
+            yM: 2,
+          )
+          .valueOrFail);
 
       await database.transaction(() async {
         final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);

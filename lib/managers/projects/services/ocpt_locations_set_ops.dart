@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_rows.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -301,11 +302,9 @@ abstract final class OcptLocationsSetOps {
         return null;
       }
 
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: newSetId,
-      );
+      await floorPlanService
+          .duplicateSet(database: database, sourceSetId: sourceSetId, destinationSetId: newSetId)
+          .okOrAbort();
 
       final linkId = await assignSceneToSet(
         deviceId: deviceId,

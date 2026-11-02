@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_locations_s
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the locations service crud and sets.
 void main() {
@@ -220,15 +221,17 @@ void main() {
         locationId: locationId,
         path: "/tmp/repérage.jpg",
       ))!;
-      final symbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
+      final symbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
 
       await locationsService.deleteLocation(database: database, locationId: locationId);
 
@@ -358,24 +361,28 @@ void main() {
         locationId: locationId,
         name: "Hangar",
       ))!;
-      final firstSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final secondSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-      ))!;
+      final firstSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final secondSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
 
       await locationsService.deleteSet(database: database, setId: setId);
 
@@ -449,15 +456,17 @@ void main() {
           locationId: locationId,
           name: "Cuisine",
         ))!;
-        await floorPlanService.placeSymbol(
-          database: database,
-          setId: sourceSetId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 1,
-          yM: 2,
-        );
+        await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: sourceSetId,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 1,
+              yM: 2,
+            )
+            .maybeValueOrFail;
 
         final newSetId = await locationsService.duplicateSetForScene(
           database: database,

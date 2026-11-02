@@ -265,19 +265,21 @@ Future<void> seedFloorPlans({
     required double widthM,
     required double heightM,
     required String label,
-  }) => floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: xM,
-    yM: yM,
-    widthM: widthM,
-    heightM: heightM,
-    label: label,
-    setElementShape: OcptFloorPlanSetElementShape.wall,
-  );
+  }) => floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: xM,
+        yM: yM,
+        widthM: widthM,
+        heightM: heightM,
+        label: label,
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      )
+      .maybeValueOrFail;
 
   // `xM`/`yM` are a symbol's own centre (`Rect.fromCenter` in the canvas painter), not a
   // corner, so a wall's own centre sits on the room's own perimeter, half its thickness either
@@ -288,176 +290,202 @@ Future<void> seedFloorPlans({
   // The south wall stops short twice, once on each side of the door below.
   await wall(xM: 1.9, yM: 4, widthM: 3.8, heightM: wallThicknessM, label: "Cafe wall, south-west");
   await wall(xM: 5.6, yM: 4, widthM: 0.8, heightM: wallThicknessM, label: "Cafe wall, south-east");
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 4.5,
-    yM: 4,
-    widthM: 1.4,
-    heightM: wallThicknessM,
-    label: "Cafe door",
-    setElementShape: OcptFloorPlanSetElementShape.door,
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 4.5,
+        yM: 4,
+        widthM: 1.4,
+        heightM: wallThicknessM,
+        label: "Cafe door",
+        setElementShape: OcptFloorPlanSetElementShape.door,
+      )
+      .maybeValueOrFail;
 
-  final counterSymbolId = (await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 2.25,
-    yM: 0.5,
-    widthM: 2.5,
-    heightM: 0.5,
-    label: "Counter",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-  ))!;
+  final counterSymbolId = (await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 2.25,
+        yM: 0.5,
+        widthM: 2.5,
+        heightM: 0.5,
+        label: "Counter",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      )
+      .valueOrFail);
 
   // The second scene shot at the cafe re-dresses the counter for that sequence only — a
   // scene-scope override: it replaces the counter above while sceneIds[1] is being drawn, and
   // the original keeps showing for sceneIds[0].
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: sceneIds[1],
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 2.55,
-    yM: 0.7,
-    widthM: 2.5,
-    heightM: 0.5,
-    label: "Counter, cleared for the second visit",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-    overridesSymbolId: counterSymbolId,
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: sceneIds[1],
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 2.55,
+        yM: 0.7,
+        widthM: 2.5,
+        heightM: 0.5,
+        label: "Counter, cleared for the second visit",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+        overridesSymbolId: counterSymbolId,
+      )
+      .maybeValueOrFail;
 
   // A table and two chairs, well clear of the counter and of the camera's own sightline below.
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 4.6,
-    yM: 2,
-    widthM: 1,
-    heightM: 1,
-    label: "Table",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 4.1,
-    yM: 1.3,
-    widthM: 0.4,
-    heightM: 0.4,
-    label: "Chair",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 5.1,
-    yM: 1.3,
-    widthM: 0.4,
-    heightM: 0.4,
-    label: "Chair",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 4.6,
+        yM: 2,
+        widthM: 1,
+        heightM: 1,
+        label: "Table",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 4.1,
+        yM: 1.3,
+        widthM: 0.4,
+        heightM: 0.4,
+        label: "Chair",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 5.1,
+        yM: 1.3,
+        widthM: 0.4,
+        heightM: 0.4,
+        label: "Chair",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      )
+      .maybeValueOrFail;
 
   // A camera on the cafe's own opening shot, inside the room and aimed north at Nora, its
   // field-of-view cone reaching well past her own position.
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: shotsByScene[0]!.first,
-    layer: OcptFloorPlanLayer.cameras,
-    xM: 2.25,
-    yM: 3.2,
-    // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
-    fovDeg: 50,
-    fovReachM: 2.6,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: cafeSetId,
-    sceneId: null,
-    shotId: shotsByScene[0]!.first,
-    layer: OcptFloorPlanLayer.characters,
-    xM: 2.25,
-    yM: 1,
-    label: "NORA",
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: shotsByScene[0]!.first,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 2.25,
+        yM: 3.2,
+        // rotationDeg defaults to 0, which already points local "up" (north) — straight at Nora.
+        fovDeg: 50,
+        fovReachM: 2.6,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: cafeSetId,
+        sceneId: null,
+        shotId: shotsByScene[0]!.first,
+        layer: OcptFloorPlanLayer.characters,
+        xM: 2.25,
+        yM: 1,
+        label: "NORA",
+      )
+      .maybeValueOrFail;
 
   // The pier: a railing and a camera on its own first shot.
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: pierSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 0,
-    yM: 0,
-    widthM: 10,
-    heightM: 2,
-    label: "Pier railing",
-    setElementShape: OcptFloorPlanSetElementShape.wall,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: pierSetId,
-    sceneId: null,
-    shotId: shotsByScene[2]!.first,
-    layer: OcptFloorPlanLayer.cameras,
-    xM: 2,
-    yM: 4,
-    rotationDeg: 180,
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: pierSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+        widthM: 10,
+        heightM: 2,
+        label: "Pier railing",
+        setElementShape: OcptFloorPlanSetElementShape.wall,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: pierSetId,
+        sceneId: null,
+        shotId: shotsByScene[2]!.first,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: 2,
+        yM: 4,
+        rotationDeg: 180,
+      )
+      .maybeValueOrFail;
 
   // The fishing boat: the wheelhouse and a camera and a light on its own first shot.
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: boatSetId,
-    sceneId: null,
-    shotId: null,
-    layer: OcptFloorPlanLayer.set,
-    xM: 0,
-    yM: 0,
-    widthM: 3,
-    heightM: 2,
-    label: "Wheelhouse",
-    setElementShape: OcptFloorPlanSetElementShape.furniture,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: boatSetId,
-    sceneId: null,
-    shotId: shotsByScene[3]!.first,
-    layer: OcptFloorPlanLayer.cameras,
-    xM: -1,
-    yM: 3,
-  );
-  await floorPlanService.placeSymbol(
-    database: database,
-    setId: boatSetId,
-    sceneId: null,
-    shotId: shotsByScene[3]!.first,
-    layer: OcptFloorPlanLayer.lights,
-    xM: 1,
-    yM: 3,
-    label: "Key",
-  );
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: boatSetId,
+        sceneId: null,
+        shotId: null,
+        layer: OcptFloorPlanLayer.set,
+        xM: 0,
+        yM: 0,
+        widthM: 3,
+        heightM: 2,
+        label: "Wheelhouse",
+        setElementShape: OcptFloorPlanSetElementShape.furniture,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: boatSetId,
+        sceneId: null,
+        shotId: shotsByScene[3]!.first,
+        layer: OcptFloorPlanLayer.cameras,
+        xM: -1,
+        yM: 3,
+      )
+      .maybeValueOrFail;
+  await floorPlanService
+      .placeSymbol(
+        database: database,
+        setId: boatSetId,
+        sceneId: null,
+        shotId: shotsByScene[3]!.first,
+        layer: OcptFloorPlanLayer.lights,
+        xM: 1,
+        yM: 3,
+        label: "Key",
+      )
+      .maybeValueOrFail;
 }
 
 /// Seeds the storyboard of the cafe's opening shot.

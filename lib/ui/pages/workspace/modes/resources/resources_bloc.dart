@@ -373,13 +373,18 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       }
 
       final mileageRates = mileageRatesRead.value!;
-      final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
+      final setIdsWithPlanRead = await _locationsService.floorPlanService.liveSetIdsWithPlan(
         database: project.database,
         setIds: [
           for (final location in snapshot.locations)
             for (final set in location.sets) set.id,
         ],
       );
+      if (setIdsWithPlanRead.isError) {
+        return false;
+      }
+
+      final setIdsWithPlan = setIdsWithPlanRead.value!;
 
       final revealRequest = state.pendingRevealRequest;
 

@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_floor_plan_service_test_doubles.dart';
 
 /// Run the tests of the floor plan service plans and sets.
@@ -176,30 +177,30 @@ void main() {
 
   group("loadFloorPlans", () {
     test("returns an empty snapshot for a screenplay with no linked sets", () async {
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       expect(snapshot.setsById, isEmpty);
     });
 
     test("groups a linked set under its scene, carrying its own live symbols and arrows", () async {
       final (sceneId, setId) = await seedLinkedSet();
-      final symbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-      ))!;
+      final symbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
 
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       final tabs = snapshot.setsOfScene(sceneId);
       expect(tabs, hasLength(1));
@@ -213,21 +214,22 @@ void main() {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
       await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-        label: "Counter",
-      );
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+            label: "Counter",
+          )
+          .maybeValueOrFail;
 
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       final firstTab = snapshot.setsOfScene(scenes[0]).single;
       final secondTab = snapshot.setsOfScene(scenes[1]).single;
@@ -241,21 +243,22 @@ void main() {
       final scenes = await seedScenes(2);
       final (_, setId) = await seedLinkedSet(sceneId: scenes[0]);
       await locationsService.assignSceneToSet(database: database, sceneId: scenes[1], setId: setId);
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: scenes[0],
-        shotId: null,
-        layer: OcptFloorPlanLayer.props,
-        xM: 0,
-        yM: 0,
-        label: "Only scene 0's own prop",
-      );
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: scenes[0],
+            shotId: null,
+            layer: OcptFloorPlanLayer.props,
+            xM: 0,
+            yM: 0,
+            label: "Only scene 0's own prop",
+          )
+          .maybeValueOrFail;
 
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       // The store carries every scope on the one shared row; narrowing a scene-scope symbol down
       // to its own sequence is `OcptFloorPlanSheet.of`'s job (tested in
@@ -266,10 +269,9 @@ void main() {
     test("a linked set with no plan yet reads as an empty plan", () async {
       final (sceneId, setId) = await seedLinkedSet();
 
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       final tab = snapshot.setsOfScene(sceneId).single;
       expect(tab.id, setId);
@@ -283,24 +285,28 @@ void main() {
     test("placeSymbol creates the plan row, id equal to the set id, idempotently", () async {
       final (_, setId) = await seedLinkedSet();
 
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      );
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-      );
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .maybeValueOrFail;
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+          )
+          .maybeValueOrFail;
 
       final plans = await readPlans();
       expect(plans, hasLength(1));
@@ -310,15 +316,17 @@ void main() {
     test("setSetUnderlay mints an asset and frames it, clearSetUnderlay tombstones it", () async {
       final (_, setId) = await seedLinkedSet();
 
-      await floorPlanService.setSetUnderlay(
-        database: database,
-        setId: setId,
-        path: "/tmp/plan.jpg",
-        xM: 1,
-        yM: 2,
-        widthM: 5,
-        heightM: 4,
-      );
+      await floorPlanService
+          .setSetUnderlay(
+            database: database,
+            setId: setId,
+            path: "/tmp/plan.jpg",
+            xM: 1,
+            yM: 2,
+            widthM: 5,
+            heightM: 4,
+          )
+          .okOrFail;
 
       final withUnderlay = (await readPlans()).single;
       expect(withUnderlay.id, setId);
@@ -327,7 +335,7 @@ void main() {
 
       final assetId = withUnderlay.underlayAssetId!;
 
-      await floorPlanService.clearSetUnderlay(database: database, setId: setId);
+      await floorPlanService.clearSetUnderlay(database: database, setId: setId).okOrFail;
 
       final cleared = (await readPlans()).single;
       expect(cleared.underlayAssetId, isNull);
@@ -341,27 +349,31 @@ void main() {
 
     test("updateUnderlayFrame re-frames the underlay without touching any asset row", () async {
       final (_, setId) = await seedLinkedSet();
-      await floorPlanService.setSetUnderlay(
-        database: database,
-        setId: setId,
-        path: "/tmp/plan.jpg",
-        xM: 0,
-        yM: 0,
-        widthM: 4,
-        heightM: 3,
-      );
+      await floorPlanService
+          .setSetUnderlay(
+            database: database,
+            setId: setId,
+            path: "/tmp/plan.jpg",
+            xM: 0,
+            yM: 0,
+            widthM: 4,
+            heightM: 3,
+          )
+          .okOrFail;
       final imported = (await readPlans()).single;
       final assetId = imported.underlayAssetId!;
       final assetsBefore = await database.select(database.ocptAssetsTable).get();
 
-      await floorPlanService.updateUnderlayFrame(
-        database: database,
-        setId: setId,
-        xM: const Value(2),
-        yM: const Value(-1),
-        widthM: const Value(6),
-        heightM: const Value(5),
-      );
+      await floorPlanService
+          .updateUnderlayFrame(
+            database: database,
+            setId: setId,
+            xM: const Value(2),
+            yM: const Value(-1),
+            widthM: const Value(6),
+            heightM: const Value(5),
+          )
+          .okOrFail;
 
       final reframed = (await readPlans()).single;
       expect(reframed.underlayAssetId, assetId);
@@ -381,12 +393,14 @@ void main() {
     test("updateUnderlayFrame is a no-op while the set carries no plan yet", () async {
       final (_, setId) = await seedLinkedSet();
 
-      await floorPlanService.updateUnderlayFrame(
-        database: database,
-        setId: setId,
-        xM: const Value(2),
-        yM: const Value(2),
-      );
+      await floorPlanService
+          .updateUnderlayFrame(
+            database: database,
+            setId: setId,
+            xM: const Value(2),
+            yM: const Value(2),
+          )
+          .okOrFail;
 
       expect(await readPlans(), isEmpty);
       expect(await database.select(database.ocptAssetsTable).get(), isEmpty);
@@ -401,32 +415,38 @@ void main() {
       )..where((row) => row.id.equals(shotId))).getSingle();
       final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
 
-      final shootingSet = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final camera = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 1,
-        yM: 1,
-      ))!;
-      await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: shootingSet,
-        toSymbolId: camera,
-      );
+      final shootingSet = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final camera = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: shotId,
+            kind: OcptFloorPlanArrowKind.movement,
+            fromSymbolId: shootingSet,
+            toSymbolId: camera,
+          )
+          .maybeValueOrFail;
 
       await database.transaction(() async {
         final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
@@ -469,35 +489,41 @@ void main() {
           database.ocptShotsTable,
         )..where((row) => row.id.equals(shotId))).getSingle();
         final (sceneId, sourceSetId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
-        final shootingSet = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: sourceSetId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-          label: "Table",
-        ))!;
+        final shootingSet = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: sourceSetId,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 0,
+              yM: 0,
+              label: "Table",
+            )
+            .valueOrFail);
         // A scene-scope prop and a shot-scope camera, neither of which travels with the copy.
-        await floorPlanService.placeSymbol(
-          database: database,
-          setId: sourceSetId,
-          sceneId: sceneId,
-          shotId: null,
-          layer: OcptFloorPlanLayer.props,
-          xM: 2,
-          yM: 2,
-        );
-        await floorPlanService.placeSymbol(
-          database: database,
-          setId: sourceSetId,
-          sceneId: null,
-          shotId: shotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1,
-          yM: 1,
-        );
+        await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: sourceSetId,
+              sceneId: sceneId,
+              shotId: null,
+              layer: OcptFloorPlanLayer.props,
+              xM: 2,
+              yM: 2,
+            )
+            .maybeValueOrFail;
+        await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: sourceSetId,
+              sceneId: null,
+              shotId: shotId,
+              layer: OcptFloorPlanLayer.cameras,
+              xM: 1,
+              yM: 1,
+            )
+            .maybeValueOrFail;
 
         final destinationSetId = (await locationsService.createSiblingSet(
           database: database,
@@ -505,11 +531,13 @@ void main() {
           name: "Kitchen copy",
         ))!;
 
-        await floorPlanService.duplicateSet(
-          database: database,
-          sourceSetId: sourceSetId,
-          destinationSetId: destinationSetId,
-        );
+        await floorPlanService
+            .duplicateSet(
+              database: database,
+              sourceSetId: sourceSetId,
+              destinationSetId: destinationSetId,
+            )
+            .okOrFail;
 
         final newSymbols = (await readSymbols())
             .where((row) => row.setId == destinationSetId)
@@ -528,36 +556,42 @@ void main() {
 
     test("mutating the copy never touches the source (independent copies, not links)", () async {
       final (_, sourceSetId) = await seedLinkedSet();
-      final sourceSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
+      final sourceSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: sourceSetId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
       final destinationSetId = (await locationsService.createSiblingSet(
         database: database,
         sourceSetId: sourceSetId,
         name: "Copy",
       ))!;
 
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: destinationSetId,
-      );
+      await floorPlanService
+          .duplicateSet(
+            database: database,
+            sourceSetId: sourceSetId,
+            destinationSetId: destinationSetId,
+          )
+          .okOrFail;
       final copiedSymbolId = (await readSymbols())
           .firstWhere((row) => row.setId == destinationSetId)
           .id;
 
-      await floorPlanService.updateSymbol(
-        database: database,
-        symbolId: copiedSymbolId,
-        xM: const Value(9),
-        yM: const Value(9),
-      );
+      await floorPlanService
+          .updateSymbol(
+            database: database,
+            symbolId: copiedSymbolId,
+            xM: const Value(9),
+            yM: const Value(9),
+          )
+          .okOrFail;
 
       final sourceSymbol = (await readSymbols()).singleWhere((row) => row.id == sourceSymbolId);
       expect(sourceSymbol.xM, 0);
@@ -566,36 +600,42 @@ void main() {
 
     test("a tombstoned set-scope symbol of the source is not copied", () async {
       final (_, sourceSetId) = await seedLinkedSet();
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      );
-      final removedId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: sourceSetId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-      ))!;
-      await floorPlanService.deleteSymbol(database: database, symbolId: removedId);
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: sourceSetId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .maybeValueOrFail;
+      final removedId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: sourceSetId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      await floorPlanService.deleteSymbol(database: database, symbolId: removedId).okOrFail;
 
       final destinationSetId = (await locationsService.createSiblingSet(
         database: database,
         sourceSetId: sourceSetId,
         name: "Copy",
       ))!;
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: destinationSetId,
-      );
+      await floorPlanService
+          .duplicateSet(
+            database: database,
+            sourceSetId: sourceSetId,
+            destinationSetId: destinationSetId,
+          )
+          .okOrFail;
 
       final newSymbols = (await readSymbols())
           .where((row) => row.setId == destinationSetId)
@@ -612,11 +652,13 @@ void main() {
         name: "Copy",
       ))!;
 
-      await floorPlanService.duplicateSet(
-        database: database,
-        sourceSetId: sourceSetId,
-        destinationSetId: destinationSetId,
-      );
+      await floorPlanService
+          .duplicateSet(
+            database: database,
+            sourceSetId: sourceSetId,
+            destinationSetId: destinationSetId,
+          )
+          .okOrFail;
 
       expect(await readPlans(), isEmpty, reason: "nothing to copy, so no plan was ever minted");
     });
@@ -639,54 +681,64 @@ void main() {
           sceneId: sceneId,
         ))!;
         final (_, setId) = await seedLinkedSet(sceneId: sceneId);
-        final sourceCamera = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: sourceShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 0,
-          yM: 0,
-          label: "wide",
-          fovReachM: 6,
-        ))!;
-        final sourceCharacter = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: sourceShotId,
-          layer: OcptFloorPlanLayer.characters,
-          xM: 2,
-          yM: 2,
-          label: "SAM",
-        ))!;
-        final sourceArrowId = (await floorPlanService.addArrow(
-          database: database,
-          setId: setId,
-          shotId: sourceShotId,
-          kind: OcptFloorPlanArrowKind.movement,
-          fromSymbolId: sourceCharacter,
-          toSymbolId: sourceCamera,
-        ))!;
+        final sourceCamera = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: setId,
+              sceneId: null,
+              shotId: sourceShotId,
+              layer: OcptFloorPlanLayer.cameras,
+              xM: 0,
+              yM: 0,
+              label: "wide",
+              fovReachM: 6,
+            )
+            .valueOrFail);
+        final sourceCharacter = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: setId,
+              sceneId: null,
+              shotId: sourceShotId,
+              layer: OcptFloorPlanLayer.characters,
+              xM: 2,
+              yM: 2,
+              label: "SAM",
+            )
+            .valueOrFail);
+        final sourceArrowId = (await floorPlanService
+            .addArrow(
+              database: database,
+              setId: setId,
+              shotId: sourceShotId,
+              kind: OcptFloorPlanArrowKind.movement,
+              fromSymbolId: sourceCharacter,
+              toSymbolId: sourceCamera,
+            )
+            .valueOrFail);
         // A camera already on the destination shot, so the copy is proven to append after it
         // rather than colliding with (or replacing) it.
-        final existingDestinationCamera = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: destinationShotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 5,
-          yM: 5,
-        ))!;
+        final existingDestinationCamera = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: setId,
+              sceneId: null,
+              shotId: destinationShotId,
+              layer: OcptFloorPlanLayer.cameras,
+              xM: 5,
+              yM: 5,
+            )
+            .valueOrFail);
 
-        await floorPlanService.copyShotBlocking(
-          database: database,
-          sourceSetId: setId,
-          sourceShotId: sourceShotId,
-          destinationSetId: setId,
-          destinationShotId: destinationShotId,
-        );
+        await floorPlanService
+            .copyShotBlocking(
+              database: database,
+              sourceSetId: setId,
+              sourceShotId: sourceShotId,
+              destinationSetId: setId,
+              destinationShotId: destinationShotId,
+            )
+            .okOrFail;
 
         final destinationSymbols = (await readSymbols())
             .where((row) => row.shotId == destinationShotId)
@@ -744,33 +796,35 @@ void main() {
         sceneId: sceneId,
       ))!;
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
-      final sourceLightId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: sourceShotId,
-        layer: OcptFloorPlanLayer.lights,
-        xM: 0,
-        yM: 0,
-      ))!;
+      final sourceLightId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: sourceShotId,
+            layer: OcptFloorPlanLayer.lights,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
 
-      await floorPlanService.copyShotBlocking(
-        database: database,
-        sourceSetId: setId,
-        sourceShotId: sourceShotId,
-        destinationSetId: setId,
-        destinationShotId: destinationShotId,
-      );
+      await floorPlanService
+          .copyShotBlocking(
+            database: database,
+            sourceSetId: setId,
+            sourceShotId: sourceShotId,
+            destinationSetId: setId,
+            destinationShotId: destinationShotId,
+          )
+          .okOrFail;
       final copiedLightId = (await readSymbols())
           .singleWhere((row) => row.shotId == destinationShotId)
           .id;
 
-      await floorPlanService.updateSymbol(
-        database: database,
-        symbolId: copiedLightId,
-        xM: const Value(7),
-      );
-      await floorPlanService.deleteSymbol(database: database, symbolId: copiedLightId);
+      await floorPlanService
+          .updateSymbol(database: database, symbolId: copiedLightId, xM: const Value(7))
+          .okOrFail;
+      await floorPlanService.deleteSymbol(database: database, symbolId: copiedLightId).okOrFail;
 
       final sourceLight = (await readSymbols()).singleWhere((row) => row.id == sourceLightId);
       expect(sourceLight.xM, 0);
@@ -790,40 +844,48 @@ void main() {
         sceneId: sceneId,
       ))!;
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
-      final shootingSet = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final character = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: sourceShotId,
-        layer: OcptFloorPlanLayer.characters,
-        xM: 1,
-        yM: 1,
-      ))!;
-      await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: sourceShotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: character,
-        toSymbolId: shootingSet,
-      );
+      final shootingSet = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final character = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: sourceShotId,
+            layer: OcptFloorPlanLayer.characters,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: sourceShotId,
+            kind: OcptFloorPlanArrowKind.movement,
+            fromSymbolId: character,
+            toSymbolId: shootingSet,
+          )
+          .maybeValueOrFail;
 
-      await floorPlanService.copyShotBlocking(
-        database: database,
-        sourceSetId: setId,
-        sourceShotId: sourceShotId,
-        destinationSetId: setId,
-        destinationShotId: destinationShotId,
-      );
+      await floorPlanService
+          .copyShotBlocking(
+            database: database,
+            sourceSetId: setId,
+            sourceShotId: sourceShotId,
+            destinationSetId: setId,
+            destinationShotId: destinationShotId,
+          )
+          .okOrFail;
 
       expect((await readArrows()).where((row) => row.shotId == destinationShotId), isEmpty);
       // The character symbol was still copied on its own.
@@ -849,13 +911,15 @@ void main() {
       ))!;
       final (_, setId) = await seedLinkedSet(sceneId: sceneId);
 
-      await floorPlanService.copyShotBlocking(
-        database: database,
-        sourceSetId: setId,
-        sourceShotId: sourceShotId,
-        destinationSetId: setId,
-        destinationShotId: destinationShotId,
-      );
+      await floorPlanService
+          .copyShotBlocking(
+            database: database,
+            sourceSetId: setId,
+            sourceShotId: sourceShotId,
+            destinationSetId: setId,
+            destinationShotId: destinationShotId,
+          )
+          .okOrFail;
 
       expect(await readSymbols(), isEmpty);
       expect(await readArrows(), isEmpty);

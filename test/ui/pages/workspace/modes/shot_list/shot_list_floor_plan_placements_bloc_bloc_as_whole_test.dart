@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
@@ -31,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_placements_bloc_test_doubles.dart';
 
 /// A floor plan service whose symbol updates and deletions always fail, to exercise the placements
@@ -46,17 +48,23 @@ class _FailingFloorPlanService extends OcptFloorPlanService {
 
   /// Fail as a refused symbol deletion does.
   @override
-  Future<void> deleteSymbol({
+  Future<OcptDatabaseOutcome> deleteSymbol({
     required OcptProjectDatabase database,
     required String symbolId,
-  }) async => throw StateError("symbol deletion intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "symbol deletion intentionally failed for the test",
+  );
 
   /// Fail as a refused arrow deletion does.
   @override
-  Future<void> deleteArrow({
+  Future<OcptDatabaseOutcome> deleteArrow({
     required OcptProjectDatabase database,
     required String arrowId,
-  }) async => throw StateError("arrow deletion intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "arrow deletion intentionally failed for the test",
+  );
 }
 
 /// A floor plan service whose reads can be held back until the test releases them, to make a read
@@ -84,7 +92,7 @@ class _HoldingFloorPlanService extends OcptFloorPlanService {
 
   /// Load the floor plans as the real service does, then hold the call while reads are to be held.
   @override
-  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+  Future<OcptDatabaseResult<OcptFloorPlanSnapshot>> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
@@ -426,10 +434,9 @@ void main() {
 
       expect(placements.state.pendingFieldEdits, isNotEmpty);
       final project = projectsManager.currentProject!;
-      final snapshot = await projectsManager.floorPlanService.loadFloorPlans(
-        database: project.database,
-        screenplayId: project.primaryScreenplayId,
-      );
+      final snapshot = await projectsManager.floorPlanService
+          .loadFloorPlans(database: project.database, screenplayId: project.primaryScreenplayId)
+          .valueOrFail;
       final stored = snapshot.setsById[mounted.setId]!.symbols
           .firstWhere((symbol) => symbol.id == mounted.symbolId)
           .label;

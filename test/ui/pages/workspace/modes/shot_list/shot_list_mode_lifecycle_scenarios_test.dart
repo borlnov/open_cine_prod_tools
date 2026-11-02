@@ -72,15 +72,17 @@ void main() {
     await harness.projectsManager.storyboardService
         .addPanel(database: harness.database, shotId: secondShotId)
         .maybeValueOrFail;
-    await harness.projectsManager.floorPlanService.placeSymbol(
-      database: harness.database,
-      setId: setId,
-      sceneId: null,
-      shotId: secondShotId,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: 0,
-      yM: 0,
-    );
+    await harness.projectsManager.floorPlanService
+        .placeSymbol(
+          database: harness.database,
+          setId: setId,
+          sceneId: null,
+          shotId: secondShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 0,
+          yM: 0,
+        )
+        .maybeValueOrFail;
 
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -210,15 +212,17 @@ void main() {
     await harness.projectsManager.storyboardService
         .addPanel(database: harness.database, shotId: laterShotId)
         .maybeValueOrFail;
-    await harness.projectsManager.floorPlanService.placeSymbol(
-      database: harness.database,
-      setId: setId,
-      sceneId: null,
-      shotId: laterShotId,
-      layer: OcptFloorPlanLayer.cameras,
-      xM: 0,
-      yM: 0,
-    );
+    await harness.projectsManager.floorPlanService
+        .placeSymbol(
+          database: harness.database,
+          setId: setId,
+          sceneId: null,
+          shotId: laterShotId,
+          layer: OcptFloorPlanLayer.cameras,
+          xM: 0,
+          yM: 0,
+        )
+        .maybeValueOrFail;
 
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -370,15 +374,17 @@ void main() {
       sceneId: secondSceneId,
       setId: setId,
     );
-    final originalId = await harness.projectsManager.floorPlanService.placeSymbol(
-      database: harness.database,
-      setId: setId,
-      sceneId: null,
-      shotId: null,
-      layer: OcptFloorPlanLayer.set,
-      xM: 0,
-      yM: 0,
-    );
+    final originalId = await harness.projectsManager.floorPlanService
+        .placeSymbol(
+          database: harness.database,
+          setId: setId,
+          sceneId: null,
+          shotId: null,
+          layer: OcptFloorPlanLayer.set,
+          xM: 0,
+          yM: 0,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

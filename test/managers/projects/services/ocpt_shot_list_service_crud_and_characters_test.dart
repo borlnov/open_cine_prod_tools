@@ -271,41 +271,49 @@ Action.
         sceneId: sceneId,
         name: "Kitchen",
       ))!;
-      final setSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final deletedCameraId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: deletedShotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 1,
-        yM: 1,
-      ))!;
-      final survivingCameraId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: survivingShotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 2,
-        yM: 2,
-      ))!;
-      await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: deletedShotId,
-        kind: OcptFloorPlanArrowKind.cameraMove,
-        fromSymbolId: deletedCameraId,
-        toSymbolId: setSymbolId,
-      );
+      final setSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final deletedCameraId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: deletedShotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      final survivingCameraId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: survivingShotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 2,
+            yM: 2,
+          )
+          .valueOrFail);
+      await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: deletedShotId,
+            kind: OcptFloorPlanArrowKind.cameraMove,
+            fromSymbolId: deletedCameraId,
+            toSymbolId: setSymbolId,
+          )
+          .maybeValueOrFail;
 
       await shotListService.deleteShot(database: database, shotId: deletedShotId);
 

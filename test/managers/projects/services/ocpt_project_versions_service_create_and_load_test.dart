@@ -627,60 +627,70 @@ void main() {
         sceneId: "scene-1",
         name: "Kitchen",
       ))!;
-      final cameraId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: "shot-1",
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 1.2,
-        yM: 3.4,
-        fovReachM: 5.5,
-        label: "A",
-      ))!;
-      final characterId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: "shot-1",
-        layer: OcptFloorPlanLayer.characters,
-        xM: 2.5,
-        yM: 1.1,
-        label: "CLARA",
-      ))!;
-      final arrowId = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: "shot-1",
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: characterId,
-        toSymbolId: cameraId,
-        label: "crosses to the camera",
-      ))!;
+      final cameraId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: "shot-1",
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 1.2,
+            yM: 3.4,
+            fovReachM: 5.5,
+            label: "A",
+          )
+          .valueOrFail);
+      final characterId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: "shot-1",
+            layer: OcptFloorPlanLayer.characters,
+            xM: 2.5,
+            yM: 1.1,
+            label: "CLARA",
+          )
+          .valueOrFail);
+      final arrowId = (await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: "shot-1",
+            kind: OcptFloorPlanArrowKind.movement,
+            fromSymbolId: characterId,
+            toSymbolId: cameraId,
+            label: "crosses to the camera",
+          )
+          .valueOrFail);
       // A set-scope décor symbol, and a scene-scope override replacing it in scene-1 — the
       // override rule must survive a preview too.
-      final originalWallId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-        label: "North wall",
-      ))!;
-      final overrideWallId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: "scene-1",
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0.5,
-        yM: 0.5,
-        label: "North wall, re-dressed",
-        overridesSymbolId: originalWallId,
-        isHidden: true,
-      ))!;
+      final originalWallId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+            label: "North wall",
+          )
+          .valueOrFail);
+      final overrideWallId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: "scene-1",
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0.5,
+            yM: 0.5,
+            label: "North wall, re-dressed",
+            overridesSymbolId: originalWallId,
+            isHidden: true,
+          )
+          .valueOrFail);
 
       final payload = await readPayload((await createVersion()).id);
 
@@ -871,34 +881,36 @@ void main() {
         sceneId: "scene-1",
         name: "Kitchen",
       ))!;
-      final originalId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final overrideId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: "scene-1",
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 1,
-        overridesSymbolId: originalId,
-        isHidden: true,
-      ))!;
+      final originalId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final overrideId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: "scene-1",
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 1,
+            overridesSymbolId: originalId,
+            isHidden: true,
+          )
+          .valueOrFail);
 
       final version = await createVersion();
       // Diverge: unhide the override in the working copy, so restoring is a real change.
-      await floorPlanService.updateSymbol(
-        database: database,
-        symbolId: overrideId,
-        isHidden: const Value(false),
-      );
+      await floorPlanService
+          .updateSymbol(database: database, symbolId: overrideId, isHidden: const Value(false))
+          .okOrFail;
 
       final result = await restore(version.id);
 

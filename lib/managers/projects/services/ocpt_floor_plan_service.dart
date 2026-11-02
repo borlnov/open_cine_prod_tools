@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_arrow_ops.dart';
@@ -17,6 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_floor_plan_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_arrow_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
@@ -76,21 +78,32 @@ class OcptFloorPlanService extends AbsOcptService {
   }
 
   /// Forward to [OcptFloorPlanReadOps.loadFloorPlans].
-  Future<OcptFloorPlanSnapshot> loadFloorPlans({
+  @useResult
+  Future<OcptDatabaseResult<OcptFloorPlanSnapshot>> loadFloorPlans({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) => OcptFloorPlanReadOps.loadFloorPlans(database: database, screenplayId: screenplayId);
+  }) => guardResult(
+    "loadFloorPlans",
+    () => OcptFloorPlanReadOps.loadFloorPlans(database: database, screenplayId: screenplayId),
+  );
 
   /// Forward to [OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId].
-  Future<Map<String, List<OcptFloorPlanSymbol>>> loadSetScopeSymbolsByProjectSetId({
-    required OcptProjectDatabase database,
-  }) => OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId(database: database);
+  @useResult
+  Future<OcptDatabaseResult<Map<String, List<OcptFloorPlanSymbol>>>>
+  loadSetScopeSymbolsByProjectSetId({required OcptProjectDatabase database}) => guardResult(
+    "loadSetScopeSymbolsByProjectSetId",
+    () => OcptFloorPlanReadOps.loadSetScopeSymbolsByProjectSetId(database: database),
+  );
 
   /// Forward to [OcptFloorPlanReadOps.liveSetIdsWithPlan].
-  Future<Set<String>> liveSetIdsWithPlan({
+  @useResult
+  Future<OcptDatabaseResult<Set<String>>> liveSetIdsWithPlan({
     required OcptProjectDatabase database,
     required Iterable<String> setIds,
-  }) => OcptFloorPlanReadOps.liveSetIdsWithPlan(database: database, setIds: setIds);
+  }) => guardResult(
+    "liveSetIdsWithPlan",
+    () => OcptFloorPlanReadOps.liveSetIdsWithPlan(database: database, setIds: setIds),
+  );
 
   /// Set Resources set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: creates the plan row if it doesn't exist yet
@@ -98,7 +111,8 @@ class OcptFloorPlanService extends AbsOcptService {
   /// mints a fresh one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> setSetUnderlay({
+  @useResult
+  Future<OcptDatabaseOutcome> setSetUnderlay({
     required OcptProjectDatabase database,
     required String setId,
     required String path,
@@ -107,7 +121,7 @@ class OcptFloorPlanService extends AbsOcptService {
     required double widthM,
     required double heightM,
     double rotationDeg = 0,
-  }) async {
+  }) => guardOutcome("setSetUnderlay", () async {
     if (database.refusesUserWrite("setSetUnderlay")) {
       return;
     }
@@ -153,16 +167,17 @@ class OcptFloorPlanService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Clear set [setId]'s underlay: tombstones its `assets` row (if any) and blanks its frame. A
   /// no-op while the plan doesn't exist yet or already carries no underlay.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> clearSetUnderlay({
+  @useResult
+  Future<OcptDatabaseOutcome> clearSetUnderlay({
     required OcptProjectDatabase database,
     required String setId,
-  }) async {
+  }) => guardOutcome("clearSetUnderlay", () async {
     if (database.refusesUserWrite("clearSetUnderlay")) {
       return;
     }
@@ -198,7 +213,7 @@ class OcptFloorPlanService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Update set [setId]'s underlay **frame** — its centre, size and/or rotation, whichever is
   /// passed as something other than [Value.absent] — through a single guarded write that touches
@@ -213,7 +228,8 @@ class OcptFloorPlanService extends AbsOcptService {
   /// a gesture as frequent as dragging the underlay against the reference silhouette.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateUnderlayFrame({
+  @useResult
+  Future<OcptDatabaseOutcome> updateUnderlayFrame({
     required OcptProjectDatabase database,
     required String setId,
     Value<double> xM = const Value.absent(),
@@ -221,7 +237,7 @@ class OcptFloorPlanService extends AbsOcptService {
     Value<double> widthM = const Value.absent(),
     Value<double> heightM = const Value.absent(),
     Value<double> rotationDeg = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateUnderlayFrame", () async {
     if (database.refusesUserWrite("updateUnderlayFrame")) {
       return;
     }
@@ -251,7 +267,7 @@ class OcptFloorPlanService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Place a new symbol of [layer] on Resources set [setId] — creating its plan row if it doesn't
   /// exist yet ([OcptFloorPlanRows.ensurePlan]) — appended after the set's current last symbol of
@@ -289,7 +305,8 @@ class OcptFloorPlanService extends AbsOcptService {
   /// non-null [overridesSymbolId], or this throws an [ArgumentError] too.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> placeSymbol({
+  @useResult
+  Future<OcptDatabaseResult<String>> placeSymbol({
     required OcptProjectDatabase database,
     required String setId,
     required String? sceneId,
@@ -306,7 +323,7 @@ class OcptFloorPlanService extends AbsOcptService {
     OcptFloorPlanSetElementShape? setElementShape,
     String? overridesSymbolId,
     bool isHidden = false,
-  }) async {
+  }) => guardResult("placeSymbol", () async {
     if (database.refusesUserWrite("placeSymbol")) {
       return null;
     }
@@ -410,7 +427,7 @@ class OcptFloorPlanService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update symbol [symbolId]'s position, rotation, footprint, field of view (angle and reach),
   /// label and/or set-element shape, whichever is passed as something other than [Value.absent] —
@@ -426,7 +443,8 @@ class OcptFloorPlanService extends AbsOcptService {
   /// throws an [ArgumentError], the same as [placeSymbol]'s own check.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateSymbol({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSymbol({
     required OcptProjectDatabase database,
     required String symbolId,
     Value<double> xM = const Value.absent(),
@@ -439,7 +457,7 @@ class OcptFloorPlanService extends AbsOcptService {
     Value<String> label = const Value.absent(),
     Value<OcptFloorPlanSetElementShape?> setElementShape = const Value.absent(),
     Value<bool> isHidden = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateSymbol", () async {
     if (database.refusesUserWrite("updateSymbol")) {
       return;
     }
@@ -480,7 +498,7 @@ class OcptFloorPlanService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone symbol [symbolId], every live scene-scope override of it, and every arrow touching
   /// any of them — whose [OcptFloorPlanArrow.fromSymbolId] or [OcptFloorPlanArrow.toSymbolId] names
@@ -489,10 +507,11 @@ class OcptFloorPlanService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteSymbol({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteSymbol({
     required OcptProjectDatabase database,
     required String symbolId,
-  }) async {
+  }) => guardOutcome("deleteSymbol", () async {
     if (database.refusesUserWrite("deleteSymbol")) {
       return;
     }
@@ -545,7 +564,7 @@ class OcptFloorPlanService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone a set-scope symbol **everywhere**: [symbolId] itself (or, when [symbolId] names a
   /// scene-scope override instead, the set-scope original it overrides — resolved through its own
@@ -561,10 +580,11 @@ class OcptFloorPlanService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteSymbolEverywhere({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteSymbolEverywhere({
     required OcptProjectDatabase database,
     required String symbolId,
-  }) async {
+  }) => guardOutcome("deleteSymbolEverywhere", () async {
     if (database.refusesUserWrite("deleteSymbolEverywhere")) {
       return;
     }
@@ -624,10 +644,11 @@ class OcptFloorPlanService extends AbsOcptService {
 
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Forward to [OcptFloorPlanArrowOps.addArrow].
-  Future<String?> addArrow({
+  @useResult
+  Future<OcptDatabaseResult<String>> addArrow({
     required OcptProjectDatabase database,
     required String setId,
     required String shotId,
@@ -635,73 +656,99 @@ class OcptFloorPlanService extends AbsOcptService {
     required String fromSymbolId,
     required String toSymbolId,
     String label = '',
-  }) => OcptFloorPlanArrowOps.addArrow(
-    database: database,
-    setId: setId,
-    shotId: shotId,
-    kind: kind,
-    fromSymbolId: fromSymbolId,
-    toSymbolId: toSymbolId,
-    label: label,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addArrow",
+    () => OcptFloorPlanArrowOps.addArrow(
+      database: database,
+      setId: setId,
+      shotId: shotId,
+      kind: kind,
+      fromSymbolId: fromSymbolId,
+      toSymbolId: toSymbolId,
+      label: label,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptFloorPlanArrowOps.setArrowLabel].
-  Future<void> setArrowLabel({
+  @useResult
+  Future<OcptDatabaseOutcome> setArrowLabel({
     required OcptProjectDatabase database,
     required String arrowId,
     required String label,
-  }) => OcptFloorPlanArrowOps.setArrowLabel(
-    database: database,
-    arrowId: arrowId,
-    label: label,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "setArrowLabel",
+    () => OcptFloorPlanArrowOps.setArrowLabel(
+      database: database,
+      arrowId: arrowId,
+      label: label,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptFloorPlanArrowOps.updateArrowCurve].
-  Future<void> updateArrowCurve({
+  @useResult
+  Future<OcptDatabaseOutcome> updateArrowCurve({
     required OcptProjectDatabase database,
     required String arrowId,
     required Value<double?> ctrlXM,
     required Value<double?> ctrlYM,
-  }) => OcptFloorPlanArrowOps.updateArrowCurve(
-    database: database,
-    arrowId: arrowId,
-    ctrlXM: ctrlXM,
-    ctrlYM: ctrlYM,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateArrowCurve",
+    () => OcptFloorPlanArrowOps.updateArrowCurve(
+      database: database,
+      arrowId: arrowId,
+      ctrlXM: ctrlXM,
+      ctrlYM: ctrlYM,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptFloorPlanArrowOps.deleteArrow].
-  Future<void> deleteArrow({required OcptProjectDatabase database, required String arrowId}) =>
-      OcptFloorPlanArrowOps.deleteArrow(database: database, arrowId: arrowId, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> deleteArrow({
+    required OcptProjectDatabase database,
+    required String arrowId,
+  }) => guardOutcome(
+    "deleteArrow",
+    () =>
+        OcptFloorPlanArrowOps.deleteArrow(database: database, arrowId: arrowId, deviceId: deviceId),
+  );
 
   /// Forward to [OcptFloorPlanCascadeOps.duplicateSet].
-  Future<void> duplicateSet({
+  @useResult
+  Future<OcptDatabaseOutcome> duplicateSet({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String destinationSetId,
-  }) => OcptFloorPlanCascadeOps.duplicateSet(
-    database: database,
-    sourceSetId: sourceSetId,
-    destinationSetId: destinationSetId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "duplicateSet",
+    () => OcptFloorPlanCascadeOps.duplicateSet(
+      database: database,
+      sourceSetId: sourceSetId,
+      destinationSetId: destinationSetId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptFloorPlanCascadeOps.copyShotBlocking].
-  Future<void> copyShotBlocking({
+  @useResult
+  Future<OcptDatabaseOutcome> copyShotBlocking({
     required OcptProjectDatabase database,
     required String sourceSetId,
     required String sourceShotId,
     required String destinationSetId,
     required String destinationShotId,
-  }) => OcptFloorPlanCascadeOps.copyShotBlocking(
-    database: database,
-    sourceSetId: sourceSetId,
-    sourceShotId: sourceShotId,
-    destinationSetId: destinationSetId,
-    destinationShotId: destinationShotId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "copyShotBlocking",
+    () => OcptFloorPlanCascadeOps.copyShotBlocking(
+      database: database,
+      sourceSetId: sourceSetId,
+      sourceShotId: sourceShotId,
+      destinationSetId: destinationSetId,
+      destinationShotId: destinationShotId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptFloorPlanCascadeOps.tombstoneFloorPlanRowsOfShot].
@@ -733,39 +780,43 @@ class OcptFloorPlanService extends AbsOcptService {
   /// shot n") writes.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> hideSymbolForScope({
+  @useResult
+  Future<OcptDatabaseOutcome> hideSymbolForScope({
     required OcptProjectDatabase database,
     required OcptFloorPlanSymbol original,
     required OcptFloorPlanSymbol? existingOverride,
     required String? sceneId,
     required String? shotId,
-  }) async {
-    if (existingOverride != null) {
-      await updateSymbol(
-        database: database,
-        symbolId: existingOverride.id,
-        isHidden: const Value(true),
-      );
-      return;
-    }
+  }) => guardOutcome("hideSymbolForScope", () async {
+    // One write either way: the transaction is what lets the failure of that write end the call.
+    await database.transaction(() async {
+      if (existingOverride != null) {
+        await updateSymbol(
+          database: database,
+          symbolId: existingOverride.id,
+          isHidden: const Value(true),
+        ).okOrAbort();
+        return;
+      }
 
-    await placeSymbol(
-      database: database,
-      setId: original.setId,
-      sceneId: sceneId,
-      shotId: shotId,
-      layer: original.layer,
-      xM: original.xM,
-      yM: original.yM,
-      rotationDeg: original.rotationDeg,
-      widthM: original.widthM,
-      heightM: original.heightM,
-      label: original.label,
-      setElementShape: original.setElementShape,
-      overridesSymbolId: original.id,
-      isHidden: true,
-    );
-  }
+      await placeSymbol(
+        database: database,
+        setId: original.setId,
+        sceneId: sceneId,
+        shotId: shotId,
+        layer: original.layer,
+        xM: original.xM,
+        yM: original.yM,
+        rotationDeg: original.rotationDeg,
+        widthM: original.widthM,
+        heightM: original.heightM,
+        label: original.label,
+        setElementShape: original.setElementShape,
+        overridesSymbolId: original.id,
+        isHidden: true,
+      ).valueOrAbort();
+    });
+  });
 
   /// Write [decision]'s geometry (every field it carries, the others left as they are) onto the
   /// original symbol it names when [onEveryScope] is true, or onto an override of it for
@@ -776,7 +827,8 @@ class OcptFloorPlanService extends AbsOcptService {
   /// null (the original is no longer in the snapshot the caller read), true otherwise.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<bool> applyScopeDecision({
+  @useResult
+  Future<OcptDatabaseResult<bool>> applyScopeDecision({
     required OcptProjectDatabase database,
     required OcptFloorPlanScopeDecision decision,
     required bool onEveryScope,
@@ -784,42 +836,46 @@ class OcptFloorPlanService extends AbsOcptService {
     required OcptFloorPlanSymbol? existingOverride,
     required String? targetSceneId,
     required String? targetShotId,
-  }) async {
-    if (onEveryScope || existingOverride != null) {
-      await updateSymbol(
-        database: database,
-        symbolId: onEveryScope ? decision.symbolId : existingOverride!.id,
-        xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
-        yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
-        rotationDeg: decision.rotationDeg == null
-            ? const Value.absent()
-            : Value(decision.rotationDeg!),
-        widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
-        heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
-      );
-      return true;
-    }
+  }) => guardResult(
+    "applyScopeDecision",
+    // One write either way: the transaction is what lets the failure of that write end the call.
+    () => database.transaction(() async {
+      if (onEveryScope || existingOverride != null) {
+        await updateSymbol(
+          database: database,
+          symbolId: onEveryScope ? decision.symbolId : existingOverride!.id,
+          xM: decision.xM == null ? const Value.absent() : Value(decision.xM!),
+          yM: decision.yM == null ? const Value.absent() : Value(decision.yM!),
+          rotationDeg: decision.rotationDeg == null
+              ? const Value.absent()
+              : Value(decision.rotationDeg!),
+          widthM: decision.widthM == null ? const Value.absent() : Value(decision.widthM),
+          heightM: decision.heightM == null ? const Value.absent() : Value(decision.heightM),
+        ).okOrAbort();
+        return true;
+      }
 
-    if (original == null) {
-      return false;
-    }
-    await placeSymbol(
-      database: database,
-      setId: decision.setId,
-      sceneId: targetSceneId,
-      shotId: targetShotId,
-      layer: original.layer,
-      xM: decision.xM ?? original.xM,
-      yM: decision.yM ?? original.yM,
-      rotationDeg: decision.rotationDeg ?? original.rotationDeg,
-      widthM: decision.widthM ?? original.widthM,
-      heightM: decision.heightM ?? original.heightM,
-      label: original.label,
-      setElementShape: original.setElementShape,
-      overridesSymbolId: decision.symbolId,
-    );
-    return true;
-  }
+      if (original == null) {
+        return false;
+      }
+      await placeSymbol(
+        database: database,
+        setId: decision.setId,
+        sceneId: targetSceneId,
+        shotId: targetShotId,
+        layer: original.layer,
+        xM: decision.xM ?? original.xM,
+        yM: decision.yM ?? original.yM,
+        rotationDeg: decision.rotationDeg ?? original.rotationDeg,
+        widthM: decision.widthM ?? original.widthM,
+        heightM: decision.heightM ?? original.heightM,
+        label: original.label,
+        setElementShape: original.setElementShape,
+        overridesSymbolId: decision.symbolId,
+      ).valueOrAbort();
+      return true;
+    }),
+  );
 
   /// Throw an [ArgumentError] unless the scope [sceneId]/[shotId] derive is one [_allowedScopesOf]
   /// allows for [layer] — and, for a `set`/`props` symbol at shot scope specifically, unless

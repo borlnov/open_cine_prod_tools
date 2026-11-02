@@ -284,11 +284,15 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             isRead = !read.isError;
             storyboardSnapshot = read.value;
           case OcptShotListReloadScope.floorPlans:
-            floorPlanSnapshot = await _reader.loadFloorPlans(project);
+            final read = await _reader.loadFloorPlans(project);
+            isRead = !read.isError;
+            floorPlanSnapshot = read.value;
           case OcptShotListReloadScope.locations:
             locations = await _reader.loadLocations(project);
           case OcptShotListReloadScope.setScopeSymbols:
-            setScopeSymbolsBySetId = await _reader.loadSetScopeSymbolsBySetId(project);
+            final read = await _reader.loadSetScopeSymbolsBySetId(project);
+            isRead = !read.isError;
+            setScopeSymbolsBySetId = read.value;
           case OcptShotListReloadScope.roles:
             roles = await _reader.loadRoles(project);
         }
@@ -416,9 +420,19 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final storyboardSnapshot = storyboardRead.value!;
-      final floorPlanSnapshot = await _reader.loadFloorPlans(project);
+      final floorPlanRead = await _reader.loadFloorPlans(project);
+      if (floorPlanRead.isError) {
+        return false;
+      }
+
+      final floorPlanSnapshot = floorPlanRead.value!;
       final locations = await _reader.loadLocations(project);
-      final setScopeSymbolsBySetId = await _reader.loadSetScopeSymbolsBySetId(project);
+      final setScopeSymbolsRead = await _reader.loadSetScopeSymbolsBySetId(project);
+      if (setScopeSymbolsRead.isError) {
+        return false;
+      }
+
+      final setScopeSymbolsBySetId = setScopeSymbolsRead.value!;
       final screenplayCharacters = ocptScreenplayCharactersOf(screenplayText);
       final roles = await _reader.loadRoles(project);
       final suggestions = await _reader.loadSuggestions(project);
@@ -778,7 +792,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         }
 
         final storyboardSnapshot = storyboardRead.value!;
-        final floorPlanSnapshot = await _reader.loadFloorPlans(project);
+        final floorPlanRead = await _reader.loadFloorPlans(project);
+        if (floorPlanRead.isError) {
+          emitter(state.copyToWriteFailed());
+          return;
+        }
+
+        final floorPlanSnapshot = floorPlanRead.value!;
         emitter(
           state.copyWithDeletedShot(
             snapshot: snapshot,

@@ -554,25 +554,19 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.copyShotBlocking(
-        database: project.database,
-        sourceSetId: event.setId,
-        sourceShotId: event.sourceShotId,
-        destinationSetId: event.setId,
-        destinationShotId: destinationShotId,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to copy shot ${event.sourceShotId}'s own blocking onto "
-        "shot $destinationShotId of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final copied = await _floorPlanService.copyShotBlocking(
+      database: project.database,
+      sourceSetId: event.setId,
+      sourceShotId: event.sourceShotId,
+      destinationSetId: event.setId,
+      destinationShotId: destinationShotId,
+    );
+    if (copied.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Record the floor plans canvas's own zoom as last settled by
@@ -658,26 +652,21 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.setSetUnderlay(
-        database: project.database,
-        setId: event.setId,
-        path: path,
-        xM: _defaultUnderlayXM,
-        yM: _defaultUnderlayYM,
-        widthM: _defaultUnderlayWidthM,
-        heightM: _defaultUnderlayHeightM,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import the underlay of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final imported = await _floorPlanService.setSetUnderlay(
+      database: project.database,
+      setId: event.setId,
+      path: path,
+      xM: _defaultUnderlayXM,
+      yM: _defaultUnderlayYM,
+      widthM: _defaultUnderlayWidthM,
+      heightM: _defaultUnderlayHeightM,
+    );
+    if (imported.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Show the native "open" dialog filtered to [ocptFloorPlanUnderlayImageFileExtensions] and
@@ -720,25 +709,20 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.updateUnderlayFrame(
-        database: project.database,
-        setId: event.setId,
-        xM: Value(event.xM),
-        yM: Value(event.yM),
-        widthM: Value(event.widthM),
-        heightM: Value(event.heightM),
-      );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to move/resize the underlay of set ${event.setId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final reframed = await _floorPlanService.updateUnderlayFrame(
+      database: project.database,
+      setId: event.setId,
+      xM: Value(event.xM),
+      yM: Value(event.yM),
+      widthM: Value(event.widthM),
+      heightM: Value(event.heightM),
+    );
+    if (reframed.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Clear set `event.setId`'s underlay for good, dispatched once the tray's own `Clear underlay`
@@ -752,18 +736,16 @@ class OcptShotListFloorPlanSetsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.clearSetUnderlay(database: project.database, setId: event.setId);
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to clear the underlay of set ${event.setId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final cleared = await _floorPlanService.clearSetUnderlay(
+      database: project.database,
+      setId: event.setId,
+    );
+    if (cleared.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Walk the selected sequence's own shots by `event.delta`, dispatched by the floor plans focus

@@ -5,17 +5,17 @@
 import 'dart:async';
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_floor_plan_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_list_selection.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -51,12 +51,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 class OcptShotListFloorPlanPlacementsBloc
     extends
         AbsOcptViewBloc<OcptShotListFloorPlanPlacementsState, OcptShotListState, OcptShotListBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "shot_list_floor_plan_placements_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -72,8 +66,7 @@ class OcptShotListFloorPlanPlacementsBloc
     OcptProjectsManager? projectsManager,
     OcptFloorPlanService? floorPlanService,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _floorPlanService =
            floorPlanService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).floorPlanService,
@@ -159,24 +152,8 @@ class OcptShotListFloorPlanPlacementsBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending symbol label of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingEdits(project: project, pending: pending);
+    if (written.isError) {
       emitter(
         state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
@@ -185,7 +162,19 @@ class OcptShotListFloorPlanPlacementsBloc
           ),
         ),
       );
+
+      return OcptPendingWritesStatus.ok;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
+    emitter(
+      state.copyWithFlushedFieldEdits(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
 
     return OcptPendingWritesStatus.ok;
   }
@@ -207,19 +196,10 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending symbol label of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingEdits(project: project, pending: edits),
+    );
   }
 
   /// Delete symbol `event.symbolId` for good, dispatched once the canvas's own delete action has
@@ -234,23 +214,21 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.symbolRemoved,
-          targetId: event.symbolId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _floorPlanService.deleteSymbol(
+      database: project.database,
+      symbolId: event.symbolId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+      ),
+    );
   }
 
   /// Delete set-scope symbol `event.symbolId` **everywhere** — itself (or, when it names a
@@ -267,26 +245,21 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.deleteSymbolEverywhere(
-        database: project.database,
-        symbolId: event.symbolId,
-      );
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.symbolRemoved,
-          targetId: event.symbolId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete symbol ${event.symbolId} everywhere, of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _floorPlanService.deleteSymbolEverywhere(
+      database: project.database,
+      symbolId: event.symbolId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+      ),
+    );
   }
 
   /// Mask set-scope symbol `event.symbolId` for sequence `event.targetSceneId` alone — a hidden
@@ -324,30 +297,24 @@ class OcptShotListFloorPlanPlacementsBloc
       (symbol) => symbol.overridesSymbolId == originalId && symbol.sceneId == event.targetSceneId,
     );
 
-    try {
-      await _floorPlanService.hideSymbolForScope(
-        database: project.database,
-        original: original,
-        existingOverride: existingOverride,
-        sceneId: event.targetSceneId,
-        shotId: null,
-      );
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.symbolHidden,
-          targetId: event.symbolId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to hide symbol ${event.symbolId} for sequence "
-        "${event.targetSceneId} of project ${project.primaryScreenplayId}: "
-        "${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final hidden = await _floorPlanService.hideSymbolForScope(
+      database: project.database,
+      original: original,
+      existingOverride: existingOverride,
+      sceneId: event.targetSceneId,
+      shotId: null,
+    );
+    if (hidden.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.symbolHidden,
+        targetId: event.symbolId,
+      ),
+    );
   }
 
   /// Mask scene-scope symbol `event.symbolId` for shot `event.targetShotId` alone — a hidden
@@ -389,29 +356,24 @@ class OcptShotListFloorPlanPlacementsBloc
       (symbol) => symbol.overridesSymbolId == originalId && symbol.shotId == event.targetShotId,
     );
 
-    try {
-      await _floorPlanService.hideSymbolForScope(
-        database: project.database,
-        original: original,
-        existingOverride: existingOverride,
-        sceneId: null,
-        shotId: event.targetShotId,
-      );
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.symbolHidden,
-          targetId: event.symbolId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to hide symbol ${event.symbolId} for shot "
-        "${event.targetShotId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final hidden = await _floorPlanService.hideSymbolForScope(
+      database: project.database,
+      original: original,
+      existingOverride: existingOverride,
+      sceneId: null,
+      shotId: event.targetShotId,
+    );
+    if (hidden.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.symbolHidden,
+        targetId: event.symbolId,
+      ),
+    );
   }
 
   /// Restore scene-scope override `event.symbolId` as in the set — tombstones it, so its own
@@ -425,23 +387,21 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.deleteSymbol(database: project.database, symbolId: event.symbolId);
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.symbolRemoved,
-          targetId: event.symbolId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to restore override ${event.symbolId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _floorPlanService.deleteSymbol(
+      database: project.database,
+      symbolId: event.symbolId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.symbolRemoved,
+        targetId: event.symbolId,
+      ),
+    );
   }
 
   /// Delete arrow `event.arrowId` for good, dispatched once the Placements group's own remove
@@ -456,23 +416,21 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.deleteArrow(database: project.database, arrowId: event.arrowId);
-      await addToModeAndWait(
-        OcptShotListFloorPlanPlacementChangedEvent(
-          cause: OcptShotListSelectionCause.arrowRemoved,
-          targetId: event.arrowId,
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete arrow ${event.arrowId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _floorPlanService.deleteArrow(
+      database: project.database,
+      arrowId: event.arrowId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await addToModeAndWait(
+      OcptShotListFloorPlanPlacementChangedEvent(
+        cause: OcptShotListSelectionCause.arrowRemoved,
+        targetId: event.arrowId,
+      ),
+    );
   }
 
   /// Record the raw text just typed into symbol `event.symbolId`'s own label as a pending edit,
@@ -503,22 +461,17 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.updateSymbol(
-        database: project.database,
-        symbolId: event.symbolId,
-        fovDeg: Value(event.fovDeg),
-      );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the field of view of symbol ${event.symbolId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final updated = await _floorPlanService.updateSymbol(
+      database: project.database,
+      symbolId: event.symbolId,
+      fovDeg: Value(event.fovDeg),
+    );
+    if (updated.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Set camera symbol `event.symbolId`'s own field-of-view wedge reach to `event.fovReachM`,
@@ -533,22 +486,17 @@ class OcptShotListFloorPlanPlacementsBloc
       return;
     }
 
-    try {
-      await _floorPlanService.updateSymbol(
-        database: project.database,
-        symbolId: event.symbolId,
-        fovReachM: Value(event.fovReachM),
-      );
-      await modeBloc.reload({OcptShotListReloadScope.floorPlans});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to change the field-of-view reach of symbol "
-        "${event.symbolId} of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final updated = await _floorPlanService.updateSymbol(
+      database: project.database,
+      symbolId: event.symbolId,
+      fovReachM: Value(event.fovReachM),
+    );
+    if (updated.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.floorPlans});
   }
 
   /// Dismiss the transient write error currently shown.
@@ -576,18 +524,25 @@ class OcptShotListFloorPlanPlacementsBloc
   }
 
   /// Write every entry of [pending] through `OcptFloorPlanService.updateSymbol`.
-  Future<void> _writeAllPendingEdits({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingEdits({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
         case OcptShotListSymbolLabelEditKey(:final symbolId):
-          await _floorPlanService.updateSymbol(
+          final labelWritten = await _floorPlanService.updateSymbol(
             database: project.database,
             symbolId: symbolId,
             label: Value(entry.value),
           );
+          if (labelWritten.isError) {
+            return labelWritten;
+          }
         case OcptShotListShotFieldEditKey() ||
             OcptShotListPanelCommentEditKey() ||
             OcptShotListAnnotationTextEditKey() ||
@@ -596,5 +551,7 @@ class OcptShotListFloorPlanPlacementsBloc
           break;
       }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }

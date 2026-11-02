@@ -28,6 +28,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_override_level.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_floor_plan_service_test_doubles.dart';
 
 /// Run the tests of the floor plan service arrows and scopes.
@@ -181,37 +182,45 @@ void main() {
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
       final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
-      final a = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final b = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.characters,
-        xM: 1,
-        yM: 1,
-      ))!;
-      final arrowId = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: a,
-        toSymbolId: b,
-      ))!;
+      final a = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final b = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.characters,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      final arrowId = (await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: shotId,
+            kind: OcptFloorPlanArrowKind.movement,
+            fromSymbolId: a,
+            toSymbolId: b,
+          )
+          .valueOrFail);
 
-      await floorPlanService.setArrowLabel(database: database, arrowId: arrowId, label: "walks to");
+      await floorPlanService
+          .setArrowLabel(database: database, arrowId: arrowId, label: "walks to")
+          .okOrFail;
       expect((await readArrows()).single.label, "walks to");
 
-      await floorPlanService.deleteArrow(database: database, arrowId: arrowId);
+      await floorPlanService.deleteArrow(database: database, arrowId: arrowId).okOrFail;
       expect(await readArrows(), isEmpty);
     });
   });
@@ -223,50 +232,60 @@ void main() {
         database.ocptShotsTable,
       )..where((row) => row.id.equals(shotId))).getSingle();
       final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
-      final a = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 0,
-        yM: 0,
-      ))!;
-      final b = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.characters,
-        xM: 1,
-        yM: 1,
-      ))!;
-      final arrowId = (await floorPlanService.addArrow(
-        database: database,
-        setId: setId,
-        shotId: shotId,
-        kind: OcptFloorPlanArrowKind.movement,
-        fromSymbolId: a,
-        toSymbolId: b,
-      ))!;
+      final a = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      final b = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.characters,
+            xM: 1,
+            yM: 1,
+          )
+          .valueOrFail);
+      final arrowId = (await floorPlanService
+          .addArrow(
+            database: database,
+            setId: setId,
+            shotId: shotId,
+            kind: OcptFloorPlanArrowKind.movement,
+            fromSymbolId: a,
+            toSymbolId: b,
+          )
+          .valueOrFail);
 
-      await floorPlanService.updateArrowCurve(
-        database: database,
-        arrowId: arrowId,
-        ctrlXM: const Value(0.5),
-        ctrlYM: const Value(0.75),
-      );
+      await floorPlanService
+          .updateArrowCurve(
+            database: database,
+            arrowId: arrowId,
+            ctrlXM: const Value(0.5),
+            ctrlYM: const Value(0.75),
+          )
+          .okOrFail;
       final curved = (await readArrows()).single;
       expect(curved.ctrlXM, 0.5);
       expect(curved.ctrlYM, 0.75);
       expect(curved.label, ""); // untouched
 
-      await floorPlanService.updateArrowCurve(
-        database: database,
-        arrowId: arrowId,
-        ctrlXM: const Value(null),
-        ctrlYM: const Value(null),
-      );
+      await floorPlanService
+          .updateArrowCurve(
+            database: database,
+            arrowId: arrowId,
+            ctrlXM: const Value(null),
+            ctrlYM: const Value(null),
+          )
+          .okOrFail;
       final straightened = (await readArrows()).single;
       expect(straightened.ctrlXM, isNull);
       expect(straightened.ctrlYM, isNull);
@@ -283,32 +302,38 @@ void main() {
         )..where((row) => row.id.equals(shotId))).getSingle();
         final (_, setId) = await seedLinkedSet(sceneId: sceneRow.sceneId);
 
-        final shootingSet = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: null,
-          layer: OcptFloorPlanLayer.set,
-          xM: 0,
-          yM: 0,
-        ))!;
-        final camera = (await floorPlanService.placeSymbol(
-          database: database,
-          setId: setId,
-          sceneId: null,
-          shotId: shotId,
-          layer: OcptFloorPlanLayer.cameras,
-          xM: 1,
-          yM: 1,
-        ))!;
-        await floorPlanService.addArrow(
-          database: database,
-          setId: setId,
-          shotId: shotId,
-          kind: OcptFloorPlanArrowKind.cameraMove,
-          fromSymbolId: camera,
-          toSymbolId: shootingSet,
-        );
+        final shootingSet = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: setId,
+              sceneId: null,
+              shotId: null,
+              layer: OcptFloorPlanLayer.set,
+              xM: 0,
+              yM: 0,
+            )
+            .valueOrFail);
+        final camera = (await floorPlanService
+            .placeSymbol(
+              database: database,
+              setId: setId,
+              sceneId: null,
+              shotId: shotId,
+              layer: OcptFloorPlanLayer.cameras,
+              xM: 1,
+              yM: 1,
+            )
+            .valueOrFail);
+        await floorPlanService
+            .addArrow(
+              database: database,
+              setId: setId,
+              shotId: shotId,
+              kind: OcptFloorPlanArrowKind.cameraMove,
+              fromSymbolId: camera,
+              toSymbolId: shootingSet,
+            )
+            .maybeValueOrFail;
 
         await database.transaction(() async {
           final stamps = await OcptRowStampService.seed(database: database, deviceId: deviceId);
@@ -337,35 +362,43 @@ void main() {
         sceneId: sceneId,
       ))!;
 
-      final setScopeSymbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      ))!;
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: sceneId,
-        shotId: null,
-        layer: OcptFloorPlanLayer.props,
-        xM: 1,
-        yM: 1,
-      );
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: shotId,
-        layer: OcptFloorPlanLayer.cameras,
-        xM: 2,
-        yM: 2,
-      );
+      final setScopeSymbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .valueOrFail);
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: sceneId,
+            shotId: null,
+            layer: OcptFloorPlanLayer.props,
+            xM: 1,
+            yM: 1,
+          )
+          .maybeValueOrFail;
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: shotId,
+            layer: OcptFloorPlanLayer.cameras,
+            xM: 2,
+            yM: 2,
+          )
+          .maybeValueOrFail;
 
-      final bySetId = await floorPlanService.loadSetScopeSymbolsByProjectSetId(database: database);
+      final bySetId = await floorPlanService
+          .loadSetScopeSymbolsByProjectSetId(database: database)
+          .valueOrFail;
 
       expect(bySetId.keys, [setId]);
       expect(bySetId[setId]!.map((symbol) => symbol.id), [setScopeSymbolId]);
@@ -374,7 +407,9 @@ void main() {
     test("is empty while no set holds a set-scope symbol", () async {
       await seedLinkedSet();
 
-      final bySetId = await floorPlanService.loadSetScopeSymbolsByProjectSetId(database: database);
+      final bySetId = await floorPlanService
+          .loadSetScopeSymbolsByProjectSetId(database: database)
+          .valueOrFail;
 
       expect(bySetId, isEmpty);
     });
@@ -383,34 +418,34 @@ void main() {
   group("liveSetIdsWithPlan", () {
     test("names only the sets that actually hold a live plan row", () async {
       final (_, setWithPlanId) = await seedLinkedSet();
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setWithPlanId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 0,
-        yM: 0,
-      );
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setWithPlanId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 0,
+            yM: 0,
+          )
+          .maybeValueOrFail;
       final setWithNoPlanId = (await locationsService.createSet(
         database: database,
         locationId: (await database.select(database.ocptSetsTable).get()).first.locationId,
         name: "Hallway",
       ))!;
 
-      final withPlan = await floorPlanService.liveSetIdsWithPlan(
-        database: database,
-        setIds: [setWithPlanId, setWithNoPlanId],
-      );
+      final withPlan = await floorPlanService
+          .liveSetIdsWithPlan(database: database, setIds: [setWithPlanId, setWithNoPlanId])
+          .valueOrFail;
 
       expect(withPlan, {setWithPlanId});
     });
 
     test("is empty for an empty set of ids", () async {
-      final withPlan = await floorPlanService.liveSetIdsWithPlan(
-        database: database,
-        setIds: const [],
-      );
+      final withPlan = await floorPlanService
+          .liveSetIdsWithPlan(database: database, setIds: const [])
+          .valueOrFail;
       expect(withPlan, isEmpty);
     });
   });
@@ -420,36 +455,39 @@ void main() {
     /// original.
     Future<(String, String, OcptFloorPlanSymbol)> seedWall() async {
       final (sceneId, setId) = await seedLinkedSet();
-      await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 2,
-        widthM: 3,
-        heightM: 0.2,
-        label: "Wall",
-        setElementShape: OcptFloorPlanSetElementShape.wall,
-      );
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 2,
+            widthM: 3,
+            heightM: 0.2,
+            label: "Wall",
+            setElementShape: OcptFloorPlanSetElementShape.wall,
+          )
+          .maybeValueOrFail;
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       return (sceneId, setId, snapshot.setsById[setId]!.symbols.single);
     }
 
     test("creates a hidden scene-scope override copied from the original", () async {
       final (sceneId, setId, original) = await seedWall();
 
-      await floorPlanService.hideSymbolForScope(
-        database: database,
-        original: original,
-        existingOverride: null,
-        sceneId: sceneId,
-        shotId: null,
-      );
+      await floorPlanService
+          .hideSymbolForScope(
+            database: database,
+            original: original,
+            existingOverride: null,
+            sceneId: sceneId,
+            shotId: null,
+          )
+          .okOrFail;
 
       final symbols = (await readSymbols()).where((row) => row.id != original.id).toList();
       expect(symbols, hasLength(1));
@@ -463,34 +501,35 @@ void main() {
 
     test("hides the existing override instead of creating another", () async {
       final (sceneId, _, original) = await seedWall();
-      await floorPlanService.hideSymbolForScope(
-        database: database,
-        original: original,
-        existingOverride: null,
-        sceneId: sceneId,
-        shotId: null,
-      );
+      await floorPlanService
+          .hideSymbolForScope(
+            database: database,
+            original: original,
+            existingOverride: null,
+            sceneId: sceneId,
+            shotId: null,
+          )
+          .okOrFail;
       final override = (await readSymbols()).firstWhere((row) => row.id != original.id);
-      await floorPlanService.updateSymbol(
-        database: database,
-        symbolId: override.id,
-        isHidden: const Value(false),
-      );
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      await floorPlanService
+          .updateSymbol(database: database, symbolId: override.id, isHidden: const Value(false))
+          .okOrFail;
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       final existing = snapshot.setsById.values.single.symbols.firstWhere(
         (symbol) => symbol.id == override.id,
       );
 
-      await floorPlanService.hideSymbolForScope(
-        database: database,
-        original: original,
-        existingOverride: existing,
-        sceneId: sceneId,
-        shotId: null,
-      );
+      await floorPlanService
+          .hideSymbolForScope(
+            database: database,
+            original: original,
+            existingOverride: existing,
+            sceneId: sceneId,
+            shotId: null,
+          )
+          .okOrFail;
 
       final symbols = await readSymbols();
       expect(symbols, hasLength(2));
@@ -501,31 +540,35 @@ void main() {
   group("applyScopeDecision", () {
     test("moves the original itself on every scope", () async {
       final (_, setId) = await seedLinkedSet();
-      final symbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 2,
-      ))!;
+      final symbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 2,
+          )
+          .valueOrFail);
 
-      final isWritten = await floorPlanService.applyScopeDecision(
-        database: database,
-        decision: OcptFloorPlanScopeDecision(
-          symbolId: symbolId,
-          setId: setId,
-          level: OcptFloorPlanOverrideLevel.sequence,
-          sequenceCount: 2,
-          xM: 5,
-        ),
-        onEveryScope: true,
-        original: null,
-        existingOverride: null,
-        targetSceneId: null,
-        targetShotId: null,
-      );
+      final isWritten = await floorPlanService
+          .applyScopeDecision(
+            database: database,
+            decision: OcptFloorPlanScopeDecision(
+              symbolId: symbolId,
+              setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
+              sequenceCount: 2,
+              xM: 5,
+            ),
+            onEveryScope: true,
+            original: null,
+            existingOverride: null,
+            targetSceneId: null,
+            targetShotId: null,
+          )
+          .valueOrFail;
 
       final row = (await readSymbols()).single;
       expect(isWritten, isTrue);
@@ -535,35 +578,38 @@ void main() {
 
     test("creates an override moved by the decision, leaving the original alone", () async {
       final (sceneId, setId) = await seedLinkedSet();
-      final symbolId = (await floorPlanService.placeSymbol(
-        database: database,
-        setId: setId,
-        sceneId: null,
-        shotId: null,
-        layer: OcptFloorPlanLayer.set,
-        xM: 1,
-        yM: 2,
-      ))!;
-      final snapshot = await floorPlanService.loadFloorPlans(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final symbolId = (await floorPlanService
+          .placeSymbol(
+            database: database,
+            setId: setId,
+            sceneId: null,
+            shotId: null,
+            layer: OcptFloorPlanLayer.set,
+            xM: 1,
+            yM: 2,
+          )
+          .valueOrFail);
+      final snapshot = await floorPlanService
+          .loadFloorPlans(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
-      final isWritten = await floorPlanService.applyScopeDecision(
-        database: database,
-        decision: OcptFloorPlanScopeDecision(
-          symbolId: symbolId,
-          setId: setId,
-          level: OcptFloorPlanOverrideLevel.sequence,
-          sequenceCount: 2,
-          yM: 7,
-        ),
-        onEveryScope: false,
-        original: snapshot.setsById[setId]!.symbols.single,
-        existingOverride: null,
-        targetSceneId: sceneId,
-        targetShotId: null,
-      );
+      final isWritten = await floorPlanService
+          .applyScopeDecision(
+            database: database,
+            decision: OcptFloorPlanScopeDecision(
+              symbolId: symbolId,
+              setId: setId,
+              level: OcptFloorPlanOverrideLevel.sequence,
+              sequenceCount: 2,
+              yM: 7,
+            ),
+            onEveryScope: false,
+            original: snapshot.setsById[setId]!.symbols.single,
+            existingOverride: null,
+            targetSceneId: sceneId,
+            targetShotId: null,
+          )
+          .valueOrFail;
 
       final rows = await readSymbols();
       final override = rows.firstWhere((row) => row.id != symbolId);
@@ -578,20 +624,22 @@ void main() {
     test("writes nothing and answers false when there is no original to copy", () async {
       final (sceneId, _) = await seedLinkedSet();
 
-      final isWritten = await floorPlanService.applyScopeDecision(
-        database: database,
-        decision: const OcptFloorPlanScopeDecision(
-          symbolId: "gone",
-          setId: "set-1",
-          level: OcptFloorPlanOverrideLevel.sequence,
-          sequenceCount: 2,
-        ),
-        onEveryScope: false,
-        original: null,
-        existingOverride: null,
-        targetSceneId: sceneId,
-        targetShotId: null,
-      );
+      final isWritten = await floorPlanService
+          .applyScopeDecision(
+            database: database,
+            decision: const OcptFloorPlanScopeDecision(
+              symbolId: "gone",
+              setId: "set-1",
+              level: OcptFloorPlanOverrideLevel.sequence,
+              sequenceCount: 2,
+            ),
+            onEveryScope: false,
+            original: null,
+            existingOverride: null,
+            targetSceneId: sceneId,
+            targetShotId: null,
+          )
+          .valueOrFail;
 
       expect(isWritten, isFalse);
       expect(await readSymbols(), isEmpty);

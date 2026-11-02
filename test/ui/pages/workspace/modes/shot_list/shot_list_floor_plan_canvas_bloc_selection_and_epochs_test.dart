@@ -32,6 +32,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_floor_plan_canvas_bloc_test_doubles.dart';
 
 /// Run the tests of the shot list floor plan canvas bloc selection and epochs.
@@ -476,13 +477,15 @@ void main() {
       // Masked: a hidden override of the selected wall appears for the sequence shown.
       final wallId = await placeWall();
       final wall = mode.state.selectedSet!.symbols.firstWhere((symbol) => symbol.id == wallId);
-      await floorPlanService.hideSymbolForScope(
-        database: project.database,
-        original: wall,
-        existingOverride: null,
-        sceneId: sceneId,
-        shotId: null,
-      );
+      await floorPlanService
+          .hideSymbolForScope(
+            database: project.database,
+            original: wall,
+            existingOverride: null,
+            sceneId: sceneId,
+            shotId: null,
+          )
+          .okOrFail;
       await mode.reload({OcptShotListReloadScope.floorPlans});
       await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
 
@@ -496,7 +499,9 @@ void main() {
 
       // Gone: the selected symbol is deleted behind the canvas's back.
       final otherWallId = await placeWall();
-      await floorPlanService.deleteSymbol(database: project.database, symbolId: otherWallId);
+      await floorPlanService
+          .deleteSymbol(database: project.database, symbolId: otherWallId)
+          .okOrFail;
       await mode.reload({OcptShotListReloadScope.floorPlans});
       await waitUntil(() => canvas.state.selectedFloorPlanSymbolId == null);
 
@@ -530,10 +535,9 @@ void main() {
       await waitUntil(() => canvas.state.selectedFloorPlanArrowId == arrowId);
 
       final project = projectsManager.currentProject!;
-      await projectsManager.floorPlanService.deleteArrow(
-        database: project.database,
-        arrowId: arrowId,
-      );
+      await projectsManager.floorPlanService
+          .deleteArrow(database: project.database, arrowId: arrowId)
+          .okOrFail;
       await mode.reload({OcptShotListReloadScope.floorPlans});
 
       await waitUntil(() => canvas.state.selectedFloorPlanArrowId == null);

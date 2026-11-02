@@ -322,7 +322,7 @@ class _ScenarioFloorPlanService extends OcptFloorPlanService {
   /// Fail while the scenario asks for symbol placements to fail, otherwise place the symbol as the
   /// real service does.
   @override
-  Future<String?> placeSymbol({
+  Future<OcptDatabaseResult<String>> placeSymbol({
     required OcptProjectDatabase database,
     required String setId,
     required String? sceneId,
@@ -341,7 +341,10 @@ class _ScenarioFloorPlanService extends OcptFloorPlanService {
     bool isHidden = false,
   }) async {
     if (failures.failSymbolPlacement) {
-      throw StateError("symbol placement intentionally failed for the scenario");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "symbol placement intentionally failed for the scenario",
+      );
     }
 
     return super.placeSymbol(
@@ -497,10 +500,9 @@ class ShotListScenarioHarness {
       .valueOrFail;
 
   /// Reads the floor plans back from the database.
-  Future<OcptFloorPlanSnapshot> readFloorPlans() => projectsManager.floorPlanService.loadFloorPlans(
-    database: database,
-    screenplayId: screenplayId,
-  );
+  Future<OcptFloorPlanSnapshot> readFloorPlans() => projectsManager.floorPlanService
+      .loadFloorPlans(database: database, screenplayId: screenplayId)
+      .valueOrFail;
 
   /// Lists the scene ids of the screenplay, in order.
   Future<List<String>> sceneIds() async => [
