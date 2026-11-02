@@ -12,9 +12,9 @@
 /// entrypoint that serves it over a real socket, built on `buildRelayServerFromEnvironment`.
 library;
 
-export 'src/ocpt_relay_environment.dart';
-export 'src/ocpt_relay_reconcile_command.dart';
-export 'src/ocpt_relay_reconciler.dart';
-export 'src/ocpt_relay_server.dart';
-export 'src/ocpt_relay_store.dart';
-export 'src/ocpt_relay_upstream_client.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_environment.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_reconcile_command.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_reconciler.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_server.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_store.dart';
+export 'package:ocpt_sync_relay/src/ocpt_relay_upstream_client.dart';

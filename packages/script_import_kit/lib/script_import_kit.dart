@@ -7,10 +7,10 @@
 /// text.
 library;
 
-export 'src/models/script_import_exception.dart';
-export 'src/models/script_import_failure.dart';
-export 'src/models/script_import_format.dart';
-export 'src/models/script_import_result.dart';
-export 'src/readers/celtx_script_reader.dart';
-export 'src/readers/fdx_script_reader.dart';
-export 'src/script_importer.dart';
+export 'package:script_import_kit/src/models/script_import_exception.dart';
+export 'package:script_import_kit/src/models/script_import_failure.dart';
+export 'package:script_import_kit/src/models/script_import_format.dart';
+export 'package:script_import_kit/src/models/script_import_result.dart';
+export 'package:script_import_kit/src/readers/celtx_script_reader.dart';
+export 'package:script_import_kit/src/readers/fdx_script_reader.dart';
+export 'package:script_import_kit/src/script_importer.dart';
