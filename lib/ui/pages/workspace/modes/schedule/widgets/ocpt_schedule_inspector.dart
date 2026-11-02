@@ -781,8 +781,7 @@ class _OcptScheduleNoteField extends StatefulWidget {
 
 /// The state of [_OcptScheduleNoteField]: owns the controller the class doc comment explains.
 class _OcptScheduleNoteFieldState extends State<_OcptScheduleNoteField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The [_OcptScheduleNoteField.ownerId] the controller was last synced against.

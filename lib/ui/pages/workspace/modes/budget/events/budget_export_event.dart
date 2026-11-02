@@ -37,9 +37,7 @@ class OcptBudgetQuoteExportRequestedEvent extends OcptBudgetExportEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
-  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
-  /// desktop and wherever no anchor was resolved.
+  /// {@macro open_cine_prod_tools.exportShareAnchor}
   final Rect? shareAnchor;
 
   /// Class constructor

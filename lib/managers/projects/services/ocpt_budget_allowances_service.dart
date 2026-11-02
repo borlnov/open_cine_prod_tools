@@ -23,8 +23,10 @@ import 'package:uuid/uuid.dart';
 /// **Orders flat by `sortKey`**, like the financing plan's own two catalogues: a defrayal belongs
 /// inside no other row.
 class OcptBudgetAllowancesService extends AbsOcptService {
+  /// {@template open_cine_prod_tools.serviceDeviceIdGetter}
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
+  /// {@endtemplate}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

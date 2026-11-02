@@ -245,8 +245,7 @@ class _OcptScheduleDayEventLabelField extends StatefulWidget {
 /// The state of [_OcptScheduleDayEventLabelField]: owns the controller the class doc comment
 /// explains.
 class _OcptScheduleDayEventLabelFieldState extends State<_OcptScheduleDayEventLabelField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// Show the new value in [_controller] when it differs from the text already there.
@@ -306,8 +305,7 @@ class _OcptScheduleDayEventNoteField extends StatefulWidget {
 /// The state of [_OcptScheduleDayEventNoteField]: owns the controller the class doc comment
 /// explains.
 class _OcptScheduleDayEventNoteFieldState extends State<_OcptScheduleDayEventNoteField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// Show the new value in [_controller] when it differs from the text already there.

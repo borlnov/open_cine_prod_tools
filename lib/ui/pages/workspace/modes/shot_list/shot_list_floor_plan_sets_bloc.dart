@@ -101,11 +101,7 @@ class OcptShotListFloorPlanSetsBloc
   /// The delay between the last set name edit and its autosave write.
   final Duration _fieldEditDebounce;
 
-  /// Class constructor
-  ///
-  /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by
-  /// tests, to keep it fast and deterministic.
+  /// {@macro open_cine_prod_tools.viewBlocConstructorWithDebounce}
   OcptShotListFloorPlanSetsBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,

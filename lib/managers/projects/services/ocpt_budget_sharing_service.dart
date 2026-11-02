@@ -26,8 +26,7 @@ import 'package:uuid/uuid.dart';
 /// tables: neither a revenue nor a share belongs inside another row the way a quote line belongs
 /// inside its account.
 class OcptBudgetSharingService extends AbsOcptService {
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

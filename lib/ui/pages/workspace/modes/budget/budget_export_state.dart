@@ -13,8 +13,7 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_io_n
 /// An export reads the mode's data and writes nothing back to the project, so the only thing it has
 /// to show is how it ended.
 class OcptBudgetExportState extends BlocStateForMixin<OcptBudgetExportState> {
-  /// The transient notice reporting the outcome of the last export, or null while none is waiting
-  /// to be shown. Shown as a SnackBar, then dismissed.
+  /// {@macro open_cine_prod_tools.exportIoNoticeField}
   final OcptBudgetIoNotice? ioNotice;
 
   /// Class constructor
@@ -23,8 +22,7 @@ class OcptBudgetExportState extends BlocStateForMixin<OcptBudgetExportState> {
   /// Build the state of a bloc that has exported nothing yet.
   const OcptBudgetExportState.init() : ioNotice = null;
 
-  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
-  /// [forceIoNoticeValue], since a null argument means "keep".
+  /// {@macro open_cine_prod_tools.exportStateCopyWith}
   @override
   OcptBudgetExportState copyWith({OcptBudgetIoNotice? ioNotice, bool forceIoNoticeValue = false}) =>
       OcptBudgetExportState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));

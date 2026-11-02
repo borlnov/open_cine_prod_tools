@@ -35,8 +35,7 @@ class OcptLocationSheetHeader extends StatelessWidget {
   /// location's own stored value.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Called with the palette index picked, or null while the colour may not be changed: the bar

@@ -254,9 +254,7 @@ class OcptShootingPlanLabels extends Equatable {
   /// Get the title of the day [dayId], or an empty string if [dayTitles] holds none for it.
   String titleOfDay(String dayId) => dayTitles[dayId] ?? "";
 
-  /// Get the label of the crew position [positionId] names, or an empty string if
-  /// [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
   /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.

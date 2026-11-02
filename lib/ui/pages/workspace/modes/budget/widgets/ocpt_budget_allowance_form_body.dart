@@ -49,8 +49,7 @@ class OcptBudgetAllowanceFormBody extends StatefulWidget {
   /// The defrayal being edited, or null while creating a new one.
   final OcptBudgetAllowance? existing;
 
-  /// Every live person of the project's address book, offered by the `Person` picker alongside its
-  /// own explicit "no person" choice.
+  /// {@macro open_cine_prod_tools.budgetFormPeople}
   final List<OcptPerson> people;
 
   /// Every live mileage rate of the project, read by `Use this person's own rate`.
@@ -62,8 +61,10 @@ class OcptBudgetAllowanceFormBody extends StatefulWidget {
   /// The form this body's own [Form] validates against — the host's to create and to validate.
   final GlobalKey<FormState> formKey;
 
+  /// {@template open_cine_prod_tools.budgetFormBodyFieldsCallback}
   /// Called with the fields this body would submit right now, or null while it cannot be read at
   /// all — see the class doc comment.
+  /// {@endtemplate}
   final ValueChanged<OcptBudgetAllowanceFormFields?> onDraftChanged;
 
   /// Class constructor

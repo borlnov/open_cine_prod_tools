@@ -145,10 +145,7 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   @override
   OcptExportManager get exportManager => _exportManager;
 
-  /// Class constructor
-  ///
-  /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
-  /// through [globalGetIt].
+  /// {@macro open_cine_prod_tools.modeBlocConstructor}
   OcptResourcesBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,

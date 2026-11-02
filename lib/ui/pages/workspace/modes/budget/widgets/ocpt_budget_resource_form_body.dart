@@ -91,8 +91,7 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
   /// The kind a fresh resource is created as — see the class doc comment.
   final OcptBudgetResourceGroupKind groupKind;
 
-  /// Every live person of the project's address book, offered by the `Person` picker alongside its
-  /// own explicit "no person" choice.
+  /// {@macro open_cine_prod_tools.budgetFormPeople}
   final List<OcptPerson> people;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
@@ -116,8 +115,7 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
   /// The form this body's own [Form] validates against — the host's to create and to validate.
   final GlobalKey<FormState> formKey;
 
-  /// Called with the fields this body would submit right now, or null while it cannot be read at
-  /// all — see the class doc comment.
+  /// {@macro open_cine_prod_tools.budgetFormBodyFieldsCallback}
   final ValueChanged<OcptBudgetResourceFormFields?> onDraftChanged;
 
   /// Draws the `Group` picker while creating too, offering only [OcptBudgetResourceGroupKind.cash]

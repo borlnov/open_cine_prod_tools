@@ -18,8 +18,7 @@ class OcptFloorPlanSymbolRotateHandle extends StatelessWidget {
   /// The selected symbol these handles belong to.
   final OcptFloorPlanSymbolShape symbol;
 
-  /// The live geometry of the symbol being dragged, or null while none is — ignored when it names
-  /// another symbol.
+  /// {@macro open_cine_prod_tools.floorPlanHandleLiveGeometry}
   final OcptFloorPlanSymbolLiveOverride? liveOverride;
 
   /// The size of the canvas the symbol is placed in.

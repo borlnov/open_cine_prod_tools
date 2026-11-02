@@ -850,8 +850,7 @@ class _SlotLabelField extends StatefulWidget {
 
 /// The state of [_SlotLabelField]: owns the controller the class doc comment explains.
 class _SlotLabelFieldState extends State<_SlotLabelField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// Show the new value in [_controller] when it differs from the text already there.

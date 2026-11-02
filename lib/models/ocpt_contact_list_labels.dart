@@ -87,9 +87,7 @@ class OcptContactListLabels extends Equatable {
   String crewDepartmentLabelOf(OcptCrewDepartment department) =>
       crewDepartmentLabels[department] ?? "";
 
-  /// Get the label of the crew position [positionId] names, or an empty string if
-  /// [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
   /// Get a string representation of the object, useful for debugging and logging.

@@ -277,9 +277,11 @@ class OcptCallSheetLabels extends Equatable {
   String crewDepartmentLabelOf(OcptCrewDepartment department) =>
       crewDepartmentLabels[department] ?? "";
 
+  /// {@template open_cine_prod_tools.crewPositionLabelGetter}
   /// Get the label of the crew position [positionId] names, or an empty string if
   /// [crewPositionLabels]
   /// holds none for it.
+  /// {@endtemplate}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
   /// Get the default caption of [kind], or an empty string if [blockKindLabels] holds none for it.

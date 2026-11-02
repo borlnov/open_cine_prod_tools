@@ -39,8 +39,7 @@ class OcptBudgetLineFormBody extends StatefulWidget {
   /// The form this body's own [Form] validates against — the host's to create and to validate.
   final GlobalKey<FormState> formKey;
 
-  /// Called with the fields this body would submit right now, or null while it cannot be read at
-  /// all — see the class doc comment.
+  /// {@macro open_cine_prod_tools.budgetFormBodyFieldsCallback}
   final ValueChanged<OcptBudgetLineFormFields?> onDraftChanged;
 
   /// Class constructor

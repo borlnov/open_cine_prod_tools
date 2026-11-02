@@ -150,10 +150,12 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   @override
   OcptExportManager get exportManager => _exportManager;
 
+  /// {@template open_cine_prod_tools.modeBlocConstructor}
   /// Class constructor
   ///
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
   /// through [globalGetIt].
+  /// {@endtemplate}
   OcptBreakdownBloc({
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,

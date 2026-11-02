@@ -45,8 +45,7 @@ class OcptRoleSheetHeader extends StatelessWidget {
   /// role's own stored value.
   final String Function(OcptRoleField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptRoleField field, String rawValue)? onFieldChanged;
 
   /// Called with the newly picked kind, or null while it may not be changed.

@@ -44,8 +44,7 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
   /// The element's current value for `field`.
   final String Function(OcptElementField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the newly picked provenance, or null while it may not be changed.

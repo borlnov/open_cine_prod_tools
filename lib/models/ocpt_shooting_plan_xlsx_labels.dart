@@ -114,9 +114,7 @@ class OcptShootingPlanXlsxLabels extends Equatable {
   String chronologyHeaderOf(OcptShootingPlanXlsxColumn column) =>
       chronologyColumnHeaders[column] ?? "";
 
-  /// Get the label of the crew position [positionId] names, or an empty string if
-  /// [crewPositionLabels]
-  /// holds none for it.
+  /// {@macro open_cine_prod_tools.crewPositionLabelGetter}
   String crewPositionLabelOf(String positionId) => crewPositionLabels[positionId] ?? "";
 
   /// Get the label of [category], or an empty string if [elementCategoryLabels] holds none for it.

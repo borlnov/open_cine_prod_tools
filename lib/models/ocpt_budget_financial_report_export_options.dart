@@ -28,8 +28,7 @@ class OcptBudgetFinancialReportExportOptions extends Equatable {
   /// The physical page format to typeset the exported document with.
   final OcptPageFormat format;
 
-  /// The page margins to typeset the exported document with, carried through unedited from the page
-  /// setup the export dialog was opened with.
+  /// {@macro open_cine_prod_tools.exportOptionsPageMargins}
   final FountainPageMargins margins;
 
   /// Whether the title page (the document's own name and the moment it was produced) is printed

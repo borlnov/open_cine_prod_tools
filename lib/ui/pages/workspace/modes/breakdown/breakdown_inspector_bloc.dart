@@ -69,11 +69,13 @@ class OcptBreakdownInspectorBloc
   /// The delay between the last field edit and its autosave write.
   final Duration _fieldEditDebounce;
 
+  /// {@template open_cine_prod_tools.viewBlocConstructorWithDebounce}
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
   /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by
   /// tests, to keep it fast and deterministic.
+  /// {@endtemplate}
   OcptBreakdownInspectorBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,

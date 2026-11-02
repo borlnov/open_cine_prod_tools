@@ -28,8 +28,7 @@ import 'package:uuid/uuid.dart';
 /// catalogue: neither a resource nor a rate belongs inside another row the way a quote line belongs
 /// inside its account.
 class OcptBudgetFinancingService extends AbsOcptService {
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

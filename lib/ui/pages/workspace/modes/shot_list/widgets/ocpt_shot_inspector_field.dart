@@ -107,8 +107,7 @@ class OcptShotInspectorField extends StatefulWidget {
 /// The state of [OcptShotInspectorField]: owns the controller and focus node the class doc
 /// comment explains the reasoning for.
 class _OcptShotInspectorFieldState extends State<OcptShotInspectorField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The field's own focus node, so [RawAutocomplete] never has to create (and therefore churn) one

@@ -17,8 +17,10 @@ class OcptFloorPlanSymbolDeleteHandle extends StatelessWidget {
   /// The selected symbol these handles belong to.
   final OcptFloorPlanSymbolShape symbol;
 
+  /// {@template open_cine_prod_tools.floorPlanHandleLiveGeometry}
   /// The live geometry of the symbol being dragged, or null while none is — ignored when it names
   /// another symbol.
+  /// {@endtemplate}
   final OcptFloorPlanSymbolLiveOverride? liveOverride;
 
   /// The size of the canvas the symbol is placed in.

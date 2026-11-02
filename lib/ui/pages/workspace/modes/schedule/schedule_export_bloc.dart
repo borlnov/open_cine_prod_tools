@@ -45,10 +45,7 @@ class OcptScheduleExportBloc
   /// through.
   final OcptExportManager _exportManager;
 
-  /// Class constructor
-  ///
-  /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt].
+  /// {@macro open_cine_prod_tools.viewBlocConstructor}
   OcptScheduleExportBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,

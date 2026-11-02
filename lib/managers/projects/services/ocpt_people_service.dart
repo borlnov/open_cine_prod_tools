@@ -98,8 +98,7 @@ class OcptPeopleService extends AbsOcptService {
   /// never reads `people`, so nothing here closes a circle.
   final OcptRoleCandidatesService roleCandidatesService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

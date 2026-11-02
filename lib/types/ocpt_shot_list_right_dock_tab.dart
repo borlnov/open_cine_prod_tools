@@ -16,7 +16,6 @@ enum OcptShotListRightDockTab {
   /// The read-only metadata of the shot list as a whole.
   metadata,
 
-  /// The project's named versions: the production history the user creates, browses read-only and
-  /// deletes.
+  /// {@macro open_cine_prod_tools.versionsDockTab}
   versions,
 }

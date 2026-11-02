@@ -30,8 +30,7 @@ import 'package:uuid/uuid.dart';
 /// `OcptShotListService`'s shots within a scene: a line only ever competes for a position against
 /// the other lines of the very account it prices.
 class OcptBudgetQuoteService extends AbsOcptService {
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

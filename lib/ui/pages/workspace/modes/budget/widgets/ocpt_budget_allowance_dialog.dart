@@ -24,8 +24,10 @@ class OcptBudgetAllowanceDialog extends StatefulWidget {
   /// The defrayal being edited, or null while creating a new one.
   final OcptBudgetAllowance? existing;
 
+  /// {@template open_cine_prod_tools.budgetFormPeople}
   /// Every live person of the project's address book, offered by the `Person` picker alongside its
   /// own explicit "no person" choice.
+  /// {@endtemplate}
   final List<OcptPerson> people;
 
   /// Every live mileage rate of the project, read by `Use this person's own rate`.

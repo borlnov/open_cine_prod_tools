@@ -13,8 +13,7 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 /// An export reads the mode's data and writes nothing back to the project, so the only thing it has
 /// to show is how it ended.
 class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState> {
-  /// The transient notice reporting the outcome of the last export, or null while none is waiting
-  /// to be shown. Shown as a SnackBar, then dismissed.
+  /// {@macro open_cine_prod_tools.exportIoNoticeField}
   final OcptScheduleIoNotice? ioNotice;
 
   /// Class constructor
@@ -23,8 +22,7 @@ class OcptScheduleExportState extends BlocStateForMixin<OcptScheduleExportState>
   /// Build the state of a bloc that has exported nothing yet.
   const OcptScheduleExportState.init() : ioNotice = null;
 
-  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
-  /// [forceIoNoticeValue], since a null argument means "keep".
+  /// {@macro open_cine_prod_tools.exportStateCopyWith}
   @override
   OcptScheduleExportState copyWith({
     OcptScheduleIoNotice? ioNotice,

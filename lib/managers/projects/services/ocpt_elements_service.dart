@@ -48,8 +48,7 @@ class OcptElementsService extends AbsOcptService {
   /// reached for, exactly as `OcptPeopleService` and `OcptLocationsService` hold their own.
   final OcptAssetsService assetsService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

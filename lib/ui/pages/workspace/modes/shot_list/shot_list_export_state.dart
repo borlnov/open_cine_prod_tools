@@ -14,8 +14,7 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// to show is how it ended — which is why this is kept apart from the mode's own write error: a
 /// failed export says nothing about the shot list itself.
 class OcptShotListExportState extends BlocStateForMixin<OcptShotListExportState> {
-  /// The transient notice reporting the outcome of the last export, or null while none is waiting
-  /// to be shown. Shown as a SnackBar, then dismissed.
+  /// {@macro open_cine_prod_tools.exportIoNoticeField}
   final OcptShotListIoNotice? ioNotice;
 
   /// Class constructor
@@ -24,8 +23,7 @@ class OcptShotListExportState extends BlocStateForMixin<OcptShotListExportState>
   /// Build the state of a bloc that has exported nothing yet.
   const OcptShotListExportState.init() : ioNotice = null;
 
-  /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
-  /// [forceIoNoticeValue], since a null argument means "keep".
+  /// {@macro open_cine_prod_tools.exportStateCopyWith}
   @override
   OcptShotListExportState copyWith({
     OcptShotListIoNotice? ioNotice,

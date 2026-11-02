@@ -38,8 +38,7 @@ class OcptBudgetResourceDialog extends StatefulWidget {
   /// doc comment for why creation otherwise fixes the kind rather than asking again.
   final OcptBudgetResourceGroupKind groupKind;
 
-  /// Every live person of the project's address book, offered by the `Person` picker alongside its
-  /// own explicit "no person" choice.
+  /// {@macro open_cine_prod_tools.budgetFormPeople}
   final List<OcptPerson> people;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.

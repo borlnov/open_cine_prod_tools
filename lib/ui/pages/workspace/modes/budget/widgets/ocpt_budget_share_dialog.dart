@@ -24,8 +24,7 @@ class OcptBudgetShareDialog extends StatefulWidget {
   /// The share being edited, or null while creating a new one.
   final OcptBudgetShare? existing;
 
-  /// Every live person of the project's address book, offered by the `Person` picker alongside its
-  /// own explicit "no person" choice.
+  /// {@macro open_cine_prod_tools.budgetFormPeople}
   final List<OcptPerson> people;
 
   /// Class constructor

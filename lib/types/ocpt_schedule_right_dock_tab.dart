@@ -24,7 +24,6 @@ enum OcptScheduleRightDockTab {
   /// the agenda, would hide them from every other view, so Benoit chose a dock tab instead.
   alerts,
 
-  /// The project's named versions: the production history the user creates, browses read-only and
-  /// deletes.
+  /// {@macro open_cine_prod_tools.versionsDockTab}
   versions,
 }

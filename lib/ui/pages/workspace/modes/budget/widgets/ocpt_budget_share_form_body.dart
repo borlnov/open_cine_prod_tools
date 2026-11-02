@@ -44,15 +44,13 @@ class OcptBudgetShareFormBody extends StatefulWidget {
   /// The share being edited, or null while creating a new one.
   final OcptBudgetShare? existing;
 
-  /// Every live person of the project's address book, offered by the `Person` picker alongside its
-  /// own explicit "no person" choice.
+  /// {@macro open_cine_prod_tools.budgetFormPeople}
   final List<OcptPerson> people;
 
   /// The form this body's own [Form] validates against — the host's to create and to validate.
   final GlobalKey<FormState> formKey;
 
-  /// Called with the fields this body would submit right now, or null while it cannot be read at
-  /// all — see the class doc comment.
+  /// {@macro open_cine_prod_tools.budgetFormBodyFieldsCallback}
   final ValueChanged<OcptBudgetShareFormFields?> onDraftChanged;
 
   /// Class constructor

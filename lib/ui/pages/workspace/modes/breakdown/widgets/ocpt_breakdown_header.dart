@@ -203,8 +203,10 @@ class _OcptBreakdownSearchField extends StatefulWidget {
 /// The state of [_OcptBreakdownSearchField]: owns the controller the class doc comment explains
 /// the reasoning for.
 class _OcptBreakdownSearchFieldState extends State<_OcptBreakdownSearchField> {
+  /// {@template open_cine_prod_tools.fieldTextEditingController}
   /// The field's own text editing controller, seeded from the widget's initial value and kept in
   /// sync with it afterward, see [didUpdateWidget].
+  /// {@endtemplate}
   late final TextEditingController _controller = TextEditingController(text: widget.query);
 
   /// Show the new query in [_controller] when it differs from the text already there.

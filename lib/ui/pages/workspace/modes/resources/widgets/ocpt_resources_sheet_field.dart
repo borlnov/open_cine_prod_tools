@@ -101,8 +101,7 @@ class OcptResourcesSheetField extends StatefulWidget {
 /// The state of [OcptResourcesSheetField]: owns the controller the class doc comment explains the
 /// reasoning for.
 class _OcptResourcesSheetFieldState extends State<OcptResourcesSheetField> {
-  /// The field's own text editing controller, seeded from the widget's initial value and kept in
-  /// sync with it afterward, see [didUpdateWidget].
+  /// {@macro open_cine_prod_tools.fieldTextEditingController}
   late final TextEditingController _controller = TextEditingController(text: widget.value);
 
   /// The [OcptResourcesSheetField.ownerId] the controller was last synced against, so a switch

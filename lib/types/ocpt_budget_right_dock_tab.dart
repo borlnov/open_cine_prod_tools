@@ -13,8 +13,7 @@ enum OcptBudgetRightDockTab {
   /// figures behind it and what to do next (`docs/architecture/budget.md`).
   inspector,
 
-  /// The project's named versions: the production history the user creates, browses read-only and
-  /// deletes.
+  /// {@macro open_cine_prod_tools.versionsDockTab}
   versions,
 
   /// The mode's own explanation of itself: the chain of states the current document's rows pass

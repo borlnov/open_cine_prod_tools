@@ -24,8 +24,7 @@ class OcptOneLineScheduleExportOptions extends Equatable {
   /// its side.
   final OcptPageFormat format;
 
-  /// The page margins to typeset the exported document with, carried through unedited from the page
-  /// setup the export dialog was opened with.
+  /// {@macro open_cine_prod_tools.exportOptionsPageMargins}
   final FountainPageMargins margins;
 
   /// The ids of the `OcptShootingDay`s to print, in the order they are printed.

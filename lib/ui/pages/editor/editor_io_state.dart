@@ -16,8 +16,10 @@ class OcptEditorIoState extends BlocStateForMixin<OcptEditorIoState> {
   /// Init class constructor
   const OcptEditorIoState.init() : ioNotice = null;
 
+  /// {@template open_cine_prod_tools.exportStateCopyWith}
   /// Copy this state, replacing what is given. [ioNotice] goes back to null only through
   /// [forceIoNoticeValue], since a null argument means "keep".
+  /// {@endtemplate}
   @override
   OcptEditorIoState copyWith({OcptEditorIoNotice? ioNotice, bool forceIoNoticeValue = false}) =>
       OcptEditorIoState(ioNotice: ioNotice ?? (forceIoNoticeValue ? null : this.ioNotice));

@@ -16,8 +16,7 @@ class OcptResourcesIoNotice extends Equatable {
   /// writing it to a path the user picked, so there is none to show.
   final String? path;
 
-  /// Whether the export was handed to the OS share sheet rather than written to [path] — mobile's
-  /// own outcome, `file_selector`'s `getSaveLocation` having no Android or iOS implementation.
+  /// {@macro open_cine_prod_tools.ioNoticeSharedFlag}
   final bool wasShared;
 
   /// Class constructor

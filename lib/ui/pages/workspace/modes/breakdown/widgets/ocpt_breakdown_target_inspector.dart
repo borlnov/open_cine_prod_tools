@@ -125,8 +125,10 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
   /// Called with the category just picked, or null while it may not be changed.
   final ValueChanged<OcptElementCategory>? onCategoryChanged;
 
+  /// {@template open_cine_prod_tools.fieldTextChangedCallback}
   /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
   /// to.
+  /// {@endtemplate}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the person who now owns [element], or null to clear it; itself null while it may
@@ -475,8 +477,7 @@ class _Details extends StatelessWidget {
   /// [element]'s current value for `field`.
   final String Function(OcptElementField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptElementField field, String rawValue)? onFieldChanged;
 
   /// Called with the person who now owns [element], or null to clear it; itself null while it may

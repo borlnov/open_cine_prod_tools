@@ -47,10 +47,7 @@ class OcptBudgetFinancingBloc
   /// provisioning of an account.
   final OcptBudgetQuoteService _budgetQuoteService;
 
-  /// Class constructor
-  ///
-  /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt].
+  /// {@macro open_cine_prod_tools.viewBlocConstructor}
   OcptBudgetFinancingBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,

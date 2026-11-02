@@ -69,8 +69,10 @@ class OcptScheduleNamedCallSheetsExportRequestedEvent extends OcptScheduleExport
   /// The localized label of the native "choose a folder" dialog's own confirm button.
   final String confirmButtonText;
 
+  /// {@template open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   /// The tapped `Export` control's own screen `Rect`, exactly as
   /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@endtemplate}
   final Rect? shareAnchor;
 
   /// Class constructor
@@ -100,8 +102,7 @@ class OcptScheduleShootingPlanExportRequestedEvent extends OcptScheduleExportEve
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, exactly as
-  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@macro open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   final Rect? shareAnchor;
 
   /// Class constructor
@@ -131,8 +132,7 @@ class OcptScheduleShootingPlanXlsxExportRequestedEvent extends OcptScheduleExpor
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, exactly as
-  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@macro open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   final Rect? shareAnchor;
 
   /// Class constructor
@@ -162,8 +162,7 @@ class OcptScheduleDayOutOfDaysExportRequestedEvent extends OcptScheduleExportEve
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, exactly as
-  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@macro open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   final Rect? shareAnchor;
 
   /// Class constructor
@@ -193,8 +192,7 @@ class OcptScheduleOneLineScheduleExportRequestedEvent extends OcptScheduleExport
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, exactly as
-  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@macro open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   final Rect? shareAnchor;
 
   /// Class constructor
@@ -223,8 +221,7 @@ class OcptScheduleSidesExportRequestedEvent extends OcptScheduleExportEvent {
   /// The localized label passed to the native save dialog's own type filter.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, exactly as
-  /// [OcptScheduleCallSheetsExportRequestedEvent.shareAnchor] is — see its own doc comment.
+  /// {@macro open_cine_prod_tools.exportShareAnchorLikeCallSheets}
   final Rect? shareAnchor;
 
   /// Class constructor

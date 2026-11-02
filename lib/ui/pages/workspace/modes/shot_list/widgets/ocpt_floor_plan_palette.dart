@@ -363,8 +363,10 @@ class _GroupTitle extends StatelessWidget {
 /// null for every other entry (camera, character, light): together they tell every typed entry
 /// apart from the others, since they all share [OcptFloorPlanTool.setElement].
 class _Entry extends StatelessWidget {
+  /// {@template open_cine_prod_tools.floorPlanPalettePartOwner}
   /// The palette this part belongs to, which supplies the armed tool, the visibility state and
   /// the callbacks.
+  /// {@endtemplate}
   final OcptFloorPlanPalette palette;
 
   /// The tool this part draws.
@@ -472,8 +474,7 @@ class _Entry extends StatelessWidget {
 /// The `Sequence` group's own breakdown-props chips: one chip per [OcptFloorPlanPalette.propsChips]
 /// entry, plus the fixed add-prop button for a free-typed label.
 class _PropsChips extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor
@@ -500,8 +501,7 @@ class _PropsChips extends StatelessWidget {
 /// Offered as a drag source too, carrying [chip]'s own name on the drag itself. Shows
 /// `<name> ×<quantity>` while [chip] carries one.
 class _PropChip extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// The chip this part draws.
@@ -570,8 +570,7 @@ class _PropChip extends StatelessWidget {
 /// [Icons.add] plus the word alone ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries
 /// the plus, so the label text never repeats it.
 class _AddPropButton extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor
@@ -610,8 +609,7 @@ class _AddPropButton extends StatelessWidget {
 /// its own eye — its own title carries that list's own count, exactly like a plain layer row (each
 /// entry already carries its own individual eye, so the title itself has none to withhold).
 class _CamerasRow extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor
@@ -671,8 +669,7 @@ class _CamerasRow extends StatelessWidget {
 
 /// One camera's own sub-row of [_CamerasRow]: its derived label and a trailing eye.
 class _CameraRow extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// The camera this part draws.
@@ -711,8 +708,7 @@ class _CameraRow extends StatelessWidget {
 
 /// The `Onion skin` block: the previous/next toggles and the opacity slider.
 class _OnionSkinBlock extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor
@@ -775,8 +771,7 @@ class _OnionSkinBlock extends StatelessWidget {
 
 /// The field-of-view overlay's own toggle row: every camera's own wedge, on by default.
 class _ShowFieldOfViewToggle extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor
@@ -807,8 +802,7 @@ class _ShowFieldOfViewToggle extends StatelessWidget {
 /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so
 /// a layer hidden before its last element was removed can still be shown again.
 class _LayerRow extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// The layer this part draws.
@@ -867,8 +861,7 @@ class _LayerRow extends StatelessWidget {
 
 /// The underlay's own row: its label and a trailing eye toggling its visibility.
 class _UnderlayRow extends StatelessWidget {
-  /// The palette this part belongs to, which supplies the armed tool, the visibility state and
-  /// the callbacks.
+  /// {@macro open_cine_prod_tools.floorPlanPalettePartOwner}
   final OcptFloorPlanPalette palette;
 
   /// Class constructor

@@ -30,9 +30,7 @@ class OcptResourcesXlsxExportRequestedEvent extends OcptResourcesExportEvent {
   /// The localized label of the `.xlsx` file type, shown by the native save dialog.
   final String fileTypeLabel;
 
-  /// The tapped `Export` control's own screen `Rect`, anchoring the OS share sheet's popover on an
-  /// iPad/Mac when the export is handed to it rather than to the native save dialog; null on
-  /// desktop and wherever no anchor was resolved.
+  /// {@macro open_cine_prod_tools.exportShareAnchor}
   final Rect? shareAnchor;
 
   /// Class constructor

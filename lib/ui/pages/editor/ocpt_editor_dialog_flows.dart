@@ -173,12 +173,14 @@ class OcptEditorDialogFlows {
     );
   }
 
+  /// {@template open_cine_prod_tools.packageMissingFilesDialogFlow}
   /// Ask whether to write the package even though some referenced files are gone, then dispatch
   /// the export if the user said to go on.
   ///
   /// Opened from the bloc's state rather than from the panel's own click, since only the bloc can
   /// read the project file the pre-flight scanned. The question is cleared from that state the
   /// moment this opens, so a later emission never stacks a second dialog behind this one.
+  /// {@endtemplate}
   static Future<void> askAboutMissingPackagedFiles(
     BuildContext context,
     OcptProjectPackagePreflight preflight,

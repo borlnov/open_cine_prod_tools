@@ -58,8 +58,7 @@ class OcptLocationsService extends AbsOcptService {
   /// be depended on here without a cycle.
   final OcptFloorPlanService floorPlanService;
 
-  /// Resolves the device id every stamp this service's own writes carry — see
-  /// [OcptDeviceIdGetter].
+  /// {@macro open_cine_prod_tools.serviceDeviceIdGetter}
   final OcptDeviceIdGetter deviceId;
 
   /// Class constructor

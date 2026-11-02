@@ -353,8 +353,7 @@ class _LogisticsRow extends StatelessWidget {
   /// [location]'s current value for `field`.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Class constructor
@@ -424,8 +423,7 @@ class _ConstraintsCallout extends StatelessWidget {
   /// [location]'s current value for `field`.
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Class constructor
@@ -485,8 +483,7 @@ class _NotesField extends StatelessWidget {
   /// [location]'s current value for [field].
   final String Function(OcptLocationField field) fieldValueOf;
 
-  /// Called with a field's raw text on every keystroke, or null while the sheet may not be written
-  /// to.
+  /// {@macro open_cine_prod_tools.fieldTextChangedCallback}
   final void Function(OcptLocationField field, String rawValue)? onFieldChanged;
 
   /// Class constructor

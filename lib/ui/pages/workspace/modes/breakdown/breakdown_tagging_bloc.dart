@@ -51,10 +51,7 @@ class OcptBreakdownTaggingBloc
   /// The service used to write a tag, with the element or the set it creates.
   final OcptBreakdownService _breakdownService;
 
-  /// Class constructor
-  ///
-  /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt].
+  /// {@macro open_cine_prod_tools.viewBlocConstructor}
   OcptBreakdownTaggingBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
