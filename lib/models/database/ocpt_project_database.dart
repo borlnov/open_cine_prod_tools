@@ -4,7 +4,7 @@
 
 import 'dart:io';
 
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:open_cine_prod_tools/models/database/converters/ocpt_asset_kind_converter.dart';
@@ -91,6 +91,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_storyboard_pane
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_pairings_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_sync_relay_cursors_table.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_weekday_mask.dart';
+
 // These are only used through the type converters declared in the table files above
 // (OcptPageFormatConverter, OcptSnapshotReasonConverter, OcptShotStatusConverter,
 // OcptShotCheckReasonConverter, OcptImageRightsStatusConverter, OcptRoleKindConverter,
@@ -276,6 +277,9 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
   /// constants drive together.
   static const lastStableSchemaVersion = 4;
 
+  /// The category this class logs under.
+  static const _loggerCategory = "project_database";
+
   /// Whether this connection holds the read-only state of a project version being previewed,
   /// rather than the working copy.
   ///
@@ -398,12 +402,18 @@ class OcptProjectDatabase extends _$OcptProjectDatabase {
       return false;
     }
 
-    appLogger().w(
+    _createLogger().w(
       "The write '$operation' was handed the read-only database of a project version "
       "being previewed: it's ignored, the version on screen isn't editable",
     );
     return true;
   }
+
+  /// Build the logger this class writes to.
+  ///
+  /// Built on every use rather than held: a database has no life cycle to release a logger with, and
+  /// the global logger it is built over can be replaced.
+  static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
 
   /// Get the file executor [OcptProjectDatabase.alongsideAnother] runs on, silencing drift's
   /// multiple-instances warning first (see that constructor's own doc comment).

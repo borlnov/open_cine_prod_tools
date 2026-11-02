@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_dart_utility/act_dart_utility.dart';
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:equatable/equatable.dart';
 
 /// Represent a project the user has recently opened, so it can be listed and reopened quickly.
 class OcptRecentProjectModel extends Equatable {
+  /// The category this class logs under.
+  static const _loggerCategory = "recent_project_model";
+
   /// This is the key used to stringify or parse the [path] from a JSON object
   static const _pathKey = "path";
 
@@ -79,20 +82,20 @@ class OcptRecentProjectModel extends Equatable {
     final pathResult = JsonUtility.getOnePrimaryElement<String>(
       json: json,
       key: _pathKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     final nameResult = JsonUtility.getOnePrimaryElement<String>(
       json: json,
       key: _nameKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     final lastOpenedAtResult = JsonUtility.getOneElement<DateTime, String>(
       json: json,
       key: _lastOpenedAtKey,
       castValueFunc: DateTime.tryParse,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     // canBeUndefined: an entry written by an older version of the app never recorded this key at
@@ -101,14 +104,16 @@ class OcptRecentProjectModel extends Equatable {
       json: json,
       key: _episodeCountKey,
       canBeUndefined: true,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     if (!pathResult.isOk ||
         !nameResult.isOk ||
         !lastOpenedAtResult.isOk ||
         !episodeCountResult.isOk) {
-      appLogger().w("A problem occurred when tried to get the recent project from the given JSON");
+      _createLogger().w(
+        "A problem occurred when tried to get the recent project from the given JSON",
+      );
       return null;
     }
 
@@ -119,6 +124,12 @@ class OcptRecentProjectModel extends Equatable {
       episodeCount: episodeCountResult.value,
     );
   }
+
+  /// Build the logger this class writes to.
+  ///
+  /// Built on every use rather than held: a model has no life cycle to release a logger with, and
+  /// the global logger it is built over can be replaced.
+  static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
 
   /// List the fields that decide equality.
   @override

@@ -5,7 +5,7 @@
 import 'dart:convert';
 
 import 'package:act_dart_utility/act_dart_utility.dart';
-import 'package:act_global_manager/act_global_manager.dart';
+import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fountain_kit/fountain_kit.dart';
 import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
@@ -19,6 +19,9 @@ import 'package:open_cine_prod_tools/models/ocpt_project_version_payload.dart';
 class OcptProjectVersionSummary extends Equatable {
   /// The all-zero summary, used for a version whose stored counters can't be read back.
   static const empty = OcptProjectVersionSummary(pageCount: 0, brokenDownSequenceCount: 0);
+
+  /// The category this class logs under.
+  static const _loggerCategory = "project_version_summary";
 
   /// This is the key used to stringify or parse the [pageCount] from a JSON object
   static const _pageCountKey = "pageCount";
@@ -90,17 +93,17 @@ class OcptProjectVersionSummary extends Equatable {
     final pageCountResult = JsonUtility.getOnePrimaryElement<int>(
       json: json,
       key: _pageCountKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     final brokenDownSequenceCountResult = JsonUtility.getOnePrimaryElement<int>(
       json: json,
       key: _brokenDownSequenceCountKey,
-      logger: appLogger(),
+      logger: _createLogger(),
     );
 
     if (!pageCountResult.isOk || !brokenDownSequenceCountResult.isOk) {
-      appLogger().w(
+      _createLogger().w(
         "A problem occurred when tried to get the project version summary from the "
         "given JSON",
       );
@@ -123,13 +126,13 @@ class OcptProjectVersionSummary extends Equatable {
     try {
       final decoded = jsonDecode(summaryJson);
       if (decoded is! Map<String, dynamic>) {
-        appLogger().w("The stored project version summary isn't a JSON object");
+        _createLogger().w("The stored project version summary isn't a JSON object");
       } else {
         summary = fromJson(decoded) ?? empty;
       }
     } on FormatException catch (error, stackTrace) {
       // A JSON error quotes the text around the fault, so only its type is logged.
-      appLogger().w(
+      _createLogger().w(
         "The stored project version summary isn't valid JSON: ${error.runtimeType}",
         null,
         stackTrace,
@@ -138,6 +141,12 @@ class OcptProjectVersionSummary extends Equatable {
 
     return summary;
   }
+
+  /// Build the logger this class writes to.
+  ///
+  /// Built on every use rather than held: a model has no life cycle to release a logger with, and
+  /// the global logger it is built over can be replaced.
+  static LogsHelper _createLogger() => LogsHelper(category: _loggerCategory);
 
   /// List the fields that decide equality.
   @override
