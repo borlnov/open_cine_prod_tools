@@ -254,7 +254,7 @@ class OcptShotListStoryboardBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pending,
         (edits) => _writeAllPendingEdits(project: project, pending: edits),
       );

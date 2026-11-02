@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
@@ -250,11 +251,33 @@ abstract class AbsOcptViewBloc<
   /// throwing, or answering an [OcptDatabaseOutcome] that is a failure, forgets what it was given,
   /// so the next call retries.
   ///
-  /// Answers that failure, or `ok` when [write] succeeded or had nothing to write. [write] is typed
-  /// loosely, a view that has not moved to [OcptDatabaseOutcome] yet still returning nothing, and
-  /// the answer of one that has is read here, in the one place a view's write can fail.
+  /// Answers that failure, or `ok` when [write] succeeded or had nothing to write. [write] is
+  /// typed to answer an [OcptDatabaseOutcome], so that a write which answers nothing cannot be
+  /// handed in and marked as written: the answer is read here, in the one place a view's write can
+  /// fail, and the caller reads the one this returns.
   @protected
-  Future<OcptDatabaseOutcome> flushEditsWithoutState<K, V, R>(
+  @useResult
+  Future<OcptDatabaseOutcome> flushEditsWithoutState<K, V>(
+    Map<K, V> pending,
+    Future<OcptDatabaseOutcome> Function(Map<K, V> edits) write,
+  ) => _flushEdits<K, V, OcptDatabaseOutcome>(pending, write);
+
+  /// Do what [flushEditsWithoutState] does for a view whose write has not moved to an
+  /// [OcptDatabaseOutcome] yet and still answers nothing or raises.
+  ///
+  /// Transitional: it exists only until the last view is converted, and goes away with it. A view
+  /// that moves to [OcptDatabaseOutcome] switches to [flushEditsWithoutState], which the compiler
+  /// then makes it read the answer of. A failure raised by [write] is forgotten and rethrown,
+  /// as before.
+  @protected
+  Future<OcptDatabaseOutcome> flushEditsWithoutStateUntilConverted<K, V, R>(
+    Map<K, V> pending,
+    Future<R> Function(Map<K, V> edits) write,
+  ) => _flushEdits<K, V, R>(pending, write);
+
+  /// Write the entries of [pending] that were not written yet through [write], see
+  /// [flushEditsWithoutState].
+  Future<OcptDatabaseOutcome> _flushEdits<K, V, R>(
     Map<K, V> pending,
     Future<R> Function(Map<K, V> edits) write,
   ) async {

@@ -286,7 +286,7 @@ class OcptShotListInspectorBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pending,
         (edits) => _writeAllPendingFields(project: project, pending: edits),
       );

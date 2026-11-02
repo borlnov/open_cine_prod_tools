@@ -322,7 +322,7 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   @override
   Future<void> flushPendingWritesWithoutState() async {
     if (state.pending.isNotEmpty) {
-      await flushEditsWithoutState({"text": state.pending}, (edits) async {
+      await flushEditsWithoutStateUntilConverted({"text": state.pending}, (edits) async {
         final fails = failsToWriteWithoutState;
         final answersFailure = answersFailureWithoutState;
         await writeGate?.future;

@@ -210,7 +210,7 @@ class OcptBudgetExpensesBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         edits,
         (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
       );

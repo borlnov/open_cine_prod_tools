@@ -264,7 +264,7 @@ class OcptBreakdownInspectorBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingElementFields,
         (edits) => _writeAllPendingFields(
           database: project.database,
@@ -273,7 +273,7 @@ class OcptBreakdownInspectorBloc
           setNames: const {},
         ),
       );
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingSceneNotes,
         (edits) => _writeAllPendingFields(
           database: project.database,
@@ -282,7 +282,7 @@ class OcptBreakdownInspectorBloc
           setNames: const {},
         ),
       );
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingSetNames,
         (edits) => _writeAllPendingFields(
           database: project.database,

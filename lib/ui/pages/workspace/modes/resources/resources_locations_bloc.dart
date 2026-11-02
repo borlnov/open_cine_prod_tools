@@ -267,11 +267,11 @@ class OcptResourcesLocationsBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingLocationEdits,
         (edits) => _writeAllPendingLocationFields(database: project.database, pending: edits),
       );
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingSetEdits,
         (edits) => _writeAllPendingSetFields(database: project.database, pending: edits),
       );

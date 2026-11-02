@@ -239,7 +239,7 @@ class OcptResourcesElementsBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pending,
         (edits) => _writeAllPendingElementFields(database: project.database, pending: edits),
       );

@@ -244,11 +244,11 @@ class OcptResourcesRolesBloc
     }
 
     try {
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingRoleEdits,
         (edits) => _writeAllPendingRoleFields(database: project.database, pending: edits),
       );
-      await flushEditsWithoutState(
+      await flushEditsWithoutStateUntilConverted(
         pendingCandidateEdits,
         (edits) => _writeAllPendingCandidateFields(database: project.database, pending: edits),
       );

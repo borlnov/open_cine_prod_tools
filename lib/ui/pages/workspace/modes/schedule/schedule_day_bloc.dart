@@ -236,7 +236,7 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await flushEditsWithoutState(
+    final _ = await flushEditsWithoutState(
       edits,
       (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
     );
