@@ -99,7 +99,11 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
             onPersonSheetOpenRequested: onPersonSheetOpenRequested,
           ),
           const SizedBox(height: 8),
-          _field(OcptElementField.ownerNotes, tr.resourcesElementOwnerNotesLabel),
+          _ElementTextField(
+            card: this,
+            field: OcptElementField.ownerNotes,
+            label: tr.resourcesElementOwnerNotesLabel,
+          ),
           const SizedBox(height: 10),
           OcptResourcesPersonPicker(
             people: people,
@@ -110,33 +114,15 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
             onPersonSheetOpenRequested: onPersonSheetOpenRequested,
           ),
           const SizedBox(height: 10),
-          _field(
-            OcptElementField.cost,
-            tr.resourcesElementCostLabel,
+          _ElementTextField(
+            card: this,
+            field: OcptElementField.cost,
+            label: tr.resourcesElementCostLabel,
             suffixText: NumberFormat.simpleCurrency(name: currencyCode).currencySymbol,
             errorTextOf: (value) => _costErrorOf(tr, value),
           ),
         ],
       ),
-    );
-  }
-
-  /// Build one text field of the card, labelled [label] and writing [field].
-  Widget _field(
-    OcptElementField field,
-    String label, {
-    String? suffixText,
-    String? Function(String value)? errorTextOf,
-  }) {
-    final onFieldChanged = this.onFieldChanged;
-
-    return OcptResourcesSheetField(
-      ownerId: element.id,
-      label: label,
-      value: fieldValueOf(field),
-      suffixText: suffixText,
-      errorTextOf: errorTextOf,
-      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
     );
   }
 
@@ -152,6 +138,49 @@ class OcptElementSheetSourcingCard extends StatelessWidget {
     }
 
     return tr.resourcesElementCostFormatError;
+  }
+}
+
+/// One text field of [OcptElementSheetSourcingCard], labelled [label] and writing [field].
+class _ElementTextField extends StatelessWidget {
+  /// The card the field belongs to, which holds the element and the way its fields are read and
+  /// written.
+  final OcptElementSheetSourcingCard card;
+
+  /// The element field this text field writes.
+  final OcptElementField field;
+
+  /// The label shown over the field.
+  final String label;
+
+  /// The text shown after the value, or null for none.
+  final String? suffixText;
+
+  /// Describe what is wrong with a value, or null for a field that never complains.
+  final String? Function(String value)? errorTextOf;
+
+  /// Class constructor
+  const _ElementTextField({
+    required this.card,
+    required this.field,
+    required this.label,
+    this.suffixText,
+    this.errorTextOf,
+  });
+
+  /// Build the element text field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final onFieldChanged = card.onFieldChanged;
+
+    return OcptResourcesSheetField(
+      ownerId: card.element.id,
+      label: label,
+      value: card.fieldValueOf(field),
+      suffixText: suffixText,
+      errorTextOf: errorTextOf,
+      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
+    );
   }
 }
 

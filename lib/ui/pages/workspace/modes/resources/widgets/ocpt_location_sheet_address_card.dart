@@ -68,20 +68,36 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _field(context, OcptLocationField.addressLine1, tr.resourcesAddressLine1Label),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.addressLine1,
+            label: tr.resourcesAddressLine1Label,
+          ),
           const SizedBox(height: 8),
-          _field(context, OcptLocationField.addressLine2, tr.resourcesAddressLine2Label),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.addressLine2,
+            label: tr.resourcesAddressLine2Label,
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _field(context, OcptLocationField.postalCode, tr.resourcesPostalCodeLabel),
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.postalCode,
+                  label: tr.resourcesPostalCodeLabel,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 flex: 2,
-                child: _field(context, OcptLocationField.city, tr.resourcesCityLabel),
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.city,
+                  label: tr.resourcesCityLabel,
+                ),
               ),
             ],
           ),
@@ -89,9 +105,21 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _field(context, OcptLocationField.region, tr.resourcesRegionLabel)),
+              Expanded(
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.region,
+                  label: tr.resourcesRegionLabel,
+                ),
+              ),
               const SizedBox(width: 10),
-              Expanded(child: _field(context, OcptLocationField.country, tr.resourcesCountryLabel)),
+              Expanded(
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.country,
+                  label: tr.resourcesCountryLabel,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -99,19 +127,19 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _field(
-                  context,
-                  OcptLocationField.latitude,
-                  tr.resourcesLatitudeLabel,
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.latitude,
+                  label: tr.resourcesLatitudeLabel,
                   errorTextOf: (value) => _coordinateErrorOf(tr, value),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _field(
-                  context,
-                  OcptLocationField.longitude,
-                  tr.resourcesLongitudeLabel,
+                child: _LocationTextField(
+                  card: this,
+                  field: OcptLocationField.longitude,
+                  label: tr.resourcesLongitudeLabel,
                   errorTextOf: (value) => _coordinateErrorOf(tr, value),
                 ),
               ),
@@ -127,27 +155,13 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
             onPersonSheetOpenRequested: onPersonSheetOpenRequested,
           ),
           const SizedBox(height: 8),
-          _field(context, OcptLocationField.contactNotes, tr.resourcesLocationContactNotesLabel),
+          _LocationTextField(
+            card: this,
+            field: OcptLocationField.contactNotes,
+            label: tr.resourcesLocationContactNotesLabel,
+          ),
         ],
       ),
-    );
-  }
-
-  /// Build one text field of the card, labelled [label] and writing [field].
-  Widget _field(
-    BuildContext context,
-    OcptLocationField field,
-    String label, {
-    String? Function(String value)? errorTextOf,
-  }) {
-    final onFieldChanged = this.onFieldChanged;
-
-    return OcptResourcesSheetField(
-      ownerId: locationId,
-      label: label,
-      value: fieldValueOf(field),
-      errorTextOf: errorTextOf,
-      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
     );
   }
 
@@ -165,5 +179,43 @@ class OcptLocationSheetAddressCard extends StatelessWidget {
     }
 
     return tr.resourcesCoordinateFormatError;
+  }
+}
+
+/// One text field of [OcptLocationSheetAddressCard], labelled [label] and writing [field].
+class _LocationTextField extends StatelessWidget {
+  /// The card the field belongs to, which holds the location id and the way its fields are read and
+  /// written.
+  final OcptLocationSheetAddressCard card;
+
+  /// The location field this text field writes.
+  final OcptLocationField field;
+
+  /// The label shown over the field.
+  final String label;
+
+  /// Describe what is wrong with a value, or null for a field that never complains.
+  final String? Function(String value)? errorTextOf;
+
+  /// Class constructor
+  const _LocationTextField({
+    required this.card,
+    required this.field,
+    required this.label,
+    this.errorTextOf,
+  });
+
+  /// Build the location text field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final onFieldChanged = card.onFieldChanged;
+
+    return OcptResourcesSheetField(
+      ownerId: card.locationId,
+      label: label,
+      value: card.fieldValueOf(field),
+      errorTextOf: errorTextOf,
+      onChanged: onFieldChanged == null ? null : (value) => onFieldChanged(field, value),
+    );
   }
 }
