@@ -9,11 +9,9 @@
 /// `OcptMergeService`'s whole-row reconstruction is the one caller: it holds a JSON map keyed by
 /// Dart field names (a row's own `toJson()`, and `row_field_versions.columnName` — see
 /// `OcptFieldStamp`'s own doc comment) and has to write it back through `GeneratedColumn`s, which
-/// only ever carry their SQL name. Every synchronised table's column is auto-named this way today —
-/// `row_field_versions.targetTableName` is the one column in the whole schema that overrides it
-/// with `.named(...)`, and it sits on the one table the changeset engine never reads or writes a
-/// row of (`ocptSynchronisedTables` excludes it for carrying no `isDeleted`) — so this conversion
-/// is exact for every column this ever runs against, not a heuristic guess.
+/// only ever carry their SQL name. So a synchronised column that declares `.named(...)` has to pin
+/// its JSON key to what this returns for that name: the three `accountId` columns are stored as
+/// `poste_id` and keep the JSON key `posteId` through `@JsonKey`.
 String ocptDartFieldName(String sqlColumnName) {
   final words = sqlColumnName.split('_');
 

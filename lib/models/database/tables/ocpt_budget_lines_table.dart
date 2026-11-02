@@ -100,10 +100,10 @@ class OcptBudgetLinesTable extends Table {
 
   /// Get what wrote this line, or null while a human typed it.
   ///
-  /// A **stable key naming the thing provisioned** rather than a foreign key — `regie:meal`,
-  /// `regie:snack`, `allowance:travel` and so on: the logistics view provisions *one line per
-  /// nature*, summing across every defrayal of that nature and every shooting day, so there is no
-  /// single row on the other end for a foreign key to point at. Reprovisioning finds the line
+  /// A **stable key naming the thing provisioned** rather than a foreign key, the name of an
+  /// `OcptBudgetProvisionKind`: the logistics view provisions *one line per nature*, summing across
+  /// every defrayal of that nature and every shooting day, so there is no single row on the other
+  /// end for a foreign key to point at. Reprovisioning finds the line
   /// carrying the same key on the same account and updates it, instead of stacking a second one
   /// beside it.
   ///
