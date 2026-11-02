@@ -195,7 +195,11 @@ class _Fields extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _field(OcptElementField.subCategory, tr.resourcesElementSubCategoryLabel),
+              child: _OcptElementSheetHeaderField(
+                fields: this,
+                field: OcptElementField.subCategory,
+                label: tr.resourcesElementSubCategoryLabel,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -214,14 +218,6 @@ class _Fields extends StatelessWidget {
     );
   }
 
-  /// Build one text field of the header, labelled [label] and writing [field].
-  Widget _field(OcptElementField field, String label) => OcptResourcesSheetField(
-    ownerId: element.id,
-    label: label,
-    value: fieldValueOf(field),
-    onChanged: _onChangedOf(field),
-  );
-
   /// Get the `onChanged` [field] is given: the one reporting to [onFieldChanged], or null while the
   /// sheet may not be written to, which is what makes the field read its value out instead.
   ValueChanged<String>? _onChangedOf(OcptElementField field) {
@@ -231,6 +227,39 @@ class _Fields extends StatelessWidget {
     }
 
     return (value) => onFieldChanged(field, value);
+  }
+}
+
+/// One text field of the header, labelled `label` and writing `field`.
+class _OcptElementSheetHeaderField extends StatelessWidget {
+  /// The fields group whose element and callbacks the field is wired to.
+  final _Fields fields;
+
+  /// The element field the text field writes.
+  final OcptElementField field;
+
+  /// The label of the text field.
+  final String label;
+
+  /// Class constructor
+  const _OcptElementSheetHeaderField({
+    required this.fields,
+    required this.field,
+    required this.label,
+  });
+
+  /// Build the element sheet header field as an [OcptResourcesSheetField].
+  @override
+  Widget build(BuildContext context) {
+    final field = this.field;
+    final label = this.label;
+
+    return OcptResourcesSheetField(
+      ownerId: fields.element.id,
+      label: label,
+      value: fields.fieldValueOf(field),
+      onChanged: fields._onChangedOf(field),
+    );
   }
 }
 

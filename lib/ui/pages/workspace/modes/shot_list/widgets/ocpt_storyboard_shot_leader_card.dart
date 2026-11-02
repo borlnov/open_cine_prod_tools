@@ -68,11 +68,14 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _readOut(context, tr.shotListColumnShotSize, ocptShotFieldOrDash(shot.shotSize)),
-          _readOut(context, tr.shotListColumnFraming, ocptShotFieldOrDash(shot.framing)),
-          _readOut(context, tr.shotListColumnCameraMove, ocptShotFieldOrDash(shot.cameraMove)),
-          _readOut(context, tr.shotListColumnLens, ocptShotFieldOrDash(shot.lens)),
-          _readOut(context, tr.shotListColumnFormat, ocptShotFieldOrDash(shot.recordingFormat)),
+          _ReadOut(label: tr.shotListColumnShotSize, value: ocptShotFieldOrDash(shot.shotSize)),
+          _ReadOut(label: tr.shotListColumnFraming, value: ocptShotFieldOrDash(shot.framing)),
+          _ReadOut(label: tr.shotListColumnCameraMove, value: ocptShotFieldOrDash(shot.cameraMove)),
+          _ReadOut(label: tr.shotListColumnLens, value: ocptShotFieldOrDash(shot.lens)),
+          _ReadOut(
+            label: tr.shotListColumnFormat,
+            value: ocptShotFieldOrDash(shot.recordingFormat),
+          ),
           if (attachedRoles.isNotEmpty) ...[
             const SizedBox(height: 8),
             OcptShotCharacterChips(
@@ -107,9 +110,22 @@ class OcptStoryboardShotLeaderCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Build one `label — value` line of the card's découpage read-out.
-  Widget _readOut(BuildContext context, String label, String value) {
+/// One `label — value` line of the card's découpage read-out.
+class _ReadOut extends StatelessWidget {
+  /// The line's label.
+  final String label;
+
+  /// The line's value.
+  final String value;
+
+  /// Class constructor
+  const _ReadOut({required this.label, required this.value});
+
+  /// Build the read-out as a [Padding].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(

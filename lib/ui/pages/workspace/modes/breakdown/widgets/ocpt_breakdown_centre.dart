@@ -44,8 +44,15 @@ class OcptBreakdownCentre extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_bannerOf(state) case final banner?)
-          Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: banner),
+        if (!state.isPreviewingVersion &&
+            (state.orphanedRoleAlerts.isNotEmpty || state.roleCollisionAlerts.isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: _RoleAlertBanner(
+              orphanedAlerts: state.orphanedRoleAlerts,
+              collisionAlerts: state.roleCollisionAlerts,
+            ),
+          ),
         OcptBreakdownHeader(
           centreView: state.centreView,
           onCentreViewSelected: (view) =>
@@ -64,19 +71,6 @@ class OcptBreakdownCentre extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  /// Build the compact role alert banner, or null while the whole cast is in order or a project
-  /// version
-  /// is being previewed read-only.
-  Widget? _bannerOf(OcptBreakdownState state) {
-    final orphanedAlerts = state.orphanedRoleAlerts;
-    final collisionAlerts = state.roleCollisionAlerts;
-    if (state.isPreviewingVersion || (orphanedAlerts.isEmpty && collisionAlerts.isEmpty)) {
-      return null;
-    }
-
-    return _RoleAlertBanner(orphanedAlerts: orphanedAlerts, collisionAlerts: collisionAlerts);
   }
 }
 

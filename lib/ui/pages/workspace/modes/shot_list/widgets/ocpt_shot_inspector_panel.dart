@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_shot_status_pill.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_shot_list_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_section_title.dart';
 
 /// The width of the abbreviation field's own box, sitting right under the shot size it abbreviates:
 /// enough for the three or four characters an abbreviation ever holds (`PM`, `GP`, `TGP`), so the
@@ -196,7 +197,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
 
         if (leadingGroup != null) ...[leadingGroup!, const SizedBox(height: 16)],
 
-        _sectionTitle(context, tr.shotListInspectorCharactersSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorCharactersSectionTitle),
         const SizedBox(height: 8),
         OcptShotCharacterChips(
           roles: roles,
@@ -206,7 +207,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorCoverageSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorCoverageSectionTitle),
         const SizedBox(height: 8),
         OcptShotCoverageSummary(
           layout: coverageLayout,
@@ -218,7 +219,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorImageSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorImageSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -266,9 +267,8 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(
-          context,
-          tr.shotListInspectorDifficultySectionTitle(
+        OcptSectionTitle(
+          title: tr.shotListInspectorDifficultySectionTitle(
             ocptFormatShotDifficulty(context, shot.averageDifficulty),
           ),
         ),
@@ -295,7 +295,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        _sectionTitle(context, tr.shotListInspectorProductionSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorProductionSectionTitle),
         const SizedBox(height: 8),
         _EstimatedDurationField(
           shot: shot,
@@ -316,7 +316,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(context, tr.shotListInspectorNotesSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorNotesSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -327,7 +327,7 @@ class OcptShotInspectorPanel extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        _sectionTitle(context, tr.shotListInspectorLocationSectionTitle),
+        OcptSectionTitle(title: tr.shotListInspectorLocationSectionTitle),
         const SizedBox(height: 8),
         OcptShotInspectorField(
           shotId: shot.id,
@@ -362,15 +362,6 @@ class OcptShotInspectorPanel extends StatelessWidget {
   /// [_onFieldChangedOrNull] and with the same effect: the dots then only read the axis out.
   ValueChanged<int>? _onDifficultyChangedOrNull(OcptShotDifficultyAxis axis) =>
       isReadOnly ? null : (value) => onDifficultyChanged(axis, value);
-
-  /// Build one section title, the accent-coloured header the mock-up uses to separate the panel's
-  /// sections (Image, Difficulty, Production, …).
-  Widget _sectionTitle(BuildContext context, String title) => Text(
-    title,
-    style: Theme.of(
-      context,
-    ).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary),
-  );
 }
 
 /// The estimated duration field of a shot: the one field of the panel whose value is not free text

@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_resources_sheet_field.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_breakdown_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_resources_labels.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_section_title.dart';
 
 /// One occurrence of the inspected target: a live tag, resolved out of [OcptBreakdownScene.tags],
 /// carrying just what the occurrences section shows and jumps to.
@@ -247,17 +248,17 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
         const SizedBox(height: 16),
 
         if (element != null) ...[
-          _SectionTitle(title: tr.breakdownElementStatusSectionTitle),
+          OcptSectionTitle(title: tr.breakdownElementStatusSectionTitle),
           const SizedBox(height: 8),
           _StatusChips(element: element, onStatusChanged: onStatusChanged),
           const SizedBox(height: 16),
 
-          _SectionTitle(title: tr.breakdownElementCategorySectionTitle),
+          OcptSectionTitle(title: tr.breakdownElementCategorySectionTitle),
           const SizedBox(height: 8),
           _CategoryGrid(element: element, onCategoryChanged: onCategoryChanged),
           const SizedBox(height: 16),
 
-          _SectionTitle(title: tr.breakdownElementDetailsSectionTitle),
+          OcptSectionTitle(title: tr.breakdownElementDetailsSectionTitle),
           const SizedBox(height: 8),
           _Details(
             element: element,
@@ -272,13 +273,13 @@ class OcptBreakdownTargetInspector extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
-        _SectionTitle(title: tr.breakdownOccurrencesSectionTitle),
+        OcptSectionTitle(title: tr.breakdownOccurrencesSectionTitle),
         const SizedBox(height: 8),
         _Occurrences(occurrences: occurrences, onOccurrenceSelected: onOccurrenceSelected),
         const SizedBox(height: 16),
 
         if (suggestions.isNotEmpty) ...[
-          _SectionTitle(title: tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length)),
+          OcptSectionTitle(title: tr.breakdownSuggestedOccurrencesSectionTitle(suggestions.length)),
           const SizedBox(height: 8),
           _SuggestedOccurrences(
             suggestions: suggestions,
@@ -359,27 +360,6 @@ class _Title extends StatelessWidget {
       value: nameValue,
       textStyle: style,
       onChanged: onNameChanged,
-    );
-  }
-}
-
-/// One section title, the accent-coloured header the mock-up uses to separate the panel's sections,
-/// mirroring the shot inspector's own section title.
-class _SectionTitle extends StatelessWidget {
-  /// The title's text.
-  final String title;
-
-  /// Class constructor
-  const _SectionTitle({required this.title});
-
-  /// Build the section title as a [Text].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Text(
-      title,
-      style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
     );
   }
 }

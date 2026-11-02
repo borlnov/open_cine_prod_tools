@@ -87,8 +87,10 @@ class OcptSharingView extends StatelessWidget {
           ],
         ),
         body: showHosting
-            ? _OcptSharingSegmentedBody(remoteBody: _remoteBody(context, state))
-            : _remoteBody(context, state),
+            ? _OcptSharingSegmentedBody(
+                remoteBody: _OcptSharingRemoteBody(view: this, state: state),
+              )
+            : _OcptSharingRemoteBody(view: this, state: state),
       );
     },
   );
@@ -131,23 +133,6 @@ class OcptSharingView extends StatelessWidget {
     return managers.get<OcptProjectsManager>().currentProject?.isReadOnly ?? false;
   }
 
-  /// Build the remote-relay segment's own content — the existing ① Configure / ② Invite switch,
-  /// entirely
-  /// unchanged by this segment's addition.
-  Widget _remoteBody(BuildContext context, OcptSharingState state) => switch (state.invite) {
-    null => OcptSharingConfigureView(
-      isPairing: state.isPairing,
-      onPairRequested: (relayBaseUri, enrolmentSecret) => context.read<OcptSharingBloc>().add(
-        OcptSharingPairRequestedEvent(relayBaseUri: relayBaseUri, enrolmentSecret: enrolmentSecret),
-      ),
-    ),
-    final invite => OcptSharingInviteView(
-      projectName: state.projectName,
-      invite: invite,
-      onUnshareRequested: () => unawaited(_onUnshareRequested(context)),
-    ),
-  };
-
   /// Show [OcptSharingState.pairingFailed]'s own snack bar, then dispatch the event that clears
   /// it, so a later rebuild doesn't show it again — `OcptEditorPage`'s own `hasSaveError` handling.
   void _onPairingFailed(BuildContext context, OcptSharingState state) {
@@ -175,6 +160,41 @@ class OcptSharingView extends StatelessWidget {
     }
 
     bloc.add(const OcptSharingUnpairConfirmedEvent());
+  }
+}
+
+/// The remote-relay segment's own content: the ① Configure / ② Invite switch.
+class _OcptSharingRemoteBody extends StatelessWidget {
+  /// The sharing view whose unshare confirmation the body asks.
+  final OcptSharingView view;
+
+  /// The state the body is drawn from.
+  final OcptSharingState state;
+
+  /// Class constructor
+  const _OcptSharingRemoteBody({required this.view, required this.state});
+
+  /// Build the sharing remote body as the configure or invite view the state calls for.
+  @override
+  Widget build(BuildContext context) {
+    final state = this.state;
+
+    return switch (state.invite) {
+      null => OcptSharingConfigureView(
+        isPairing: state.isPairing,
+        onPairRequested: (relayBaseUri, enrolmentSecret) => context.read<OcptSharingBloc>().add(
+          OcptSharingPairRequestedEvent(
+            relayBaseUri: relayBaseUri,
+            enrolmentSecret: enrolmentSecret,
+          ),
+        ),
+      ),
+      final invite => OcptSharingInviteView(
+        projectName: state.projectName,
+        invite: invite,
+        onUnshareRequested: () => unawaited(view._onUnshareRequested(context)),
+      ),
+    };
   }
 }
 
