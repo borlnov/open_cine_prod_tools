@@ -64,13 +64,13 @@ class OcptBudgetRead {
 /// It only reads. Which state the result lands in, and what is reconciled against it, is the mode
 /// bloc's.
 class OcptBudgetSnapshotLoader {
-  /// The ten CNC postes, already localized, seeded on the first read of an empty table.
-  final List<OcptBudgetPosteSeed> seed;
+  /// The ten CNC accounts, already localized, seeded on the first read of an empty table.
+  final List<OcptBudgetAccountSeed> seed;
 
   /// The manager used to read the project's currency, default VAT rate and prices.
   final OcptProjectsManager _projectsManager;
 
-  /// The service used to read the quote: the postes and their lines.
+  /// The service used to read the quote: the accounts and their lines.
   final OcptBudgetQuoteService _budgetQuoteService;
 
   /// The service used to read the cash journal: every live entry and commitment, and the vouchers.
@@ -114,8 +114,8 @@ class OcptBudgetSnapshotLoader {
       _locationsService = projectsManager.locationsService,
       _elementsService = projectsManager.elementsService;
 
-  /// Read [project]'s whole budget: the postes with their lines, the cash journal's own entries and
-  /// commitments, the financing plan's own resources and mileage rates, the catering-and-travel
+  /// Read [project]'s whole budget: the accounts with their lines, the cash journal's own entries
+  /// and commitments, the financing plan's own resources and mileage rates, the catering-and-travel
   /// pass's own reads, the breakdown's own elements catalogue, the currency, the default VAT rate
   /// and the meal/buffet prices, joined into one [OcptBudgetSnapshot] alongside the raw
   /// roles/people/elements and the decor name map the view reads directly.
@@ -133,7 +133,7 @@ class OcptBudgetSnapshotLoader {
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
     final database = project.database;
-    final postes = await _budgetQuoteService.loadPostes(database: database, seed: seed);
+    final accounts = await _budgetQuoteService.loadAccounts(database: database, seed: seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
     final resources = await _budgetFinancingService.loadResources(database: database);
@@ -157,7 +157,7 @@ class OcptBudgetSnapshotLoader {
     final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
 
     final snapshot = OcptBudgetSnapshot.build(
-      postes: postes,
+      accounts: accounts,
       entries: entries,
       commitments: commitments,
       resources: resources,

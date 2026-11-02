@@ -199,7 +199,7 @@ String ocptVatRatePercentTextOf(int? basisPoints) {
 /// lines reading the very same figure but one by its own override and the other by inheriting the
 /// project's identical default do not "share" it in the sense this reads for — which colour to
 /// paint the rate in would itself be ambiguous.
-OcptBudgetEffectiveVatRate? ocptBudgetPosteUniformVatRateOf(
+OcptBudgetEffectiveVatRate? ocptBudgetAccountUniformVatRateOf(
   List<OcptBudgetLine> lines, {
   required int? projectVatRateBasisPoints,
 }) {

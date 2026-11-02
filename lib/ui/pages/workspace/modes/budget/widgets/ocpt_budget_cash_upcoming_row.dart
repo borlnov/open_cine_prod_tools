@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// One `À venir` row: a commitment falling due, still unsettled — [step]'s own cash figure, read
-/// against [commitment] so the row can print its own label and poste, [step] itself carrying
+/// against [commitment] so the row can print its own label and account, [step] itself carrying
 /// neither. Clicking the row only selects it, opening the right dock's detail panel on the
 /// commitment — never a write, so never withheld under a previewed version, exactly as
 /// [OcptBudgetCashJournalRow]'s own click is never withheld.
@@ -32,8 +32,8 @@ class OcptBudgetCashUpcomingRow extends StatelessWidget {
   /// The commitment [step] stands for.
   final OcptBudgetCommitment commitment;
 
-  /// [commitment]'s own poste, or null while it names none still live.
-  final OcptBudgetPoste? poste;
+  /// [commitment]'s own account, or null while it names none still live.
+  final OcptBudgetAccount? account;
 
   /// Whether this row's own commitment is the one currently selected.
   final bool isSelected;
@@ -52,7 +52,7 @@ class OcptBudgetCashUpcomingRow extends StatelessWidget {
     super.key,
     required this.step,
     required this.commitment,
-    required this.poste,
+    required this.account,
     required this.isSelected,
     required this.isSimplified,
     required this.currencyCode,
@@ -66,7 +66,7 @@ class OcptBudgetCashUpcomingRow extends StatelessWidget {
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
     final dueDate = step.dueDate;
-    final poste = this.poste;
+    final account = this.account;
 
     return InkWell(
       onTap: onTap,
@@ -95,13 +95,13 @@ class OcptBudgetCashUpcomingRow extends StatelessWidget {
               ),
               const SizedBox(width: ocptBudgetCashJournalVoucherColumnWidth),
               SizedBox(
-                width: ocptBudgetCashJournalPosteColumnWidth,
+                width: ocptBudgetCashJournalAccountColumnWidth,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
-                    poste == null
-                        ? tr.budgetCashJournalNoPosteLabel
-                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                    account == null
+                        ? tr.budgetCashJournalNoAccountLabel
+                        : ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall,

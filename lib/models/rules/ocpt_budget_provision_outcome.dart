@@ -4,7 +4,7 @@
 
 /// What provisioning would do to one quote line.
 enum OcptBudgetProvisionOutcome {
-  /// No line carries this nature's key on the target poste: one is created.
+  /// No line carries this nature's key on the target account: one is created.
   created,
 
   /// A line carries it, still holds exactly what the provisioning last wrote, and that no longer

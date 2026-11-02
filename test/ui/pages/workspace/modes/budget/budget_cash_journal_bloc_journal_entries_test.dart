@@ -67,7 +67,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -108,20 +108,20 @@ void main() {
 
   group("the cash journal", () {
     test(
-      "loads its entries, and paidCentsOf reflects a poste that has actually been paid",
+      "loads its entries, and paidCentsOf reflects an account that has actually been paid",
       () async {
         final bloc = buildBloc();
         addTearDown(bloc.close);
         final loaded = await waitForState(bloc, (state) => !state.isLoading);
-        final posteId = loaded.postes.first.id;
-        final otherPosteId = loaded.postes[1].id;
+        final accountId = loaded.accounts.first.id;
+        final otherAccountId = loaded.accounts[1].id;
         final project = projectsManager.currentProject!;
 
         await projectsManager.budgetJournalService.createEntry(
           database: project.database,
           date: DateTime(2026),
           label: "Camera rental",
-          posteId: posteId,
+          accountId: accountId,
           debitCents: 5000,
         );
 
@@ -129,9 +129,9 @@ void main() {
         final state = await waitForState(bloc, (state) => state.entries.isNotEmpty);
 
         expect(state.entries, hasLength(1));
-        expect(state.paidCentsOf(posteId), 5000);
-        // A poste with no entry against it reads a real zero, not a hole.
-        expect(state.paidCentsOf(otherPosteId), 0);
+        expect(state.paidCentsOf(accountId), 5000);
+        // An account with no entry against it reads a real zero, not a hole.
+        expect(state.paidCentsOf(otherAccountId), 0);
       },
     );
   });
@@ -148,7 +148,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Festival prize paid",
-            posteId: null,
+            accountId: null,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -189,14 +189,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Camera rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -215,7 +215,7 @@ void main() {
       expect(state.entries, hasLength(1));
       final entry = state.entries.single;
       expect(entry.label, "Camera rental");
-      expect(entry.posteId, posteId);
+      expect(entry.accountId, accountId);
       expect(entry.debitCents, 5000);
       expect(entry.creditCents, 0);
       // The service mints its own voucher number rather than reading the (null) one submitted.
@@ -233,7 +233,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3, 2),
             label: "Grant received",
-            posteId: null,
+            accountId: null,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -252,7 +252,7 @@ void main() {
       final entry = state.entries.single;
       expect(entry.debitCents, 0);
       expect(entry.creditCents, 20000);
-      expect(entry.posteId, isNull);
+      expect(entry.accountId, isNull);
     });
   });
 
@@ -262,14 +262,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Camera rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -297,14 +297,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final entryId = await projectsManager.budgetJournalService.createEntry(
         database: project.database,
         date: DateTime(2026),
         label: "Original",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 1000,
       );
       await projectsManager.budgetJournalService.setEntryReceipt(
@@ -322,7 +322,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026),
             label: "Original",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -349,14 +349,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final entryId = await projectsManager.budgetJournalService.createEntry(
         database: project.database,
         date: DateTime(2026),
         label: "Original",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 1000,
       );
       await projectsManager.budgetJournalService.setEntryReceipt(
@@ -374,7 +374,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026),
             label: "Original",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -398,12 +398,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Camera deposit",
         amountCents: 5000,
       );
@@ -418,7 +418,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 4),
             label: "Camera deposit",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -454,15 +454,15 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
-      final otherPosteId = loaded.postes[1].id;
+      final accountId = loaded.accounts.first.id;
+      final otherAccountId = loaded.accounts[1].id;
       final project = projectsManager.currentProject!;
 
       final entryId = await projectsManager.budgetJournalService.createEntry(
         database: project.database,
         date: DateTime(2026),
         label: "Original",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 1000,
       );
       expect(entryId, isNotNull);
@@ -476,7 +476,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 2, 2),
             label: "Renamed",
-            posteId: otherPosteId,
+            accountId: otherAccountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -493,7 +493,7 @@ void main() {
       final state = await waitForState(bloc, (state) => state.entries.single.label == "Renamed");
 
       final entry = state.entries.single;
-      expect(entry.posteId, otherPosteId);
+      expect(entry.accountId, otherAccountId);
       expect(entry.debitCents, 0);
       expect(entry.creditCents, 750);
       expect(entry.isTaxInclusive, isFalse);
@@ -508,14 +508,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final entryId = await projectsManager.budgetJournalService.createEntry(
         database: project.database,
         date: DateTime(2026),
         label: "To be deleted",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 500,
       );
       expect(entryId, isNotNull);
@@ -537,11 +537,11 @@ void main() {
       final journalBloc = buildJournal(bloc);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       journalBloc.add(
         OcptBudgetCommitmentCreationConfirmedEvent(
@@ -549,7 +549,7 @@ void main() {
           fields: OcptBudgetCommitmentFormFields(
             dueDate: DateTime(2026, 6),
             label: "Camera deposit",
-            posteId: posteId,
+            accountId: accountId,
             amountCents: 145000,
             isTaxInclusive: true,
             vatRateBasisPoints: null,
@@ -562,7 +562,7 @@ void main() {
       expect(state.commitments.single.lineId, lineId);
       // A promotion, not a move: the estimate stays, which is what makes comparing it with what
       // is actually owed possible at all.
-      expect(state.postes.first.lines.map((line) => line.id), [lineId]);
+      expect(state.accounts.first.lines.map((line) => line.id), [lineId]);
     });
 
     test("a commitment typed from scratch names no line", () async {
@@ -576,7 +576,7 @@ void main() {
           fields: OcptBudgetCommitmentFormFields(
             dueDate: null,
             label: "Insurance",
-            posteId: loaded.postes.first.id,
+            accountId: loaded.accounts.first.id,
             amountCents: 5000,
             isTaxInclusive: true,
             vatRateBasisPoints: null,
@@ -596,16 +596,16 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      // An off-line debit against a poste with no quote yet — over its (empty) quote by
+      // An off-line debit against an account with no quote yet — over its (empty) quote by
       // construction.
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 4),
             label: "Generator rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -623,10 +623,10 @@ void main() {
       final entryId = withEntry.entries.single.id;
       expect(
         ocptBudgetVarianceCents(
-          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withEntry.postes.first),
-          paidCents: withEntry.paidCentsOf(posteId),
-          committedCents: withEntry.committedCentsOf(posteId),
-          inKindCoveredCents: withEntry.inKindCoveredCentsOf(posteId),
+          quotedAmountCents: ocptBudgetAccountQuotedTotalCents(withEntry.accounts.first),
+          paidCents: withEntry.paidCentsOf(accountId),
+          committedCents: withEntry.committedCentsOf(accountId),
+          inKindCoveredCents: withEntry.inKindCoveredCentsOf(accountId),
         ),
         5000,
       );
@@ -634,12 +634,12 @@ void main() {
       journalBloc.add(OcptBudgetEntryPromotedToQuoteEvent(entryId: entryId));
       final state = await waitForState(
         bloc,
-        (state) => state.postes.first.lines.isNotEmpty && state.commitments.isNotEmpty,
+        (state) => state.accounts.first.lines.isNotEmpty && state.commitments.isNotEmpty,
       );
 
       // One line, mirroring the entry exactly.
-      expect(state.postes.first.lines, hasLength(1));
-      final line = state.postes.first.lines.single;
+      expect(state.accounts.first.lines, hasLength(1));
+      final line = state.accounts.first.lines.single;
       expect(line.label, "Generator rental");
       expect(line.quantityMilli, 1000);
       expect(line.unitPrice.amountCents, 5000);
@@ -661,10 +661,10 @@ void main() {
       // The overrun is gone: quoted, paid and committed now agree.
       expect(
         ocptBudgetVarianceCents(
-          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
-          paidCents: state.paidCentsOf(posteId),
-          committedCents: state.committedCentsOf(posteId),
-          inKindCoveredCents: state.inKindCoveredCentsOf(posteId),
+          quotedAmountCents: ocptBudgetAccountQuotedTotalCents(state.accounts.first),
+          paidCents: state.paidCentsOf(accountId),
+          committedCents: state.committedCentsOf(accountId),
+          inKindCoveredCents: state.inKindCoveredCentsOf(accountId),
         ),
         0,
       );
@@ -676,11 +676,11 @@ void main() {
       final journalBloc = buildJournal(bloc);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetLineCreatedEvent(
-          posteId: posteId,
+          accountId: accountId,
           fields: const OcptBudgetLineFormFields(
             label: "Camera",
             quantityMilli: 1000,
@@ -689,8 +689,8 @@ void main() {
           ),
         ),
       );
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       expensesBloc.add(
         OcptBudgetLinePaidDirectlyEvent(
@@ -698,7 +698,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -722,7 +722,7 @@ void main() {
       await pumpEventQueue();
 
       // No second line, no second commitment: the guard bailed.
-      expect(bloc.state.postes.first.lines, hasLength(1));
+      expect(bloc.state.accounts.first.lines, hasLength(1));
       expect(bloc.state.commitments, hasLength(1));
     });
   });
@@ -733,16 +733,16 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      // An off-line commitment (no lineId) against a poste with no quote yet — over its (empty)
+      // An off-line commitment (no lineId) against an account with no quote yet — over its (empty)
       // quote by construction.
       journalBloc.add(
         OcptBudgetCommitmentCreationConfirmedEvent(
           fields: OcptBudgetCommitmentFormFields(
             dueDate: DateTime(2026, 6),
             label: "Green brief",
-            posteId: posteId,
+            accountId: accountId,
             amountCents: 890,
             isTaxInclusive: true,
             vatRateBasisPoints: null,
@@ -755,20 +755,20 @@ void main() {
       expect(withCommitment.commitments.single.lineId, isNull);
       expect(
         ocptBudgetVarianceCents(
-          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(withCommitment.postes.first),
-          paidCents: withCommitment.paidCentsOf(posteId),
-          committedCents: withCommitment.committedCentsOf(posteId),
-          inKindCoveredCents: withCommitment.inKindCoveredCentsOf(posteId),
+          quotedAmountCents: ocptBudgetAccountQuotedTotalCents(withCommitment.accounts.first),
+          paidCents: withCommitment.paidCentsOf(accountId),
+          committedCents: withCommitment.committedCentsOf(accountId),
+          inKindCoveredCents: withCommitment.inKindCoveredCentsOf(accountId),
         ),
         890,
       );
 
       journalBloc.add(OcptBudgetCommitmentPromotedToQuoteEvent(commitmentId: commitmentId));
-      final state = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
+      final state = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
 
       // One line, mirroring the commitment exactly.
-      expect(state.postes.first.lines, hasLength(1));
-      final line = state.postes.first.lines.single;
+      expect(state.accounts.first.lines, hasLength(1));
+      final line = state.accounts.first.lines.single;
       expect(line.label, "Green brief");
       expect(line.quantityMilli, 1000);
       expect(line.unitPrice.amountCents, 890);
@@ -782,10 +782,10 @@ void main() {
       // The overrun is gone: the quote now covers what was committed.
       expect(
         ocptBudgetVarianceCents(
-          quotedAmountCents: ocptBudgetPosteQuotedTotalCents(state.postes.first),
-          paidCents: state.paidCentsOf(posteId),
-          committedCents: state.committedCentsOf(posteId),
-          inKindCoveredCents: state.inKindCoveredCentsOf(posteId),
+          quotedAmountCents: ocptBudgetAccountQuotedTotalCents(state.accounts.first),
+          paidCents: state.paidCentsOf(accountId),
+          committedCents: state.committedCentsOf(accountId),
+          inKindCoveredCents: state.inKindCoveredCentsOf(accountId),
         ),
         0,
       );
@@ -797,11 +797,11 @@ void main() {
       final journalBloc = buildJournal(bloc);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetLineCreatedEvent(
-          posteId: posteId,
+          accountId: accountId,
           fields: const OcptBudgetLineFormFields(
             label: "Camera",
             quantityMilli: 1000,
@@ -810,8 +810,8 @@ void main() {
           ),
         ),
       );
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       expensesBloc.add(
         OcptBudgetLinePaidDirectlyEvent(
@@ -819,7 +819,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -840,7 +840,7 @@ void main() {
       await pumpEventQueue();
 
       // No second line minted: the guard bailed on an already line-nested commitment.
-      expect(bloc.state.postes.first.lines, hasLength(1));
+      expect(bloc.state.accounts.first.lines, hasLength(1));
       expect(bloc.state.commitments, hasLength(1));
     });
   });
@@ -851,14 +851,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 4),
             label: "Generator rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -876,15 +876,15 @@ void main() {
       final entryId = withEntry.entries.single.id;
 
       journalBloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: entryId));
-      final state = await waitForState(bloc, (state) => state.entries.single.posteId == null);
+      final state = await waitForState(bloc, (state) => state.entries.single.accountId == null);
 
       final entry = state.entries.single;
       expect(entry.id, entryId);
-      expect(entry.posteId, isNull);
+      expect(entry.accountId, isNull);
       expect(entry.debitCents, 5000);
       expect(entry.commitmentId, isNull);
-      // Nothing was promoted: the poste's own quote is untouched.
-      expect(state.postes.first.lines, isEmpty);
+      // Nothing was promoted: the account's own quote is untouched.
+      expect(state.accounts.first.lines, isEmpty);
     });
 
     test("does nothing on an entry that already names a commitment", () async {
@@ -893,11 +893,11 @@ void main() {
       final journalBloc = buildJournal(bloc);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetLineCreatedEvent(
-          posteId: posteId,
+          accountId: accountId,
           fields: const OcptBudgetLineFormFields(
             label: "Camera",
             quantityMilli: 1000,
@@ -906,8 +906,8 @@ void main() {
           ),
         ),
       );
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       expensesBloc.add(
         OcptBudgetLinePaidDirectlyEvent(
@@ -915,7 +915,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -938,7 +938,7 @@ void main() {
       journalBloc.add(OcptBudgetEntryMovedOffQuoteEvent(entryId: entryId));
       await pumpEventQueue();
 
-      expect(bloc.state.entries.single.posteId, posteId);
+      expect(bloc.state.entries.single.accountId, accountId);
     });
   });
 }

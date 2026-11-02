@@ -62,7 +62,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// The title shown in the toolbar: the name of the project currently open.
   final String title;
 
-  /// The whole quote read, as last loaded from the project database (the ten CNC postes seeded on
+  /// The whole quote read, as last loaded from the project database (the ten CNC accounts seeded on
   /// first read), or null while nothing has been read yet.
   final OcptBudgetSnapshot? snapshot;
 
@@ -88,34 +88,34 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   final OcptBudgetTaxBasis taxBasis;
 
   /// What is currently selected for the right dock's own detail panel, once it exists — replaces
-  /// the separate `selectedPosteId`/`selectedResourceId` id fields this state used to carry: see
-  /// `OcptBudgetSelection`'s own doc comment for why one field now answers both. [selectedPosteId]
-  /// and [selectedResourceId] below are the narrow getters every dock panel already reads, resolved
-  /// off this one field so neither has to learn about the sealed type.
+  /// the separate `selectedAccountId`/`selectedResourceId` id fields this state used to carry: see
+  /// `OcptBudgetSelection`'s own doc comment for why one field now answers both.
+  /// [selectedAccountId] and [selectedResourceId] below are the narrow getters every dock panel
+  /// already reads, resolved off this one field so neither has to learn about the sealed type.
   final OcptBudgetSelection? selection;
 
-  /// The poste every view of the mode is currently narrowed to, or null for the whole project.
+  /// The account every view of the mode is currently narrowed to, or null for the whole project.
   ///
-  /// **Mode-wide on purpose**, unlike [selectedPosteId]: it is set once, from the header, and holds
-  /// across every view — which is what makes it worth having, since following one poste through
-  /// the quote, what is owed on it and what has moved against it is the reading it exists for.
-  /// The three views with no poste dimension at all (the financing plan, the logistics, the revenue
-  /// sharing) say so rather than pretending to honour it.
-  final String? filterPosteId;
+  /// **Mode-wide on purpose**, unlike [selectedAccountId]: it is set once, from the header, and
+  /// holds across every view — which is what makes it worth having, since following one account
+  /// through the quote, what is owed on it and what has moved against it is the reading it exists
+  /// for. The three views with no account dimension at all (the financing plan, the logistics, the
+  /// revenue sharing) say so rather than pretending to honour it.
+  final String? filterAccountId;
 
   /// The id of the currently selected revenue sharing share, or null while none is — the sharing
   /// view's own right-column selection, mirroring [selectedRevenueId].
   final String? selectedShareId;
 
   /// Which nodes of the expenses tree, of the resources tree or of the logistics's own defrayal
-  /// tree are currently expanded, keyed by their own id — a poste id, a quote line id, a resource
-  /// id, a revenue id or a person id, whichever twisty was last clicked open, or an
+  /// tree are currently expanded, keyed by their own id — an account id, a quote line id, a
+  /// resource id, a revenue id or a person id, whichever twisty was last clicked open, or an
   /// `OcptBudgetResourceFamily`'s own `name` for a family row, which mints no id of its own. The
   /// expenses tree also keys one reserved node naming no record at all —
   /// `OcptBudgetCostTracking`'s own off-quote total, which sums a reading over the journal rather
-  /// than a poste or a line, and so mints no id either. A commitment sub-row, an entry sub-row, a
-  /// receipt sub-row, a defrayal sub-row and a reimbursement sub-row carry no twisty of their own
-  /// and so never appear here: each is revealed or hidden wholesale with whichever line, poste,
+  /// than an account or a line, and so mints no id either. A commitment sub-row, an entry sub-row,
+  /// a receipt sub-row, a defrayal sub-row and a reimbursement sub-row carry no twisty of their own
+  /// and so never appear here: each is revealed or hidden wholesale with whichever line, account,
   /// resource, revenue, family or person it sits directly under — a defrayal naming nobody mints no
   /// id here either, drawing as its own group of one with no twisty
   /// (`OcptBudgetLogistics`'s own doc comment). Not persisted across a relaunch, mirroring [view],
@@ -160,14 +160,14 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// reason [roles] and [people] already sit beside it rather than inside it.
   final List<OcptBudgetMileageRate> mileageRates;
 
-  /// The poste the logistics view's own provisioning would write into, or null while this project's
-  /// quote holds no poste at all.
+  /// The account the logistics view's own provisioning would write into, or null while this
+  /// project's quote holds no account at all.
   ///
-  /// Defaults to the CNC nomenclature's own `Transports, défraiements, régie` poste when the
-  /// project still has it, and to the first poste otherwise — a production is free to have renamed,
-  /// split or deleted it, so this is a *preference among the postes that exist*, never an
-  /// assumption that one of them does.
-  final String? provisionPosteId;
+  /// Defaults to the CNC nomenclature's own `Transports, défraiements, régie` account when the
+  /// project still has it, and to the first account otherwise — a production is free to have
+  /// renamed, split or deleted it, so this is a *preference among the accounts that exist*, never
+  /// an assumption that one of them does.
+  final String? provisionAccountId;
 
   /// The decor name `OcptBudgetLogistics` prints under each shooting day, keyed by the day's own id
   /// — the first location or set the day's own slots name, resolved once at load time out of the
@@ -232,22 +232,22 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `OcptResourcesState.pageSetup` is, this mode carrying no screenplay of its own to typeset.
   final OcptPageSetup pageSetup;
 
-  /// Get the id of the currently selected poste, or null while [selection] does not name one.
+  /// Get the id of the currently selected account, or null while [selection] does not name one.
   ///
   /// **A selection, and nothing else.** It drives the right dock's inspector and the row's own
   /// highlight; it narrows no view. It used to be the cash journal's filter too, one field doing
   /// two jobs, and that conflation was the fault: clicking a row in the quote silently filtered a
   /// view the reader was not even looking at, and they found out on arriving there. What narrows a
-  /// view is [filterPosteId], which is only ever set by a gesture that says so.
-  String? get selectedPosteId => switch (selection) {
-    OcptBudgetPosteSelection(:final posteId) => posteId,
+  /// view is [filterAccountId], which is only ever set by a gesture that says so.
+  String? get selectedAccountId => switch (selection) {
+    OcptBudgetAccountSelection(:final accountId) => accountId,
     _ => null,
   };
 
   /// Get the id of the currently selected financing resource, or null while [selection] does not
   /// name
-  /// one — the financing view's own selection, read exactly as [selectedPosteId] is, but drawn as a
-  /// plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
+  /// one — the financing view's own selection, read exactly as [selectedAccountId] is, but drawn as
+  /// a plain highlight rather than opening a dock tab: see `OcptBudgetFinancing`'s own class doc
   /// comment for why this view carries no inspector of its own.
   String? get selectedResourceId => switch (selection) {
     OcptBudgetResourceSelection(:final resourceId) => resourceId,
@@ -262,13 +262,14 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     _ => null,
   };
 
-  /// Get every live poste of [snapshot], in display order (empty while nothing is loaded).
-  List<OcptBudgetPoste> get postes => snapshot?.postes ?? const [];
+  /// Get every live account of [snapshot], in display order (empty while nothing is loaded).
+  List<OcptBudgetAccount> get accounts => snapshot?.accounts ?? const [];
 
-  /// Get the number of live postes — the status bar's own first counter.
-  int get posteCount => snapshot?.posteCount ?? 0;
+  /// Get the number of live accounts — the status bar's own first counter.
+  int get accountCount => snapshot?.accountCount ?? 0;
 
-  /// Get the total number of quote lines across every poste — the status bar's own second counter.
+  /// Get the total number of quote lines across every account — the status bar's own second
+  /// counter.
   int get lineCount => snapshot?.lineCount ?? 0;
 
   /// Get every live journal entry of [snapshot], in chronological order (empty while nothing is
@@ -282,7 +283,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// loaded).
   List<OcptBudgetResource> get resources => snapshot?.resources ?? const [];
 
-  /// Get the number of live financing resources — mirrors [posteCount].
+  /// Get the number of live financing resources — mirrors [accountCount].
   int get resourceCount => snapshot?.resourceCount ?? 0;
 
   /// Get what has actually come in against each financing resource of [snapshot], keyed by its own
@@ -295,7 +296,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// Get the cash journal's own debit, credit and balance — a zero-everything total while nothing
   /// is
-  /// loaded, mirroring [postes]' own empty default.
+  /// loaded, mirroring [accounts]' own empty default.
   OcptBudgetCashTotals get cashTotals =>
       snapshot?.cashTotals ??
       const OcptBudgetCashTotals(
@@ -345,38 +346,38 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// `Repaying the contributions` card's own detail: who is owed what.
   List<OcptBudgetRepaymentLine> get repaymentLines => snapshot?.repaymentLines ?? const [];
 
-  /// Get what has actually been paid against each poste of [snapshot], empty while nothing is
+  /// Get what has actually been paid against each account of [snapshot], empty while nothing is
   /// loaded —
-  /// the cost-tracking table reads this, per poste and folded into its own total row's `Payé`
+  /// the cost-tracking table reads this, per account and folded into its own total row's `Payé`
   /// cell, rather than recomputing it.
-  Map<String, OcptBudgetCoveredTotal> get paidByPosteId => snapshot?.paidByPosteId ?? const {};
+  Map<String, OcptBudgetCoveredTotal> get paidByAccountId => snapshot?.paidByAccountId ?? const {};
 
-  /// Get the total of every debit that names no poste at all — spending outside the quote,
+  /// Get the total of every debit that names no account at all — spending outside the quote,
   /// `OcptBudgetSnapshot.offQuotePaidTotal`'s own doc comment. Zero and complete while nothing is
   /// loaded, mirroring [cashTotals]' own empty default. The cost-tracking table's own total row
-  /// folds this in alongside [paidByPosteId].
+  /// folds this in alongside [paidByAccountId].
   OcptBudgetCoveredTotal get offQuotePaidTotal =>
       snapshot?.offQuotePaidTotal ??
       const OcptBudgetCoveredTotal(amountCents: 0, coveredLineCount: 0, lineCount: 0);
 
-  /// Get what is committed against each poste of [snapshot], empty while nothing is loaded — the
-  /// cost-tracking table reads this per poste (`committedCentsOf`) rather than recomputing it.
-  Map<String, OcptBudgetCoveredTotal> get committedByPosteId =>
-      snapshot?.committedByPosteId ?? const {};
+  /// Get what is committed against each account of [snapshot], empty while nothing is loaded — the
+  /// cost-tracking table reads this per account (`committedCentsOf`) rather than recomputing it.
+  Map<String, OcptBudgetCoveredTotal> get committedByAccountId =>
+      snapshot?.committedByAccountId ?? const {};
 
   /// Get the header's own two alerts, empty while nothing is loaded or the project raises neither.
   List<OcptBudgetAlert> get alerts => snapshot?.alerts ?? const [];
 
   /// Count how many of [elements] a live quote line already prices, and how many are not — the feed
-  /// card's own breakdown row, derived here rather than in that widget, exactly as [paidByPosteId]
-  /// is derived here rather than in the cost-tracking table.
+  /// card's own breakdown row, derived here rather than in that widget, exactly as
+  /// [paidByAccountId] is derived here rather than in the cost-tracking table.
   OcptBudgetElementLinkCounts get elementLinkCounts =>
-      ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
+      ocptBudgetElementLinkCountsOf(accounts: accounts, elements: elements);
 
   /// Get every one of [elements] no live quote line prices yet — what
   /// `OcptBudgetDetail`'s own `+ From breakdown` picker offers.
   List<OcptElement> get unpricedElements =>
-      ocptBudgetUnpricedElementsOf(postes: postes, elements: elements);
+      ocptBudgetUnpricedElementsOf(accounts: accounts, elements: elements);
 
   /// Get every live shooting day's own catering reading, empty while nothing is loaded or the
   /// project
@@ -422,17 +423,17 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// [mealPriceCents].
   int? get buffetPriceCents => snapshot?.buffetPriceCents;
 
-  /// Get the selected poste, or null while none is selected (or the selected one disappeared from a
-  /// freshly loaded [snapshot]).
-  OcptBudgetPoste? get selectedPoste {
-    final selectedPosteId = this.selectedPosteId;
-    if (selectedPosteId == null) {
+  /// Get the selected account, or null while none is selected (or the selected one disappeared from
+  /// a freshly loaded [snapshot]).
+  OcptBudgetAccount? get selectedAccount {
+    final selectedAccountId = this.selectedAccountId;
+    if (selectedAccountId == null) {
       return null;
     }
 
-    for (final poste in postes) {
-      if (poste.id == selectedPosteId) {
-        return poste;
+    for (final account in accounts) {
+      if (account.id == selectedAccountId) {
+        return account;
       }
     }
 
@@ -450,7 +451,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.isSimplified,
     required this.taxBasis,
     required this.selection,
-    required this.filterPosteId,
+    required this.filterAccountId,
     required this.selectedShareId,
     required this.expandedNodeIds,
     required this.rightDockTab,
@@ -460,7 +461,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     required this.people,
     required this.elements,
     required this.mileageRates,
-    required this.provisionPosteId,
+    required this.provisionAccountId,
     required this.logisticsDecorNameByDayId,
     required this.reloadEpoch,
     required this.selectionEpoch,
@@ -490,7 +491,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       isSimplified = false,
       taxBasis = OcptBudgetTaxBasis.includingTax,
       selection = null,
-      filterPosteId = null,
+      filterAccountId = null,
       selectedShareId = null,
       expandedNodeIds = const {},
       rightDockTab = null,
@@ -500,7 +501,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       people = const [],
       elements = const [],
       mileageRates = const [],
-      provisionPosteId = null,
+      provisionAccountId = null,
       logisticsDecorNameByDayId = const {},
       reloadEpoch = 0,
       selectionEpoch = 0,
@@ -517,19 +518,19 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       projectPackagePendingExportTarget = null,
       pageSetup = const OcptPageSetup.standard();
 
-  /// Get `posteId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// Get `accountId`'s own paid total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no
   /// entry against it. See `OcptBudgetSnapshot.paidCentsOf`'s own doc comment for why this is now
   /// honestly zero rather than a stand-in for an unknown figure.
-  int paidCentsOf(String posteId) => snapshot?.paidCentsOf(posteId) ?? 0;
+  int paidCentsOf(String accountId) => snapshot?.paidCentsOf(accountId) ?? 0;
 
-  /// Get `posteId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
+  /// Get `accountId`'s own committed total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no commitment against it. See [paidCentsOf]'s own doc comment for the same reading.
-  int committedCentsOf(String posteId) => snapshot?.committedCentsOf(posteId) ?? 0;
+  int committedCentsOf(String accountId) => snapshot?.committedCentsOf(accountId) ?? 0;
 
-  /// Get `posteId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries no
-  /// counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
-  int inKindCoveredCentsOf(String posteId) => snapshot?.inKindCoveredCentsOf(posteId) ?? 0;
+  /// Get `accountId`'s own in-kind covered total, in cents — 0 while [snapshot] is null or carries
+  /// no counterpart line against it. See [paidCentsOf]'s own doc comment for the same reading.
+  int inKindCoveredCentsOf(String accountId) => snapshot?.inKindCoveredCentsOf(accountId) ?? 0;
 
   /// Get `resourceId`'s own received total, in cents, tax-inclusive — 0 while [snapshot] is null or
   /// carries no entry against it. See [OcptBudgetSnapshot.receivedCentsOf]'s own doc comment for
@@ -549,7 +550,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given, exactly as `OcptScheduleState.snapshot`.
-  /// [selection], [filterPosteId] and [rightDockTab] all legitimately go back to null while the
+  /// [selection], [filterAccountId] and [rightDockTab] all legitimately go back to null while the
   /// mode is alive, so each has its own force flag.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces [snapshot], so no handler can read
@@ -568,8 +569,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     OcptBudgetTaxBasis? taxBasis,
     OcptBudgetSelection? selection,
     bool forceSelectionValue = false,
-    String? filterPosteId,
-    bool forceFilterPosteIdValue = false,
+    String? filterAccountId,
+    bool forceFilterAccountIdValue = false,
     String? selectedShareId,
     bool forceSelectedShareIdValue = false,
     Set<String>? expandedNodeIds,
@@ -581,8 +582,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     List<OcptPerson>? people,
     List<OcptElement>? elements,
     List<OcptBudgetMileageRate>? mileageRates,
-    String? provisionPosteId,
-    bool forceProvisionPosteIdValue = false,
+    String? provisionAccountId,
+    bool forceProvisionAccountIdValue = false,
     Map<String, String>? logisticsDecorNameByDayId,
     int? reloadEpoch,
     int? selectionEpoch,
@@ -617,7 +618,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified: isSimplified ?? this.isSimplified,
     taxBasis: taxBasis ?? this.taxBasis,
     selection: selection ?? (forceSelectionValue ? null : this.selection),
-    filterPosteId: filterPosteId ?? (forceFilterPosteIdValue ? null : this.filterPosteId),
+    filterAccountId: filterAccountId ?? (forceFilterAccountIdValue ? null : this.filterAccountId),
     selectedShareId: selectedShareId ?? (forceSelectedShareIdValue ? null : this.selectedShareId),
     expandedNodeIds: expandedNodeIds ?? this.expandedNodeIds,
     rightDockTab: rightDockTab ?? (forceRightDockTabValue ? null : this.rightDockTab),
@@ -627,8 +628,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     people: people ?? this.people,
     elements: elements ?? this.elements,
     mileageRates: mileageRates ?? this.mileageRates,
-    provisionPosteId:
-        provisionPosteId ?? (forceProvisionPosteIdValue ? null : this.provisionPosteId),
+    provisionAccountId:
+        provisionAccountId ?? (forceProvisionAccountIdValue ? null : this.provisionAccountId),
     logisticsDecorNameByDayId: logisticsDecorNameByDayId ?? this.logisticsDecorNameByDayId,
     reloadEpoch: reloadEpoch ?? (snapshot != null ? this.reloadEpoch + 1 : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
@@ -724,7 +725,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     isSimplified,
     taxBasis,
     selection,
-    filterPosteId,
+    filterAccountId,
     selectedShareId,
     expandedNodeIds,
     rightDockTab,
@@ -734,7 +735,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     people,
     elements,
     mileageRates,
-    provisionPosteId,
+    provisionAccountId,
     logisticsDecorNameByDayId,
     reloadEpoch,
     selectionEpoch,

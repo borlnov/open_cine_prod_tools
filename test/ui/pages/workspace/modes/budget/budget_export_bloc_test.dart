@@ -48,7 +48,7 @@ const _quoteLabels = OcptBudgetQuoteLabels(
   quantityHeader: "Quantity",
   unitPriceHeader: "Unit price",
   lineTotalHeader: "Total",
-  posteSubtotalLabel: "Subtotal",
+  accountSubtotalLabel: "Subtotal",
   projectTotalLabel: "Grand total",
   includingTaxCaption: "Including tax",
   excludingTaxCaption: "Excluding tax",
@@ -89,7 +89,7 @@ const _cashJournalLabels = OcptBudgetCashJournalXlsxLabels(
   dateHeader: "Date",
   voucherHeader: "Voucher",
   labelHeader: "Label",
-  posteHeader: "Poste",
+  accountHeader: "Poste",
   settlesHeader: "Settles",
   debitHeader: "Debit",
   creditHeader: "Credit",
@@ -103,7 +103,7 @@ const _financialReportLabels = OcptBudgetFinancialReportLabels(
   fileNameSuffix: "financial report",
   documentTitle: "Financial report",
   versionLabel: "Version",
-  posteHeader: "Poste",
+  accountHeader: "Poste",
   quotedHeader: "Quoted",
   paidHeader: "Paid",
   committedHeader: "Committed",
@@ -259,11 +259,11 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// A minimal, three-entry seed used by every test that isn't about the seeding path itself, so
-/// their own assertions aren't drowned in ten postes.
+/// their own assertions aren't drowned in ten accounts.
 const _smallSeed = [
-  OcptBudgetPosteSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
-  OcptBudgetPosteSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
-  OcptBudgetPosteSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
+  OcptBudgetAccountSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
+  OcptBudgetAccountSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
+  OcptBudgetAccountSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
 ];
 
 /// Run the tests of [OcptBudgetExportBloc].
@@ -302,7 +302,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [_smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = _smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = _smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -674,12 +674,12 @@ void main() {
     addTearDown(expensesBloc.close);
     addTearDown(bloc.close);
     final loaded = await waitForState(bloc, (state) => !state.isLoading);
-    final posteId = loaded.postes.first.id;
+    final accountId = loaded.accounts.first.id;
 
     expensesBloc.add(
       OcptBudgetFieldChangedEvent(
-        targetId: posteId,
-        field: OcptBudgetField.posteLabel,
+        targetId: accountId,
+        field: OcptBudgetField.accountLabel,
         rawValue: "Typed before the export",
       ),
     );
@@ -701,7 +701,9 @@ void main() {
     await waitForState(exportBloc, (state) => state.ioNotice != null);
 
     expect(
-      exportManager.lastQuoteSnapshot!.postes.firstWhere((poste) => poste.id == posteId).label,
+      exportManager.lastQuoteSnapshot!.accounts
+          .firstWhere((account) => account.id == accountId)
+          .label,
       "Typed before the export",
     );
   });

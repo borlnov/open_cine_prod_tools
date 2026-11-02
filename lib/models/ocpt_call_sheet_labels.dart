@@ -160,7 +160,7 @@ class OcptCallSheetLabels extends Equatable {
   /// A people list's `NOM` column header.
   final String nameHeader;
 
-  /// A people list's `POSTE(S)` column header, also used as a named sheet's own label for the
+  /// A people list's `ACCOUNT(S)` column header, also used as a named sheet's own label for the
   /// positions or role its recipient is convoked under.
   final String positionsHeader;
 

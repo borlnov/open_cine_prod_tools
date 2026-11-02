@@ -15,12 +15,12 @@ import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 /// the one place that reads both at once rather than either of them growing a dependency on the
 /// other's shape.
 
-/// Every live quote line's own `elementId`, across every poste of [postes] — the set a fresh
+/// Every live quote line's own `elementId`, across every account of [accounts] — the set a fresh
 /// `+ From breakdown` picker excludes (an element already priced by a line is not offered a second
 /// time) and what the two counts of [OcptBudgetElementLinkCounts] below are read against.
-Set<String> ocptBudgetPricedElementIdsOf(List<OcptBudgetPoste> postes) => {
-  for (final poste in postes)
-    for (final line in poste.lines)
+Set<String> ocptBudgetPricedElementIdsOf(List<OcptBudgetAccount> accounts) => {
+  for (final account in accounts)
+    for (final line in account.lines)
       if (line.elementId != null) line.elementId!,
 };
 
@@ -47,13 +47,13 @@ class OcptBudgetElementLinkCounts extends Equatable {
   List<Object?> get props => [pricedCount, unpricedCount];
 }
 
-/// Build [OcptBudgetElementLinkCounts] over [postes] and [elements] — see that class's own doc
+/// Build [OcptBudgetElementLinkCounts] over [accounts] and [elements] — see that class's own doc
 /// comment.
 OcptBudgetElementLinkCounts ocptBudgetElementLinkCountsOf({
-  required List<OcptBudgetPoste> postes,
+  required List<OcptBudgetAccount> accounts,
   required List<OcptElement> elements,
 }) {
-  final pricedIds = ocptBudgetPricedElementIdsOf(postes);
+  final pricedIds = ocptBudgetPricedElementIdsOf(accounts);
   final pricedCount = elements.where((element) => pricedIds.contains(element.id)).length;
 
   return OcptBudgetElementLinkCounts(
@@ -62,15 +62,15 @@ OcptBudgetElementLinkCounts ocptBudgetElementLinkCountsOf({
   );
 }
 
-/// Get every one of [elements] no live quote line of [postes] prices yet, in [elements]' own order
-/// —
+/// Get every one of [elements] no live quote line of [accounts] prices yet, in [elements]' own
+/// order —
 /// what `OcptBudgetDetail`'s own `+ From breakdown` picker offers: an element already
 /// answered by a line is not offered a second time.
 List<OcptElement> ocptBudgetUnpricedElementsOf({
-  required List<OcptBudgetPoste> postes,
+  required List<OcptBudgetAccount> accounts,
   required List<OcptElement> elements,
 }) {
-  final pricedIds = ocptBudgetPricedElementIdsOf(postes);
+  final pricedIds = ocptBudgetPricedElementIdsOf(accounts);
   return [
     for (final element in elements)
       if (!pricedIds.contains(element.id)) element,

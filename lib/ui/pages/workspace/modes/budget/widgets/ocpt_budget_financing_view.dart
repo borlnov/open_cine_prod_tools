@@ -52,7 +52,7 @@ class OcptBudgetFinancingView extends StatelessWidget {
       resources: state.resources,
       revenues: state.revenues,
       entries: state.entries,
-      postes: state.postes,
+      accounts: state.accounts,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       receivedByResourceId: state.receivedByResourceId,
       receivedCentsOf: state.receivedCentsOf,

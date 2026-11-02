@@ -113,14 +113,14 @@ class OcptBudgetLogistics extends StatelessWidget {
   /// a reimbursement sub-row's own debit is grossed up against.
   final int? defaultVatRateBasisPoints;
 
-  /// Every live poste of the quote, offered by the provisioning band's own poste picker.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the quote, offered by the provisioning band's own account picker.
+  final List<OcptBudgetAccount> accounts;
 
-  /// The poste the provisioning would write into, or null while this project holds no poste.
-  final String? provisionPosteId;
+  /// The account the provisioning would write into, or null while this project holds no account.
+  final String? provisionAccountId;
 
   /// What the provisioning band's own `Quoted on this poste` figure reads: the summed amount of
-  /// the lines the provisioning itself wrote onto [provisionPosteId], in cents.
+  /// the lines the provisioning itself wrote onto [provisionAccountId], in cents.
   final int provisionedTotalCents;
 
   /// Every live role of the project, used to say what a defrayed person is on the shoot.
@@ -180,8 +180,8 @@ class OcptBudgetLogistics extends StatelessWidget {
   /// prefills what is still outstanding.
   final ValueChanged<String>? onPersonReimburseRequested;
 
-  /// Called with the id of the poste the reader picks to provision into.
-  final ValueChanged<String>? onProvisionPosteSelected;
+  /// Called with the id of the account the reader picks to provision into.
+  final ValueChanged<String>? onProvisionAccountSelected;
 
   /// Called when the reader asks to provision what this view computes into the quote, or null while
   /// withheld.
@@ -211,8 +211,8 @@ class OcptBudgetLogistics extends StatelessWidget {
     required this.entries,
     required this.reimbursedByPersonId,
     required this.defaultVatRateBasisPoints,
-    required this.postes,
-    required this.provisionPosteId,
+    required this.accounts,
+    required this.provisionAccountId,
     required this.provisionedTotalCents,
     required this.roles,
     required this.people,
@@ -229,7 +229,7 @@ class OcptBudgetLogistics extends StatelessWidget {
     required this.onAllowanceEditRequested,
     required this.onAllowanceDeletionRequested,
     required this.onPersonReimburseRequested,
-    required this.onProvisionPosteSelected,
+    required this.onProvisionAccountSelected,
     required this.onProvisionRequested,
     required this.provisionNote,
   });
@@ -356,12 +356,12 @@ class OcptBudgetLogistics extends StatelessWidget {
           computedTotalCents:
               cateringTotals.cost.amountCents + ocptBudgetAllowancesTotalCents(allowances),
           provisionedTotalCents: provisionedTotalCents,
-          postes: postes,
-          provisionPosteId: provisionPosteId,
+          accounts: accounts,
+          provisionAccountId: provisionAccountId,
           currencyCode: currencyCode,
           // Withheld under a previewed version, never disabled — the same reading the defrayal
           // column applies to its own `Defrayal` button and row menus.
-          onPosteSelected: isReadOnly ? null : onProvisionPosteSelected,
+          onAccountSelected: isReadOnly ? null : onProvisionAccountSelected,
           onProvisionRequested: isReadOnly ? null : onProvisionRequested,
           note: provisionNote,
         ),

@@ -34,11 +34,11 @@ void main() {
   String fieldText(WidgetTester tester, String label) =>
       tester.widget<TextField>(harness.fieldLabelled(label)).controller!.text;
 
-  /// Opens the expenses table on a project holding poste "Camera" and poste "Sound", selecting
+  /// Opens the expenses table on a project holding account "Camera" and account "Sound", selecting
   /// "Camera", and returns the id of "Camera".
   Future<String> openCameraDetail(WidgetTester tester) async {
-    final cameraId = await harness.seedPoste("Camera");
-    await harness.seedPoste("Sound");
+    final cameraId = await harness.seedAccount("Camera");
+    await harness.seedAccount("Sound");
     await harness.mount(tester);
     await harness.tapHeader(tester, harness.trOf(tester).budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, inTracking(find.text("Camera")));
@@ -46,11 +46,11 @@ void main() {
     return cameraId;
   }
 
-  /// Opens the expenses table on a project holding poste "Camera" with the line "Camera deposit",
+  /// Opens the expenses table on a project holding account "Camera" with the line "Camera deposit",
   /// selecting that line.
   Future<String> openLineDetail(WidgetTester tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    final lineId = await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    final lineId = await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     await harness.tapHeader(tester, harness.trOf(tester).budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
@@ -66,25 +66,28 @@ void main() {
 
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
       "Camera crew",
     );
-    expect(fieldText(tester, tr.budgetInspectorPosteLabelFieldLabel), "Camera crew");
+    expect(fieldText(tester, tr.budgetInspectorAccountLabelFieldLabel), "Camera crew");
     await tester.pump(const Duration(milliseconds: 1500));
-    expect((await harness.readPostes()).map((poste) => poste.label), ["Camera", "Sound"]);
+    expect((await harness.readAccounts()).map((account) => account.label), ["Camera", "Sound"]);
     expect(inTracking(find.text("Camera crew")), findsNothing);
 
     await harness.letDebounceRun(tester);
-    expect((await harness.readPostes()).map((poste) => poste.label), ["Camera crew", "Sound"]);
+    expect((await harness.readAccounts()).map((account) => account.label), [
+      "Camera crew",
+      "Sound",
+    ]);
     expect(inTracking(find.text("Camera crew")), findsOneWidget);
-    expect(fieldText(tester, tr.budgetInspectorPosteLabelFieldLabel), "Camera crew");
+    expect(fieldText(tester, tr.budgetInspectorAccountLabelFieldLabel), "Camera crew");
   });
 
   testWidgets("a field typed a moment ago is written first by a row pick, a chip, a switch, a "
       "tab or a filter, none of which waits for the debounce", (tester) async {
     await openCameraDetail(tester);
     final tr = harness.trOf(tester);
-    final labelField = harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel);
+    final labelField = harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel);
 
     /// Types [value] into the label, runs [trigger] and waits for the label to land in the
     /// database, then runs [restore] and selects "Camera" again.
@@ -94,11 +97,11 @@ void main() {
       Future<void> Function()? restore,
     }) async {
       await harness.type(tester, labelField, value);
-      expect((await harness.readPostes()).first.label, isNot(value));
+      expect((await harness.readAccounts()).first.label, isNot(value));
       await trigger();
       await harness.eventually(
         tester,
-        () async => (await harness.readPostes()).first.label == value,
+        () async => (await harness.readAccounts()).first.label == value,
         reason: "after typing $value",
       );
       await restore?.call();
@@ -141,14 +144,14 @@ void main() {
 
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
       "Camera crew",
     );
-    expect((await harness.readPostes()).first.label, "Camera");
+    expect((await harness.readAccounts()).first.label, "Camera");
     await tester.pumpWidget(const SizedBox.shrink());
     await harness.eventually(
       tester,
-      () async => (await harness.readPostes()).first.label == "Camera crew",
+      () async => (await harness.readAccounts()).first.label == "Camera crew",
     );
   });
 
@@ -163,7 +166,7 @@ void main() {
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineQuantityFieldLabel), "abc");
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineUnitPriceFieldLabel), "twelve");
     await harness.letDebounceRun(tester);
-    var line = (await harness.readPoste("Camera")).lines.single;
+    var line = (await harness.readAccount("Camera")).lines.single;
     expect(line.quantityMilli, 1000);
     expect(line.unitPrice.amountCents, 10000);
     expect(fieldText(tester, tr.budgetLineQuantityFieldLabel), "1");
@@ -175,7 +178,7 @@ void main() {
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineUnitFieldLabel), "day");
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineNotesFieldLabel), "Two crews");
     await harness.letDebounceRun(tester);
-    line = (await harness.readPoste("Camera")).lines.single;
+    line = (await harness.readAccount("Camera")).lines.single;
     expect(line.quantityMilli, 2500);
     expect(line.unitPrice.amountCents, 1250);
     expect(line.unitPrice.vatRateBasisPoints, 2000);
@@ -197,10 +200,10 @@ void main() {
     await harness.tapHeaderQuickly(tester, tr.budgetHeaderResourcesSegmentLabel);
     await harness.eventually(
       tester,
-      () async => (await harness.readPoste("Camera")).lines.single.label == "Rental",
+      () async => (await harness.readAccount("Camera")).lines.single.label == "Rental",
     );
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.amountCents, 4000);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.amountCents, 4000);
     expect(statusBar(tester).quotedTotalCents, 4000);
 
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -215,18 +218,18 @@ void main() {
 
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteEstimateToCompleteFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountEstimateToCompleteFieldLabel),
       "500",
     );
     await harness.letDebounceRun(tester);
-    expect((await harness.readPoste("Camera")).estimateToCompleteCents, 50000);
+    expect((await harness.readAccount("Camera")).estimateToCompleteCents, 50000);
     expect(inDetail(find.text(r"$500.00")), findsWidgets);
 
     await harness.tap(
       tester,
-      inDetail(find.text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction)),
+      inDetail(find.text(tr.budgetInspectorAccountEstimateToCompleteDeriveAction)),
     );
-    expect((await harness.readPoste("Camera")).estimateToCompleteCents, isNull);
+    expect((await harness.readAccount("Camera")).estimateToCompleteCents, isNull);
   });
 
   testWidgets("a line's tax basis and its inherited VAT rate are written the moment they are "
@@ -236,14 +239,14 @@ void main() {
 
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineVatRateFieldLabel), "10");
     await harness.letDebounceRun(tester);
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.vatRateBasisPoints, 1000);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.vatRateBasisPoints, 1000);
 
     await harness.tap(tester, inDetail(find.text(tr.budgetLineVatRateInheritAction)));
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.vatRateBasisPoints, isNull);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.vatRateBasisPoints, isNull);
 
     await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxExclusiveOption)));
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
     await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxInclusiveOption)));
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isTrue);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.isTaxInclusive, isTrue);
   });
 }

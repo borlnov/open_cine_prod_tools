@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_resources_table.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_elements_table.dart';
 
-/// One quoted line of the budget: a quantity of something, at a unit price, inside a poste.
+/// One quoted line of the budget: a quantity of something, at a unit price, inside an account.
 ///
 /// **The money is three columns, never reconstructed** — ADR 0025 is the
 /// argument this table implements, and `lib/models/rules/ocpt_budget_vat.dart` is the only place in
@@ -45,8 +45,12 @@ class OcptBudgetLinesTable extends Table {
   /// {@macro open_cine_prod_tools.isDeleted}
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
-  /// Get the poste this line belongs to. → [OcptBudgetPostesTable]
-  TextColumn get posteId => text().references(OcptBudgetPostesTable, #id)();
+  /// Get the account this line belongs to. → [OcptBudgetAccountsTable]
+  ///
+  /// The SQL column and the JSON key keep the names they have always had (`poste_id` and
+  /// `posteId`): existing project files, version payloads and sync stamps carry them.
+  @JsonKey('posteId')
+  TextColumn get accountId => text().named('poste_id').references(OcptBudgetAccountsTable, #id)();
 
   /// Get this line's display name, e.g. "First assistant camera".
   TextColumn get label => text()();
@@ -100,7 +104,7 @@ class OcptBudgetLinesTable extends Table {
   /// `regie:snack`, `allowance:travel` and so on: the logistics view provisions *one line per
   /// nature*, summing across every defrayal of that nature and every shooting day, so there is no
   /// single row on the other end for a foreign key to point at. Reprovisioning finds the line
-  /// carrying the same key on the same poste and updates it, instead of stacking a second one
+  /// carrying the same key on the same account and updates it, instead of stacking a second one
   /// beside it.
   ///
   /// Null is the ordinary case and means nobody provisioned this line — a line typed by hand is not

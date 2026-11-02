@@ -6,14 +6,14 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_money.dart';
 
-/// One quoted line of the budget: a quantity of something, at a unit price, inside a poste. See
+/// One quoted line of the budget: a quantity of something, at a unit price, inside an account. See
 /// `OcptBudgetLinesTable`'s own doc comment for the money and quantity representation this mirrors.
 class OcptBudgetLine extends Equatable {
   /// The stable, unique id of this line (a UUID).
   final String id;
 
-  /// The poste this line belongs to. → `OcptBudgetPoste`
-  final String posteId;
+  /// The account this line belongs to. → `OcptBudgetAccount`
+  final String accountId;
 
   /// This line's display name.
   final String label;
@@ -48,13 +48,13 @@ class OcptBudgetLine extends Equatable {
   /// Free-form notes about this line.
   final String notes;
 
-  /// This line's position within its poste's own flat `sortKey` order.
+  /// This line's position within its account's own flat `sortKey` order.
   final String sortKey;
 
   /// Class constructor
   const OcptBudgetLine({
     required this.id,
-    required this.posteId,
+    required this.accountId,
     required this.label,
     required this.quantityMilli,
     required this.unit,
@@ -70,7 +70,7 @@ class OcptBudgetLine extends Equatable {
   /// Build an [OcptBudgetLine] from its stored [row].
   factory OcptBudgetLine.fromRow(OcptBudgetLineRow row) => OcptBudgetLine(
     id: row.id,
-    posteId: row.posteId,
+    accountId: row.accountId,
     label: row.label,
     quantityMilli: row.quantityMilli,
     unit: row.unit,
@@ -89,13 +89,13 @@ class OcptBudgetLine extends Equatable {
 
   /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetLine(id: $id, posteId: $posteId, label: $label)";
+  String toString() => "OcptBudgetLine(id: $id, accountId: $accountId, label: $label)";
 
   /// List the fields that decide equality.
   @override
   List<Object?> get props => [
     id,
-    posteId,
+    accountId,
     label,
     quantityMilli,
     unit,

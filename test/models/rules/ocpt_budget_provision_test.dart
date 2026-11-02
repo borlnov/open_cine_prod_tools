@@ -51,7 +51,7 @@ OcptBudgetLine _line({
   String? provisionDigest,
 }) => OcptBudgetLine(
   id: id,
-  posteId: "poste-1",
+  accountId: "poste-1",
   label: label,
   quantityMilli: quantityMilli,
   unit: "",
@@ -182,7 +182,7 @@ void main() {
             unitAmountCents: 1200,
           ),
         ],
-        posteLines: const [],
+        accountLines: const [],
         labels: _labels,
       );
 
@@ -200,7 +200,7 @@ void main() {
             unitAmountCents: 1200,
           ),
         ],
-        posteLines: [
+        accountLines: [
           _provisionedLine(
             id: "line-1",
             kind: OcptBudgetProvisionKind.meal,
@@ -225,7 +225,7 @@ void main() {
             unitAmountCents: 1200,
           ),
         ],
-        posteLines: [
+        accountLines: [
           _provisionedLine(
             id: "line-1",
             kind: OcptBudgetProvisionKind.meal,
@@ -264,7 +264,7 @@ void main() {
             unitAmountCents: 1200,
           ),
         ],
-        posteLines: [touched],
+        accountLines: [touched],
         labels: _labels,
       );
 
@@ -281,7 +281,7 @@ void main() {
             unitAmountCents: 1200,
           ),
         ],
-        posteLines: [
+        accountLines: [
           _line(id: "typed", label: "Van hire", quantityMilli: 1000, unitAmountCents: 50000),
         ],
         labels: _labels,
@@ -299,7 +299,7 @@ void main() {
       // decision that belongs to the user, who can see the zero.
       final plan = ocptBudgetProvisionPlanOf(
         items: const [],
-        posteLines: [
+        accountLines: [
           _provisionedLine(
             id: "line-1",
             kind: OcptBudgetProvisionKind.travelAllowance,
@@ -319,7 +319,7 @@ void main() {
       // Written by a build that knows a nature this one does not.
       final plan = ocptBudgetProvisionPlanOf(
         items: const [],
-        posteLines: [
+        accountLines: [
           _line(
             id: "line-1",
             label: "Something else",

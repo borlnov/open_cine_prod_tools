@@ -443,8 +443,8 @@ abstract final class OcptProjectVersionsRestoreOps {
     // deferred-foreign-key cycle) — neither is a forward reference.
     await restoreTable(
       database: database,
-      table: database.ocptBudgetPostesTable,
-      payloadRows: payload.budgetPostes,
+      table: database.ocptBudgetAccountsTable,
+      payloadRows: payload.budgetAccounts,
       rowIdOf: (row) => row.id,
       tombstonedOf: (row) => row.copyWith(isDeleted: true),
       stamps: stamps,
@@ -678,7 +678,7 @@ abstract final class OcptProjectVersionsRestoreOps {
         // but `insertAll` defers foreign-key checking to the end of this batch's own transaction,
         // exactly what already lets the person/location/element trio point at an `assets` row
         // inserted after them.
-        ..insertAll(database.ocptBudgetPostesTable, payload.budgetPostes)
+        ..insertAll(database.ocptBudgetAccountsTable, payload.budgetAccounts)
         ..insertAll(database.ocptBudgetLinesTable, payload.budgetLines)
         // `budget_resources` references nothing, and must be inserted before `budget_entries`,
         // which may name one through `resourceId`. `budget_revenues` references nothing either,

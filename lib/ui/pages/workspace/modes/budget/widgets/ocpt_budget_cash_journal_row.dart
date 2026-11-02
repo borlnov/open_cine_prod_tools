@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_voucher_marker.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// One entry row: date, voucher number, poste, label, debit, credit, running balance, then its own
-/// `⋮` menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking
-/// the row itself only selects it, opening the right dock's detail panel on it — never a write, so
-/// never withheld under a previewed version.
+/// One entry row: date, voucher number, account, label, debit, credit, running balance, then its
+/// own `⋮` menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom.
+/// Clicking the row itself only selects it, opening the right dock's detail panel on it — never a
+/// write, so never withheld under a previewed version.
 ///
 /// **Only the side money actually moved on is tinted** — a debit in [ColorScheme.error], a credit
 /// in [ColorScheme.primary], each read off the entry's own raw column rather than off the row's
@@ -35,8 +35,8 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
   /// The row this widget draws.
   final OcptBudgetJournalRow row;
 
-  /// The poste [row]'s own entry names, or null while it names none.
-  final OcptBudgetPoste? poste;
+  /// The account [row]'s own entry names, or null while it names none.
+  final OcptBudgetAccount? account;
 
   /// This entry's own voucher, or null while it carries none.
   final OcptAssetRef? receipt;
@@ -63,7 +63,7 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
   const OcptBudgetCashJournalRow({
     super.key,
     required this.row,
-    required this.poste,
+    required this.account,
     required this.receipt,
     required this.isSelected,
     required this.isSimplified,
@@ -84,7 +84,7 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
     final debitCents = row.debitCents;
     final creditCents = row.creditCents;
     final balanceCents = row.balanceAfterCents;
-    final poste = this.poste;
+    final account = this.account;
 
     return InkWell(
       onTap: onTap,
@@ -116,18 +116,18 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: ocptBudgetCashJournalPosteColumnWidth,
+                width: ocptBudgetCashJournalAccountColumnWidth,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
-                    poste == null
-                        ? tr.budgetCashJournalNoPosteLabel
-                        : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                    account == null
+                        ? tr.budgetCashJournalNoAccountLabel
+                        : ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: poste == null ? theme.colorScheme.onSurfaceVariant : null,
-                      fontStyle: poste == null ? FontStyle.italic : FontStyle.normal,
+                      color: account == null ? theme.colorScheme.onSurfaceVariant : null,
+                      fontStyle: account == null ? FontStyle.italic : FontStyle.normal,
                     ),
                   ),
                 ),

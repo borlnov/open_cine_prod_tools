@@ -6,11 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_default_provision_account.dart';
 
-/// Run the tests of [ocptBudgetDefaultProvisionPosteIdOf].
+/// Run the tests of [ocptBudgetDefaultProvisionAccountIdOf].
 void main() {
-  const logisticsPosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
+  const logisticsAccountId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 
-  OcptBudgetPoste poste(String id) => OcptBudgetPoste(
+  OcptBudgetAccount account(String id) => OcptBudgetAccount(
     id: id,
     code: id,
     label: id,
@@ -20,20 +20,20 @@ void main() {
     estimateToCompleteCents: null,
   );
 
-  group("ocptBudgetDefaultProvisionPosteIdOf", () {
+  group("ocptBudgetDefaultProvisionAccountIdOf", () {
     test("prefers the seeded travel and catering poste while the project still has it", () {
       expect(
-        ocptBudgetDefaultProvisionPosteIdOf([poste("first"), poste(logisticsPosteId)]),
-        logisticsPosteId,
+        ocptBudgetDefaultProvisionAccountIdOf([account("first"), account(logisticsAccountId)]),
+        logisticsAccountId,
       );
     });
 
     test("falls back to the first poste once that one was renamed away or deleted", () {
-      expect(ocptBudgetDefaultProvisionPosteIdOf([poste("first"), poste("second")]), "first");
+      expect(ocptBudgetDefaultProvisionAccountIdOf([account("first"), account("second")]), "first");
     });
 
     test("answers nothing for a project with no poste at all", () {
-      expect(ocptBudgetDefaultProvisionPosteIdOf(const []), isNull);
+      expect(ocptBudgetDefaultProvisionAccountIdOf(const []), isNull);
     });
   });
 }

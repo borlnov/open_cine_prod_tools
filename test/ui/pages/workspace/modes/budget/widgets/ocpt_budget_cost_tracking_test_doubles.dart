@@ -49,14 +49,14 @@ void testTestWidgets(String description, WidgetTesterCallback callback) {
 /// only when `vatRateBasisPoints` is given.
 OcptBudgetLine testLine({
   required String id,
-  required String posteId,
+  required String accountId,
   int? vatRateBasisPoints,
   int amountCents = 1000,
   String label = "",
   String? inKindResourceId,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label.isEmpty ? "Line $id" : label,
   quantityMilli: 1000,
   unit: "u",
@@ -73,11 +73,11 @@ OcptBudgetLine testLine({
   sortKey: "a0",
 );
 
-/// A journal entry of [debitCents] (10.00 € by default), tax-inclusive, against [posteId], paying
+/// A journal entry of [debitCents] (10.00 € by default), tax-inclusive, against [accountId], paying
 /// [commitmentId] or none.
 OcptBudgetEntry testEntry({
   required String id,
-  String? posteId,
+  String? accountId,
   int debitCents = 1000,
   String label = "",
   String voucherNumber = "J-001",
@@ -86,7 +86,7 @@ OcptBudgetEntry testEntry({
   id: id,
   date: DateTime(2026),
   label: label.isEmpty ? "Entry $id" : label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: 0,
   isTaxInclusive: true,
@@ -102,4 +102,4 @@ OcptBudgetEntry testEntry({
 
 /// A `committedCentsOf` reading everything as zero — the default of `buildTable`'s own optional
 /// parameter.
-int testZero(String posteId) => 0;
+int testZero(String accountId) => 0;

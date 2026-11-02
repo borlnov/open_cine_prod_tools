@@ -5,18 +5,18 @@
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 
-/// The key [OcptBudgetExpensesState.pendingFieldEdits] is stored under: which poste or line, and
+/// The key [OcptBudgetExpensesState.pendingFieldEdits] is stored under: which account or line, and
 /// which of its own [OcptBudgetField]s — mirrors `OcptSchedulePendingFieldKey`.
 typedef OcptBudgetPendingFieldKey = (String targetId, OcptBudgetField field);
 
-/// The state of `OcptBudgetExpensesBloc`: the free-text fields of the postes and the quote lines
+/// The state of `OcptBudgetExpensesBloc`: the free-text fields of the accounts and the quote lines
 /// that were typed and not yet written.
 ///
 /// [pendingFieldEdits] is this view's single pending-edit map, over every free-text field of every
-/// poste and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather than
-/// one per entity kind.
+/// account and every line — see `OcptBudgetField`'s own doc comment for why one flat map rather
+/// than one per entity kind.
 class OcptBudgetExpensesState extends BlocStateForMixin<OcptBudgetExpensesState> {
-  /// Every free-text field still sitting in the field-edit debounce, keyed by which poste or line
+  /// Every free-text field still sitting in the field-edit debounce, keyed by which account or line
   /// and which of its own fields. [fieldValueOf] is what a field reads instead of its own stored
   /// value while an edit is pending here.
   final Map<OcptBudgetPendingFieldKey, String> pendingFieldEdits;

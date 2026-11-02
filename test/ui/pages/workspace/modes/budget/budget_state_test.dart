@@ -33,15 +33,15 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 
-/// Builds a minimal quote line, everything but [id]/[posteId]/[label]/[elementId] neutral.
+/// Builds a minimal quote line, everything but [id]/[accountId]/[label]/[elementId] neutral.
 OcptBudgetLine _buildLine({
   required String id,
-  required String posteId,
+  required String accountId,
   String label = "",
   String? elementId,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label,
   quantityMilli: 1000,
   unit: "u",
@@ -81,9 +81,9 @@ OcptElement _buildElement({required String id, String name = "", int? cost}) => 
   roleLinks: const [],
 );
 
-/// Builds a minimal poste, everything but [id]/[lines] neutral.
-OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = const []}) =>
-    OcptBudgetPoste(
+/// Builds a minimal account, everything but [id]/[lines] neutral.
+OcptBudgetAccount _buildAccount({required String id, List<OcptBudgetLine> lines = const []}) =>
+    OcptBudgetAccount(
       id: id,
       code: "1",
       label: "Poste $id",
@@ -93,19 +93,19 @@ OcptBudgetPoste _buildPoste({required String id, List<OcptBudgetLine> lines = co
       lines: lines,
     );
 
-/// Builds a minimal journal entry naming [posteId] — null for an entry naming no poste at all,
+/// Builds a minimal journal entry naming [accountId] — null for an entry naming no account at all,
 /// off-quote spending's own reading — everything else neutral (a debit of [debitCents],
 /// tax-inclusive, no VAT rate override), except [commitmentId], the commitment this debit pays.
 OcptBudgetEntry _buildEntry({
   required String id,
-  String? posteId,
+  String? accountId,
   int debitCents = 0,
   String? commitmentId,
 }) => OcptBudgetEntry(
   id: id,
   date: DateTime(2026),
   label: "Entry $id",
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: 0,
   isTaxInclusive: true,
@@ -261,60 +261,60 @@ void main() {
 
       expect(state.isLoading, isTrue);
       expect(state.snapshot, isNull);
-      expect(state.postes, isEmpty);
-      expect(state.posteCount, 0);
+      expect(state.accounts, isEmpty);
+      expect(state.accountCount, 0);
       expect(state.lineCount, 0);
       expect(state.rightDockTab, isNull);
       expect(state.lastRightDockTab, OcptBudgetRightDockTab.inspector);
-      expect(state.selectedPoste, isNull);
+      expect(state.selectedAccount, isNull);
     });
   });
 
-  group("OcptBudgetState.selectedPoste", () {
-    test("resolves the poste named by selectedPosteId out of the snapshot", () {
-      final poste = _buildPoste(id: "poste-1");
+  group("OcptBudgetState.selectedAccount", () {
+    test("resolves the account named by selectedAccountId out of the snapshot", () {
+      final account = _buildAccount(id: "poste-1");
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
-          postes: [poste],
+          accounts: [account],
           entries: const [],
           commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selection: const OcptBudgetPosteSelection("poste-1"),
+        selection: const OcptBudgetAccountSelection("poste-1"),
       );
 
-      expect(state.selectedPoste, poste);
+      expect(state.selectedAccount, account);
     });
 
-    test("is null while selectedPosteId names no live poste", () {
+    test("is null while selectedAccountId names no live account", () {
       final state = const OcptBudgetState.init().copyWith(
         snapshot: OcptBudgetSnapshot.build(
-          postes: [_buildPoste(id: "poste-1")],
+          accounts: [_buildAccount(id: "poste-1")],
           entries: const [],
           commitments: const [],
           defaultVatRateBasisPoints: null,
           currencyCode: "EUR",
         ),
-        selection: const OcptBudgetPosteSelection("gone"),
+        selection: const OcptBudgetAccountSelection("gone"),
       );
 
-      expect(state.selectedPoste, isNull);
+      expect(state.selectedAccount, isNull);
     });
   });
 
   group("OcptBudgetState.copyWith", () {
     test("clears the selection only through its own clear flag", () {
       final withSelection = const OcptBudgetState.init().copyWith(
-        selection: const OcptBudgetPosteSelection("poste-1"),
+        selection: const OcptBudgetAccountSelection("poste-1"),
       );
-      expect(withSelection.selectedPosteId, "poste-1");
+      expect(withSelection.selectedAccountId, "poste-1");
 
       final stillSelected = withSelection.copyWith(view: withSelection.view);
-      expect(stillSelected.selectedPosteId, "poste-1");
+      expect(stillSelected.selectedAccountId, "poste-1");
 
       final cleared = withSelection.copyWith(forceSelectionValue: true);
-      expect(cleared.selectedPosteId, isNull);
+      expect(cleared.selectedAccountId, isNull);
     });
 
     test("clears rightDockTab only through its own clear flag", () {
@@ -329,17 +329,17 @@ void main() {
   });
 
   group("OcptBudgetSnapshot counters", () {
-    test("posteCount and lineCount count every poste and every line across them", () {
+    test("accountCount and lineCount count every account and every line across them", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
             lines: [
-              _buildLine(id: "line-1", posteId: "poste-1"),
-              _buildLine(id: "line-2", posteId: "poste-1"),
+              _buildLine(id: "line-1", accountId: "poste-1"),
+              _buildLine(id: "line-2", accountId: "poste-1"),
             ],
           ),
-          _buildPoste(id: "poste-2"),
+          _buildAccount(id: "poste-2"),
         ],
         entries: const [],
         commitments: const [],
@@ -348,7 +348,7 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.posteCount, 2);
+      expect(state.accountCount, 2);
       expect(state.lineCount, 2);
     });
   });
@@ -356,10 +356,10 @@ void main() {
   group("OcptBudgetState.elementLinkCounts / unpricedElements", () {
     test("a live element named by a live line's own elementId counts as priced", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-priced")],
           ),
         ],
         entries: const [],
@@ -381,10 +381,10 @@ void main() {
 
     test("offers only the elements no live line prices yet, an already-priced one dropped", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-priced")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-priced")],
           ),
         ],
         entries: const [],
@@ -407,11 +407,11 @@ void main() {
   group("OcptBudgetState.paidCentsOf / committedCentsOf", () {
     test("reads zero for a poste with no entry against it, rather than a hole", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(id: "poste-1"),
-          _buildPoste(id: "poste-2"),
+        accounts: [
+          _buildAccount(id: "poste-1"),
+          _buildAccount(id: "poste-2"),
         ],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -424,8 +424,8 @@ void main() {
 
     test("reads the real amount once an entry has actually been paid against the poste", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -444,11 +444,11 @@ void main() {
 
     test("excludes a settled commitment outright", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
         entries: [
           _buildEntry(
             id: "entry-1",
-            posteId: "poste-1",
+            accountId: "poste-1",
             debitCents: 5000,
             commitmentId: "commitment-1",
           ),
@@ -458,7 +458,7 @@ void main() {
             id: "commitment-1",
             dueDate: null,
             label: "Camera deposit",
-            posteId: "poste-1",
+            accountId: "poste-1",
             amount: OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
             status: OcptBudgetCommitmentStatus.quoteAccepted,
             lineId: null,
@@ -483,14 +483,14 @@ void main() {
         id: "commitment-1",
         dueDate: DateTime(2026),
         label: "Camera deposit",
-        posteId: "poste-1",
+        accountId: "poste-1",
         amount: const OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null),
         status: OcptBudgetCommitmentStatus.quoteAccepted,
         lineId: null,
         sortKey: "a0",
       );
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
         entries: const [],
         commitments: [commitment],
         defaultVatRateBasisPoints: null,
@@ -508,10 +508,10 @@ void main() {
       expect(emptyState.alerts, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
           ),
         ],
         entries: const [],
@@ -521,29 +521,29 @@ void main() {
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      // A poste quoted at zero (the neutral line's own unit price) with nothing paid or
+      // An account quoted at zero (the neutral line's own unit price) with nothing paid or
       // committed against it raises nothing.
       expect(state.alerts, isEmpty);
     });
   });
 
-  group("OcptBudgetState.paidByPosteId / committedByPosteId", () {
+  group("OcptBudgetState.paidByAccountId / committedByAccountId", () {
     test("read the snapshot's own maps, empty while nothing is loaded", () {
       const emptyState = OcptBudgetState.init();
-      expect(emptyState.paidByPosteId, isEmpty);
-      expect(emptyState.committedByPosteId, isEmpty);
+      expect(emptyState.paidByAccountId, isEmpty);
+      expect(emptyState.committedByAccountId, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000)],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
       );
       final state = const OcptBudgetState.init().copyWith(snapshot: snapshot);
 
-      expect(state.paidByPosteId["poste-1"]?.amountCents, 1000);
-      expect(state.committedByPosteId, isEmpty);
+      expect(state.paidByAccountId["poste-1"]?.amountCents, 1000);
+      expect(state.committedByAccountId, isEmpty);
     });
   });
 
@@ -557,9 +557,9 @@ void main() {
 
     test("reads the total of every debit naming no poste at all", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
         entries: [
-          _buildEntry(id: "entry-1", posteId: "poste-1", debitCents: 1000),
+          _buildEntry(id: "entry-1", accountId: "poste-1", debitCents: 1000),
           _buildEntry(id: "entry-2", debitCents: 500),
         ],
         commitments: const [],
@@ -580,7 +580,7 @@ void main() {
 
       final resource = _buildResource(id: "resource-1");
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         resources: [resource],
@@ -613,7 +613,7 @@ void main() {
     test("reads zero for a resource with no entry naming it, rather than a hole", () {
       final resource = _buildResource(id: "resource-1", amountCents: 5000);
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         resources: [resource],
@@ -632,7 +632,7 @@ void main() {
         id: "entry-1",
         date: DateTime(2026),
         label: "Grant instalment",
-        posteId: null,
+        accountId: null,
         debitCents: 0,
         creditCents: 2000,
         isTaxInclusive: true,
@@ -646,7 +646,7 @@ void main() {
         personId: null,
       );
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: [entry],
         commitments: const [],
         resources: [resource],
@@ -669,7 +669,7 @@ void main() {
   group("OcptBudgetSnapshot.resourceCount", () {
     test("counts every live resource", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         resources: [
@@ -690,8 +690,8 @@ void main() {
       expect(emptyState.receiptsByEntryId, isEmpty);
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1")],
-        entries: [_buildEntry(id: "entry-1", posteId: "poste-1")],
+        accounts: [_buildAccount(id: "poste-1")],
+        entries: [_buildEntry(id: "entry-1", accountId: "poste-1")],
         commitments: const [],
         defaultVatRateBasisPoints: null,
         currencyCode: "EUR",
@@ -729,7 +729,7 @@ void main() {
       );
 
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -759,7 +759,7 @@ void main() {
 
     test("carry the defrayals the snapshot was built with, in the order given", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,

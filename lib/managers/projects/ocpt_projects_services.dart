@@ -87,7 +87,7 @@ class OcptProjectsServices {
   final OcptBudgetQuoteService budgetQuoteService;
 
   /// The service used for CRUD over the budget mode's cash journal: the `budget_entries` movements
-  /// and the `budget_commitments` still owed against a poste.
+  /// and the `budget_commitments` still owed against an account.
   final OcptBudgetJournalService budgetJournalService;
 
   /// The service used for CRUD over the budget mode's financing plan: the `budget_resources`

@@ -62,7 +62,7 @@ OcptProjectVersionPayload buildRichPayload() => OcptProjectVersionPayload(
   shootingSlotGuests: richShootingSlotGuests(),
   shootingDayEvents: richShootingDayEvents(),
   projectDictionaryWords: richProjectDictionaryWords(),
-  budgetPostes: richBudgetPostes(),
+  budgetAccounts: richBudgetAccounts(),
   budgetLines: richBudgetLines(),
   budgetEntries: richBudgetEntries(),
   budgetCommitments: richBudgetCommitments(),

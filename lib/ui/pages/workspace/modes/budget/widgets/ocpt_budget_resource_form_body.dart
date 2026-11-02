@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// **`Label` is the dialog's own only required field**, unlike the commitment dialog's own two: a
 /// resource's `Group` and `Status` both already carry a sensible default the moment the dialog
 /// opens (the first group, [OcptBudgetResourceStatus.pending]), so there is no second field a
-/// fresh resource could be missing the way a commitment is missing its poste until somebody picks
+/// fresh resource could be missing the way a commitment is missing its account until somebody picks
 /// one.
 ///
 /// **The `Group` is fixed, and the picker hidden, while creating** — unless
@@ -74,10 +74,10 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 ///
 /// **The `Poste` field draws only while the picked group reads
 /// [OcptBudgetResourceGroupKind.inKind]**, appearing and disappearing the moment the `Group` picker
-/// above toggles into or out of it — a subsidy or a cash contribution offsets no poste, so the
+/// above toggles into or out of it — a subsidy or a cash contribution offsets no account, so the
 /// field is not merely disabled for them, it is not drawn at all
-/// (`OcptBudgetResourceFormFields.posteId`'s own doc comment). It mirrors
-/// `OcptBudgetCommitmentFormBody`'s own poste picker, but is validated the way this
+/// (`OcptBudgetResourceFormFields.accountId`'s own doc comment). It mirrors
+/// `OcptBudgetCommitmentFormBody`'s own account picker, but is validated the way this
 /// body's own `Label` field already is — a plain [DropdownButtonFormField] validator — rather than
 /// through a separate missing-fields hint: `Amount` is the one field here that can be technically
 /// unreadable (its figure fails to parse), which is what forces the current draft to read null and
@@ -98,19 +98,19 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
 
-  /// Every live poste of the project, offered by the `Poste` picker while the picked group is
+  /// Every live account of the project, offered by the `Poste` picker while the picked group is
   /// [OcptBudgetResourceGroupKind.inKind] — see the class doc comment's own paragraph on the
   /// `Poste` field.
-  final List<OcptBudgetPoste> postes;
+  final List<OcptBudgetAccount> accounts;
 
-  /// The poste an existing in-kind contribution's counterpart line currently offsets, or null —
+  /// The account an existing in-kind contribution's counterpart line currently offsets, or null —
   /// seeds the `Poste` picker's own initial value. Read from the linked counterpart line rather
-  /// than from a field of the resource, which stores no poste of its own
-  /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment).
-  final String? initialPosteId;
+  /// than from a field of the resource, which stores no account of its own
+  /// (`OcptBudgetResourceFormFields.accountId`'s own doc comment).
+  final String? initialAccountId;
 
-  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
-  /// exactly as every other picker of this mode does.
+  /// Whether the mode's header currently reads simplified — switches an account's own displayed
+  /// name exactly as every other picker of this mode does.
   final bool isSimplified;
 
   /// The form this body's own [Form] validates against — the host's to create and to validate.
@@ -132,8 +132,8 @@ class OcptBudgetResourceFormBody extends StatefulWidget {
     required this.groupKind,
     required this.people,
     required this.currencyCode,
-    required this.postes,
-    this.initialPosteId,
+    required this.accounts,
+    this.initialAccountId,
     required this.isSimplified,
     required this.formKey,
     required this.onDraftChanged,
@@ -171,10 +171,10 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
   /// class doc comment.
   String? _personId;
 
-  /// The poste currently picked, read only while [_groupKind] is
+  /// The account currently picked, read only while [_groupKind] is
   /// [OcptBudgetResourceGroupKind.inKind] — see the class doc comment's own paragraph on the
   /// `Poste` field.
-  String? _posteId;
+  String? _accountId;
 
   /// Get the fields this body would submit right now, or null while the `Amount` field's own figure
   /// does not parse.
@@ -192,7 +192,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
       status: _status,
       isReimbursable: _isReimbursable,
       notes: _notesController.text.trim(),
-      posteId: _groupKind == OcptBudgetResourceGroupKind.inKind ? _posteId : null,
+      accountId: _groupKind == OcptBudgetResourceGroupKind.inKind ? _accountId : null,
     );
   }
 
@@ -207,7 +207,7 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
     _status = existing?.status ?? OcptBudgetResourceStatus.pending;
     _isReimbursable = existing?.isReimbursable ?? false;
     _personId = existing?.personId;
-    _posteId = widget.initialPosteId;
+    _accountId = widget.initialAccountId;
 
     _labelController = TextEditingController(text: existing?.label ?? "")..addListener(_report);
     _amountController = TextEditingController(text: ocptCostTextOf(existing?.amountCents))
@@ -300,12 +300,12 @@ class _OcptBudgetResourceFormBodyState extends State<OcptBudgetResourceFormBody>
             ),
             if (_groupKind == OcptBudgetResourceGroupKind.inKind) ...[
               const SizedBox(height: 12),
-              _OcptResourcePosteField(
-                postes: widget.postes,
+              _OcptResourceAccountField(
+                accounts: widget.accounts,
                 isSimplified: widget.isSimplified,
-                value: _posteId,
+                value: _accountId,
                 onChanged: (value) {
-                  setState(() => _posteId = value);
+                  setState(() => _accountId = value);
                   _report();
                 },
               ),
@@ -547,32 +547,32 @@ class _OcptResourceStatusPicker extends StatelessWidget {
 }
 
 /// The resource form's own `Poste` field: a picker, drawn only while the group is
-/// [OcptBudgetResourceGroupKind.inKind] — the CNC poste this contribution offsets, required
+/// [OcptBudgetResourceGroupKind.inKind] — the CNC account this contribution offsets, required
 /// through its own validator exactly as `Label` already is (see the form body's class doc comment
 /// for why this differs from `OcptBudgetCommitmentFormBody`'s own missing-fields hint). Mirrors
-/// that body's own poste field otherwise, poste by poste and label by label.
-class _OcptResourcePosteField extends StatelessWidget {
-  /// The postes the picker offers.
-  final List<OcptBudgetPoste> postes;
+/// that body's own account field otherwise, account by account and label by label.
+class _OcptResourceAccountField extends StatelessWidget {
+  /// The accounts the picker offers.
+  final List<OcptBudgetAccount> accounts;
 
-  /// Whether the simplified naming applies to the poste labels.
+  /// Whether the simplified naming applies to the account labels.
   final bool isSimplified;
 
-  /// The picked poste id, or null while none is picked.
+  /// The picked account id, or null while none is picked.
   final String? value;
 
-  /// Called with the picked poste id.
+  /// Called with the picked account id.
   final ValueChanged<String?> onChanged;
 
   /// Class constructor
-  const _OcptResourcePosteField({
-    required this.postes,
+  const _OcptResourceAccountField({
+    required this.accounts,
     required this.isSimplified,
     required this.value,
     required this.onChanged,
   });
 
-  /// Build the resource poste field as a [DropdownButtonFormField].
+  /// Build the resource account field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -580,19 +580,19 @@ class _OcptResourcePosteField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: value,
       decoration: InputDecoration(
-        labelText: tr.budgetResourceDialogPosteFieldLabel,
-        helperText: tr.budgetResourceDialogPosteFieldHelper,
+        labelText: tr.budgetResourceDialogAccountFieldLabel,
+        helperText: tr.budgetResourceDialogAccountFieldHelper,
         helperMaxLines: 2,
       ),
       items: [
-        for (final poste in postes)
+        for (final account in accounts)
           DropdownMenuItem(
-            value: poste.id,
-            child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
+            value: account.id,
+            child: Text(ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)),
           ),
       ],
       onChanged: onChanged,
-      validator: (value) => value == null ? tr.budgetResourceDialogPosteRequiredError : null,
+      validator: (value) => value == null ? tr.budgetResourceDialogAccountRequiredError : null,
     );
   }
 }

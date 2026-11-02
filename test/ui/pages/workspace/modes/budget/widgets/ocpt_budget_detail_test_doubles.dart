@@ -53,7 +53,7 @@ String storedFieldValueOf(String targetId, OcptBudgetField field, String storedV
 /// A quote line priced at 10.00 €, tax-inclusive, pricing no breakdown element.
 const testLine = OcptBudgetLine(
   id: "line-1",
-  posteId: "poste-1",
+  accountId: "poste-1",
   label: "Crown",
   quantityMilli: 1000,
   unit: "u",
@@ -66,8 +66,8 @@ const testLine = OcptBudgetLine(
   sortKey: "a0",
 );
 
-/// The poste every test below reads, holding [testLine] alone.
-const testPoste = OcptBudgetPoste(
+/// The account every test below reads, holding [testLine] alone.
+const testAccount = OcptBudgetAccount(
   id: "poste-1",
   code: "5",
   label: "Sets and costumes",
@@ -77,7 +77,7 @@ const testPoste = OcptBudgetPoste(
   lines: [testLine],
 );
 
-/// Builds a commitment against [testPoste], everything but what a test actually varies neutral —
+/// Builds a commitment against [testAccount], everything but what a test actually varies neutral —
 /// settlement is read off whichever entries the test hands in alongside it, never a field of the
 /// commitment itself any more.
 OcptBudgetCommitment buildCommitment({
@@ -89,7 +89,7 @@ OcptBudgetCommitment buildCommitment({
   id: id,
   dueDate: dueDate,
   label: "Glass workshop",
-  posteId: "poste-1",
+  accountId: "poste-1",
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.invoiceReceived,
   lineId: lineId,
@@ -99,7 +99,7 @@ OcptBudgetCommitment buildCommitment({
 /// Builds a journal entry, everything but what a test actually varies neutral.
 OcptBudgetEntry buildEntry({
   String id = "entry-1",
-  String? posteId = "poste-1",
+  String? accountId = "poste-1",
   int debitCents = 0,
   int creditCents = 0,
   String? resourceId,
@@ -109,7 +109,7 @@ OcptBudgetEntry buildEntry({
   id: id,
   date: DateTime(2026, 8, 18),
   label: "Invoice",
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: true,
@@ -145,7 +145,7 @@ OcptBudgetResource buildResource({
 /// what it actually cares about.
 OcptBudgetDetail testDetail({
   OcptBudgetSelection? selection,
-  List<OcptBudgetPoste> postes = const [testPoste],
+  List<OcptBudgetAccount> accounts = const [testAccount],
   List<OcptBudgetCommitment> commitments = const [],
   List<OcptBudgetEntry> entries = const [],
   List<OcptBudgetResource> resources = const [],
@@ -175,7 +175,7 @@ OcptBudgetDetail testDetail({
   ValueChanged<String>? onRevenueDeletionRequested,
 }) => OcptBudgetDetail(
   selection: selection,
-  postes: postes,
+  accounts: accounts,
   commitments: commitments,
   entries: entries,
   resources: resources,
@@ -191,7 +191,7 @@ OcptBudgetDetail testDetail({
   receivedByRevenueId: receivedByRevenueId,
   fieldValueOf: storedFieldValueOf,
   onFieldChanged: (_, __, ___) {},
-  onPosteEstimateToCompleteDerivedRequested: (_) {},
+  onAccountEstimateToCompleteDerivedRequested: (_) {},
   onLineTaxInclusiveChanged: (_, {required isTaxInclusive}) {},
   onLineVatRateInheritedRequested: (_) {},
   onLineCommitRequested: onLineCommitRequested,

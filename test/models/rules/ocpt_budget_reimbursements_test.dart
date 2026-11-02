@@ -41,7 +41,7 @@ void main() {
     id: id,
     date: DateTime(2026),
     label: "An entry",
-    posteId: null,
+    accountId: null,
     debitCents: debitCents,
     creditCents: 0,
     isTaxInclusive: isTaxInclusive,

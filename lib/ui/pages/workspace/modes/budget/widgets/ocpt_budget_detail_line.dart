@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_inline_field.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The quote-line variant: breadcrumb poste › line, the quantity × unit price hint (and the
+/// The quote-line variant: breadcrumb account › line, the quantity × unit price hint (and the
 /// breakdown element it prices, when it prices one), the `Estimé — Engagé — Payé` stepper, and
 /// one of the line's own two mutually exclusive states — `docs/architecture/budget.md`'s "A quote
 /// line can be promoted into a commitment, and the line stays".
@@ -32,8 +32,8 @@ class OcptBudgetDetailLine extends StatelessWidget {
   /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
   final OcptBudgetDetail detail;
 
-  /// The poste the line belongs to.
-  final OcptBudgetPoste poste;
+  /// The account the line belongs to.
+  final OcptBudgetAccount account;
 
   /// The quote line this variant draws.
   final OcptBudgetLine line;
@@ -42,7 +42,7 @@ class OcptBudgetDetailLine extends StatelessWidget {
   const OcptBudgetDetailLine({
     super.key,
     required this.detail,
-    required this.poste,
+    required this.account,
     required this.line,
   });
 
@@ -147,7 +147,7 @@ class OcptBudgetDetailLine extends StatelessWidget {
         (resource) => resource.id == line.inKindResourceId,
       );
       final contributionLabel = contribution == null || contribution.label.isEmpty
-          ? tr.budgetPosteUnnamed
+          ? tr.budgetAccountUnnamed
           : contribution.label;
       banner = OcptBudgetDetailInfoBanner(
         message: tr.budgetDetailInKindCounterpartHint(contributionLabel),
@@ -225,7 +225,7 @@ class OcptBudgetDetailLine extends StatelessWidget {
 
     return OcptBudgetDetailScaffold(
       breadcrumb: [
-        "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
+        "${account.code} ${ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)}",
         if (line.label.isEmpty) tr.budgetLineUnnamed else line.label,
       ],
       title: line.label.isEmpty ? tr.budgetLineUnnamed : line.label,

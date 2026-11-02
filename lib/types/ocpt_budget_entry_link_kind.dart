@@ -10,9 +10,9 @@
 /// every one of the five still travels in `OcptBudgetEntryFormFields` regardless of which was
 /// drawn, so an entry that already names something unusual survives being edited.
 enum OcptBudgetEntryLinkKind {
-  /// A quote poste — `budget_lines`, read through `OcptBudgetPoste`. Left unanswered, the entry
+  /// A quote account — `budget_lines`, read through `OcptBudgetAccount`. Left unanswered, the entry
   /// reads `Hors devis`, never nothing at all.
-  poste,
+  account,
 
   /// A financing resource — `budget_resources`.
   financingResource,

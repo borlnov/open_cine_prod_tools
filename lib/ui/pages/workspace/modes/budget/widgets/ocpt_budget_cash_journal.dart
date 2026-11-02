@@ -30,8 +30,8 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// closed by its own balance row, `À venir` under it closed by its own, then a note — the layout
 /// mockup `4b` lays this view out as.
 ///
-/// **This is the one place a movement naming nothing can still be reached.** A poste, a resource or
-/// a revenue each has a document of its own to be found under; an entry naming none of them — a
+/// **This is the one place a movement naming nothing can still be reached.** An account, a resource
+/// or a revenue each has a document of its own to be found under; an entry naming none of them — a
 /// till receipt for something the nomenclature never anticipated, a subsidy instalment recorded
 /// before anyone got round to naming the resource it pays — lives nowhere else, so this table draws
 /// **every** live entry the journal holds rather than a reading over some of them. Narrowing it to
@@ -40,12 +40,12 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// selected, edited nor deleted.
 ///
 /// **[entries] is always the whole journal, and the table draws every one of them — this page no
-/// longer honours the header's own poste filter at all** (`ocptBudgetViewHonoursPosteFilter` is
+/// longer honours the header's own account filter at all** (`ocptBudgetViewHonoursAccountFilter` is
 /// now `OcptBudgetView.expenses` alone): a bank statement reads across the whole account, not one
 /// category narrowed out of it, and mockup `4b` draws no filtered reading of this page. The closing
 /// balance ([OcptBudgetCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own
 /// ruling is that this is the production's bank account, and it does not change because a view
-/// narrowed to one poste.
+/// narrowed to one account.
 ///
 /// **No capture affordance of any kind — read-only means nothing is created from a statement, not
 /// that nothing can be touched.** The `+ Entry` action mockup `2a`/`3a` used to draw here is gone
@@ -96,8 +96,9 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// comment's own `À venir` paragraph).
   final List<OcptBudgetCommitment> commitments;
 
-  /// Every live poste of the project, used to resolve an entry's or a commitment's own poste name.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, used to resolve an entry's or a commitment's own account
+  /// name.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live voucher, keyed by the entry it evidences — an entry with no key here carries no
   /// voucher at all. Read by each row's own small marker (never a second column of text), which
@@ -108,8 +109,8 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// while it is an [OcptBudgetEntrySelection] naming its own id.
   final OcptBudgetSelection? selection;
 
-  /// Whether the header's simplified/detailed switch currently reads simplified — switches a
-  /// poste's own displayed name between `simpleLabel` and `code · label`.
+  /// Whether the header's simplified/detailed switch currently reads simplified — switches an
+  /// account's own displayed name between `simpleLabel` and `code · label`.
   final bool isSimplified;
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one.
@@ -157,7 +158,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
     super.key,
     required this.entries,
     required this.commitments,
-    required this.postes,
+    required this.accounts,
     required this.receiptsByEntryId,
     required this.selection,
     required this.isSimplified,
@@ -233,7 +234,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                     itemCount: rows.length,
                                     itemBuilder: (context, index) => OcptBudgetCashJournalRow(
                                       row: rows[index],
-                                      poste: _posteById(rows[index].entry.posteId),
+                                      account: _accountById(rows[index].entry.accountId),
                                       receipt: receiptsByEntryId[rows[index].entry.id],
                                       isSelected: _isEntrySelected(rows[index].entry.id),
                                       isSimplified: isSimplified,
@@ -297,7 +298,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
                                         return OcptBudgetCashUpcomingRow(
                                           step: step,
                                           commitment: commitment,
-                                          poste: _posteById(commitment.posteId),
+                                          account: _accountById(commitment.accountId),
                                           isSelected: _isCommitmentSelected(commitment.id),
                                           isSimplified: isSimplified,
                                           currencyCode: currencyCode,
@@ -369,17 +370,17 @@ class OcptBudgetCashJournal extends StatelessWidget {
     return selection is OcptBudgetCommitmentSelection && selection.commitmentId == commitmentId;
   }
 
-  /// Get [postes]' own entry naming [posteId], or null while [posteId] is null or names no live
-  /// poste —
-  /// mirrors `OcptBudgetState.selectedPoste`'s own reading.
-  OcptBudgetPoste? _posteById(String? posteId) {
-    if (posteId == null) {
+  /// Get [accounts]' own entry naming [accountId], or null while [accountId] is null or names no
+  /// live account —
+  /// mirrors `OcptBudgetState.selectedAccount`'s own reading.
+  OcptBudgetAccount? _accountById(String? accountId) {
+    if (accountId == null) {
       return null;
     }
 
-    for (final poste in postes) {
-      if (poste.id == posteId) {
-        return poste;
+    for (final account in accounts) {
+      if (account.id == accountId) {
+        return account;
       }
     }
 

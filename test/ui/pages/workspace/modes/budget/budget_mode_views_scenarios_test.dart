@@ -37,21 +37,21 @@ void main() {
   OcptBudgetStatusBar statusBar(WidgetTester tester) =>
       tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
 
-  /// Opens the expenses table, then the twisty of its first poste.
+  /// Opens the expenses table, then the twisty of its first account.
   Future<void> openExpensesExpanded(WidgetTester tester) async {
     await harness.tapHeader(tester, harness.trOf(tester).budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
   }
 
-  /// Seeds poste "Camera" holding the quote line "Camera deposit" (100.00), the off-line
+  /// Seeds account "Camera" holding the quote line "Camera deposit" (100.00), the off-line
   /// commitment "Lens order" (30.00) and the debit "Taxi" (15.00), returning the ids in that
   /// order.
   Future<(String, String, String, String)> seedCamera() async {
-    final posteId = await harness.seedPoste("Camera");
-    final lineId = await harness.seedLine(posteId, "Camera deposit");
-    final commitmentId = await harness.seedCommitment(posteId, "Lens order", amountCents: 3000);
-    final entryId = await harness.seedDebit("Taxi", 1500, posteId: posteId);
-    return (posteId, lineId, commitmentId, entryId);
+    final accountId = await harness.seedAccount("Camera");
+    final lineId = await harness.seedLine(accountId, "Camera deposit");
+    final commitmentId = await harness.seedCommitment(accountId, "Lens order", amountCents: 3000);
+    final entryId = await harness.seedDebit("Taxi", 1500, accountId: accountId);
+    return (accountId, lineId, commitmentId, entryId);
   }
 
   testWidgets("the mode shows a spinner, then the dashboard with the ten CNC postes seeded and "
@@ -69,30 +69,30 @@ void main() {
     expect(find.text("My Movie"), findsOneWidget);
     expect(find.byType(OcptBudgetDashboard), findsOneWidget);
     expect(find.byType(OcptBudgetCostTracking), findsNothing);
-    expect(statusBar(tester).posteCount, 10);
+    expect(statusBar(tester).accountCount, 10);
     expect(statusBar(tester).lineCount, 0);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     expect(find.byType(OcptBudgetDetail), findsNothing);
-    final seeded = await harness.readPostes();
+    final seeded = await harness.readAccounts();
     expect(seeded, hasLength(10));
-    expect(seeded.map((poste) => poste.label), contains(tr.budgetCncPosteArtisticRights));
+    expect(seeded.map((account) => account.label), contains(tr.budgetCncAccountArtisticRights));
 
     await harness.unmount(tester);
     await tester.pumpWidget(harness.wrap(const OcptBudgetMode()));
     await tester.pumpAndSettle();
-    expect(await harness.readPostes(), hasLength(10));
-    expect(statusBar(tester).posteCount, 10);
+    expect(await harness.readAccounts(), hasLength(10));
+    expect(statusBar(tester).accountCount, 10);
   });
 
   testWidgets("a project that already holds a poste is not seeded with the CNC nomenclature, and "
       "its lines and figures are what the status bar counts", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
-    await harness.seedLine(posteId, "Lens rental", unitAmountCents: 2500);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
+    await harness.seedLine(accountId, "Lens rental", unitAmountCents: 2500);
     await harness.mount(tester);
 
-    expect(await harness.readPostes(), hasLength(1));
-    expect(statusBar(tester).posteCount, 1);
+    expect(await harness.readAccounts(), hasLength(1));
+    expect(statusBar(tester).accountCount, 1);
     expect(statusBar(tester).lineCount, 2);
     expect(statusBar(tester).quotedTotalCents, 12500);
   });
@@ -143,8 +143,8 @@ void main() {
     expect(find.byType(OcptBudgetCostTracking), findsNothing);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
 
-    // The poste is still opened, and the simplified switch is still on: the Camera poste carries
-    // no simple label, so its own label stands, and the "N°" column stays gone.
+    // The account is still opened, and the simplified switch is still on: the Camera account
+    // carries no simple label, so its own label stands, and the "N°" column stays gone.
     expect(find.text("Camera deposit"), findsOneWidget);
     expect(find.text("Camera"), findsOneWidget);
     expect(find.text(tr.budgetCostTrackingColumnNumber), findsNothing);
@@ -163,12 +163,15 @@ void main() {
     await harness.tap(tester, find.text("Camera").first);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsOneWidget);
     expect(
-      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
       findsOneWidget,
     );
 
     await harness.tap(tester, find.text("Camera deposit"));
-    expect(inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsNothing);
+    expect(
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
+      findsNothing,
+    );
     expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
     expect(inDetail(find.text("Camera deposit")), findsWidgets);
 
@@ -291,11 +294,11 @@ void main() {
     // The line's own "Show commitment" link switches view and selects in one gesture: nothing
     // is dropped along the way, and the commitment's detail panel is what the dock then shows.
     final promotedLineId = await harness.seedLine(
-      (await harness.readPostes()).first.id,
+      (await harness.readAccounts()).first.id,
       "Promoted line",
     );
     await harness.seedCommitment(
-      (await harness.readPostes()).first.id,
+      (await harness.readAccounts()).first.id,
       "Promoted order",
       lineId: promotedLineId,
     );

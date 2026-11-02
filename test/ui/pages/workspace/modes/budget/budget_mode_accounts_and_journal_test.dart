@@ -28,7 +28,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'budget_mode_test_doubles.dart';
 
-/// Run the tests of the budget mode postes and journal.
+/// Run the tests of the budget mode accounts and journal.
 void main() {
   late OcptPropertiesManager propertiesManager;
 
@@ -128,7 +128,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final statusBar = tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
-    expect(statusBar.posteCount, 10);
+    expect(statusBar.accountCount, 10);
 
     await openExpenses(tester);
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
@@ -136,14 +136,14 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
+        matching: find.text(tr.budgetCncAccountArtisticRights),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteOverheads),
+        matching: find.text(tr.budgetCncAccountOverheads),
       ),
       findsOneWidget,
     );
@@ -178,7 +178,7 @@ void main() {
       expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
     });
 
-    testWidgets("its own onPosteOpened wiring selects the poste and lands on the cost report", (
+    testWidgets("its own onAccountOpened wiring selects the account and lands on the cost report", (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1750, 900);
@@ -190,26 +190,26 @@ void main() {
       await tester.pumpAndSettle();
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      // A fresh project seeds ten postes but no alert, so the dashboard's only poste-linking
+      // A fresh project seeds ten accounts but no alert, so the dashboard's only account-linking
       // gesture — an over-quote alert row — draws nothing yet
       // (`ocpt_budget_dashboard_test.dart` covers that row's own click end to end once an alert
       // exists). What this integration needs is that `budget_mode.dart`'s own wiring of
-      // `OcptBudgetDashboard.onPosteOpened` still selects the poste and switches to Expenses, so
-      // it is invoked directly on the mounted widget rather than through a tap.
+      // `OcptBudgetDashboard.onAccountOpened` still selects the account and switches to Expenses,
+      // so it is invoked directly on the mounted widget rather than through a tap.
       final dashboard = tester.widget<OcptBudgetDashboard>(find.byType(OcptBudgetDashboard));
-      final posteId = dashboard.postes
-          .firstWhere((poste) => poste.label == tr.budgetCncPosteArtisticRights)
+      final accountId = dashboard.accounts
+          .firstWhere((account) => account.label == tr.budgetCncAccountArtisticRights)
           .id;
 
-      dashboard.onPosteOpened(posteId);
+      dashboard.onAccountOpened(accountId);
       await tester.pumpAndSettle();
 
-      // Landed on the cost report — a dashboard row is a link to where the poste is worked on,
+      // Landed on the cost report — a dashboard row is a link to where the account is worked on,
       // not a selection that opens the detail panel over the dashboard itself.
       expect(find.byType(OcptBudgetDashboard), findsNothing);
       expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
 
-      // And the poste it names is the very one selected — the detail panel opened on it.
+      // And the account it names is the very one selected — the detail panel opened on it.
       expect(find.byType(OcptBudgetDetail), findsOneWidget);
     });
   });
@@ -227,20 +227,20 @@ void main() {
     await openExpenses(tester);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    // Scoped to the cost-tracking table: the left dock now prints every poste's own name too.
+    // Scoped to the cost-tracking table: the left dock now prints every account's own name too.
     Finder inCostTracking(Finder matching) =>
         find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
-    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
+    expect(inCostTracking(find.text(tr.budgetCncAccountArtisticRights)), findsOneWidget);
     expect(inCostTracking(find.text("1")), findsWidgets);
 
     await tester.tap(find.text(tr.budgetHeaderSimplifiedSegmentLabel));
     await tester.pumpAndSettle();
 
-    expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsNothing);
-    expect(inCostTracking(find.text(tr.budgetCncPosteSimpleArtisticRights)), findsOneWidget);
+    expect(inCostTracking(find.text(tr.budgetCncAccountArtisticRights)), findsNothing);
+    expect(inCostTracking(find.text(tr.budgetCncAccountSimpleArtisticRights)), findsOneWidget);
   });
 
-  testWidgets("deleting a poste asks through OcptConfirmDialog", (tester) async {
+  testWidgets("deleting an account asks through OcptConfirmDialog", (tester) async {
     tester.view.physicalSize = const Size(1750, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -254,18 +254,18 @@ void main() {
     await tester.pumpAndSettle();
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-    await tester.tap(find.text(tr.budgetPosteDeleteAction));
+    await tester.tap(find.text(tr.budgetAccountDeleteAction));
     await tester.pumpAndSettle();
 
     expect(find.byType(OcptConfirmDialog), findsOneWidget);
-    expect(find.text(tr.budgetDeletePosteConfirmTitle), findsOneWidget);
+    expect(find.text(tr.budgetDeleteAccountConfirmTitle), findsOneWidget);
 
-    // Cancelling leaves every poste in place.
+    // Cancelling leaves every account in place.
     await tester.tap(find.text(tr.budgetDeleteCancelAction));
     await tester.pumpAndSettle();
 
     final statusBar = tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
-    expect(statusBar.posteCount, 10);
+    expect(statusBar.accountCount, 10);
   });
 
   testWidgets(
@@ -293,7 +293,7 @@ void main() {
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
 
-      // Step 2: the optional poste attachment — `Hors devis`.
+      // Step 2: the optional account attachment — `Hors devis`.
       await tester.tap(find.byKey(const Key("ocptBudgetNewOffQuoteChoice")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
@@ -386,7 +386,7 @@ void main() {
       expect(find.text(tr.budgetEntryDialogEditTitle), findsOneWidget);
       expect(find.widgetWithText(TextFormField, "Bank fees"), findsOneWidget);
 
-      // The entry names no poste, resource, taking, share or person, so its nature is inferred as
+      // The entry names no account, resource, taking, share or person, so its nature is inferred as
       // `Autre mouvement` and its own direction choice is drawn.
       expect(find.text(tr.budgetEntryDialogDirectionFieldLabel.toUpperCase()), findsOneWidget);
     },
@@ -512,7 +512,7 @@ void main() {
       await openExpenses(tester);
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-      expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+      expect(find.text(tr.budgetAccountCreationAction), findsNothing);
       expect(find.byType(PopupMenuButton<String>), findsNothing);
 
       // Leave the preview so the working copy is what the next test opens onto.
@@ -529,17 +529,17 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       // A commitment is no longer created from a dedicated view of its own: a quote line's own
-      // detail panel is the one place `Commit this line…` is offered — seeding a poste with a line
-      // first reaches it.
+      // detail panel is the one place `Commit this line…` is offered — seeding an account with a
+      // line first reaches it.
       final project = projectsManager.currentProject!;
-      final posteId = await projectsManager.budgetQuoteService.createPoste(
+      final accountId = await projectsManager.budgetQuoteService.createAccount(
         database: project.database,
         label: "Camera",
       );
-      expect(posteId, isNotNull);
+      expect(accountId, isNotNull);
       final lineId = await projectsManager.budgetQuoteService.createLine(
         database: project.database,
-        posteId: posteId!,
+        accountId: accountId!,
         label: "Camera deposit",
         unitAmountCents: const Value(5000),
       );
@@ -551,7 +551,7 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The poste's own twisty is the only one on screen — this is the only poste seeded.
+      // The account's own twisty is the only one on screen — this is the only account seeded.
       await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text("Camera deposit"));
@@ -576,14 +576,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final posteId = await projectsManager.budgetQuoteService.createPoste(
+    final accountId = await projectsManager.budgetQuoteService.createAccount(
       database: project.database,
       label: "Camera",
     );
-    expect(posteId, isNotNull);
+    expect(accountId, isNotNull);
     await projectsManager.budgetJournalService.createCommitment(
       database: project.database,
-      posteId: posteId!,
+      accountId: accountId!,
       label: "To be deleted",
       amountCents: 500,
     );
@@ -592,9 +592,9 @@ void main() {
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
-    // The commitment names no line, so it draws as one of the poste's own off-line sub-rows —
-    // reached by expanding the poste's own twisty, the only one seeded here. Its own menu is the
-    // second `⋮` on screen, the first being the poste row's.
+    // The commitment names no line, so it draws as one of the account's own off-line sub-rows —
+    // reached by expanding the account's own twisty, the only one seeded here. Its own menu is the
+    // second `⋮` on screen, the first being the account row's.
     await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
     await tester.pumpAndSettle();
 
@@ -613,7 +613,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("To be deleted"), findsOneWidget);
 
-    // Confirming removes it — the poste's own row is left with nothing to expand onto.
+    // Confirming removes it — the account's own row is left with nothing to expand onto.
     await tester.tap(find.byType(PopupMenuButton<String>).at(1));
     await tester.pumpAndSettle();
     await tester.tap(find.text(tr.budgetCommittedDeleteAction));
@@ -634,14 +634,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final posteId = await projectsManager.budgetQuoteService.createPoste(
+      final accountId = await projectsManager.budgetQuoteService.createAccount(
         database: project.database,
         label: "Camera",
       );
-      expect(posteId, isNotNull);
+      expect(accountId, isNotNull);
       await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId!,
+        accountId: accountId!,
         label: "Camera deposit",
         amountCents: 5000,
       );
@@ -652,8 +652,8 @@ void main() {
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-      // The commitment names no line, so it draws as the poste's own off-line sub-row, reached
-      // by expanding the poste's own twisty — the only one seeded here.
+      // The commitment names no line, so it draws as the account's own off-line sub-row, reached
+      // by expanding the account's own twisty — the only one seeded here.
       await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(PopupMenuButton<String>).at(1));
@@ -677,7 +677,7 @@ void main() {
       await openCashFlow(tester);
       expect(find.text("Camera deposit"), findsOneWidget);
 
-      // Undoing the settlement leaves the entry in place. The poste's own twisty is still
+      // Undoing the settlement leaves the entry in place. The account's own twisty is still
       // expanded — that state outlives switching to another route and back.
       await openExpenses(tester);
       await tester.tap(find.byType(PopupMenuButton<String>).at(1));
@@ -705,14 +705,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final posteId = await projectsManager.budgetQuoteService.createPoste(
+      final accountId = await projectsManager.budgetQuoteService.createAccount(
         database: project.database,
         label: "Camera",
       );
-      expect(posteId, isNotNull);
+      expect(accountId, isNotNull);
       await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId!,
+        accountId: accountId!,
         label: "Atelier Verrier",
         amountCents: 25000,
       );
@@ -729,8 +729,8 @@ void main() {
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
 
-      // Step 2: the optional poste attachment — `Hors devis`, the commitment's own match not
-      // depending on naming the same poste.
+      // Step 2: the optional account attachment — `Hors devis`, the commitment's own match not
+      // depending on naming the same account.
       await tester.tap(find.byKey(const Key("ocptBudgetNewOffQuoteChoice")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
@@ -750,7 +750,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The commitment reads Settled, exactly as the dedicated Settle gesture leaves it — the
-      // wizard's own accepted-suggestion mapping in `budget_mode.dart` named its poste and tax
+      // wizard's own accepted-suggestion mapping in `budget_mode.dart` named its account and tax
       // basis, which only a commitment settlement (not a plain entry) ever does.
       await openExpenses(tester);
       await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
@@ -768,14 +768,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final posteId = await projectsManager.budgetQuoteService.createPoste(
+    final accountId = await projectsManager.budgetQuoteService.createAccount(
       database: project.database,
       label: "Camera",
     );
-    expect(posteId, isNotNull);
+    expect(accountId, isNotNull);
     await projectsManager.budgetJournalService.createCommitment(
       database: project.database,
-      posteId: posteId!,
+      accountId: accountId!,
       label: "Frozen commitment",
       amountCents: 500,
     );
@@ -790,13 +790,13 @@ void main() {
     await tester.pumpAndSettle();
     await openExpenses(tester);
 
-    // Expanding the poste's own twisty only reads — never withheld under a preview.
+    // Expanding the account's own twisty only reads — never withheld under a preview.
     await tester.tap(find.byIcon(Icons.keyboard_arrow_right).first);
     await tester.pumpAndSettle();
 
     expect(find.text("Frozen commitment"), findsOneWidget);
 
-    // Exactly one `⋮` menu remains: the poste row's own, carrying nothing but the never-withheld
+    // Exactly one `⋮` menu remains: the account row's own, carrying nothing but the never-withheld
     // `Show this poste only` — the commitment sub-row's own menu (Settle, Edit, Delete) is gone
     // whole.
     expect(find.byType(PopupMenuButton<String>), findsOneWidget);
@@ -834,7 +834,7 @@ void main() {
     expect(inPanel(find.text(tr.budgetExportFinancialReportTitle)), findsOneWidget);
     expect(inPanel(find.text(tr.workspaceExportProjectPackageTitle)), findsOneWidget);
 
-    // The ten CNC postes are seeded on first entry, so the quote and the financial report are
+    // The ten CNC accounts are seeded on first entry, so the quote and the financial report are
     // both available; a fresh project holds no live resource and no live entry yet, so the
     // financing plan and the cash journal are both greyed and inert with their own reason.
     expect(inPanel(find.text(tr.budgetExportQuoteDescription)), findsOneWidget);

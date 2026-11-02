@@ -20,7 +20,7 @@ void main() {
     String id = "entry-1",
     DateTime? date,
     String label = "An entry",
-    String? posteId,
+    String? accountId,
     String? resourceId,
     String? revenueId,
     String? shareId,
@@ -34,7 +34,7 @@ void main() {
     id: id,
     date: date ?? DateTime(2026),
     label: label,
-    posteId: posteId,
+    accountId: accountId,
     debitCents: debitCents,
     creditCents: creditCents,
     isTaxInclusive: isTaxInclusive,
@@ -273,7 +273,7 @@ void main() {
       // Only the debit against the reimbursable contribution counts towards the amount: the debit
       // against the subsidy is a correction, not a repayment. The credit against the same
       // contribution is still one of the entries the total was asked about, so it is one of its
-      // lines — reading zero out of it, exactly as the journal's own per-poste paid total does.
+      // lines — reading zero out of it, exactly as the journal's own per-account paid total does.
       expect(repaid.amountCents, 150000);
       expect(repaid.lineCount, 2);
       expect(repaid.isComplete, isTrue);

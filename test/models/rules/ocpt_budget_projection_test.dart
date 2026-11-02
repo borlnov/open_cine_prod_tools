@@ -16,7 +16,7 @@ void main() {
     String id = "commitment-1",
     DateTime? dueDate,
     String label = "A commitment",
-    String posteId = "poste-1",
+    String accountId = "poste-1",
     int amountCents = 0,
     bool isTaxInclusive = true,
     int? vatRateBasisPoints,
@@ -26,7 +26,7 @@ void main() {
     id: id,
     dueDate: dueDate,
     label: label,
-    posteId: posteId,
+    accountId: accountId,
     amount: OcptMoney(
       amountCents: amountCents,
       isTaxInclusive: isTaxInclusive,
@@ -40,14 +40,14 @@ void main() {
   /// Builds a debit entry naming [commitmentId], everything else neutral.
   OcptBudgetEntry buildEntry({
     required String id,
-    String? posteId,
+    String? accountId,
     String? commitmentId,
     int debitCents = 0,
   }) => OcptBudgetEntry(
     id: id,
     date: DateTime(2026),
     label: "An entry",
-    posteId: posteId,
+    accountId: accountId,
     debitCents: debitCents,
     creditCents: 0,
     isTaxInclusive: true,
@@ -212,7 +212,7 @@ void main() {
     });
   });
 
-  group("ocptBudgetCommittedCentsByPosteId", () {
+  group("ocptBudgetCommittedCentsByAccountId", () {
     test("a settled commitment is excluded outright, both from the map and its coverage", () {
       final commitments = [
         buildCommitment(id: "c1", amountCents: 1000),
@@ -220,28 +220,28 @@ void main() {
       ];
       final entries = [buildEntry(id: "e1", commitmentId: "c2", debitCents: 500)];
 
-      final byPoste = ocptBudgetCommittedCentsByPosteId(
+      final byAccount = ocptBudgetCommittedCentsByAccountId(
         commitments,
         entries: entries,
         projectVatRateBasisPoints: null,
       );
 
-      expect(byPoste["poste-1"]!.amountCents, 1000);
-      expect(byPoste["poste-1"]!.lineCount, 1);
-      expect(byPoste["poste-1"]!.coveredLineCount, 1);
+      expect(byAccount["poste-1"]!.amountCents, 1000);
+      expect(byAccount["poste-1"]!.lineCount, 1);
+      expect(byAccount["poste-1"]!.coveredLineCount, 1);
     });
 
     test("a poste whose only commitment has settled has no key at all", () {
       final commitments = [buildCommitment(id: "c1", amountCents: 500)];
       final entries = [buildEntry(id: "e1", commitmentId: "c1", debitCents: 500)];
 
-      final byPoste = ocptBudgetCommittedCentsByPosteId(
+      final byAccount = ocptBudgetCommittedCentsByAccountId(
         commitments,
         entries: entries,
         projectVatRateBasisPoints: null,
       );
 
-      expect(byPoste.containsKey("poste-1"), isFalse);
+      expect(byAccount.containsKey("poste-1"), isFalse);
     });
 
     test("an unreadable commitment is left out of both the amount and the coverage", () {
@@ -250,40 +250,43 @@ void main() {
         buildCommitment(id: "c2", amountCents: 500, isTaxInclusive: false),
       ];
 
-      final byPoste = ocptBudgetCommittedCentsByPosteId(
+      final byAccount = ocptBudgetCommittedCentsByAccountId(
         commitments,
         entries: const [],
         projectVatRateBasisPoints: null,
       );
 
-      expect(byPoste["poste-1"]!.amountCents, 1000);
-      expect(byPoste["poste-1"]!.coveredLineCount, 1);
-      expect(byPoste["poste-1"]!.lineCount, 2);
-      expect(byPoste["poste-1"]!.isComplete, isFalse);
+      expect(byAccount["poste-1"]!.amountCents, 1000);
+      expect(byAccount["poste-1"]!.coveredLineCount, 1);
+      expect(byAccount["poste-1"]!.lineCount, 2);
+      expect(byAccount["poste-1"]!.isComplete, isFalse);
     });
 
     test(
       "a part-paid commitment contributes only what it still owes, never its own full amount",
       () {
         // The exact reproduction: a 4 000,00 € commitment, 1 200,00 € of it already paid by one
-        // entry naming both the poste and the commitment. Committed must read the outstanding
+        // entry naming both the account and the commitment. Committed must read the outstanding
         // 2 800,00 €, and committed + paid must equal the ordered 4 000,00 € exactly — never more,
         // which is what summing the full cash figure used to get wrong.
         final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
         final entries = [
-          buildEntry(id: "e1", posteId: "poste-1", commitmentId: "c1", debitCents: 120000),
+          buildEntry(id: "e1", accountId: "poste-1", commitmentId: "c1", debitCents: 120000),
         ];
 
-        final committedByPoste = ocptBudgetCommittedCentsByPosteId(
+        final committedByAccount = ocptBudgetCommittedCentsByAccountId(
           commitments,
           entries: entries,
           projectVatRateBasisPoints: null,
         );
-        final paidByPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+        final paidByAccount = ocptBudgetPaidCentsByAccountId(
+          entries,
+          projectVatRateBasisPoints: null,
+        );
 
-        expect(committedByPoste["poste-1"]!.amountCents, 280000);
-        final paidCents = paidByPoste["poste-1"]?.amountCents ?? 0;
-        expect(committedByPoste["poste-1"]!.amountCents + paidCents, 400000);
+        expect(committedByAccount["poste-1"]!.amountCents, 280000);
+        final paidCents = paidByAccount["poste-1"]?.amountCents ?? 0;
+        expect(committedByAccount["poste-1"]!.amountCents + paidCents, 400000);
       },
     );
   });

@@ -11,23 +11,23 @@ sealed class OcptBudgetSelectionEvent extends OcptBudgetEvent {
   const OcptBudgetSelectionEvent();
 }
 
-/// Select poste [posteId] — a cost-tracking row — opening the right dock on the `Inspector` tab,
-/// mirroring `OcptScheduleShotSelectedEvent`'s own gesture. A [posteId] naming no live poste is
-/// ignored.
-class OcptBudgetPosteSelectedEvent extends OcptBudgetSelectionEvent {
-  /// The id of the poste to select.
-  final String posteId;
+/// Select account [accountId] — a cost-tracking row — opening the right dock on the `Inspector`
+/// tab, mirroring `OcptScheduleShotSelectedEvent`'s own gesture. A [accountId] naming no live
+/// account is ignored.
+class OcptBudgetAccountSelectedEvent extends OcptBudgetSelectionEvent {
+  /// The id of the account to select.
+  final String accountId;
 
   /// Class constructor
-  const OcptBudgetPosteSelectedEvent({required this.posteId});
+  const OcptBudgetAccountSelectedEvent({required this.accountId});
 
   /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
-  List<Object?> get props => [...super.props, posteId];
+  List<Object?> get props => [...super.props, accountId];
 }
 
 /// Select quote line [lineId] — a sub-row of the expenses tree — dispatched by its row's own
-/// click. A [lineId] naming no live line is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+/// click. A [lineId] naming no live line is ignored, mirroring `OcptBudgetAccountSelectedEvent`.
 class OcptBudgetLineSelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the line to select.
   final String lineId;
@@ -42,7 +42,7 @@ class OcptBudgetLineSelectedEvent extends OcptBudgetSelectionEvent {
 
 /// Select commitment [commitmentId] — a sub-row of the expenses tree — dispatched by its row's own
 /// click. Draws as a plain highlight; its own `⋮` menu is what edits, settles or deletes it. A
-/// [commitmentId] naming no live commitment is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+/// [commitmentId] naming no live commitment is ignored, mirroring `OcptBudgetAccountSelectedEvent`.
 class OcptBudgetCommitmentSelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the commitment to select.
   final String commitmentId;
@@ -56,8 +56,8 @@ class OcptBudgetCommitmentSelectedEvent extends OcptBudgetSelectionEvent {
 }
 
 /// Select journal entry [entryId] — a sub-row of the expenses tree, whether it settles a
-/// commitment or names its own poste directly — dispatched by its row's own click. A [entryId]
-/// naming no live entry is ignored, mirroring `OcptBudgetPosteSelectedEvent`.
+/// commitment or names its own account directly — dispatched by its row's own click. A [entryId]
+/// naming no live entry is ignored, mirroring `OcptBudgetAccountSelectedEvent`.
 class OcptBudgetEntrySelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the entry to select.
   final String entryId;
@@ -90,7 +90,7 @@ class OcptBudgetReceiptSelectedEvent extends OcptBudgetSelectionEvent {
 /// Select financing resource [resourceId] — a row of the financing view — dispatched by its row's
 /// own click. Draws as a plain highlight, never an inspector: see `OcptBudgetFinancing`'s own class
 /// doc comment. A [resourceId] naming no live resource is ignored, mirroring
-/// `OcptBudgetPosteSelectedEvent`.
+/// `OcptBudgetAccountSelectedEvent`.
 class OcptBudgetResourceSelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the resource to select.
   final String resourceId;
@@ -135,7 +135,7 @@ class OcptBudgetShareSelectedEvent extends OcptBudgetSelectionEvent {
   List<Object?> get props => [...super.props, shareId];
 }
 
-/// Select the record a view has just created and read the snapshot again for — a poste, a quote
+/// Select the record a view has just created and read the snapshot again for — an account, a quote
 /// line, a financing resource or a taking — without writing what is pending: the view did so.
 ///
 /// Dispatched through `addToModeAndWait` by the view that created the record, and handled by the
@@ -144,8 +144,8 @@ class OcptBudgetSelectionCreatedEvent extends OcptBudgetSelectionEvent {
   /// What to select.
   final OcptBudgetSelection selection;
 
-  /// Whether the right dock opens on its `Inspector` tab: a poste and a quote line do, a resource
-  /// and a taking are drawn as a plain highlight.
+  /// Whether the right dock opens on its `Inspector` tab: an account and a quote line do, a
+  /// resource and a taking are drawn as a plain highlight.
   final bool opensInspector;
 
   /// Class constructor

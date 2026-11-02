@@ -48,7 +48,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
 /// The budget production mode: four chips — `Tableau de bord`, `Dépenses`, `Ressources`, `Outils`
 /// — and `Inspector`, `Versions` and `Help` in the right dock. **No left dock**: the mockup draws
-/// none, and the poste list that used to live there is retired with it (its filtering gesture
+/// none, and the account list that used to live there is retired with it (its filtering gesture
 /// moved to the expenses table's own row menu).
 ///
 /// **No episode selector**: one budget serves the whole production (ADR 0019), its catalogue
@@ -59,10 +59,10 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 /// `ocptBudgetRequestExport` — the panel's standing project-package card sits under
 /// them exactly as `exports.md` describes it. A card the underlying data cannot yet support is
 /// greyed and inert with the reason in its own description's place, never hidden: the quote and the
-/// financial report while the project holds no live poste at all, the financing plan while it holds
-/// no live resource, and the cash journal while it holds no live entry — each a real, reachable
-/// state (every poste can be deleted one by one, a fresh project starts with no resource and no
-/// entry) rather than one invented for the sake of drawing a greyed card.
+/// financial report while the project holds no live account at all, the financing plan while it
+/// holds no live resource, and the cash journal while it holds no live entry — each a real,
+/// reachable state (every account can be deleted one by one, a fresh project starts with no
+/// resource and no entry) rather than one invented for the sake of drawing a greyed card.
 class OcptBudgetMode extends StatelessWidget {
   /// Create the budget mode.
   const OcptBudgetMode({super.key});
@@ -76,7 +76,7 @@ class OcptBudgetMode extends StatelessWidget {
     // rebuilt, so Provider itself refuses a listening read there. The seed is otherwise resolved
     // once and handed to the bloc as a constructor argument: no bloc or service may ever see a
     // `Tr` — see `OcptBudgetBloc`'s own doc comment.
-    final seed = ocptBudgetCncPosteSeeds(Tr.of(context));
+    final seed = ocptBudgetCncAccountSeeds(Tr.of(context));
 
     return MultiBlocProvider(
       providers: [
@@ -201,8 +201,8 @@ class _BudgetViewState extends State<_BudgetView> {
             state: state,
             isCompact: ocptIsCompactWidth(constraints.maxWidth),
             onProjectSettingsRequested: () => unawaited(_requestProjectSettings(context)),
-            onPosteDeletionRequested: (posteId) =>
-                unawaited(_handlePosteDeletionRequested(context, posteId)),
+            onAccountDeletionRequested: (accountId) =>
+                unawaited(_handleAccountDeletionRequested(context, accountId)),
             onEntryDeletionRequested: (entryId) =>
                 unawaited(_handleEntryDeletionRequested(context, entryId)),
             onCommitmentDeletionRequested: (commitmentId) =>
@@ -220,9 +220,9 @@ class _BudgetViewState extends State<_BudgetView> {
                 unawaited(_handleShareDeletionRequested(context, shareId)),
           ),
           statusBar: OcptBudgetStatusBar(
-            posteCount: state.posteCount,
+            accountCount: state.accountCount,
             lineCount: state.lineCount,
-            quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.postes),
+            quotedTotalCents: ocptBudgetProjectQuotedTotalCents(state.accounts),
             currencyCode: state.currencyCode,
           ),
           dockLayoutController: _dockLayoutController,
@@ -280,16 +280,16 @@ class _BudgetViewState extends State<_BudgetView> {
     workspaceBloc.add(const OcptWorkspaceEpisodesReloadRequestedEvent());
   }
 
-  /// Ask `OcptConfirmDialog` whether poste [posteId] really is to be deleted — the message says its
-  /// own quote lines go with it — then dispatch the deletion if the user answered `Delete`.
-  Future<void> _handlePosteDeletionRequested(BuildContext context, String posteId) async {
+  /// Ask `OcptConfirmDialog` whether account [accountId] really is to be deleted — the message says
+  /// its own quote lines go with it — then dispatch the deletion if the user answered `Delete`.
+  Future<void> _handleAccountDeletionRequested(BuildContext context, String accountId) async {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final tr = Tr.of(context);
 
     final confirmed = await OcptConfirmDialog.show(
       context,
-      title: tr.budgetDeletePosteConfirmTitle,
-      message: tr.budgetDeletePosteConfirmMessage,
+      title: tr.budgetDeleteAccountConfirmTitle,
+      message: tr.budgetDeleteAccountConfirmMessage,
       cancelLabel: tr.budgetDeleteCancelAction,
       confirmLabel: tr.budgetDeleteConfirmAction,
     );
@@ -300,7 +300,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    expensesBloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
+    expensesBloc.add(OcptBudgetAccountDeletionConfirmedEvent(accountId: accountId));
   }
 
   /// Ask `OcptConfirmDialog` whether cash-journal entry [entryId] really is to be deleted, then
@@ -444,9 +444,9 @@ class _BudgetViewState extends State<_BudgetView> {
   Future<void> _handleProvisionRequested(BuildContext context, OcptBudgetState state) async {
     final financingBloc = context.read<OcptBudgetFinancingBloc>();
     final tr = Tr.of(context);
-    final posteId = state.provisionPosteId;
-    final poste = state.postes.where((row) => row.id == posteId).firstOrNull;
-    if (posteId == null || poste == null) {
+    final accountId = state.provisionAccountId;
+    final account = state.accounts.where((row) => row.id == accountId).firstOrNull;
+    if (accountId == null || account == null) {
       return;
     }
 
@@ -481,7 +481,7 @@ class _BudgetViewState extends State<_BudgetView> {
       return;
     }
 
-    financingBloc.add(OcptBudgetProvisionConfirmedEvent(posteId: posteId, entries: entries));
+    financingBloc.add(OcptBudgetProvisionConfirmedEvent(accountId: accountId, entries: entries));
   }
 
   /// Ask `OcptConfirmDialog` whether taking [revenueId] really is to be deleted, then dispatch
@@ -559,7 +559,7 @@ class _BudgetViewState extends State<_BudgetView> {
       context,
       title: tr.budgetLineUncommitAction,
       message: tr.budgetLineUncommitConfirmMessage(
-        commitment.label.isEmpty ? tr.budgetPosteUnnamed : commitment.label,
+        commitment.label.isEmpty ? tr.budgetAccountUnnamed : commitment.label,
       ),
       cancelLabel: tr.budgetDeleteCancelAction,
       confirmLabel: tr.budgetLineUncommitAction,

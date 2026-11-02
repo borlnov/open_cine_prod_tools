@@ -18,26 +18,26 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 /// reads back the lines the provisioning itself wrote, so a reader can see at a glance whether what
 /// the schedule and the defrayals imply has actually reached the budget.
 ///
-/// A project holding no poste at all shows the reason instead of an inert picker: there is nowhere
-/// to provision into until the quote has a poste.
+/// A project holding no account at all shows the reason instead of an inert picker: there is
+/// nowhere to provision into until the quote has an account.
 class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
   /// What the catering and the defrayals come to together, in cents.
   final int computedTotalCents;
 
-  /// What the provisioned lines of the target poste currently hold, in cents.
+  /// What the provisioned lines of the target account currently hold, in cents.
   final int provisionedTotalCents;
 
-  /// Every live poste of the quote.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the quote.
+  final List<OcptBudgetAccount> accounts;
 
-  /// The poste the provisioning would write into, or null.
-  final String? provisionPosteId;
+  /// The account the provisioning would write into, or null.
+  final String? provisionAccountId;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Called with the id of the poste just picked, or null while withheld.
-  final ValueChanged<String>? onPosteSelected;
+  /// Called with the id of the account just picked, or null while withheld.
+  final ValueChanged<String>? onAccountSelected;
 
   /// Called when the reader asks to provision, or null while withheld.
   final VoidCallback? onProvisionRequested;
@@ -50,10 +50,10 @@ class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
     super.key,
     required this.computedTotalCents,
     required this.provisionedTotalCents,
-    required this.postes,
-    required this.provisionPosteId,
+    required this.accounts,
+    required this.provisionAccountId,
     required this.currencyCode,
-    required this.onPosteSelected,
+    required this.onAccountSelected,
     required this.onProvisionRequested,
     required this.note,
   });
@@ -65,7 +65,9 @@ class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
     final tr = Tr.of(context);
     final note = this.note;
     final gapCents = computedTotalCents - provisionedTotalCents;
-    final selectedPoste = postes.where((poste) => poste.id == provisionPosteId).firstOrNull;
+    final selectedAccount = accounts
+        .where((account) => account.id == provisionAccountId)
+        .firstOrNull;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -89,27 +91,27 @@ class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
               value: ocptBudgetAmountLabel(gapCents, currencyCode),
               valueColor: gapCents == 0 ? null : ocptWarningColor(context),
             ),
-            if (postes.isEmpty)
+            if (accounts.isEmpty)
               Text(
-                tr.budgetLogisticsProvisionNoPosteHint,
+                tr.budgetLogisticsProvisionNoAccountHint,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               )
             else ...[
-              if (onPosteSelected != null)
+              if (onAccountSelected != null)
                 DropdownButton<String>(
-                  value: selectedPoste?.id,
-                  hint: Text(tr.budgetLogisticsProvisionPosteLabel),
+                  value: selectedAccount?.id,
+                  hint: Text(tr.budgetLogisticsProvisionAccountLabel),
                   underline: const SizedBox.shrink(),
                   items: [
-                    for (final poste in postes)
+                    for (final account in accounts)
                       DropdownMenuItem<String>(
-                        value: poste.id,
-                        child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: false)),
+                        value: account.id,
+                        child: Text(ocptBudgetAccountDisplayLabel(account, isSimplified: false)),
                       ),
                   ],
-                  onChanged: (value) => value == null ? null : onPosteSelected?.call(value),
+                  onChanged: (value) => value == null ? null : onAccountSelected?.call(value),
                 ),
               if (note != null)
                 Text(
@@ -120,7 +122,7 @@ class OcptBudgetLogisticsProvisionBand extends StatelessWidget {
                 )
               else if (onProvisionRequested != null)
                 FilledButton.icon(
-                  onPressed: provisionPosteId == null ? null : onProvisionRequested,
+                  onPressed: provisionAccountId == null ? null : onProvisionRequested,
                   icon: const Icon(Icons.playlist_add_check, size: 16),
                   label: Text(tr.budgetLogisticsProvisionAction),
                 ),

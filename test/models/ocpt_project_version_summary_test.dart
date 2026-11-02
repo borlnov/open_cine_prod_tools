@@ -54,7 +54,7 @@ void main() {
     shootingSlotGuests: const [],
     shootingDayEvents: const [],
     projectDictionaryWords: const [],
-    budgetPostes: const [],
+    budgetAccounts: const [],
     budgetLines: const [],
     budgetEntries: const [],
     budgetCommitments: const [],

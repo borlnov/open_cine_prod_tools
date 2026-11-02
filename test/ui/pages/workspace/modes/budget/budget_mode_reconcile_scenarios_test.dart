@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 import 'budget_mode_scenarios_test_doubles.dart';
 
-/// The stable id of the CNC poste the catering and travel provisioning starts out pointed at.
-const _logisticsPosteId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
+/// The stable id of the CNC account the catering and travel provisioning starts out pointed at.
+const _logisticsAccountId = "d75aa74c-ed99-494a-bca0-3508b166ec18";
 
 /// Run the tests of the budget mode reconcile scenarios.
 void main() {
@@ -42,7 +42,7 @@ void main() {
   OcptBudgetStatusBar statusBar(WidgetTester tester) =>
       tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
 
-  /// Opens the expenses table, then the twisty of its first poste.
+  /// Opens the expenses table, then the twisty of its first account.
   Future<void> openExpensesExpanded(WidgetTester tester) async {
     await harness.tapHeader(tester, harness.trOf(tester).budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
@@ -61,8 +61,8 @@ void main() {
 
   testWidgets("deleting the poste the table is filtered on and the fiche shows asks first, then "
       "clears the fiche and the filter", (tester) async {
-    final cameraId = await harness.seedPoste("Camera");
-    await harness.seedPoste("Sound");
+    final cameraId = await harness.seedAccount("Camera");
+    await harness.seedAccount("Sound");
     await harness.seedLine(cameraId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -70,7 +70,7 @@ void main() {
 
     await harness.tap(tester, inTracking(find.text("Camera")));
     expect(
-      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
       findsOneWidget,
     );
     expect(selectionOf(tester), isNotNull);
@@ -82,18 +82,18 @@ void main() {
     );
     expect(inTracking(find.text("Sound")), findsNothing);
 
-    // Cancelling keeps the poste, the detail panel and the filter as they were.
+    // Cancelling keeps the account, the detail panel and the filter as they were.
     await pickRowMenu(
       tester,
       "Camera",
-      tr.budgetPosteDeleteAction,
+      tr.budgetAccountDeleteAction,
       within: find.byType(OcptBudgetCostTracking),
     );
-    expect(find.text(tr.budgetDeletePosteConfirmTitle), findsOneWidget);
+    expect(find.text(tr.budgetDeleteAccountConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
-    expect(await harness.readPostes(), hasLength(2));
+    expect(await harness.readAccounts(), hasLength(2));
     expect(
-      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
       findsOneWidget,
     );
     expect(inTracking(find.text("Sound")), findsNothing);
@@ -102,26 +102,26 @@ void main() {
     await pickRowMenu(
       tester,
       "Camera",
-      tr.budgetPosteDeleteAction,
+      tr.budgetAccountDeleteAction,
       within: find.byType(OcptBudgetCostTracking),
     );
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
-    expect((await harness.readPostes()).map((poste) => poste.label), ["Sound"]);
+    expect((await harness.readAccounts()).map((account) => account.label), ["Sound"]);
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
     expect(inTracking(find.text("Camera")), findsNothing);
     expect(inTracking(find.text("Sound")), findsOneWidget);
-    expect(statusBar(tester).posteCount, 1);
+    expect(statusBar(tester).accountCount, 1);
     expect(statusBar(tester).lineCount, 0);
-    expect(find.byTooltip(tr.budgetHeaderPosteFilterClearTooltip), findsNothing);
+    expect(find.byTooltip(tr.budgetHeaderAccountFilterClearTooltip), findsNothing);
   });
 
   testWidgets("a poste filter narrows the expenses table alone, outlives the other views and is "
       "lifted by its chip", (tester) async {
-    final cameraId = await harness.seedPoste("Camera");
-    await harness.seedPoste("Sound");
-    await harness.seedDebit("Taxi", 1500, posteId: cameraId);
-    await harness.seedDebit("Mic", 900, posteId: (await harness.readPostes()).last.id);
+    final cameraId = await harness.seedAccount("Camera");
+    await harness.seedAccount("Sound");
+    await harness.seedDebit("Taxi", 1500, accountId: cameraId);
+    await harness.seedDebit("Mic", 900, accountId: (await harness.readAccounts()).last.id);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -129,7 +129,7 @@ void main() {
     await pickRowMenu(tester, "Sound", tr.budgetCostTrackingFilterOnlyAction);
     expect(inTracking(find.text("Camera")), findsNothing);
     expect(inTracking(find.text("Sound")), findsOneWidget);
-    // Selecting a poste is not filtering by it.
+    // Selecting an account is not filtering by it.
     expect(find.text(tr.budgetDetailEmptyHint), findsNothing);
 
     // The cash flow page reads the whole account, whatever the filter says.
@@ -139,16 +139,16 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     expect(inTracking(find.text("Camera")), findsNothing);
 
-    await harness.tap(tester, find.byTooltip(tr.budgetHeaderPosteFilterClearTooltip));
+    await harness.tap(tester, find.byTooltip(tr.budgetHeaderAccountFilterClearTooltip));
     expect(inTracking(find.text("Camera")), findsOneWidget);
     expect(inTracking(find.text("Sound")), findsOneWidget);
   });
 
   testWidgets("deleting the selected quote line from its fiche asks first, then empties the "
       "fiche and keeps the poste", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
-    await harness.seedLine(posteId, "Lens rental", unitAmountCents: 2500);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
+    await harness.seedLine(accountId, "Lens rental", unitAmountCents: 2500);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
@@ -157,12 +157,12 @@ void main() {
     await harness.tap(tester, inDetail(find.text(tr.budgetLineDeleteAction)));
     expect(find.text(tr.budgetDeleteLineConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
-    expect((await harness.readPoste("Camera")).lines, hasLength(2));
+    expect((await harness.readAccount("Camera")).lines, hasLength(2));
     expect(statusBar(tester).lineCount, 2);
 
     await harness.tap(tester, inDetail(find.text(tr.budgetLineDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
-    expect((await harness.readPoste("Camera")).lines.map((line) => line.label), ["Lens rental"]);
+    expect((await harness.readAccount("Camera")).lines.map((line) => line.label), ["Lens rental"]);
     expect(find.text("Camera deposit"), findsNothing);
     expect(find.text("Lens rental"), findsOneWidget);
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
@@ -173,9 +173,9 @@ void main() {
 
   testWidgets("deleting the selected entry or commitment from its fiche empties the fiche, and "
       "an entry deleted while another row is selected leaves that selection alone", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedCommitment(posteId, "Lens order", amountCents: 3000);
-    await harness.seedDebit("Taxi", 1500, posteId: posteId);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedCommitment(accountId, "Lens order", amountCents: 3000);
+    await harness.seedDebit("Taxi", 1500, accountId: accountId);
     await harness.seedDebit("Coffee", 700);
     await harness.seedDebit("Late fee", 300);
     await harness.mount(tester);
@@ -219,8 +219,8 @@ void main() {
 
   testWidgets("deleting an in-kind contribution takes its counterpart quote line with it, and "
       "empties the fiche that showed it", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     final resourceId = await harness.seedResource("Lent camera", 40000);
     await harness.projectsManager.budgetFinancingService.updateResource(
       database: harness.database,
@@ -229,7 +229,7 @@ void main() {
     );
     await harness.projectsManager.budgetQuoteService.createLine(
       database: harness.database,
-      posteId: posteId,
+      accountId: accountId,
       label: "Lent camera",
       quantityMilli: const Value(1000),
       unitAmountCents: const Value(40000),
@@ -252,7 +252,9 @@ void main() {
     await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect(await harness.readResources(), isEmpty);
-    expect((await harness.readPoste("Camera")).lines.map((line) => line.label), ["Camera deposit"]);
+    expect((await harness.readAccount("Camera")).lines.map((line) => line.label), [
+      "Camera deposit",
+    ]);
     expect(statusBar(tester).lineCount, 1);
     expect(statusBar(tester).quotedTotalCents, 10000);
     expect(find.text("Lent camera"), findsNothing);
@@ -308,8 +310,8 @@ void main() {
 
   testWidgets("undoing the receipt that is selected tombstones its entry and empties the fiche, "
       "while a write that leaves the selection standing keeps it", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     final resourceId = await harness.seedResource("Regional grant", 20000);
     await harness.projectsManager.budgetJournalService.createEntry(
       database: harness.database,
@@ -325,7 +327,7 @@ void main() {
     await openExpensesExpanded(tester);
     await harness.tap(tester, find.text("Camera deposit"));
     await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxExclusiveOption)));
-    expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
+    expect((await harness.readAccount("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
     expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
 
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
@@ -350,18 +352,18 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
     OcptBudgetLogistics logistics() =>
         tester.widget<OcptBudgetLogistics>(find.byType(OcptBudgetLogistics));
-    expect(logistics().provisionPosteId, _logisticsPosteId);
+    expect(logistics().provisionAccountId, _logisticsAccountId);
 
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await pickRowMenu(
       tester,
-      tr.budgetCncPosteTransportPerDiemsLogistics,
-      tr.budgetPosteDeleteAction,
+      tr.budgetCncAccountTransportPerDiemsLogistics,
+      tr.budgetAccountDeleteAction,
     );
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);
-    expect(logistics().provisionPosteId, (await harness.readPostes()).first.id);
-    expect(logistics().provisionPosteId, isNot(_logisticsPosteId));
+    expect(logistics().provisionAccountId, (await harness.readAccounts()).first.id);
+    expect(logistics().provisionAccountId, isNot(_logisticsAccountId));
   });
 }

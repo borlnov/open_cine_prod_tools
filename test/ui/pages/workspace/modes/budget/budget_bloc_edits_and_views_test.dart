@@ -29,13 +29,18 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'budget_bloc_test_doubles.dart';
 
-/// The seed the ten real CNC postes make, resolved without a `Tr` (the label text itself is never
+/// The seed the ten real CNC accounts make, resolved without a `Tr` (the label text itself is never
 /// read by these tests, only the ids and the count): the seeding path itself is what is under
 /// test, so it is exercised against the very ids `OcptBudgetQuoteService` will actually seed in
 /// the app.
 final _realCncSeed = [
-  for (final poste in ocptBudgetCncPostes)
-    OcptBudgetPosteSeed(id: poste.id, code: poste.code, label: poste.code, simpleLabel: null),
+  for (final account in ocptBudgetCncAccounts)
+    OcptBudgetAccountSeed(
+      id: account.id,
+      code: account.code,
+      label: account.code,
+      simpleLabel: null,
+    ),
 ];
 
 /// Run the tests of the budget bloc edits and views.
@@ -75,7 +80,7 @@ void main() {
   });
 
   /// Builds a bloc wired to the test project, seeded with [seed] (defaulting to [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -117,8 +122,8 @@ void main() {
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: loaded.postes.first.id,
-          field: OcptBudgetField.posteLabel,
+          targetId: loaded.accounts.first.id,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -140,11 +145,11 @@ void main() {
         const OcptBudgetSimplifiedToggledEvent(isSimplified: true),
         const OcptBudgetTaxBasisChangedEvent(basis: OcptBudgetTaxBasis.excludingTax),
         const OcptBudgetRightDockTabSelectedEvent(tab: OcptBudgetRightDockTab.versions),
-        const OcptBudgetPosteSelectedEvent(posteId: "gone"),
+        const OcptBudgetAccountSelectedEvent(accountId: "gone"),
         const OcptBudgetLineSelectedEvent(lineId: "gone"),
         const OcptBudgetCommitmentSelectedEvent(commitmentId: "gone"),
         const OcptBudgetEntrySelectedEvent(entryId: "gone"),
-        const OcptBudgetPosteFilterSelectedEvent(posteId: null),
+        const OcptBudgetAccountFilterSelectedEvent(accountId: null),
       ]) {
         expect(await flushes(event), isTrue, reason: "$event writes the typed edit first");
       }
@@ -158,7 +163,7 @@ void main() {
         const OcptBudgetRevenueSelectedEvent(revenueId: "gone"),
         const OcptBudgetShareSelectedEvent(shareId: "gone"),
         const OcptBudgetRightDockToggledEvent(),
-        const OcptBudgetProvisionPosteSelectedEvent(posteId: "gone"),
+        const OcptBudgetProvisionAccountSelectedEvent(accountId: "gone"),
         const OcptBudgetRowExpansionToggledEvent(nodeId: "gone"),
         const OcptBudgetProjectSettingsChangedEvent(),
       ]) {
@@ -185,7 +190,7 @@ void main() {
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
 
       // Written behind the mode's back, as a view's own write would be.
-      await projectsManager.budgetQuoteService.createPoste(
+      await projectsManager.budgetQuoteService.createAccount(
         database: projectsManager.currentProject!.database,
         label: "Late poste",
       );
@@ -193,7 +198,7 @@ void main() {
       final hasRead = await bloc.reload({OcptBudgetReloadScope.snapshot});
 
       expect(hasRead, isTrue);
-      expect(bloc.state.postes, hasLength(smallSeed.length + 1));
+      expect(bloc.state.accounts, hasLength(smallSeed.length + 1));
       expect(bloc.state.reloadEpoch, greaterThan(loaded.reloadEpoch));
       expect(bloc.state.selectionEpoch, loaded.selectionEpoch);
     });
@@ -231,7 +236,7 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       Future<OcptBudgetSelectionCause> causeOf(OcptBudgetEvent event) async {
         final before = bloc.state.selectionEpoch;
@@ -241,15 +246,15 @@ void main() {
       }
 
       expect(
-        await causeOf(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+        await causeOf(OcptBudgetAccountSelectedEvent(accountId: accountId)),
         OcptBudgetSelectionCause.selected,
       );
       expect(
-        await causeOf(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+        await causeOf(OcptBudgetAccountFilterSelectedEvent(accountId: accountId)),
         OcptBudgetSelectionCause.filtered,
       );
       expect(
-        await causeOf(OcptBudgetProvisionPosteSelectedEvent(posteId: posteId)),
+        await causeOf(OcptBudgetProvisionAccountSelectedEvent(accountId: accountId)),
         OcptBudgetSelectionCause.provisionSelected,
       );
       expect(
@@ -259,10 +264,10 @@ void main() {
         OcptBudgetSelectionCause.viewChanged,
       );
 
-      // A poste a view created is selected by the mode on that view's behalf.
+      // An account a view created is selected by the mode on that view's behalf.
       final expensesBloc = buildExpenses(bloc);
       final before = bloc.state.selectionEpoch;
-      expensesBloc.add(const OcptBudgetPosteCreatedEvent());
+      expensesBloc.add(const OcptBudgetAccountCreatedEvent());
       final created = await waitForState(bloc, (state) => state.selectionEpoch > before);
       expect(created.selectionCause, OcptBudgetSelectionCause.created);
     });
@@ -271,19 +276,19 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
       final selected = await waitForState(
         bloc,
         (state) => state.selectionEpoch > loaded.selectionEpoch,
       );
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
       await waitForState(bloc, (state) => state.selectionEpoch > selected.selectionEpoch);
 
       final reselected = bloc.state;
-      bloc.add(const OcptBudgetPosteSelectedEvent(posteId: "not-a-poste"));
+      bloc.add(const OcptBudgetAccountSelectedEvent(accountId: "not-a-poste"));
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(bloc.state.selectionEpoch, reselected.selectionEpoch);
     });
@@ -292,15 +297,15 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
-      final selected = await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
+      final selected = await waitForState(bloc, (state) => state.selectedAccountId == accountId);
 
       // Deleted behind the mode's back, as another view's write would be.
-      await projectsManager.budgetQuoteService.deletePoste(
+      await projectsManager.budgetQuoteService.deleteAccount(
         database: projectsManager.currentProject!.database,
-        posteId: posteId,
+        accountId: accountId,
       );
       expect(await bloc.reload({OcptBudgetReloadScope.snapshot}), isTrue);
 
@@ -340,10 +345,10 @@ void main() {
 
       final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(state.postes, hasLength(10));
+      expect(state.accounts, hasLength(10));
       expect(
-        state.postes.map((poste) => poste.id).toSet(),
-        ocptBudgetCncPostes.map((c) => c.id).toSet(),
+        state.accounts.map((account) => account.id).toSet(),
+        ocptBudgetCncAccounts.map((c) => c.id).toSet(),
       );
     });
 
@@ -366,20 +371,20 @@ void main() {
 
     test("re-seeding does not duplicate postes already deleted", () async {
       final project = projectsManager.currentProject!;
-      final first = await projectsManager.budgetQuoteService.loadPostes(
+      final first = await projectsManager.budgetQuoteService.loadAccounts(
         database: project.database,
         seed: smallSeed,
       );
-      await projectsManager.budgetQuoteService.deletePoste(
+      await projectsManager.budgetQuoteService.deleteAccount(
         database: project.database,
-        posteId: first.first.id,
+        accountId: first.first.id,
       );
 
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final state = await waitForState(bloc, (state) => !state.isLoading);
 
-      expect(state.postes, hasLength(smallSeed.length - 1));
+      expect(state.accounts, hasLength(smallSeed.length - 1));
     });
   });
 
@@ -388,20 +393,20 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       bloc
-        ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-        ..add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
-        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: posteId))
+        ..add(OcptBudgetAccountSelectedEvent(accountId: accountId))
+        ..add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId))
+        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: accountId))
         ..add(const OcptBudgetSimplifiedToggledEvent(isSimplified: true))
         ..add(const OcptBudgetTaxBasisChangedEvent(basis: OcptBudgetTaxBasis.excludingTax));
       await waitForState(
         bloc,
         (state) =>
-            state.selectedPosteId == posteId &&
-            state.filterPosteId == posteId &&
-            state.expandedNodeIds.contains(posteId) &&
+            state.selectedAccountId == accountId &&
+            state.filterAccountId == accountId &&
+            state.expandedNodeIds.contains(accountId) &&
             state.isSimplified &&
             state.taxBasis == OcptBudgetTaxBasis.excludingTax,
       );
@@ -409,9 +414,9 @@ void main() {
       bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.resources));
       final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.resources);
 
-      expect(switched.selectedPosteId, posteId);
-      expect(switched.filterPosteId, posteId);
-      expect(switched.expandedNodeIds, contains(posteId));
+      expect(switched.selectedAccountId, accountId);
+      expect(switched.filterAccountId, accountId);
+      expect(switched.expandedNodeIds, contains(accountId));
       expect(switched.isSimplified, isTrue);
       expect(switched.taxBasis, OcptBudgetTaxBasis.excludingTax);
     });
@@ -420,18 +425,18 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       bloc
-        ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
-        ..add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId))
-        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: posteId));
+        ..add(OcptBudgetAccountSelectedEvent(accountId: accountId))
+        ..add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId))
+        ..add(OcptBudgetRowExpansionToggledEvent(nodeId: accountId));
       await waitForState(
         bloc,
         (state) =>
-            state.selectedPosteId == posteId &&
-            state.filterPosteId == posteId &&
-            state.expandedNodeIds.contains(posteId),
+            state.selectedAccountId == accountId &&
+            state.filterAccountId == accountId &&
+            state.expandedNodeIds.contains(accountId),
       );
 
       bloc.add(
@@ -441,21 +446,21 @@ void main() {
 
       // The detail panel greets the new view empty — the object belonged to the view being left.
       expect(switched.selection, isNull);
-      expect(switched.selectedPosteId, isNull);
+      expect(switched.selectedAccountId, isNull);
       // The filter and the expansion are the mode's, not the detail panel's, so they survive the
       // switch.
-      expect(switched.filterPosteId, posteId);
-      expect(switched.expandedNodeIds, contains(posteId));
+      expect(switched.filterAccountId, accountId);
+      expect(switched.expandedNodeIds, contains(accountId));
     });
 
     test("the header's own tools switch drops the selection the same way", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
+      await waitForState(bloc, (state) => state.selectedAccountId == accountId);
 
       bloc.add(
         const OcptBudgetToolsViewSelectedEvent(
@@ -496,48 +501,48 @@ void main() {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
-      final otherPosteId = loaded.postes[1].id;
+      final accountId = loaded.accounts.first.id;
+      final otherAccountId = loaded.accounts[1].id;
 
       // The two used to be one field, which is how a click in the quote came to narrow the cash
       // journal without anything saying so.
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
-      final selected = await waitForState(bloc, (state) => state.selectedPosteId == posteId);
-      expect(selected.filterPosteId, isNull);
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
+      final selected = await waitForState(bloc, (state) => state.selectedAccountId == accountId);
+      expect(selected.filterAccountId, isNull);
 
-      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: otherPosteId));
-      final filtered = await waitForState(bloc, (state) => state.filterPosteId == otherPosteId);
-      expect(filtered.selectedPosteId, posteId);
+      bloc.add(OcptBudgetAccountFilterSelectedEvent(accountId: otherAccountId));
+      final filtered = await waitForState(bloc, (state) => state.filterAccountId == otherAccountId);
+      expect(filtered.selectedAccountId, accountId);
     });
 
     test("a null poste clears the filter", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.filterPosteId == posteId);
+      bloc.add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId));
+      await waitForState(bloc, (state) => state.filterAccountId == accountId);
 
-      bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null));
-      final state = await waitForState(bloc, (state) => state.filterPosteId == null);
+      bloc.add(const OcptBudgetAccountFilterSelectedEvent(accountId: null));
+      final state = await waitForState(bloc, (state) => state.filterAccountId == null);
 
-      expect(state.filterPosteId, isNull);
+      expect(state.filterAccountId, isNull);
     });
 
     test("a poste naming no live poste is ignored", () async {
       final bloc = buildBloc();
       addTearDown(bloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.filterPosteId == posteId);
+      bloc.add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId));
+      await waitForState(bloc, (state) => state.filterAccountId == accountId);
 
-      bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: "no-such-poste"));
+      bloc.add(const OcptBudgetAccountFilterSelectedEvent(accountId: "no-such-poste"));
       await pumpEventQueue();
 
-      expect(bloc.state.filterPosteId, posteId);
+      expect(bloc.state.filterAccountId, accountId);
     });
 
     test("deleting the filtered poste clears the filter", () async {
@@ -545,18 +550,18 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.filterPosteId == posteId);
+      bloc.add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId));
+      await waitForState(bloc, (state) => state.filterAccountId == accountId);
 
-      expensesBloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetAccountDeletionConfirmedEvent(accountId: accountId));
       final state = await waitForState(
         bloc,
-        (state) => state.postes.every((poste) => poste.id != posteId),
+        (state) => state.accounts.every((account) => account.id != accountId),
       );
 
-      expect(state.filterPosteId, isNull);
+      expect(state.filterAccountId, isNull);
     });
   });
 

@@ -68,8 +68,8 @@ OcptBudgetResource _existingResource({
   sortKey: "a0",
 );
 
-/// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, String label = "Décors"}) => OcptBudgetPoste(
+/// A minimal account, everything but [id]/[label] neutral.
+OcptBudgetAccount _account({required String id, String label = "Décors"}) => OcptBudgetAccount(
   id: id,
   code: "",
   label: label,
@@ -150,8 +150,8 @@ void main() {
     OcptBudgetResource? existing,
     OcptBudgetResourceGroupKind groupKind = OcptBudgetResourceGroupKind.subsidy,
     List<OcptPerson> people = const [],
-    List<OcptBudgetPoste> postes = const [],
-    String? initialPosteId,
+    List<OcptBudgetAccount> accounts = const [],
+    String? initialAccountId,
   }) async {
     // The default test surface is too short for the dialog's own scrollable content to lay every
     // field out without one ending up outside the hit-testable area.
@@ -167,8 +167,8 @@ void main() {
           groupKind: groupKind,
           people: people,
           currencyCode: "EUR",
-          postes: postes,
-          initialPosteId: initialPosteId,
+          accounts: accounts,
+          initialAccountId: initialAccountId,
           isSimplified: false,
         ),
       ),
@@ -281,12 +281,12 @@ void main() {
       isReimbursable: true,
       notes: "Camera lent by the lab",
     );
-    final poste = _poste(id: "poste-1");
+    final account = _account(id: "poste-1");
     final tr = await pumpDialog(
       tester,
       existing: existing,
-      postes: [poste],
-      initialPosteId: poste.id,
+      accounts: [account],
+      initialAccountId: account.id,
     );
 
     // Editing is where the `Group` picker stays, unlike creation — a production is free to
@@ -296,9 +296,9 @@ void main() {
     expect(find.widgetWithText(TextFormField, "Regional grant"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "5000.00"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "Camera lent by the lab"), findsOneWidget);
-    // The `Poste` picker is pre-filled from `initialPosteId`, the poste the linked counterpart
+    // The `Poste` picker is pre-filled from `initialAccountId`, the account the linked counterpart
     // line already offsets.
-    expect(find.text(poste.label), findsOneWidget);
+    expect(find.text(account.label), findsOneWidget);
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
     await tester.pumpAndSettle();
@@ -310,13 +310,13 @@ void main() {
     expect(fields.isReimbursable, isTrue);
     expect(fields.notes, "Camera lent by the lab");
     expect(fields.amountCents, 500000);
-    expect(fields.posteId, poste.id);
+    expect(fields.accountId, account.id);
   });
 
   testWidgets("editing can pick a different group and status", (tester) async {
     final existing = _existingResource();
-    final poste = _poste(id: "poste-1");
-    final tr = await pumpDialog(tester, existing: existing, postes: [poste]);
+    final account = _account(id: "poste-1");
+    final tr = await pumpDialog(tester, existing: existing, accounts: [account]);
 
     await tester.tap(find.text(tr.budgetFinancingGroupInKindLabel));
     await tester.pumpAndSettle();
@@ -330,7 +330,7 @@ void main() {
     // succeeds.
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(poste.label).last);
+    await tester.tap(find.text(account.label).last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
@@ -339,7 +339,7 @@ void main() {
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
     expect(fields.groupKind, OcptBudgetResourceGroupKind.inKind);
     expect(fields.status, OcptBudgetResourceStatus.agreed);
-    expect(fields.posteId, poste.id);
+    expect(fields.accountId, account.id);
   });
 
   testWidgets("picking a different status while creating reports the pick", (tester) async {
@@ -428,36 +428,36 @@ void main() {
   });
 
   testWidgets("the poste picker shows only for a fresh in-kind contribution", (tester) async {
-    final poste = _poste(id: "poste-1");
+    final account = _account(id: "poste-1");
     final tr = await pumpDialog(
       tester,
       groupKind: OcptBudgetResourceGroupKind.inKind,
-      postes: [poste],
+      accounts: [account],
     );
 
-    expect(find.text(tr.budgetResourceDialogPosteFieldLabel), findsOneWidget);
+    expect(find.text(tr.budgetResourceDialogAccountFieldLabel), findsOneWidget);
   });
 
   testWidgets("the poste picker is hidden for a fresh subsidy or cash contribution", (
     tester,
   ) async {
-    final poste = _poste(id: "poste-1");
+    final account = _account(id: "poste-1");
 
-    var tr = await pumpDialog(tester, postes: [poste]);
-    expect(find.text(tr.budgetResourceDialogPosteFieldLabel), findsNothing);
+    var tr = await pumpDialog(tester, accounts: [account]);
+    expect(find.text(tr.budgetResourceDialogAccountFieldLabel), findsNothing);
 
-    tr = await pumpDialog(tester, groupKind: OcptBudgetResourceGroupKind.cash, postes: [poste]);
-    expect(find.text(tr.budgetResourceDialogPosteFieldLabel), findsNothing);
+    tr = await pumpDialog(tester, groupKind: OcptBudgetResourceGroupKind.cash, accounts: [account]);
+    expect(find.text(tr.budgetResourceDialogAccountFieldLabel), findsNothing);
   });
 
   testWidgets("confirm is blocked until a poste is chosen for a fresh in-kind contribution", (
     tester,
   ) async {
-    final poste = _poste(id: "poste-1");
+    final account = _account(id: "poste-1");
     final tr = await pumpDialog(
       tester,
       groupKind: OcptBudgetResourceGroupKind.inKind,
-      postes: [poste],
+      accounts: [account],
     );
 
     await tester.enterText(
@@ -471,12 +471,12 @@ void main() {
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
     await tester.pumpAndSettle();
 
-    expect(find.text(tr.budgetResourceDialogPosteRequiredError), findsOneWidget);
+    expect(find.text(tr.budgetResourceDialogAccountRequiredError), findsOneWidget);
     expect(routerManager.popped, isFalse);
 
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(poste.label).last);
+    await tester.tap(find.text(account.label).last);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(tr.budgetEntryDialogConfirmAction));
@@ -484,7 +484,7 @@ void main() {
 
     expect(routerManager.popped, isTrue);
     final fields = routerManager.poppedValue! as OcptBudgetResourceFormFields;
-    expect(fields.posteId, poste.id);
+    expect(fields.accountId, account.id);
   });
 
   testWidgets("cancelling pops with nothing", (tester) async {

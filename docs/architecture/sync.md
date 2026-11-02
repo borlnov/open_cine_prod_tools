@@ -304,7 +304,7 @@ dropped a peer.
 
 **The hosting panel** (`OcptHostingPanel` over a sibling `OcptHostingBloc`,
 `lib/ui/pages/sharing/widgets/ocpt_hosting_panel.dart`) is the Partager screen's "Héberger sur ce
-poste" segment — desktop-only and withheld under a read-only preview, like every other write
+account" segment — desktop-only and withheld under a read-only preview, like every other write
 affordance. It always shows a Marche/Arrêt switch and a "réhéberger au démarrage" checkbox; once
 online it also shows an advertised-address dropdown (`OcptRelayHostManager.availableLanAddresses`,
 re-detecting a network switch on a fresh screen entry, since the socket already binds every

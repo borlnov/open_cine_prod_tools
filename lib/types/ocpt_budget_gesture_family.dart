@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 /// [OcptBudgetGesture] sits under — nothing else in this file switches over the fifteen answers by
 /// hand.
 enum OcptBudgetGestureFamily {
-  /// `Le devis` — what the film is going to cost, poste by poste.
+  /// `Le devis` — what the film is going to cost, account by account.
   quote,
 
   /// `L'argent qui a bougé` — what has already entered or left the account.

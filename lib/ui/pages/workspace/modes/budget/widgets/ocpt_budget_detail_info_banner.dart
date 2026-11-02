@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 /// A calm, action-less info banner — the detail panel's own quiet note for a fact worth stating
 /// plainly rather than folding into [OcptBudgetDetailScaffold]'s own `hint` line: a counterpart
-/// quote line's own covering contribution, or an in-kind resource's own offset poste. Shares
+/// quote line's own covering contribution, or an in-kind resource's own offset account. Shares
 /// [OcptBudgetOffLineBanner]'s own visual vocabulary — a `Card`, the same padding, the same muted
 /// body text — without its promote/move actions, which neither of these two facts offers.
 class OcptBudgetDetailInfoBanner extends StatelessWidget {

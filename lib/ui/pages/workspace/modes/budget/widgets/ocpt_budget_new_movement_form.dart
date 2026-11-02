@@ -59,8 +59,8 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
   /// Every live commitment, read by the matching strip.
   final List<OcptBudgetCommitment> commitments;
 
-  /// Every live poste of the project, read by the matching strip.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, read by the matching strip.
+  final List<OcptBudgetAccount> accounts;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
@@ -109,7 +109,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
     required this.suggestions,
     required this.selectedSuggestionIndex,
     required this.commitments,
-    required this.postes,
+    required this.accounts,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
@@ -163,7 +163,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
               suggestions: suggestions,
               selectedIndex: selectedSuggestionIndex,
               commitments: commitments,
-              postes: postes,
+              accounts: accounts,
               currencyCode: currencyCode,
               onSelected: onSuggestionSelected,
             ),

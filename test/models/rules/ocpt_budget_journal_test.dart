@@ -12,7 +12,7 @@ void main() {
     String id = "entry-1",
     DateTime? date,
     String label = "An entry",
-    String? posteId,
+    String? accountId,
     int debitCents = 0,
     int creditCents = 0,
     bool isTaxInclusive = true,
@@ -23,7 +23,7 @@ void main() {
     id: id,
     date: date ?? DateTime(2026),
     label: label,
-    posteId: posteId,
+    accountId: accountId,
     debitCents: debitCents,
     creditCents: creditCents,
     isTaxInclusive: isTaxInclusive,
@@ -151,48 +151,48 @@ void main() {
     });
   });
 
-  group("ocptBudgetPaidCentsByPosteId", () {
+  group("ocptBudgetPaidCentsByAccountId", () {
     test("a refund credited against a poste reduces what that poste has cost", () {
       final entries = [
-        buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000),
-        buildEntry(id: "e2", posteId: "poste-1", creditCents: 200),
+        buildEntry(id: "e1", accountId: "poste-1", debitCents: 1000),
+        buildEntry(id: "e2", accountId: "poste-1", creditCents: 200),
       ];
 
-      final byPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+      final byAccount = ocptBudgetPaidCentsByAccountId(entries, projectVatRateBasisPoints: null);
 
-      expect(byPoste["poste-1"]!.amountCents, 800);
-      expect(byPoste["poste-1"]!.isComplete, isTrue);
+      expect(byAccount["poste-1"]!.amountCents, 800);
+      expect(byAccount["poste-1"]!.isComplete, isTrue);
     });
 
     test("an entry naming no poste is not in the map at all", () {
       final entries = [buildEntry(id: "e1", creditCents: 5000)];
 
-      final byPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+      final byAccount = ocptBudgetPaidCentsByAccountId(entries, projectVatRateBasisPoints: null);
 
-      expect(byPoste, isEmpty);
+      expect(byAccount, isEmpty);
     });
 
     test("a poste with no entry at all has no key in the map", () {
-      final entries = [buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000)];
+      final entries = [buildEntry(id: "e1", accountId: "poste-1", debitCents: 1000)];
 
-      final byPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+      final byAccount = ocptBudgetPaidCentsByAccountId(entries, projectVatRateBasisPoints: null);
 
-      expect(byPoste.containsKey("poste-1"), isTrue);
-      expect(byPoste.containsKey("poste-2"), isFalse);
+      expect(byAccount.containsKey("poste-1"), isTrue);
+      expect(byAccount.containsKey("poste-2"), isFalse);
     });
 
     test("an unreadable entry is left out of both the amount and the coverage", () {
       final entries = [
-        buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000),
-        buildEntry(id: "e2", posteId: "poste-1", debitCents: 500, isTaxInclusive: false),
+        buildEntry(id: "e1", accountId: "poste-1", debitCents: 1000),
+        buildEntry(id: "e2", accountId: "poste-1", debitCents: 500, isTaxInclusive: false),
       ];
 
-      final byPoste = ocptBudgetPaidCentsByPosteId(entries, projectVatRateBasisPoints: null);
+      final byAccount = ocptBudgetPaidCentsByAccountId(entries, projectVatRateBasisPoints: null);
 
-      expect(byPoste["poste-1"]!.amountCents, 1000);
-      expect(byPoste["poste-1"]!.coveredLineCount, 1);
-      expect(byPoste["poste-1"]!.lineCount, 2);
-      expect(byPoste["poste-1"]!.isComplete, isFalse);
+      expect(byAccount["poste-1"]!.amountCents, 1000);
+      expect(byAccount["poste-1"]!.coveredLineCount, 1);
+      expect(byAccount["poste-1"]!.lineCount, 2);
+      expect(byAccount["poste-1"]!.isComplete, isFalse);
     });
   });
 
@@ -209,7 +209,7 @@ void main() {
     });
 
     test("a debit naming a poste does not count", () {
-      final entries = [buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000)];
+      final entries = [buildEntry(id: "e1", accountId: "poste-1", debitCents: 1000)];
 
       final total = ocptBudgetOffQuotePaidTotalOf(entries, projectVatRateBasisPoints: null);
 
@@ -249,7 +249,7 @@ void main() {
 
     test("no such entry at all gives a complete zero", () {
       final entries = [
-        buildEntry(id: "e1", posteId: "poste-1", debitCents: 1000),
+        buildEntry(id: "e1", accountId: "poste-1", debitCents: 1000),
         buildEntry(id: "e2", creditCents: 5000),
       ];
 

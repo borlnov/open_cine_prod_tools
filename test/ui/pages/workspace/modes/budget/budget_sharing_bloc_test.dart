@@ -32,11 +32,11 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// A minimal, three-entry seed used by every test that isn't about the seeding path itself, so
-/// their own assertions aren't drowned in ten postes.
+/// their own assertions aren't drowned in ten accounts.
 const _smallSeed = [
-  OcptBudgetPosteSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
-  OcptBudgetPosteSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
-  OcptBudgetPosteSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
+  OcptBudgetAccountSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
+  OcptBudgetAccountSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
+  OcptBudgetAccountSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
 ];
 
 /// Run the tests of [OcptBudgetSharingBloc].
@@ -75,7 +75,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [_smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = _smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = _smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,

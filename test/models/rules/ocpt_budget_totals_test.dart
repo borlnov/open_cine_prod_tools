@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 void main() {
   OcptBudgetLine buildLine({
     String id = "line-1",
-    String posteId = "poste-1",
+    String accountId = "poste-1",
     int quantityMilli = 1000,
     int amountCents = 0,
     bool isTaxInclusive = true,
@@ -22,7 +22,7 @@ void main() {
     String? inKindResourceId,
   }) => OcptBudgetLine(
     id: id,
-    posteId: posteId,
+    accountId: accountId,
     label: "A line",
     quantityMilli: quantityMilli,
     unit: "unit",
@@ -39,11 +39,11 @@ void main() {
     sortKey: "V",
   );
 
-  OcptBudgetPoste buildPoste({
+  OcptBudgetAccount buildAccount({
     String id = "poste-1",
     String code = "2",
     List<OcptBudgetLine> lines = const [],
-  }) => OcptBudgetPoste(
+  }) => OcptBudgetAccount(
     id: id,
     code: code,
     label: "A poste",
@@ -69,35 +69,35 @@ void main() {
     });
   });
 
-  group("ocptBudgetPosteQuotedTotalCents / ocptBudgetProjectQuotedTotalCents", () {
+  group("ocptBudgetAccountQuotedTotalCents / ocptBudgetProjectQuotedTotalCents", () {
     test("sums a poste's lines row by row", () {
-      final poste = buildPoste(
+      final account = buildAccount(
         lines: [
           buildLine(id: "l1", amountCents: 10000),
           buildLine(id: "l2", quantityMilli: 2000, amountCents: 500),
         ],
       );
 
-      expect(ocptBudgetPosteQuotedTotalCents(poste), 11000);
+      expect(ocptBudgetAccountQuotedTotalCents(account), 11000);
     });
 
     test("an empty poste totals zero", () {
-      expect(ocptBudgetPosteQuotedTotalCents(buildPoste()), 0);
+      expect(ocptBudgetAccountQuotedTotalCents(buildAccount()), 0);
     });
 
     test("sums every poste of the project", () {
-      final postes = [
-        buildPoste(
+      final accounts = [
+        buildAccount(
           id: "p1",
           lines: [buildLine(id: "l1", amountCents: 10000)],
         ),
-        buildPoste(
+        buildAccount(
           id: "p2",
           lines: [buildLine(id: "l2", amountCents: 5000)],
         ),
       ];
 
-      expect(ocptBudgetProjectQuotedTotalCents(postes), 15000);
+      expect(ocptBudgetProjectQuotedTotalCents(accounts), 15000);
     });
   });
 
@@ -222,7 +222,7 @@ void main() {
     });
 
     test("an in-kind-only poste nets to no remainder and no variance", () {
-      // A poste quoted at exactly its own counterpart line's value, nothing paid or committed.
+      // An account quoted at exactly its own counterpart line's value, nothing paid or committed.
       expect(
         ocptBudgetRemainingCents(
           quotedAmountCents: 5000,
@@ -275,10 +275,10 @@ void main() {
     });
   });
 
-  group("ocptBudgetInKindCoveredCentsByPosteId", () {
+  group("ocptBudgetInKindCoveredCentsByAccountId", () {
     test("sums a poste's own counterpart lines, an ordinary line contributing nothing", () {
-      final postes = [
-        buildPoste(
+      final accounts = [
+        buildAccount(
           id: "p1",
           lines: [
             buildLine(id: "l1", amountCents: 3000),
@@ -287,23 +287,23 @@ void main() {
         ),
       ];
 
-      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), {"p1": 5000});
+      expect(ocptBudgetInKindCoveredCentsByAccountId(accounts), {"p1": 5000});
     });
 
     test("a poste with no counterpart line has no key at all", () {
-      final postes = [
-        buildPoste(
+      final accounts = [
+        buildAccount(
           id: "p1",
           lines: [buildLine(id: "l1", amountCents: 3000)],
         ),
       ];
 
-      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), isEmpty);
+      expect(ocptBudgetInKindCoveredCentsByAccountId(accounts), isEmpty);
     });
 
     test("sums more than one counterpart line under the same poste", () {
-      final postes = [
-        buildPoste(
+      final accounts = [
+        buildAccount(
           id: "p1",
           lines: [
             buildLine(id: "l1", amountCents: 5000, inKindResourceId: "resource-1"),
@@ -312,84 +312,84 @@ void main() {
         ),
       ];
 
-      expect(ocptBudgetInKindCoveredCentsByPosteId(postes), {"p1": 7000});
+      expect(ocptBudgetInKindCoveredCentsByAccountId(accounts), {"p1": 7000});
     });
   });
 
-  group("ocptBudgetPosteStrainOf", () {
+  group("ocptBudgetAccountStrainOf", () {
     test("within quote", () {
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 10000,
           paidCents: 5000,
           committedCents: 0,
           inKindCoveredCents: 0,
         ),
-        OcptBudgetPosteStrain.within,
+        OcptBudgetAccountStrain.within,
       );
     });
 
     test("near quote, above 90 %", () {
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 10000,
           paidCents: 9500,
           committedCents: 0,
           inKindCoveredCents: 0,
         ),
-        OcptBudgetPosteStrain.near,
+        OcptBudgetAccountStrain.near,
       );
     });
 
     test("over quote", () {
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 10000,
           paidCents: 9000,
           committedCents: 2000,
           inKindCoveredCents: 0,
         ),
-        OcptBudgetPosteStrain.over,
+        OcptBudgetAccountStrain.over,
       );
     });
 
     test("a poste with no quote at all and nothing moved reads within", () {
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 0,
           paidCents: 0,
           committedCents: 0,
           inKindCoveredCents: 0,
         ),
-        OcptBudgetPosteStrain.within,
+        OcptBudgetAccountStrain.within,
       );
     });
 
     test("a poste with no quote at all but something already moved reads over", () {
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 0,
           paidCents: 500,
           committedCents: 0,
           inKindCoveredCents: 0,
         ),
-        OcptBudgetPosteStrain.over,
+        OcptBudgetAccountStrain.over,
       );
     });
 
     test("an in-kind-only poste never reads over — it nets exactly to its own quote", () {
       // Consumed equals the quote exactly (100 %), which is the pre-existing "near" reading above
       // the 90 % threshold (see "near quote, above 90 %" above) — not a fact about in-kind
-      // covering, but proof the counterpart line's own contribution never tips a poste over on its
-      // own, since it moves the quote and the consumed side by the very same amount.
+      // covering, but proof the counterpart line's own contribution never tips an account over on
+      // its own, since it moves the quote and the consumed side by the very same amount.
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 5000,
           paidCents: 0,
           committedCents: 0,
           inKindCoveredCents: 5000,
         ),
-        OcptBudgetPosteStrain.near,
+        OcptBudgetAccountStrain.near,
       );
     });
 
@@ -397,13 +397,13 @@ void main() {
       // Quoted 9000 (3000 cash line + 5000 counterpart line + headroom), only the cash line and the
       // counterpart line's own settlement have moved: 8000 of 9000, under the 90 % threshold.
       expect(
-        ocptBudgetPosteStrainOf(
+        ocptBudgetAccountStrainOf(
           quotedAmountCents: 9000,
           paidCents: 3000,
           committedCents: 0,
           inKindCoveredCents: 5000,
         ),
-        OcptBudgetPosteStrain.within,
+        OcptBudgetAccountStrain.within,
       );
     });
   });
@@ -539,7 +539,7 @@ void main() {
         inKindCoveredCents: 0,
       );
 
-      // The plain variance still reads the poste as under quote by 5000; the final-cost variance,
+      // The plain variance still reads the account as under quote by 5000; the final-cost variance,
       // fed by the typed estimate, reads it as heading 4000 over.
       expect(varianceCents, -5000);
       expect(finalCostVarianceCents, 4000);

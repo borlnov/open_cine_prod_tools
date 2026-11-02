@@ -41,8 +41,8 @@ class OcptBudgetCashJournalHeaderRow extends StatelessWidget {
               child: Text(tr.budgetCashJournalColumnVoucher.toUpperCase(), style: labelStyle),
             ),
             SizedBox(
-              width: ocptBudgetCashJournalPosteColumnWidth,
-              child: Text(tr.budgetCostTrackingColumnPoste.toUpperCase(), style: labelStyle),
+              width: ocptBudgetCashJournalAccountColumnWidth,
+              child: Text(tr.budgetCostTrackingColumnAccount.toUpperCase(), style: labelStyle),
             ),
             Expanded(child: Text(tr.budgetCashJournalColumnLabel.toUpperCase(), style: labelStyle)),
             SizedBox(

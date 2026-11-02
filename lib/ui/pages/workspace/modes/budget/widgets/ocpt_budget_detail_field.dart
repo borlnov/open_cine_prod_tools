@@ -13,7 +13,7 @@ class OcptBudgetDetailField extends StatelessWidget {
   /// The detail panel whose field value and change callback this field is bound to.
   final OcptBudgetDetail detail;
 
-  /// The id of the poste or line the field writes to.
+  /// The id of the account or line the field writes to.
   final String targetId;
 
   /// Which field of the target is written.

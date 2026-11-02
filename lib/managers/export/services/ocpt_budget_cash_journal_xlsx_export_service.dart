@@ -83,7 +83,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
     final sheet = excel[sheetName];
     _appendHeaderRow(sheet, labels);
 
-    final posteLabelById = {for (final poste in snapshot.postes) poste.id: poste.label};
+    final accountLabelById = {for (final account in snapshot.accounts) account.id: account.label};
     final rows = ocptBudgetJournalRowsOf(
       snapshot.entries,
       projectVatRateBasisPoints: snapshot.defaultVatRateBasisPoints,
@@ -92,7 +92,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
       sheet.appendRow(
         _rowCellsOf(
           row: row,
-          posteLabelById: posteLabelById,
+          accountLabelById: accountLabelById,
           linkLabelByEntryId: linkLabelByEntryId,
         ),
       );
@@ -132,7 +132,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
       labels.dateHeader,
       labels.voucherHeader,
       labels.labelHeader,
-      labels.posteHeader,
+      labels.accountHeader,
       labels.settlesHeader,
       labels.debitHeader,
       labels.creditHeader,
@@ -154,7 +154,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   /// one keeps.
   List<CellValue?> _rowCellsOf({
     required OcptBudgetJournalRow row,
-    required Map<String, String> posteLabelById,
+    required Map<String, String> accountLabelById,
     required Map<String, String> linkLabelByEntryId,
   }) {
     final entry = row.entry;
@@ -163,7 +163,7 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
       TextCellValue(_isoDate(entry.date)),
       TextCellValue(entry.voucherNumber),
       _textOrNull(entry.label),
-      _textOrNull(entry.posteId == null ? null : posteLabelById[entry.posteId]),
+      _textOrNull(entry.accountId == null ? null : accountLabelById[entry.accountId]),
       _textOrNull(linkLabelByEntryId[entry.id]),
       switch (row.debitCents) {
         final cents? => DoubleCellValue(cents / 100),

@@ -6,44 +6,44 @@ import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 
-/// A budget poste (a CNC chapter, or one the user added of their own) with the quote lines it
+/// A budget account (a CNC chapter, or one the user added of their own) with the quote lines it
 /// holds.
 ///
-/// **No `quotedAmount` field**: a poste's quoted amount is the sum of [lines], computed by
-/// `lib/models/rules/ocpt_budget_totals.dart`, and is never stored — see `OcptBudgetPostesTable`'s
-/// own doc comment. [estimateToCompleteCents] is not a counter-example, for the same reason argued
-/// there: it is a human's judgement about the future, derivable from nothing [lines] holds, and its
-/// null means "nobody has judged", not zero.
-class OcptBudgetPoste extends Equatable {
-  /// The stable, unique id of this poste (a UUID).
+/// **No `quotedAmount` field**: an account's quoted amount is the sum of [lines], computed by
+/// `lib/models/rules/ocpt_budget_totals.dart`, and is never stored — see
+/// `OcptBudgetAccountsTable`'s own doc comment. [estimateToCompleteCents] is not a counter-example,
+/// for the same reason argued there: it is a human's judgement about the future, derivable from
+/// nothing [lines] holds, and its null means "nobody has judged", not zero.
+class OcptBudgetAccount extends Equatable {
+  /// The stable, unique id of this account (a UUID).
   final String id;
 
-  /// The CNC poste number as printed, free text.
+  /// The CNC account number as printed, free text.
   final String code;
 
-  /// This poste's display name.
+  /// This account's display name.
   final String label;
 
-  /// This poste's name in the mode's simplified header state, or null — see
-  /// `OcptBudgetPostesTable.simpleLabel`'s own doc comment for why null falls back to [label]
+  /// This account's name in the mode's simplified header state, or null — see
+  /// `OcptBudgetAccountsTable.simpleLabel`'s own doc comment for why null falls back to [label]
   /// rather than meaning "no name at all".
   final String? simpleLabel;
 
-  /// This poste's position within the catalogue's own flat `sortKey` order.
+  /// This account's position within the catalogue's own flat `sortKey` order.
   final String sortKey;
 
-  /// The quote lines this poste holds, in `sortKey` order.
+  /// The quote lines this account holds, in `sortKey` order.
   final List<OcptBudgetLine> lines;
 
-  /// What is still expected to be spent on this poste beyond what has already been paid and
+  /// What is still expected to be spent on this account beyond what has already been paid and
   /// committed against it, in cents, typed by a human — or null, meaning "derive it". See
-  /// `OcptBudgetPostesTable.estimateToCompleteCents`'s own doc comment for why null is not zero,
+  /// `OcptBudgetAccountsTable.estimateToCompleteCents`'s own doc comment for why null is not zero,
   /// and `ocptBudgetEstimateToCompleteCents` (`lib/models/rules/ocpt_budget_totals.dart`) for the
   /// derivation.
   final int? estimateToCompleteCents;
 
   /// Class constructor
-  const OcptBudgetPoste({
+  const OcptBudgetAccount({
     required this.id,
     required this.code,
     required this.label,
@@ -53,11 +53,11 @@ class OcptBudgetPoste extends Equatable {
     required this.estimateToCompleteCents,
   });
 
-  /// Build an [OcptBudgetPoste] from its stored [row] and the [lines] it holds.
-  factory OcptBudgetPoste.fromRow({
-    required OcptBudgetPosteRow row,
+  /// Build an [OcptBudgetAccount] from its stored [row] and the [lines] it holds.
+  factory OcptBudgetAccount.fromRow({
+    required OcptBudgetAccountRow row,
     required List<OcptBudgetLine> lines,
-  }) => OcptBudgetPoste(
+  }) => OcptBudgetAccount(
     id: row.id,
     code: row.code,
     label: row.label,
@@ -70,7 +70,7 @@ class OcptBudgetPoste extends Equatable {
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetPoste(id: $id, code: $code, label: $label, "
+      "OcptBudgetAccount(id: $id, code: $code, label: $label, "
       "lines: ${lines.length})";
 
   /// List the fields that decide equality.

@@ -630,7 +630,7 @@ void main() {
       final liveEntry = roundTripped.budgetEntries.firstWhere((row) => row.id == "entry-1");
       expect(liveEntry.date, DateTime.utc(2026, 3, 10));
       expect(liveEntry.label, "Location camion");
-      expect(liveEntry.posteId, "poste-1");
+      expect(liveEntry.accountId, "poste-1");
       expect(liveEntry.debitCents, 15000);
       expect(liveEntry.creditCents, 0);
       expect(liveEntry.isTaxInclusive, isTrue);
@@ -642,7 +642,7 @@ void main() {
       expect(liveEntry.personId, "person-1");
 
       final tombstonedEntry = roundTripped.budgetEntries.firstWhere((row) => row.id == "entry-2");
-      expect(tombstonedEntry.posteId, isNull);
+      expect(tombstonedEntry.accountId, isNull);
       expect(tombstonedEntry.commitmentId, isNull);
       expect(tombstonedEntry.personId, isNull);
       expect(tombstonedEntry.isDeleted, isTrue);
@@ -652,7 +652,7 @@ void main() {
       );
       expect(liveCommitment.dueDate, DateTime.utc(2026, 4, 15));
       expect(liveCommitment.label, "Assurance tournage");
-      expect(liveCommitment.posteId, "poste-1");
+      expect(liveCommitment.accountId, "poste-1");
       expect(liveCommitment.amountCents, 45000);
       expect(liveCommitment.isTaxInclusive, isFalse);
       expect(liveCommitment.vatRateBasisPoints, 2000);
@@ -687,7 +687,7 @@ void main() {
         sceneElements: [],
         roleElements: [],
         roleCandidates: [],
-        budgetPostes: [],
+        budgetAccounts: [],
         budgetLines: [],
         budgetEntries: [],
         budgetCommitments: [],
@@ -762,7 +762,7 @@ void main() {
         sceneElements: payload.sceneElements.reversed.toList(),
         roleElements: payload.roleElements.reversed.toList(),
         roleCandidates: payload.roleCandidates.reversed.toList(),
-        budgetPostes: payload.budgetPostes.reversed.toList(),
+        budgetAccounts: payload.budgetAccounts.reversed.toList(),
         budgetLines: payload.budgetLines.reversed.toList(),
         budgetEntries: payload.budgetEntries.reversed.toList(),
         budgetCommitments: payload.budgetCommitments.reversed.toList(),
@@ -825,7 +825,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -896,7 +896,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,

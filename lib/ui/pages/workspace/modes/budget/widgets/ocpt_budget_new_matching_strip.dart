@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// The matching strip: what accepting one of [suggestions] does, why each was ranked, and every
 /// candidate reachable, `Aucun` included — never a single best guess with no way to say
 /// otherwise. It stops the same money being counted twice: without it, a user records the
-/// payment, forgets to settle the commitment it was for, and the poste reads both committed and
+/// payment, forgets to settle the commitment it was for, and the account reads both committed and
 /// paid for the very same transfer.
 class OcptBudgetNewMatchingStrip extends StatelessWidget {
   /// The ranked candidates the strip offers.
@@ -24,11 +24,11 @@ class OcptBudgetNewMatchingStrip extends StatelessWidget {
   /// Which candidate is currently picked, by index into [suggestions], or null for `Aucun`.
   final int? selectedIndex;
 
-  /// Every live commitment, read to name a commitment candidate's poste.
+  /// Every live commitment, read to name a commitment candidate's account.
   final List<OcptBudgetCommitment> commitments;
 
-  /// Every live poste of the project, read to name a commitment candidate's poste.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, read to name a commitment candidate's account.
+  final List<OcptBudgetAccount> accounts;
 
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
@@ -42,7 +42,7 @@ class OcptBudgetNewMatchingStrip extends StatelessWidget {
     required this.suggestions,
     required this.selectedIndex,
     required this.commitments,
-    required this.postes,
+    required this.accounts,
     required this.currencyCode,
     required this.onSelected,
   });
@@ -102,19 +102,19 @@ class OcptBudgetNewMatchingStrip extends StatelessWidget {
         final amountLabel = suggestion.outstandingCents == null
             ? ""
             : ocptBudgetAmountLabel(suggestion.outstandingCents!, currencyCode);
-        final posteLabel = _commitmentPosteLabelOf(tr, suggestion);
+        final accountLabel = _commitmentAccountLabelOf(tr, suggestion);
         final date = suggestion.date;
         if (date == null) {
           return tr.budgetEntryMatchCommitmentHeadlineUndated(
             suggestion.label,
             amountLabel,
-            posteLabel,
+            accountLabel,
           );
         }
         return tr.budgetEntryMatchCommitmentHeadlineDated(
           suggestion.label,
           amountLabel,
-          posteLabel,
+          accountLabel,
           DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date),
         );
 
@@ -146,16 +146,16 @@ class OcptBudgetNewMatchingStrip extends StatelessWidget {
   int _receivedCentsOf(OcptBudgetMatchSuggestion suggestion) =>
       (suggestion.amountCents ?? 0) - (suggestion.outstandingCents ?? 0);
 
-  /// Get the label of the poste the commitment behind [suggestion] hangs off.
-  String _commitmentPosteLabelOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
+  /// Get the label of the account the commitment behind [suggestion] hangs off.
+  String _commitmentAccountLabelOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
     final commitment = commitments
         .where((candidate) => candidate.id == suggestion.candidateId)
         .firstOrNull;
-    final poste = postes.where((poste) => poste.id == commitment?.posteId).firstOrNull;
-    final label = poste?.label ?? "";
-    final code = poste?.code ?? "";
+    final account = accounts.where((account) => account.id == commitment?.accountId).firstOrNull;
+    final label = account?.label ?? "";
+    final code = account?.code ?? "";
     if (label.isEmpty) {
-      return code.isEmpty ? tr.budgetPosteUnnamed : code;
+      return code.isEmpty ? tr.budgetAccountUnnamed : code;
     }
     return code.isEmpty ? label : "$code $label";
   }

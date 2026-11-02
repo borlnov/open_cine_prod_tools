@@ -27,7 +27,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'budget_expenses_bloc_test_doubles.dart';
 
-/// Run the tests of the budget expenses bloc postes and lines.
+/// Run the tests of the budget expenses bloc accounts and lines.
 void main() {
   late OcptPropertiesManager propertiesManager;
 
@@ -65,7 +65,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -104,11 +104,11 @@ void main() {
       final expensesBloc = buildExpenses(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
 
-      expensesBloc.add(const OcptBudgetPosteCreatedEvent());
-      final state = await waitForState(bloc, (state) => state.selectedPosteId != null);
+      expensesBloc.add(const OcptBudgetAccountCreatedEvent());
+      final state = await waitForState(bloc, (state) => state.selectedAccountId != null);
 
-      expect(state.postes.last.label, "");
-      expect(state.selectedPosteId, state.postes.last.id);
+      expect(state.accounts.last.label, "");
+      expect(state.selectedAccountId, state.accounts.last.id);
       expect(state.rightDockTab, OcptBudgetRightDockTab.inspector);
     });
   });
@@ -119,12 +119,12 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final firstId = loaded.postes.first.id;
+      final firstId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetPosteReorderedEvent(posteId: firstId, newPosition: 2));
-      final state = await waitForState(bloc, (state) => state.postes.last.id == firstId);
+      expensesBloc.add(OcptBudgetAccountReorderedEvent(accountId: firstId, newPosition: 2));
+      final state = await waitForState(bloc, (state) => state.accounts.last.id == firstId);
 
-      expect(state.postes.last.id, firstId);
+      expect(state.accounts.last.id, firstId);
     });
   });
 
@@ -134,16 +134,16 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
-      await waitForState(bloc, (state) => state.selectedPosteId == posteId);
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
+      await waitForState(bloc, (state) => state.selectedAccountId == accountId);
 
-      expensesBloc.add(OcptBudgetPosteDeletionConfirmedEvent(posteId: posteId));
-      final state = await waitForState(bloc, (state) => state.postes.length < smallSeed.length);
+      expensesBloc.add(OcptBudgetAccountDeletionConfirmedEvent(accountId: accountId));
+      final state = await waitForState(bloc, (state) => state.accounts.length < smallSeed.length);
 
-      expect(state.postes.any((poste) => poste.id == posteId), isFalse);
-      expect(state.selectedPosteId, isNull);
+      expect(state.accounts.any((account) => account.id == accountId), isFalse);
+      expect(state.selectedAccountId, isNull);
     });
   });
 
@@ -153,15 +153,15 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
       final loadedWithLine = await waitForState(
         bloc,
-        (state) => state.postes.first.lines.isNotEmpty,
+        (state) => state.accounts.first.lines.isNotEmpty,
       );
-      final lineId = loadedWithLine.postes
-          .firstWhere((poste) => poste.id == posteId)
+      final lineId = loadedWithLine.accounts
+          .firstWhere((account) => account.id == accountId)
           .lines
           .single
           .id;
@@ -174,10 +174,10 @@ void main() {
       expensesBloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
       final withoutLine = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isEmpty,
       );
 
-      expect(withoutLine.postes.firstWhere((poste) => poste.id == posteId).lines, isEmpty);
+      expect(withoutLine.accounts.firstWhere((account) => account.id == accountId).lines, isEmpty);
     });
   });
 
@@ -187,14 +187,18 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
       final withLine = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isNotEmpty,
       );
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final lineId = withLine.accounts
+          .firstWhere((account) => account.id == accountId)
+          .lines
+          .single
+          .id;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
@@ -215,8 +219,8 @@ void main() {
       final flushed = await waitForState(
         bloc,
         (state) =>
-            state.postes
-                .firstWhere((poste) => poste.id == posteId)
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
                 .lines
                 .firstWhere((line) => line.id == lineId)
                 .unitPrice
@@ -224,7 +228,7 @@ void main() {
             1250,
       );
 
-      final line = flushed.postes.firstWhere((poste) => poste.id == posteId).lines.single;
+      final line = flushed.accounts.firstWhere((account) => account.id == accountId).lines.single;
       expect(line.unitPrice.amountCents, 1250);
       final forgotten = await waitForState(
         expensesBloc,
@@ -242,14 +246,18 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
       final withLine = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isNotEmpty,
       );
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final lineId = withLine.accounts
+          .firstWhere((account) => account.id == accountId)
+          .lines
+          .single
+          .id;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
@@ -272,8 +280,8 @@ void main() {
         bloc,
         (state) =>
             state.view == OcptBudgetView.resources &&
-            state.postes
-                    .firstWhere((poste) => poste.id == posteId)
+            state.accounts
+                    .firstWhere((account) => account.id == accountId)
                     .lines
                     .single
                     .unitPrice
@@ -295,16 +303,21 @@ void main() {
         addTearDown(bloc.close);
         final expensesBloc = buildExpenses(bloc);
         final loaded = await waitForState(bloc, (state) => !state.isLoading);
-        final posteId = loaded.postes.first.id;
+        final accountId = loaded.accounts.first.id;
 
-        expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+        expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
         final withLine = await waitForState(
           bloc,
-          (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+          (state) =>
+              state.accounts.firstWhere((account) => account.id == accountId).lines.isNotEmpty,
         );
-        final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
-        final storedBefore = withLine.postes
-            .firstWhere((poste) => poste.id == posteId)
+        final lineId = withLine.accounts
+            .firstWhere((account) => account.id == accountId)
+            .lines
+            .single
+            .id;
+        final storedBefore = withLine.accounts
+            .firstWhere((account) => account.id == accountId)
             .lines
             .single
             .unitPrice
@@ -319,7 +332,10 @@ void main() {
         );
         await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
 
-        final line = bloc.state.postes.firstWhere((poste) => poste.id == posteId).lines.single;
+        final line = bloc.state.accounts
+            .firstWhere((account) => account.id == accountId)
+            .lines
+            .single;
         expect(line.unitPrice.amountCents, storedBefore);
       },
     );
@@ -331,22 +347,26 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(seconds: 30));
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
       final withLine = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isNotEmpty,
       );
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final lineId = withLine.accounts
+          .firstWhere((account) => account.id == accountId)
+          .lines
+          .single
+          .id;
 
       expensesBloc.add(
         OcptBudgetLineTaxInclusiveChangedEvent(lineId: lineId, isTaxInclusive: false),
       );
       final state = await waitForState(
         bloc,
-        (state) => !state.postes
-            .firstWhere((poste) => poste.id == posteId)
+        (state) => !state.accounts
+            .firstWhere((account) => account.id == accountId)
             .lines
             .single
             .unitPrice
@@ -354,8 +374,8 @@ void main() {
       );
 
       expect(
-        state.postes
-            .firstWhere((poste) => poste.id == posteId)
+        state.accounts
+            .firstWhere((account) => account.id == accountId)
             .lines
             .single
             .unitPrice
@@ -371,15 +391,19 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(seconds: 30));
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
       final withLine = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isNotEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isNotEmpty,
       );
-      final lineId = withLine.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final lineId = withLine.accounts
+          .firstWhere((account) => account.id == accountId)
+          .lines
+          .single
+          .id;
 
       await projectsManager.budgetQuoteService.updateLine(
         database: project.database,
@@ -397,8 +421,8 @@ void main() {
       await waitForState(
         bloc,
         (state) =>
-            state.postes
-                .firstWhere((poste) => poste.id == posteId)
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
                 .lines
                 .single
                 .unitPrice
@@ -410,8 +434,8 @@ void main() {
       final state = await waitForState(
         bloc,
         (state) =>
-            state.postes
-                .firstWhere((poste) => poste.id == posteId)
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
                 .lines
                 .single
                 .unitPrice
@@ -420,8 +444,8 @@ void main() {
       );
 
       expect(
-        state.postes
-            .firstWhere((poste) => poste.id == posteId)
+        state.accounts
+            .firstWhere((account) => account.id == accountId)
             .lines
             .single
             .unitPrice
@@ -437,12 +461,12 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteEstimateToComplete,
+          targetId: accountId,
+          field: OcptBudgetField.accountEstimateToComplete,
           rawValue: "12.50",
         ),
       );
@@ -452,18 +476,25 @@ void main() {
       final pending = await waitForState(
         expensesBloc,
         (state) =>
-            state.pendingFieldEdits[(posteId, OcptBudgetField.posteEstimateToComplete)] == "12.50",
+            state.pendingFieldEdits[(accountId, OcptBudgetField.accountEstimateToComplete)] ==
+            "12.50",
       );
-      expect(pending.fieldValueOf(posteId, OcptBudgetField.posteEstimateToComplete, ""), "12.50");
+      expect(
+        pending.fieldValueOf(accountId, OcptBudgetField.accountEstimateToComplete, ""),
+        "12.50",
+      );
 
       final flushed = await waitForState(
         bloc,
         (state) =>
-            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == 1250,
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
+                .estimateToCompleteCents ==
+            1250,
       );
 
       expect(
-        flushed.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        flushed.accounts.firstWhere((account) => account.id == accountId).estimateToCompleteCents,
         1250,
       );
       final forgotten = await waitForState(
@@ -480,22 +511,24 @@ void main() {
         addTearDown(bloc.close);
         final expensesBloc = buildExpenses(bloc);
         final loaded = await waitForState(bloc, (state) => !state.isLoading);
-        final posteId = loaded.postes.first.id;
-        final storedBefore = loaded.postes
-            .firstWhere((poste) => poste.id == posteId)
+        final accountId = loaded.accounts.first.id;
+        final storedBefore = loaded.accounts
+            .firstWhere((account) => account.id == accountId)
             .estimateToCompleteCents;
 
         expensesBloc.add(
           OcptBudgetFieldChangedEvent(
-            targetId: posteId,
-            field: OcptBudgetField.posteEstimateToComplete,
+            targetId: accountId,
+            field: OcptBudgetField.accountEstimateToComplete,
             rawValue: "not a number",
           ),
         );
         await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
 
         expect(
-          bloc.state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+          bloc.state.accounts
+              .firstWhere((account) => account.id == accountId)
+              .estimateToCompleteCents,
           storedBefore,
         );
       },
@@ -506,22 +539,24 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
-      final storedBefore = loaded.postes
-          .firstWhere((poste) => poste.id == posteId)
+      final accountId = loaded.accounts.first.id;
+      final storedBefore = loaded.accounts
+          .firstWhere((account) => account.id == accountId)
           .estimateToCompleteCents;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteEstimateToComplete,
+          targetId: accountId,
+          field: OcptBudgetField.accountEstimateToComplete,
           rawValue: "",
         ),
       );
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
 
       expect(
-        bloc.state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        bloc.state.accounts
+            .firstWhere((account) => account.id == accountId)
+            .estimateToCompleteCents,
         storedBefore,
       );
     });
@@ -531,12 +566,12 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(seconds: 30));
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
-      await projectsManager.budgetQuoteService.updatePoste(
+      await projectsManager.budgetQuoteService.updateAccount(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         estimateToCompleteCents: const drift.Value(5000),
       );
 
@@ -548,18 +583,26 @@ void main() {
       await waitForState(
         bloc,
         (state) =>
-            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == 5000,
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
+                .estimateToCompleteCents ==
+            5000,
       );
 
-      expensesBloc.add(OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId));
+      expensesBloc.add(
+        OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent(accountId: accountId),
+      );
       final state = await waitForState(
         bloc,
         (state) =>
-            state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents == null,
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
+                .estimateToCompleteCents ==
+            null,
       );
 
       expect(
-        state.postes.firstWhere((poste) => poste.id == posteId).estimateToCompleteCents,
+        state.accounts.firstWhere((account) => account.id == accountId).estimateToCompleteCents,
         isNull,
       );
     });
@@ -571,12 +614,12 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       // A line quoted at 10.00 €, tax-inclusive.
       expensesBloc.add(
         OcptBudgetLineCreatedEvent(
-          posteId: posteId,
+          accountId: accountId,
           fields: const OcptBudgetLineFormFields(
             label: "Camera",
             quantityMilli: 1000,
@@ -585,8 +628,8 @@ void main() {
           ),
         ),
       );
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       expensesBloc.add(
         OcptBudgetLinePaidDirectlyEvent(
@@ -594,7 +637,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -626,11 +669,11 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetLineCreatedEvent(
-          posteId: posteId,
+          accountId: accountId,
           fields: const OcptBudgetLineFormFields(
             label: "Camera",
             quantityMilli: 1000,
@@ -639,8 +682,8 @@ void main() {
           ),
         ),
       );
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
       // Pay only 4.00 € of the 10.00 € quoted.
       expensesBloc.add(
@@ -649,7 +692,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera deposit",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,

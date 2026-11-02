@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 /// table, mirroring its columns.
 abstract final class OcptVersionBudgetJson {
   /// Serialize one `budget_postes` row.
-  static Map<String, dynamic> budgetPosteToJson(OcptBudgetPosteRow row) => {
+  static Map<String, dynamic> budgetAccountToJson(OcptBudgetAccountRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
@@ -27,28 +27,29 @@ abstract final class OcptVersionBudgetJson {
   };
 
   /// Parse one `budget_postes` row.
-  static OcptBudgetPosteRow budgetPosteFromJson(Map<String, dynamic> json) => OcptBudgetPosteRow(
-    id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
-    sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
-    isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
-    code: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.codeKey),
-    label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
-    simpleLabel: OcptVersionJsonReader.readNullableString(
-      json,
-      OcptVersionJsonProductionKeys.simpleLabelKey,
-    ),
-    estimateToCompleteCents: OcptVersionJsonReader.readNullableInt(
-      json,
-      OcptVersionJsonProductionKeys.estimateToCompleteCentsKey,
-    ),
-  );
+  static OcptBudgetAccountRow budgetAccountFromJson(Map<String, dynamic> json) =>
+      OcptBudgetAccountRow(
+        id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
+        sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
+        isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
+        code: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.codeKey),
+        label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
+        simpleLabel: OcptVersionJsonReader.readNullableString(
+          json,
+          OcptVersionJsonProductionKeys.simpleLabelKey,
+        ),
+        estimateToCompleteCents: OcptVersionJsonReader.readNullableInt(
+          json,
+          OcptVersionJsonProductionKeys.estimateToCompleteCentsKey,
+        ),
+      );
 
   /// Serialize one `budget_lines` row.
   static Map<String, dynamic> budgetLineToJson(OcptBudgetLineRow row) => {
     OcptVersionJsonKeys.idKey: row.id,
     OcptVersionJsonKeys.sortKeyKey: row.sortKey,
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
-    OcptVersionJsonProductionKeys.posteIdKey: row.posteId,
+    OcptVersionJsonProductionKeys.accountIdKey: row.accountId,
     OcptVersionJsonKeys.labelKey: row.label,
     OcptVersionJsonProductionKeys.quantityMilliKey: row.quantityMilli,
     OcptVersionJsonProductionKeys.unitKey: row.unit,
@@ -67,7 +68,7 @@ abstract final class OcptVersionBudgetJson {
     id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
     sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
-    posteId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.posteIdKey),
+    accountId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.accountIdKey),
     label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
     quantityMilli: OcptVersionJsonReader.readInt(
       json,
@@ -112,7 +113,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
     OcptVersionJsonProductionKeys.dateKey: row.date.toIso8601String(),
     OcptVersionJsonKeys.labelKey: row.label,
-    OcptVersionJsonProductionKeys.posteIdKey: row.posteId,
+    OcptVersionJsonProductionKeys.accountIdKey: row.accountId,
     OcptVersionJsonProductionKeys.debitCentsKey: row.debitCents,
     OcptVersionJsonProductionKeys.creditCentsKey: row.creditCents,
     OcptVersionJsonProductionKeys.isTaxInclusiveKey: row.isTaxInclusive,
@@ -132,9 +133,9 @@ abstract final class OcptVersionBudgetJson {
     isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
     date: OcptVersionJsonReader.readDateTime(json, OcptVersionJsonProductionKeys.dateKey),
     label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
-    posteId: OcptVersionJsonReader.readNullableString(
+    accountId: OcptVersionJsonReader.readNullableString(
       json,
-      OcptVersionJsonProductionKeys.posteIdKey,
+      OcptVersionJsonProductionKeys.accountIdKey,
     ),
     debitCents: OcptVersionJsonReader.readInt(json, OcptVersionJsonProductionKeys.debitCentsKey),
     creditCents: OcptVersionJsonReader.readInt(json, OcptVersionJsonProductionKeys.creditCentsKey),
@@ -176,7 +177,7 @@ abstract final class OcptVersionBudgetJson {
     OcptVersionJsonKeys.isDeletedKey: row.isDeleted,
     OcptVersionJsonProductionKeys.dueDateKey: row.dueDate?.toIso8601String(),
     OcptVersionJsonKeys.labelKey: row.label,
-    OcptVersionJsonProductionKeys.posteIdKey: row.posteId,
+    OcptVersionJsonProductionKeys.accountIdKey: row.accountId,
     OcptVersionJsonProductionKeys.amountCentsKey: row.amountCents,
     OcptVersionJsonProductionKeys.isTaxInclusiveKey: row.isTaxInclusive,
     OcptVersionJsonProductionKeys.vatRateBasisPointsKey: row.vatRateBasisPoints,
@@ -185,39 +186,37 @@ abstract final class OcptVersionBudgetJson {
   };
 
   /// Parse one `budget_commitments` row.
-  static OcptBudgetCommitmentRow budgetCommitmentFromJson(Map<String, dynamic> json) =>
-      OcptBudgetCommitmentRow(
-        id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
-        sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
-        isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
-        dueDate: OcptVersionJsonReader.readNullableDateTime(
-          json,
-          OcptVersionJsonProductionKeys.dueDateKey,
-        ),
-        label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
-        posteId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.posteIdKey),
-        amountCents: OcptVersionJsonReader.readInt(
-          json,
-          OcptVersionJsonProductionKeys.amountCentsKey,
-        ),
-        isTaxInclusive: OcptVersionJsonReader.readBool(
-          json,
-          OcptVersionJsonProductionKeys.isTaxInclusiveKey,
-        ),
-        vatRateBasisPoints: OcptVersionJsonReader.readNullableInt(
-          json,
-          OcptVersionJsonProductionKeys.vatRateBasisPointsKey,
-        ),
-        status: OcptVersionJsonReader.readEnum(
-          json,
-          OcptVersionJsonKeys.statusKey,
-          OcptBudgetCommitmentStatus.values.asNameMap(),
-        ),
-        lineId: OcptVersionJsonReader.readNullableString(
-          json,
-          OcptVersionJsonProductionKeys.commitmentLineIdKey,
-        ),
-      );
+  static OcptBudgetCommitmentRow budgetCommitmentFromJson(
+    Map<String, dynamic> json,
+  ) => OcptBudgetCommitmentRow(
+    id: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.idKey),
+    sortKey: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.sortKeyKey),
+    isDeleted: OcptVersionJsonReader.readBool(json, OcptVersionJsonKeys.isDeletedKey),
+    dueDate: OcptVersionJsonReader.readNullableDateTime(
+      json,
+      OcptVersionJsonProductionKeys.dueDateKey,
+    ),
+    label: OcptVersionJsonReader.readString(json, OcptVersionJsonKeys.labelKey),
+    accountId: OcptVersionJsonReader.readString(json, OcptVersionJsonProductionKeys.accountIdKey),
+    amountCents: OcptVersionJsonReader.readInt(json, OcptVersionJsonProductionKeys.amountCentsKey),
+    isTaxInclusive: OcptVersionJsonReader.readBool(
+      json,
+      OcptVersionJsonProductionKeys.isTaxInclusiveKey,
+    ),
+    vatRateBasisPoints: OcptVersionJsonReader.readNullableInt(
+      json,
+      OcptVersionJsonProductionKeys.vatRateBasisPointsKey,
+    ),
+    status: OcptVersionJsonReader.readEnum(
+      json,
+      OcptVersionJsonKeys.statusKey,
+      OcptBudgetCommitmentStatus.values.asNameMap(),
+    ),
+    lineId: OcptVersionJsonReader.readNullableString(
+      json,
+      OcptVersionJsonProductionKeys.commitmentLineIdKey,
+    ),
+  );
 
   /// Serialize one `budget_resources` row.
   static Map<String, dynamic> budgetResourceToJson(OcptBudgetResourceRow row) => {

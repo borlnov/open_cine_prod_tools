@@ -31,14 +31,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_form
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_state.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// This is the bloc class for the budget mode's expenses view: the postes and the quote lines, the
-/// free-text fields typed into them and the `Pay` action of a line.
+/// This is the bloc class for the budget mode's expenses view: the accounts and the quote lines,
+/// the free-text fields typed into them and the `Pay` action of a line.
 ///
 /// The quote is the mode's data, in `OcptBudgetState.snapshot`, and which row is selected is the
 /// mode's too. This bloc owns what the expenses view does with them: every write (the service, then
-/// `await modeBloc.reload(…)`, then, for a poste or a line it created, the mode's selection of it)
-/// and the edits typed and not yet written ([OcptBudgetExpensesState.pendingFieldEdits]), which it
-/// writes [OcptBudgetBloc.defaultFieldEditDebounce] after the last keystroke, on a timer of its
+/// `await modeBloc.reload(…)`, then, for an account or a line it created, the mode's selection of
+/// it) and the edits typed and not yet written ([OcptBudgetExpensesState.pendingFieldEdits]), which
+/// it writes [OcptBudgetBloc.defaultFieldEditDebounce] after the last keystroke, on a timer of its
 /// own; the mode flushes them ahead of anything that needs the database to be up to date.
 ///
 /// **Reacting.** A row being selected clears nothing here, and an ordinary re-read after a write
@@ -62,7 +62,7 @@ class OcptBudgetExpensesBloc
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
-  /// The service used to write the quote: the postes and their lines.
+  /// The service used to write the quote: the accounts and their lines.
   final OcptBudgetQuoteService _budgetQuoteService;
 
   /// The service used to write the commitment and the entry a line paid directly leaves behind.
@@ -97,11 +97,11 @@ class OcptBudgetExpensesBloc
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
-    on<OcptBudgetPosteCreatedEvent>(_onPosteCreated);
-    on<OcptBudgetPosteReorderedEvent>(_onPosteReordered);
-    on<OcptBudgetPosteDeletionConfirmedEvent>(_onPosteDeletionConfirmed);
-    on<OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent>(
-      _onPosteEstimateToCompleteDerivedRequested,
+    on<OcptBudgetAccountCreatedEvent>(_onAccountCreated);
+    on<OcptBudgetAccountReorderedEvent>(_onAccountReordered);
+    on<OcptBudgetAccountDeletionConfirmedEvent>(_onAccountDeletionConfirmed);
+    on<OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent>(
+      _onAccountEstimateToCompleteDerivedRequested,
     );
     on<OcptBudgetLineCreatedEvent>(_onLineCreated);
     on<OcptBudgetLineCreatedFromElementEvent>(_onLineCreatedFromElement);
@@ -227,9 +227,9 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Create a new, unnamed poste, appended at the end of the catalogue, and select it.
-  Future<void> _onPosteCreated(
-    OcptBudgetPosteCreatedEvent event,
+  /// Create a new, unnamed account, appended at the end of the catalogue, and select it.
+  Future<void> _onAccountCreated(
+    OcptBudgetAccountCreatedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -237,25 +237,28 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    final posteId = await _budgetQuoteService.createPoste(database: project.database, label: "");
+    final accountId = await _budgetQuoteService.createAccount(
+      database: project.database,
+      label: "",
+    );
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
-    if (posteId != null) {
+    if (accountId != null) {
       await addToModeAndWait(
         OcptBudgetSelectionCreatedEvent(
-          selection: OcptBudgetPosteSelection(posteId),
+          selection: OcptBudgetAccountSelection(accountId),
           opensInspector: true,
         ),
       );
     }
   }
 
-  /// Move poste `event.posteId` to `event.newPosition` within the catalogue's flat order.
-  Future<void> _onPosteReordered(
-    OcptBudgetPosteReorderedEvent event,
+  /// Move account `event.accountId` to `event.newPosition` within the catalogue's flat order.
+  Future<void> _onAccountReordered(
+    OcptBudgetAccountReorderedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -263,18 +266,18 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.reorderPoste(
+    await _budgetQuoteService.reorderAccount(
       database: project.database,
-      posteId: event.posteId,
+      accountId: event.accountId,
       newPosition: event.newPosition,
     );
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Delete poste `event.posteId` for good, along with every quote line it holds, confirmed by the
-  /// mode's own `OcptConfirmDialog`.
-  Future<void> _onPosteDeletionConfirmed(
-    OcptBudgetPosteDeletionConfirmedEvent event,
+  /// Delete account `event.accountId` for good, along with every quote line it holds, confirmed by
+  /// the mode's own `OcptConfirmDialog`.
+  Future<void> _onAccountDeletionConfirmed(
+    OcptBudgetAccountDeletionConfirmedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -282,14 +285,14 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.deletePoste(database: project.database, posteId: event.posteId);
+    await _budgetQuoteService.deleteAccount(database: project.database, accountId: event.accountId);
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Put poste `event.posteId`'s own estimate to complete back to being derived, immediately — see
-  /// `OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent`'s own doc comment.
-  Future<void> _onPosteEstimateToCompleteDerivedRequested(
-    OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent event,
+  /// Put account `event.accountId`'s own estimate to complete back to being derived, immediately —
+  /// see `OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent`'s own doc comment.
+  Future<void> _onAccountEstimateToCompleteDerivedRequested(
+    OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent event,
     Emitter<OcptBudgetExpensesState> emitter,
   ) async {
     final project = _projectsManager.currentProject;
@@ -297,17 +300,17 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    await _budgetQuoteService.updatePoste(
+    await _budgetQuoteService.updateAccount(
       database: project.database,
-      posteId: event.posteId,
+      accountId: event.accountId,
       estimateToCompleteCents: const Value(null),
     );
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Create a new quote line inside poste `event.posteId`, appended at the end of its own lines,
-  /// and select it, opening the right dock on the `Inspector` tab — a line is now selected rather
-  /// than expanded, mirroring `OcptBudgetBloc`'s own selection of a line.
+  /// Create a new quote line inside account `event.accountId`, appended at the end of its own
+  /// lines, and select it, opening the right dock on the `Inspector` tab — a line is now selected
+  /// rather than expanded, mirroring `OcptBudgetBloc`'s own selection of a line.
   ///
   /// **`event.fields` null keeps this handler's own original write**: an unnamed line, every other
   /// figure left at `OcptBudgetLinesTable`'s own defaults, for the tree's own inline editor to fill
@@ -325,7 +328,7 @@ class OcptBudgetExpensesBloc
     final fields = event.fields;
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
-      posteId: event.posteId,
+      accountId: event.accountId,
       label: fields?.label ?? "",
       quantityMilli: fields == null ? const Value.absent() : Value(fields.quantityMilli),
       unit: fields == null ? const Value.absent() : Value(fields.unit),
@@ -346,7 +349,7 @@ class OcptBudgetExpensesBloc
     }
   }
 
-  /// Create a new quote line inside poste `event.posteId` **from** breakdown element
+  /// Create a new quote line inside account `event.accountId` **from** breakdown element
   /// `event.elementId`, and select it — dispatched by the capture wizard's own breakdown selector,
   /// once per row created. An element id naming no live element of [OcptBudgetState.elements] is
   /// ignored: the selector only ever offers a live one, so this should not happen outside a stale
@@ -380,7 +383,7 @@ class OcptBudgetExpensesBloc
     final quantityMilli = event.quantityMilli;
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
-      posteId: event.posteId,
+      accountId: event.accountId,
       label: element.name,
       elementId: Value(element.id),
       quantityMilli: quantityMilli == null ? const Value.absent() : Value(quantityMilli),
@@ -470,23 +473,23 @@ class OcptBudgetExpensesBloc
       return;
     }
 
-    OcptBudgetPoste? poste;
+    OcptBudgetAccount? account;
     OcptBudgetLine? line;
-    for (final candidate in modeBloc.state.postes) {
+    for (final candidate in modeBloc.state.accounts) {
       final match = candidate.lines.where((candidate) => candidate.id == event.lineId).firstOrNull;
       if (match != null) {
-        poste = candidate;
+        account = candidate;
         line = match;
         break;
       }
     }
-    if (poste == null || line == null) {
+    if (account == null || line == null) {
       return;
     }
 
     final commitmentId = await _budgetJournalService.createCommitment(
       database: project.database,
-      posteId: poste.id,
+      accountId: account.id,
       label: line.label,
       amountCents: ocptBudgetLineTotalCents(line),
       isTaxInclusive: line.unitPrice.isTaxInclusive,
@@ -504,7 +507,7 @@ class OcptBudgetExpensesBloc
       database: project.database,
       date: fields.date,
       label: fields.label,
-      posteId: fields.posteId,
+      accountId: fields.accountId,
       resourceId: fields.resourceId,
       revenueId: fields.revenueId,
       shareId: fields.shareId,
@@ -564,8 +567,8 @@ class OcptBudgetExpensesBloc
       return false;
     }
 
-    for (final poste in modeBloc.state.postes) {
-      for (final line in poste.lines) {
+    for (final account in modeBloc.state.accounts) {
+      for (final line in account.lines) {
         if (line.id == targetId) {
           return line.inKindResourceId != null;
         }
@@ -578,7 +581,7 @@ class OcptBudgetExpensesBloc
   /// loop [onFlushRequested] and [flushPendingWritesWithoutState] both run, so the switch over
   /// [OcptBudgetField] is written once.
   ///
-  /// The four numeric fields ([OcptBudgetField.posteEstimateToComplete],
+  /// The four numeric fields ([OcptBudgetField.accountEstimateToComplete],
   /// [OcptBudgetField.lineQuantity], [OcptBudgetField.lineUnitAmount],
   /// [OcptBudgetField.lineVatRateOverride]) are parsed here, and a submission that doesn't parse is
   /// **skipped** rather than written: `quantityMilli` and `unitAmountCents` are never nullable, so
@@ -601,30 +604,30 @@ class OcptBudgetExpensesBloc
       }
 
       switch (field) {
-        case OcptBudgetField.posteLabel:
-          await _budgetQuoteService.updatePoste(
+        case OcptBudgetField.accountLabel:
+          await _budgetQuoteService.updateAccount(
             database: project.database,
-            posteId: targetId,
+            accountId: targetId,
             label: Value(value),
           );
-        case OcptBudgetField.posteCode:
-          await _budgetQuoteService.updatePoste(
+        case OcptBudgetField.accountCode:
+          await _budgetQuoteService.updateAccount(
             database: project.database,
-            posteId: targetId,
+            accountId: targetId,
             code: Value(value),
           );
-        case OcptBudgetField.posteSimpleLabel:
-          await _budgetQuoteService.updatePoste(
+        case OcptBudgetField.accountSimpleLabel:
+          await _budgetQuoteService.updateAccount(
             database: project.database,
-            posteId: targetId,
+            accountId: targetId,
             simpleLabel: Value(value.isEmpty ? null : value),
           );
-        case OcptBudgetField.posteEstimateToComplete:
+        case OcptBudgetField.accountEstimateToComplete:
           final amountCents = ocptCostCentsOf(value);
           if (amountCents != null) {
-            await _budgetQuoteService.updatePoste(
+            await _budgetQuoteService.updateAccount(
               database: project.database,
-              posteId: targetId,
+              accountId: targetId,
               estimateToCompleteCents: Value(amountCents),
             );
           }

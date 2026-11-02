@@ -8,12 +8,13 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_amounts_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_card.dart';
 
-/// One poste's own quote/remaining/final-cost/variance figures, computed exactly as
-/// [OcptBudgetCostTrackingPosteAmountsRow.build] computes them for the desktop table's own row —
-/// pulled out into a pure holder so [OcptBudgetCostTrackingPosteCard] reads the very same readings
-/// rather than a second calculation that could quietly disagree with the table over the same poste.
-class OcptBudgetCostTrackingPosteFigures {
-  /// The poste's own quoted total, in cents, under the reading basis.
+/// One account's own quote/remaining/final-cost/variance figures, computed exactly as
+/// [OcptBudgetCostTrackingAccountAmountsRow.build] computes them for the desktop table's own row —
+/// pulled out into a pure holder so [OcptBudgetCostTrackingAccountCard] reads the very same
+/// readings rather than a second calculation that could quietly disagree with the table over the
+/// same account.
+class OcptBudgetCostTrackingAccountFigures {
+  /// The account's own quoted total, in cents, under the reading basis.
   final int quotedAmountCents;
 
   /// `Reste` — [ocptBudgetRemainingCents] over the very same three amounts.
@@ -24,18 +25,18 @@ class OcptBudgetCostTrackingPosteFigures {
   final int varianceCents;
 
   /// Class constructor
-  const OcptBudgetCostTrackingPosteFigures({
+  const OcptBudgetCostTrackingAccountFigures({
     required this.quotedAmountCents,
     required this.remainingCents,
     required this.varianceCents,
   });
 
-  /// Build [poste]'s own figures under [taxBasis], given its own [paidCents], [committedCents] and
-  /// [inKindCoveredCents] — the very same
+  /// Build [account]'s own figures under [taxBasis], given its own [paidCents], [committedCents]
+  /// and [inKindCoveredCents] — the very same
   /// [ocptBudgetTotalOf]/[ocptBudgetRemainingCents]/[ocptBudgetVarianceCents] calls
-  /// [OcptBudgetCostTrackingPosteAmountsRow.build] makes for the desktop row.
-  factory OcptBudgetCostTrackingPosteFigures.of({
-    required OcptBudgetPoste poste,
+  /// [OcptBudgetCostTrackingAccountAmountsRow.build] makes for the desktop row.
+  factory OcptBudgetCostTrackingAccountFigures.of({
+    required OcptBudgetAccount account,
     required OcptBudgetTaxBasis taxBasis,
     required int? defaultVatRateBasisPoints,
     required int paidCents,
@@ -43,11 +44,11 @@ class OcptBudgetCostTrackingPosteFigures {
     required int inKindCoveredCents,
   }) {
     final quoted = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    return OcptBudgetCostTrackingPosteFigures(
+    return OcptBudgetCostTrackingAccountFigures(
       quotedAmountCents: quoted.amountCents,
       remainingCents: ocptBudgetRemainingCents(
         quotedAmountCents: quoted.amountCents,

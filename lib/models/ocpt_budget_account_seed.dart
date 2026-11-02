@@ -4,29 +4,29 @@
 
 import 'package:equatable/equatable.dart';
 
-/// One poste `OcptBudgetQuoteService.loadPostes` is asked to seed a project's `budget_postes` table
-/// with, on the first read of a table holding no row at all.
+/// One account `OcptBudgetQuoteService.loadAccounts` is asked to seed a project's `budget_postes`
+/// table with, on the first read of a table holding no row at all.
 ///
-/// **Already localized**, on purpose: `lib/constants/ocpt_budget_cnc_postes.dart` carries only ARB
-/// key names, since `lib/constants/` and every service under `lib/managers/` must stay free of
-/// `Tr` — the mode resolving `ocptBudgetCncPostes` into this type, one per entry, is the one place
-/// in the app allowed to turn a `labelKey` into a word.
-class OcptBudgetPosteSeed extends Equatable {
-  /// The constant id this poste is seeded with — see `OcptBudgetCncPoste.id`'s own doc comment for
-  /// why it is never a freshly minted one.
+/// **Already localized**, on purpose: `lib/constants/ocpt_budget_cnc_accounts.dart` carries only
+/// ARB key names, since `lib/constants/` and every service under `lib/managers/` must stay free of
+/// `Tr` — the mode resolving `ocptBudgetCncAccounts` into this type, one per entry, is the one
+/// place in the app allowed to turn a `labelKey` into a word.
+class OcptBudgetAccountSeed extends Equatable {
+  /// The constant id this account is seeded with — see `OcptBudgetCncAccount.id`'s own doc comment
+  /// for why it is never a freshly minted one.
   final String id;
 
-  /// The CNC poste number as printed, seeded into `budget_postes.code`.
+  /// The CNC account number as printed, seeded into `budget_postes.code`.
   final String code;
 
-  /// This poste's resolved, localized detailed-header label.
+  /// This account's resolved, localized detailed-header label.
   final String label;
 
-  /// This poste's resolved, localized simplified-header label, or null.
+  /// This account's resolved, localized simplified-header label, or null.
   final String? simpleLabel;
 
   /// Class constructor
-  const OcptBudgetPosteSeed({
+  const OcptBudgetAccountSeed({
     required this.id,
     required this.code,
     required this.label,
@@ -35,7 +35,7 @@ class OcptBudgetPosteSeed extends Equatable {
 
   /// Get a string representation of the object, useful for debugging and logging.
   @override
-  String toString() => "OcptBudgetPosteSeed(id: $id, code: $code, label: $label)";
+  String toString() => "OcptBudgetAccountSeed(id: $id, code: $code, label: $label)";
 
   /// List the fields that decide equality.
   @override

@@ -85,7 +85,7 @@ OcptBudgetEntry _entry({
   id: id,
   date: DateTime(2026, 4),
   label: label,
-  posteId: null,
+  accountId: null,
   debitCents: 0,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -99,9 +99,9 @@ OcptBudgetEntry _entry({
   personId: null,
 );
 
-/// A poste priced at [amountCents], tax-inclusive — read tax-inclusive always by the coverage
+/// An account priced at [amountCents], tax-inclusive — read tax-inclusive always by the coverage
 /// band's own `needs` reading, so no VAT rate is needed for it to read as complete.
-OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBudgetPoste(
+OcptBudgetAccount _account({required String id, int amountCents = 100000}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: "Technical equipment",
@@ -111,7 +111,7 @@ OcptBudgetPoste _poste({required String id, int amountCents = 100000}) => OcptBu
   lines: [
     OcptBudgetLine(
       id: "$id-line",
-      posteId: id,
+      accountId: id,
       label: "",
       quantityMilli: 1000,
       unit: "u",
@@ -138,7 +138,7 @@ void main() {
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetEntry> entries = const [],
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     int? defaultVatRateBasisPoints,
     Map<String, OcptBudgetCoveredTotal> receivedByResourceId = const {},
     int Function(String resourceId)? receivedCentsOf,
@@ -171,7 +171,7 @@ void main() {
           resources: resources,
           revenues: revenues,
           entries: entries,
-          postes: postes,
+          accounts: accounts,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           receivedByResourceId: receivedByResourceId,
           receivedCentsOf: receivedCentsOf ?? (id) => receivedByResourceId[id]?.amountCents ?? 0,
@@ -436,7 +436,7 @@ void main() {
   ) async {
     await pumpView(
       tester,
-      postes: [_poste(id: "p1")],
+      accounts: [_account(id: "p1")],
       resources: [_resource(id: "r1", amountCents: 40000)],
       receivedByResourceId: {
         "r1": const OcptBudgetCoveredTotal(amountCents: 30000, coveredLineCount: 1, lineCount: 1),
@@ -467,7 +467,7 @@ void main() {
   testWidgets("the coverage band states the plan covers the quote once it does", (tester) async {
     await pumpView(
       tester,
-      postes: [_poste(id: "p1", amountCents: 40000)],
+      accounts: [_account(id: "p1", amountCents: 40000)],
       resources: [_resource(id: "r1", amountCents: 40000)],
       receivedByResourceId: {
         "r1": const OcptBudgetCoveredTotal(amountCents: 40000, coveredLineCount: 1, lineCount: 1),
@@ -640,9 +640,9 @@ void main() {
     // The first taking's own menu offers no Move up at all.
     await tester.tap(find.byIcon(Icons.more_vert).first);
     await tester.pumpAndSettle();
-    expect(find.text(tr.budgetPosteMoveUpAction), findsNothing);
-    expect(find.text(tr.budgetPosteMoveDownAction), findsOneWidget);
-    await tester.tap(find.text(tr.budgetPosteMoveDownAction));
+    expect(find.text(tr.budgetAccountMoveUpAction), findsNothing);
+    expect(find.text(tr.budgetAccountMoveDownAction), findsOneWidget);
+    await tester.tap(find.text(tr.budgetAccountMoveDownAction));
     await tester.pumpAndSettle();
     expect(moved, "v1");
     expect(movedUp, isFalse);

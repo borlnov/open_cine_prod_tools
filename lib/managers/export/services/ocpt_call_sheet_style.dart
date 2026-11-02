@@ -55,8 +55,8 @@ const Map<int, pw.TableColumnWidth> ocptCallSheetCastColumnWidths = {
   4: pw.FlexColumnWidth(1.2),
 };
 
-/// The crew list's and the cast-and-extras list's shared `NOM / POSTE(S) / TEL. / MAIL / HORAIRES`
-/// columns.
+/// The crew list's and the cast-and-extras list's shared
+/// `NOM / ACCOUNT(S) / TEL. / MAIL / HORAIRES` columns.
 const Map<int, pw.TableColumnWidth> ocptCallSheetPeopleColumnWidths = {
   0: pw.FlexColumnWidth(1.6),
   1: pw.FlexColumnWidth(1.8),
@@ -77,7 +77,7 @@ const Map<int, pw.TableColumnWidth> ocptCallSheetAuditionColumnWidths = {
 };
 
 /// The trailing guest table's `NOM / MOTIF / HORAIRES` columns — wider on the reason column than
-/// [ocptCallSheetPeopleColumnWidths]' own `POSTE(S)` since a guest's own reason is prose rather
+/// [ocptCallSheetPeopleColumnWidths]' own `ACCOUNT(S)` since a guest's own reason is prose rather
 /// than a job title, and with no phone/email pair to make room for.
 const Map<int, pw.TableColumnWidth> ocptCallSheetGuestColumnWidths = {
   0: pw.FlexColumnWidth(1.6),

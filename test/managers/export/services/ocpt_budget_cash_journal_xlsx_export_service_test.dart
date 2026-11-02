@@ -22,7 +22,7 @@ OcptBudgetCashJournalXlsxLabels _buildLabels({String sheetName = _sheetName}) =>
       dateHeader: "Date",
       voucherHeader: "Voucher",
       labelHeader: "Label",
-      posteHeader: "Poste",
+      accountHeader: "Poste",
       settlesHeader: "Settles",
       debitHeader: "Debit",
       creditHeader: "Credit",
@@ -35,7 +35,7 @@ OcptBudgetEntry _buildEntry({
   required String id,
   required DateTime date,
   String label = "",
-  String? posteId,
+  String? accountId,
   int debitCents = 0,
   int creditCents = 0,
   bool isTaxInclusive = true,
@@ -46,7 +46,7 @@ OcptBudgetEntry _buildEntry({
   id: id,
   date: date,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -60,17 +60,20 @@ OcptBudgetEntry _buildEntry({
   personId: null,
 );
 
-/// Builds a poste holding no line, only what this test reads: its own id and label.
-OcptBudgetPoste _buildPoste({required String id, required String code, required String label}) =>
-    OcptBudgetPoste(
-      id: id,
-      code: code,
-      label: label,
-      simpleLabel: null,
-      estimateToCompleteCents: null,
-      sortKey: "a",
-      lines: const [],
-    );
+/// Builds an account holding no line, only what this test reads: its own id and label.
+OcptBudgetAccount _buildAccount({
+  required String id,
+  required String code,
+  required String label,
+}) => OcptBudgetAccount(
+  id: id,
+  code: code,
+  label: label,
+  simpleLabel: null,
+  estimateToCompleteCents: null,
+  sortKey: "a",
+  lines: const [],
+);
 
 /// Decodes [bytes] and returns the rows of its [_sheetName] sheet, as plain Dart values — mirroring
 /// `ocpt_shot_list_xlsx_export_service_test.dart`'s own `_rowsOf`.
@@ -110,7 +113,7 @@ void main() {
   group("generate", () {
     test("writes one row per entry, in the journal's own order, then a totals row", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: [_buildPoste(id: "poste-1", code: "1", label: "Rights")],
+        accounts: [_buildAccount(id: "poste-1", code: "1", label: "Rights")],
         entries: [
           _buildEntry(
             id: "entry-1",
@@ -122,7 +125,7 @@ void main() {
             id: "entry-2",
             date: DateTime(2026, 1, 10),
             label: "Rights fee",
-            posteId: "poste-1",
+            accountId: "poste-1",
             debitCents: 25000,
             voucherNumber: "J-002",
           ),
@@ -154,7 +157,8 @@ void main() {
       // than left blank, since the movement is fully readable — balance after is 1,000.00 €.
       expect(rows[1], ["2026-01-05", "J-001", "Deposit", null, null, 0.0, 1000.0, 1000.0]);
 
-      // entry-2: a debit of 250.00 € against poste-1, no credit at all, balance after is 750.00 €.
+      // entry-2: a debit of 250.00 € against account-1, no credit at all, balance after is 750.00
+      // €.
       expect(rows[2], ["2026-01-10", "J-002", "Rights fee", "Rights", null, 250.0, 0.0, 750.0]);
 
       // The totals row: the journal's own debit, credit and balance.
@@ -163,7 +167,7 @@ void main() {
 
     test("prints what an entry settles from the caller's own map, resolving nothing itself", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: [_buildEntry(id: "entry-1", date: DateTime(2026, 1, 5), creditCents: 5000)],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -186,7 +190,7 @@ void main() {
     test("a row this basis cannot read leaves its own balance an empty cell, never a repeat or a "
         "guess", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: [
           _buildEntry(id: "entry-1", date: DateTime(2026), creditCents: 10000),
           // Typed excluding tax, no rate anywhere to gross it back up with: unreadable.
@@ -222,7 +226,7 @@ void main() {
 
     test("names the single sheet after the labels, with no leftover default sheet", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,
@@ -244,7 +248,7 @@ void main() {
 
     test("falls back to a valid sheet name when the labels carry a blank one", () {
       final snapshot = OcptBudgetSnapshot.build(
-        postes: const [],
+        accounts: const [],
         entries: const [],
         commitments: const [],
         defaultVatRateBasisPoints: null,

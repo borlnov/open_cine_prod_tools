@@ -479,7 +479,7 @@ void main() {
                   shootingSlotGuests: payload.shootingSlotGuests,
                   shootingDayEvents: payload.shootingDayEvents,
                   projectDictionaryWords: payload.projectDictionaryWords,
-                  budgetPostes: payload.budgetPostes,
+                  budgetAccounts: payload.budgetAccounts,
                   budgetLines: payload.budgetLines,
                   budgetEntries: payload.budgetEntries,
                   budgetCommitments: payload.budgetCommitments,
@@ -588,8 +588,8 @@ void main() {
 
     test("the cash journal comes back, and a movement recorded since is tombstoned", () async {
       await database
-          .into(database.ocptBudgetPostesTable)
-          .insert(OcptBudgetPostesTableCompanion.insert(id: "poste-1", label: "Personnel"));
+          .into(database.ocptBudgetAccountsTable)
+          .insert(OcptBudgetAccountsTableCompanion.insert(id: "poste-1", label: "Personnel"));
       await database
           .into(database.ocptBudgetEntriesTable)
           .insert(
@@ -597,7 +597,7 @@ void main() {
               id: "entry-1",
               date: DateTime.utc(2026, 3, 12),
               label: "Gaffer tape",
-              posteId: const Value("poste-1"),
+              accountId: const Value("poste-1"),
               debitCents: const Value(1250),
               voucherNumber: const Value("J-001"),
             ),
@@ -607,7 +607,7 @@ void main() {
           .insert(
             OcptBudgetCommitmentsTableCompanion.insert(
               id: "commitment-1",
-              posteId: "poste-1",
+              accountId: "poste-1",
               label: "Camera deposit",
               amountCents: const Value(45000),
             ),

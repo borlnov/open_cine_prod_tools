@@ -21,7 +21,7 @@ class OcptBudgetRightDock extends StatelessWidget {
   /// **withheld, not disabled**, exactly as this app withholds any affordance without a subject.
   final List<OcptBudgetRightDockTab> availableTabs;
 
-  /// The built poste inspector, shown when [activeTab] is [OcptBudgetRightDockTab.inspector].
+  /// The built account inspector, shown when [activeTab] is [OcptBudgetRightDockTab.inspector].
   final Widget inspectorChild;
 
   /// The built project versions panel, shown when [activeTab] is

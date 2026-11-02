@@ -28,8 +28,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 ///
 /// **This is the whole point of the data shape**: `budget_resources` stores no
 /// `receivedCents` column of its own, so what has come in is summed here, off the journal, exactly
-/// the way `ocptBudgetPaidCentsByPosteId` (`lib/models/rules/ocpt_budget_journal.dart`) already
-/// sums a poste's own payments rather than reading a stored figure that could drift from the
+/// the way `ocptBudgetPaidCentsByAccountId` (`lib/models/rules/ocpt_budget_journal.dart`) already
+/// sums an account's own payments rather than reading a stored figure that could drift from the
 /// entries that actually justify it.
 ///
 /// Each entry naming this resource is read through [ocptBudgetEntryCreditCentsOf] — **never
@@ -48,7 +48,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 /// resource is read by no line of this function at all.
 ///
 /// **A resource with no entry naming it gets no key at all** in the returned map — the same
-/// discipline `ocptBudgetPaidCentsByPosteId`'s own doc comment states: a caller can tell "nothing
+/// discipline `ocptBudgetPaidCentsByAccountId`'s own doc comment states: a caller can tell "nothing
 /// has come in against this resource" (absent key) apart from "money came and went and it happens
 /// to net to zero" (a key present, its own [OcptBudgetCoveredTotal.amountCents] zero). The `?? 0` a
 /// caller applies on top is what turns the first fact into the zero it displays.
@@ -170,7 +170,7 @@ Map<OcptBudgetResourceGroupKind, int> ocptBudgetResourcesTotalByGroupKind(
 /// opposite. Clamping that to zero would erase exactly the fact a reader most wants from this
 /// figure, the same register `lib/models/rules/ocpt_budget_vat.dart` argues for "null, never zero":
 /// [ocptBudgetVarianceCents] (`lib/models/rules/ocpt_budget_totals.dart`) already reads the same
-/// way for a poste that has gone over its quote, positive rather than floored.
+/// way for an account that has gone over its quote, positive rather than floored.
 int ocptBudgetResourceOutstandingCents({required int amountCents, required int receivedCents}) =>
     amountCents - receivedCents;
 

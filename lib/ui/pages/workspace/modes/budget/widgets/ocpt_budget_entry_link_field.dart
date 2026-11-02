@@ -22,8 +22,8 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
   /// The entry's nature, which fixes the link field drawn.
   final OcptBudgetEntryNature nature;
 
-  /// Every live poste.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live financing resource.
   final List<OcptBudgetResource> resources;
@@ -37,11 +37,11 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
   /// Every person.
   final List<OcptPerson> people;
 
-  /// Whether the simplified naming applies to the poste labels.
+  /// Whether the simplified naming applies to the account labels.
   final bool isSimplified;
 
-  /// The poste currently picked, or null.
-  final String? posteId;
+  /// The account currently picked, or null.
+  final String? accountId;
 
   /// The financing resource currently picked, or null.
   final String? resourceId;
@@ -58,8 +58,8 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
   /// The person currently picked, or null.
   final String? personId;
 
-  /// Called with the poste just picked.
-  final ValueChanged<String?> onPosteChanged;
+  /// Called with the account just picked.
+  final ValueChanged<String?> onAccountChanged;
 
   /// Called with the financing resource just picked.
   final ValueChanged<String?> onResourceChanged;
@@ -77,19 +77,19 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
   const OcptBudgetEntryLinkField({
     super.key,
     required this.nature,
-    required this.postes,
+    required this.accounts,
     required this.resources,
     required this.revenues,
     required this.shares,
     required this.people,
     required this.isSimplified,
-    required this.posteId,
+    required this.accountId,
     required this.resourceId,
     required this.revenueId,
     required this.newRevenue,
     required this.shareId,
     required this.personId,
-    required this.onPosteChanged,
+    required this.onAccountChanged,
     required this.onResourceChanged,
     required this.onRevenueChanged,
     required this.onShareChanged,
@@ -99,11 +99,11 @@ class OcptBudgetEntryLinkField extends StatelessWidget {
   /// Build the budget entry link field.
   @override
   Widget build(BuildContext context) => switch (ocptBudgetEntryNatureLinkKindOf(nature)) {
-    OcptBudgetEntryLinkKind.poste => OcptBudgetEntryPosteField(
-      postes: postes,
+    OcptBudgetEntryLinkKind.account => OcptBudgetEntryAccountField(
+      accounts: accounts,
       isSimplified: isSimplified,
-      posteId: posteId,
-      onChanged: onPosteChanged,
+      accountId: accountId,
+      onChanged: onAccountChanged,
     ),
     OcptBudgetEntryLinkKind.financingResource => OcptBudgetEntryResourceField(
       resources: resources,

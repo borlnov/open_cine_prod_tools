@@ -98,7 +98,7 @@ void main() {
             wrap(
               testDetail(
                 selection: const OcptBudgetEntrySelection("entry-1"),
-                // 500 against the poste's own 1,000 quote — not over, so no overrun clause.
+                // 500 against the account's own 1,000 quote — not over, so no overrun clause.
                 entries: [buildEntry(debitCents: 500)],
                 onEntryPromoteToQuoteRequested: () => promoted = true,
                 onEntryMoveOffQuoteRequested: () => movedOffQuote = true,
@@ -127,7 +127,7 @@ void main() {
           wrap(
             testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
-              // 5,000 against the poste's own 1,000 quote — 4,000 over.
+              // 5,000 against the account's own 1,000 quote — 4,000 over.
               entries: [buildEntry(debitCents: 5000)],
               onEntryPromoteToQuoteRequested: () {},
               onEntryMoveOffQuoteRequested: () {},
@@ -216,7 +216,7 @@ void main() {
           wrap(
             testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
-              entries: [buildEntry(posteId: null, debitCents: 500)],
+              entries: [buildEntry(accountId: null, debitCents: 500)],
               onEntryPromoteToQuoteRequested: () {},
               onEntryMoveOffQuoteRequested: () {},
             ),
@@ -238,7 +238,7 @@ void main() {
           wrap(
             testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
-              // 1,000, matching the poste's own 1,000 quote — not over, so no overrun clause.
+              // 1,000, matching the account's own 1,000 quote — not over, so no overrun clause.
               commitments: [buildCommitment()],
               onCommitmentPromoteToQuoteRequested: () => promoted = true,
             ),
@@ -247,7 +247,7 @@ void main() {
         final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
         expect(find.text(tr.budgetDetailCommitmentOffLineBannerText), findsOneWidget);
-        // The one thing a commitment cannot do: it always names a poste, so no Move off-quote.
+        // The one thing a commitment cannot do: it always names an account, so no Move off-quote.
         expect(
           find.widgetWithText(OutlinedButton, tr.budgetDetailEntryMoveOffQuoteAction),
           findsNothing,
@@ -263,7 +263,7 @@ void main() {
           wrap(
             testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
-              // 5,000 committed against the poste's own 1,000 quote — 4,000 over.
+              // 5,000 committed against the account's own 1,000 quote — 4,000 over.
               commitments: [buildCommitment(amountCents: 5000)],
               onCommitmentPromoteToQuoteRequested: () {},
             ),
@@ -399,7 +399,7 @@ void main() {
     ) async {
       const offsetLine = OcptBudgetLine(
         id: "line-offset",
-        posteId: "poste-2",
+        accountId: "poste-2",
         label: "Camera loan",
         quantityMilli: 1000,
         unit: "u",
@@ -411,7 +411,7 @@ void main() {
         notes: "",
         sortKey: "a0",
       );
-      const offsetPoste = OcptBudgetPoste(
+      const offsetAccount = OcptBudgetAccount(
         id: "poste-2",
         code: "7",
         label: "Technical equipment",
@@ -425,14 +425,17 @@ void main() {
         wrap(
           testDetail(
             selection: const OcptBudgetResourceSelection("resource-1"),
-            postes: const [testPoste, offsetPoste],
+            accounts: const [testAccount, offsetAccount],
             resources: [buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
           ),
         ),
       );
       final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-      expect(find.text(tr.budgetDetailInKindOffsetsPoste("7 Technical equipment")), findsOneWidget);
+      expect(
+        find.text(tr.budgetDetailInKindOffsetsAccount("7 Technical equipment")),
+        findsOneWidget,
+      );
     });
 
     testWidgets("an in-kind resource with no counterpart line yet names no poste", (tester) async {
@@ -446,8 +449,8 @@ void main() {
       );
 
       // No card at all: an uncollected in-kind resource draws its "Valued at" figure bare (no
-      // Promised/Received stepper card), and there is no poste-offset banner card since nothing
-      // in `postes` names this resource's own id yet.
+      // Promised/Received stepper card), and there is no account-offset banner card since nothing
+      // in `accounts` names this resource's own id yet.
       expect(find.byType(Card), findsNothing);
     });
 
@@ -526,7 +529,7 @@ void main() {
         wrap(
           testDetail(
             selection: const OcptBudgetReceiptSelection("entry-1"),
-            entries: [buildEntry(creditCents: 4000, posteId: null, resourceId: "resource-1")],
+            entries: [buildEntry(creditCents: 4000, accountId: null, resourceId: "resource-1")],
             resources: [buildResource()],
           ),
         ),

@@ -16,13 +16,13 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_view
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_wizard_flows.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 
-/// The expenses view: the cost-tracking table of postes, quote lines, commitments and entries.
+/// The expenses view: the cost-tracking table of accounts, quote lines, commitments and entries.
 class OcptBudgetCostTrackingView extends StatelessWidget {
   /// The mode's state, which the table's rows and figures are read from.
   final OcptBudgetState state;
 
-  /// Asks the mode to confirm, then delete, the poste with this id.
-  final ValueChanged<String> onPosteDeletionRequested;
+  /// Asks the mode to confirm, then delete, the account with this id.
+  final ValueChanged<String> onAccountDeletionRequested;
 
   /// Asks the mode to confirm, then delete, the commitment with this id.
   final ValueChanged<String> onCommitmentDeletionRequested;
@@ -34,7 +34,7 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
   const OcptBudgetCostTrackingView({
     super.key,
     required this.state,
-    required this.onPosteDeletionRequested,
+    required this.onAccountDeletionRequested,
     required this.onCommitmentDeletionRequested,
     required this.onEntryDeletionRequested,
   });
@@ -53,9 +53,9 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
       // exactly the rows it is handed and totals exactly those, so narrowing the list is the whole
       // of it: a filtered table's own `Total` reads the total of what is on screen, which is the
       // only honest thing it can say. The commitments and entries the tree reads its own sub-rows
-      // from are handed in whole — a poste already outside the filter draws no row at all, so its
-      // own commitments and entries never reach the screen either.
-      postes: _filteredPostesOf(state),
+      // from are handed in whole — an account already outside the filter draws no row at all, so
+      // its own commitments and entries never reach the screen either.
+      accounts: _filteredAccountsOf(state),
       commitments: state.commitments,
       entries: state.entries,
       selection: state.selection,
@@ -64,7 +64,7 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
-      paidByPosteId: state.paidByPosteId,
+      paidByAccountId: state.paidByAccountId,
       committedCentsOf: state.committedCentsOf,
       inKindCoveredCentsOf: state.inKindCoveredCentsOf,
       offQuoteTotal: state.offQuotePaidTotal,
@@ -74,29 +74,30 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
       mealCount: state.logisticsTotals.mealCount,
       buffetCount: state.logisticsTotals.buffetCount,
       isReadOnly: isReadOnly,
-      onPosteSelected: (posteId) => bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId)),
+      onAccountSelected: (accountId) =>
+          bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId)),
       onLineSelected: (lineId) => bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId)),
       onCommitmentSelected: (commitmentId) =>
           bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId)),
       onEntrySelected: (entryId) => bloc.add(OcptBudgetEntrySelectedEvent(entryId: entryId)),
       onNodeExpansionToggled: (nodeId) =>
           bloc.add(OcptBudgetRowExpansionToggledEvent(nodeId: nodeId)),
-      onPosteCreationRequested: isReadOnly
+      onAccountCreationRequested: isReadOnly
           ? null
-          : () => expensesBloc.add(const OcptBudgetPosteCreatedEvent()),
-      onPosteReorderRequested: isReadOnly
+          : () => expensesBloc.add(const OcptBudgetAccountCreatedEvent()),
+      onAccountReorderRequested: isReadOnly
           ? null
-          : (posteId, {required moveUp}) => expensesBloc.add(
-              OcptBudgetPosteReorderedEvent(
-                posteId: posteId,
-                newPosition: _posteReorderedPosition(state, posteId, moveUp),
+          : (accountId, {required moveUp}) => expensesBloc.add(
+              OcptBudgetAccountReorderedEvent(
+                accountId: accountId,
+                newPosition: _accountReorderedPosition(state, accountId, moveUp),
               ),
             ),
-      onPosteDeletionRequested: isReadOnly ? null : onPosteDeletionRequested,
+      onAccountDeletionRequested: isReadOnly ? null : onAccountDeletionRequested,
       // Never withheld under a preview: it only ever reads the project — see
-      // `OcptBudgetCostTracking.onPosteFilterRequested`'s own doc comment.
-      onPosteFilterRequested: (posteId) =>
-          bloc.add(OcptBudgetPosteFilterSelectedEvent(posteId: posteId)),
+      // `OcptBudgetCostTracking.onAccountFilterRequested`'s own doc comment.
+      onAccountFilterRequested: (accountId) =>
+          bloc.add(OcptBudgetAccountFilterSelectedEvent(accountId: accountId)),
       onCommitmentEditRequested: isReadOnly
           ? null
           : (commitment) => unawaited(ocptBudgetEditCommitment(context, state, commitment)),
@@ -120,12 +121,12 @@ class OcptBudgetCostTrackingView extends StatelessWidget {
   }
 }
 
-/// Get the 0-based position poste [posteId] moves to when its row's own `▲`/`▼` menu entry is
-/// clicked — one above or below its current position in [OcptBudgetState.postes]' own order, a
-/// poste id no longer found there (should not happen, the shell already refused to draw a stale
+/// Get the 0-based position account [accountId] moves to when its row's own `▲`/`▼` menu entry is
+/// clicked — one above or below its current position in [OcptBudgetState.accounts]' own order, an
+/// account id no longer found there (should not happen, the shell already refused to draw a stale
 /// row's menu) falling back to leaving it where it is.
-int _posteReorderedPosition(OcptBudgetState state, String posteId, bool moveUp) {
-  final currentIndex = state.postes.indexWhere((poste) => poste.id == posteId);
+int _accountReorderedPosition(OcptBudgetState state, String accountId, bool moveUp) {
+  final currentIndex = state.accounts.indexWhere((account) => account.id == accountId);
   if (currentIndex < 0) {
     return 0;
   }
@@ -133,17 +134,17 @@ int _posteReorderedPosition(OcptBudgetState state, String posteId, bool moveUp) 
   return moveUp ? currentIndex - 1 : currentIndex + 1;
 }
 
-/// Get [state]'s own postes, narrowed to the one the header's filter names — or every one of them
+/// Get [state]'s own accounts, narrowed to the one the header's filter names — or every one of them
 /// while nothing is filtered.
 ///
-/// See `ocptBudgetViewHonoursPosteFilter` for which views read this and which say they cannot.
-List<OcptBudgetPoste> _filteredPostesOf(OcptBudgetState state) {
-  final filterPosteId = state.filterPosteId;
+/// See `ocptBudgetViewHonoursAccountFilter` for which views read this and which say they cannot.
+List<OcptBudgetAccount> _filteredAccountsOf(OcptBudgetState state) {
+  final filterAccountId = state.filterAccountId;
 
-  return filterPosteId == null
-      ? state.postes
+  return filterAccountId == null
+      ? state.accounts
       : [
-          for (final poste in state.postes)
-            if (poste.id == filterPosteId) poste,
+          for (final account in state.accounts)
+            if (account.id == filterAccountId) account,
         ];
 }

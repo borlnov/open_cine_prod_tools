@@ -27,14 +27,14 @@ const double _titleFontSizePt = 16;
 /// The font size, in points, of the title page's own document name.
 const double _coverTitleFontSizePt = 24;
 
-/// The font size, in points, of every body line: a poste heading, a table cell.
+/// The font size, in points, of every body line: an account heading, a table cell.
 const double _bodyFontSizePt = 9;
 
 /// The font size, in points, of the small muted lines: the running head, the tax-basis caption, an
 /// element's own quiet second line under its label.
 const double _smallFontSizePt = 7;
 
-/// The padding, in points, inside one cell of a poste's own table.
+/// The padding, in points, inside one cell of an account's own table.
 const double _cellPaddingPt = 4;
 
 /// The colour the tables' rules are drawn with.
@@ -46,7 +46,7 @@ const PdfColor _bandColor = PdfColor.fromInt(0xFFEDEDED);
 /// The grey the running head and every muted label is printed in.
 const PdfColor _mutedColor = PdfColor.fromInt(0xFF6E6E6E);
 
-/// The `Description / Qty / Unit price / Total` columns every poste's own table shares.
+/// The `Description / Qty / Unit price / Total` columns every account's own table shares.
 const Map<int, pw.TableColumnWidth> _columnWidths = {
   0: pw.FlexColumnWidth(3),
   1: pw.FlexColumnWidth(1.2),
@@ -54,8 +54,8 @@ const Map<int, pw.TableColumnWidth> _columnWidths = {
   3: pw.FlexColumnWidth(1.2),
 };
 
-/// Render the quote: the full CNC nomenclature, poste by poste with its own lines, each poste's
-/// own subtotal, then the project's own grand total.
+/// Render the quote: the full CNC nomenclature, account by account with its own lines, each
+/// account's own subtotal, then the project's own grand total.
 ///
 /// This is pure rendering logic with no dialog or file-system access of its own: it's owned by
 /// `OcptExportManager` and exposed as a public final field, reached through the manager rather than
@@ -96,13 +96,13 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
   String quoteFileName({required String projectName, required String suffix}) =>
       suffix.trim().isEmpty ? "$projectName.pdf" : "$projectName - ${suffix.trim()}.pdf";
 
-  /// Render the quote of [snapshot]'s own postes, in [taxBasis], returning the PDF's bytes.
+  /// Render the quote of [snapshot]'s own accounts, in [taxBasis], returning the PDF's bytes.
   ///
   /// [elementNameById] names every breakdown element a quote line prices (`OcptBudgetLine
   /// .elementId`) — see the class doc comment. [exportDate] is the moment the title page's own
   /// version line and every page's running head print, resolved once per document; it defaults to
   /// [DateTime.now] so a caller that never reissues this document doesn't have to pass one. A
-  /// project holding no poste at all prints one readable note page rather than an empty file.
+  /// project holding no account at all prints one readable note page rather than an empty file.
   Future<Uint8List> generate({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> elementNameById,
@@ -135,7 +135,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
           documentTitle: labels.documentTitle,
           versionLine: versionLine,
         ),
-        build: (context) => snapshot.postes.isEmpty
+        build: (context) => snapshot.accounts.isEmpty
             ? [_noteWidget(painter: painter, text: labels.emptyDocumentNote)]
             : _body(
                 painter: painter,
@@ -150,7 +150,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     return pdfDocument.save();
   }
 
-  /// Build the document's own body: the tax-basis caption, one section per poste, then the
+  /// Build the document's own body: the tax-basis caption, one section per account, then the
   /// project's own
   /// grand total.
   List<pw.Widget> _body({
@@ -160,7 +160,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     required OcptBudgetTaxBasis taxBasis,
     required OcptBudgetQuoteLabels labels,
   }) {
-    final allLines = [for (final poste in snapshot.postes) ...poste.lines];
+    final allLines = [for (final account in snapshot.accounts) ...account.lines];
     final grandTotal = ocptBudgetTotalOf(
       allLines,
       basis: taxBasis,
@@ -177,10 +177,10 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
         ),
       ),
       pw.SizedBox(height: 10),
-      for (final poste in snapshot.postes) ...[
-        _posteSection(
+      for (final account in snapshot.accounts) ...[
+        _accountSection(
           painter: painter,
-          poste: poste,
+          account: account,
           elementNameById: elementNameById,
           taxBasis: taxBasis,
           labels: labels,
@@ -205,11 +205,11 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     ];
   }
 
-  /// Build one poste's own section: its heading, its own table of lines (or [OcptBudgetQuoteLabels
-  /// .noLinesLabel] while it holds none), then its own subtotal.
-  pw.Widget _posteSection({
+  /// Build one account's own section: its heading, its own table of lines (or
+  /// [OcptBudgetQuoteLabels .noLinesLabel] while it holds none), then its own subtotal.
+  pw.Widget _accountSection({
     required OcptScriptPagePainter painter,
-    required OcptBudgetPoste poste,
+    required OcptBudgetAccount account,
     required Map<String, String> elementNameById,
     required OcptBudgetTaxBasis taxBasis,
     required OcptBudgetQuoteLabels labels,
@@ -218,7 +218,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
     required String inKindLineMarker,
   }) {
     final subtotal = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: projectVatRateBasisPoints,
     );
@@ -227,11 +227,11 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
-          "${poste.code} — ${poste.label}",
+          "${account.code} — ${account.label}",
           style: pw.TextStyle(font: painter.fonts.bold, fontSize: _titleFontSizePt),
         ),
         pw.SizedBox(height: 6),
-        if (poste.lines.isEmpty)
+        if (account.lines.isEmpty)
           pw.Text(
             labels.noLinesLabel,
             style: pw.TextStyle(
@@ -271,7 +271,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
                   ),
                 ],
               ),
-              for (final line in poste.lines)
+              for (final line in account.lines)
                 _lineRow(
                   painter: painter,
                   line: line,
@@ -286,7 +286,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
         pw.SizedBox(height: 4),
         _totalRow(
           painter: painter,
-          label: labels.posteSubtotalLabel,
+          label: labels.accountSubtotalLabel,
           text: ocptBudgetExportCoveredAmountText(
             total: subtotal,
             currencyCode: currencyCode,
@@ -396,7 +396,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
       ? ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: projectVatRateBasisPoints)
       : ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: projectVatRateBasisPoints);
 
-  /// Build one header cell of a poste's own table.
+  /// Build one header cell of an account's own table.
   pw.Widget _headerCell({
     required OcptScriptPagePainter painter,
     required String text,
@@ -421,7 +421,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
         ),
       );
 
-  /// Build a right-aligned `<label>: <text>` line — a poste's own subtotal, or the project's own
+  /// Build a right-aligned `<label>: <text>` line — an account's own subtotal, or the project's own
   /// grand
   /// total.
   pw.Widget _totalRow({
@@ -471,7 +471,7 @@ class OcptBudgetQuotePdfService extends AbsOcptService {
   );
 
   /// Build a block of free text — the note standing in for the whole document on a project with no
-  /// poste
+  /// account
   /// at all.
   pw.Widget _noteWidget({required OcptScriptPagePainter painter, required String text}) => pw.Text(
     text,

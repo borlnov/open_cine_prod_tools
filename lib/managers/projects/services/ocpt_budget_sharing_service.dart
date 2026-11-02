@@ -17,14 +17,14 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
-/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC postes.** This app names
-/// no taking and no participant of its own — a revenue and a sharing plan are entirely the
+/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC accounts.** This app
+/// names no taking and no participant of its own — a revenue and a sharing plan are entirely the
 /// production's own business — so both tables come out of [loadRevenues]/[loadShares] exactly as
 /// empty as the project that has never been read from before them.
 ///
 /// **Both tables order flat by their own `sortKey`**, like `OcptBudgetFinancingService`'s own two
 /// tables: neither a revenue nor a share belongs inside another row the way a quote line belongs
-/// inside its poste.
+/// inside its account.
 class OcptBudgetSharingService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].

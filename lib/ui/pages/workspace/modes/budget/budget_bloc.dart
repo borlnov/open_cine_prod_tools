@@ -35,12 +35,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// This is the bloc class for the budget production mode: its **mode bloc**.
 ///
 /// It reads the current project's whole budget through [_loader] on entry (the quote, seeding the
-/// ten CNC postes on the first read of an empty table; the cash journal; the financing plan; the
+/// ten CNC accounts on the first read of an empty table; the cash journal; the financing plan; the
 /// revenue sharing; the catering-and-travel pass and the catalogues it is joined with; and the
 /// project's currency, default VAT rate and prices), and owns that data, the page setup, the shared
-/// selection (the selected row, the filtered poste, the highlighted share, the poste the logistics
-/// provisions into, the expanded nodes), the chrome (the central view, the tools page, the
-/// simplified and tax-basis switches, the right dock) and the transient write error of none of
+/// selection (the selected row, the filtered account, the highlighted share, the account the
+/// logistics provisions into, the expanded nodes), the chrome (the central view, the tools page,
+/// the simplified and tax-basis switches, the right dock) and the transient write error of none of
 /// them.
 ///
 /// Everything a view writes belongs to that view's bloc — `OcptBudgetExpensesBloc`,
@@ -51,8 +51,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// [OcptBudgetShareCreatedEvent].
 ///
 /// **Every read of the snapshot reconciles the shared selection** ([_readBudgetSnapshot]): a
-/// selected row, a filtered poste or a highlighted share that the fresh snapshot no longer holds is
-/// dropped in the very state that carries the snapshot, and the selection epoch moves with
+/// selected row, a filtered account or a highlighted share that the fresh snapshot no longer holds
+/// is dropped in the very state that carries the snapshot, and the selection epoch moves with
 /// [OcptBudgetSelectionCause.reconciled]. While the `Versions` tab is open, the working-copy card
 /// is refreshed once the data has landed, the mode's stand-in for "a save landing while it is
 /// open".
@@ -61,15 +61,16 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// edit pending, and the action the flush was for does not happen: [flushAllPendingWritesIn] and
 /// [flushPendingProjectWrites] answer false, and the handler stops. Which actions flush is the old
 /// handlers' own list: a dock tab change, a view, a tools page, the simplified and tax-basis
-/// switches, the selection of a poste, a line, a commitment or an entry, the poste filter, an
+/// switches, the selection of an account, a line, a commitment or an entry, the account filter, an
 /// export, a version preview, a restore, a saved version and a package export. The selection of a
 /// receipt, a resource, a taking or a share, going back, creating a record and the project
 /// settings do not.
 ///
 /// **[_loader] holds the seed, captured once, rather than watched.** No bloc or service may ever
-/// see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves `ocptBudgetCncPosteSeeds(Tr.of(context))`
-/// and hands the list in when it creates this bloc; a preview or a restore reuses the very list
-/// rather than re-resolving it, since it swaps the database, not the app's own locale.
+/// see a `Tr` (`AGENTS.md`), so `OcptBudgetMode` resolves
+/// `ocptBudgetCncAccountSeeds(Tr.of(context))` and hands the list in when it creates this bloc; a
+/// preview or a restore reuses the very list rather than re-resolving it, since it swaps the
+/// database, not the app's own locale.
 ///
 /// **There is no episode selector.** One budget serves the whole production (ADR 0019): the
 /// catalogue this bloc reads is project-wide, naming no episode at all, so the mode keeps the
@@ -128,7 +129,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// Every dependency can be overridden, which is what the tests do; in the app they all resolve
   /// through [globalGetIt].
   OcptBudgetBloc({
-    required List<OcptBudgetPosteSeed> seed,
+    required List<OcptBudgetAccountSeed> seed,
     OcptProjectsManager? projectsManager,
     OcptPropertiesManager? propertiesManager,
     OcptRouterManager? routerManager,
@@ -160,7 +161,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     on<OcptBudgetToolsViewSelectedEvent>(_onToolsViewSelected);
     on<OcptBudgetSimplifiedToggledEvent>(_onSimplifiedToggled);
     on<OcptBudgetTaxBasisChangedEvent>(_onTaxBasisChanged);
-    on<OcptBudgetPosteSelectedEvent>(_onPosteSelected);
+    on<OcptBudgetAccountSelectedEvent>(_onAccountSelected);
     on<OcptBudgetRowExpansionToggledEvent>(_onRowExpansionToggled);
     on<OcptBudgetLineSelectedEvent>(_onLineSelected);
     on<OcptBudgetCommitmentSelectedEvent>(_onCommitmentSelected);
@@ -169,9 +170,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     onAwaited<OcptBudgetSelectionCreatedEvent>(_onSelectionCreated);
     onAwaited<OcptBudgetShareCreatedEvent>(_onShareCreated);
     on<OcptBudgetProjectSettingsChangedEvent>(_onProjectSettingsChanged);
-    on<OcptBudgetPosteFilterSelectedEvent>(_onPosteFilterSelected);
+    on<OcptBudgetAccountFilterSelectedEvent>(_onAccountFilterSelected);
     on<OcptBudgetResourceSelectedEvent>(_onResourceSelected);
-    on<OcptBudgetProvisionPosteSelectedEvent>(_onProvisionPosteSelected);
+    on<OcptBudgetProvisionAccountSelectedEvent>(_onProvisionAccountSelected);
     on<OcptBudgetRevenueSelectedEvent>(_onRevenueSelected);
     on<OcptBudgetShareSelectedEvent>(_onShareSelected);
   }
@@ -281,7 +282,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     return !run.hasFailed;
   }
 
-  /// Load the current project's whole budget through [_loader] (which seeds the ten CNC postes on
+  /// Load the current project's whole budget through [_loader] (which seeds the ten CNC accounts on
   /// the first read of an empty table), the page setup and the persisted dock state.
   ///
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
@@ -482,22 +483,25 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     emitter(state.copyWithTaxBasis(basis: event.basis));
   }
 
-  /// Select poste `event.posteId`, opening the right dock on the `Inspector` tab. A poste id
-  /// naming no live poste is ignored. Flushes any pending field edit first: switching which poste's
-  /// own fields are on screen is exactly the selection change every other mode flushes on.
-  Future<void> _onPosteSelected(
-    OcptBudgetPosteSelectedEvent event,
+  /// Select account `event.accountId`, opening the right dock on the `Inspector` tab. An account id
+  /// naming no live account is ignored. Flushes any pending field edit first: switching which
+  /// account's own fields are on screen is exactly the selection change every other mode flushes
+  /// on.
+  Future<void> _onAccountSelected(
+    OcptBudgetAccountSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
     if (!await _flushAllPendingWrites()) {
       return;
     }
 
-    if (!state.postes.any((poste) => poste.id == event.posteId)) {
+    if (!state.accounts.any((account) => account.id == event.accountId)) {
       return;
     }
 
-    emitter(state.copyWithInspectedSelection(selection: OcptBudgetPosteSelection(event.posteId)));
+    emitter(
+      state.copyWithInspectedSelection(selection: OcptBudgetAccountSelection(event.accountId)),
+    );
   }
 
   /// Expand or collapse expenses-tree node `event.nodeId` — an already-expanded one collapses, a
@@ -515,8 +519,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Select quote line `event.lineId`, opening the right dock on the `Inspector` tab — mirrors
-  /// [_onPosteSelected], flushing any pending field edit first for the same reason: the newly
-  /// selected line may belong to a different poste than whichever one's fields are on screen. A
+  /// [_onAccountSelected], flushing any pending field edit first for the same reason: the newly
+  /// selected line may belong to a different account than whichever one's fields are on screen. A
   /// line id naming no live line is ignored.
   Future<void> _onLineSelected(
     OcptBudgetLineSelectedEvent event,
@@ -526,7 +530,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
       return;
     }
 
-    if (!state.postes.any((poste) => poste.lines.any((line) => line.id == event.lineId))) {
+    if (!state.accounts.any((account) => account.lines.any((line) => line.id == event.lineId))) {
       return;
     }
 
@@ -588,9 +592,9 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Select the poste, the quote line, the resource or the taking a view has just created, without
-  /// writing what is pending: the view did so, and has read the snapshot again. A poste and a line
-  /// open the right dock on the `Inspector` tab, a resource and a taking do not.
+  /// Select the account, the quote line, the resource or the taking a view has just created,
+  /// without writing what is pending: the view did so, and has read the snapshot again. An account
+  /// and a line open the right dock on the `Inspector` tab, a resource and a taking do not.
   Future<void> _onSelectionCreated(
     OcptBudgetSelectionCreatedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -625,30 +629,31 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     await runSerially(() => _readBudgetSnapshot(emitter, project));
   }
 
-  /// Narrow every view of the mode to `event.posteId`, or clear the filter when it is null — see
-  /// [OcptBudgetPosteFilterSelectedEvent]'s own doc comment for why this is not the selection.
+  /// Narrow every view of the mode to `event.accountId`, or clear the filter when it is null — see
+  /// [OcptBudgetAccountFilterSelectedEvent]'s own doc comment for why this is not the selection.
   ///
   /// Flushes any pending field edit first, mirroring every other handler that changes what is on
   /// screen: a figure still sitting in the autosave debounce would otherwise be read back from the
   /// snapshot as it was before it was typed.
   ///
-  /// **A poste id naming no live poste is ignored**, exactly as [_onPosteSelected] ignores one.
-  Future<void> _onPosteFilterSelected(
-    OcptBudgetPosteFilterSelectedEvent event,
+  /// **An account id naming no live account is ignored**, exactly as [_onAccountSelected] ignores
+  /// one.
+  Future<void> _onAccountFilterSelected(
+    OcptBudgetAccountFilterSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
   ) async {
     if (!await _flushAllPendingWrites()) {
       return;
     }
 
-    final posteId = event.posteId;
-    if (posteId == null) {
-      emitter(state.copyWithPosteFilterCleared());
+    final accountId = event.accountId;
+    if (accountId == null) {
+      emitter(state.copyWithAccountFilterCleared());
       return;
     }
 
-    if (state.postes.any((poste) => poste.id == posteId)) {
-      emitter(state.copyWithPosteFilter(posteId: posteId));
+    if (state.accounts.any((account) => account.id == accountId)) {
+      emitter(state.copyWithAccountFilter(accountId: accountId));
     }
   }
 
@@ -667,19 +672,19 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   ) async {
     final loaded = await _loader.load(project);
     final snapshot = loaded.snapshot;
-    // The filter is reconciled exactly as the selection is: a poste deleted while every view was
+    // The filter is reconciled exactly as the selection is: an account deleted while every view was
     // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
-    // naming a poste the project no longer has.
+    // naming an account the project no longer has.
     final filterStillExists =
-        state.filterPosteId == null ||
-        snapshot.postes.any((poste) => poste.id == state.filterPosteId);
+        state.filterAccountId == null ||
+        snapshot.accounts.any((account) => account.id == state.filterAccountId);
     final selectionStillExists = switch (state.selection) {
       null => true,
-      OcptBudgetPosteSelection(:final posteId) => snapshot.postes.any(
-        (poste) => poste.id == posteId,
+      OcptBudgetAccountSelection(:final accountId) => snapshot.accounts.any(
+        (account) => account.id == accountId,
       ),
-      OcptBudgetLineSelection(:final lineId) => snapshot.postes.any(
-        (poste) => poste.lines.any((line) => line.id == lineId),
+      OcptBudgetLineSelection(:final lineId) => snapshot.accounts.any(
+        (account) => account.lines.any((line) => line.id == lineId),
       ),
       OcptBudgetCommitmentSelection(:final commitmentId) => snapshot.commitments.any(
         (commitment) => commitment.id == commitmentId,
@@ -721,7 +726,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   }
 
   /// Select financing resource `event.resourceId`, opening the right dock on the `Inspector` tab —
-  /// mirrors [_onPosteSelected]. A resource id naming no live resource is ignored.
+  /// mirrors [_onAccountSelected]. A resource id naming no live resource is ignored.
   Future<void> _onResourceSelected(
     OcptBudgetResourceSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
@@ -735,11 +740,11 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     );
   }
 
-  /// Point the provisioning at `event.posteId` — a selection, written nowhere.
-  void _onProvisionPosteSelected(
-    OcptBudgetProvisionPosteSelectedEvent event,
+  /// Point the provisioning at `event.accountId` — a selection, written nowhere.
+  void _onProvisionAccountSelected(
+    OcptBudgetProvisionAccountSelectedEvent event,
     Emitter<OcptBudgetState> emitter,
-  ) => emitter(state.copyWithProvisionPoste(posteId: event.posteId));
+  ) => emitter(state.copyWithProvisionAccount(accountId: event.accountId));
 
   /// Select taking `event.revenueId`, opening the right dock on the `Inspector` tab — mirrors
   /// [_onResourceSelected]. A revenue id naming no live revenue is ignored.

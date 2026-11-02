@@ -34,42 +34,42 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'budget_expenses_bloc_test_doubles.dart';
 
-/// A quote service whose [updatePoste] can be made to fail, and that counts how many times it was
+/// A quote service whose [updateAccount] can be made to fail, and that counts how many times it was
 /// asked to write.
 class _FlakyQuoteService extends OcptBudgetQuoteService {
-  /// Whether [updatePoste] throws.
+  /// Whether [updateAccount] throws.
   bool fails = false;
 
-  /// How many times [updatePoste] was called.
-  int updatePosteCalls = 0;
+  /// How many times [updateAccount] was called.
+  int updateAccountCalls = 0;
 
-  /// When set, [updatePoste] waits for it before writing, so a test can type while a write is in
+  /// When set, [updateAccount] waits for it before writing, so a test can type while a write is in
   /// flight.
   Completer<void>? gate;
 
   /// Class constructor
   _FlakyQuoteService() : super(logger: const SilentLogger(), deviceId: () async => "test-device");
 
-  /// Count the call and wait for the gate, then fail when told to, otherwise update the poste as
+  /// Count the call and wait for the gate, then fail when told to, otherwise update the account as
   /// the real service does.
   @override
-  Future<void> updatePoste({
+  Future<void> updateAccount({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     drift.Value<String> code = const drift.Value.absent(),
     drift.Value<String> label = const drift.Value.absent(),
     drift.Value<String?> simpleLabel = const drift.Value.absent(),
     drift.Value<int?> estimateToCompleteCents = const drift.Value.absent(),
   }) async {
-    updatePosteCalls++;
+    updateAccountCalls++;
     await gate?.future;
     if (fails) {
       throw StateError("poste update intentionally failed for the test");
     }
 
-    return super.updatePoste(
+    return super.updateAccount(
       database: database,
-      posteId: posteId,
+      accountId: accountId,
       code: code,
       label: label,
       simpleLabel: simpleLabel,
@@ -135,7 +135,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -192,10 +192,10 @@ void main() {
         expect(unpricedElementId, isNotNull);
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 2);
-        final posteId = loaded.postes.first.id;
+        final accountId = loaded.accounts.first.id;
 
         expensesBloc.add(
-          OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: pricedElementId!),
+          OcptBudgetLineCreatedFromElementEvent(accountId: accountId, elementId: pricedElementId!),
         );
 
         final state = await waitForState(bloc, (state) => state.elementLinkCounts.pricedCount == 1);
@@ -227,19 +227,20 @@ void main() {
         );
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
-        final posteId = loaded.postes.first.id;
+        final accountId = loaded.accounts.first.id;
 
         expensesBloc.add(
-          OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId),
+          OcptBudgetLineCreatedFromElementEvent(accountId: accountId, elementId: elementId),
         );
 
         final state = await waitForState(
           bloc,
-          (state) =>
-              state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+          (state) => state.accounts.any(
+            (account) => account.lines.any((line) => line.elementId == elementId),
+          ),
         );
-        final line = state.postes
-            .expand((poste) => poste.lines)
+        final line = state.accounts
+            .expand((account) => account.lines)
             .firstWhere((line) => line.elementId == elementId);
 
         expect(line.label, "Camera body");
@@ -264,11 +265,11 @@ void main() {
         expect(elementId, isNotNull);
 
         final loaded = await waitForState(bloc, (state) => state.elements.length == 1);
-        final posteId = loaded.postes.first.id;
+        final accountId = loaded.accounts.first.id;
 
         expensesBloc.add(
           OcptBudgetLineCreatedFromElementEvent(
-            posteId: posteId,
+            accountId: accountId,
             elementId: elementId!,
             quantityMilli: 3000,
           ),
@@ -276,11 +277,12 @@ void main() {
 
         final state = await waitForState(
           bloc,
-          (state) =>
-              state.postes.any((poste) => poste.lines.any((line) => line.elementId == elementId)),
+          (state) => state.accounts.any(
+            (account) => account.lines.any((line) => line.elementId == elementId),
+          ),
         );
-        final line = state.postes
-            .expand((poste) => poste.lines)
+        final line = state.accounts
+            .expand((account) => account.lines)
             .firstWhere((line) => line.elementId == elementId);
 
         expect(line.quantityMilli, 3000);
@@ -292,10 +294,10 @@ void main() {
     /// The name of each event of the expenses hierarchy: the switch names every one, so an event
     /// added to the hierarchy does not compile until this list, and the test below, know it.
     String nameOf(OcptBudgetExpensesEvent event) => switch (event) {
-      OcptBudgetPosteCreatedEvent() => "poste created",
-      OcptBudgetPosteReorderedEvent() => "poste reordered",
-      OcptBudgetPosteDeletionConfirmedEvent() => "poste deleted",
-      OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent() => "estimate derived",
+      OcptBudgetAccountCreatedEvent() => "poste created",
+      OcptBudgetAccountReorderedEvent() => "poste reordered",
+      OcptBudgetAccountDeletionConfirmedEvent() => "poste deleted",
+      OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent() => "estimate derived",
       OcptBudgetLineCreatedEvent() => "line created",
       OcptBudgetLineCreatedFromElementEvent() => "line from element",
       OcptBudgetLineDeletionConfirmedEvent() => "line deleted",
@@ -318,8 +320,8 @@ void main() {
         sourceKind: OcptElementSourceKind.owned,
       );
       final loaded = await waitForState(bloc, (state) => state.elements.isNotEmpty);
-      final posteId = loaded.postes.first.id;
-      final otherPosteId = loaded.postes.last.id;
+      final accountId = loaded.accounts.first.id;
+      final otherAccountId = loaded.accounts.last.id;
 
       final handled = <String>[];
       Future<void> proves(
@@ -333,26 +335,32 @@ void main() {
 
       // An event nobody handles is ignored silently, so each is proven by its effect.
       await proves(
-        const OcptBudgetPosteCreatedEvent(),
-        (state) => state.postes.length == smallSeed.length + 1,
+        const OcptBudgetAccountCreatedEvent(),
+        (state) => state.accounts.length == smallSeed.length + 1,
       );
       await proves(
-        OcptBudgetPosteReorderedEvent(posteId: posteId, newPosition: 2),
-        (state) => state.postes[2].id == posteId,
+        OcptBudgetAccountReorderedEvent(accountId: accountId, newPosition: 2),
+        (state) => state.accounts[2].id == accountId,
       );
       await proves(
-        OcptBudgetLineCreatedEvent(posteId: posteId),
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.length == 1,
+        OcptBudgetLineCreatedEvent(accountId: accountId),
+        (state) =>
+            state.accounts.firstWhere((account) => account.id == accountId).lines.length == 1,
       );
-      final lineId = bloc.state.postes.firstWhere((poste) => poste.id == posteId).lines.single.id;
+      final lineId = bloc.state.accounts
+          .firstWhere((account) => account.id == accountId)
+          .lines
+          .single
+          .id;
       await proves(
-        OcptBudgetLineCreatedFromElementEvent(posteId: posteId, elementId: elementId!),
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.length == 2,
+        OcptBudgetLineCreatedFromElementEvent(accountId: accountId, elementId: elementId!),
+        (state) =>
+            state.accounts.firstWhere((account) => account.id == accountId).lines.length == 2,
       );
       await proves(
         OcptBudgetLineTaxInclusiveChangedEvent(lineId: lineId, isTaxInclusive: false),
-        (state) => !state.postes
-            .firstWhere((poste) => poste.id == posteId)
+        (state) => !state.accounts
+            .firstWhere((account) => account.id == accountId)
             .lines
             .firstWhere((line) => line.id == lineId)
             .unitPrice
@@ -367,8 +375,8 @@ void main() {
       await proves(
         OcptBudgetLineVatRateInheritedRequestedEvent(lineId: lineId),
         (state) =>
-            state.postes
-                .firstWhere((poste) => poste.id == posteId)
+            state.accounts
+                .firstWhere((account) => account.id == accountId)
                 .lines
                 .firstWhere((line) => line.id == lineId)
                 .unitPrice
@@ -379,8 +387,8 @@ void main() {
       // Typing records a pending edit, and the flush request writes it.
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: otherPosteId,
-          field: OcptBudgetField.posteLabel,
+          targetId: otherAccountId,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -389,19 +397,22 @@ void main() {
         nameOf(
           const OcptBudgetFieldChangedEvent(
             targetId: "",
-            field: OcptBudgetField.posteLabel,
+            field: OcptBudgetField.accountLabel,
             rawValue: "",
           ),
         ),
       );
       await proves(
         const OcptBudgetFieldEditFlushRequestedEvent(),
-        (state) => state.postes.firstWhere((poste) => poste.id == otherPosteId).label == "Typed",
+        (state) =>
+            state.accounts.firstWhere((account) => account.id == otherAccountId).label == "Typed",
       );
       await proves(
-        OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: otherPosteId),
+        OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent(accountId: otherAccountId),
         (state) =>
-            state.postes.firstWhere((poste) => poste.id == otherPosteId).estimateToCompleteCents ==
+            state.accounts
+                .firstWhere((account) => account.id == otherAccountId)
+                .estimateToCompleteCents ==
             null,
       );
       await proves(
@@ -410,7 +421,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 6),
             label: "Camera",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -427,11 +438,12 @@ void main() {
       );
       await proves(
         OcptBudgetLineDeletionConfirmedEvent(lineId: lineId),
-        (state) => !state.postes.expand((poste) => poste.lines).any((line) => line.id == lineId),
+        (state) =>
+            !state.accounts.expand((account) => account.lines).any((line) => line.id == lineId),
       );
       await proves(
-        OcptBudgetPosteDeletionConfirmedEvent(posteId: otherPosteId),
-        (state) => !state.postes.any((poste) => poste.id == otherPosteId),
+        OcptBudgetAccountDeletionConfirmedEvent(accountId: otherAccountId),
+        (state) => !state.accounts.any((account) => account.id == otherAccountId),
       );
 
       expect(handled.toSet(), hasLength(12), reason: "one proof per event of the hierarchy");
@@ -466,12 +478,12 @@ void main() {
       );
       addTearDown(expensesBloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteLabel,
+          targetId: accountId,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -481,17 +493,17 @@ void main() {
       expect(await bloc.flushAllPendingWrites(), isFalse);
 
       // The write landed, but the mode could not read it back: nothing may go on as if it had.
-      final stored = await projectsManager.budgetQuoteService.loadPostes(
+      final stored = await projectsManager.budgetQuoteService.loadAccounts(
         database: projectsManager.currentProject!.database,
         seed: smallSeed,
       );
-      expect(stored.firstWhere((poste) => poste.id == posteId).label, "Typed");
+      expect(stored.firstWhere((account) => account.id == accountId).label, "Typed");
       expect(expensesBloc.state.pendingFieldEdits, isNotEmpty);
 
       loader.fails = false;
       expect(await bloc.flushAllPendingWrites(), isTrue);
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
-      expect(bloc.state.postes.firstWhere((poste) => poste.id == posteId).label, "Typed");
+      expect(bloc.state.accounts.firstWhere((account) => account.id == accountId).label, "Typed");
     });
   });
 
@@ -514,13 +526,13 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildOver(bloc, quote);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
-      final storedLabel = loaded.postes.first.label;
+      final accountId = loaded.accounts.first.id;
+      final storedLabel = loaded.accounts.first.label;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteLabel,
+          targetId: accountId,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -531,14 +543,14 @@ void main() {
 
       // The edit is still on screen and the database still holds the old value.
       expect(expensesBloc.state.pendingFieldEdits, isNotEmpty);
-      final stored = await projectsManager.budgetQuoteService.loadPostes(
+      final stored = await projectsManager.budgetQuoteService.loadAccounts(
         database: projectsManager.currentProject!.database,
         seed: smallSeed,
       );
-      expect(stored.firstWhere((poste) => poste.id == posteId).label, storedLabel);
+      expect(stored.firstWhere((account) => account.id == accountId).label, storedLabel);
 
       // A selection flushes first, so it does not happen either.
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: posteId));
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: accountId));
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(bloc.state.selection, isNull);
 
@@ -546,7 +558,7 @@ void main() {
       quote.fails = false;
       expect(await bloc.flushAllPendingWrites(), isTrue);
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
-      expect(bloc.state.postes.firstWhere((poste) => poste.id == posteId).label, "Typed");
+      expect(bloc.state.accounts.firstWhere((account) => account.id == accountId).label, "Typed");
     });
 
     test("is written once when the widget leaves and the bloc closes after it", () async {
@@ -558,8 +570,8 @@ void main() {
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: loaded.postes.first.id,
-          field: OcptBudgetField.posteLabel,
+          targetId: loaded.accounts.first.id,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -571,7 +583,7 @@ void main() {
       await expensesBloc.close();
       await flushing;
 
-      expect(quote.updatePosteCalls, 1);
+      expect(quote.updateAccountCalls, 1);
     });
   });
 
@@ -591,8 +603,8 @@ void main() {
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: loaded.postes.first.id,
-          field: OcptBudgetField.posteLabel,
+          targetId: loaded.accounts.first.id,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Typed",
         ),
       );
@@ -602,7 +614,7 @@ void main() {
       bloc.add(const AsyncInitEvent());
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
 
-      expect(quote.updatePosteCalls, 0);
+      expect(quote.updateAccountCalls, 0);
     });
 
     test("typed while a write is in flight are kept, only what was written is forgotten", () async {
@@ -617,26 +629,26 @@ void main() {
       );
       addTearDown(expensesBloc.close);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteLabel,
+          targetId: accountId,
+          field: OcptBudgetField.accountLabel,
           rawValue: "First",
         ),
       );
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
       final flush = bloc.flushAllPendingWrites();
-      while (quote.updatePosteCalls == 0) {
+      while (quote.updateAccountCalls == 0) {
         await Future<void>.delayed(const Duration(milliseconds: 5));
       }
 
       expensesBloc.add(
         OcptBudgetFieldChangedEvent(
-          targetId: posteId,
-          field: OcptBudgetField.posteLabel,
+          targetId: accountId,
+          field: OcptBudgetField.accountLabel,
           rawValue: "Second",
         ),
       );

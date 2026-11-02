@@ -70,9 +70,9 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// live credits naming the one resource or revenue each receipt sub-row draws.
   final List<OcptBudgetEntry> entries;
 
-  /// Every live poste of the quote, lines included — read only for [_needsOf]'s own total, the
+  /// Every live account of the quote, lines included — read only for [_needsOf]'s own total, the
   /// coverage band's own `needs` figure.
-  final List<OcptBudgetPoste> postes;
+  final List<OcptBudgetAccount> accounts;
 
   /// The project's default VAT rate, in basis points, or null while nobody has recorded one — read
   /// only for [_needsOf]'s own total.
@@ -167,7 +167,7 @@ class OcptBudgetFinancing extends StatelessWidget {
     required this.resources,
     required this.revenues,
     required this.entries,
-    required this.postes,
+    required this.accounts,
     required this.defaultVatRateBasisPoints,
     required this.receivedByResourceId,
     required this.receivedCentsOf,
@@ -276,7 +276,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// from, mirroring `OcptBudgetNeedsResourcesBalance`'s own reading — the financing-plan and
   /// financial-report PDFs' own balance figure.
   OcptBudgetCoveredTotal _needsOf() {
-    final allLines = [for (final poste in postes) ...poste.lines];
+    final allLines = [for (final account in accounts) ...account.lines];
     return ocptBudgetTotalOf(
       allLines,
       basis: OcptBudgetTaxBasis.includingTax,

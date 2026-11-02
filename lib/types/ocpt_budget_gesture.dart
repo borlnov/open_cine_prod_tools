@@ -25,22 +25,22 @@ enum OcptBudgetGesture {
   // `Le devis`
   // ---------------------------------------------------------------------------------------------
 
-  /// Adds one quote line, priced by hand, to a poste.
+  /// Adds one quote line, priced by hand, to an account.
   addQuoteLine,
 
   /// Adds several quote lines at once, one per unpriced breakdown element the wizard offers against
-  /// a poste — the breakdown selector, the one step 2 that creates more than one row.
+  /// an account — the breakdown selector, the one step 2 that creates more than one row.
   addQuoteLinesFromBreakdown,
 
-  /// Promotes a quote line — or a poste directly — into a commitment: a debt now owed, to somebody,
-  /// by some date, rather than merely estimated.
+  /// Promotes a quote line — or an account directly — into a commitment: a debt now owed, to
+  /// somebody, by some date, rather than merely estimated.
   commitSpend,
 
   // ---------------------------------------------------------------------------------------------
   // `L'argent qui a bougé`
   // ---------------------------------------------------------------------------------------------
 
-  /// `J'ai payé quelque chose` — records a debit already paid, against a quote poste.
+  /// `J'ai payé quelque chose` — records a debit already paid, against a quote account.
   recordExpense,
 
   /// `J'ai reçu un financement` — records a credit already received, against a financing resource.
@@ -64,7 +64,7 @@ enum OcptBudgetGesture {
   repayContribution,
 
   /// `Autre mouvement` — records a movement whose direction the wizard still has to ask, against an
-  /// optional quote poste.
+  /// optional quote account.
   recordOtherMovement,
 
   // ---------------------------------------------------------------------------------------------
@@ -149,12 +149,13 @@ Set<OcptBudgetGestureFlow> ocptBudgetGestureFlowsOf(OcptBudgetGesture gesture) =
 /// already taken, per the class doc comment's table; none of it is open.
 OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gesture) =>
     switch (gesture) {
-      OcptBudgetGesture.addQuoteLine => OcptBudgetGestureAttachment.poste,
-      // The breakdown selector picks a poste per element on its own step, so nothing is asked ahead
-      // of it: a single poste answered here would be the very question the per-row picker replaces.
+      OcptBudgetGesture.addQuoteLine => OcptBudgetGestureAttachment.account,
+      // The breakdown selector picks an account per element on its own step, so nothing is asked
+      // ahead of it: a single account answered here would be the very question the per-row picker
+      // replaces.
       OcptBudgetGesture.addQuoteLinesFromBreakdown => OcptBudgetGestureAttachment.none,
-      OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.posteAndLine,
-      OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalPoste,
+      OcptBudgetGesture.commitSpend => OcptBudgetGestureAttachment.accountAndLine,
+      OcptBudgetGesture.recordExpense => OcptBudgetGestureAttachment.optionalAccount,
       OcptBudgetGesture.recordFinancingReceipt => OcptBudgetGestureAttachment.financingResource,
       // A taking just paid is typed once, an amount and a label, and its own row is created from
       // them: the receipt form carries no attachment step, minting the taking behind the credit
@@ -163,7 +164,7 @@ OcptBudgetGestureAttachment ocptBudgetGestureAttachmentOf(OcptBudgetGesture gest
       OcptBudgetGesture.reimbursePerson => OcptBudgetGestureAttachment.person,
       OcptBudgetGesture.payParticipantShare => OcptBudgetGestureAttachment.participant,
       OcptBudgetGesture.repayContribution => OcptBudgetGestureAttachment.financingResource,
-      OcptBudgetGesture.recordOtherMovement => OcptBudgetGestureAttachment.optionalPoste,
+      OcptBudgetGesture.recordOtherMovement => OcptBudgetGestureAttachment.optionalAccount,
       OcptBudgetGesture.planSubsidy => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.planContribution => OcptBudgetGestureAttachment.none,
       OcptBudgetGesture.planTaking => OcptBudgetGestureAttachment.none,

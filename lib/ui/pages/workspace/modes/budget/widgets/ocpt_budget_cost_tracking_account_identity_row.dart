@@ -11,31 +11,31 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_twisty.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The pinned pane's own row: one poste's `N°` and `Poste` cells, with a leading twisty while it
+/// The pinned pane's own row: one account's `N°` and `Poste` cells, with a leading twisty while it
 /// has anything at all to expand onto.
 ///
-/// **This row is one half of the poste's own row** — [OcptBudgetCostTrackingPosteAmountsRow] draws
-/// the other, in the scrolling pane, for the very same [poste]. The two share [isSelected], so they
-/// paint the very same background, and each carries its own tap target calling the very same
-/// [onTap], so a click on either half selects the poste: together they read as one row to the
-/// user even though they are two separate widgets with no `RenderObject` in common.
-class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
-  /// The poste this row shows.
-  final OcptBudgetPoste poste;
+/// **This row is one half of the account's own row** — [OcptBudgetCostTrackingAccountAmountsRow]
+/// draws the other, in the scrolling pane, for the very same [account]. The two share [isSelected],
+/// so they paint the very same background, and each carries its own tap target calling the very
+/// same [onTap], so a click on either half selects the account: together they read as one row to
+/// the user even though they are two separate widgets with no `RenderObject` in common.
+class OcptBudgetCostTrackingAccountIdentityRow extends StatelessWidget {
+  /// The account this row shows.
+  final OcptBudgetAccount account;
 
-  /// Whether this poste is the currently selected one.
+  /// Whether this account is the currently selected one.
   final bool isSelected;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
-  final double posteWidth;
+  final double accountWidth;
 
-  /// Whether this poste has anything at all to expand onto.
+  /// Whether this account has anything at all to expand onto.
   final bool isExpandable;
 
-  /// Whether this poste is currently expanded.
+  /// Whether this account is currently expanded.
   final bool isExpanded;
 
   /// Called when this row is clicked.
@@ -45,24 +45,24 @@ class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
   final VoidCallback onTwistyTap;
 
   /// Class constructor
-  const OcptBudgetCostTrackingPosteIdentityRow({
+  const OcptBudgetCostTrackingAccountIdentityRow({
     super.key,
-    required this.poste,
+    required this.account,
     required this.isSelected,
     required this.isSimplified,
-    required this.posteWidth,
+    required this.accountWidth,
     required this.isExpandable,
     required this.isExpanded,
     required this.onTap,
     required this.onTwistyTap,
   });
 
-  /// Build the budget cost tracking poste identity row as an [InkWell].
+  /// Build the budget cost tracking account identity row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
+    final label = ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified);
 
     return InkWell(
       onTap: onTap,
@@ -79,7 +79,7 @@ class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
                 SizedBox(
                   width: ocptBudgetCostTrackingNumberColumnWidth,
                   child: Text(
-                    poste.code,
+                    account.code,
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -87,7 +87,7 @@ class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
                   ),
                 ),
               SizedBox(
-                width: posteWidth,
+                width: accountWidth,
                 child: Padding(
                   padding: const EdgeInsets.only(left: 12, right: 8),
                   child: Row(
@@ -100,7 +100,7 @@ class OcptBudgetCostTrackingPosteIdentityRow extends StatelessWidget {
                       ),
                       Expanded(
                         child: Text(
-                          label.isEmpty ? tr.budgetPosteUnnamed : label,
+                          label.isEmpty ? tr.budgetAccountUnnamed : label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(

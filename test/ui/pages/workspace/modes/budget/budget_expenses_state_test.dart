@@ -11,16 +11,16 @@ void main() {
   group("OcptBudgetExpensesState.fieldValueOf", () {
     test("reads a pending edit ahead of the stored value", () {
       final state = const OcptBudgetExpensesState.init().copyWith(
-        pendingFieldEdits: {("poste-1", OcptBudgetField.posteLabel): "Typed"},
+        pendingFieldEdits: {("poste-1", OcptBudgetField.accountLabel): "Typed"},
       );
 
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Typed");
+      expect(state.fieldValueOf("poste-1", OcptBudgetField.accountLabel, "Stored"), "Typed");
     });
 
     test("falls back to the stored value while nothing is pending for that key", () {
       const state = OcptBudgetExpensesState.init();
 
-      expect(state.fieldValueOf("poste-1", OcptBudgetField.posteLabel, "Stored"), "Stored");
+      expect(state.fieldValueOf("poste-1", OcptBudgetField.accountLabel, "Stored"), "Stored");
     });
   });
 }

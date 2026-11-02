@@ -118,7 +118,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// line's own `Commit this line…`, [initialGesture] always [OcptBudgetGesture.commitSpend] here.
   final OcptBudgetCommitmentFormFields? commitmentPrefill;
 
-  /// The quote line [commitmentPrefill] was promoted from, or null while it hangs off the poste
+  /// The quote line [commitmentPrefill] was promoted from, or null while it hangs off the account
   /// alone — carried the way `OcptBudgetCommitmentCreationConfirmedEvent.lineId` is, apart from the
   /// prefill itself.
   final String? commitmentPrefillLineId;
@@ -131,8 +131,8 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// is free-typed and the strip is what stops the same euro being both committed and paid.
   final bool offersMatching;
 
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live financing resource of the project.
   final List<OcptBudgetResource> resources;
@@ -151,7 +151,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   final List<OcptElement> unpricedElements;
 
   /// Every live commitment, read to rank the matching strip's own offers and to keep the
-  /// `posteAndLine` attachment from offering a line that already carries one.
+  /// `accountAndLine` attachment from offering a line that already carries one.
   final List<OcptBudgetCommitment> commitments;
 
   /// Every live journal entry, read the same way.
@@ -193,7 +193,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     this.commitmentPrefill,
     this.commitmentPrefillLineId,
     this.offersMatching = true,
-    required this.postes,
+    required this.accounts,
     required this.resources,
     required this.revenues,
     required this.shares,
@@ -226,7 +226,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     OcptBudgetCommitmentFormFields? commitmentPrefill,
     String? commitmentPrefillLineId,
     bool offersMatching = true,
-    required List<OcptBudgetPoste> postes,
+    required List<OcptBudgetAccount> accounts,
     required List<OcptBudgetResource> resources,
     required List<OcptBudgetRevenue> revenues,
     required List<OcptBudgetShare> shares,
@@ -253,7 +253,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
       commitmentPrefill: commitmentPrefill,
       commitmentPrefillLineId: commitmentPrefillLineId,
       offersMatching: offersMatching,
-      postes: postes,
+      accounts: accounts,
       resources: resources,
       revenues: revenues,
       shares: shares,
@@ -408,8 +408,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     );
 
     if (entryPrefill != null) {
-      _answers.posteId = entryPrefill.posteId;
-      _answers.posteAnswered = true;
+      _answers.accountId = entryPrefill.accountId;
+      _answers.accountAnswered = true;
       _answers.resourceId = entryPrefill.resourceId;
       _answers.revenueId = entryPrefill.revenueId;
       _answers.shareId = entryPrefill.shareId;
@@ -417,8 +417,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       _gesture = widget.initialGesture;
       _step = OcptBudgetNewStep.form;
     } else if (commitmentPrefill != null) {
-      _answers.posteId = commitmentPrefill.posteId;
-      _answers.posteAnswered = true;
+      _answers.accountId = commitmentPrefill.accountId;
+      _answers.accountAnswered = true;
       _answers.lineId = widget.commitmentPrefillLineId;
       _gesture = OcptBudgetGesture.commitSpend;
       _step = OcptBudgetNewStep.form;
@@ -448,7 +448,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       ),
       OcptBudgetNewStep.attachment => OcptBudgetNewAttachmentStep(
         gesture: _gesture,
-        postes: widget.postes,
+        accounts: widget.accounts,
         resources: widget.resources,
         shares: widget.shares,
         people: widget.people,
@@ -458,8 +458,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         reimbursedByPersonId: widget.reimbursedByPersonId,
         currencyCode: widget.currencyCode,
         isSimplified: widget.isSimplified,
-        posteAnswered: _answers.posteAnswered,
-        posteId: _answers.posteId,
+        accountAnswered: _answers.accountAnswered,
+        accountId: _answers.accountId,
         lineId: _answers.lineId,
         lineNoneAnswered: _answers.lineNoneAnswered,
         resourceId: _answers.resourceId,
@@ -467,8 +467,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         shareId: _answers.shareId,
         pendingNewShare: _answers.pendingNewShare,
         personId: _answers.personId,
-        onPosteSelected: (posteId) => setState(() => _answers.selectPoste(posteId)),
-        onPosteChangeRequested: () => setState(_answers.clearPoste),
+        onAccountSelected: (accountId) => setState(() => _answers.selectAccount(accountId)),
+        onAccountChangeRequested: () => setState(_answers.clearAccount),
         onLineSelected: (lineId) => setState(() => _answers.selectLine(lineId)),
         onNoLineSelected: () => setState(_answers.selectNoLine),
         onResourceSelected: (resourceId) => setState(() => _answers.selectResource(resourceId)),
@@ -480,14 +480,15 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       OcptBudgetNewStep.form => OcptBudgetNewFormStep(
         gesture: _gesture,
         formKey: _formKey,
-        postes: widget.postes,
+        accounts: widget.accounts,
         people: widget.people,
         mileageRates: widget.mileageRates,
         commitments: widget.commitments,
         currencyCode: widget.currencyCode,
         defaultVatRateBasisPoints: widget.defaultVatRateBasisPoints,
         isSimplified: widget.isSimplified,
-        commitmentPrefill: widget.commitmentPrefill ?? _answers.commitmentPrefillIn(widget.postes),
+        commitmentPrefill:
+            widget.commitmentPrefill ?? _answers.commitmentPrefillIn(widget.accounts),
         onLineDraftChanged: (draft) => setState(() => _lineDraft = draft),
         onCommitmentDraftChanged: (draft) => setState(() => _commitmentDraft = draft),
         onCommitmentMissingHintChanged: (hint) => setState(() => _commitmentMissingHint = hint),
@@ -517,15 +518,16 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         unpricedElements: widget.unpricedElements,
         breakdownQuery: _breakdown.query,
         breakdownSelectedIds: _breakdown.selectedIds,
-        breakdownBulkPosteId: _breakdown.bulkPosteId,
-        breakdownPosteIdOf: _breakdown.posteFor,
+        breakdownBulkAccountId: _breakdown.bulkAccountId,
+        breakdownAccountIdOf: _breakdown.accountFor,
         breakdownQuantityControllerOf: _breakdown.quantityControllerOf,
-        onBreakdownBulkPosteChanged: (posteId) => setState(() => _breakdown.setBulkPoste(posteId)),
+        onBreakdownBulkAccountChanged: (accountId) =>
+            setState(() => _breakdown.setBulkAccount(accountId)),
         onBreakdownQueryChanged: (value) => setState(() => _breakdown.query = value),
         onBreakdownElementCheckedChanged: (element, {required isChecked}) =>
             setState(() => _breakdown.setChecked(element, isChecked: isChecked)),
-        onBreakdownElementPosteChanged: (elementId, posteId) =>
-            setState(() => _breakdown.setPosteOverride(elementId, posteId)),
+        onBreakdownElementAccountChanged: (elementId, accountId) =>
+            setState(() => _breakdown.setAccountOverride(elementId, accountId)),
         onBreakdownQuantityChanged: _breakdown.setQuantityText,
       ),
     };
@@ -588,16 +590,16 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     switch (ocptBudgetGestureAttachmentOf(gesture)) {
       case OcptBudgetGestureAttachment.none:
         return null;
-      case OcptBudgetGestureAttachment.poste:
-      case OcptBudgetGestureAttachment.optionalPoste:
-        return _posteLabelOf(tr, _answers.posteId);
-      case OcptBudgetGestureAttachment.posteAndLine:
-        final posteLabel = _posteLabelOf(tr, _answers.posteId);
+      case OcptBudgetGestureAttachment.account:
+      case OcptBudgetGestureAttachment.optionalAccount:
+        return _accountLabelOf(tr, _answers.accountId);
+      case OcptBudgetGestureAttachment.accountAndLine:
+        final accountLabel = _accountLabelOf(tr, _answers.accountId);
         if (_answers.lineNoneAnswered) {
-          return posteLabel;
+          return accountLabel;
         }
-        final line = _answers.lineIn(widget.postes);
-        return line == null ? posteLabel : "$posteLabel › ${line.label}";
+        final line = _answers.lineIn(widget.accounts);
+        return line == null ? accountLabel : "$accountLabel › ${line.label}";
       case OcptBudgetGestureAttachment.financingResource:
         final pendingNewResource = _answers.pendingNewResource;
         if (pendingNewResource != null) {
@@ -621,15 +623,15 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     }
   }
 
-  /// Get the display label of the poste [posteId], or the off-quote label while it is null.
-  String _posteLabelOf(Tr tr, String? posteId) {
-    if (posteId == null) {
+  /// Get the display label of the account [accountId], or the off-quote label while it is null.
+  String _accountLabelOf(Tr tr, String? accountId) {
+    if (accountId == null) {
       return tr.budgetCostTrackingOffQuoteLabel;
     }
-    final poste = widget.postes.where((poste) => poste.id == posteId).firstOrNull;
-    return poste == null
-        ? tr.budgetPosteUnnamed
-        : ocptBudgetPosteDisplayLabel(poste, isSimplified: widget.isSimplified);
+    final account = widget.accounts.where((account) => account.id == accountId).firstOrNull;
+    return account == null
+        ? tr.budgetAccountUnnamed
+        : ocptBudgetAccountDisplayLabel(account, isSimplified: widget.isSimplified);
   }
 
   /// Get [family]'s own gestures that step 1 currently offers — every one of them while the filter
@@ -693,7 +695,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       groupKind: OcptBudgetResourceGroupKind.cash,
       people: widget.people,
       currencyCode: widget.currencyCode,
-      postes: widget.postes,
+      accounts: widget.accounts,
       isSimplified: widget.isSimplified,
       // Both gestures reaching this row (`recordFinancingReceipt`, `repayContribution`) move real
       // money, so the resource missing here is a contribution — cash or in-kind, the one question
@@ -792,11 +794,11 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// Confirm the quote line form.
   void _submitLine() {
     final draft = _lineDraft;
-    final posteId = _answers.posteId;
-    if (!(_formKey.currentState?.validate() ?? false) || draft == null || posteId == null) {
+    final accountId = _answers.accountId;
+    if (!(_formKey.currentState?.validate() ?? false) || draft == null || accountId == null) {
       return;
     }
-    _pop(OcptBudgetNewLineOutcome(posteId: posteId, fields: draft));
+    _pop(OcptBudgetNewLineOutcome(accountId: accountId, fields: draft));
   }
 
   /// Confirm the commitment form.
@@ -931,7 +933,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
           fields: OcptBudgetEntryFormFields(
             date: _date,
             label: _labelController.text.trim(),
-            posteId: null,
+            accountId: null,
             resourceId: null,
             revenueId: null,
             shareId: null,

@@ -13,7 +13,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 void main() {
   OcptBudgetCommitment buildCommitment({
     String id = "commitment-1",
-    String posteId = "poste-1",
+    String accountId = "poste-1",
     String? lineId = "line-1",
     int amountCents = 0,
     bool isTaxInclusive = true,
@@ -22,7 +22,7 @@ void main() {
     id: id,
     dueDate: null,
     label: "A commitment",
-    posteId: posteId,
+    accountId: accountId,
     amount: OcptMoney(
       amountCents: amountCents,
       isTaxInclusive: isTaxInclusive,
@@ -35,7 +35,7 @@ void main() {
 
   OcptBudgetEntry buildEntry({
     String id = "entry-1",
-    String? posteId = "poste-1",
+    String? accountId = "poste-1",
     int debitCents = 0,
     int creditCents = 0,
     bool isTaxInclusive = true,
@@ -45,7 +45,7 @@ void main() {
     id: id,
     date: DateTime(2026),
     label: "An entry",
-    posteId: posteId,
+    accountId: accountId,
     debitCents: debitCents,
     creditCents: creditCents,
     isTaxInclusive: isTaxInclusive,
@@ -101,10 +101,10 @@ void main() {
     test(
       "a part-paid commitment contributes only what it still owes, never its own full amount",
       () {
-        // The line-level mirror of the poste-level regression: summing a part-paid commitment's
+        // The line-level mirror of the account-level regression: summing a part-paid commitment's
         // full cash figure here would double-count it against `ocptBudgetLinePaidTotalOf`'s own
         // reading of the same entry the moment the two are read side by side, exactly as it did
-        // against `ocptBudgetPaidCentsByPosteId` at the poste level.
+        // against `ocptBudgetPaidCentsByAccountId` at the account level.
         final commitments = [buildCommitment(id: "c1", amountCents: 400000)];
         final entries = [buildEntry(commitmentId: "c1", debitCents: 120000)];
 

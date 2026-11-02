@@ -13,14 +13,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// twisty reserved only for a quote line. [builder] draws the row's own content (label, dot,
 /// badge) — see [OcptBudgetCostTrackingSubLabel].
 class OcptBudgetCostTrackingSubIdentityRow extends StatelessWidget {
-  /// This row's own indentation, in steps from the poste.
+  /// This row's own indentation, in steps from the account.
   final int depth;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
-  final double posteWidth;
+  final double accountWidth;
 
   /// Whether this row is the currently selected one.
   final bool isSelected;
@@ -49,7 +49,7 @@ class OcptBudgetCostTrackingSubIdentityRow extends StatelessWidget {
     super.key,
     required this.depth,
     required this.isSimplified,
-    required this.posteWidth,
+    required this.accountWidth,
     required this.isSelected,
     required this.isSmall,
     required this.isExpandable,
@@ -66,7 +66,7 @@ class OcptBudgetCostTrackingSubIdentityRow extends StatelessWidget {
     final onTap = this.onTap;
 
     final content = SizedBox(
-      width: posteWidth,
+      width: accountWidth,
       child: Padding(
         padding: EdgeInsets.only(left: 12 + depth * ocptBudgetCostTrackingIndentStep, right: 8),
         child: Row(

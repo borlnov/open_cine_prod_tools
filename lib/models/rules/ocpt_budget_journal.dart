@@ -9,16 +9,16 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
-/// Tell whether [entry] is a debit that names a poste but no commitment — an off-line spend against
-/// a
-/// poste's own quote, never reconciled with it. The detail panel's own banner reads this to offer
+/// Tell whether [entry] is a debit that names an account but no commitment — an off-line spend
+/// against an
+/// account's own quote, never reconciled with it. The detail panel's own banner reads this to offer
 /// `Add to the quote`/`Move off-quote` on such an entry (`OcptBudgetDetail`), and the bloc's own
 /// two handlers answering those actions read it again as a defensive guard
 /// (`OcptBudgetEntryPromotedToQuoteEvent`, `OcptBudgetEntryMovedOffQuoteEvent`) — both actions
 /// naturally clear it, one by setting [OcptBudgetEntry.commitmentId], the other by nulling
-/// [OcptBudgetEntry.posteId].
+/// [OcptBudgetEntry.accountId].
 bool ocptBudgetEntryIsOffLineDebit(OcptBudgetEntry entry) =>
-    entry.debitCents > 0 && entry.posteId != null && entry.commitmentId == null;
+    entry.debitCents > 0 && entry.accountId != null && entry.commitmentId == null;
 
 /// Get [entry]'s own [OcptBudgetEntry.debitCents], read **tax-inclusive**, given the project's own
 /// [projectVatRateBasisPoints] — or null when that reading is impossible.
@@ -170,60 +170,60 @@ List<OcptBudgetJournalRow> ocptBudgetJournalRowsOf(
   return rows;
 }
 
-/// Get what has actually been paid against each poste, given the project's own
-/// [projectVatRateBasisPoints]: per poste, [OcptBudgetCoveredTotal.amountCents] is the
+/// Get what has actually been paid against each account, given the project's own
+/// [projectVatRateBasisPoints]: per account, [OcptBudgetCoveredTotal.amountCents] is the
 /// tax-inclusive sum of [OcptBudgetEntry.debitCents] minus [OcptBudgetEntry.creditCents] over every
-/// entry naming that poste — a refund credited back against a poste genuinely reduces what that
-/// poste has cost, it is not a second poste's income, which is why it is subtracted here rather
-/// than tracked as its own inflow.
+/// entry naming that account — a refund credited back against an account genuinely reduces what
+/// that account has cost, it is not a second account's income, which is why it is subtracted here
+/// rather than tracked as its own inflow.
 ///
-/// **An entry naming no poste is not in this map at all**: `OcptBudgetEntriesTable.posteId`'s own
-/// doc comment reads a null poste as money that priced nothing, most often cash coming in, and
-/// money coming in prices nothing.
+/// **An entry naming no account is not in this map at all**: `OcptBudgetEntriesTable.accountId`'s
+/// own doc comment reads a null account as money that priced nothing, most often cash coming in,
+/// and money coming in prices nothing.
 ///
-/// **A poste with no entry at all has no key in the map** — this is the whole reason this answers a
-/// map rather than a single total: a caller can tell "nothing has moved against this poste" (absent
-/// key) apart from "movement happened here but it cancelled out to zero" (a key present, its
-/// [OcptBudgetCoveredTotal.amountCents] zero), which `docs/architecture/budget.md`'s own rule
-/// ("nothing having moved against a poste is not the same fact as zero having moved against it")
-/// otherwise loses the moment the two are folded into the same absent-or-zero figure.
-Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByPosteId(
+/// **An account with no entry at all has no key in the map** — this is the whole reason this
+/// answers a map rather than a single total: a caller can tell "nothing has moved against this
+/// poste" (absent key) apart from "movement happened here but it cancelled out to zero" (a key
+/// present, its [OcptBudgetCoveredTotal.amountCents] zero), which `docs/architecture/budget.md`'s
+/// own rule ("nothing having moved against a poste is not the same fact as zero having moved
+/// against it") otherwise loses the moment the two are folded into the same absent-or-zero figure.
+Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByAccountId(
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
 }) {
-  final entriesByPosteId = <String, List<OcptBudgetEntry>>{};
+  final entriesByAccountId = <String, List<OcptBudgetEntry>>{};
   for (final entry in entries) {
-    final posteId = entry.posteId;
-    if (posteId == null) {
+    final accountId = entry.accountId;
+    if (accountId == null) {
       continue;
     }
 
-    entriesByPosteId.putIfAbsent(posteId, () => []).add(entry);
+    entriesByAccountId.putIfAbsent(accountId, () => []).add(entry);
   }
 
   return {
-    for (final posteEntries in entriesByPosteId.entries)
-      posteEntries.key: _ocptBudgetPaidTotalOf(
-        posteEntries.value,
+    for (final accountEntries in entriesByAccountId.entries)
+      accountEntries.key: _ocptBudgetPaidTotalOf(
+        accountEntries.value,
         projectVatRateBasisPoints: projectVatRateBasisPoints,
       ),
   };
 }
 
-/// Get the total of every debit that names **no poste at all** — spending that happened but that
+/// Get the total of every debit that names **no account at all** — spending that happened but that
 /// prices no line of the quote — given the project's own [projectVatRateBasisPoints].
 ///
-/// `OcptBudgetEntriesTable.posteId`'s own doc comment reads a poste-less entry as "typically money
-/// coming in", and that is true of the common case — a subsidy instalment, a contribution repaid.
-/// It is not the whole story: this mode's own entry dialog offers `Aucun poste` as a plain choice,
-/// so a poste-less entry can just as well be a real **cost** that simply prices nothing in the CNC
-/// nomenclature, the small-production reading the whole mode is built for
-/// (`docs/architecture/budget.md`). [ocptBudgetPaidCentsByPosteId] only ever keys an entry that
-/// names a poste, so this spending was counted nowhere at all until this function existed —
+/// `OcptBudgetEntriesTable.accountId`'s own doc comment reads an account-less entry as "typically
+/// money coming in", and that is true of the common case — a subsidy instalment, a contribution
+/// repaid. It is not the whole story: this mode's own entry dialog offers `Aucun poste` as a plain
+/// choice, so an account-less entry can just as well be a real **cost** that simply prices nothing
+/// in the CNC nomenclature, the small-production reading the whole mode is built for
+/// (`docs/architecture/budget.md`). [ocptBudgetPaidCentsByAccountId] only ever keys an entry that
+/// names an account, so this spending was counted nowhere at all until this function existed —
 /// `OcptBudgetCashTotals.balanceCents` was the only reading that ever saw it, over every live
-/// entry rather than by poste.
+/// entry rather than by account.
 ///
-/// **Debits only.** A credit naming no poste is money coming *in* — a subsidy instalment, a
+/// **Debits only.** A credit naming no account is money coming *in* — a subsidy instalment, a
 /// contribution — which is not off-quote spending; it belongs to the financing and revenue
 /// readings (`ocptBudgetReceivedByResourceId`, `ocptBudgetReceivedByRevenueId`,
 /// `lib/models/rules/ocpt_budget_financing.dart`/`ocpt_budget_shares.dart`), which already count
@@ -233,15 +233,15 @@ Map<String, OcptBudgetCoveredTotal> ocptBudgetPaidCentsByPosteId(
 /// *covered-but-incomplete* ([OcptBudgetCoveredTotal.isComplete] false) rather than silently
 /// wrong — the very same "null, never zero" discipline every other reading in this file keeps.
 ///
-/// A poste-less **credit** never reaches [OcptBudgetCoveredTotal.lineCount] either: it is not
+/// An account-less **credit** never reaches [OcptBudgetCoveredTotal.lineCount] either: it is not
 /// off-quote spending at all, so it is not one of the "lines" this total was asked to sum in the
-/// first place, exactly as an entry naming a poste never reaches it.
+/// first place, exactly as an entry naming an account never reaches it.
 OcptBudgetCoveredTotal ocptBudgetOffQuotePaidTotalOf(
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,
 }) {
   final offQuoteDebits = entries
-      .where((entry) => entry.posteId == null && entry.debitCents != 0)
+      .where((entry) => entry.accountId == null && entry.debitCents != 0)
       .toList();
 
   var amountCents = 0;
@@ -269,9 +269,9 @@ OcptBudgetCoveredTotal ocptBudgetOffQuotePaidTotalOf(
 
 /// Get [entries]' own paid total — the tax-inclusive sum of debit minus credit, row by row, then
 /// summed
-/// — paired with how many of them actually carried a known rate. The one poste-scoped loop
-/// [ocptBudgetPaidCentsByPosteId] runs once per poste, kept separate so that function stays a plain
-/// grouping followed by one reading per group.
+/// — paired with how many of them actually carried a known rate. The one account-scoped loop
+/// [ocptBudgetPaidCentsByAccountId] runs once per account, kept separate so that function stays a
+/// plain grouping followed by one reading per group.
 OcptBudgetCoveredTotal _ocptBudgetPaidTotalOf(
   List<OcptBudgetEntry> entries, {
   required int? projectVatRateBasisPoints,

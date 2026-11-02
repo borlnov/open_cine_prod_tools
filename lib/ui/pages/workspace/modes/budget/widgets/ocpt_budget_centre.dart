@@ -49,8 +49,8 @@ class OcptBudgetCentre extends StatelessWidget {
   /// Opens the project settings page, where the meal and buffet prices are typed.
   final VoidCallback onProjectSettingsRequested;
 
-  /// Asks the mode to confirm, then delete, the poste with this id.
-  final ValueChanged<String> onPosteDeletionRequested;
+  /// Asks the mode to confirm, then delete, the account with this id.
+  final ValueChanged<String> onAccountDeletionRequested;
 
   /// Asks the mode to confirm, then delete, the cash-journal entry with this id.
   final ValueChanged<String> onEntryDeletionRequested;
@@ -70,7 +70,7 @@ class OcptBudgetCentre extends StatelessWidget {
   /// Asks the mode to confirm, then delete, the defrayal with this id.
   final ValueChanged<String> onAllowanceDeletionRequested;
 
-  /// Asks the mode to confirm, then run, the provisioning of the selected poste.
+  /// Asks the mode to confirm, then run, the provisioning of the selected account.
   final VoidCallback onProvisionRequested;
 
   /// Asks the mode to confirm, then delete, the share with this id.
@@ -82,7 +82,7 @@ class OcptBudgetCentre extends StatelessWidget {
     required this.state,
     required this.isCompact,
     required this.onProjectSettingsRequested,
-    required this.onPosteDeletionRequested,
+    required this.onAccountDeletionRequested,
     required this.onEntryDeletionRequested,
     required this.onCommitmentDeletionRequested,
     required this.onResourceDeletionRequested,
@@ -129,10 +129,10 @@ class OcptBudgetCentre extends StatelessWidget {
                 bloc.add(OcptBudgetSimplifiedToggledEvent(isSimplified: value)),
             taxBasis: state.taxBasis,
             onTaxBasisChanged: (basis) => bloc.add(OcptBudgetTaxBasisChangedEvent(basis: basis)),
-            postes: state.postes,
-            filterPosteId: state.filterPosteId,
-            onPosteFilterCleared: () =>
-                bloc.add(const OcptBudgetPosteFilterSelectedEvent(posteId: null)),
+            accounts: state.accounts,
+            filterAccountId: state.filterAccountId,
+            onAccountFilterCleared: () =>
+                bloc.add(const OcptBudgetAccountFilterSelectedEvent(accountId: null)),
             alertCount: state.alerts.length,
             // Withheld at a compact width: the floating button above takes over there, and showing
             // both would duplicate the affordance.
@@ -147,7 +147,7 @@ class OcptBudgetCentre extends StatelessWidget {
                 OcptBudgetView.dashboard => OcptBudgetDashboardView(state: state),
                 OcptBudgetView.expenses => OcptBudgetCostTrackingView(
                   state: state,
-                  onPosteDeletionRequested: onPosteDeletionRequested,
+                  onAccountDeletionRequested: onAccountDeletionRequested,
                   onCommitmentDeletionRequested: onCommitmentDeletionRequested,
                   onEntryDeletionRequested: onEntryDeletionRequested,
                 ),

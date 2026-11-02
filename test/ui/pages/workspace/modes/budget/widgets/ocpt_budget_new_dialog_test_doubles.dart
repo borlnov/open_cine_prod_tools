@@ -55,12 +55,12 @@ Widget wrap(Widget child) => MaterialApp(
   home: child,
 );
 
-/// A minimal poste, everything but [id]/[label]/[lines] neutral.
-OcptBudgetPoste testPoste({
+/// A minimal account, everything but [id]/[label]/[lines] neutral.
+OcptBudgetAccount testAccount({
   required String id,
   required String label,
   List<OcptBudgetLine> lines = const [],
-}) => OcptBudgetPoste(
+}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: label,

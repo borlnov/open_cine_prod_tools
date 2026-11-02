@@ -13,10 +13,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_view_actions.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal.dart';
 
-/// The tools drawer's own `Flux de trésorerie` page — read-only, and honouring no poste filter at
+/// The tools drawer's own `Flux de trésorerie` page — read-only, and honouring no account filter at
 /// all, `OcptBudgetCashJournal`'s own class doc comment arguing why.
 class OcptBudgetCashJournalView extends StatelessWidget {
-  /// The mode's state, which the journal's entries, commitments and postes are read from.
+  /// The mode's state, which the journal's entries, commitments and accounts are read from.
   final OcptBudgetState state;
 
   /// Asks the mode to confirm, then delete, the cash-journal entry with this id.
@@ -38,7 +38,7 @@ class OcptBudgetCashJournalView extends StatelessWidget {
     return OcptBudgetCashJournal(
       entries: state.entries,
       commitments: state.commitments,
-      postes: state.postes,
+      accounts: state.accounts,
       receiptsByEntryId: state.receiptsByEntryId,
       selection: state.selection,
       isSimplified: state.isSimplified,

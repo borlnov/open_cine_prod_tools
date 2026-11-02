@@ -63,8 +63,8 @@ class OcptBudgetEntryDialog extends StatefulWidget {
   /// [existing]'s own voucher, if it carries one, or null.
   final OcptAssetRef? existingReceipt;
 
-  /// Every live poste of the project, offered by the `Poste du devis` field.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, offered by the `Poste du devis` field.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live financing resource of the project, offered by the `Ressource` field.
   final List<OcptBudgetResource> resources;
@@ -87,7 +87,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
 
   /// Whether the mode's header currently reads simplified — read by
   /// [OcptBudgetEntryNature.other]'s own direction choice and by the `Poste du devis` field's own
-  /// poste labels.
+  /// account labels.
   final bool isSimplified;
 
   /// Class constructor
@@ -95,7 +95,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     super.key,
     required this.existing,
     this.existingReceipt,
-    required this.postes,
+    required this.accounts,
     required this.resources,
     this.revenues = const [],
     this.shares = const [],
@@ -114,7 +114,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     BuildContext context, {
     required OcptBudgetEntry existing,
     OcptAssetRef? existingReceipt,
-    required List<OcptBudgetPoste> postes,
+    required List<OcptBudgetAccount> accounts,
     required List<OcptBudgetResource> resources,
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
@@ -127,7 +127,7 @@ class OcptBudgetEntryDialog extends StatefulWidget {
     builder: (context) => OcptBudgetEntryDialog(
       existing: existing,
       existingReceipt: existingReceipt,
-      postes: postes,
+      accounts: accounts,
       resources: resources,
       revenues: revenues,
       shares: shares,
@@ -159,8 +159,8 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
   /// The date currently picked.
   late DateTime _date;
 
-  /// The poste currently picked, or null.
-  String? _posteId;
+  /// The account currently picked, or null.
+  String? _accountId;
 
   /// The financing resource currently picked, or null.
   String? _resourceId;
@@ -216,7 +216,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
     final existing = widget.existing;
 
     _date = existing.date;
-    _posteId = existing.posteId;
+    _accountId = existing.accountId;
     _resourceId = existing.resourceId;
     _revenueId = existing.revenueId;
     _shareId = existing.shareId;
@@ -235,7 +235,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
 
     _nature = ocptBudgetEntryNatureOfLinks(
       isDebit: _isDebit,
-      posteId: _posteId,
+      accountId: _accountId,
       resourceId: _resourceId,
       revenueId: _revenueId,
       shareId: _shareId,
@@ -279,19 +279,19 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
               const SizedBox(height: 12),
               OcptBudgetEntryLinkField(
                 nature: _nature,
-                postes: widget.postes,
+                accounts: widget.accounts,
                 resources: widget.resources,
                 revenues: widget.revenues,
                 shares: widget.shares,
                 people: widget.people,
                 isSimplified: widget.isSimplified,
-                posteId: _posteId,
+                accountId: _accountId,
                 resourceId: _resourceId,
                 revenueId: _revenueId,
                 newRevenue: _newRevenue,
                 shareId: _shareId,
                 personId: _personId,
-                onPosteChanged: (value) => setState(() => _posteId = value),
+                onAccountChanged: (value) => setState(() => _accountId = value),
                 onResourceChanged: (value) => setState(() => _resourceId = value),
                 onRevenueChanged: _onRevenuePicked,
                 onShareChanged: (value) => setState(() => _shareId = value),
@@ -411,7 +411,7 @@ class _OcptBudgetEntryDialogState extends State<OcptBudgetEntryDialog> {
       OcptBudgetEntryFormFields(
         date: _date,
         label: _labelController.text.trim(),
-        posteId: _posteId,
+        accountId: _accountId,
         resourceId: _resourceId,
         // The sentinel never leaves this dialog: a taking still to be created travels as
         // `newRevenue`, and the bloc writes its fresh id where this would have gone.

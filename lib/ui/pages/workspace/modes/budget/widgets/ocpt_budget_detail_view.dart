@@ -143,7 +143,7 @@ class _OcptBudgetDetailBody extends StatelessWidget {
 
     return OcptBudgetDetail(
       selection: state.selection,
-      postes: state.postes,
+      accounts: state.accounts,
       commitments: state.commitments,
       entries: state.entries,
       resources: state.resources,
@@ -163,10 +163,10 @@ class _OcptBudgetDetailBody extends StatelessWidget {
           : (targetId, field, rawValue) => expensesBloc.add(
               OcptBudgetFieldChangedEvent(targetId: targetId, field: field, rawValue: rawValue),
             ),
-      onPosteEstimateToCompleteDerivedRequested: isReadOnly
+      onAccountEstimateToCompleteDerivedRequested: isReadOnly
           ? null
-          : (posteId) => expensesBloc.add(
-              OcptBudgetPosteEstimateToCompleteDerivedRequestedEvent(posteId: posteId),
+          : (accountId) => expensesBloc.add(
+              OcptBudgetAccountEstimateToCompleteDerivedRequestedEvent(accountId: accountId),
             ),
       onLineTaxInclusiveChanged: isReadOnly
           ? null

@@ -49,7 +49,7 @@ class OcptBudgetDetailRevenue extends StatelessWidget {
         tr.budgetHeaderResourcesSegmentLabel,
         ocptBudgetResourceFamilyLabel(tr, OcptBudgetResourceFamily.takings),
       ],
-      title: revenue.label.isEmpty ? tr.budgetPosteUnnamed : revenue.label,
+      title: revenue.label.isEmpty ? tr.budgetAccountUnnamed : revenue.label,
       amountText: detail.amountLabelOf(revenue.amountCents),
       hint: revenue.notes.isEmpty ? null : revenue.notes,
       badge: ocptBudgetRevenueStatusLabel(tr, revenue.status),

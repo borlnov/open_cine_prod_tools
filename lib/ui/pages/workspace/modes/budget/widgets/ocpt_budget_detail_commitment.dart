@@ -15,7 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_off_line_banner.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The commitment variant: breadcrumb poste › line (when promoted from one) › `Commitment`, the
+/// The commitment variant: breadcrumb account › line (when promoted from one) › `Commitment`, the
 /// status/due-date hint, the `Estimé — Engagé — Payé` stepper, and `Pay`/`Edit`/`Delete`.
 class OcptBudgetDetailCommitment extends StatelessWidget {
   /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
@@ -42,7 +42,7 @@ class OcptBudgetDetailCommitment extends StatelessWidget {
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
 
-    final poste = detail.posteById(commitment.posteId);
+    final account = detail.accountById(commitment.accountId);
     final line = commitment.lineId == null ? null : detail.lineById(commitment.lineId!);
     final cashCents = ocptBudgetCommitmentCashCentsOf(
       commitment,
@@ -73,7 +73,7 @@ class OcptBudgetDetailCommitment extends StatelessWidget {
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
 
-    final title = commitment.label.isEmpty ? tr.budgetPosteUnnamed : commitment.label;
+    final title = commitment.label.isEmpty ? tr.budgetAccountUnnamed : commitment.label;
     final dueDateText = commitment.dueDate == null
         ? tr.budgetCommittedNoDueDateLabel
         : DateFormat.yMMMd(locale).format(commitment.dueDate!);
@@ -81,34 +81,34 @@ class OcptBudgetDetailCommitment extends StatelessWidget {
     Widget? offLineBanner;
     if (ocptBudgetCommitmentIsOffLine(commitment)) {
       var bannerMessage = tr.budgetDetailCommitmentOffLineBannerText;
-      if (poste != null) {
-        final posteQuoted = ocptBudgetTotalOf(
-          poste.lines,
+      if (account != null) {
+        final accountQuoted = ocptBudgetTotalOf(
+          account.lines,
           basis: taxBasis,
           projectVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final postePaidCents = detail.paidCentsOf(poste.id);
-        final posteCommittedCents = detail.committedCentsOf(poste.id);
-        final posteInKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
-        final posteStrain = ocptBudgetPosteStrainOf(
-          quotedAmountCents: posteQuoted.amountCents,
-          paidCents: postePaidCents,
-          committedCents: posteCommittedCents,
-          inKindCoveredCents: posteInKindCoveredCents,
+        final accountPaidCents = detail.paidCentsOf(account.id);
+        final accountCommittedCents = detail.committedCentsOf(account.id);
+        final accountInKindCoveredCents = detail.inKindCoveredCentsOf(account.id);
+        final accountStrain = ocptBudgetAccountStrainOf(
+          quotedAmountCents: accountQuoted.amountCents,
+          paidCents: accountPaidCents,
+          committedCents: accountCommittedCents,
+          inKindCoveredCents: accountInKindCoveredCents,
         );
-        if (posteStrain == OcptBudgetPosteStrain.over) {
+        if (accountStrain == OcptBudgetAccountStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
-            quotedAmountCents: posteQuoted.amountCents,
-            paidCents: postePaidCents,
-            committedCents: posteCommittedCents,
-            inKindCoveredCents: posteInKindCoveredCents,
+            quotedAmountCents: accountQuoted.amountCents,
+            paidCents: accountPaidCents,
+            committedCents: accountCommittedCents,
+            inKindCoveredCents: accountInKindCoveredCents,
           );
           bannerMessage = tr.budgetDetailCommitmentOffLineBannerOverQuoteText(
             detail.amountLabelOf(varianceCents),
           );
         }
       }
-      // A commitment always names a poste, so it offers only `Add to the quote` — no `Move
+      // A commitment always names an account, so it offers only `Add to the quote` — no `Move
       // off-quote`, unlike an off-line debit entry's own banner.
       offLineBanner = OcptBudgetOffLineBanner(
         message: bannerMessage,
@@ -121,8 +121,8 @@ class OcptBudgetDetailCommitment extends StatelessWidget {
 
     return OcptBudgetDetailScaffold(
       breadcrumb: [
-        if (poste != null)
-          "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
+        if (account != null)
+          "${account.code} ${ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)}",
         if (line != null) (line.label.isEmpty ? tr.budgetLineUnnamed : line.label),
         tr.budgetDetailKindCommitmentLabel,
       ],

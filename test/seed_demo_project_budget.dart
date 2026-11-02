@@ -16,15 +16,15 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart'
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 
-/// Seeds the budget quote: the ten CNC postes and the lines under them.
-Future<({String costumesLineId, String Function(String code) posteIdOf})> seedQuote({
+/// Seeds the budget quote: the ten CNC accounts and the lines under them.
+Future<({String costumesLineId, String Function(String code) accountIdOf})> seedQuote({
   required OcptBudgetQuoteService budgetQuoteService,
   required OcptProjectDatabase database,
 }) async {
-  // The budget. The ten CNC postes are seeded by the quote service itself, on this very first
+  // The budget. The ten CNC accounts are seeded by the quote service itself, on this very first
   // read of an empty table — the labels are resolved from `Tr` in the app and written out here,
   // this script having no BuildContext to resolve them against.
-  const posteLabels = <String, String>{
+  const accountLabels = <String, String>{
     "1": "Artistic rights",
     "2": "Personnel",
     "3": "Cast",
@@ -36,21 +36,21 @@ Future<({String costumesLineId, String Function(String code) posteIdOf})> seedQu
     "9": "Insurance and miscellaneous",
     "10": "Overheads",
   };
-  final postes = await budgetQuoteService.loadPostes(
+  final accounts = await budgetQuoteService.loadAccounts(
     database: database,
     seed: [
-      for (final poste in ocptBudgetCncPostes)
-        OcptBudgetPosteSeed(
-          id: poste.id,
-          code: poste.code,
-          label: posteLabels[poste.code]!,
+      for (final account in ocptBudgetCncAccounts)
+        OcptBudgetAccountSeed(
+          id: account.id,
+          code: account.code,
+          label: accountLabels[account.code]!,
           simpleLabel: null,
         ),
     ],
   );
-  expect(postes, hasLength(10));
+  expect(accounts, hasLength(10));
 
-  String posteIdOf(String code) => postes.firstWhere((poste) => poste.code == code).id;
+  String accountIdOf(String code) => accounts.firstWhere((account) => account.code == code).id;
 
   Future<String> quoteLine(
     String code,
@@ -62,7 +62,7 @@ Future<({String costumesLineId, String Function(String code) posteIdOf})> seedQu
   }) async {
     final lineId = (await budgetQuoteService.createLine(
       database: database,
-      posteId: posteIdOf(code),
+      accountId: accountIdOf(code),
       label: label,
       unitAmountCents: Value(unitAmountCents),
     ))!;
@@ -106,7 +106,7 @@ Future<({String costumesLineId, String Function(String code) posteIdOf})> seedQu
   await quoteLine("9", "Production insurance", 1000, "package", 85000, vatRateBasisPoints: 2000);
   await quoteLine("10", "Office and telephone", 1000, "package", 60000, vatRateBasisPoints: 2000);
 
-  return (costumesLineId: costumesLineId, posteIdOf: posteIdOf);
+  return (costumesLineId: costumesLineId, accountIdOf: accountIdOf);
 }
 
 /// Seeds the financing plan, the commitments and the cash journal.
@@ -116,7 +116,7 @@ Future<void> seedFinancing({
   required OcptBudgetSharingService budgetSharingService,
   required String costumesLineId,
   required OcptProjectDatabase database,
-  required String Function(String code) posteIdOf,
+  required String Function(String code) accountIdOf,
 }) async {
   // The financing plan. One contribution is reimbursable out of the takings, which is what the
   // sharing view puts before any split at all.
@@ -165,7 +165,7 @@ Future<void> seedFinancing({
   // the cash-flow page's own upcoming section and its projection read.
   final costumesCommitmentId = (await budgetJournalService.createCommitment(
     database: database,
-    posteId: posteIdOf("5"),
+    accountId: accountIdOf("5"),
     lineId: costumesLineId,
     label: "Maison Couronne — period costumes",
     dueDate: DateTime.utc(2026, 9, 20),
@@ -175,7 +175,7 @@ Future<void> seedFinancing({
   ))!;
   await budgetJournalService.createCommitment(
     database: database,
-    posteId: posteIdOf("7"),
+    accountId: accountIdOf("7"),
     label: "Camera package, second week",
     dueDate: DateTime.utc(2026, 9, 30),
     amountCents: 117000,
@@ -183,7 +183,7 @@ Future<void> seedFinancing({
   );
   await budgetJournalService.createCommitment(
     database: database,
-    posteId: posteIdOf("8"),
+    accountId: accountIdOf("8"),
     label: "Studio Lumière — colour grading",
     dueDate: DateTime.utc(2026, 11, 16),
     amountCents: 220000,
@@ -203,7 +203,7 @@ Future<void> seedFinancing({
     database: database,
     date: DateTime.utc(2026, 9, 2),
     label: "Camera package, first week",
-    posteId: posteIdOf("7"),
+    accountId: accountIdOf("7"),
     debitCents: 117000,
     vatRateBasisPoints: 2000,
   );
@@ -211,7 +211,7 @@ Future<void> seedFinancing({
     database: database,
     date: DateTime.utc(2026, 9, 8),
     label: "Boat charter",
-    posteId: posteIdOf("6"),
+    accountId: accountIdOf("6"),
     debitCents: 144000,
     vatRateBasisPoints: 2000,
   );
@@ -219,20 +219,20 @@ Future<void> seedFinancing({
     database: database,
     date: DateTime.utc(2026, 9, 20),
     label: "Maison Couronne — period costumes",
-    posteId: posteIdOf("5"),
+    accountId: accountIdOf("5"),
     commitmentId: costumesCommitmentId,
     debitCents: 180000,
     vatRateBasisPoints: 2000,
   );
 
-  // The premium came in above the line quoted for it, so poste 9 reads over its own quote — the
+  // The premium came in above the line quoted for it, so account 9 reads over its own quote — the
   // one standing alert the demonstration project raises, and the reason the dashboard has an
   // alerts card to draw at all.
   await budgetJournalService.createEntry(
     database: database,
     date: DateTime.utc(2026, 8, 28),
     label: "Production insurance — annual premium",
-    posteId: posteIdOf("9"),
+    accountId: accountIdOf("9"),
     debitCents: 102000,
     vatRateBasisPoints: 2000,
   );

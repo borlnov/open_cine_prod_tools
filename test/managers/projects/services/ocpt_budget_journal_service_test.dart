@@ -30,11 +30,11 @@ void main() {
   final quoteService = OcptBudgetQuoteService(logger: const SilentLogger(), deviceId: testDeviceId);
 
   late OcptProjectDatabase database;
-  late String posteId;
+  late String accountId;
 
   setUp(() async {
     database = OcptProjectDatabase.memory();
-    posteId = (await quoteService.createPoste(database: database, label: "Personnel"))!;
+    accountId = (await quoteService.createAccount(database: database, label: "Personnel"))!;
   });
 
   tearDown(() async {
@@ -54,7 +54,7 @@ void main() {
         database: database,
         date: DateTime.utc(2026, 2, 20),
         label: "Location camion",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 15000,
       );
       final secondId = await service.createEntry(
@@ -68,12 +68,12 @@ void main() {
       expect(entries.map((entry) => entry.id), [firstId, secondId]);
       expect(entries.first.voucherNumber, "J-001");
       expect(entries.last.voucherNumber, "J-002");
-      expect(entries.first.posteId, posteId);
+      expect(entries.first.accountId, accountId);
       expect(entries.first.debitCents, 15000);
       expect(entries.first.isTaxInclusive, isTrue);
       expect(entries.first.vatRateBasisPoints, isNull);
-      // Money coming in with no poste is a real fact, not an omission.
-      expect(entries.last.posteId, isNull);
+      // Money coming in with no account is a real fact, not an omission.
+      expect(entries.last.accountId, isNull);
       expect(entries.last.creditCents, 200000);
     });
 
@@ -164,7 +164,7 @@ void main() {
         entryId: id,
         date: Value(DateTime.utc(2026, 3, 5)),
         label: const Value("Renamed"),
-        posteId: Value(posteId),
+        accountId: Value(accountId),
         debitCents: const Value(5000),
         isTaxInclusive: const Value(false),
         vatRateBasisPoints: const Value(550),
@@ -176,7 +176,7 @@ void main() {
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.date, DateTime.utc(2026, 3, 5));
       expect(row.label, "Renamed");
-      expect(row.posteId, posteId);
+      expect(row.accountId, accountId);
       expect(row.debitCents, 5000);
       expect(row.isTaxInclusive, isFalse);
       expect(row.vatRateBasisPoints, 550);
@@ -241,7 +241,7 @@ void main() {
       () async {
         final commitmentId = (await service.createCommitment(
           database: database,
-          posteId: posteId,
+          accountId: accountId,
           label: "Assurance tournage",
           amountCents: 30000,
         ))!;
@@ -249,7 +249,7 @@ void main() {
           database: database,
           date: DateTime.utc(2026, 3, 6),
           label: "Paiement assurance",
-          posteId: posteId,
+          accountId: accountId,
           commitmentId: commitmentId,
           debitCents: 30000,
         ))!;
@@ -477,13 +477,13 @@ void main() {
     test("createCommitment appends at the end and defaults to quoteAccepted", () async {
       final firstId = await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Assurance",
         amountCents: 20000,
       );
       final secondId = await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Location véhicule",
       );
 
@@ -504,7 +504,7 @@ void main() {
     test("updateCommitment writes every field passed", () async {
       final id = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Assurance",
       ))!;
 
@@ -528,31 +528,31 @@ void main() {
       expect(commitment.status, OcptBudgetCommitmentStatus.contractSigned);
     });
 
-    test("updateCommitment moves a commitment to another poste", () async {
-      final otherPosteId = (await quoteService.createPoste(
+    test("updateCommitment moves a commitment to another account", () async {
+      final otherAccountId = (await quoteService.createAccount(
         database: database,
         label: "Moyens techniques",
       ))!;
       final id = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Location optiques",
       ))!;
 
       await service.updateCommitment(
         database: database,
         commitmentId: id,
-        posteId: Value(otherPosteId),
+        accountId: Value(otherAccountId),
       );
 
       final commitment = (await service.loadCommitments(database: database)).single;
-      expect(commitment.posteId, otherPosteId);
+      expect(commitment.accountId, otherAccountId);
     });
 
     test("an entry naming a commitment settles it, and clearing that link unsettles it", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Assurance",
         amountCents: 10000,
       ))!;
@@ -591,17 +591,17 @@ void main() {
     test("reorderCommitment moves a commitment and writes exactly one row", () async {
       final firstId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "A",
       ))!;
       final secondId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "B",
       ))!;
       final thirdId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "C",
       ))!;
 
@@ -627,7 +627,7 @@ void main() {
     test("deleteCommitment tombstones it, filtered back out of loadCommitments", () async {
       final id = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "A",
       ))!;
 
@@ -643,10 +643,10 @@ void main() {
     test("createCommitment is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       await preview
-          .into(preview.ocptBudgetPostesTable)
-          .insert(OcptBudgetPostesTableCompanion.insert(id: "poste1", label: "Personnel"));
+          .into(preview.ocptBudgetAccountsTable)
+          .insert(OcptBudgetAccountsTableCompanion.insert(id: "poste1", label: "Personnel"));
 
-      final id = await service.createCommitment(database: preview, posteId: "poste1", label: "A");
+      final id = await service.createCommitment(database: preview, accountId: "poste1", label: "A");
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetCommitmentsTable).get(), isEmpty);
@@ -657,18 +657,18 @@ void main() {
     test("loadCommitments orders by dueDate ascending, with the undated ones last", () async {
       final undated = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Undated",
       ))!;
       final later = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Later",
         dueDate: DateTime.utc(2026, 5, 6),
       ))!;
       final sooner = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Sooner",
         dueDate: DateTime.utc(2026, 4, 6),
       ))!;
@@ -684,7 +684,7 @@ void main() {
         database: database,
         date: DateTime.utc(2026, 3, 6),
         label: "Essence",
-        posteId: posteId,
+        accountId: accountId,
         debitCents: 6000,
       ))!;
 
@@ -701,7 +701,7 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_entries/$entryId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        // The device clock already ticked once creating `posteId` in setUp, so this entry's own
+        // The device clock already ticked once creating `accountId` in setUp, so this entry's own
         // transaction reserves the next tick, not the first one.
         expect(stamp!.version, 2);
       }
@@ -746,7 +746,7 @@ void main() {
     test("createCommitment stamps every column of the new row", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Assurance",
         amountCents: 20000,
       ))!;
@@ -764,7 +764,7 @@ void main() {
       for (final column in row.toJson().keys) {
         final stamp = ownStamps["budget_commitments/$commitmentId/$column"];
         expect(stamp, isNotNull, reason: "$column should be stamped");
-        // The device clock already ticked once creating `posteId` in setUp, so this commitment's
+        // The device clock already ticked once creating `accountId` in setUp, so this commitment's
         // own transaction reserves the next tick, not the first one.
         expect(stamp!.version, 2);
       }
@@ -773,7 +773,7 @@ void main() {
     test("updateCommitment stamps only the columns that actually changed", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Assurance",
       ))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
@@ -798,7 +798,7 @@ void main() {
     test("deleteCommitment stamps isDeleted on the commitment", () async {
       final commitmentId = (await service.createCommitment(
         database: database,
-        posteId: posteId,
+        accountId: accountId,
         label: "A",
       ))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();

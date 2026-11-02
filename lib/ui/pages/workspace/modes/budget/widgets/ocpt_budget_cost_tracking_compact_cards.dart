@@ -12,14 +12,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 
 /// The compact reduction of the two-pane table — see [OcptBudgetCostTracking]'s class doc
-/// comment's own "at a compact width" note: one [OcptBudgetCostTrackingPosteCard] per live poste,
-/// in a plain scrolling list, above the very same `+ Poste` creation footer the table itself draws
-/// below its own two panes. The tree — quote lines, commitments, entries, the off-quote reading —
-/// is not offered here at all; a poste's own card opens straight onto its `Inspector` tab, where
-/// that detail already lives.
+/// comment's own "at a compact width" note: one [OcptBudgetCostTrackingAccountCard] per live
+/// account, in a plain scrolling list, above the very same `+ Poste` creation footer the table
+/// itself draws below its own two panes. The tree — quote lines, commitments, entries, the
+/// off-quote reading — is not offered here at all; an account's own card opens straight onto its
+/// `Inspector` tab, where that detail already lives.
 class OcptBudgetCostTrackingCompactCards extends StatelessWidget {
-  /// Every live poste, in display order.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account, in display order.
+  final List<OcptBudgetAccount> accounts;
 
   /// Whether the simplified naming applies.
   final bool isSimplified;
@@ -33,44 +33,44 @@ class OcptBudgetCostTrackingCompactCards extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// What has been paid against each poste, keyed by its id.
-  final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
+  /// What has been paid against each account, keyed by its id.
+  final Map<String, OcptBudgetCoveredTotal> paidByAccountId;
 
-  /// What is committed against a poste, in cents.
-  final int Function(String posteId) committedCentsOf;
+  /// What is committed against an account, in cents.
+  final int Function(String accountId) committedCentsOf;
 
-  /// What in-kind contributions cover of a poste, in cents.
-  final int Function(String posteId) inKindCoveredCentsOf;
+  /// What in-kind contributions cover of an account, in cents.
+  final int Function(String accountId) inKindCoveredCentsOf;
 
-  /// Whether a poste is the selected one.
-  final bool Function(String posteId) isPosteSelected;
+  /// Whether an account is the selected one.
+  final bool Function(String accountId) isAccountSelected;
 
-  /// Called with a poste's id when its card is clicked.
-  final ValueChanged<String> onPosteSelected;
+  /// Called with an account's id when its card is clicked.
+  final ValueChanged<String> onAccountSelected;
 
   /// Called when the creation footer is clicked, or null to withhold the footer.
-  final VoidCallback? onPosteCreationRequested;
+  final VoidCallback? onAccountCreationRequested;
 
   /// Class constructor
   const OcptBudgetCostTrackingCompactCards({
     super.key,
-    required this.postes,
+    required this.accounts,
     required this.isSimplified,
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.paidByPosteId,
+    required this.paidByAccountId,
     required this.committedCentsOf,
     required this.inKindCoveredCentsOf,
-    required this.isPosteSelected,
-    required this.onPosteSelected,
-    required this.onPosteCreationRequested,
+    required this.isAccountSelected,
+    required this.onAccountSelected,
+    required this.onAccountCreationRequested,
   });
 
   /// Build the budget cost tracking compact cards as a [Column].
   @override
   Widget build(BuildContext context) {
-    final onCreation = onPosteCreationRequested;
+    final onCreation = onAccountCreationRequested;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,22 +78,22 @@ class OcptBudgetCostTrackingCompactCards extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(ocptBudgetCostTrackingCardSpacing),
-            itemCount: postes.length,
+            itemCount: accounts.length,
             separatorBuilder: (context, index) =>
                 const SizedBox(height: ocptBudgetCostTrackingCardSpacing),
             itemBuilder: (context, index) {
-              final poste = postes[index];
-              return OcptBudgetCostTrackingPosteCard(
-                poste: poste,
+              final account = accounts[index];
+              return OcptBudgetCostTrackingAccountCard(
+                account: account,
                 isSimplified: isSimplified,
-                isSelected: isPosteSelected(poste.id),
+                isSelected: isAccountSelected(account.id),
                 taxBasis: taxBasis,
                 defaultVatRateBasisPoints: defaultVatRateBasisPoints,
                 currencyCode: currencyCode,
-                paidCents: paidByPosteId[poste.id]?.amountCents ?? 0,
-                committedCents: committedCentsOf(poste.id),
-                inKindCoveredCents: inKindCoveredCentsOf(poste.id),
-                onTap: () => onPosteSelected(poste.id),
+                paidCents: paidByAccountId[account.id]?.amountCents ?? 0,
+                committedCents: committedCentsOf(account.id),
+                inKindCoveredCents: inKindCoveredCentsOf(account.id),
+                onTap: () => onAccountSelected(account.id),
               );
             },
           ),

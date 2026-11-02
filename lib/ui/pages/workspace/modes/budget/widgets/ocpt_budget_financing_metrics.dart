@@ -17,7 +17,7 @@ const double ocptBudgetFinancingMenuColumnWidth = 36;
 
 /// The narrowest the `Ressource` column is ever drawn, in logical pixels — past this, the table
 /// scrolls sideways inside its own frame rather than crushing a resource's or a taking's own name,
-/// mirroring `OcptBudgetCostTracking`'s own `_ocptCostTrackingPosteColumnMinWidth`.
+/// mirroring `OcptBudgetCostTracking`'s own `_ocptCostTrackingAccountColumnMinWidth`.
 const double ocptBudgetFinancingRessourceColumnMinWidth = 220;
 
 /// The narrowest the whole table is ever drawn at, in logical pixels — every fixed column's own

@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_accounts
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_lines_table.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 
-/// Money committed to a poste but not yet paid: a quote accepted, a contract signed, an invoice
+/// Money committed to an account but not yet paid: a quote accepted, a contract signed, an invoice
 /// received or a spend declared — [OcptBudgetCommitmentStatus] — that has not yet become a
 /// `budget_entries` row.
 ///
@@ -17,9 +17,9 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 /// exactly as typed, whether it already includes tax, and a null rate meaning "inherit the
 /// project's own", never "nobody has said".
 ///
-/// [posteId] is **non-nullable, unlike `OcptBudgetEntriesTable.posteId`**: a commitment is always a
-/// cost incurred against the quote — there is no "committed spending that prices nothing" the way a
-/// subsidy instalment coming in prices no poste.
+/// [accountId] is **non-nullable, unlike `OcptBudgetEntriesTable.accountId`**: a commitment is
+/// always a cost incurred against the quote — there is no "committed spending that prices nothing"
+/// the way a subsidy instalment coming in prices no account.
 ///
 /// **This table carries no `settledEntryId` of its own any more.** A commitment used to become paid
 /// by naming, itself, the one `budget_entries` row that settled it — so it could only ever be paid
@@ -57,10 +57,14 @@ class OcptBudgetCommitmentsTable extends Table {
   /// Get this commitment's free-text wording, e.g. "Assurance tournage — acompte".
   TextColumn get label => text()();
 
-  /// Get the poste this commitment is priced against. → [OcptBudgetPostesTable]
+  /// Get the account this commitment is priced against. → [OcptBudgetAccountsTable]
   ///
   /// Non-nullable — see this table's own doc comment.
-  TextColumn get posteId => text().references(OcptBudgetPostesTable, #id)();
+  ///
+  /// The SQL column and the JSON key keep the names they have always had (`poste_id` and
+  /// `posteId`): existing project files, version payloads and sync stamps carry them.
+  @JsonKey('posteId')
+  TextColumn get accountId => text().named('poste_id').references(OcptBudgetAccountsTable, #id)();
 
   /// Get the amount committed, exactly as typed, in cents — see this table's own doc comment.
   IntColumn get amountCents => integer().withDefault(const Constant(0))();

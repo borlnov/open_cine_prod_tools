@@ -45,20 +45,20 @@ class OcptBudgetResourceDialog extends StatefulWidget {
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
 
-  /// Every live poste of the project, offered by the `Poste` picker while the resource being
+  /// Every live account of the project, offered by the `Poste` picker while the resource being
   /// created or edited is an in-kind contribution — see [OcptBudgetResourceFormBody]'s own class
   /// doc comment.
-  final List<OcptBudgetPoste> postes;
+  final List<OcptBudgetAccount> accounts;
 
-  /// The poste an existing in-kind contribution's counterpart line currently offsets, or null —
+  /// The account an existing in-kind contribution's counterpart line currently offsets, or null —
   /// seeds the `Poste` picker while editing. Read from the linked line rather than from a field of
-  /// the resource itself, which stores no poste of its own
-  /// (`OcptBudgetResourceFormFields.posteId`'s own doc comment). Ignored while creating: a fresh
+  /// the resource itself, which stores no account of its own
+  /// (`OcptBudgetResourceFormFields.accountId`'s own doc comment). Ignored while creating: a fresh
   /// resource has no counterpart line yet.
-  final String? initialPosteId;
+  final String? initialAccountId;
 
-  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
-  /// exactly as every other picker of this mode does.
+  /// Whether the mode's header currently reads simplified — switches an account's own displayed
+  /// name exactly as every other picker of this mode does.
   final bool isSimplified;
 
   /// Forwarded to [OcptBudgetResourceFormBody] — see its own class doc comment. Defaults to false.
@@ -71,8 +71,8 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     required this.groupKind,
     required this.people,
     required this.currencyCode,
-    required this.postes,
-    this.initialPosteId,
+    required this.accounts,
+    this.initialAccountId,
     required this.isSimplified,
     this.offerCashOrInKindChoice = false,
   });
@@ -88,8 +88,8 @@ class OcptBudgetResourceDialog extends StatefulWidget {
     required OcptBudgetResourceGroupKind groupKind,
     required List<OcptPerson> people,
     required String currencyCode,
-    required List<OcptBudgetPoste> postes,
-    String? initialPosteId,
+    required List<OcptBudgetAccount> accounts,
+    String? initialAccountId,
     required bool isSimplified,
     bool offerCashOrInKindChoice = false,
   }) => showDialog<OcptBudgetResourceFormFields>(
@@ -99,8 +99,8 @@ class OcptBudgetResourceDialog extends StatefulWidget {
       groupKind: groupKind,
       people: people,
       currencyCode: currencyCode,
-      postes: postes,
-      initialPosteId: initialPosteId,
+      accounts: accounts,
+      initialAccountId: initialAccountId,
       isSimplified: isSimplified,
       offerCashOrInKindChoice: offerCashOrInKindChoice,
     ),
@@ -131,8 +131,8 @@ class _OcptBudgetResourceDialogState extends State<OcptBudgetResourceDialog> {
         groupKind: widget.groupKind,
         people: widget.people,
         currencyCode: widget.currencyCode,
-        postes: widget.postes,
-        initialPosteId: widget.initialPosteId,
+        accounts: widget.accounts,
+        initialAccountId: widget.initialAccountId,
         isSimplified: widget.isSimplified,
         formKey: _formKey,
         onDraftChanged: (draft) => setState(() => _draft = draft),

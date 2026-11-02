@@ -22,17 +22,17 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// `content`.
 ///
 /// **Two fields gate `Save`, not one.** `Label` is the entry dialog's own only required field, but
-/// a commitment always prices a poste (`OcptBudgetCommitment.posteId`'s own doc comment), so
+/// a commitment always prices an account (`OcptBudgetCommitment.accountId`'s own doc comment), so
 /// `Poste` is required here too — [onMissingFieldsHintChanged] is how this body tells its host,
 /// since the host owns `Save` (see [OcptBudgetCommitmentDialog]'s own class doc comment for why
 /// that could not simply be read off [onDraftChanged] instead).
 ///
 /// **`Poste` is a picker whether creating or editing** — a production is free to reclassify a
-/// commitment against a different poste at any time
+/// commitment against a different account at any time
 /// (`OcptBudgetJournalService.updateCommitment`'s own doc comment). The one host that already
 /// knows the answer before this body even opens is the capture wizard's own step 3:
-/// [posteAlreadyAnswered] lets it withhold the field outright rather than ask the very question
-/// its own step 2 just answered one screen above — the poste still seeds from [prefill] either
+/// [accountAlreadyAnswered] lets it withhold the field outright rather than ask the very question
+/// its own step 2 just answered one screen above — the account still seeds from [prefill] either
 /// way, so the value already collected travels through untouched.
 ///
 /// **The `VAT` field's empty reading agrees with `OcptBudgetEntryDialog`'s own, for the very same
@@ -55,8 +55,8 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
   /// body's own defaults.
   final OcptBudgetCommitmentFormFields? prefill;
 
-  /// Every live poste of the project, offered by the `Poste` picker while creating.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, offered by the `Poste` picker while creating.
+  final List<OcptBudgetAccount> accounts;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
@@ -65,8 +65,8 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
   /// reads while it is left empty.
   final int? defaultVatRateBasisPoints;
 
-  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
-  /// exactly as every other view of this mode does.
+  /// Whether the mode's header currently reads simplified — switches an account's own displayed
+  /// name exactly as every other view of this mode does.
   final bool isSimplified;
 
   /// The form this body's own [Form] validates against — the host's to create and to validate.
@@ -83,21 +83,21 @@ class OcptBudgetCommitmentFormBody extends StatefulWidget {
 
   /// Withholds the `Poste` picker outright when true — see the class doc comment. Defaults to
   /// false, [OcptBudgetCommitmentDialog]'s own reading, which always draws the picker.
-  final bool posteAlreadyAnswered;
+  final bool accountAlreadyAnswered;
 
   /// Class constructor
   const OcptBudgetCommitmentFormBody({
     super.key,
     required this.existing,
     this.prefill,
-    required this.postes,
+    required this.accounts,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
     required this.formKey,
     required this.onDraftChanged,
     required this.onMissingFieldsHintChanged,
-    this.posteAlreadyAnswered = false,
+    this.accountAlreadyAnswered = false,
   });
 
   /// Create the [_OcptBudgetCommitmentFormBodyState] holding the state of the budget commitment
@@ -120,9 +120,9 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
   /// The due date currently picked, or null.
   DateTime? _dueDate;
 
-  /// The poste currently picked, or null while nobody has picked one yet — see the class doc
+  /// The account currently picked, or null while nobody has picked one yet — see the class doc
   /// comment for why this stays pickable only while creating.
-  String? _posteId;
+  String? _accountId;
 
   /// Whether the amount currently picked includes tax.
   late bool _isTaxInclusive;
@@ -134,16 +134,16 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
   /// `Label`/`Poste` is still missing.
   OcptBudgetCommitmentFormFields? get _currentDraft {
     final amountCents = ocptCostCentsOf(_amountController.text);
-    final posteId = _posteId;
+    final accountId = _accountId;
     final label = _labelController.text.trim();
-    if (amountCents == null || posteId == null || label.isEmpty) {
+    if (amountCents == null || accountId == null || label.isEmpty) {
       return null;
     }
 
     return OcptBudgetCommitmentFormFields(
       dueDate: _dueDate,
       label: label,
-      posteId: posteId,
+      accountId: accountId,
       amountCents: amountCents,
       isTaxInclusive: _isTaxInclusive,
       vatRateBasisPoints: ocptVatRateBasisPointsOf(_vatRateController.text),
@@ -161,7 +161,7 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
     final prefill = widget.prefill;
 
     _dueDate = existing?.dueDate ?? prefill?.dueDate;
-    _posteId = existing?.posteId ?? prefill?.posteId;
+    _accountId = existing?.accountId ?? prefill?.accountId;
     _isTaxInclusive = existing?.amount.isTaxInclusive ?? prefill?.isTaxInclusive ?? true;
     _status = existing?.status ?? prefill?.status ?? OcptBudgetCommitmentStatus.quoteAccepted;
 
@@ -215,13 +215,13 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
               decoration: InputDecoration(labelText: tr.budgetEntryDialogLabelFieldLabel),
             ),
             const SizedBox(height: 12),
-            if (!widget.posteAlreadyAnswered) ...[
-              _OcptCommitmentPosteField(
-                postes: widget.postes,
+            if (!widget.accountAlreadyAnswered) ...[
+              _OcptCommitmentAccountField(
+                accounts: widget.accounts,
                 isSimplified: widget.isSimplified,
-                value: _posteId,
+                value: _accountId,
                 onChanged: (value) {
-                  setState(() => _posteId = value);
+                  setState(() => _accountId = value);
                   _report();
                 },
               ),
@@ -302,16 +302,16 @@ class _OcptBudgetCommitmentFormBodyState extends State<OcptBudgetCommitmentFormB
   String? _missingFieldsHintOf() {
     final tr = Tr.of(context);
     final missingLabel = _labelController.text.trim().isEmpty;
-    final missingPoste = _posteId == null;
+    final missingAccount = _accountId == null;
 
-    if (missingLabel && missingPoste) {
-      return tr.budgetCommitmentDialogMissingLabelAndPosteHint;
+    if (missingLabel && missingAccount) {
+      return tr.budgetCommitmentDialogMissingLabelAndAccountHint;
     }
     if (missingLabel) {
       return tr.budgetCommitmentDialogMissingLabelHint;
     }
-    if (missingPoste) {
-      return tr.budgetCommitmentDialogMissingPosteHint;
+    if (missingAccount) {
+      return tr.budgetCommitmentDialogMissingAccountHint;
     }
 
     return null;
@@ -384,45 +384,45 @@ class _OcptCommitmentStatusPicker extends StatelessWidget {
 }
 
 /// The commitment form's own `Poste` field: a picker, drawn whenever
-/// [OcptBudgetCommitmentFormBody.posteAlreadyAnswered] is false — whether the dialog is creating
+/// [OcptBudgetCommitmentFormBody.accountAlreadyAnswered] is false — whether the dialog is creating
 /// a commitment or editing one.
 ///
-/// **Editable in both, unlike a quote line's own poste** — see
-/// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's poste is an
-/// attribution typed once against a ten-poste nomenclature, exactly the field somebody gets
+/// **Editable in both, unlike a quote line's own account** — see
+/// `OcptBudgetJournalService.updateCommitment`'s own doc comment: a commitment's account is an
+/// attribution typed once against a ten-account nomenclature, exactly the field somebody gets
 /// wrong, and this table's flat `sortKey` makes changing it an ordinary field write rather than
 /// the regrouping a line's own would be.
-class _OcptCommitmentPosteField extends StatelessWidget {
-  /// The postes the picker offers.
-  final List<OcptBudgetPoste> postes;
+class _OcptCommitmentAccountField extends StatelessWidget {
+  /// The accounts the picker offers.
+  final List<OcptBudgetAccount> accounts;
 
-  /// Whether the simplified naming applies to the poste labels.
+  /// Whether the simplified naming applies to the account labels.
   final bool isSimplified;
 
-  /// The picked poste id, or null while none is picked.
+  /// The picked account id, or null while none is picked.
   final String? value;
 
-  /// Called with the picked poste id.
+  /// Called with the picked account id.
   final ValueChanged<String?> onChanged;
 
   /// Class constructor
-  const _OcptCommitmentPosteField({
-    required this.postes,
+  const _OcptCommitmentAccountField({
+    required this.accounts,
     required this.isSimplified,
     required this.value,
     required this.onChanged,
   });
 
-  /// Build the commitment poste field as a [DropdownButtonFormField].
+  /// Build the commitment account field as a [DropdownButtonFormField].
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<String>(
     initialValue: value,
-    decoration: InputDecoration(labelText: Tr.of(context).budgetEntryDialogPosteFieldLabel),
+    decoration: InputDecoration(labelText: Tr.of(context).budgetEntryDialogAccountFieldLabel),
     items: [
-      for (final poste in postes)
+      for (final account in accounts)
         DropdownMenuItem(
-          value: poste.id,
-          child: Text(ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)),
+          value: account.id,
+          child: Text(ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)),
         ),
     ],
     onChanged: onChanged,

@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 const double _ocptBudgetSegmentPadding = 12;
 
 /// The budget mode's own header band: the four-chip view switch, the tools drawer's own second
-/// switch while it is open, the poste filter tag, and whichever of the simplified/detailed and
+/// switch while it is open, the account filter tag, and whichever of the simplified/detailed and
 /// tax-basis switches the current route honours.
 ///
 /// Purely presentational: it renders and reports every click upward, reading nothing off a
@@ -35,10 +35,10 @@ const double _ocptBudgetSegmentPadding = 12;
 /// **Controls are contextual, not global.** The tools drawer's own segmented switch draws only
 /// while [view] is [OcptBudgetView.tools], immediately after the four-chip switch, in the very
 /// same shell and segment widgets — never a chevron, never a menu, mockup `4c`'s own label saying
-/// so. The poste filter tag draws nothing at all while [filterPosteId] is null, becoming a small
-/// removable tag the moment one is set (mockup `4d`) — a control announcing "every poste" all day
-/// is the very thing the retired breadcrumb was faulted for. The simplified/detailed switch is
-/// offered where [ocptBudgetViewHonoursPosteFilter] is true — [OcptBudgetView.expenses] alone —
+/// so. The account filter tag draws nothing at all while [filterAccountId] is null, becoming a
+/// small removable tag the moment one is set (mockup `4d`) — a control announcing "every poste" all
+/// day is the very thing the retired breadcrumb was faulted for. The simplified/detailed switch is
+/// offered where [ocptBudgetViewHonoursAccountFilter] is true — [OcptBudgetView.expenses] alone —
 /// and the tax-basis switch on [OcptBudgetView.dashboard], [OcptBudgetView.expenses] and
 /// [OcptBudgetView.tools] while [toolsView] reads [OcptBudgetToolsView.cashFlow], and nowhere
 /// else: every other route either has no second tax basis to offer or reads no amount at all.
@@ -84,14 +84,14 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Called with the basis just picked, when a segment is clicked.
   final ValueChanged<OcptBudgetTaxBasis> onTaxBasisChanged;
 
-  /// Every live poste of the project, offered by the poste filter tag to resolve its own label.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, offered by the account filter tag to resolve its own label.
+  final List<OcptBudgetAccount> accounts;
 
-  /// The poste every view is currently narrowed to, or null for the whole project.
-  final String? filterPosteId;
+  /// The account every view is currently narrowed to, or null for the whole project.
+  final String? filterAccountId;
 
-  /// Called when the poste filter tag's own `✕` is clicked.
-  final VoidCallback onPosteFilterCleared;
+  /// Called when the account filter tag's own `✕` is clicked.
+  final VoidCallback onAccountFilterCleared;
 
   /// How many standing alerts the project currently raises (`ocptComputeBudgetAlerts`) — drawn as a
   /// count badge on the view switch's own `Tableau de bord` segment, and withheld outright, never
@@ -114,8 +114,8 @@ class OcptBudgetHeader extends StatelessWidget {
       (view == OcptBudgetView.tools && toolsView == OcptBudgetToolsView.cashFlow);
 
   /// Tell whether the current view honours the simplified/detailed switch —
-  /// `ocptBudgetViewHonoursPosteFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
-  bool get _honoursPosteKeyedControls => ocptBudgetViewHonoursPosteFilter(view);
+  /// `ocptBudgetViewHonoursAccountFilter`'s own reading, true for [OcptBudgetView.expenses] alone.
+  bool get _honoursAccountKeyedControls => ocptBudgetViewHonoursAccountFilter(view);
 
   /// Class constructor
   const OcptBudgetHeader({
@@ -128,9 +128,9 @@ class OcptBudgetHeader extends StatelessWidget {
     required this.onSimplifiedChanged,
     required this.taxBasis,
     required this.onTaxBasisChanged,
-    required this.postes,
-    required this.filterPosteId,
-    required this.onPosteFilterCleared,
+    required this.accounts,
+    required this.filterAccountId,
+    required this.onAccountFilterCleared,
     required this.alertCount,
     required this.captureLabel,
     required this.onCaptureRequested,
@@ -139,7 +139,7 @@ class OcptBudgetHeader extends StatelessWidget {
   /// Build the budget header as a [Padding].
   @override
   Widget build(BuildContext context) {
-    final filtered = postes.where((poste) => poste.id == filterPosteId).firstOrNull;
+    final filtered = accounts.where((account) => account.id == filterAccountId).firstOrNull;
     final captureLabel = this.captureLabel;
 
     final controls = <Widget>[
@@ -147,12 +147,12 @@ class OcptBudgetHeader extends StatelessWidget {
       if (view == OcptBudgetView.tools)
         _OcptBudgetToolsViewSwitch(value: toolsView, onChanged: onToolsViewSelected),
       if (filtered != null)
-        _OcptBudgetPosteFilterTag(
-          poste: filtered,
+        _OcptBudgetAccountFilterTag(
+          account: filtered,
           isSimplified: isSimplified,
-          onCleared: onPosteFilterCleared,
+          onCleared: onAccountFilterCleared,
         ),
-      if (_honoursPosteKeyedControls)
+      if (_honoursAccountKeyedControls)
         _OcptBudgetSimplifiedSwitch(value: isSimplified, onChanged: onSimplifiedChanged),
       if (_showsTaxBasisSwitch)
         _OcptBudgetTaxBasisSwitch(value: taxBasis, onChanged: onTaxBasisChanged),
@@ -278,37 +278,37 @@ class _OcptBudgetSwitchSegment<T> extends StatelessWidget {
   }
 }
 
-/// The header's own poste filter tag — mockup `4d`. Draws **nothing at all** while [poste] is
+/// The header's own account filter tag — mockup `4d`. Draws **nothing at all** while [account] is
 /// null (the header simply does not build it, see [OcptBudgetHeader.build]); once one is set it
-/// reads that poste's own display label with a small `✕` clearing the filter.
+/// reads that account's own display label with a small `✕` clearing the filter.
 ///
-/// **This is the tag, not a picker.** Picking a poste to filter by moved to the `⋮` menu of its
+/// **This is the tag, not a picker.** Picking an account to filter by moved to the `⋮` menu of its
 /// own row in the expenses table — the very gesture the retired left dock's own card carried —
 /// so this widget only ever reports the one thing it can: clearing the filter.
-class _OcptBudgetPosteFilterTag extends StatelessWidget {
-  /// The poste currently filtered.
-  final OcptBudgetPoste poste;
+class _OcptBudgetAccountFilterTag extends StatelessWidget {
+  /// The account currently filtered.
+  final OcptBudgetAccount account;
 
   /// Whether the header's simplified/detailed switch currently reads simplified — the tag's own
-  /// label follows it, exactly as every other poste name in this mode does.
+  /// label follows it, exactly as every other account name in this mode does.
   final bool isSimplified;
 
   /// Called when the tag's own `✕` is clicked.
   final VoidCallback onCleared;
 
   /// Class constructor
-  const _OcptBudgetPosteFilterTag({
-    required this.poste,
+  const _OcptBudgetAccountFilterTag({
+    required this.account,
     required this.isSimplified,
     required this.onCleared,
   });
 
-  /// Build the budget poste filter tag as a [Container].
+  /// Build the budget account filter tag as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
+    final label = ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -323,14 +323,14 @@ class _OcptBudgetPosteFilterTag extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 160),
             child: Text(
-              label.isEmpty ? tr.budgetPosteUnnamed : label,
+              label.isEmpty ? tr.budgetAccountUnnamed : label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurface),
             ),
           ),
           Tooltip(
-            message: tr.budgetHeaderPosteFilterClearTooltip,
+            message: tr.budgetHeaderAccountFilterClearTooltip,
             child: InkWell(
               onTap: onCleared,
               mouseCursor: ocpt_theme.ocptClickableCursor,

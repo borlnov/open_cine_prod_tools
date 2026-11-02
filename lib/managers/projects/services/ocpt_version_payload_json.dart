@@ -223,12 +223,12 @@ abstract final class OcptVersionPayloadJson {
         ))
           OcptVersionResourcesJson.projectDictionaryWordFromJson(row),
       ],
-      budgetPostes: [
+      budgetAccounts: [
         for (final row in OcptVersionJsonReader.readRows(
           json,
-          OcptVersionJsonProductionKeys.budgetPostesKey,
+          OcptVersionJsonProductionKeys.budgetAccountsKey,
         ))
-          OcptVersionBudgetJson.budgetPosteFromJson(row),
+          OcptVersionBudgetJson.budgetAccountFromJson(row),
       ],
       budgetLines: [
         for (final row in OcptVersionJsonReader.readRows(

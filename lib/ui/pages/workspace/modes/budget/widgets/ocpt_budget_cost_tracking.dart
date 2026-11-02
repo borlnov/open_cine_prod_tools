@@ -39,18 +39,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart';
 
-/// The budget mode's cost-tracking view: the expenses tree — one row per poste, opening onto its
+/// The budget mode's cost-tracking view: the expenses tree — one row per account, opening onto its
 /// own quote lines, each of those opening onto its own commitments and the entries that settle
-/// them, the poste's own off-line commitments and entries drawn at a quote line's own indentation
+/// them, the account's own off-line commitments and entries drawn at a quote line's own indentation
 /// once it is open — then a total row, then a `+ Poste` creation footer.
 ///
 /// **The `N°` and `Poste` columns are pinned**, drawn in their own pane at the left edge that
 /// never moves; only the six amount columns and the trailing `⋮` menu, in a second pane to their
 /// right, scroll horizontally once the centre dock narrows past
-/// [ocptBudgetCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure
-/// nobody can read yet, so a row's own identity survives the scroll even when its own numbers no
-/// longer fit. The two panes share one vertical scroll, so the whole table still moves together,
-/// and, row for row, the exact same height ([ocptBudgetCostTrackingRowHeight]'s and
+/// [ocptBudgetCostTrackingAccountColumnMinWidth] — an account nobody can name is worse than a
+/// figure nobody can read yet, so a row's own identity survives the scroll even when its own
+/// numbers no longer fit. The two panes share one vertical scroll, so the whole table still moves
+/// together, and, row for row, the exact same height ([ocptBudgetCostTrackingRowHeight]'s and
 /// [ocptBudgetCostTrackingSubRowHeight]'s own doc comments argue why).
 ///
 /// **The tree is flattened once, top to bottom, into [_rowsOf]' own list**, and both panes then
@@ -59,34 +59,35 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather
 /// than a null callback per affordance, and hands its own writing affordances — the creation
-/// footer, a poste row's own `⋮` menu, a commitment or an entry sub-row's own `⋮` menu, the reorder
-/// they open onto — the null callbacks that withhold them under a version preview, so a control
-/// added later here can't be gated in one place and forgotten in the other.
+/// footer, an account row's own `⋮` menu, a commitment or an entry sub-row's own `⋮` menu, the
+/// reorder they open onto — the null callbacks that withhold them under a version preview, so a
+/// control added later here can't be gated in one place and forgotten in the other.
 ///
-/// **A project with no live poste at all draws [OcptBudgetFeedCard] in place of the two-pane
+/// **A project with no live account at all draws [OcptBudgetFeedCard] in place of the two-pane
 /// table**, centred and width-constrained, above the very same `+ Poste` creation footer this view
-/// always draws — the way through to a first poste before there is a table for it to belong to.
+/// always draws — the way through to a first account before there is a table for it to belong to.
 /// Every one of the card's own three rows is offered here, unlike `OcptBudgetLogistics`'s own copy:
 /// no page this empty state could be standing on names itself.
 ///
-/// [isSimplified] switches every poste's own displayed name between [OcptBudgetPoste.simpleLabel]
-/// (falling back to [OcptBudgetPoste.label] when null) and [OcptBudgetPoste.label] itself, and
-/// hides the `N°` column — a display switch over the same data, never a second read.
+/// [isSimplified] switches every account's own displayed name between
+/// [OcptBudgetAccount.simpleLabel] (falling back to [OcptBudgetAccount.label] when null) and
+/// [OcptBudgetAccount.label] itself, and hides the `N°` column — a display switch over the same
+/// data, never a second read.
 ///
-/// [paidByPosteId] and [committedCentsOf] read the cash journal's own per-poste totals
-/// (`OcptBudgetState.paidByPosteId`/`committedCentsOf`, backed by
-/// `lib/models/rules/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): a poste with no
+/// [paidByAccountId] and [committedCentsOf] read the cash journal's own per-account totals
+/// (`OcptBudgetState.paidByAccountId`/`committedCentsOf`, backed by
+/// `lib/models/rules/ocpt_budget_journal.dart`/`ocpt_budget_projection.dart`): an account with no
 /// entry or commitment against it answers **0**, honestly, rather than a stand-in for an unknown
 /// figure — the journal exists and is kept, so "nothing has moved" is a fact this table can state
-/// outright. `Payé`, `Engagé`, `Reste` and `Écart` therefore always print a real amount at poste
+/// outright. `Payé`, `Engagé`, `Reste` and `Écart` therefore always print a real amount at account
 /// level. A quote line's own `Engagé`/`Payé` are read the very same honest way, through
 /// [ocptBudgetLineCommittedTotalOf]/[ocptBudgetLinePaidTotalOf] — pure functions of [commitments]
 /// and [entries], narrowed to the one line each row draws.
 ///
 /// **`Coût final` reads [ocptBudgetFinalCostCents] over the resolved estimate to complete** —
-/// [OcptBudgetPoste.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents] at poste
-/// level, resolved once per row, not once per cell; **always derived** at line level, since the
-/// estimate a human can type is held per poste, never per line
+/// [OcptBudgetAccount.estimateToCompleteCents] through [ocptBudgetEstimateToCompleteCents] at
+/// account level, resolved once per row, not once per cell; **always derived** at line level, since
+/// the estimate a human can type is held per account, never per line
 /// (`docs/architecture/budget.md`). `Écart` keeps reading [ocptBudgetVarianceCents] exactly
 /// as it always has: the two readings answer different questions and both stay on screen. Neither
 /// `Estimate to complete` nor `Consumed` is drawn as its own column any more — the reading behind
@@ -96,8 +97,8 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// expansion is worse than none. A line-nested commitment or an entry sub-row draws no twisty of
 /// its own: such a commitment's own child — the entry that settled it, or, while it is still owed,
 /// the muted `tr.budgetCostTrackingNoEntryHint` row — shows or hides wholesale with whichever line,
-/// or poste, it sits directly under. **A poste's own off-line commitment is the exception**: with
-/// no quote line to nest under, a paid one is itself an expandable node, keyed in
+/// or account, it sits directly under. **An account's own off-line commitment is the exception**:
+/// with no quote line to nest under, a paid one is itself an expandable node, keyed in
 /// `OcptBudgetState.expandedNodeIds` by its own id, its payments drawn a level deeper only while it
 /// is expanded — so a settled off-line commitment reads as one row, not as itself beside a
 /// same-named payment.
@@ -108,54 +109,54 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// exists at all: an unsettled commitment has nothing of its own to show under
 /// [ocptBudgetEntryDebitCentsOf], so the hint says why in words instead of drawing nothing.
 ///
-/// **`_rowsOf` folds one extra row into the tree, `Off quote`, after the last poste and before
-/// the `Total` row** — the total of every debit naming no poste at all
+/// **`_rowsOf` folds one extra row into the tree, `Off quote`, after the last account and before
+/// the `Total` row** — the total of every debit naming no account at all
 /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/models/rules/ocpt_budget_journal.dart`), which
-/// [paidByPosteId] never keys at all. It is drawn only while some such debit exists and only its
-/// own `Payé` cell carries a figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no
-/// selection of its own — see `OcptBudgetCostTrackingOffQuoteIdentityRow`'s own doc comment. **It
-/// gains a twisty, opening onto the very debits it sums**, each an ordinary entry sub-row keyed by
-/// the reserved [ocptBudgetCostTrackingOffQuoteNodeId] rather than by a poste or a line id, since
-/// the row sums a reading over the journal and names no record of its own to key one by. An entry
-/// drawn here that also settles a commitment nested under some poste is not excluded the way a
-/// poste's own off-line entries are — `_rowsOf`' own doc comment argues why it legitimately appears
-/// in both places. The total row's own `Payé` cell then folds [paidByPosteId] and [offQuoteTotal]
-/// together ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the
-/// account.
+/// [paidByAccountId] never keys at all. It is drawn only while some such debit exists and only its
+/// own `Payé` cell carries a figure; it is not an account, so it carries no `N°`, no `⋮` menu and
+/// no selection of its own — see `OcptBudgetCostTrackingOffQuoteIdentityRow`'s own doc comment.
+/// **It gains a twisty, opening onto the very debits it sums**, each an ordinary entry sub-row
+/// keyed by the reserved [ocptBudgetCostTrackingOffQuoteNodeId] rather than by an account or a line
+/// id, since the row sums a reading over the journal and names no record of its own to key one by.
+/// An entry drawn here that also settles a commitment nested under some account is not excluded the
+/// way an account's own off-line entries are — `_rowsOf`' own doc comment argues why it
+/// legitimately appears in both places. The total row's own `Payé` cell then folds
+/// [paidByAccountId] and [offQuoteTotal] together ([ocptBudgetCoveredTotalsFoldOf]), since together
+/// they are what actually left the account.
 ///
 /// **A row's own `Rename` menu entry selects it and opens the `Inspector` tab rather than editing
 /// its name in place.** This app has no precedent for renaming a record inline inside a plain list
 /// — the two inline-answer exceptions the confirm-dialog rule already carries (the `Versions` dock
 /// panel, the project dictionary dialog) exist because a list of rows there has no other way of
 /// saying *which* row is being talked about, which is not this table's problem: every row already
-/// opens straight onto its own poste's fields the moment it is clicked. A poste's own `Label` and
-/// `Code` fields living in its inspector, exactly where a person's or an element's own name field
-/// lives in the resources mode's sheets, is the reading this table follows instead. A quote line's
-/// own fields live there too, so a line sub-row carries no `⋮` menu at all.
+/// opens straight onto its own account's fields the moment it is clicked. An account's own `Label`
+/// and `Code` fields living in its inspector, exactly where a person's or an element's own name
+/// field lives in the resources mode's sheets, is the reading this table follows instead. A quote
+/// line's own fields live there too, so a line sub-row carries no `⋮` menu at all.
 ///
-/// **A poste row's own menu also carries `Show this poste only`**, the gesture that narrows the
-/// whole mode to it — the retired left dock card's own `⋮` entry, ported here now that picking a
-/// poste to filter by has nowhere else to live. It only ever reads the project, so it draws (and
+/// **An account row's own menu also carries `Show this poste only`**, the gesture that narrows the
+/// whole mode to it — the retired left dock card's own `⋮` entry, ported here now that picking an
+/// account to filter by has nowhere else to live. It only ever reads the project, so it draws (and
 /// works) even under a read-only preview, the one entry of this menu that is never withheld.
 ///
 /// **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one
-/// [OcptBudgetCostTrackingPosteCard] per live poste**, scrolling vertically, above the very same
-/// `+ Poste` creation footer. A card draws a poste's own name, a proportion bar reading its own
-/// paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the very
-/// colours `OcptBudgetDetail`'s own poste-variant bar already uses for the same figures), and its
-/// own `Engagé`/`Payé`/`Reste`/`Écart` figures — read through
-/// [OcptBudgetCostTrackingPosteFigures.of], the very same calls
-/// [OcptBudgetCostTrackingPosteAmountsRow] makes for its own row, so a card never disagrees with
-/// the table over the same poste. Tapping a card selects its poste exactly as tapping either half
-/// of its row does — [onPosteSelected] is never withheld under [isReadOnly], selecting a poste
-/// being a read, not a write. Only the tree — quote lines, commitments, entries, the off-quote
-/// reading — is reduced away at this width; the table above the breakpoint is unchanged.
+/// [OcptBudgetCostTrackingAccountCard] per live account**, scrolling vertically, above the very
+/// same `+ Poste` creation footer. A card draws an account's own name, a proportion bar reading its
+/// own paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the
+/// very colours `OcptBudgetDetail`'s own account-variant bar already uses for the same figures),
+/// and its own `Engagé`/`Payé`/`Reste`/`Écart` figures — read through
+/// [OcptBudgetCostTrackingAccountFigures.of], the very same calls
+/// [OcptBudgetCostTrackingAccountAmountsRow] makes for its own row, so a card never disagrees with
+/// the table over the same account. Tapping a card selects its account exactly as tapping either
+/// half of its row does — [onAccountSelected] is never withheld under [isReadOnly], selecting an
+/// account being a read, not a write. Only the tree — quote lines, commitments, entries, the
+/// off-quote reading — is reduced away at this width; the table above the breakpoint is unchanged.
 class OcptBudgetCostTracking extends StatelessWidget {
-  /// Every live poste, in display order.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account, in display order.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live commitment of the project, settled or not — narrowed, row by row, to the one line
-  /// or poste each sub-row draws.
+  /// or account each sub-row draws.
   final List<OcptBudgetCommitment> commitments;
 
   /// Every live journal entry of the project — narrowed the same way [commitments] is.
@@ -164,7 +165,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// What is currently selected for the right dock's own detail panel, or null while none is.
   final OcptBudgetSelection? selection;
 
-  /// Which nodes of the tree are currently expanded — a poste id or a quote line id, see
+  /// Which nodes of the tree are currently expanded — an account id or a quote line id, see
   /// `OcptBudgetState.expandedNodeIds`'s own doc comment.
   final Set<String> expandedNodeIds;
 
@@ -180,24 +181,24 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// What has actually been paid against each poste, keyed by its own id — see the class doc
+  /// What has actually been paid against each account, keyed by its own id — see the class doc
   /// comment.
-  final Map<String, OcptBudgetCoveredTotal> paidByPosteId;
+  final Map<String, OcptBudgetCoveredTotal> paidByAccountId;
 
-  /// A poste's own committed total, in cents, tax-inclusive — see the class doc comment.
-  final int Function(String posteId) committedCentsOf;
+  /// An account's own committed total, in cents, tax-inclusive — see the class doc comment.
+  final int Function(String accountId) committedCentsOf;
 
-  /// A poste's own in-kind covered total, in cents — the settled bucket a counterpart quote line
-  /// contributes (`OcptBudgetState.inKindCoveredCentsOf`), folded alongside [paidByPosteId] and
+  /// An account's own in-kind covered total, in cents — the settled bucket a counterpart quote line
+  /// contributes (`OcptBudgetState.inKindCoveredCentsOf`), folded alongside [paidByAccountId] and
   /// [committedCentsOf] into `Reste`/`Écart` so a counterpart line never reads as an unspent
   /// remainder — see `lib/models/rules/ocpt_budget_totals.dart`'s own doc comments.
-  final int Function(String posteId) inKindCoveredCentsOf;
+  final int Function(String accountId) inKindCoveredCentsOf;
 
-  /// The total of every debit that names no poste at all — see the class doc comment.
+  /// The total of every debit that names no account at all — see the class doc comment.
   final OcptBudgetCoveredTotal offQuoteTotal;
 
   /// How many live elements a live quote line already prices — [OcptBudgetFeedCard]'s own
-  /// breakdown row, drawn while [postes] is empty.
+  /// breakdown row, drawn while [accounts] is empty.
   final int breakdownPricedElementCount;
 
   /// How many live elements no live line prices yet — [OcptBudgetFeedCard]'s own breakdown row,
@@ -219,41 +220,41 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// comment.
   final bool isReadOnly;
 
-  /// Called with a poste's id when its row is clicked, opening the `Inspector` tab on it.
-  final ValueChanged<String> onPosteSelected;
+  /// Called with an account's id when its row is clicked, opening the `Inspector` tab on it.
+  final ValueChanged<String> onAccountSelected;
 
   /// Called with a quote line's id when its row is clicked, opening the `Inspector` tab on the
-  /// poste it belongs to.
+  /// account it belongs to.
   final ValueChanged<String> onLineSelected;
 
   /// Called with a commitment's id when its row is clicked, opening the `Inspector` tab on the
-  /// poste it belongs to.
+  /// account it belongs to.
   final ValueChanged<String> onCommitmentSelected;
 
-  /// Called with an entry's id when its row is clicked, opening the `Inspector` tab on the poste
+  /// Called with an entry's id when its row is clicked, opening the `Inspector` tab on the account
   /// it belongs to.
   final ValueChanged<String> onEntrySelected;
 
-  /// Called with a poste's or a quote line's own id when its twisty is clicked.
+  /// Called with an account's or a quote line's own id when its twisty is clicked.
   final ValueChanged<String> onNodeExpansionToggled;
 
   /// Called when the footer's `+ Poste` action is clicked, or null while [isReadOnly].
-  final VoidCallback? onPosteCreationRequested;
+  final VoidCallback? onAccountCreationRequested;
 
-  /// Called with a poste's id and whether it moves up (`true`) or down (`false`), from a row's own
-  /// `⋮` menu, or null while [isReadOnly]. `moveUp` is named, never positional, so a call site
+  /// Called with an account's id and whether it moves up (`true`) or down (`false`), from a row's
+  /// own `⋮` menu, or null while [isReadOnly]. `moveUp` is named, never positional, so a call site
   /// reads which direction it means rather than a bare `true`/`false`.
-  final void Function(String posteId, {required bool moveUp})? onPosteReorderRequested;
+  final void Function(String accountId, {required bool moveUp})? onAccountReorderRequested;
 
-  /// Called with a poste's id when a row's own `⋮` menu asks to delete it, or null while
+  /// Called with an account's id when a row's own `⋮` menu asks to delete it, or null while
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
-  final ValueChanged<String>? onPosteDeletionRequested;
+  final ValueChanged<String>? onAccountDeletionRequested;
 
-  /// Called with a poste's id when a row's own `⋮` menu asks to narrow the mode to it — the left
-  /// dock card's own gesture, ported rather than reinvented now that picking a poste to filter by
-  /// lives here. It only ever reads the project, so it is **not** withheld under a read-only
+  /// Called with an account's id when a row's own `⋮` menu asks to narrow the mode to it — the left
+  /// dock card's own gesture, ported rather than reinvented now that picking an account to filter
+  /// by lives here. It only ever reads the project, so it is **not** withheld under a read-only
   /// preview, unlike every other entry of this same menu.
-  final ValueChanged<String>? onPosteFilterRequested;
+  final ValueChanged<String>? onAccountFilterRequested;
 
   /// Called with a commitment when its sub-row's own `⋮` menu asks to edit it, or null while
   /// [isReadOnly]. Opens `OcptBudgetCommitmentDialog`.
@@ -293,7 +294,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// Class constructor
   const OcptBudgetCostTracking({
     super.key,
-    required this.postes,
+    required this.accounts,
     required this.commitments,
     required this.entries,
     required this.selection,
@@ -302,7 +303,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
     required this.currencyCode,
-    required this.paidByPosteId,
+    required this.paidByAccountId,
     required this.committedCentsOf,
     required this.inKindCoveredCentsOf,
     required this.offQuoteTotal,
@@ -312,15 +313,15 @@ class OcptBudgetCostTracking extends StatelessWidget {
     required this.mealCount,
     required this.buffetCount,
     required this.isReadOnly,
-    required this.onPosteSelected,
+    required this.onAccountSelected,
     required this.onLineSelected,
     required this.onCommitmentSelected,
     required this.onEntrySelected,
     required this.onNodeExpansionToggled,
-    required this.onPosteCreationRequested,
-    required this.onPosteReorderRequested,
-    required this.onPosteDeletionRequested,
-    required this.onPosteFilterRequested,
+    required this.onAccountCreationRequested,
+    required this.onAccountReorderRequested,
+    required this.onAccountDeletionRequested,
+    required this.onAccountFilterRequested,
     required this.onCommitmentEditRequested,
     required this.onCommitmentSettleRequested,
     required this.onCommitmentUnsettleRequested,
@@ -335,7 +336,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// Build the budget cost tracking as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
-    if (postes.isEmpty) {
+    if (accounts.isEmpty) {
       return OcptBudgetCostTrackingEmptyState(
         breakdownPricedElementCount: breakdownPricedElementCount,
         breakdownUnpricedElementCount: breakdownUnpricedElementCount,
@@ -345,7 +346,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         onBreakdownFeedRequested: onBreakdownFeedRequested,
         onScheduleFeedRequested: onScheduleFeedRequested,
         onCateringFeedRequested: onCateringFeedRequested,
-        onPosteCreationRequested: isReadOnly ? null : onPosteCreationRequested,
+        onAccountCreationRequested: isReadOnly ? null : onAccountCreationRequested,
       );
     }
 
@@ -353,37 +354,37 @@ class OcptBudgetCostTracking extends StatelessWidget {
       builder: (context, constraints) {
         if (ocptIsCompactWidth(constraints.maxWidth)) {
           return OcptBudgetCostTrackingCompactCards(
-            postes: postes,
+            accounts: accounts,
             isSimplified: isSimplified,
             taxBasis: taxBasis,
             defaultVatRateBasisPoints: defaultVatRateBasisPoints,
             currencyCode: currencyCode,
-            paidByPosteId: paidByPosteId,
+            paidByAccountId: paidByAccountId,
             committedCentsOf: committedCentsOf,
             inKindCoveredCentsOf: inKindCoveredCentsOf,
-            isPosteSelected: _isPosteSelected,
-            onPosteSelected: onPosteSelected,
-            onPosteCreationRequested: isReadOnly ? null : onPosteCreationRequested,
+            isAccountSelected: _isAccountSelected,
+            onAccountSelected: onAccountSelected,
+            onAccountCreationRequested: isReadOnly ? null : onAccountCreationRequested,
           );
         }
 
-        final allLines = [for (final poste in postes) ...poste.lines];
+        final allLines = [for (final account in accounts) ...account.lines];
         final total = ocptBudgetTotalOf(
           allLines,
           basis: taxBasis,
           projectVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final coveredPosteCount = ocptBudgetCostTrackingCoveredPosteCountOf(
-          postes,
+        final coveredAccountCount = ocptBudgetCostTrackingCoveredAccountCountOf(
+          accounts,
           taxBasis: taxBasis,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByPosteId.values, offQuoteTotal]);
+        final paidTotal = ocptBudgetCoveredTotalsFoldOf([...paidByAccountId.values, offQuoteTotal]);
         final finalCostCents = ocptBudgetCostTrackingFinalCostTotalOf(
-          postes,
+          accounts,
           taxBasis: taxBasis,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-          paidByPosteId: paidByPosteId,
+          paidByAccountId: paidByAccountId,
           committedCentsOf: committedCentsOf,
           inKindCoveredCentsOf: inKindCoveredCentsOf,
         );
@@ -393,12 +394,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
         // Devis, Engagé, Payé, Reste, Coût final, Écart — six amount columns.
         final amountsWidth =
             6 * ocptBudgetCostTrackingAmountColumnWidth + ocptBudgetCostTrackingMenuColumnWidth;
-        final posteWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
-          ocptBudgetCostTrackingPosteColumnMinWidth,
+        final accountWidth = (constraints.maxWidth - identityFixedWidth - amountsWidth).clamp(
+          ocptBudgetCostTrackingAccountColumnMinWidth,
           double.infinity,
         );
-        final pinnedWidth = identityFixedWidth + posteWidth;
-        final showFooter = !isReadOnly && onPosteCreationRequested != null;
+        final pinnedWidth = identityFixedWidth + accountWidth;
+        final showFooter = !isReadOnly && onAccountCreationRequested != null;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -415,12 +416,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
                         children: [
                           OcptBudgetCostTrackingIdentityHeaderCell(
                             isSimplified: isSimplified,
-                            posteWidth: posteWidth,
+                            accountWidth: accountWidth,
                           ),
-                          for (final row in rows) _identityRowOf(row, posteWidth: posteWidth),
+                          for (final row in rows) _identityRowOf(row, accountWidth: accountWidth),
                           OcptBudgetCostTrackingIdentityTotalRow(
                             isSimplified: isSimplified,
-                            posteWidth: posteWidth,
+                            accountWidth: accountWidth,
                           ),
                         ],
                       ),
@@ -439,8 +440,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
                                 paidTotal: paidTotal,
                                 finalCostCents: finalCostCents,
                                 currencyCode: currencyCode,
-                                posteCount: postes.length,
-                                coveredPosteCount: coveredPosteCount,
+                                accountCount: accounts.length,
+                                coveredAccountCount: coveredAccountCount,
                               ),
                             ],
                           ),
@@ -451,7 +452,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
                 ),
               ),
             ),
-            if (showFooter) OcptBudgetCostTrackingCreationFooter(onTap: onPosteCreationRequested!),
+            if (showFooter)
+              OcptBudgetCostTrackingCreationFooter(onTap: onAccountCreationRequested!),
           ],
         );
       },
@@ -462,25 +464,25 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// the
   /// class doc comment.
   ///
-  /// A poste draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
-  /// [OcptBudgetPoste.lines], then its off-line commitments and entries — draw only while its own
+  /// An account draws whenever it is live, whatever [expandedNodeIds] holds; its own children —
+  /// [OcptBudgetAccount.lines], then its off-line commitments and entries — draw only while its own
   /// id is in [expandedNodeIds]. A quote line's own children — its commitments, and, for each one,
   /// either every entry that has paid it so far or the muted "no entry" hint while none has — draw
-  /// only while the line's own id is in [expandedNodeIds] too. **A poste's own off-line commitment
-  /// that has been paid is itself an expandable node**, keyed in [expandedNodeIds] by its own id:
-  /// collapsed it is one row, and its payments draw a level deeper only while it is expanded — a
-  /// line-less commitment owning its payments the way a line owns its commitments.
+  /// only while the line's own id is in [expandedNodeIds] too. **An account's own off-line
+  /// commitment that has been paid is itself an expandable node**, keyed in [expandedNodeIds] by
+  /// its own id: collapsed it is one row, and its payments draw a level deeper only while it is
+  /// expanded — a line-less commitment owning its payments the way a line owns its commitments.
   ///
-  /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
+  /// **The off-quote row follows the last account, drawn exactly as it always was — only while
   /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
-  /// children — every debit naming no poste at all — draw only while
-  /// [ocptBudgetCostTrackingOffQuoteNodeId] is in [expandedNodeIds] too. Unlike a poste's own
-  /// off-line entries, this list is **not** narrowed by `settlingEntryIds`: a poste-less debit that
-  /// also settles a commitment nested under some poste is exactly the case the off-quote total
-  /// sums, and hiding it here because it is reachable elsewhere would leave the total's own
+  /// children — every debit naming no account at all — draw only while
+  /// [ocptBudgetCostTrackingOffQuoteNodeId] is in [expandedNodeIds] too. Unlike an account's own
+  /// off-line entries, this list is **not** narrowed by `settlingEntryIds`: an account-less debit
+  /// that also settles a commitment nested under some account is exactly the case the off-quote
+  /// total sums, and hiding it here because it is reachable elsewhere would leave the total's own
   /// children not actually adding up to the figure it prints. It legitimately draws twice — once
-  /// here, once nested under the commitment it settles — and that is the honest reading of a
-  /// poste-less payment that happens to also be a settlement.
+  /// here, once nested under the commitment it settles — and that is the honest reading of an
+  /// account-less payment that happens to also be a settlement.
   List<OcptBudgetCostTrackingTreeRow> _rowsOf() {
     final rows = <OcptBudgetCostTrackingTreeRow>[];
     // Every entry naming a commitment at all, settled or still owed — an off-line entry list must
@@ -491,31 +493,31 @@ class OcptBudgetCostTracking extends StatelessWidget {
         if (entry.commitmentId != null) entry.id,
     };
 
-    for (final poste in postes) {
+    for (final account in accounts) {
       final offLineCommitments = [
         for (final commitment in commitments)
-          if (commitment.posteId == poste.id && commitment.lineId == null) commitment,
+          if (commitment.accountId == account.id && commitment.lineId == null) commitment,
       ];
       final offLineEntries = [
         for (final entry in entries)
-          if (entry.posteId == poste.id && !settlingEntryIds.contains(entry.id)) entry,
+          if (entry.accountId == account.id && !settlingEntryIds.contains(entry.id)) entry,
       ];
-      final isPosteExpandable =
-          poste.lines.isNotEmpty || offLineCommitments.isNotEmpty || offLineEntries.isNotEmpty;
-      final isPosteExpanded = isPosteExpandable && expandedNodeIds.contains(poste.id);
+      final isAccountExpandable =
+          account.lines.isNotEmpty || offLineCommitments.isNotEmpty || offLineEntries.isNotEmpty;
+      final isAccountExpanded = isAccountExpandable && expandedNodeIds.contains(account.id);
 
       rows.add(
-        OcptBudgetCostTrackingPosteTreeRow(
-          poste: poste,
-          isExpandable: isPosteExpandable,
-          isExpanded: isPosteExpanded,
+        OcptBudgetCostTrackingAccountTreeRow(
+          account: account,
+          isExpandable: isAccountExpandable,
+          isExpanded: isAccountExpanded,
         ),
       );
-      if (!isPosteExpanded) {
+      if (!isAccountExpanded) {
         continue;
       }
 
-      for (final line in poste.lines) {
+      for (final line in account.lines) {
         final lineCommitments = [
           for (final commitment in commitments)
             if (commitment.lineId == line.id) commitment,
@@ -536,12 +538,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
         _addCommitmentRows(rows, lineCommitments, depth: 2);
       }
 
-      // A poste's own off-line commitment has no quote line to nest under, so it is the expandable
-      // node itself: collapsed by default, it draws as one row, and its payments — drawn a level
-      // deeper, unlike a line-nested commitment's own siblings — show only once it is expanded, the
-      // way a quote line reveals its commitments. A commitment nobody has paid yet is not
-      // expandable (its status badge already says it is still owed, so an empty expansion would say
-      // nothing).
+      // An account's own off-line commitment has no quote line to nest under, so it is the
+      // expandable node itself: collapsed by default, it draws as one row, and its payments — drawn
+      // a level deeper, unlike a line-nested commitment's own siblings — show only once it is
+      // expanded, the way a quote line reveals its commitments. A commitment nobody has paid yet is
+      // not expandable (its status badge already says it is still owed, so an empty expansion would
+      // say nothing).
       for (final commitment in offLineCommitments) {
         final paymentEntries = [
           for (final entry in entries)
@@ -574,7 +576,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
       // `settlingEntryIds` is deliberately not applied here.
       final offQuoteEntries = [
         for (final entry in entries)
-          if (entry.posteId == null && entry.debitCents != 0) entry,
+          if (entry.accountId == null && entry.debitCents != 0) entry,
       ];
       final isOffQuoteExpanded = expandedNodeIds.contains(ocptBudgetCostTrackingOffQuoteNodeId);
       rows.add(OcptBudgetCostTrackingOffQuoteTreeRow(isExpanded: isOffQuoteExpanded));
@@ -595,7 +597,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// never a level deeper.
   ///
   /// This is the **line-nested** path alone: a commitment shown under its own quote line, its
-  /// payments its siblings under that line. A poste's own off-line commitment is drawn by
+  /// payments its siblings under that line. An account's own off-line commitment is drawn by
   /// [_rowsOf] directly instead, as an expandable node owning its payments a level deeper — see
   /// [OcptBudgetCostTrackingCommitmentTreeRow.isExpandable].
   void _addCommitmentRows(
@@ -621,22 +623,22 @@ class OcptBudgetCostTracking extends StatelessWidget {
   }
 
   /// Build the pinned pane's own widget for [row].
-  Widget _identityRowOf(OcptBudgetCostTrackingTreeRow row, {required double posteWidth}) =>
+  Widget _identityRowOf(OcptBudgetCostTrackingTreeRow row, {required double accountWidth}) =>
       switch (row) {
-        OcptBudgetCostTrackingPosteTreeRow() => OcptBudgetCostTrackingPosteIdentityRow(
-          poste: row.poste,
-          isSelected: _isPosteSelected(row.poste.id),
+        OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountIdentityRow(
+          account: row.account,
+          isSelected: _isAccountSelected(row.account.id),
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isExpandable: row.isExpandable,
           isExpanded: row.isExpanded,
-          onTap: () => onPosteSelected(row.poste.id),
-          onTwistyTap: () => onNodeExpansionToggled(row.poste.id),
+          onTap: () => onAccountSelected(row.account.id),
+          onTwistyTap: () => onNodeExpansionToggled(row.account.id),
         ),
         OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
           depth: 1,
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isSelected: _isLineSelected(row.line.id),
           isSmall: false,
           isExpandable: row.isExpandable,
@@ -658,7 +660,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         OcptBudgetCostTrackingCommitmentTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
           depth: row.depth,
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isSelected: _isCommitmentSelected(row.commitment.id),
           isSmall: true,
           isExpandable: row.isExpandable,
@@ -696,7 +698,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         OcptBudgetCostTrackingCommitmentHintTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
           depth: row.depth,
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isSelected: false,
           isSmall: true,
           isExpandable: false,
@@ -712,7 +714,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         OcptBudgetCostTrackingEntryTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
           depth: row.depth,
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isSelected: _isEntrySelected(row.entry.id),
           isSmall: true,
           isExpandable: false,
@@ -729,7 +731,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
         ),
         OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteIdentityRow(
           isSimplified: isSimplified,
-          posteWidth: posteWidth,
+          accountWidth: accountWidth,
           isExpanded: row.isExpanded,
           onTwistyTap: () => onNodeExpansionToggled(ocptBudgetCostTrackingOffQuoteNodeId),
         ),
@@ -737,27 +739,29 @@ class OcptBudgetCostTracking extends StatelessWidget {
 
   /// Build the scrolling pane's own widget for [row].
   Widget _amountsRowOf(OcptBudgetCostTrackingTreeRow row) => switch (row) {
-    OcptBudgetCostTrackingPosteTreeRow() => OcptBudgetCostTrackingPosteAmountsRow(
-      poste: row.poste,
-      isSelected: _isPosteSelected(row.poste.id),
+    OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountAmountsRow(
+      account: row.account,
+      isSelected: _isAccountSelected(row.account.id),
       taxBasis: taxBasis,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       currencyCode: currencyCode,
-      paidCents: paidByPosteId[row.poste.id]?.amountCents ?? 0,
-      committedCents: committedCentsOf(row.poste.id),
-      inKindCoveredCents: inKindCoveredCentsOf(row.poste.id),
-      onTap: () => onPosteSelected(row.poste.id),
-      onRenameRequested: isReadOnly ? null : () => onPosteSelected(row.poste.id),
+      paidCents: paidByAccountId[row.account.id]?.amountCents ?? 0,
+      committedCents: committedCentsOf(row.account.id),
+      inKindCoveredCents: inKindCoveredCentsOf(row.account.id),
+      onTap: () => onAccountSelected(row.account.id),
+      onRenameRequested: isReadOnly ? null : () => onAccountSelected(row.account.id),
       onMoveUpRequested: isReadOnly
           ? null
-          : () => onPosteReorderRequested?.call(row.poste.id, moveUp: true),
+          : () => onAccountReorderRequested?.call(row.account.id, moveUp: true),
       onMoveDownRequested: isReadOnly
           ? null
-          : () => onPosteReorderRequested?.call(row.poste.id, moveUp: false),
-      onDeletionRequested: isReadOnly ? null : () => onPosteDeletionRequested?.call(row.poste.id),
-      onFilterRequested: onPosteFilterRequested == null
+          : () => onAccountReorderRequested?.call(row.account.id, moveUp: false),
+      onDeletionRequested: isReadOnly
           ? null
-          : () => onPosteFilterRequested?.call(row.poste.id),
+          : () => onAccountDeletionRequested?.call(row.account.id),
+      onFilterRequested: onAccountFilterRequested == null
+          ? null
+          : () => onAccountFilterRequested?.call(row.account.id),
     ),
     OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingLineAmountsRow(
       line: row.line,
@@ -795,10 +799,10 @@ class OcptBudgetCostTracking extends StatelessWidget {
     ),
   };
 
-  /// Tell whether poste [posteId] is the currently selected one.
-  bool _isPosteSelected(String posteId) {
+  /// Tell whether account [accountId] is the currently selected one.
+  bool _isAccountSelected(String accountId) {
     final selection = this.selection;
-    return selection is OcptBudgetPosteSelection && selection.posteId == posteId;
+    return selection is OcptBudgetAccountSelection && selection.accountId == accountId;
   }
 
   /// Tell whether quote line [lineId] is the currently selected one.

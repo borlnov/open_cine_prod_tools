@@ -81,19 +81,19 @@ void main() {
     );
   }
 
-  /// Seeds one of everything: poste "Camera" with the line "Camera deposit", the commitment "Lens
+  /// Seeds one of everything: account "Camera" with the line "Camera deposit", the commitment "Lens
   /// order", the debit "Taxi", the resource "Regional grant", the taking "Festival prize" and the
   /// share "Producer", returning the id of "Camera".
   Future<String> seedEverything() async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
-    await harness.seedCommitment(posteId, "Lens order", amountCents: 3000);
-    await harness.seedDebit("Taxi", 1500, posteId: posteId);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
+    await harness.seedCommitment(accountId, "Lens order", amountCents: 3000);
+    await harness.seedDebit("Taxi", 1500, accountId: accountId);
     await harness.seedResource("Regional grant", 20000);
     await harness.seedRevenue("Festival prize", 9000);
     await harness.seedShare("Producer");
 
-    return posteId;
+    return accountId;
   }
 
   testWidgets("the export panel lists the four documents and the project package, greys out the "
@@ -114,7 +114,7 @@ void main() {
     }
     expect(harness.inDialog(find.text(tr.budgetExportUnavailableNoResourceReason)), findsOneWidget);
     expect(harness.inDialog(find.text(tr.budgetExportUnavailableNoEntryReason)), findsOneWidget);
-    expect(harness.inDialog(find.text(tr.budgetExportUnavailableNoPosteReason)), findsNothing);
+    expect(harness.inDialog(find.text(tr.budgetExportUnavailableNoAccountReason)), findsNothing);
 
     await harness.tap(tester, harness.inDialog(find.text(tr.budgetExportFinancingPlanTitle)));
     await harness.tap(tester, harness.inDialog(find.text(tr.budgetExportCashJournalTitle)));
@@ -125,8 +125,8 @@ void main() {
       "ago in the tax basis the header reads, and says where the file went, or that it failed", (
     tester,
   ) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -141,7 +141,7 @@ void main() {
 
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
       "Camera crew",
     );
     await pickExportCard(tester, tr.budgetExportQuoteTitle);
@@ -152,8 +152,8 @@ void main() {
     expect(export.taxBasis, OcptBudgetTaxBasis.excludingTax);
     expect(export.pageSetup!.format, OcptPageFormat.usLetter);
     expect(export.includeTitlePage, isTrue);
-    expect(export.snapshot.postes.single.label, "Camera crew");
-    expect((await harness.readPostes()).single.label, "Camera crew");
+    expect(export.snapshot.accounts.single.label, "Camera crew");
+    expect((await harness.readAccounts()).single.label, "Camera crew");
     expect(find.text(tr.budgetExportFileSuccessMessage("/tmp/quote.out")), findsOneWidget);
 
     // The basis picked in the options dialog wins over the one the header reads.
@@ -188,8 +188,8 @@ void main() {
       "snapshot as the mode holds it, and a workbook that cannot be built is reported", (
     tester,
   ) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     final resourceId = await harness.seedResource("Regional grant", 20000);
     await harness.projectsManager.budgetJournalService.createEntry(
       database: harness.database,
@@ -236,7 +236,7 @@ void main() {
 
   testWidgets("coming back from the project settings never re-reads the page format the export "
       "dialogs start from, with a change or without", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.projectsManager.saveCurrentProjectPageFormat(OcptPageFormat.a4);
@@ -262,7 +262,7 @@ void main() {
 
   testWidgets("the right dock reopens on the tab it was last left on, and picking a row opens "
       "the inspector without changing the saved tab", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -306,7 +306,7 @@ void main() {
 
   testWidgets("a dock stored on the inspector shows Help where nothing can be inspected, without "
       "forgetting the inspector", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
@@ -330,7 +330,7 @@ void main() {
   testWidgets("a project left with no poste draws the feed card in the expenses table, which opens "
       "the catering page itself, hands the workspace over to Resources or the schedule, and greys "
       "the documents that need a poste", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -342,15 +342,18 @@ void main() {
     );
     await harness.tap(
       tester,
-      find.widgetWithText(PopupMenuItem<String>, tr.budgetPosteDeleteAction),
+      find.widgetWithText(PopupMenuItem<String>, tr.budgetAccountDeleteAction),
     );
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
-    expect(statusBar(tester).posteCount, 0);
-    // A project whose only poste was deleted is not seeded again: the table is not empty.
-    expect(await harness.readPostes(), isEmpty);
+    expect(statusBar(tester).accountCount, 0);
+    // A project whose only account was deleted is not seeded again: the table is not empty.
+    expect(await harness.readAccounts(), isEmpty);
 
     await openExportPanel(tester);
-    expect(harness.inDialog(find.text(tr.budgetExportUnavailableNoPosteReason)), findsNWidgets(2));
+    expect(
+      harness.inDialog(find.text(tr.budgetExportUnavailableNoAccountReason)),
+      findsNWidgets(2),
+    );
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
@@ -382,11 +385,11 @@ void main() {
     await seedEverything();
     expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
     // Written after the version was captured, so the preview cannot show it.
-    await harness.seedPoste("Sound");
+    await harness.seedAccount("Sound");
     await harness.seedDebit("Late fee", 300);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    expect(statusBar(tester).posteCount, 2);
+    expect(statusBar(tester).accountCount, 2);
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -398,10 +401,10 @@ void main() {
 
     // The version's own budget, the selection dropped and every writing control withheld.
     expect(find.text(tr.workspaceReadOnlyBannerExitAction), findsOneWidget);
-    expect(statusBar(tester).posteCount, 1);
+    expect(statusBar(tester).accountCount, 1);
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsNothing);
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsNothing);
-    // The poste row keeps its menu for the one thing that only reads: narrowing the table.
+    // The account row keeps its menu for the one thing that only reads: narrowing the table.
     await harness.tap(
       tester,
       harness.menuInRowOf(tester, "Camera", within: find.byType(OcptBudgetCostTracking)),
@@ -410,7 +413,7 @@ void main() {
     expect(find.text(tr.budgetCostTrackingFilterOnlyAction), findsOneWidget);
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
-    expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+    expect(find.text(tr.budgetAccountCreationAction), findsNothing);
     await harness.tap(tester, find.text(tr.budgetRightDockInspectorTabLabel));
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
 
@@ -453,7 +456,7 @@ void main() {
 
     // Back to the working copy: everything written since is there again, and writable.
     await exitPreview(tester);
-    expect(statusBar(tester).posteCount, 2);
+    expect(statusBar(tester).accountCount, 2);
     expect(find.byKey(const Key("ocptBudgetHeaderCaptureButton")), findsOneWidget);
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderCashFlowSegmentLabel);
@@ -462,7 +465,7 @@ void main() {
 
   testWidgets("a field typed just before previewing a version is written first, the preview "
       "shows the version's own, and leaving it brings the typed value back", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -471,14 +474,14 @@ void main() {
 
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
       "Camera crew",
     );
     await harness.tapQuickly(tester, find.text(tr.budgetRightDockVersionsTabLabel));
     await previewFirstVersion(tester);
 
     // The working copy file holds it already, though the debounce never ran out.
-    final stored = await harness.projectsManager.budgetQuoteService.loadPostes(
+    final stored = await harness.projectsManager.budgetQuoteService.loadAccounts(
       database: harness.projectsManager.currentProject!.fileDatabase,
       seed: const [],
     );
@@ -495,10 +498,10 @@ void main() {
   ) async {
     await seedEverything();
     expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
-    await harness.seedPoste("Sound");
+    await harness.seedAccount("Sound");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
-    expect(statusBar(tester).posteCount, 2);
+    expect(statusBar(tester).accountCount, 2);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, inTracking(find.text("Sound")));
     expect(find.byType(OcptBudgetDetail), findsOneWidget);
@@ -506,10 +509,10 @@ void main() {
     await harness.tap(tester, find.text(tr.budgetRightDockVersionsTabLabel));
     await harness.tap(tester, find.text(tr.projectVersionRestoreAction));
     await harness.tap(tester, find.text(tr.projectVersionRestoreConfirmAction));
-    await harness.pumpUntil(tester, () => statusBar(tester).posteCount == 1);
-    await harness.eventually(tester, () async => (await harness.readPostes()).length == 1);
+    await harness.pumpUntil(tester, () => statusBar(tester).accountCount == 1);
+    await harness.eventually(tester, () async => (await harness.readAccounts()).length == 1);
 
-    expect((await harness.readPostes()).single.label, "Camera");
+    expect((await harness.readAccounts()).single.label, "Camera");
     expect(find.byType(OcptProjectVersionsPanel), findsOneWidget);
     await harness.tap(tester, find.text(tr.budgetRightDockInspectorTabLabel));
     expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
@@ -519,8 +522,8 @@ void main() {
       "screen, the database keeps its value, and the next edit writes both", (tester) async {
     final errors = <Object>[];
     await runZonedGuarded(() async {
-      final posteId = await harness.seedPoste("Camera");
-      await harness.seedLine(posteId, "Camera deposit");
+      final accountId = await harness.seedAccount("Camera");
+      await harness.seedLine(accountId, "Camera deposit");
       await harness.mount(tester);
       final tr = harness.trOf(tester);
       await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -532,7 +535,7 @@ void main() {
       await harness.letDebounceRun(tester);
       expect(errors, hasLength(1));
       expect(errors.single, isA<StateError>());
-      expect((await harness.readPoste("Camera")).lines.single.label, "Camera deposit");
+      expect((await harness.readAccount("Camera")).lines.single.label, "Camera deposit");
       expect(
         tester
             .widget<TextField>(harness.fieldLabelled(tr.budgetLineLabelFieldLabel))
@@ -545,7 +548,7 @@ void main() {
       harness.projectsManager.failures.failLineUpdates = false;
       await harness.type(tester, harness.fieldLabelled(tr.budgetLineLabelFieldLabel), "Rental 2");
       await harness.letDebounceRun(tester);
-      expect((await harness.readPoste("Camera")).lines.single.label, "Rental 2");
+      expect((await harness.readAccount("Camera")).lines.single.label, "Rental 2");
       expect(errors, hasLength(1));
     }, (error, stack) => errors.add(error));
   });
@@ -556,8 +559,8 @@ void main() {
   ) async {
     final errors = <Object>[];
     await runZonedGuarded(() async {
-      final posteId = await harness.seedPoste("Camera");
-      await harness.seedLine(posteId, "Camera deposit");
+      final accountId = await harness.seedAccount("Camera");
+      await harness.seedLine(accountId, "Camera deposit");
       await harness.mount(tester);
       final tr = harness.trOf(tester);
       await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -584,8 +587,8 @@ void main() {
   testWidgets("leaving the mode while a field write fails only logs it", (tester) async {
     final errors = <Object>[];
     await runZonedGuarded(() async {
-      final posteId = await harness.seedPoste("Camera");
-      await harness.seedLine(posteId, "Camera deposit");
+      final accountId = await harness.seedAccount("Camera");
+      await harness.seedLine(accountId, "Camera deposit");
       await harness.mount(tester);
       final tr = harness.trOf(tester);
       await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -597,7 +600,7 @@ void main() {
       await harness.unmount(tester);
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
       expect(errors, isEmpty);
-      expect((await harness.readPoste("Camera")).lines.single.label, "Camera deposit");
+      expect((await harness.readAccount("Camera")).lines.single.label, "Camera deposit");
     }, (error, stack) => errors.add(error));
   });
 }

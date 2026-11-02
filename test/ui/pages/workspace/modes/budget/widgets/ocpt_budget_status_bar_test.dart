@@ -28,7 +28,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         const OcptBudgetStatusBar(
-          posteCount: 10,
+          accountCount: 10,
           lineCount: 24,
           quotedTotalCents: 1996000,
           currencyCode: "EUR",
@@ -49,7 +49,7 @@ void main() {
     await tester.pumpWidget(
       _wrap(
         const OcptBudgetStatusBar(
-          posteCount: 0,
+          accountCount: 0,
           lineCount: 0,
           quotedTotalCents: 0,
           currencyCode: "EUR",

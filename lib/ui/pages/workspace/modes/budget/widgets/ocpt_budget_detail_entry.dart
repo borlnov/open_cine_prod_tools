@@ -17,7 +17,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_off_line_banner.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The entry variant: breadcrumb through its own poste (when it names one), the date/voucher hint
+/// The entry variant: breadcrumb through its own account (when it names one), the date/voucher hint
 /// and its own receipt marker, the stepper with `Payé` reached, and `Edit`/`Delete`. Also drawn by
 /// [OcptBudgetDetailReceipt]: [stepLabelsOverride], [reachedCountOverride] and [breadcrumbOverride]
 /// the only things that differ between the two readings of the very same row.
@@ -64,7 +64,7 @@ class OcptBudgetDetailEntry extends StatelessWidget {
     final onEntryMoveOffQuoteRequested = detail.onEntryMoveOffQuoteRequested;
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
-    final poste = entry.posteId == null ? null : detail.posteById(entry.posteId!);
+    final account = entry.accountId == null ? null : detail.accountById(entry.accountId!);
     final isDebit = entry.debitCents > 0;
     final amountCents = isDebit
         ? ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: defaultVatRateBasisPoints)
@@ -90,7 +90,7 @@ class OcptBudgetDetailEntry extends StatelessWidget {
         ? settlingResource.label
         : settlingRevenue?.label;
 
-    final title = entry.label.isEmpty ? tr.budgetPosteUnnamed : entry.label;
+    final title = entry.label.isEmpty ? tr.budgetAccountUnnamed : entry.label;
     final dateText = DateFormat.yMMMd(locale).format(entry.date);
     final hintLines = [
       tr.budgetDetailEntryHint(dateText, entry.voucherNumber),
@@ -101,27 +101,27 @@ class OcptBudgetDetailEntry extends StatelessWidget {
     Widget? offLineDebitBanner;
     if (ocptBudgetEntryIsOffLineDebit(entry)) {
       var bannerMessage = tr.budgetDetailEntryOffLineBannerText;
-      if (poste != null) {
-        final posteQuoted = ocptBudgetTotalOf(
-          poste.lines,
+      if (account != null) {
+        final accountQuoted = ocptBudgetTotalOf(
+          account.lines,
           basis: taxBasis,
           projectVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final postePaidCents = detail.paidCentsOf(poste.id);
-        final posteCommittedCents = detail.committedCentsOf(poste.id);
-        final posteInKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
-        final posteStrain = ocptBudgetPosteStrainOf(
-          quotedAmountCents: posteQuoted.amountCents,
-          paidCents: postePaidCents,
-          committedCents: posteCommittedCents,
-          inKindCoveredCents: posteInKindCoveredCents,
+        final accountPaidCents = detail.paidCentsOf(account.id);
+        final accountCommittedCents = detail.committedCentsOf(account.id);
+        final accountInKindCoveredCents = detail.inKindCoveredCentsOf(account.id);
+        final accountStrain = ocptBudgetAccountStrainOf(
+          quotedAmountCents: accountQuoted.amountCents,
+          paidCents: accountPaidCents,
+          committedCents: accountCommittedCents,
+          inKindCoveredCents: accountInKindCoveredCents,
         );
-        if (posteStrain == OcptBudgetPosteStrain.over) {
+        if (accountStrain == OcptBudgetAccountStrain.over) {
           final varianceCents = ocptBudgetVarianceCents(
-            quotedAmountCents: posteQuoted.amountCents,
-            paidCents: postePaidCents,
-            committedCents: posteCommittedCents,
-            inKindCoveredCents: posteInKindCoveredCents,
+            quotedAmountCents: accountQuoted.amountCents,
+            paidCents: accountPaidCents,
+            committedCents: accountCommittedCents,
+            inKindCoveredCents: accountInKindCoveredCents,
           );
           bannerMessage = tr.budgetDetailEntryOffLineBannerOverQuoteText(
             detail.amountLabelOf(varianceCents),
@@ -141,8 +141,9 @@ class OcptBudgetDetailEntry extends StatelessWidget {
       breadcrumb:
           breadcrumbOverride ??
           [
-            if (poste != null)
-              "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
+            if (account != null)
+              "${account.code} "
+                  "${ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified)}",
             tr.budgetDetailKindEntryLabel,
           ],
       title: title,

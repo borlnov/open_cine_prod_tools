@@ -67,7 +67,7 @@ class OcptBudgetCostTrackingSubLabel extends StatelessWidget {
         if (badgeText != null && badgeText.isNotEmpty) ...[
           const SizedBox(width: 6),
           // Capped, never left to its own natural width: at the pinned pane's own narrowest
-          // ([ocptBudgetCostTrackingPosteColumnMinWidth]), a long status word ("Quote accepted")
+          // ([ocptBudgetCostTrackingAccountColumnMinWidth]), a long status word ("Quote accepted")
           // would otherwise overflow the row outright rather than sharing the little room there is
           // with the label beside it.
           ConstrainedBox(

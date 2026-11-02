@@ -18,15 +18,15 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
-/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC postes.** This app names
-/// no financing resource of its own — a subsidy or a cash contribution is entirely the production's
-/// own business — and, as `OcptBudgetMileageRatesTable`'s own doc comment argues, it states no
-/// mileage scale either: both tables come out of [loadResources]/[loadMileageRates] exactly as
-/// empty as the project that has never been read from before them.
+/// **No seeding of any kind, unlike `OcptBudgetQuoteService`'s own ten CNC accounts.** This app
+/// names no financing resource of its own — a subsidy or a cash contribution is entirely the
+/// production's own business — and, as `OcptBudgetMileageRatesTable`'s own doc comment argues, it
+/// states no mileage scale either: both tables come out of [loadResources]/[loadMileageRates]
+/// exactly as empty as the project that has never been read from before them.
 ///
-/// **Both tables order flat by their own `sortKey`**, like `OcptBudgetPostesTable`'s own catalogue:
-/// neither a resource nor a rate belongs inside another row the way a quote line belongs inside its
-/// poste.
+/// **Both tables order flat by their own `sortKey`**, like `OcptBudgetAccountsTable`'s own
+/// catalogue: neither a resource nor a rate belongs inside another row the way a quote line belongs
+/// inside its account.
 class OcptBudgetFinancingService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].

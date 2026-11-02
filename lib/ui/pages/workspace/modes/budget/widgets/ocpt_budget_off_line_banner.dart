@@ -9,11 +9,11 @@ import 'package:flutter/material.dart';
 /// `Add to the quote` ([promoteLabel]) is always the first, and `Move off-quote`
 /// ([moveOffQuoteLabel], null for a record that has no such reconciliation) the optional second —
 /// `docs/architecture/budget.md`'s "Off-quote spending is named, never hidden". An off-line debit
-/// entry offers both (promote into a quote line and a settled commitment, or clear its own poste);
-/// an off-line commitment offers only the first, since a commitment always names a poste and cannot
-/// be moved off-quote. Either action clears the banner in one click, so it carries no warning
-/// colour of its own: the message states the fact, and, while the poste is currently over its
-/// quote, by how much, but the banner itself is neither an alert nor a verdict.
+/// entry offers both (promote into a quote line and a settled commitment, or clear its own
+/// account); an off-line commitment offers only the first, since a commitment always names an
+/// account and cannot be moved off-quote. Either action clears the banner in one click, so it
+/// carries no warning colour of its own: the message states the fact, and, while the account is
+/// currently over its quote, by how much, but the banner itself is neither an alert nor a verdict.
 ///
 /// **Withheld, not disabled** (`AGENTS.md`): a null action is simply not drawn, rather than a
 /// button greyed out — `OcptBudgetDetail`'s own callbacks arrive null under a previewed version,

@@ -16,7 +16,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// CRUD over the budget mode's cash journal: the `budget_entries` movements and the
-/// `budget_commitments` still owed against a poste.
+/// `budget_commitments` still owed against an account.
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
@@ -27,10 +27,10 @@ import 'package:uuid/uuid.dart';
 /// ([loadCommitments]), then `sortKey`: a commitment nobody has dated yet is not due sooner than
 /// every dated one, which is what SQLite's own default (nulls first) would otherwise claim.
 ///
-/// Both tables still carry a flat `sortKey` of their own, read exactly as `OcptBudgetPostesTable`'s
-/// own catalogue is: [createEntry]/[createCommitment] append to it and [reorderEntry]/
-/// [reorderCommitment] move a single row within it, independently of the chronological or
-/// due-date order [loadEntries]/[loadCommitments] actually display rows in.
+/// Both tables still carry a flat `sortKey` of their own, read exactly as
+/// `OcptBudgetAccountsTable`'s own catalogue is: [createEntry]/[createCommitment] append to it and
+/// [reorderEntry]/ [reorderCommitment] move a single row within it, independently of the
+/// chronological or due-date order [loadEntries]/[loadCommitments] actually display rows in.
 class OcptBudgetJournalService extends AbsOcptService {
   /// The prefix every voucher number [createEntry] mints starts with: `J-001`, `J-002`, …, growing
   /// past three digits rather than wrapping once a project needs a fourth.
@@ -146,7 +146,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     required OcptProjectDatabase database,
     required DateTime date,
     required String label,
-    String? posteId,
+    String? accountId,
     String? resourceId,
     String? revenueId,
     String? shareId,
@@ -180,7 +180,7 @@ class OcptBudgetJournalService extends AbsOcptService {
           isDeleted: false,
           date: date,
           label: label,
-          posteId: posteId,
+          accountId: accountId,
           resourceId: resourceId,
           revenueId: revenueId,
           shareId: shareId,
@@ -201,7 +201,7 @@ class OcptBudgetJournalService extends AbsOcptService {
   }
 
   /// Update the fields of entry [entryId] in [database] that are passed as something other than
-  /// [Value.absent], [voucherNumber] included: unlike `OcptBudgetLinesTable`'s `posteId`, a
+  /// [Value.absent], [voucherNumber] included: unlike `OcptBudgetLinesTable`'s `accountId`, a
   /// voucher number is exactly the kind of field a user is expected to retype once the number
   /// [createEntry] minted doesn't match the paper trail (a supplier's own reference, say). Never
   /// touches `sortKey` or `isDeleted`: those only change through [reorderEntry] and [deleteEntry].
@@ -212,7 +212,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     required String entryId,
     Value<DateTime> date = const Value.absent(),
     Value<String> label = const Value.absent(),
-    Value<String?> posteId = const Value.absent(),
+    Value<String?> accountId = const Value.absent(),
     Value<String?> resourceId = const Value.absent(),
     Value<String?> revenueId = const Value.absent(),
     Value<String?> shareId = const Value.absent(),
@@ -231,7 +231,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     final companion = OcptBudgetEntriesTableCompanion(
       date: date,
       label: label,
-      posteId: posteId,
+      accountId: accountId,
       resourceId: resourceId,
       revenueId: revenueId,
       shareId: shareId,
@@ -362,7 +362,7 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// **No `receiptAssetId` column exists on `budget_entries` to write back**: `assets
   /// .budgetEntryId` is the only place this link is recorded — a second, redundant column on the
   /// entry itself would only be one more copy of the same fact to keep in step, which is exactly
-  /// the argument `OcptBudgetPostesTable`'s own doc comment already makes against a stored
+  /// the argument `OcptBudgetAccountsTable`'s own doc comment already makes against a stored
   /// `quotedAmount`.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
@@ -414,13 +414,13 @@ class OcptBudgetJournalService extends AbsOcptService {
     });
   }
 
-  /// Create a new commitment against [posteId], appended at the end of the commitment list's own
+  /// Create a new commitment against [accountId], appended at the end of the commitment list's own
   /// flat `sortKey` order, and return its freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createCommitment({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     required String label,
     DateTime? dueDate,
     int amountCents = 0,
@@ -449,7 +449,7 @@ class OcptBudgetJournalService extends AbsOcptService {
             before: existing.isEmpty ? null : existing.last.sortKey,
           ),
           isDeleted: false,
-          posteId: posteId,
+          accountId: accountId,
           label: label,
           dueDate: dueDate,
           amountCents: amountCents,
@@ -473,15 +473,15 @@ class OcptBudgetJournalService extends AbsOcptService {
   /// that link back to null on the entry that named it ([updateEntry]). Never touches `sortKey` or
   /// `isDeleted`: those only change through [reorderCommitment] and [deleteCommitment].
   ///
-  /// **[posteId] *is* updatable here, unlike `OcptBudgetQuoteService.updateLine`'s own.** That
-  /// method withholds it because a line's `sortKey` is fractional **within its own `posteId`**, so
-  /// moving a line to another poste would need its position recomputed against a different group
-  /// entirely — a real second operation wearing the name of a field write. This table's `sortKey`
-  /// is flat, so no such thing is true of a commitment, and a commitment's poste is exactly the
-  /// field somebody gets wrong: it is an attribution typed once against a ten-poste nomenclature,
-  /// not the parent that gives the row its place. Refusing it would leave a mistyped commitment
-  /// correctable only by deleting it — and a delete here is a tombstone kept forever (ADR 0010),
-  /// which is a heavy price for a slip of the mouse.
+  /// **[accountId] *is* updatable here, unlike `OcptBudgetQuoteService.updateLine`'s own.** That
+  /// method withholds it because a line's `sortKey` is fractional **within its own `accountId`**,
+  /// so moving a line to another account would need its position recomputed against a different
+  /// group entirely — a real second operation wearing the name of a field write. This table's
+  /// `sortKey` is flat, so no such thing is true of a commitment, and a commitment's account is
+  /// exactly the field somebody gets wrong: it is an attribution typed once against a ten-account
+  /// nomenclature, not the parent that gives the row its place. Refusing it would leave a mistyped
+  /// commitment correctable only by deleting it — and a delete here is a tombstone kept forever
+  /// (ADR 0010), which is a heavy price for a slip of the mouse.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> updateCommitment({
@@ -489,7 +489,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     required String commitmentId,
     Value<DateTime?> dueDate = const Value.absent(),
     Value<String> label = const Value.absent(),
-    Value<String> posteId = const Value.absent(),
+    Value<String> accountId = const Value.absent(),
     Value<int> amountCents = const Value.absent(),
     Value<bool> isTaxInclusive = const Value.absent(),
     Value<int?> vatRateBasisPoints = const Value.absent(),
@@ -503,7 +503,7 @@ class OcptBudgetJournalService extends AbsOcptService {
     final companion = OcptBudgetCommitmentsTableCompanion(
       dueDate: dueDate,
       label: label,
-      posteId: posteId,
+      accountId: accountId,
       amountCents: amountCents,
       isTaxInclusive: isTaxInclusive,
       vatRateBasisPoints: vatRateBasisPoints,

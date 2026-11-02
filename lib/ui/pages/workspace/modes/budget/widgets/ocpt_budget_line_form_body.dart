@@ -10,18 +10,18 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// The small form the entry wizard's own `addQuoteLine` gesture ends on — an intitulé, a quantité
-/// and a prix unitaire, priced against whichever poste step 2 already named — so a quote line can
+/// and a prix unitaire, priced against whichever account step 2 already named — so a quote line can
 /// be **born filled** rather than created blank and edited inline in the tree, the shape
 /// `OcptBudgetLineCreatedEvent.fields` non-null now writes in one call.
 ///
-/// **Reads no `posteId` at all.** Which poste this line prices is the wizard's own step 2 answer
-/// (`OcptBudgetGestureAttachment.poste`), not a fact this body asks about a second time — the host
-/// hands the line's own poste to `OcptBudgetLineCreatedEvent` directly, exactly as it already hands
-/// it a bare `posteId` today.
+/// **Reads no `accountId` at all.** Which account this line prices is the wizard's own step 2
+/// answer (`OcptBudgetGestureAttachment.account`), not a fact this body asks about a second time —
+/// the host hands the line's own account to `OcptBudgetLineCreatedEvent` directly, exactly as it
+/// already hands it a bare `accountId` today.
 ///
 /// **No dialog of its own, and nothing opens it yet.** This groundwork only builds the form the
 /// wizard's own step 3 will embed; the wizard itself is a later task. `Label`, `Quantity`, `Unit`
-/// and `Unit price` reuse the very same field labels the poste inspector's own inline editor
+/// and `Unit price` reuse the very same field labels the account inspector's own inline editor
 /// already shows for a quote line (`tr.budgetLineLabelFieldLabel` and its three siblings), so a
 /// line typed here reads no differently from one typed inline.
 ///

@@ -68,9 +68,9 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
 /// [clearSelection] drops the detail panel's own selection as the view changes — **true only for
 /// the header's own chip**, where the reader is leaving one document for another and the object
 /// they had open belonged to the one they are leaving, so the Inspector greets the new view empty
-/// rather than still showing a poste on the takings page. It is **false for every gesture that
+/// rather than still showing an account on the takings page. It is **false for every gesture that
 /// switches the view *and* selects something in one move**
-/// (`OcptBudgetDashboardView._handlePosteOpened`, `_handleLineShowCommitment` Requested), which
+/// (`OcptBudgetDashboardView._handleAccountOpened`, `_handleLineShowCommitment` Requested), which
 /// would otherwise wipe the very selection it just made, whichever order the two events happen to
 /// run in.
 class OcptBudgetViewSelectedEvent extends OcptBudgetWorkspaceEvent {
@@ -137,9 +137,9 @@ class OcptBudgetTaxBasisChangedEvent extends OcptBudgetWorkspaceEvent {
   List<Object?> get props => [...super.props, basis];
 }
 
-/// Expand or collapse expenses-tree node [nodeId] — a poste's or a quote line's own id, whichever
-/// twisty was clicked: an already-expanded node collapses, a collapsed one expands, independently
-/// of every other one, so several branches of the tree can stand open together.
+/// Expand or collapse expenses-tree node [nodeId] — an account's or a quote line's own id,
+/// whichever twisty was clicked: an already-expanded node collapses, a collapsed one expands,
+/// independently of every other one, so several branches of the tree can stand open together.
 class OcptBudgetRowExpansionToggledEvent extends OcptBudgetWorkspaceEvent {
   /// The id of the node whose twisty was clicked.
   final String nodeId;
@@ -160,38 +160,38 @@ class OcptBudgetProjectSettingsChangedEvent extends OcptBudgetWorkspaceEvent {
   const OcptBudgetProjectSettingsChangedEvent();
 }
 
-/// Narrow every view of the mode to poste [posteId], or clear the filter when it is null —
-/// dispatched by the header's own poste filter, the only control that sets it.
+/// Narrow every view of the mode to account [accountId], or clear the filter when it is null —
+/// dispatched by the header's own account filter, the only control that sets it.
 ///
-/// **Not `OcptBudgetPosteSelectedEvent`'s inverse, and no longer the same field.** The filter used
-/// to *be* `OcptBudgetState.selectedPosteId`, which meant clicking a row in the quote silently
-/// narrowed the cash journal — a view the reader was not looking at, so they discovered it on
-/// arriving there, with no obvious way back. Selecting and filtering are now two facts:
-/// `OcptBudgetPosteSelectedEvent` says what the inspector reads,
-/// `OcptBudgetState.filterPosteId` says what every view is narrowed to, and only a gesture
+/// **Not `OcptBudgetAccountSelectedEvent`'s inverse, and no longer the same field.** The filter
+/// used to *be* `OcptBudgetState.selectedAccountId`, which meant clicking a row in the quote
+/// silently narrowed the cash journal — a view the reader was not looking at, so they discovered it
+/// on arriving there, with no obvious way back. Selecting and filtering are now two facts:
+/// `OcptBudgetAccountSelectedEvent` says what the inspector reads,
+/// `OcptBudgetState.filterAccountId` says what every view is narrowed to, and only a gesture
 /// that says "filter" sets it.
-class OcptBudgetPosteFilterSelectedEvent extends OcptBudgetWorkspaceEvent {
-  /// The poste to narrow every view to, or null to go back to the whole project.
-  final String? posteId;
+class OcptBudgetAccountFilterSelectedEvent extends OcptBudgetWorkspaceEvent {
+  /// The account to narrow every view to, or null to go back to the whole project.
+  final String? accountId;
 
   /// Class constructor
-  const OcptBudgetPosteFilterSelectedEvent({required this.posteId});
+  const OcptBudgetAccountFilterSelectedEvent({required this.accountId});
 
   /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
-  List<Object?> get props => [...super.props, posteId];
+  List<Object?> get props => [...super.props, accountId];
 }
 
-/// Point the logistics view's own provisioning at poste [posteId] — a selection, written to no
+/// Point the logistics view's own provisioning at account [accountId] — a selection, written to no
 /// project and remembered for as long as the mode is open.
-class OcptBudgetProvisionPosteSelectedEvent extends OcptBudgetWorkspaceEvent {
-  /// The id of the poste just picked.
-  final String posteId;
+class OcptBudgetProvisionAccountSelectedEvent extends OcptBudgetWorkspaceEvent {
+  /// The id of the account just picked.
+  final String accountId;
 
   /// Class constructor
-  const OcptBudgetProvisionPosteSelectedEvent({required this.posteId});
+  const OcptBudgetProvisionAccountSelectedEvent({required this.accountId});
 
   /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
-  List<Object?> get props => [...super.props, posteId];
+  List<Object?> get props => [...super.props, accountId];
 }

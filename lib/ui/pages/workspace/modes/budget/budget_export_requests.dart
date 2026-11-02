@@ -28,7 +28,7 @@ List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _exportEntriesOf(
   OcptBudgetState state,
 ) {
   final tr = Tr.of(context);
-  final noPosteReason = state.postes.isEmpty ? tr.budgetExportUnavailableNoPosteReason : null;
+  final noAccountReason = state.accounts.isEmpty ? tr.budgetExportUnavailableNoAccountReason : null;
 
   return [
     OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
@@ -36,7 +36,7 @@ List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _exportEntriesOf(
       title: tr.budgetExportQuoteTitle,
       description: tr.budgetExportQuoteDescription,
       formatLabel: "PDF",
-      unavailableReason: noPosteReason,
+      unavailableReason: noAccountReason,
     ),
     OcptWorkspaceExportEntry<OcptBudgetExportDocument>(
       value: OcptBudgetExportDocument.financingPlan,
@@ -59,7 +59,7 @@ List<OcptWorkspaceExportEntry<OcptBudgetExportDocument>> _exportEntriesOf(
       title: tr.budgetExportFinancialReportTitle,
       description: tr.budgetExportFinancialReportDescription,
       formatLabel: "PDF",
-      unavailableReason: noPosteReason,
+      unavailableReason: noAccountReason,
     ),
   ];
 }

@@ -157,10 +157,10 @@ void main() {
     });
   });
 
-  group("ocptBudgetPosteUniformVatRateOf", () {
+  group("ocptBudgetAccountUniformVatRateOf", () {
     OcptBudgetLine buildLine({required String id, int? vatRateBasisPoints}) => OcptBudgetLine(
       id: id,
-      posteId: "poste-1",
+      accountId: "poste-1",
       label: "A line",
       quantityMilli: 1000,
       unit: "unit",
@@ -178,7 +178,7 @@ void main() {
     );
 
     test("answers the rate every line agrees on, and says it was overridden", () {
-      final rate = ocptBudgetPosteUniformVatRateOf([
+      final rate = ocptBudgetAccountUniformVatRateOf([
         buildLine(id: "a", vatRateBasisPoints: 550),
         buildLine(id: "b", vatRateBasisPoints: 550),
       ], projectVatRateBasisPoints: 2000);
@@ -188,7 +188,7 @@ void main() {
     });
 
     test("answers the project's own rate when every line inherits it", () {
-      final rate = ocptBudgetPosteUniformVatRateOf([
+      final rate = ocptBudgetAccountUniformVatRateOf([
         buildLine(id: "a"),
         buildLine(id: "b"),
       ], projectVatRateBasisPoints: 2000);
@@ -199,7 +199,7 @@ void main() {
 
     test("answers nothing while the lines disagree about the figure", () {
       expect(
-        ocptBudgetPosteUniformVatRateOf([
+        ocptBudgetAccountUniformVatRateOf([
           buildLine(id: "a", vatRateBasisPoints: 550),
           buildLine(id: "b", vatRateBasisPoints: 2000),
         ], projectVatRateBasisPoints: null),
@@ -211,7 +211,7 @@ void main() {
       // The figure is the same either way; where it comes from is not, and the sub-line would have
       // no one colour to be painted in.
       expect(
-        ocptBudgetPosteUniformVatRateOf([
+        ocptBudgetAccountUniformVatRateOf([
           buildLine(id: "a", vatRateBasisPoints: 2000),
           buildLine(id: "b"),
         ], projectVatRateBasisPoints: 2000),
@@ -221,10 +221,10 @@ void main() {
 
     test("answers nothing while no rate is known at all, and for a poste with no line", () {
       expect(
-        ocptBudgetPosteUniformVatRateOf([buildLine(id: "a")], projectVatRateBasisPoints: null),
+        ocptBudgetAccountUniformVatRateOf([buildLine(id: "a")], projectVatRateBasisPoints: null),
         isNull,
       );
-      expect(ocptBudgetPosteUniformVatRateOf(const [], projectVatRateBasisPoints: 2000), isNull);
+      expect(ocptBudgetAccountUniformVatRateOf(const [], projectVatRateBasisPoints: 2000), isNull);
     });
   });
 }

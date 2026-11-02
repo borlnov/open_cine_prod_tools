@@ -122,7 +122,7 @@ void main() {
     await openTools(tester, page: tr.budgetHeaderSharingSegmentLabel);
   }
 
-  /// The `⋮` menu of the poste row named [label], in the expenses table — needed because
+  /// The `⋮` menu of the account row named [label], in the expenses table — needed because
   /// `OcptBudgetCostTracking` draws its identity pane (a row's own name) and its amounts pane
   /// (where a row's own `⋮` menu lives) as sibling subtrees sharing one vertical scroll, not one
   /// ancestor of the other, so [find.ancestor]/[find.descendant] cannot connect the two.
@@ -149,18 +149,18 @@ void main() {
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
-    // Selecting a poste in the quote opens the right dock on its inspector.
+    // Selecting an account in the quote opens the right dock on its inspector.
     await openExpenses(tester);
     await tester.tap(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
+        matching: find.text(tr.budgetCncAccountArtisticRights),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
 
-    // The logistics has no poste and never puts one there, so the tab goes rather than showing a
+    // The logistics has no account and never puts one there, so the tab goes rather than showing a
     // stale one — and the dock falls back to the help panel instead of closing.
     await openLogistics(tester);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
@@ -447,22 +447,22 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(OcptBudgetCostTracking),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
+        matching: find.text(tr.budgetCncAccountArtisticRights),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Selected: the click opened the detail panel on this very poste.
+    // Selected: the click opened the detail panel on this very account.
     expect(find.byType(OcptBudgetDetail), findsOneWidget);
 
-    // Not filtered: the header draws no poste filter tag at all — the one place every view of
+    // Not filtered: the header draws no account filter tag at all — the one place every view of
     // the mode agrees on whether it is narrowed.
     Finder filterTagIcon() =>
         find.descendant(of: find.byType(OcptBudgetHeader), matching: find.byIcon(Icons.close));
     expect(filterTagIcon(), findsNothing);
 
     // The cash flow page, a document the filter would narrow if it were set, still lists every
-    // poste's own movement rather than one.
+    // account's own movement rather than one.
     await openCashFlow(tester);
     expect(filterTagIcon(), findsNothing);
   });
@@ -485,27 +485,27 @@ void main() {
       // No tag drawn while nothing is filtered.
       Finder filterTag() => find.descendant(
         of: find.byType(OcptBudgetHeader),
-        matching: find.text(tr.budgetCncPosteArtisticRights),
+        matching: find.text(tr.budgetCncAccountArtisticRights),
       );
       expect(filterTag(), findsNothing);
 
-      await tester.tap(menuInRowOf(tester, tr.budgetCncPosteArtisticRights));
+      await tester.tap(menuInRowOf(tester, tr.budgetCncAccountArtisticRights));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr.budgetCostTrackingFilterOnlyAction));
       await tester.pumpAndSettle();
 
-      // The header now draws the filter tag naming the poste — the mode is narrowed.
+      // The header now draws the filter tag naming the account — the mode is narrowed.
       expect(filterTag(), findsOneWidget);
 
       // And the narrowing is real, not merely announced by the tag: the expenses table has
-      // dropped every other poste.
+      // dropped every other account.
       Finder inCostTracking(Finder matching) =>
           find.descendant(of: find.byType(OcptBudgetCostTracking), matching: matching);
-      expect(inCostTracking(find.text(tr.budgetCncPosteArtisticRights)), findsOneWidget);
-      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsNothing);
+      expect(inCostTracking(find.text(tr.budgetCncAccountArtisticRights)), findsOneWidget);
+      expect(inCostTracking(find.text(tr.budgetCncAccountOverheads)), findsNothing);
 
       // The tag still stands while a route that does not honour the filter is on screen — the
-      // tools drawer's own cash flow page still lists every poste's own movement rather than one.
+      // tools drawer's own cash flow page still lists every account's own movement rather than one.
       await openCashFlow(tester);
       expect(filterTag(), findsOneWidget);
 
@@ -517,7 +517,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(filterTag(), findsNothing);
-      expect(inCostTracking(find.text(tr.budgetCncPosteOverheads)), findsOneWidget);
+      expect(inCostTracking(find.text(tr.budgetCncAccountOverheads)), findsOneWidget);
     },
   );
 
@@ -605,12 +605,12 @@ void main() {
         await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
         await tester.pumpAndSettle();
 
-        // Step 2: which poste this line prices — scoped to the wizard, whose background still
-        // shows the very same poste name in the expenses table underneath it.
+        // Step 2: which account this line prices — scoped to the wizard, whose background still
+        // shows the very same account name in the expenses table underneath it.
         await tester.tap(
           find.descendant(
             of: find.byType(OcptBudgetNewDialog),
-            matching: find.text(tr.budgetCncPosteArtisticRights),
+            matching: find.text(tr.budgetCncAccountArtisticRights),
           ),
         );
         await tester.pumpAndSettle();

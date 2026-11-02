@@ -105,8 +105,8 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
-/// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+/// A minimal account, everything but [id]/[label] neutral.
+OcptBudgetAccount _account({required String id, required String label}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: label,
@@ -197,12 +197,12 @@ OcptPerson _person({required String id, String firstName = ""}) => OcptPerson(
 );
 
 /// A minimal existing entry, its debit or credit set by whichever of [debitCents]/[creditCents] is
-/// non-zero, naming at most one of [posteId]/[resourceId]/[revenueId]/[shareId]/[personId].
+/// non-zero, naming at most one of [accountId]/[resourceId]/[revenueId]/[shareId]/[personId].
 OcptBudgetEntry _existingEntry({
   String id = "entry-1",
   DateTime? date,
   String label = "Camera rental",
-  String? posteId,
+  String? accountId,
   String? resourceId,
   String? revenueId,
   String? shareId,
@@ -216,7 +216,7 @@ OcptBudgetEntry _existingEntry({
   id: id,
   date: date ?? DateTime(2026, 1, 15),
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -253,12 +253,12 @@ void main() {
   });
 
   /// Pumps [OcptBudgetEntryDialog] directly (no `.show`), [existing] defaulting to a plain debit
-  /// naming a poste — this dialog now only ever edits, so [existing] is never null.
+  /// naming an account — this dialog now only ever edits, so [existing] is never null.
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetEntry? existing,
     OcptAssetRef? existingReceipt,
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
@@ -271,7 +271,7 @@ void main() {
         OcptBudgetEntryDialog(
           existing: existing ?? _existingEntry(debitCents: 5000),
           existingReceipt: existingReceipt,
-          postes: postes,
+          accounts: accounts,
           resources: resources,
           revenues: revenues,
           shares: shares,
@@ -304,10 +304,10 @@ void main() {
         existing: _existingEntry(
           date: DateTime(2026, 4, 2),
           label: "Steadicam hire",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 45000,
         ),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
       expect(find.widgetWithText(TextFormField, "Steadicam hire"), findsOneWidget);
@@ -329,11 +329,11 @@ void main() {
     testWidgets("a poste alone draws Poste du devis and no other link field", (tester) async {
       final tr = await pumpDialog(
         tester,
-        existing: _existingEntry(posteId: "poste-1", debitCents: 5000),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        existing: _existingEntry(accountId: "poste-1", debitCents: 5000),
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsOneWidget);
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsNothing);
       expect(find.text(tr.budgetEntryDialogRevenueFieldLabel), findsNothing);
       expect(find.text(tr.budgetEntryDialogShareFieldLabel), findsNothing);
@@ -350,7 +350,7 @@ void main() {
       );
 
       expect(find.text(tr.budgetEntryDialogResourceFieldLabel), findsOneWidget);
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsNothing);
     });
 
     testWidgets("a taking alone draws Recette", (tester) async {
@@ -389,7 +389,7 @@ void main() {
     ) async {
       final tr = await pumpDialog(tester, existing: _existingEntry(debitCents: 5000));
 
-      expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsOneWidget);
+      expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsOneWidget);
       // Drawn upper-cased, like every other bare field label of this dialog.
       expect(find.text(tr.budgetEntryDialogDirectionFieldLabel.toUpperCase()), findsOneWidget);
     });
@@ -399,8 +399,8 @@ void main() {
     testWidgets("pops with the fields typed, including the retyped voucher number", (tester) async {
       await pumpDialog(
         tester,
-        existing: _existingEntry(posteId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        existing: _existingEntry(accountId: "poste-1", debitCents: 5000, voucherNumber: "J-001"),
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
       await tester.enterText(find.widgetWithText(TextFormField, "J-001"), "J-002");
@@ -410,7 +410,7 @@ void main() {
       expect(routerManager.popped, isTrue);
       final fields = routerManager.poppedValue! as OcptBudgetEntryFormFields;
       expect(fields.voucherNumber, "J-002");
-      expect(fields.posteId, "poste-1");
+      expect(fields.accountId, "poste-1");
       expect(fields.isDebit, isTrue);
       expect(fields.amountCents, 5000);
     });
@@ -470,7 +470,7 @@ void main() {
       await _registerFileSelector("/tmp/fresh-receipt.pdf");
       await pumpDialog(
         tester,
-        postes: [_poste(id: "poste-1", label: "Camera")],
+        accounts: [_account(id: "poste-1", label: "Camera")],
       );
 
       await tester.tap(find.byType(OutlinedButton));

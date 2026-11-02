@@ -26,7 +26,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// withheld for in-kind, and the app never hides a real movement: an in-kind resource an entry
 /// does name keeps the stepper and its received figure.
 ///
-/// **An in-kind resource names the poste its own counterpart quote line offsets**, resolved
+/// **An in-kind resource names the account its own counterpart quote line offsets**, resolved
 /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
 /// on `budget_resources`" (`docs/architecture/budget.md`). Nothing draws while no counterpart
 /// line has been minted for it yet.
@@ -43,7 +43,7 @@ class OcptBudgetDetailResource extends StatelessWidget {
   /// Build the budget detail panel resource as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final postes = detail.postes;
+    final accounts = detail.accounts;
     final isSimplified = detail.isSimplified;
     final isReadOnly = detail.isReadOnly;
     final receivedByResourceId = detail.receivedByResourceId;
@@ -64,17 +64,17 @@ class OcptBudgetDetailResource extends StatelessWidget {
     final canReceive =
         !isReadOnly && !isInKind && outstandingCents > 0 && onResourceReceiptRequested != null;
 
-    Widget? offsetsPosteBanner;
+    Widget? offsetsAccountBanner;
     if (isInKind) {
-      final counterpartLine = ocptBudgetInKindCounterpartLineOf(postes, resource.id);
-      final offsetPoste = counterpartLine == null
+      final counterpartLine = ocptBudgetInKindCounterpartLineOf(accounts, resource.id);
+      final offsetAccount = counterpartLine == null
           ? null
-          : postes.firstWhereOrNull((poste) => poste.id == counterpartLine.posteId);
-      if (offsetPoste != null) {
-        offsetsPosteBanner = OcptBudgetDetailInfoBanner(
-          message: tr.budgetDetailInKindOffsetsPoste(
-            "${offsetPoste.code} "
-            "${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
+          : accounts.firstWhereOrNull((account) => account.id == counterpartLine.accountId);
+      if (offsetAccount != null) {
+        offsetsAccountBanner = OcptBudgetDetailInfoBanner(
+          message: tr.budgetDetailInKindOffsetsAccount(
+            "${offsetAccount.code} "
+            "${ocptBudgetAccountDisplayLabel(offsetAccount, isSimplified: isSimplified)}",
           ),
         );
       }
@@ -85,7 +85,7 @@ class OcptBudgetDetailResource extends StatelessWidget {
         tr.budgetHeaderResourcesSegmentLabel,
         ocptBudgetResourceGroupKindLabel(tr, resource.groupKind),
       ],
-      title: resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
+      title: resource.label.isEmpty ? tr.budgetAccountUnnamed : resource.label,
       amountText: detail.amountLabelOf(resource.amountCents),
       hint: resource.notes.isEmpty ? null : resource.notes,
       badge: ocptBudgetResourceStatusLabel(tr, resource.groupKind, resource.status),
@@ -110,7 +110,7 @@ class OcptBudgetDetailResource extends StatelessWidget {
             ],
       outstandingLabel: readsAsUncollected ? null : tr.budgetFinancingColumnOutstanding,
       outstandingValue: readsAsUncollected ? null : detail.amountLabelOf(outstandingCents),
-      banner: offsetsPosteBanner,
+      banner: offsetsAccountBanner,
       primary: canReceive
           ? OcptBudgetDetailAction(
               label: tr.budgetDetailReceiveAction(

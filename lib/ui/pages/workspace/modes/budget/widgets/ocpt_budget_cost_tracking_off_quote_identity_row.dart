@@ -14,14 +14,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The pinned pane's own off-quote row: a twisty, then the `Off quote` label, in the `Poste`
 /// column's own place — the identity half of the very same row
 /// [OcptBudgetCostTrackingOffQuoteAmountsRow] draws the other half of, exactly the way
-/// [OcptBudgetCostTrackingPosteIdentityRow] and [OcptBudgetCostTrackingPosteAmountsRow] split an
-/// ordinary poste's row.
+/// [OcptBudgetCostTrackingAccountIdentityRow] and [OcptBudgetCostTrackingAccountAmountsRow] split
+/// an ordinary account's row.
 ///
-/// **This row is not a poste, and draws nothing else that would let it pass for one**: no `N°`, no
-/// selection highlight and — [OcptBudgetCostTrackingOffQuoteAmountsRow]'s own doc comment argues
+/// **This row is not an account, and draws nothing else that would let it pass for one**: no `N°`,
+/// no selection highlight and — [OcptBudgetCostTrackingOffQuoteAmountsRow]'s own doc comment argues
 /// why — no `⋮` menu either. Neither half carries an `onTap` of its own at all: it is a reading
 /// over the journal, not a record anybody can rename, reorder or delete, so clicking the label does
-/// nothing rather than quietly calling [OcptBudgetCostTracking.onPosteSelected] with nothing to
+/// nothing rather than quietly calling [OcptBudgetCostTracking.onAccountSelected] with nothing to
 /// select.
 ///
 /// **The twisty is the one thing this row can do**: `OcptBudgetCostTracking._rowsOf` draws it
@@ -33,7 +33,7 @@ class OcptBudgetCostTrackingOffQuoteIdentityRow extends StatelessWidget {
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
-  final double posteWidth;
+  final double accountWidth;
 
   /// Whether this row is currently expanded.
   final bool isExpanded;
@@ -45,7 +45,7 @@ class OcptBudgetCostTrackingOffQuoteIdentityRow extends StatelessWidget {
   const OcptBudgetCostTrackingOffQuoteIdentityRow({
     super.key,
     required this.isSimplified,
-    required this.posteWidth,
+    required this.accountWidth,
     required this.isExpanded,
     required this.onTwistyTap,
   });
@@ -60,10 +60,10 @@ class OcptBudgetCostTrackingOffQuoteIdentityRow extends StatelessWidget {
       height: ocptBudgetCostTrackingRowHeight,
       child: Row(
         children: [
-          // Never a poste code, whatever the width — this row is not a poste.
+          // Never an account code, whatever the width — this row is not an account.
           if (!isSimplified) const SizedBox(width: ocptBudgetCostTrackingNumberColumnWidth),
           SizedBox(
-            width: posteWidth,
+            width: accountWidth,
             child: Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
               child: Row(

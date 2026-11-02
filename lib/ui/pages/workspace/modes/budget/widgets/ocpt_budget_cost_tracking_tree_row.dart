@@ -15,26 +15,26 @@ sealed class OcptBudgetCostTrackingTreeRow {
   const OcptBudgetCostTrackingTreeRow();
 }
 
-/// A poste row — the tree's own top level.
-class OcptBudgetCostTrackingPosteTreeRow extends OcptBudgetCostTrackingTreeRow {
-  /// The poste this row draws.
-  final OcptBudgetPoste poste;
+/// An account row — the tree's own top level.
+class OcptBudgetCostTrackingAccountTreeRow extends OcptBudgetCostTrackingTreeRow {
+  /// The account this row draws.
+  final OcptBudgetAccount account;
 
-  /// Whether this poste has anything at all to expand onto.
+  /// Whether this account has anything at all to expand onto.
   final bool isExpandable;
 
-  /// Whether this poste is currently expanded.
+  /// Whether this account is currently expanded.
   final bool isExpanded;
 
   /// Class constructor
-  const OcptBudgetCostTrackingPosteTreeRow({
-    required this.poste,
+  const OcptBudgetCostTrackingAccountTreeRow({
+    required this.account,
     required this.isExpandable,
     required this.isExpanded,
   });
 }
 
-/// A quote line row — one step under its own poste.
+/// A quote line row — one step under its own account.
 class OcptBudgetCostTrackingLineTreeRow extends OcptBudgetCostTrackingTreeRow {
   /// The line this row draws.
   final OcptBudgetLine line;
@@ -57,18 +57,18 @@ class OcptBudgetCostTrackingLineTreeRow extends OcptBudgetCostTrackingTreeRow {
   });
 }
 
-/// A commitment row — two steps under its own poste while it names a line, one step while it does
-/// not (the poste's own off-line commitments).
+/// A commitment row — two steps under its own account while it names a line, one step while it does
+/// not (the account's own off-line commitments).
 class OcptBudgetCostTrackingCommitmentTreeRow extends OcptBudgetCostTrackingTreeRow {
   /// The commitment this row draws.
   final OcptBudgetCommitment commitment;
 
-  /// This row's own indentation, in steps from the poste.
+  /// This row's own indentation, in steps from the account.
   final int depth;
 
   /// Whether this commitment is itself an expandable node, drawing its own twisty and its payments
-  /// only while it is expanded. **True only for a poste's own off-line commitment with at least one
-  /// payment** — with no quote line to nest under, it owns its payments the way a line owns its
+  /// only while it is expanded. **True only for an account's own off-line commitment with at least
+  /// one payment** — with no quote line to nest under, it owns its payments the way a line owns its
   /// commitments. A line-nested commitment is never one: its payments already show as its siblings
   /// once the line is expanded.
   final bool isExpandable;
@@ -88,7 +88,7 @@ class OcptBudgetCostTrackingCommitmentTreeRow extends OcptBudgetCostTrackingTree
 /// The muted "no entry" hint drawn under an unsettled commitment, at the very same indentation as
 /// that commitment — see [OcptBudgetCostTracking]'s own class doc comment.
 class OcptBudgetCostTrackingCommitmentHintTreeRow extends OcptBudgetCostTrackingTreeRow {
-  /// This row's own indentation, in steps from the poste — always the same as the commitment it
+  /// This row's own indentation, in steps from the account — always the same as the commitment it
   /// sits under.
   final int depth;
 
@@ -97,21 +97,21 @@ class OcptBudgetCostTrackingCommitmentHintTreeRow extends OcptBudgetCostTracking
 }
 
 /// An entry row — either the entry that settled a commitment, at that commitment's own
-/// indentation, or one of the poste's own off-line entries, one step under it, or one of the
+/// indentation, or one of the account's own off-line entries, one step under it, or one of the
 /// off-quote total's own children, also one step under it (see
 /// [OcptBudgetCostTrackingOffQuoteTreeRow]).
 class OcptBudgetCostTrackingEntryTreeRow extends OcptBudgetCostTrackingTreeRow {
   /// The entry this row draws.
   final OcptBudgetEntry entry;
 
-  /// This row's own indentation, in steps from the poste.
+  /// This row's own indentation, in steps from the account.
   final int depth;
 
   /// Class constructor
   const OcptBudgetCostTrackingEntryTreeRow({required this.entry, required this.depth});
 }
 
-/// The off-quote total row — the tree's own last row before `Total`, naming no poste and no line.
+/// The off-quote total row — the tree's own last row before `Total`, naming no account and no line.
 /// See [OcptBudgetCostTracking._rowsOf]'s own doc comment for which entries draw under it once
 /// expanded.
 class OcptBudgetCostTrackingOffQuoteTreeRow extends OcptBudgetCostTrackingTreeRow {

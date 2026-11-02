@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_budget_shares_t
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.dart';
 
 /// One movement of the production's cash journal: money that actually left or entered the account,
-/// dated and, usually, priced against a poste.
+/// dated and, usually, priced against an account.
 ///
 /// **The money is the same three columns `OcptBudgetLinesTable`'s own doc comment argues for**,
 /// split across a debit and a credit rather than carried as a single signed figure:
@@ -24,21 +24,21 @@ import 'package:open_cine_prod_tools/models/database/tables/ocpt_people_table.da
 ///   own", never "nobody has said" — an explicit **0 %** is wages or a copyright assignment stating
 ///   plainly that no VAT applies, and the two are different facts.
 ///
-/// [posteId] is **nullable, and deliberately so**: an entry attached to no poste is a real fact,
-/// not "nobody has said which poste yet" — most often money coming *in* rather than a cost against
-/// the quote, a subsidy instalment, a contribution repaid, but not only that: this mode's own entry
-/// dialog offers `Aucun poste` as a plain choice on a debit too, so a poste-less entry can just as
-/// well be a real cost that simply prices nothing in the CNC nomenclature, the small-production
-/// reading this whole mode is built for. `lib/models/rules/ocpt_budget_journal.dart`'s own
-/// `ocptBudgetOffQuotePaidTotalOf` is what reads that spending back out, rather than the app
-/// silently losing track of it the moment it names no poste. A line spent against the quote almost
-/// always names one; a receipt almost never does.
+/// [accountId] is **nullable, and deliberately so**: an entry attached to no account is a real
+/// fact, not "nobody has said which poste yet" — most often money coming *in* rather than a cost
+/// against the quote, a subsidy instalment, a contribution repaid, but not only that: this mode's
+/// own entry dialog offers `Aucun poste` as a plain choice on a debit too, so an account-less entry
+/// can just as well be a real cost that simply prices nothing in the CNC nomenclature, the
+/// small-production reading this whole mode is built for.
+/// `lib/models/rules/ocpt_budget_journal.dart`'s own `ocptBudgetOffQuotePaidTotalOf` is what reads
+/// that spending back out, rather than the app silently losing track of it the moment it names no
+/// account. A line spent against the quote almost always names one; a receipt almost never does.
 ///
 /// [resourceId] names which financing resource this movement settles — a subsidy instalment coming
-/// in, a contribution repaid — and is **nullable for the same reason [posteId] is**: most movements
-/// settle no resource at all, which is a real fact rather than an unfinished pick, and this table's
-/// own doc comment on `OcptBudgetResourcesTable` is what actually adds this figure up (there is no
-/// stored `receivedCents` counter on that table to keep in step with it).
+/// in, a contribution repaid — and is **nullable for the same reason [accountId] is**: most
+/// movements settle no resource at all, which is a real fact rather than an unfinished pick, and
+/// this table's own doc comment on `OcptBudgetResourcesTable` is what actually adds this figure up
+/// (there is no stored `receivedCents` counter on that table to keep in step with it).
 ///
 /// [revenueId] and [shareId] mirror [resourceId] exactly: [revenueId] names
 /// which taking a credit is the actual cash for, and [shareId] names which participant a debit
@@ -73,18 +73,23 @@ class OcptBudgetEntriesTable extends Table {
 
   /// Get the date this movement is recorded under.
   ///
-  /// Non-nullable: an entry always happened on a day, unlike [posteId] or [vatRateBasisPoints],
+  /// Non-nullable: an entry always happened on a day, unlike [accountId] or [vatRateBasisPoints],
   /// whose absence is a real fact rather than an omission still to be filled in.
   DateTimeColumn get date => dateTime()();
 
   /// Get this entry's free-text wording, e.g. "Location camion — Transpalux".
   TextColumn get label => text()();
 
-  /// Get the poste this entry is priced against, or null. → [OcptBudgetPostesTable]
+  /// Get the account this entry is priced against, or null. → [OcptBudgetAccountsTable]
   ///
-  /// See this table's own doc comment: null is money that moved without pricing any one poste,
+  /// See this table's own doc comment: null is money that moved without pricing any one account,
   /// most often cash coming in.
-  TextColumn get posteId => text().nullable().references(OcptBudgetPostesTable, #id)();
+  ///
+  /// The SQL column and the JSON key keep the names they have always had (`poste_id` and
+  /// `posteId`): existing project files, version payloads and sync stamps carry them.
+  @JsonKey('posteId')
+  TextColumn get accountId =>
+      text().nullable().named('poste_id').references(OcptBudgetAccountsTable, #id)();
 
   /// Get what left the account on [date], exactly as typed, in cents — see this table's own doc
   /// comment.
@@ -119,7 +124,7 @@ class OcptBudgetEntriesTable extends Table {
   /// Get the financing resource this movement settles, or null. → [OcptBudgetResourcesTable]
   ///
   /// See this table's own doc comment: null is the normal case, a movement that settles no
-  /// resource, read exactly the way [posteId]'s own null is.
+  /// resource, read exactly the way [accountId]'s own null is.
   TextColumn get resourceId => text().nullable().references(OcptBudgetResourcesTable, #id)();
 
   /// Get the taking this credit is the actual cash for, or null. → [OcptBudgetRevenuesTable]

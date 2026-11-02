@@ -24,7 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 
 /// This is the bloc class for the budget mode's financing views: the financing plan (the
 /// resources, and the counterpart quote line an in-kind contribution keeps in step) and the
-/// logistics (the defrayals, and the provisioning of a poste).
+/// logistics (the defrayals, and the provisioning of an account).
 ///
 /// The resources and the defrayals are the mode's data, in `OcptBudgetState.snapshot`, and which
 /// row is highlighted is the mode's too. This bloc owns every write these views trigger: the
@@ -44,7 +44,7 @@ class OcptBudgetFinancingBloc
   final OcptBudgetAllowancesService _budgetAllowancesService;
 
   /// The service used to write the quote lines an in-kind contribution keeps in step with, and the
-  /// provisioning of a poste.
+  /// provisioning of an account.
   final OcptBudgetQuoteService _budgetQuoteService;
 
   /// Class constructor
@@ -85,10 +85,11 @@ class OcptBudgetFinancingBloc
   /// Create a new financing resource from `event.fields` and select it.
   ///
   /// [OcptBudgetFinancingService.createResource] mints the row from a label alone (mirroring
-  /// `OcptBudgetQuoteService.createPoste`'s own shape, unlike `createCommitment`'s single insert):
-  /// every other field `event.fields` collected is written straight after, in the very same
-  /// [OcptBudgetFinancingService.updateResource] call [_onResourceUpdateConfirmed] itself uses, so
-  /// there is exactly one place that turns a whole [OcptBudgetResourceFormFields] into a write.
+  /// `OcptBudgetQuoteService.createAccount`'s own shape, unlike `createCommitment`'s single
+  /// insert): every other field `event.fields` collected is written straight after, in the very
+  /// same [OcptBudgetFinancingService.updateResource] call [_onResourceUpdateConfirmed] itself
+  /// uses, so there is exactly one place that turns a whole [OcptBudgetResourceFormFields] into a
+  /// write.
   Future<void> _onResourceCreationConfirmed(
     OcptBudgetResourceCreationConfirmedEvent event,
     Emitter<OcptBudgetFinancingState> emitter,
@@ -142,8 +143,8 @@ class OcptBudgetFinancingBloc
 
   /// Delete financing resource `event.resourceId` for good, confirmed by the mode's own
   /// `OcptConfirmDialog` — and, alongside it, its own counterpart line if it had one, found in the
-  /// live snapshot before the deletion rather than after: a resource just tombstoned names no poste
-  /// any more for [ocptBudgetInKindCounterpartLineOf] to find it by.
+  /// live snapshot before the deletion rather than after: a resource just tombstoned names no
+  /// account any more for [ocptBudgetInKindCounterpartLineOf] to find it by.
   Future<void> _onResourceDeletionConfirmed(
     OcptBudgetResourceDeletionConfirmedEvent event,
     Emitter<OcptBudgetFinancingState> emitter,
@@ -154,7 +155,7 @@ class OcptBudgetFinancingBloc
     }
 
     final counterpartLine = ocptBudgetInKindCounterpartLineOf(
-      modeBloc.state.postes,
+      modeBloc.state.accounts,
       event.resourceId,
     );
 
@@ -180,28 +181,29 @@ class OcptBudgetFinancingBloc
   /// and none does otherwise** — the invariant `docs/architecture/budget.md`'s "A balanced in-kind
   /// contribution" argues for:
   /// - not in kind any more (or never was): the existing line, if any, is tombstoned — a
-  ///   reclassification away from in-kind offsets no poste any more.
+  ///   reclassification away from in-kind offsets no account any more.
   /// - in kind, no line yet: one is minted, quantity 1 (`quantityMilli` 1000), tax-inclusive,
   ///   frozen at 0 % VAT (a valuation, not an invoice — "The link, and where the single truth
   ///   lives"), the figure and label read straight off `fields`.
-  /// - in kind, a line already exists, same poste: an ordinary field update — the label and the
+  /// - in kind, a line already exists, same account: an ordinary field update — the label and the
   ///   amount follow the contribution; the quantity and the 0 % rate are never touched again.
-  /// - in kind, a line already exists, a **different** poste: deleted and re-minted in the new one,
-  ///   never moved in place. `budget_lines.sortKey` is fractional **within its own `posteId`**
-  ///   (`OcptBudgetPostesTable` orders flat; `budget_lines` orders "like a shot within a scene"),
-  ///   so re-poste-ing a line is really a second operation — its position among a different poste's
-  ///   own lines — wearing the name of a field write (`docs/architecture/budget.md`, "A
-  ///   commitment's poste is editable, a quote line's is not").
+  /// - in kind, a line already exists, a **different** account: deleted and re-minted in the new
+  ///   one, never moved in place. `budget_lines.sortKey` is fractional **within its own
+  ///   `accountId`** (`OcptBudgetAccountsTable` orders flat; `budget_lines` orders "like a shot
+  ///   within a scene"), so re-account-ing a line is really a second operation — its position among
+  ///   a different account's own lines — wearing the name of a field write
+  ///   (`docs/architecture/budget.md`, "A commitment's account is editable, a quote line's is
+  ///   not").
   ///
-  /// `OcptBudgetResourceDialog`'s own poste picker already blocks confirming an in-kind
-  /// contribution with no poste chosen, so `fields.posteId == null` here should not occur; this
+  /// `OcptBudgetResourceDialog`'s own account picker already blocks confirming an in-kind
+  /// contribution with no account chosen, so `fields.accountId == null` here should not occur; this
   /// writes nothing rather than mint an orphaned line if it somehow does.
   Future<void> _reconcileInKindCounterpartLine(
     OcptOpenProjectModel project,
     String resourceId,
     OcptBudgetResourceFormFields fields,
   ) async {
-    final existing = ocptBudgetInKindCounterpartLineOf(modeBloc.state.postes, resourceId);
+    final existing = ocptBudgetInKindCounterpartLineOf(modeBloc.state.accounts, resourceId);
 
     if (fields.groupKind != OcptBudgetResourceGroupKind.inKind) {
       if (existing != null) {
@@ -210,12 +212,12 @@ class OcptBudgetFinancingBloc
       return;
     }
 
-    final desiredPosteId = fields.posteId;
-    if (desiredPosteId == null) {
+    final desiredAccountId = fields.accountId;
+    if (desiredAccountId == null) {
       return;
     }
 
-    if (existing != null && existing.posteId == desiredPosteId) {
+    if (existing != null && existing.accountId == desiredAccountId) {
       await _budgetQuoteService.updateLine(
         database: project.database,
         lineId: existing.id,
@@ -231,7 +233,7 @@ class OcptBudgetFinancingBloc
 
     await _budgetQuoteService.createLine(
       database: project.database,
-      posteId: desiredPosteId,
+      accountId: desiredAccountId,
       label: fields.label,
       quantityMilli: const Value(1000),
       unitAmountCents: Value(fields.amountCents),
@@ -314,7 +316,7 @@ class OcptBudgetFinancingBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Carry out `event.entries` against poste `event.posteId`, confirmed by the mode's own
+  /// Carry out `event.entries` against account `event.accountId`, confirmed by the mode's own
   /// `OcptConfirmDialog`.
   Future<void> _onProvisionConfirmed(
     OcptBudgetProvisionConfirmedEvent event,
@@ -327,7 +329,7 @@ class OcptBudgetFinancingBloc
 
     await _budgetQuoteService.applyProvision(
       database: project.database,
-      posteId: event.posteId,
+      accountId: event.accountId,
       entries: event.entries,
     );
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});

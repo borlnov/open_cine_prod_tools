@@ -75,7 +75,7 @@ List<OcptBudgetProvisionItem> ocptBudgetProvisionItemsOf({
   ];
 }
 
-/// Get everything the provisioning would do to [posteLines], one entry per nature it touches.
+/// Get everything the provisioning would do to [accountLines], one entry per nature it touches.
 ///
 /// **The plan is computed whole before a single row is written**, so the gesture can be described
 /// to the user in a confirmation before it happens — how many lines would be created, how many
@@ -97,15 +97,15 @@ List<OcptBudgetProvisionItem> ocptBudgetProvisionItemsOf({
 /// see the zero and remove the line.
 ///
 /// [labels] must hold a wording for every nature in [items], and for every nature the provisioned
-/// lines of [posteLines] carry: a mode resolves every word and hands it in, no util of this app
+/// lines of [accountLines] carry: a mode resolves every word and hands it in, no util of this app
 /// ever seeing a `Tr`.
 List<OcptBudgetProvisionEntry> ocptBudgetProvisionPlanOf({
   required List<OcptBudgetProvisionItem> items,
-  required List<OcptBudgetLine> posteLines,
+  required List<OcptBudgetLine> accountLines,
   required Map<OcptBudgetProvisionKind, String> labels,
 }) {
   final lineByKey = <String, OcptBudgetLine>{
-    for (final line in posteLines)
+    for (final line in accountLines)
       if (line.provisionKey != null) line.provisionKey!: line,
   };
 
@@ -136,7 +136,7 @@ List<OcptBudgetProvisionEntry> ocptBudgetProvisionPlanOf({
 
   // Every provisioned line whose nature has dropped out of `items` — the production removed its
   // last defrayal of that kind, or took back the price the catering was counted at.
-  for (final line in posteLines) {
+  for (final line in accountLines) {
     final key = line.provisionKey;
     if (key == null || seen.contains(key)) {
       continue;

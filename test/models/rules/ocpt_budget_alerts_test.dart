@@ -16,11 +16,11 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 /// neutral.
 OcptBudgetLine _buildLine({
   required String id,
-  required String posteId,
+  required String accountId,
   required int amountCents,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: "Line $id",
   quantityMilli: 1000,
   unit: "u",
@@ -33,31 +33,31 @@ OcptBudgetLine _buildLine({
   sortKey: "a0",
 );
 
-/// Builds a poste quoted at [quotedAmountCents] (a single line carrying that whole amount),
+/// Builds an account quoted at [quotedAmountCents] (a single line carrying that whole amount),
 /// everything else neutral.
-OcptBudgetPoste _buildPoste({required String id, required int quotedAmountCents}) =>
-    OcptBudgetPoste(
+OcptBudgetAccount _buildAccount({required String id, required int quotedAmountCents}) =>
+    OcptBudgetAccount(
       id: id,
       code: "1",
       label: "Poste $id",
       simpleLabel: null,
       estimateToCompleteCents: null,
       sortKey: "a0",
-      lines: [_buildLine(id: "$id-line", posteId: id, amountCents: quotedAmountCents)],
+      lines: [_buildLine(id: "$id-line", accountId: id, amountCents: quotedAmountCents)],
     );
 
-/// Builds a commitment against [posteId], everything else neutral — settlement is read off
+/// Builds a commitment against [accountId], everything else neutral — settlement is read off
 /// whichever entries a test hands alongside it, never a field of the commitment itself any more.
 OcptBudgetCommitment _buildCommitment({
   required String id,
-  required String posteId,
+  required String accountId,
   DateTime? dueDate,
   int amountCents = 0,
 }) => OcptBudgetCommitment(
   id: id,
   dueDate: dueDate,
   label: "Commitment $id",
-  posteId: posteId,
+  accountId: accountId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.quoteAccepted,
   lineId: null,
@@ -70,7 +70,7 @@ OcptBudgetEntry _buildEntry({required String id, String? commitmentId, int debit
       id: id,
       date: DateTime(2026),
       label: "Entry $id",
-      posteId: null,
+      accountId: null,
       debitCents: debitCents,
       creditCents: 0,
       isTaxInclusive: true,
@@ -93,21 +93,21 @@ const _zeroCashTotals = OcptBudgetCashTotals(
 );
 
 /// Wraps [ocptComputeBudgetAlerts] with the neutral defaults most tests want: nothing paid,
-/// committed or settled in kind against any poste, no commitment at all, an empty account.
+/// committed or settled in kind against any account, no commitment at all, an empty account.
 List<OcptBudgetAlert> _computeAlerts({
-  required List<OcptBudgetPoste> postes,
-  int Function(String posteId)? paidCentsOf,
-  int Function(String posteId)? committedCentsOf,
-  int Function(String posteId)? inKindCoveredCentsOf,
+  required List<OcptBudgetAccount> accounts,
+  int Function(String accountId)? paidCentsOf,
+  int Function(String accountId)? committedCentsOf,
+  int Function(String accountId)? inKindCoveredCentsOf,
   List<OcptBudgetCommitment> commitments = const [],
   List<OcptBudgetEntry> entries = const [],
   OcptBudgetCashTotals cashTotals = _zeroCashTotals,
   int? projectVatRateBasisPoints,
 }) => ocptComputeBudgetAlerts(
-  postes: postes,
-  paidCentsOf: paidCentsOf ?? (posteId) => 0,
-  committedCentsOf: committedCentsOf ?? (posteId) => 0,
-  inKindCoveredCentsOf: inKindCoveredCentsOf ?? (posteId) => 0,
+  accounts: accounts,
+  paidCentsOf: paidCentsOf ?? (accountId) => 0,
+  committedCentsOf: committedCentsOf ?? (accountId) => 0,
+  inKindCoveredCentsOf: inKindCoveredCentsOf ?? (accountId) => 0,
   commitments: commitments,
   entries: entries,
   cashTotals: cashTotals,
@@ -119,8 +119,8 @@ void main() {
   group("a project with no alert at all", () {
     test("answers an empty list", () {
       final alerts = _computeAlerts(
-        postes: [_buildPoste(id: "poste-1", quotedAmountCents: 10000)],
-        paidCentsOf: (posteId) => 5000,
+        accounts: [_buildAccount(id: "poste-1", quotedAmountCents: 10000)],
+        paidCentsOf: (accountId) => 5000,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 5000,
           creditCents: 20000,
@@ -135,17 +135,17 @@ void main() {
 
   group("a poste over its quote", () {
     test("raises one alert, naming the poste and by how much it is over", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 10000);
 
       final alerts = _computeAlerts(
-        postes: [poste],
-        paidCentsOf: (posteId) => 7000,
-        committedCentsOf: (posteId) => 5000,
+        accounts: [account],
+        paidCentsOf: (accountId) => 7000,
+        committedCentsOf: (accountId) => 5000,
       );
 
       expect(alerts, hasLength(1));
-      final alert = alerts.single as OcptBudgetPosteOverQuoteAlert;
-      expect(alert.posteId, "poste-1");
+      final alert = alerts.single as OcptBudgetAccountOverQuoteAlert;
+      expect(alert.accountId, "poste-1");
       expect(alert.quotedAmountCents, 10000);
       expect(alert.paidCents, 7000);
       expect(alert.committedCents, 5000);
@@ -154,61 +154,61 @@ void main() {
     });
 
     test("a poste within its quote raises nothing", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 10000);
 
-      final alerts = _computeAlerts(postes: [poste], paidCentsOf: (posteId) => 5000);
+      final alerts = _computeAlerts(accounts: [account], paidCentsOf: (accountId) => 5000);
 
       expect(alerts, isEmpty);
     });
 
     test("a poste near, but not over, its quote raises nothing either", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 10000);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 10000);
 
       // 95 % consumed: near the strain threshold, still not over it.
-      final alerts = _computeAlerts(postes: [poste], paidCentsOf: (posteId) => 9500);
+      final alerts = _computeAlerts(accounts: [account], paidCentsOf: (accountId) => 9500);
 
       expect(alerts, isEmpty);
     });
 
     test("a poste with no quote at all raises nothing while nothing has moved against it", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 0);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 0);
 
-      final alerts = _computeAlerts(postes: [poste]);
+      final alerts = _computeAlerts(accounts: [account]);
 
       expect(alerts, isEmpty);
     });
 
     test("a poste with no quote at all raises the alert the moment anything moves against it", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 0);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 0);
 
-      final alerts = _computeAlerts(postes: [poste], paidCentsOf: (posteId) => 100);
+      final alerts = _computeAlerts(accounts: [account], paidCentsOf: (accountId) => 100);
 
       expect(alerts, hasLength(1));
-      final alert = alerts.single as OcptBudgetPosteOverQuoteAlert;
+      final alert = alerts.single as OcptBudgetAccountOverQuoteAlert;
       expect(alert.quotedAmountCents, 0);
       expect(alert.varianceCents, 100);
     });
 
     test("an in-kind-only poste raises nothing — it never reads as a strain", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 5000);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 5000);
 
-      final alerts = _computeAlerts(postes: [poste], inKindCoveredCentsOf: (posteId) => 5000);
+      final alerts = _computeAlerts(accounts: [account], inKindCoveredCentsOf: (accountId) => 5000);
 
       expect(alerts, isEmpty);
     });
 
     test("raises one alert per poste over its quote, in the order the postes were given", () {
-      final posteOver1 = _buildPoste(id: "poste-1", quotedAmountCents: 1000);
-      final posteWithin = _buildPoste(id: "poste-2", quotedAmountCents: 1000);
-      final posteOver2 = _buildPoste(id: "poste-3", quotedAmountCents: 1000);
+      final accountOver1 = _buildAccount(id: "poste-1", quotedAmountCents: 1000);
+      final accountWithin = _buildAccount(id: "poste-2", quotedAmountCents: 1000);
+      final accountOver2 = _buildAccount(id: "poste-3", quotedAmountCents: 1000);
 
       final alerts = _computeAlerts(
-        postes: [posteOver1, posteWithin, posteOver2],
-        paidCentsOf: (posteId) => posteId == "poste-2" ? 500 : 2000,
+        accounts: [accountOver1, accountWithin, accountOver2],
+        paidCentsOf: (accountId) => accountId == "poste-2" ? 500 : 2000,
       );
 
       expect(alerts, hasLength(2));
-      expect(alerts.map((alert) => (alert as OcptBudgetPosteOverQuoteAlert).posteId), [
+      expect(alerts.map((alert) => (alert as OcptBudgetAccountOverQuoteAlert).accountId), [
         "poste-1",
         "poste-3",
       ]);
@@ -220,14 +220,14 @@ void main() {
       final commitments = [
         _buildCommitment(
           id: "c1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           dueDate: DateTime(2026, 2),
           amountCents: 3000,
         ),
       ];
 
       final alerts = _computeAlerts(
-        postes: const [],
+        accounts: const [],
         commitments: commitments,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
@@ -244,14 +244,14 @@ void main() {
       final commitments = [
         _buildCommitment(
           id: "c1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           dueDate: DateTime(2026, 3, 15),
           amountCents: 8000,
         ),
       ];
 
       final alerts = _computeAlerts(
-        postes: const [],
+        accounts: const [],
         commitments: commitments,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
@@ -271,10 +271,10 @@ void main() {
 
     test("an undated commitment that tips the balance under still raises the alert, with a null "
         "date rather than no alert at all", () {
-      final commitments = [_buildCommitment(id: "c1", posteId: "poste-1", amountCents: 6000)];
+      final commitments = [_buildCommitment(id: "c1", accountId: "poste-1", amountCents: 6000)];
 
       final alerts = _computeAlerts(
-        postes: const [],
+        accounts: const [],
         commitments: commitments,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
@@ -296,7 +296,7 @@ void main() {
       final commitments = [
         _buildCommitment(
           id: "c1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           dueDate: DateTime(2026, 3),
           amountCents: 9000,
         ),
@@ -304,7 +304,7 @@ void main() {
       final entries = [_buildEntry(id: "entry-already-paid", commitmentId: "c1", debitCents: 9000)];
 
       final alerts = _computeAlerts(
-        postes: const [],
+        accounts: const [],
         commitments: commitments,
         entries: entries,
         cashTotals: const OcptBudgetCashTotals(
@@ -320,17 +320,22 @@ void main() {
 
     test("at most one cash alert, the first instalment that tips the balance under", () {
       final commitments = [
-        _buildCommitment(id: "c1", posteId: "poste-1", dueDate: DateTime(2026), amountCents: 2000),
+        _buildCommitment(
+          id: "c1",
+          accountId: "poste-1",
+          dueDate: DateTime(2026),
+          amountCents: 2000,
+        ),
         _buildCommitment(
           id: "c2",
-          posteId: "poste-1",
+          accountId: "poste-1",
           dueDate: DateTime(2026, 2),
           amountCents: 5000,
         ),
       ];
 
       final alerts = _computeAlerts(
-        postes: const [],
+        accounts: const [],
         commitments: commitments,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
@@ -351,19 +356,19 @@ void main() {
 
   group("both alerts at once", () {
     test("a poste over its quote and the cash going negative both raise, independently", () {
-      final poste = _buildPoste(id: "poste-1", quotedAmountCents: 1000);
+      final account = _buildAccount(id: "poste-1", quotedAmountCents: 1000);
       final commitments = [
         _buildCommitment(
           id: "c1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           dueDate: DateTime(2026, 5),
           amountCents: 4000,
         ),
       ];
 
       final alerts = _computeAlerts(
-        postes: [poste],
-        paidCentsOf: (posteId) => 2000,
+        accounts: [account],
+        paidCentsOf: (accountId) => 2000,
         commitments: commitments,
         cashTotals: const OcptBudgetCashTotals(
           debitCents: 0,
@@ -374,7 +379,7 @@ void main() {
       );
 
       expect(alerts, hasLength(2));
-      expect(alerts.whereType<OcptBudgetPosteOverQuoteAlert>(), hasLength(1));
+      expect(alerts.whereType<OcptBudgetAccountOverQuoteAlert>(), hasLength(1));
       expect(alerts.whereType<OcptBudgetCashProjectionNegativeAlert>(), hasLength(1));
     });
   });

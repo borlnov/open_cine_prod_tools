@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// How stretched a poste is against its own quote — the colour the cost-tracking view paints it in
-/// is the widget's own business, not this pure util's: it switches over this enum rather than
+/// How stretched an account is against its own quote — the colour the cost-tracking view paints it
+/// in is the widget's own business, not this pure util's: it switches over this enum rather than
 /// re-deriving the comparison.
-enum OcptBudgetPosteStrain {
+enum OcptBudgetAccountStrain {
   /// Paid plus committed is at or below `_ocptBudgetNearStrainRatio` of the quote.
   within,
 

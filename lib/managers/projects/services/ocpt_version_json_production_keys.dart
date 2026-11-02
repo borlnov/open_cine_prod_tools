@@ -213,10 +213,10 @@ abstract final class OcptVersionJsonProductionKeys {
 
   /// This is the key used to stringify or parse the `budget_postes` rows from a JSON object, from
   /// payload format 16: the budget mode's own catalogue.
-  static const budgetPostesKey = "budgetPostes";
+  static const budgetAccountsKey = "budgetPostes";
 
   /// This is the key used to stringify or parse the `budget_lines` rows from a JSON object, from
-  /// payload format 16: the quote lines inside each poste.
+  /// payload format 16: the quote lines inside each account.
   static const budgetLinesKey = "budgetLines";
 
   /// This is the key used to stringify or parse a `budget_postes.simpleLabel` column from a JSON
@@ -224,14 +224,14 @@ abstract final class OcptVersionJsonProductionKeys {
   static const simpleLabelKey = "simpleLabel";
 
   /// This is the key used to stringify or parse a `budget_postes.estimateToCompleteCents` column
-  /// from a JSON object, from payload format 30: what is still expected to be spent on a poste
+  /// from a JSON object, from payload format 30: what is still expected to be spent on an account
   /// beyond what has already been paid and committed against it, or absent meaning "derive it".
   static const estimateToCompleteCentsKey = "estimateToCompleteCents";
 
-  /// This is the key used to stringify or parse a `posteId` column (`budget_lines.posteId` or,
-  /// from payload format 17, `budget_entries.posteId`/`budget_commitments.posteId`) from a JSON
+  /// This is the key used to stringify or parse a `accountId` column (`budget_lines.accountId` or,
+  /// from payload format 17, `budget_entries.accountId`/`budget_commitments.accountId`) from a JSON
   /// object
-  static const posteIdKey = "posteId";
+  static const accountIdKey = "posteId";
 
   /// This is the key used to stringify or parse a `budget_lines.quantityMilli` column from a JSON
   /// object
@@ -272,7 +272,7 @@ abstract final class OcptVersionJsonProductionKeys {
   static const budgetEntriesKey = "budgetEntries";
 
   /// This is the key used to stringify or parse the `budget_commitments` rows from a JSON object,
-  /// from payload format 17: money committed against a poste but not yet paid.
+  /// from payload format 17: money committed against an account but not yet paid.
   static const budgetCommitmentsKey = "budgetCommitments";
 
   /// This is the key used to stringify or parse a `budget_entries.debitCents` column from a JSON

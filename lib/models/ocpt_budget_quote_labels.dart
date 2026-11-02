@@ -42,8 +42,8 @@ class OcptBudgetQuoteLabels extends Equatable {
   /// The header of a quote line's own total column.
   final String lineTotalHeader;
 
-  /// The label printed beside a poste's own subtotal row.
-  final String posteSubtotalLabel;
+  /// The label printed beside an account's own subtotal row.
+  final String accountSubtotalLabel;
 
   /// The label printed beside the project's own grand total, at the very end of the document.
   final String projectTotalLabel;
@@ -54,10 +54,10 @@ class OcptBudgetQuoteLabels extends Equatable {
   /// The caption stating every amount is printed excluding tax — `OcptBudgetTaxBasis.excludingTax`.
   final String excludingTaxCaption;
 
-  /// The note a poste holding no line at all prints in place of its own table.
+  /// The note an account holding no line at all prints in place of its own table.
   final String noLinesLabel;
 
-  /// The note the whole document prints in place of every poste when the project holds none at
+  /// The note the whole document prints in place of every account when the project holds none at
   /// all.
   final String emptyDocumentNote;
 
@@ -78,7 +78,7 @@ class OcptBudgetQuoteLabels extends Equatable {
     required this.quantityHeader,
     required this.unitPriceHeader,
     required this.lineTotalHeader,
-    required this.posteSubtotalLabel,
+    required this.accountSubtotalLabel,
     required this.projectTotalLabel,
     required this.includingTaxCaption,
     required this.excludingTaxCaption,
@@ -107,7 +107,7 @@ class OcptBudgetQuoteLabels extends Equatable {
     quantityHeader,
     unitPriceHeader,
     lineTotalHeader,
-    posteSubtotalLabel,
+    accountSubtotalLabel,
     projectTotalLabel,
     includingTaxCaption,
     excludingTaxCaption,

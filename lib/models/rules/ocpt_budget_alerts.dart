@@ -36,20 +36,21 @@ sealed class OcptBudgetAlert extends Equatable {
   const OcptBudgetAlert();
 }
 
-/// A poste whose paid plus committed already exceeds its own quote
-/// (`ocptBudgetPosteStrainOf` answering [OcptBudgetPosteStrain.over]) — one alert per such poste,
-/// never re-deriving the comparison that function and [ocptBudgetVarianceCents] already answer.
-final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
-  /// The poste this alert is about.
-  final String posteId;
+/// An account whose paid plus committed already exceeds its own quote
+/// (`ocptBudgetAccountStrainOf` answering [OcptBudgetAccountStrain.over]) — one alert per such
+/// account, never re-deriving the comparison that function and [ocptBudgetVarianceCents] already
+/// answer.
+final class OcptBudgetAccountOverQuoteAlert extends OcptBudgetAlert {
+  /// The account this alert is about.
+  final String accountId;
 
-  /// This poste's own quoted total, in cents (`ocptBudgetPosteQuotedTotalCents`).
+  /// This account's own quoted total, in cents (`ocptBudgetAccountQuotedTotalCents`).
   final int quotedAmountCents;
 
-  /// What has actually been paid against this poste, in cents.
+  /// What has actually been paid against this account, in cents.
   final int paidCents;
 
-  /// What is still committed against this poste, in cents.
+  /// What is still committed against this account, in cents.
   final int committedCents;
 
   /// By how much [paidCents] plus [committedCents] exceeds [quotedAmountCents] — always positive
@@ -57,8 +58,8 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
   final int varianceCents;
 
   /// Class constructor
-  const OcptBudgetPosteOverQuoteAlert({
-    required this.posteId,
+  const OcptBudgetAccountOverQuoteAlert({
+    required this.accountId,
     required this.quotedAmountCents,
     required this.paidCents,
     required this.committedCents,
@@ -68,11 +69,17 @@ final class OcptBudgetPosteOverQuoteAlert extends OcptBudgetAlert {
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetPosteOverQuoteAlert(posteId: $posteId, varianceCents: $varianceCents)";
+      "OcptBudgetAccountOverQuoteAlert(accountId: $accountId, varianceCents: $varianceCents)";
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [posteId, quotedAmountCents, paidCents, committedCents, varianceCents];
+  List<Object?> get props => [
+    accountId,
+    quotedAmountCents,
+    paidCents,
+    committedCents,
+    varianceCents,
+  ];
 }
 
 /// The cash projection (`ocptBudgetProjectionOf`, opened at the journal's own
@@ -119,18 +126,19 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
   List<Object?> get props => [balanceCents, dueDate, fallingDueCents, balanceAfterCents];
 }
 
-/// Compute the header's alerts band's own two alerts over [postes] and [commitments] — **both
+/// Compute the header's alerts band's own two alerts over [accounts] and [commitments] — **both
 /// computed, neither configured** (ADR 0027): nothing here advances a
 /// figure nobody in the project actually entered.
 ///
-/// A poste over its quote is read straight off [ocptBudgetPosteStrainOf] and
+/// An account over its quote is read straight off [ocptBudgetAccountStrainOf] and
 /// [ocptBudgetVarianceCents] (`lib/models/rules/ocpt_budget_totals.dart`), never re-derived, over
-/// [postes] in the order they were given — one [OcptBudgetPosteOverQuoteAlert] per poste answering
-/// [OcptBudgetPosteStrain.over], [paidCentsOf], [committedCentsOf] and [inKindCoveredCentsOf]
-/// reading the very same per-poste totals the cost-tracking table and the poste inspector already
-/// do. [inKindCoveredCentsOf] is folded into the strain and the variance for the same reason
-/// [ocptBudgetPosteStrainOf] folds it in — a counterpart quote line adds equally to the poste's own
-/// quote and to its settled side, so it never pushes a poste over on its own.
+/// [accounts] in the order they were given — one [OcptBudgetAccountOverQuoteAlert] per account
+/// answering [OcptBudgetAccountStrain.over], [paidCentsOf], [committedCentsOf] and
+/// [inKindCoveredCentsOf] reading the very same per-account totals the cost-tracking table and the
+/// account inspector already do. [inKindCoveredCentsOf] is folded into the strain and the variance
+/// for the same reason [ocptBudgetAccountStrainOf] folds it in — a counterpart quote line adds
+/// equally to the account's own quote and to its settled side, so it never pushes an account over
+/// on its own.
 ///
 /// The cash projection going negative is read straight off [ocptBudgetProjectionOf]
 /// (`lib/models/rules/ocpt_budget_projection.dart`), opened at [cashTotals]'s own
@@ -138,10 +146,10 @@ final class OcptBudgetCashProjectionNegativeAlert extends OcptBudgetAlert {
 /// one [OcptBudgetCashProjectionNegativeAlert], present only while that projection's own
 /// `OcptBudgetProjection.goesNegative` is true.
 List<OcptBudgetAlert> ocptComputeBudgetAlerts({
-  required List<OcptBudgetPoste> postes,
-  required int Function(String posteId) paidCentsOf,
-  required int Function(String posteId) committedCentsOf,
-  required int Function(String posteId) inKindCoveredCentsOf,
+  required List<OcptBudgetAccount> accounts,
+  required int Function(String accountId) paidCentsOf,
+  required int Function(String accountId) committedCentsOf,
+  required int Function(String accountId) inKindCoveredCentsOf,
   required List<OcptBudgetCommitment> commitments,
   required List<OcptBudgetEntry> entries,
   required OcptBudgetCashTotals cashTotals,
@@ -149,25 +157,25 @@ List<OcptBudgetAlert> ocptComputeBudgetAlerts({
 }) {
   final alerts = <OcptBudgetAlert>[];
 
-  for (final poste in postes) {
-    final quotedAmountCents = ocptBudgetPosteQuotedTotalCents(poste);
-    final paidCents = paidCentsOf(poste.id);
-    final committedCents = committedCentsOf(poste.id);
-    final inKindCoveredCents = inKindCoveredCentsOf(poste.id);
+  for (final account in accounts) {
+    final quotedAmountCents = ocptBudgetAccountQuotedTotalCents(account);
+    final paidCents = paidCentsOf(account.id);
+    final committedCents = committedCentsOf(account.id);
+    final inKindCoveredCents = inKindCoveredCentsOf(account.id);
 
-    final strain = ocptBudgetPosteStrainOf(
+    final strain = ocptBudgetAccountStrainOf(
       quotedAmountCents: quotedAmountCents,
       paidCents: paidCents,
       committedCents: committedCents,
       inKindCoveredCents: inKindCoveredCents,
     );
-    if (strain != OcptBudgetPosteStrain.over) {
+    if (strain != OcptBudgetAccountStrain.over) {
       continue;
     }
 
     alerts.add(
-      OcptBudgetPosteOverQuoteAlert(
-        posteId: poste.id,
+      OcptBudgetAccountOverQuoteAlert(
+        accountId: account.id,
         quotedAmountCents: quotedAmountCents,
         paidCents: paidCents,
         committedCents: committedCents,

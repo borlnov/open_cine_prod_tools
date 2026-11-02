@@ -32,18 +32,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'ocpt_budget_new_dialog_test_doubles.dart';
 
-/// A minimal, unsettled commitment against [posteId], everything but [id]/[label]/[amountCents]
+/// A minimal, unsettled commitment against [accountId], everything but [id]/[label]/[amountCents]
 /// neutral.
 OcptBudgetCommitment _commitment({
   required String id,
   required String label,
-  required String posteId,
+  required String accountId,
   int amountCents = 10000,
 }) => OcptBudgetCommitment(
   id: id,
   dueDate: null,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: OcptBudgetCommitmentStatus.quoteAccepted,
   lineId: null,
@@ -105,7 +105,7 @@ void main() {
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     bool offersMatching = true,
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
@@ -125,7 +125,7 @@ void main() {
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
           offersMatching: offersMatching,
-          postes: postes,
+          accounts: accounts,
           resources: resources,
           revenues: revenues,
           shares: shares,
@@ -234,7 +234,7 @@ void main() {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
       );
 
       expect(find.text(tr.budgetNewStepLabel(1, 3)), findsOneWidget);
@@ -268,7 +268,7 @@ void main() {
     await pumpDialog(
       tester,
       initialGesture: OcptBudgetGesture.recordExpense,
-      postes: [testPoste(id: "p1", label: "Camera")],
+      accounts: [testAccount(id: "p1", label: "Camera")],
     );
 
     await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
@@ -282,7 +282,7 @@ void main() {
     await tester.tap(find.byKey(const Key("ocptBudgetNewFormBackButton")));
     await tester.pumpAndSettle();
 
-    // Back on step 2: the poste answered before is still answered, `Continuer` needs no further
+    // Back on step 2: the account answered before is still answered, `Continuer` needs no further
     // tap to be enabled.
     final continueButton = tester.widget<FilledButton>(
       find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")),
@@ -318,7 +318,7 @@ void main() {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.planContribution,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
       );
 
       // planContribution attaches to nothing, so step 1 (with the gesture already pre-selected)
@@ -347,7 +347,7 @@ void main() {
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewResourceOutcome;
       expect(outcome.fields.groupKind, OcptBudgetResourceGroupKind.inKind);
-      expect(outcome.fields.posteId, "p1");
+      expect(outcome.fields.accountId, "p1");
     });
 
     testWidgets(
@@ -368,11 +368,11 @@ void main() {
     );
   });
 
-  testWidgets("commitSpend's own step 3 does not ask the poste a second time", (tester) async {
+  testWidgets("commitSpend's own step 3 does not ask the account a second time", (tester) async {
     final tr = await pumpDialog(
       tester,
       initialGesture: OcptBudgetGesture.commitSpend,
-      postes: [testPoste(id: "p1", label: "Camera")],
+      accounts: [testAccount(id: "p1", label: "Camera")],
     );
 
     await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
@@ -384,9 +384,9 @@ void main() {
     await tester.tap(find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
     await tester.pumpAndSettle();
 
-    // Step 2 already answered which poste this commitment prices — asking again on step 3 would
+    // Step 2 already answered which account this commitment prices — asking again on step 3 would
     // be the very redundancy this wizard exists to remove.
-    expect(find.text(tr.budgetEntryDialogPosteFieldLabel), findsNothing);
+    expect(find.text(tr.budgetEntryDialogAccountFieldLabel), findsNothing);
   });
 
   group("the breakdown selector counts out loud", () {
@@ -394,15 +394,15 @@ void main() {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.addQuoteLinesFromBreakdown,
-        postes: [testPoste(id: "p1", label: "Set dressing")],
+        accounts: [testAccount(id: "p1", label: "Set dressing")],
         unpricedElements: [
           _element(id: "e1", name: "Vintage phone", sceneCount: 3),
           _element(id: "e2", name: "Rostrum", sceneCount: 2),
         ],
       );
 
-      // The breakdown gesture no longer asks a poste up front: Continue lands straight on the
-      // selector, where a poste is picked per element instead.
+      // The breakdown gesture no longer asks an account up front: Continue lands straight on the
+      // selector, where an account is picked per element instead.
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
 
@@ -421,15 +421,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(tr.budgetNewCreateLinesAction(2)), findsOneWidget);
 
-      // Checked, but filed under no poste yet: the button stays withheld until every row resolves
+      // Checked, but filed under no account yet: the button stays withheld until every row resolves
       // one.
       createButton = tester.widget<FilledButton>(
         find.byKey(const Key("ocptBudgetNewCreateLinesButton")),
       );
       expect(createButton.onPressed, isNull);
 
-      // `File all under` files every checked row under the one poste at once.
-      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownSetAllPoste")));
+      // `File all under` files every checked row under the one account at once.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownSetAllAccount")));
       await tester.pumpAndSettle();
       await tester.tap(find.text("Set dressing").last);
       await tester.pumpAndSettle();
@@ -444,8 +444,8 @@ void main() {
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewLinesFromBreakdownOutcome;
       expect(outcome.lines, hasLength(2));
-      // Every line was filed under the poste `File all under` named.
-      expect(outcome.lines.every((line) => line.posteId == "p1"), isTrue);
+      // Every line was filed under the account `File all under` named.
+      expect(outcome.lines.every((line) => line.accountId == "p1"), isTrue);
       // The suggested quantity is the scene count, in thousandths — a suggestion, corrected
       // nowhere in this test, but read back verbatim here.
       expect(outcome.lines.firstWhere((line) => line.elementId == "e1").quantityMilli, 3000);
@@ -455,9 +455,9 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.addQuoteLinesFromBreakdown,
-        postes: [
-          testPoste(id: "p1", label: "Set dressing"),
-          testPoste(id: "p2", label: "Transport"),
+        accounts: [
+          testAccount(id: "p1", label: "Set dressing"),
+          testAccount(id: "p2", label: "Transport"),
         ],
         unpricedElements: [
           _element(id: "e1", name: "Vintage phone", sceneCount: 3),
@@ -472,13 +472,13 @@ void main() {
       await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownCheckbox-e2")));
       await tester.pumpAndSettle();
 
-      // e1 goes to Set dressing, e2 to Transport — two elements of one selection, two postes.
-      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownPoste-e1")));
+      // e1 goes to Set dressing, e2 to Transport — two elements of one selection, two accounts.
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownAccount-e1")));
       await tester.pumpAndSettle();
       await tester.tap(find.text("Set dressing").last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownPoste-e2")));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewBreakdownAccount-e2")));
       await tester.pumpAndSettle();
       await tester.tap(find.text("Transport").last);
       await tester.pumpAndSettle();
@@ -487,8 +487,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewLinesFromBreakdownOutcome;
-      expect(outcome.lines.firstWhere((line) => line.elementId == "e1").posteId, "p1");
-      expect(outcome.lines.firstWhere((line) => line.elementId == "e2").posteId, "p2");
+      expect(outcome.lines.firstWhere((line) => line.elementId == "e1").accountId, "p1");
+      expect(outcome.lines.firstWhere((line) => line.elementId == "e2").accountId, "p2");
     });
   });
 
@@ -499,10 +499,10 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
         commitments: [
-          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
-          _commitment(id: "c2", label: "Atelier Verrier bis", posteId: "p1", amountCents: 25000),
+          _commitment(id: "c1", label: "Atelier Verrier", accountId: "p1", amountCents: 25000),
+          _commitment(id: "c2", label: "Atelier Verrier bis", accountId: "p1", amountCents: 25000),
         ],
       );
 
@@ -542,9 +542,9 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
         commitments: [
-          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+          _commitment(id: "c1", label: "Atelier Verrier", accountId: "p1", amountCents: 25000),
         ],
       );
 
@@ -574,9 +574,9 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
         commitments: [
-          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+          _commitment(id: "c1", label: "Atelier Verrier", accountId: "p1", amountCents: 25000),
         ],
       );
 
@@ -610,7 +610,7 @@ void main() {
       final prefill = OcptBudgetEntryFormFields(
         date: DateTime(2026, 1, 5),
         label: "Atelier Verrier",
-        posteId: "p1",
+        accountId: "p1",
         resourceId: null,
         revenueId: null,
         shareId: null,
@@ -628,9 +628,9 @@ void main() {
         initialGesture: OcptBudgetGesture.recordExpense,
         entryPrefill: prefill,
         offersMatching: false,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
         commitments: [
-          _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
+          _commitment(id: "c1", label: "Atelier Verrier", accountId: "p1", amountCents: 25000),
         ],
       );
 

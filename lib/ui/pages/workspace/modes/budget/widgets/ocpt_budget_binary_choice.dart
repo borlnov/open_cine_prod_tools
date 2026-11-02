@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// A two-segment boolean choice: two small bordered, clickable labels, the active one filled and
-/// bolder — the poste inspector's own way of drawing a line's tax basis, lifted here, generic over
-/// its own two labels, once the cash journal's own entry dialog needed the very same shape twice
-/// more (its own tax basis, and its debit/credit direction) rather than a third bespoke widget.
+/// bolder — the account inspector's own way of drawing a line's tax basis, lifted here, generic
+/// over its own two labels, once the cash journal's own entry dialog needed the very same shape
+/// twice more (its own tax basis, and its debit/credit direction) rather than a third bespoke
+/// widget.
 ///
 /// Mirrors `OcptBudgetHeader`'s own switch idiom rather than a [Radio] pair — this app carries no
 /// `Radio` elsewhere, and this segmented look is already how it draws a two-way choice everywhere
@@ -40,8 +41,8 @@ class OcptBudgetBinaryChoice extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     children: [
       // Each segment is [Flexible] so the pair shrinks and ellipsizes rather than overflowing when
-      // the row is narrower than the two labels want — the poste inspector's own right dock can be
-      // dragged down to its 300 px floor, narrower than these two chips at their natural width.
+      // the row is narrower than the two labels want — the account inspector's own right dock can
+      // be dragged down to its 300 px floor, narrower than these two chips at their natural width.
       // Both keep that natural width wherever there is room: under the entry dialog's
       // [IntrinsicWidth] the row is handed `2·max(label) + gap`, so each flex share still clears
       // the wider label.

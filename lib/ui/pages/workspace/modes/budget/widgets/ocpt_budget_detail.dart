@@ -38,26 +38,26 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// in large type, one primary action and at most two secondary ones. The table says where things
 /// stand; this detail panel says where they come from and what to do next.
 ///
-/// **The poste's and the quote line's own editable fields move here** (the tree draws every quote
-/// line, commitment and entry as a row of its own, so this panel stops listing them): a poste keeps
-/// its label, code, simple label and typed estimate to complete; a quote line keeps its label,
-/// quantity, unit, unit price, tax choice, VAT override and notes.
+/// **The account's and the quote line's own editable fields move here** (the tree draws every quote
+/// line, commitment and entry as a row of its own, so this panel stops listing them): an account
+/// keeps its label, code, simple label and typed estimate to complete; a quote line keeps its
+/// label, quantity, unit, unit price, tax choice, VAT override and notes.
 ///
 /// A composite panel (`docs/architecture/foundations.md`'s own idiom): [isReadOnly] withholds every
 /// writing affordance — every callback simply arrives null under a previewed version, this widget
 /// never disabling one instead.
 ///
 /// This widget resolves the object [selection] names off the whole catalogues it is handed
-/// ([postes], [commitments], [entries], [resources], [revenues]) rather than being handed the
+/// ([accounts], [commitments], [entries], [resources], [revenues]) rather than being handed the
 /// object pre-resolved, exactly as `OcptBudgetCostTracking` already resolves its own rows off
 /// `selection` and the same catalogues — the mode hands in what it has on state, this panel finds
-/// its own subject and its own ancestors (a line's own poste, a commitment's own line) in it.
+/// its own subject and its own ancestors (a line's own account, a commitment's own line) in it.
 class OcptBudgetDetail extends StatelessWidget {
   /// What is currently selected, or null while nothing is — the tab then shows a plain hint.
   final OcptBudgetSelection? selection;
 
-  /// Every live poste of the project, each carrying its own lines.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, each carrying its own lines.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live commitment of the project.
   final List<OcptBudgetCommitment> commitments;
@@ -71,8 +71,8 @@ class OcptBudgetDetail extends StatelessWidget {
   /// Every live taking of the project.
   final List<OcptBudgetRevenue> revenues;
 
-  /// Which basis every amount is currently read in — the quote's own toggle, read by the poste and
-  /// the quote-line variants alone: every other variant reads money that has moved, always
+  /// Which basis every amount is currently read in — the quote's own toggle, read by the account
+  /// and the quote-line variants alone: every other variant reads money that has moved, always
   /// tax-inclusive (`docs/architecture/budget.md`).
   final OcptBudgetTaxBasis taxBasis;
 
@@ -82,7 +82,7 @@ class OcptBudgetDetail extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// Whether the header's simplified/detailed switch currently reads simplified — a poste's own
+  /// Whether the header's simplified/detailed switch currently reads simplified — an account's own
   /// displayed name.
   final bool isSimplified;
 
@@ -106,17 +106,17 @@ class OcptBudgetDetail extends StatelessWidget {
   /// [receivedByResourceId].
   final Map<String, OcptBudgetCoveredTotal> receivedByRevenueId;
 
-  /// A poste's or a line's current value for `field` — a pending edit, or its own stored value.
+  /// An account's or a line's current value for `field` — a pending edit, or its own stored value.
   final String Function(String targetId, OcptBudgetField field, String storedValue) fieldValueOf;
 
-  /// Called with a poste's or a line's id, which field and the raw text just typed, or null while
-  /// [isReadOnly].
+  /// Called with an account's or a line's id, which field and the raw text just typed, or null
+  /// while [isReadOnly].
   final void Function(String targetId, OcptBudgetField field, String rawValue)? onFieldChanged;
 
-  /// Called with the poste's id when its own `Derive again` action is clicked, or null while
+  /// Called with the account's id when its own `Derive again` action is clicked, or null while
   /// [isReadOnly]. Not an irreversible action, so the mode answers this by dispatching straight
   /// away, with no `OcptConfirmDialog`.
-  final ValueChanged<String>? onPosteEstimateToCompleteDerivedRequested;
+  final ValueChanged<String>? onAccountEstimateToCompleteDerivedRequested;
 
   /// Called with a line's id and the including/excluding-tax choice just picked, or null while
   /// [isReadOnly].
@@ -183,7 +183,7 @@ class OcptBudgetDetail extends StatelessWidget {
   final VoidCallback? onEntryPromoteToQuoteRequested;
 
   /// Called when the off-line-debit banner's own `Move off-quote` action is clicked, on the entry
-  /// currently shown, or null while [isReadOnly]. Clears the entry's own poste, so it reads as an
+  /// currently shown, or null while [isReadOnly]. Clears the entry's own account, so it reads as an
   /// honest off-quote spend from then on (`docs/architecture/budget.md`'s "Off-quote spending is
   /// named, never hidden").
   final VoidCallback? onEntryMoveOffQuoteRequested;
@@ -211,7 +211,7 @@ class OcptBudgetDetail extends StatelessWidget {
   const OcptBudgetDetail({
     super.key,
     required this.selection,
-    required this.postes,
+    required this.accounts,
     required this.commitments,
     required this.entries,
     required this.resources,
@@ -227,7 +227,7 @@ class OcptBudgetDetail extends StatelessWidget {
     required this.receivedByRevenueId,
     required this.fieldValueOf,
     required this.onFieldChanged,
-    required this.onPosteEstimateToCompleteDerivedRequested,
+    required this.onAccountEstimateToCompleteDerivedRequested,
     required this.onLineTaxInclusiveChanged,
     required this.onLineVatRateInheritedRequested,
     required this.onLineCommitRequested,
@@ -264,16 +264,16 @@ class OcptBudgetDetail extends StatelessWidget {
     // snapshot — which is answered with the plain hint rather than left to throw.
     Widget? variant;
     switch (selection) {
-      case OcptBudgetPosteSelection(:final posteId):
-        final poste = posteById(posteId);
-        if (poste != null) {
-          variant = OcptBudgetDetailPoste(detail: this, poste: poste);
+      case OcptBudgetAccountSelection(:final accountId):
+        final account = accountById(accountId);
+        if (account != null) {
+          variant = OcptBudgetDetailAccount(detail: this, account: account);
         }
       case OcptBudgetLineSelection(:final lineId):
-        final poste = posteOfLine(lineId);
-        final line = poste == null ? null : lineById(lineId);
-        if (poste != null && line != null) {
-          variant = OcptBudgetDetailLine(detail: this, poste: poste, line: line);
+        final account = accountOfLine(lineId);
+        final line = account == null ? null : lineById(lineId);
+        if (account != null && line != null) {
+          variant = OcptBudgetDetailLine(detail: this, account: account, line: line);
         }
       case OcptBudgetCommitmentSelection(:final commitmentId):
         final commitment = commitments.firstWhereOrNull(
@@ -313,18 +313,19 @@ class OcptBudgetDetail extends StatelessWidget {
     return SingleChildScrollView(padding: const EdgeInsets.all(12), child: variant);
   }
 
-  /// Get [postes]' own entry naming [posteId], or null while no live poste carries that id.
-  OcptBudgetPoste? posteById(String posteId) =>
-      postes.firstWhereOrNull((poste) => poste.id == posteId);
+  /// Get [accounts]' own entry naming [accountId], or null while no live account carries that id.
+  OcptBudgetAccount? accountById(String accountId) =>
+      accounts.firstWhereOrNull((account) => account.id == accountId);
 
-  /// Get the poste [lineId]'s own quote line belongs to, or null while no live poste carries it.
-  OcptBudgetPoste? posteOfLine(String lineId) =>
-      postes.firstWhereOrNull((poste) => poste.lines.any((line) => line.id == lineId));
+  /// Get the account [lineId]'s own quote line belongs to, or null while no live account carries
+  /// it.
+  OcptBudgetAccount? accountOfLine(String lineId) =>
+      accounts.firstWhereOrNull((account) => account.lines.any((line) => line.id == lineId));
 
   /// Get [lineId]'s own live quote line, or null.
   OcptBudgetLine? lineById(String lineId) {
-    for (final poste in postes) {
-      final line = poste.lines.firstWhereOrNull((line) => line.id == lineId);
+    for (final account in accounts) {
+      final line = account.lines.firstWhereOrNull((line) => line.id == lineId);
       if (line != null) {
         return line;
       }
@@ -336,29 +337,29 @@ class OcptBudgetDetail extends StatelessWidget {
   String amountLabelOf(int? amountCents) =>
       amountCents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(amountCents, currencyCode);
 
-  /// Get `posteId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against
+  /// Get `accountId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against
   /// it,
-  /// read off [entries] directly since the detail panel resolves its own poste rather than being
+  /// read off [entries] directly since the detail panel resolves its own account rather than being
   /// handed one pre-resolved.
-  int paidCentsOf(String posteId) =>
-      ocptBudgetPaidCentsByPosteId(
+  int paidCentsOf(String accountId) =>
+      ocptBudgetPaidCentsByAccountId(
         entries,
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      )[posteId]?.amountCents ??
+      )[accountId]?.amountCents ??
       0;
 
-  /// Get `posteId`'s own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
-  int committedCentsOf(String posteId) =>
-      ocptBudgetCommittedCentsByPosteId(
+  /// Get `accountId`'s own committed total, in cents, tax-inclusive — mirrors [paidCentsOf].
+  int committedCentsOf(String accountId) =>
+      ocptBudgetCommittedCentsByAccountId(
         commitments,
         entries: entries,
         projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      )[posteId]?.amountCents ??
+      )[accountId]?.amountCents ??
       0;
 
-  /// Get `posteId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off [postes]
-  /// directly since the detail panel resolves its own poste rather than being handed one
-  /// pre-resolved.
-  int inKindCoveredCentsOf(String posteId) =>
-      ocptBudgetInKindCoveredCentsByPosteId(postes)[posteId] ?? 0;
+  /// Get `accountId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off
+  /// [accounts] directly since the detail panel resolves its own account rather than being handed
+  /// one pre-resolved.
+  int inKindCoveredCentsOf(String accountId) =>
+      ocptBudgetInKindCoveredCentsByAccountId(accounts)[accountId] ?? 0;
 }

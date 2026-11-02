@@ -10,7 +10,7 @@
 /// (`lib/models/rules/ocpt_budget_projection.dart`'s own `ocptBudgetCommitmentIsSettledOf`) — a
 /// status the enum itself also claimed would be a second copy of the very same fact, kept in step
 /// by hand or by a write nobody could guarantee never to forget, exactly the argument
-/// `OcptBudgetPostesTable`'s own doc comment makes against a stored `quotedAmount`. Reading
+/// `OcptBudgetAccountsTable`'s own doc comment makes against a stored `quotedAmount`. Reading
 /// settlement off the ledger rather than off a status also means a commitment can be marked
 /// `declared` and settled at once, or settled without ever having been marked `declared` at all — a
 /// production that pays before its paperwork catches up is not a state this enum has to pretend

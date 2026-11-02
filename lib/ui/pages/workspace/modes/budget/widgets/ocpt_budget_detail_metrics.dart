@@ -2,6 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// The poste's own proportion bar's own height, in logical pixels — matches
+/// The account's own proportion bar's own height, in logical pixels — matches
 /// `OcptBudgetFinancing`'s own two-tone coverage bar.
-const double ocptBudgetPosteProportionBarHeight = 8;
+const double ocptBudgetAccountProportionBarHeight = 8;

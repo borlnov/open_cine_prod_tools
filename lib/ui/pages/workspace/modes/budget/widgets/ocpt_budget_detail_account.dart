@@ -16,21 +16,21 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_inline_field.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The poste variant: breadcrumb through the document, the quote/committed/paid/estimate to
+/// The account variant: breadcrumb through the document, the quote/committed/paid/estimate to
 /// complete/final cost/final-cost variance figures, the remaining amount as its
 /// own outstanding, and its editable fields — label, code, simple label, the typed estimate to
 /// complete and its `Derive again` action.
-class OcptBudgetDetailPoste extends StatelessWidget {
+class OcptBudgetDetailAccount extends StatelessWidget {
   /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
   final OcptBudgetDetail detail;
 
-  /// The poste this variant draws.
-  final OcptBudgetPoste poste;
+  /// The account this variant draws.
+  final OcptBudgetAccount account;
 
   /// Class constructor
-  const OcptBudgetDetailPoste({super.key, required this.detail, required this.poste});
+  const OcptBudgetDetailAccount({super.key, required this.detail, required this.account});
 
-  /// Build the budget detail panel poste as an [OcptBudgetDetailScaffold].
+  /// Build the budget detail panel account as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
     final taxBasis = detail.taxBasis;
@@ -39,19 +39,19 @@ class OcptBudgetDetailPoste extends StatelessWidget {
     final tr = Tr.of(context);
 
     final quoted = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final paidCents = detail.paidCentsOf(poste.id);
-    final committedCents = detail.committedCentsOf(poste.id);
-    final inKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
+    final paidCents = detail.paidCentsOf(account.id);
+    final committedCents = detail.committedCentsOf(account.id);
+    final inKindCoveredCents = detail.inKindCoveredCentsOf(account.id);
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
       inKindCoveredCents: inKindCoveredCents,
-      typedEstimateToCompleteCents: poste.estimateToCompleteCents,
+      typedEstimateToCompleteCents: account.estimateToCompleteCents,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
       paidCents: paidCents,
@@ -71,15 +71,15 @@ class OcptBudgetDetailPoste extends StatelessWidget {
 
     return OcptBudgetDetailScaffold(
       breadcrumb: [tr.budgetHeaderExpensesSegmentLabel],
-      title: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+      title: ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified),
       amountText: detail.amountLabelOf(quoted.amountCents),
-      // A poste is an aggregate, not a single debt working through a lifecycle of its own — the
+      // An account is an aggregate, not a single debt working through a lifecycle of its own — the
       // three-step chain the line, commitment and entry variants below draw would light every step
-      // in hard code the moment a poste exists at all. The poste variant alone draws no stepper —
-      // `proportionBar` fills the very same slot instead, `docs/architecture/budget.md`.
+      // in hard code the moment an account exists at all. The account variant alone draws no
+      // stepper — `proportionBar` fills the very same slot instead, `docs/architecture/budget.md`.
       stepLabels: const [],
       reachedCount: 0,
-      proportionBar: OcptBudgetPosteProportionBar(
+      proportionBar: OcptBudgetAccountProportionBar(
         quotedAmountCents: quoted.amountCents,
         paidCents: paidCents,
         committedCents: committedCents,
@@ -89,7 +89,7 @@ class OcptBudgetDetailPoste extends StatelessWidget {
         (tr.budgetInspectorFigureCommitted, detail.amountLabelOf(committedCents)),
         (tr.budgetInspectorFigurePaid, detail.amountLabelOf(paidCents)),
         (
-          tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
+          tr.budgetInspectorAccountEstimateToCompleteFieldLabel,
           detail.amountLabelOf(estimateToCompleteCents),
         ),
         (tr.budgetCostTrackingColumnFinalCost, detail.amountLabelOf(finalCostCents)),
@@ -97,8 +97,8 @@ class OcptBudgetDetailPoste extends StatelessWidget {
       ],
       outstandingLabel: tr.budgetInspectorFigureRemaining,
       outstandingValue: detail.amountLabelOf(remainingCents),
-      details: _OcptBudgetDetailPosteFields(detail: detail, poste: poste),
-      // The poste's own `Add`/`From breakdown` actions are gone: a fresh quote line is now typed
+      details: _OcptBudgetDetailAccountFields(detail: detail, account: account),
+      // The account's own `Add`/`From breakdown` actions are gone: a fresh quote line is now typed
       // through the capture wizard's own `addQuoteLine`/`addQuoteLinesFromBreakdown` gestures,
       // reached from the header's own `+ Nouveau` button.
       primary: null,
@@ -107,81 +107,81 @@ class OcptBudgetDetailPoste extends StatelessWidget {
   }
 }
 
-/// The poste's own editable fields: label, code, simple label and the typed estimate to complete,
+/// The account's own editable fields: label, code, simple label and the typed estimate to complete,
 /// with its `Derive again` action.
-class _OcptBudgetDetailPosteFields extends StatelessWidget {
+class _OcptBudgetDetailAccountFields extends StatelessWidget {
   /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
   final OcptBudgetDetail detail;
 
-  /// The poste whose fields are drawn.
-  final OcptBudgetPoste poste;
+  /// The account whose fields are drawn.
+  final OcptBudgetAccount account;
 
   /// Class constructor
-  const _OcptBudgetDetailPosteFields({required this.detail, required this.poste});
+  const _OcptBudgetDetailAccountFields({required this.detail, required this.account});
 
-  /// Build the budget detail panel poste fields as a [Column].
+  /// Build the budget detail panel account fields as a [Column].
   @override
   Widget build(BuildContext context) {
-    final postes = detail.postes;
+    final accounts = detail.accounts;
     final taxBasis = detail.taxBasis;
     final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
     final currencyCode = detail.currencyCode;
     final isReadOnly = detail.isReadOnly;
     final fieldValueOf = detail.fieldValueOf;
     final onFieldChanged = detail.onFieldChanged;
-    final onPosteEstimateToCompleteDerivedRequested =
-        detail.onPosteEstimateToCompleteDerivedRequested;
+    final onAccountEstimateToCompleteDerivedRequested =
+        detail.onAccountEstimateToCompleteDerivedRequested;
     final tr = Tr.of(context);
     final quoted = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final paidCents = detail.paidCentsOf(poste.id);
-    final committedCents = detail.committedCentsOf(poste.id);
+    final paidCents = detail.paidCentsOf(account.id);
+    final committedCents = detail.committedCentsOf(account.id);
     final derivedEstimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
-      inKindCoveredCents: detail.inKindCoveredCentsOf(poste.id),
+      inKindCoveredCents: detail.inKindCoveredCentsOf(account.id),
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
     // Signalled, never blocked (`docs/architecture/budget.md`): an empty code is not a duplicate,
     // and the comparison trims both sides so two codes differing only by surrounding whitespace
     // still read as the same one.
-    final trimmedCode = poste.code.trim();
+    final trimmedCode = account.code.trim();
     final hasDuplicateCode =
         trimmedCode.isNotEmpty &&
-        postes.any((other) => other.id != poste.id && other.code.trim() == trimmedCode);
+        accounts.any((other) => other.id != account.id && other.code.trim() == trimmedCode);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         OcptBudgetDetailField(
           detail: detail,
-          targetId: poste.id,
-          field: OcptBudgetField.posteLabel,
-          label: tr.budgetInspectorPosteLabelFieldLabel,
-          storedValue: poste.label,
+          targetId: account.id,
+          field: OcptBudgetField.accountLabel,
+          label: tr.budgetInspectorAccountLabelFieldLabel,
+          storedValue: account.label,
         ),
         const SizedBox(height: 8),
         OcptBudgetDetailField(
           detail: detail,
-          targetId: poste.id,
-          field: OcptBudgetField.posteCode,
-          label: tr.budgetInspectorPosteCodeFieldLabel,
-          storedValue: poste.code,
-          errorText: hasDuplicateCode ? tr.budgetInspectorPosteCodeDuplicateError : null,
+          targetId: account.id,
+          field: OcptBudgetField.accountCode,
+          label: tr.budgetInspectorAccountCodeFieldLabel,
+          storedValue: account.code,
+          errorText: hasDuplicateCode ? tr.budgetInspectorAccountCodeDuplicateError : null,
         ),
         const SizedBox(height: 8),
         OcptBudgetDetailField(
           detail: detail,
-          targetId: poste.id,
-          field: OcptBudgetField.posteSimpleLabel,
-          label: tr.budgetInspectorPosteSimpleLabelFieldLabel,
-          storedValue: poste.simpleLabel ?? "",
-          hintText: poste.label,
+          targetId: account.id,
+          field: OcptBudgetField.accountSimpleLabel,
+          label: tr.budgetInspectorAccountSimpleLabelFieldLabel,
+          storedValue: account.simpleLabel ?? "",
+          hintText: account.label,
         ),
         const SizedBox(height: 8),
         Row(
@@ -189,33 +189,33 @@ class _OcptBudgetDetailPosteFields extends StatelessWidget {
           children: [
             Expanded(
               child: OcptBudgetInlineField(
-                label: tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
+                label: tr.budgetInspectorAccountEstimateToCompleteFieldLabel,
                 value: fieldValueOf(
-                  poste.id,
-                  OcptBudgetField.posteEstimateToComplete,
-                  ocptCostTextOf(poste.estimateToCompleteCents),
+                  account.id,
+                  OcptBudgetField.accountEstimateToComplete,
+                  ocptCostTextOf(account.estimateToCompleteCents),
                 ),
-                hintText: tr.budgetInspectorPosteEstimateToCompleteHint(
+                hintText: tr.budgetInspectorAccountEstimateToCompleteHint(
                   ocptBudgetAmountLabel(derivedEstimateToCompleteCents, currencyCode),
                 ),
-                helperText: tr.budgetInspectorPosteEstimateToCompleteHelper,
+                helperText: tr.budgetInspectorAccountEstimateToCompleteHelper,
                 suffixText: currencySymbol,
                 onChanged: onFieldChanged == null
                     ? null
                     : (value) => onFieldChanged.call(
-                        poste.id,
-                        OcptBudgetField.posteEstimateToComplete,
+                        account.id,
+                        OcptBudgetField.accountEstimateToComplete,
                         value,
                       ),
               ),
             ),
-            if (!isReadOnly && onPosteEstimateToCompleteDerivedRequested != null) ...[
+            if (!isReadOnly && onAccountEstimateToCompleteDerivedRequested != null) ...[
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(top: 18),
                 child: TextButton(
-                  onPressed: () => onPosteEstimateToCompleteDerivedRequested.call(poste.id),
-                  child: Text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction),
+                  onPressed: () => onAccountEstimateToCompleteDerivedRequested.call(account.id),
+                  child: Text(tr.budgetInspectorAccountEstimateToCompleteDeriveAction),
                 ),
               ),
             ],

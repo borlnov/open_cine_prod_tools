@@ -55,8 +55,8 @@ void main() {
 
   testWidgets("a line paid directly from the fiche still writes when the window crossed the "
       "compact breakpoint under the open wizard", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);

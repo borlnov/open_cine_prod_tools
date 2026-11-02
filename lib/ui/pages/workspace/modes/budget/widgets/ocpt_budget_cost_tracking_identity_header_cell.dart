@@ -12,13 +12,13 @@ class OcptBudgetCostTrackingIdentityHeaderCell extends StatelessWidget {
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
-  final double posteWidth;
+  final double accountWidth;
 
   /// Class constructor
   const OcptBudgetCostTrackingIdentityHeaderCell({
     super.key,
     required this.isSimplified,
-    required this.posteWidth,
+    required this.accountWidth,
   });
 
   /// Build the budget cost tracking identity header cell as a [DecoratedBox].
@@ -49,10 +49,10 @@ class OcptBudgetCostTrackingIdentityHeaderCell extends StatelessWidget {
                 ),
               ),
             SizedBox(
-              width: posteWidth,
+              width: accountWidth,
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: Text(tr.budgetCostTrackingColumnPoste.toUpperCase(), style: labelStyle),
+                child: Text(tr.budgetCostTrackingColumnAccount.toUpperCase(), style: labelStyle),
               ),
             ),
           ],

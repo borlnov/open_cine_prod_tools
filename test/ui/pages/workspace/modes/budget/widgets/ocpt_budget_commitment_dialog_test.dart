@@ -45,8 +45,8 @@ Widget _wrapWithLocalization(Widget child) => MaterialApp(
   home: child,
 );
 
-/// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste _poste({required String id, required String label}) => OcptBudgetPoste(
+/// A minimal account, everything but [id]/[label] neutral.
+OcptBudgetAccount _account({required String id, required String label}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: label,
@@ -61,7 +61,7 @@ OcptBudgetCommitment _existingCommitment({
   String id = "commitment-1",
   DateTime? dueDate,
   String label = "Camera deposit",
-  String posteId = "poste-1",
+  String accountId = "poste-1",
   int amountCents = 1250,
   bool isTaxInclusive = true,
   int? vatRateBasisPoints,
@@ -70,7 +70,7 @@ OcptBudgetCommitment _existingCommitment({
   id: id,
   dueDate: dueDate,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   amount: OcptMoney(
     amountCents: amountCents,
     isTaxInclusive: isTaxInclusive,
@@ -104,7 +104,7 @@ void main() {
   Future<Tr> pumpDialog(
     WidgetTester tester, {
     OcptBudgetCommitment? existing,
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     int? defaultVatRateBasisPoints,
   }) async {
     // The default test surface is too short for the dialog's own scrollable content to lay every
@@ -118,7 +118,7 @@ void main() {
       _wrapWithLocalization(
         OcptBudgetCommitmentDialog(
           existing: existing,
-          postes: postes,
+          accounts: accounts,
           currencyCode: "EUR",
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
           isSimplified: false,
@@ -131,10 +131,10 @@ void main() {
   }
 
   testWidgets("Save is withheld until both the label and the poste are filled", (tester) async {
-    final poste = _poste(id: "poste-1", label: "Camera");
-    final tr = await pumpDialog(tester, postes: [poste]);
+    final account = _account(id: "poste-1", label: "Camera");
+    final tr = await pumpDialog(tester, accounts: [account]);
 
-    expect(find.text(tr.budgetCommitmentDialogMissingLabelAndPosteHint), findsOneWidget);
+    expect(find.text(tr.budgetCommitmentDialogMissingLabelAndAccountHint), findsOneWidget);
     var saveButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
     );
@@ -145,7 +145,7 @@ void main() {
       "Camera deposit",
     );
     await tester.pump();
-    expect(find.text(tr.budgetCommitmentDialogMissingPosteHint), findsOneWidget);
+    expect(find.text(tr.budgetCommitmentDialogMissingAccountHint), findsOneWidget);
     saveButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
     );
@@ -156,8 +156,8 @@ void main() {
     await tester.tap(find.text("Camera").last);
     await tester.pumpAndSettle();
 
-    expect(find.text(tr.budgetCommitmentDialogMissingLabelAndPosteHint), findsNothing);
-    expect(find.text(tr.budgetCommitmentDialogMissingPosteHint), findsNothing);
+    expect(find.text(tr.budgetCommitmentDialogMissingLabelAndAccountHint), findsNothing);
+    expect(find.text(tr.budgetCommitmentDialogMissingAccountHint), findsNothing);
     saveButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, tr.budgetEntryDialogConfirmAction),
     );
@@ -173,7 +173,7 @@ void main() {
     expect(routerManager.popped, isTrue);
     final fields = routerManager.poppedValue! as OcptBudgetCommitmentFormFields;
     expect(fields.label, "Camera deposit");
-    expect(fields.posteId, "poste-1");
+    expect(fields.accountId, "poste-1");
   });
 
   testWidgets("editing pre-fills every field, the poste picker included", (tester) async {
@@ -181,8 +181,8 @@ void main() {
       vatRateBasisPoints: 550,
       status: OcptBudgetCommitmentStatus.declared,
     );
-    final poste = _poste(id: "poste-1", label: "Camera");
-    final tr = await pumpDialog(tester, existing: existing, postes: [poste]);
+    final account = _account(id: "poste-1", label: "Camera");
+    final tr = await pumpDialog(tester, existing: existing, accounts: [account]);
 
     expect(find.widgetWithText(TextFormField, "Camera deposit"), findsOneWidget);
     expect(find.widgetWithText(TextFormField, "12.50"), findsOneWidget);
@@ -195,7 +195,7 @@ void main() {
     expect(routerManager.popped, isTrue);
     final fields = routerManager.poppedValue! as OcptBudgetCommitmentFormFields;
     expect(fields.amountCents, 1250);
-    expect(fields.posteId, "poste-1");
+    expect(fields.accountId, "poste-1");
     expect(fields.vatRateBasisPoints, 550);
     expect(fields.status, OcptBudgetCommitmentStatus.declared);
   });
@@ -205,9 +205,9 @@ void main() {
     final tr = await pumpDialog(
       tester,
       existing: existing,
-      postes: [
-        _poste(id: "poste-1", label: "Camera"),
-        _poste(id: "poste-2", label: "Sound"),
+      accounts: [
+        _account(id: "poste-1", label: "Camera"),
+        _account(id: "poste-2", label: "Sound"),
       ],
     );
 
@@ -220,12 +220,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final fields = routerManager.poppedValue! as OcptBudgetCommitmentFormFields;
-    expect(fields.posteId, "poste-2");
+    expect(fields.accountId, "poste-2");
   });
 
   testWidgets("an empty due date is a real state, not a placeholder for today", (tester) async {
-    final poste = _poste(id: "poste-1", label: "Camera");
-    final tr = await pumpDialog(tester, postes: [poste]);
+    final account = _account(id: "poste-1", label: "Camera");
+    final tr = await pumpDialog(tester, accounts: [account]);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
@@ -248,8 +248,8 @@ void main() {
   });
 
   testWidgets("an empty VAT field pops with a null override, meaning inherit", (tester) async {
-    final poste = _poste(id: "poste-1", label: "Camera");
-    final tr = await pumpDialog(tester, postes: [poste]);
+    final account = _account(id: "poste-1", label: "Camera");
+    final tr = await pumpDialog(tester, accounts: [account]);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, tr.budgetEntryDialogLabelFieldLabel),
@@ -272,8 +272,8 @@ void main() {
   });
 
   testWidgets("the status picker defaults to quote accepted and reports the pick", (tester) async {
-    final poste = _poste(id: "poste-1", label: "Camera");
-    final tr = await pumpDialog(tester, postes: [poste]);
+    final account = _account(id: "poste-1", label: "Camera");
+    final tr = await pumpDialog(tester, accounts: [account]);
 
     expect(find.text(tr.budgetCommittedStatusQuoteAcceptedLabel), findsOneWidget);
 

@@ -26,8 +26,8 @@ Widget wrap(Widget child, {double width = 1400}) => MaterialApp(
   ),
 );
 
-/// A minimal poste, everything but [id]/[label] neutral.
-OcptBudgetPoste testPoste({required String id, required String label}) => OcptBudgetPoste(
+/// A minimal account, everything but [id]/[label] neutral.
+OcptBudgetAccount testAccount({required String id, required String label}) => OcptBudgetAccount(
   id: id,
   code: "1",
   label: label,
@@ -42,7 +42,7 @@ OcptBudgetEntry testEntry({
   required String id,
   required DateTime date,
   String label = "Camera rental",
-  String? posteId,
+  String? accountId,
   int debitCents = 0,
   int creditCents = 0,
   bool isTaxInclusive = true,
@@ -53,7 +53,7 @@ OcptBudgetEntry testEntry({
   id: id,
   date: date,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   debitCents: debitCents,
   creditCents: creditCents,
   isTaxInclusive: isTaxInclusive,
@@ -72,7 +72,7 @@ OcptBudgetCommitment testCommitment({
   required String id,
   DateTime? dueDate,
   String label = "Camera rental — balance",
-  String posteId = "poste-1",
+  String accountId = "poste-1",
   int amountCents = 1000,
   bool isTaxInclusive = true,
   int? vatRateBasisPoints,
@@ -83,7 +83,7 @@ OcptBudgetCommitment testCommitment({
   id: id,
   dueDate: dueDate,
   label: label,
-  posteId: posteId,
+  accountId: accountId,
   amount: OcptMoney(
     amountCents: amountCents,
     isTaxInclusive: isTaxInclusive,

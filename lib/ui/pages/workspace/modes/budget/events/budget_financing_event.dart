@@ -59,7 +59,7 @@ class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetFinancingEvent
   List<Object?> get props => [...super.props, allowanceId];
 }
 
-/// Carry out [entries] against poste [posteId], dispatched by the mode once its own
+/// Carry out [entries] against account [accountId], dispatched by the mode once its own
 /// `OcptConfirmDialog` has put the plan's own counts in front of the user and they agreed.
 ///
 /// **The plan travels with the event rather than being recomputed here**, and deliberately: it is
@@ -67,18 +67,18 @@ class OcptBudgetAllowanceDeletionConfirmedEvent extends OcptBudgetFinancingEvent
 /// the one they agreed to. Its wordings are resolved by the mode, no bloc of this app ever seeing a
 /// `Tr`.
 class OcptBudgetProvisionConfirmedEvent extends OcptBudgetFinancingEvent {
-  /// The poste the lines are written onto.
-  final String posteId;
+  /// The account the lines are written onto.
+  final String accountId;
 
   /// Everything the provisioning would do, exactly as the user was shown it.
   final List<OcptBudgetProvisionEntry> entries;
 
   /// Class constructor
-  const OcptBudgetProvisionConfirmedEvent({required this.posteId, required this.entries});
+  const OcptBudgetProvisionConfirmedEvent({required this.accountId, required this.entries});
 
   /// {@macro act_flutter_utility.BlocEventForMixin.props}
   @override
-  List<Object?> get props => [...super.props, posteId, entries];
+  List<Object?> get props => [...super.props, accountId, entries];
 }
 
 /// Create a new financing resource from [fields], dispatched by the mode once

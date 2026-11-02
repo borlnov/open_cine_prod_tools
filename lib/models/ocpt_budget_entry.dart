@@ -18,10 +18,10 @@ class OcptBudgetEntry extends Equatable {
   /// This entry's free-text wording.
   final String label;
 
-  /// The poste this entry is priced against, or null — see `OcptBudgetEntriesTable.posteId`'s own
-  /// doc comment: null is money that moved without pricing any one poste, most often cash coming
-  /// in.
-  final String? posteId;
+  /// The account this entry is priced against, or null — see `OcptBudgetEntriesTable.accountId`'s
+  /// own doc comment: null is money that moved without pricing any one account, most often cash
+  /// coming in.
+  final String? accountId;
 
   /// What left the account, exactly as typed, in cents.
   final int debitCents;
@@ -70,7 +70,7 @@ class OcptBudgetEntry extends Equatable {
     required this.id,
     required this.date,
     required this.label,
-    required this.posteId,
+    required this.accountId,
     required this.debitCents,
     required this.creditCents,
     required this.isTaxInclusive,
@@ -89,7 +89,7 @@ class OcptBudgetEntry extends Equatable {
     id: row.id,
     date: row.date,
     label: row.label,
-    posteId: row.posteId,
+    accountId: row.accountId,
     debitCents: row.debitCents,
     creditCents: row.creditCents,
     isTaxInclusive: row.isTaxInclusive,
@@ -115,7 +115,7 @@ class OcptBudgetEntry extends Equatable {
     id,
     date,
     label,
-    posteId,
+    accountId,
     debitCents,
     creditCents,
     isTaxInclusive,

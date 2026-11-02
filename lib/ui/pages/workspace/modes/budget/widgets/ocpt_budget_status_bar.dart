@@ -7,7 +7,7 @@ import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The budget mode's status band: `N postes · N lines · Quote <amount>`, in the shape of
+/// The budget mode's status band: `N accounts · N lines · Quote <amount>`, in the shape of
 /// `OcptResourcesStatusBar`.
 ///
 /// **The trailing figure is always the quote total, whatever centre view is on screen, and always
@@ -24,10 +24,10 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// at a glance is not the place to explain which of the two bases a figure is in, and the untouched
 /// sum needs no rate at all to be complete, unlike either converted reading.
 class OcptBudgetStatusBar extends StatelessWidget {
-  /// The number of live postes.
-  final int posteCount;
+  /// The number of live accounts.
+  final int accountCount;
 
-  /// The total number of quote lines across every poste.
+  /// The total number of quote lines across every account.
   final int lineCount;
 
   /// The project's quoted total, in cents, as typed — see the class doc comment.
@@ -39,7 +39,7 @@ class OcptBudgetStatusBar extends StatelessWidget {
   /// Class constructor
   const OcptBudgetStatusBar({
     super.key,
-    required this.posteCount,
+    required this.accountCount,
     required this.lineCount,
     required this.quotedTotalCents,
     required this.currencyCode,
@@ -54,7 +54,7 @@ class OcptBudgetStatusBar extends StatelessWidget {
     );
 
     return OcptWorkspaceStatusBar(
-      counters: [tr.budgetStatsPostes(posteCount), tr.budgetStatsLines(lineCount)],
+      counters: [tr.budgetStatsAccounts(accountCount), tr.budgetStatsLines(lineCount)],
       nonDroppableCount: 1,
       trailingText: totalText,
       trailing: Text(totalText, style: Theme.of(context).textTheme.labelSmall),

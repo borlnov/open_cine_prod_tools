@@ -24,14 +24,14 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_family.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_choice_row.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// Step 2 — what the movement attaches to: a poste, a poste and one of its lines, a financing
+/// Step 2 — what the movement attaches to: an account, an account and one of its lines, a financing
 /// resource, a participant or a person, according to the gesture picked on step 1.
 class OcptBudgetNewAttachmentStep extends StatelessWidget {
   /// The gesture picked on step 1, or null.
   final OcptBudgetGesture? gesture;
 
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live financing resource of the project.
   final List<OcptBudgetResource> resources;
@@ -42,7 +42,7 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
   /// Every live person of the project's address book.
   final List<OcptPerson> people;
 
-  /// Every live commitment, read to keep `posteAndLine` from offering a line that already carries
+  /// Every live commitment, read to keep `accountAndLine` from offering a line that already carries
   /// one.
   final List<OcptBudgetCommitment> commitments;
 
@@ -61,16 +61,16 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
   /// Whether the mode's header currently reads simplified.
   final bool isSimplified;
 
-  /// Whether a `poste`/`optionalPoste` answer has been given at all.
-  final bool posteAnswered;
+  /// Whether a `account`/`optionalAccount` answer has been given at all.
+  final bool accountAnswered;
 
-  /// The poste answered, or null.
-  final String? posteId;
+  /// The account answered, or null.
+  final String? accountId;
 
   /// The quote line answered, or null.
   final String? lineId;
 
-  /// Whether `posteAndLine`'s own third answer, `Aucune`, was picked.
+  /// Whether `accountAndLine`'s own third answer, `Aucune`, was picked.
   final bool lineNoneAnswered;
 
   /// The financing resource answered, or null.
@@ -88,16 +88,16 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
   /// The person answered, or null.
   final String? personId;
 
-  /// Called with the poste picked, null standing for the `Hors devis` answer.
-  final ValueChanged<String?> onPosteSelected;
+  /// Called with the account picked, null standing for the `Hors devis` answer.
+  final ValueChanged<String?> onAccountSelected;
 
-  /// Called when the `changer` link of `posteAndLine`'s poste recap is tapped.
-  final VoidCallback onPosteChangeRequested;
+  /// Called when the `changer` link of `accountAndLine`'s account recap is tapped.
+  final VoidCallback onAccountChangeRequested;
 
   /// Called with the quote line picked.
   final ValueChanged<String> onLineSelected;
 
-  /// Called when `posteAndLine`'s `Aucune` row is tapped.
+  /// Called when `accountAndLine`'s `Aucune` row is tapped.
   final VoidCallback onNoLineSelected;
 
   /// Called with the financing resource picked.
@@ -119,7 +119,7 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
   const OcptBudgetNewAttachmentStep({
     super.key,
     required this.gesture,
-    required this.postes,
+    required this.accounts,
     required this.resources,
     required this.shares,
     required this.people,
@@ -129,8 +129,8 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
     required this.reimbursedByPersonId,
     required this.currencyCode,
     required this.isSimplified,
-    required this.posteAnswered,
-    required this.posteId,
+    required this.accountAnswered,
+    required this.accountId,
     required this.lineId,
     required this.lineNoneAnswered,
     required this.resourceId,
@@ -138,8 +138,8 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
     required this.shareId,
     required this.pendingNewShare,
     required this.personId,
-    required this.onPosteSelected,
-    required this.onPosteChangeRequested,
+    required this.onAccountSelected,
+    required this.onAccountChangeRequested,
     required this.onLineSelected,
     required this.onNoLineSelected,
     required this.onResourceSelected,
@@ -159,33 +159,33 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
 
     return switch (ocptBudgetGestureAttachmentOf(gesture)) {
       OcptBudgetGestureAttachment.none => const SizedBox.shrink(),
-      OcptBudgetGestureAttachment.poste => _OcptBudgetNewPosteAttachment(
-        postes: postes,
+      OcptBudgetGestureAttachment.account => _OcptBudgetNewAccountAttachment(
+        accounts: accounts,
         isSimplified: isSimplified,
         offersOffQuote: false,
-        posteAnswered: posteAnswered,
-        posteId: posteId,
-        onPosteSelected: onPosteSelected,
+        accountAnswered: accountAnswered,
+        accountId: accountId,
+        onAccountSelected: onAccountSelected,
       ),
-      OcptBudgetGestureAttachment.optionalPoste => _OcptBudgetNewPosteAttachment(
-        postes: postes,
+      OcptBudgetGestureAttachment.optionalAccount => _OcptBudgetNewAccountAttachment(
+        accounts: accounts,
         isSimplified: isSimplified,
         offersOffQuote: true,
-        posteAnswered: posteAnswered,
-        posteId: posteId,
-        onPosteSelected: onPosteSelected,
+        accountAnswered: accountAnswered,
+        accountId: accountId,
+        onAccountSelected: onAccountSelected,
       ),
-      OcptBudgetGestureAttachment.posteAndLine => _OcptBudgetNewPosteAndLineAttachment(
-        postes: postes,
+      OcptBudgetGestureAttachment.accountAndLine => _OcptBudgetNewAccountAndLineAttachment(
+        accounts: accounts,
         commitments: commitments,
         currencyCode: currencyCode,
         isSimplified: isSimplified,
-        posteAnswered: posteAnswered,
-        posteId: posteId,
+        accountAnswered: accountAnswered,
+        accountId: accountId,
         lineId: lineId,
         lineNoneAnswered: lineNoneAnswered,
-        onPosteSelected: onPosteSelected,
-        onPosteChangeRequested: onPosteChangeRequested,
+        onAccountSelected: onAccountSelected,
+        onAccountChangeRequested: onAccountChangeRequested,
         onLineSelected: onLineSelected,
         onNoLineSelected: onNoLineSelected,
       ),
@@ -217,11 +217,11 @@ class OcptBudgetNewAttachmentStep extends StatelessWidget {
   }
 }
 
-/// Step 2's poste list — `poste` and `optionalPoste` alike, the latter ending in a `Hors devis`
-/// row, and the first half of `posteAndLine`.
-class _OcptBudgetNewPosteAttachment extends StatelessWidget {
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+/// Step 2's account list — `account` and `optionalAccount` alike, the latter ending in a
+/// `Hors devis` row, and the first half of `accountAndLine`.
+class _OcptBudgetNewAccountAttachment extends StatelessWidget {
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Whether the mode's header currently reads simplified.
   final bool isSimplified;
@@ -229,26 +229,26 @@ class _OcptBudgetNewPosteAttachment extends StatelessWidget {
   /// Whether the trailing `Hors devis` row is offered.
   final bool offersOffQuote;
 
-  /// Whether a poste answer has been given at all.
-  final bool posteAnswered;
+  /// Whether an account answer has been given at all.
+  final bool accountAnswered;
 
-  /// The poste answered, or null.
-  final String? posteId;
+  /// The account answered, or null.
+  final String? accountId;
 
-  /// Called with the poste picked, null standing for `Hors devis`.
-  final ValueChanged<String?> onPosteSelected;
+  /// Called with the account picked, null standing for `Hors devis`.
+  final ValueChanged<String?> onAccountSelected;
 
   /// Class constructor
-  const _OcptBudgetNewPosteAttachment({
-    required this.postes,
+  const _OcptBudgetNewAccountAttachment({
+    required this.accounts,
     required this.isSimplified,
     required this.offersOffQuote,
-    required this.posteAnswered,
-    required this.posteId,
-    required this.onPosteSelected,
+    required this.accountAnswered,
+    required this.accountId,
+    required this.onAccountSelected,
   });
 
-  /// Build the budget new poste attachment as a [Column].
+  /// Build the budget new account attachment as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -257,30 +257,30 @@ class _OcptBudgetNewPosteAttachment extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final poste in postes)
+        for (final account in accounts)
           OcptBudgetNewChoiceRow(
-            label: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
-            isSelected: posteAnswered && posteId == poste.id,
-            onTap: () => onPosteSelected(poste.id),
+            label: ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified),
+            isSelected: accountAnswered && accountId == account.id,
+            onTap: () => onAccountSelected(account.id),
           ),
         if (offersOffQuote)
           OcptBudgetNewChoiceRow(
             key: const Key("ocptBudgetNewOffQuoteChoice"),
             label: tr.budgetCostTrackingOffQuoteLabel,
-            hint: tr.budgetEntryWizardPosteFieldHint(tr.budgetCostTrackingOffQuoteLabel),
-            isSelected: posteAnswered && posteId == null,
-            onTap: () => onPosteSelected(null),
+            hint: tr.budgetEntryWizardAccountFieldHint(tr.budgetCostTrackingOffQuoteLabel),
+            isSelected: accountAnswered && accountId == null,
+            onTap: () => onAccountSelected(null),
           ),
       ],
     );
   }
 }
 
-/// Step 2 of `posteAndLine`: the poste list while no poste is answered, then the chosen poste's
-/// recap over its own quote lines and the `Aucune` row.
-class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+/// Step 2 of `accountAndLine`: the account list while no account is answered, then the chosen
+/// account's recap over its own quote lines and the `Aucune` row.
+class _OcptBudgetNewAccountAndLineAttachment extends StatelessWidget {
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live commitment, read to disable a line that already carries one.
   final List<OcptBudgetCommitment> commitments;
@@ -291,11 +291,11 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
   /// Whether the mode's header currently reads simplified.
   final bool isSimplified;
 
-  /// Whether a poste answer has been given at all.
-  final bool posteAnswered;
+  /// Whether an account answer has been given at all.
+  final bool accountAnswered;
 
-  /// The poste answered, or null.
-  final String? posteId;
+  /// The account answered, or null.
+  final String? accountId;
 
   /// The quote line answered, or null.
   final String? lineId;
@@ -303,11 +303,11 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
   /// Whether the `Aucune` row was picked.
   final bool lineNoneAnswered;
 
-  /// Called with the poste picked.
-  final ValueChanged<String?> onPosteSelected;
+  /// Called with the account picked.
+  final ValueChanged<String?> onAccountSelected;
 
   /// Called when the recap's `changer` link is tapped.
-  final VoidCallback onPosteChangeRequested;
+  final VoidCallback onAccountChangeRequested;
 
   /// Called with the quote line picked.
   final ValueChanged<String> onLineSelected;
@@ -316,37 +316,37 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
   final VoidCallback onNoLineSelected;
 
   /// Class constructor
-  const _OcptBudgetNewPosteAndLineAttachment({
-    required this.postes,
+  const _OcptBudgetNewAccountAndLineAttachment({
+    required this.accounts,
     required this.commitments,
     required this.currencyCode,
     required this.isSimplified,
-    required this.posteAnswered,
-    required this.posteId,
+    required this.accountAnswered,
+    required this.accountId,
     required this.lineId,
     required this.lineNoneAnswered,
-    required this.onPosteSelected,
-    required this.onPosteChangeRequested,
+    required this.onAccountSelected,
+    required this.onAccountChangeRequested,
     required this.onLineSelected,
     required this.onNoLineSelected,
   });
 
-  /// Build the budget new poste and line attachment as a [Column].
+  /// Build the budget new account and line attachment as a [Column].
   @override
   Widget build(BuildContext context) {
-    if (!posteAnswered) {
-      return _OcptBudgetNewPosteAttachment(
-        postes: postes,
+    if (!accountAnswered) {
+      return _OcptBudgetNewAccountAttachment(
+        accounts: accounts,
         isSimplified: isSimplified,
         offersOffQuote: false,
-        posteAnswered: posteAnswered,
-        posteId: posteId,
-        onPosteSelected: onPosteSelected,
+        accountAnswered: accountAnswered,
+        accountId: accountId,
+        onAccountSelected: onAccountSelected,
       );
     }
 
     final tr = Tr.of(context);
-    final poste = postes.where((poste) => poste.id == posteId).firstOrNull;
+    final account = accounts.where((account) => account.id == accountId).firstOrNull;
     final theme = Theme.of(context);
 
     return Column(
@@ -357,14 +357,14 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                poste == null
-                    ? tr.budgetPosteUnnamed
-                    : ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
+                account == null
+                    ? tr.budgetAccountUnnamed
+                    : ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified),
                 style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             InkWell(
-              onTap: onPosteChangeRequested,
+              onTap: onAccountChangeRequested,
               mouseCursor: ocpt_theme.ocptClickableCursor,
               child: Text(
                 tr.budgetEntryWizardChangeNatureAction,
@@ -374,9 +374,9 @@ class _OcptBudgetNewPosteAndLineAttachment extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        for (final line in poste?.lines ?? const <OcptBudgetLine>[])
+        for (final line in account?.lines ?? const <OcptBudgetLine>[])
           OcptBudgetNewChoiceRow(
-            label: line.label.isEmpty ? tr.budgetPosteUnnamed : line.label,
+            label: line.label.isEmpty ? tr.budgetAccountUnnamed : line.label,
             hint: tr.budgetNewLinePickerHint(
               ocptBudgetAmountLabel(ocptBudgetLineTotalCents(line), currencyCode),
               commitments.any((commitment) => commitment.lineId == line.id)
@@ -461,7 +461,7 @@ class _OcptBudgetNewResourceAttachment extends StatelessWidget {
             ),
             for (final resource in byFamily[family]!)
               OcptBudgetNewChoiceRow(
-                label: resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
+                label: resource.label.isEmpty ? tr.budgetAccountUnnamed : resource.label,
                 hint: tr.budgetNewResourceChoiceHint(
                   ocptBudgetAmountLabel(resource.amountCents, currencyCode),
                   ocptBudgetAmountLabel(
@@ -537,7 +537,7 @@ class _OcptBudgetNewParticipantAttachment extends StatelessWidget {
       children: [
         for (final share in shares)
           OcptBudgetNewChoiceRow(
-            label: share.label.isEmpty ? tr.budgetPosteUnnamed : share.label,
+            label: share.label.isEmpty ? tr.budgetAccountUnnamed : share.label,
             isSelected: pendingNewShare == null && shareId == share.id,
             onTap: () => onShareSelected(share.id),
           ),

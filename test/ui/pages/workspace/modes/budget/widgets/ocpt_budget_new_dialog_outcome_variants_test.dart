@@ -33,16 +33,16 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 import 'ocpt_budget_new_dialog_test_doubles.dart';
 
 /// A minimal quote line, priced at [unitAmountCents] for [quantityMilli] thousandths of a unit —
-/// everything but [id]/[posteId]/[label] neutral.
+/// everything but [id]/[accountId]/[label] neutral.
 OcptBudgetLine _line({
   required String id,
-  required String posteId,
+  required String accountId,
   required String label,
   int quantityMilli = 1000,
   int unitAmountCents = 10000,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label,
   quantityMilli: quantityMilli,
   unit: "",
@@ -166,7 +166,7 @@ void main() {
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
     bool offersMatching = true,
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
     List<OcptBudgetShare> shares = const [],
@@ -186,7 +186,7 @@ void main() {
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
           offersMatching: offersMatching,
-          postes: postes,
+          accounts: accounts,
           resources: resources,
           revenues: revenues,
           shares: shares,
@@ -211,13 +211,13 @@ void main() {
   }
 
   group("every outcome variant reaches the mode correctly", () {
-    testWidgets("addQuoteLine pops OcptBudgetNewLineOutcome naming the poste and the typing", (
+    testWidgets("addQuoteLine pops OcptBudgetNewLineOutcome naming the account and the typing", (
       tester,
     ) async {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.addQuoteLine,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
       );
 
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
@@ -245,7 +245,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewLineOutcome;
-      expect(outcome.posteId, "p1");
+      expect(outcome.accountId, "p1");
       expect(outcome.fields.label, "Camera hire");
       expect(outcome.fields.quantityMilli, 5000);
       expect(outcome.fields.unitAmountCents, 12000);
@@ -257,11 +257,11 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.commitSpend,
-        postes: [
-          testPoste(
+        accounts: [
+          testAccount(
             id: "p1",
             label: "Camera",
-            lines: [_line(id: "l1", posteId: "p1", label: "Zoom lens")],
+            lines: [_line(id: "l1", accountId: "p1", label: "Zoom lens")],
           ),
         ],
       );
@@ -281,7 +281,7 @@ void main() {
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewCommitmentOutcome;
       expect(outcome.lineId, "l1");
-      expect(outcome.fields.posteId, "p1");
+      expect(outcome.fields.accountId, "p1");
       expect(outcome.fields.label, "Zoom lens");
     });
 
@@ -386,7 +386,7 @@ void main() {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
       );
 
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
@@ -409,7 +409,7 @@ void main() {
 
       final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
       expect(outcome.acceptedSuggestion, isNull);
-      expect(outcome.fields.posteId, "p1");
+      expect(outcome.fields.accountId, "p1");
     });
   });
 
@@ -478,17 +478,17 @@ void main() {
   });
 
   group("step 2's own escape answers", () {
-    testWidgets("recordExpense's own Hors devis answer leaves the poste unset", (tester) async {
+    testWidgets("recordExpense's own Hors devis answer leaves the account unset", (tester) async {
       await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
-        postes: [testPoste(id: "p1", label: "Camera")],
+        accounts: [testAccount(id: "p1", label: "Camera")],
       );
 
       await tester.tap(find.byKey(const Key("ocptBudgetNewContinueButton")));
       await tester.pumpAndSettle();
 
-      // The very same wording the expenses table itself uses for an entry naming no poste — not a
+      // The very same wording the expenses table itself uses for an entry naming no account — not a
       // generic "no poste" of the wizard's own invention.
       final tr = Tr.of(tester.element(find.byType(OcptBudgetNewDialog)));
       expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
@@ -506,20 +506,20 @@ void main() {
       await tester.pumpAndSettle();
 
       final outcome = routerManager.poppedValue! as OcptBudgetEntryWizardResult;
-      expect(outcome.fields.posteId, isNull);
+      expect(outcome.fields.accountId, isNull);
     });
 
-    testWidgets("commitSpend's own Aucune answer hangs the commitment off the poste, no line", (
+    testWidgets("commitSpend's own Aucune answer hangs the commitment off the account, no line", (
       tester,
     ) async {
       final tr = await pumpDialog(
         tester,
         initialGesture: OcptBudgetGesture.commitSpend,
-        postes: [
-          testPoste(
+        accounts: [
+          testAccount(
             id: "p1",
             label: "Camera",
-            lines: [_line(id: "l1", posteId: "p1", label: "Zoom lens")],
+            lines: [_line(id: "l1", accountId: "p1", label: "Zoom lens")],
           ),
         ],
       );
@@ -551,7 +551,7 @@ void main() {
 
       final outcome = routerManager.poppedValue! as OcptBudgetNewCommitmentOutcome;
       expect(outcome.lineId, isNull);
-      expect(outcome.fields.posteId, "p1");
+      expect(outcome.fields.accountId, "p1");
     });
   });
 
@@ -607,11 +607,11 @@ void main() {
   testWidgets("a contextual shortcut lands on the form, trail a summary alone, no way back", (
     tester,
   ) async {
-    final poste = testPoste(id: "p1", label: "Camera");
+    final account = testAccount(id: "p1", label: "Camera");
     final prefill = OcptBudgetEntryFormFields(
       date: DateTime(2026, 1, 5),
       label: "Zoom lens repair",
-      posteId: "p1",
+      accountId: "p1",
       resourceId: null,
       revenueId: null,
       shareId: null,
@@ -628,13 +628,13 @@ void main() {
       tester,
       initialGesture: OcptBudgetGesture.recordExpense,
       entryPrefill: prefill,
-      postes: [poste],
+      accounts: [account],
     );
 
     // Landed straight on the form step — recordExpense takes 3 steps, and this is the third,
     // step 1 and step 2 both already answered by the shortcut.
     expect(find.text(tr.budgetNewStepLabel(3, 3)), findsOneWidget);
-    // The trail recalls the poste step 2 would have asked, but offers no way back to a step the
+    // The trail recalls the account step 2 would have asked, but offers no way back to a step the
     // reader never chose, and the form's own first action is `Cancel`, not `Back`.
     expect(find.textContaining("Camera"), findsWidgets);
     expect(find.byKey(const Key("ocptBudgetNewChangeGestureLink")), findsNothing);
@@ -648,7 +648,7 @@ void main() {
     final prefill = OcptBudgetEntryFormFields(
       date: DateTime(2026, 1, 5),
       label: "Zoom lens repair",
-      posteId: "p1",
+      accountId: "p1",
       resourceId: null,
       revenueId: null,
       shareId: null,
@@ -665,7 +665,7 @@ void main() {
       tester,
       initialGesture: OcptBudgetGesture.recordExpense,
       entryPrefill: prefill,
-      postes: [testPoste(id: "p1", label: "Camera")],
+      accounts: [testAccount(id: "p1", label: "Camera")],
     );
 
     await tester.tap(find.byKey(const Key("ocptBudgetNewFormCancelButton")));

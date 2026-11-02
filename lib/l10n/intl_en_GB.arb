@@ -12520,141 +12520,141 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteArtisticRights": "Artistic rights",
-  "@budgetCncPosteArtisticRights": {
+  "budgetCncAccountArtisticRights": "Artistic rights",
+  "@budgetCncAccountArtisticRights": {
     "description": "Detailed-header label of the CNC nomenclature's poste 1",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleArtisticRights": "Script and music",
-  "@budgetCncPosteSimpleArtisticRights": {
+  "budgetCncAccountSimpleArtisticRights": "Script and music",
+  "@budgetCncAccountSimpleArtisticRights": {
     "description": "Simplified-header label of the CNC nomenclature's poste 1",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPostePersonnel": "Personnel",
-  "@budgetCncPostePersonnel": {
+  "budgetCncAccountPersonnel": "Personnel",
+  "@budgetCncAccountPersonnel": {
     "description": "Detailed-header label of the CNC nomenclature's poste 2",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimplePersonnel": "Crew",
-  "@budgetCncPosteSimplePersonnel": {
+  "budgetCncAccountSimplePersonnel": "Crew",
+  "@budgetCncAccountSimplePersonnel": {
     "description": "Simplified-header label of the CNC nomenclature's poste 2",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteCast": "Cast",
-  "@budgetCncPosteCast": {
+  "budgetCncAccountCast": "Cast",
+  "@budgetCncAccountCast": {
     "description": "Detailed-header label of the CNC nomenclature's poste 3",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleCast": "Cast and extras",
-  "@budgetCncPosteSimpleCast": {
+  "budgetCncAccountSimpleCast": "Cast and extras",
+  "@budgetCncAccountSimpleCast": {
     "description": "Simplified-header label of the CNC nomenclature's poste 3",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSocialCharges": "Social charges",
-  "@budgetCncPosteSocialCharges": {
+  "budgetCncAccountSocialCharges": "Social charges",
+  "@budgetCncAccountSocialCharges": {
     "description": "Detailed-header label of the CNC nomenclature's poste 4",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleSocialCharges": "Social contributions",
-  "@budgetCncPosteSimpleSocialCharges": {
+  "budgetCncAccountSimpleSocialCharges": "Social contributions",
+  "@budgetCncAccountSimpleSocialCharges": {
     "description": "Simplified-header label of the CNC nomenclature's poste 4",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSetsAndCostumes": "Sets and costumes",
-  "@budgetCncPosteSetsAndCostumes": {
+  "budgetCncAccountSetsAndCostumes": "Sets and costumes",
+  "@budgetCncAccountSetsAndCostumes": {
     "description": "Detailed-header label of the CNC nomenclature's poste 5",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleSetsAndCostumes": "Sets, props and costumes",
-  "@budgetCncPosteSimpleSetsAndCostumes": {
+  "budgetCncAccountSimpleSetsAndCostumes": "Sets, props and costumes",
+  "@budgetCncAccountSimpleSetsAndCostumes": {
     "description": "Simplified-header label of the CNC nomenclature's poste 5",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteTransportPerDiemsLogistics": "Transport, per diems and logistics",
-  "@budgetCncPosteTransportPerDiemsLogistics": {
+  "budgetCncAccountTransportPerDiemsLogistics": "Transport, per diems and logistics",
+  "@budgetCncAccountTransportPerDiemsLogistics": {
     "description": "Detailed-header label of the CNC nomenclature's poste 6",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleTransportPerDiemsLogistics": "Travel and meals",
-  "@budgetCncPosteSimpleTransportPerDiemsLogistics": {
+  "budgetCncAccountSimpleTransportPerDiemsLogistics": "Travel and meals",
+  "@budgetCncAccountSimpleTransportPerDiemsLogistics": {
     "description": "Simplified-header label of the CNC nomenclature's poste 6",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteTechnicalEquipment": "Technical equipment",
-  "@budgetCncPosteTechnicalEquipment": {
+  "budgetCncAccountTechnicalEquipment": "Technical equipment",
+  "@budgetCncAccountTechnicalEquipment": {
     "description": "Detailed-header label of the CNC nomenclature's poste 7",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleTechnicalEquipment": "Camera, sound and lighting gear",
-  "@budgetCncPosteSimpleTechnicalEquipment": {
+  "budgetCncAccountSimpleTechnicalEquipment": "Camera, sound and lighting gear",
+  "@budgetCncAccountSimpleTechnicalEquipment": {
     "description": "Simplified-header label of the CNC nomenclature's poste 7",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteLaboratoryAndPostProduction": "Laboratory and post-production",
-  "@budgetCncPosteLaboratoryAndPostProduction": {
+  "budgetCncAccountLaboratoryAndPostProduction": "Laboratory and post-production",
+  "@budgetCncAccountLaboratoryAndPostProduction": {
     "description": "Detailed-header label of the CNC nomenclature's poste 8",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleLaboratoryAndPostProduction": "Editing, sound and grading",
-  "@budgetCncPosteSimpleLaboratoryAndPostProduction": {
+  "budgetCncAccountSimpleLaboratoryAndPostProduction": "Editing, sound and grading",
+  "@budgetCncAccountSimpleLaboratoryAndPostProduction": {
     "description": "Simplified-header label of the CNC nomenclature's poste 8",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteInsuranceAndMiscellaneous": "Insurance and miscellaneous",
-  "@budgetCncPosteInsuranceAndMiscellaneous": {
+  "budgetCncAccountInsuranceAndMiscellaneous": "Insurance and miscellaneous",
+  "@budgetCncAccountInsuranceAndMiscellaneous": {
     "description": "Detailed-header label of the CNC nomenclature's poste 9",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleInsuranceAndMiscellaneous": "Insurance and admin",
-  "@budgetCncPosteSimpleInsuranceAndMiscellaneous": {
+  "budgetCncAccountSimpleInsuranceAndMiscellaneous": "Insurance and admin",
+  "@budgetCncAccountSimpleInsuranceAndMiscellaneous": {
     "description": "Simplified-header label of the CNC nomenclature's poste 9",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteOverheads": "Overheads",
-  "@budgetCncPosteOverheads": {
+  "budgetCncAccountOverheads": "Overheads",
+  "@budgetCncAccountOverheads": {
     "description": "Detailed-header label of the CNC nomenclature's poste 10",
     "context": "Shown as a poste's label wherever the budget mode's detailed header is in effect",
     "type": "text",
     "placeholders": {}
   },
-  "budgetCncPosteSimpleOverheads": "Overheads",
-  "@budgetCncPosteSimpleOverheads": {
+  "budgetCncAccountSimpleOverheads": "Overheads",
+  "@budgetCncAccountSimpleOverheads": {
     "description": "Simplified-header label of the CNC nomenclature's poste 10",
     "context": "Shown as a poste's label wherever the budget mode's simplified header is in effect",
     "type": "text",
@@ -12790,12 +12790,12 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetHeaderPosteFilterClearTooltip": "Show every poste again",
-  "@budgetHeaderPosteFilterClearTooltip": {
+  "budgetHeaderAccountFilterClearTooltip": "Show every poste again",
+  "@budgetHeaderAccountFilterClearTooltip": {
     "description": "Tooltip of the small clear button on the header's poste filter, shown only while a poste is filtered."
   },
-  "budgetStatsPostes": "{count, plural, one{{count} poste} other{{count} postes}}",
-  "@budgetStatsPostes": {
+  "budgetStatsAccounts": "{count, plural, one{{count} poste} other{{count} postes}}",
+  "@budgetStatsAccounts": {
     "description": "Poste count of the budget mode, read by both its status band and its dashboard's own quoted-total tile",
     "context": "Displayed in the status bar under the budget mode's centre, and as the hint under the dashboard's own quoted total",
     "type": "text",
@@ -12863,8 +12863,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCostTrackingColumnPoste": "Poste",
-  "@budgetCostTrackingColumnPoste": {
+  "budgetCostTrackingColumnAccount": "Poste",
+  "@budgetCostTrackingColumnAccount": {
     "description": "Header of the cost-tracking table's poste column",
     "context": "Displayed at the top of the budget mode's cost-tracking table",
     "type": "text",
@@ -12926,8 +12926,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteUnnamed": "Unnamed poste",
-  "@budgetPosteUnnamed": {
+  "budgetAccountUnnamed": "Unnamed poste",
+  "@budgetAccountUnnamed": {
     "description": "Placeholder name of a poste with an empty label",
     "context": "Displayed wherever a poste's own empty label would otherwise be shown",
     "type": "text",
@@ -12940,36 +12940,36 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteRenameAction": "Rename",
-  "@budgetPosteRenameAction": {
+  "budgetAccountRenameAction": "Rename",
+  "@budgetAccountRenameAction": {
     "description": "Entry of a poste row's own ⋮ menu opening its inspector to rename it",
     "context": "Displayed in the budget mode's cost-tracking table row menu",
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteMoveUpAction": "Move up",
-  "@budgetPosteMoveUpAction": {
+  "budgetAccountMoveUpAction": "Move up",
+  "@budgetAccountMoveUpAction": {
     "description": "Entry of a poste row's own ⋮ menu moving it up one position",
     "context": "Displayed in the budget mode's cost-tracking table row menu",
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteMoveDownAction": "Move down",
-  "@budgetPosteMoveDownAction": {
+  "budgetAccountMoveDownAction": "Move down",
+  "@budgetAccountMoveDownAction": {
     "description": "Entry of a poste row's own ⋮ menu moving it down one position",
     "context": "Displayed in the budget mode's cost-tracking table row menu",
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteDeleteAction": "Delete",
-  "@budgetPosteDeleteAction": {
+  "budgetAccountDeleteAction": "Delete",
+  "@budgetAccountDeleteAction": {
     "description": "Entry of a poste row's own ⋮ menu deleting it",
     "context": "Displayed in the budget mode's cost-tracking table row menu",
     "type": "text",
     "placeholders": {}
   },
-  "budgetPosteCreationAction": "Poste",
-  "@budgetPosteCreationAction": {
+  "budgetAccountCreationAction": "Poste",
+  "@budgetAccountCreationAction": {
     "description": "Label of the cost-tracking table's own poste creation footer",
     "context": "Displayed under the last row of the budget mode's cost-tracking table",
     "type": "text",
@@ -13299,8 +13299,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetDashboardPosteOverQuoteAlertMessage": "{posteLabel} has {spentAmount} paid or committed against a {quotedAmount} quote — {varianceAmount} over.",
-  "@budgetDashboardPosteOverQuoteAlertMessage": {
+  "budgetDashboardAccountOverQuoteAlertMessage": "{posteLabel} has {spentAmount} paid or committed against a {quotedAmount} quote — {varianceAmount} over.",
+  "@budgetDashboardAccountOverQuoteAlertMessage": {
     "description": "Message of the dashboard's own alert row for a poste over its own quote",
     "context": "Displayed in the budget mode's dashboard alerts card, one row per poste over its quote",
     "type": "text",
@@ -13357,29 +13357,29 @@
       }
     }
   },
-  "budgetInspectorPosteLabelFieldLabel": "Label",
-  "@budgetInspectorPosteLabelFieldLabel": {
+  "budgetInspectorAccountLabelFieldLabel": "Label",
+  "@budgetInspectorAccountLabelFieldLabel": {
     "description": "Label of the poste inspector's own label field",
     "context": "Displayed above the poste's label field in the budget mode's Inspector tab",
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteCodeFieldLabel": "Code",
-  "@budgetInspectorPosteCodeFieldLabel": {
+  "budgetInspectorAccountCodeFieldLabel": "Code",
+  "@budgetInspectorAccountCodeFieldLabel": {
     "description": "Label of the poste inspector's own code field",
     "context": "Displayed above the poste's code field in the budget mode's Inspector tab",
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteCodeDuplicateError": "This code is already used by another poste.",
-  "@budgetInspectorPosteCodeDuplicateError": {
+  "budgetInspectorAccountCodeDuplicateError": "This code is already used by another poste.",
+  "@budgetInspectorAccountCodeDuplicateError": {
     "description": "Error shown under the poste inspector's own code field while another live poste already carries the same code",
     "context": "Displayed under the poste's code field in the budget mode's Inspector tab; the typed value is kept, never reverted",
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteSimpleLabelFieldLabel": "Simple label",
-  "@budgetInspectorPosteSimpleLabelFieldLabel": {
+  "budgetInspectorAccountSimpleLabelFieldLabel": "Simple label",
+  "@budgetInspectorAccountSimpleLabelFieldLabel": {
     "description": "Label of the poste fiche's own simple-label field — the plain-language name shown under the header's simplified switch, falling back to the ordinary label while empty",
     "context": "Displayed above the poste's simple-label field in the budget mode's fiche",
     "type": "text",
@@ -13413,15 +13413,15 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteEstimateToCompleteFieldLabel": "Estimate to complete",
-  "@budgetInspectorPosteEstimateToCompleteFieldLabel": {
+  "budgetInspectorAccountEstimateToCompleteFieldLabel": "Estimate to complete",
+  "@budgetInspectorAccountEstimateToCompleteFieldLabel": {
     "description": "Label of the poste inspector's own estimate-to-complete field",
     "context": "Displayed above the poste's estimate-to-complete field in the budget mode's Inspector tab",
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteEstimateToCompleteHint": "derived {amount}",
-  "@budgetInspectorPosteEstimateToCompleteHint": {
+  "budgetInspectorAccountEstimateToCompleteHint": "derived {amount}",
+  "@budgetInspectorAccountEstimateToCompleteHint": {
     "description": "Placeholder of the poste inspector's own estimate-to-complete field while it carries no typed figure",
     "context": "Shown greyed inside the estimate-to-complete field while it is empty, naming the figure the app derives in its place",
     "type": "text",
@@ -13431,15 +13431,15 @@
       }
     }
   },
-  "budgetInspectorPosteEstimateToCompleteHelper": "A figure typed here replaces the automatic estimate; left empty, it derives from the quote.",
-  "@budgetInspectorPosteEstimateToCompleteHelper": {
+  "budgetInspectorAccountEstimateToCompleteHelper": "A figure typed here replaces the automatic estimate; left empty, it derives from the quote.",
+  "@budgetInspectorAccountEstimateToCompleteHelper": {
     "description": "Helper sentence under the poste inspector's own estimate-to-complete field, saying what typing a figure changes",
     "context": "Shown beneath the estimate-to-complete field in the budget mode's fiche, whether or not the field carries a typed figure",
     "type": "text",
     "placeholders": {}
   },
-  "budgetInspectorPosteEstimateToCompleteDeriveAction": "Derive again",
-  "@budgetInspectorPosteEstimateToCompleteDeriveAction": {
+  "budgetInspectorAccountEstimateToCompleteDeriveAction": "Derive again",
+  "@budgetInspectorAccountEstimateToCompleteDeriveAction": {
     "description": "Action putting a poste's own estimate to complete back to the derived figure",
     "context": "Displayed beside the poste's estimate-to-complete field in the budget mode's Inspector tab",
     "type": "text",
@@ -13728,8 +13728,8 @@
     "description": "Primary action on a counterpart quote line's own fiche, opening the in-kind contribution it balances for editing",
     "type": "text"
   },
-  "budgetDetailInKindOffsetsPoste": "Offsets the poste “{poste}”.",
-  "@budgetDetailInKindOffsetsPoste": {
+  "budgetDetailInKindOffsetsAccount": "Offsets the poste “{poste}”.",
+  "@budgetDetailInKindOffsetsAccount": {
     "description": "Note on an in-kind resource's own fiche naming the poste its counterpart quote line offsets",
     "context": "Displayed on an in-kind resource's own fiche once its counterpart line names a poste",
     "type": "text",
@@ -13753,15 +13753,15 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetDeletePosteConfirmTitle": "Delete this poste?",
-  "@budgetDeletePosteConfirmTitle": {
+  "budgetDeleteAccountConfirmTitle": "Delete this poste?",
+  "@budgetDeleteAccountConfirmTitle": {
     "description": "Title of the confirmation dialog deleting a poste",
     "context": "Shown by OcptConfirmDialog before a poste is deleted",
     "type": "text",
     "placeholders": {}
   },
-  "budgetDeletePosteConfirmMessage": "Its own quote lines are removed with it. This cannot be undone.",
-  "@budgetDeletePosteConfirmMessage": {
+  "budgetDeleteAccountConfirmMessage": "Its own quote lines are removed with it. This cannot be undone.",
+  "@budgetDeleteAccountConfirmMessage": {
     "description": "Message of the confirmation dialog deleting a poste",
     "context": "Shown by OcptConfirmDialog before a poste is deleted",
     "type": "text",
@@ -13903,8 +13903,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCashJournalNoPosteLabel": "No poste",
-  "@budgetCashJournalNoPosteLabel": {
+  "budgetCashJournalNoAccountLabel": "No poste",
+  "@budgetCashJournalNoAccountLabel": {
     "description": "Wording of an entry naming no poste, or of the entry dialog's own explicit no-poste choice",
     "context": "Displayed in the budget mode's cash book table poste column and in the entry dialog's own poste picker",
     "type": "text",
@@ -13987,8 +13987,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetEntryWizardPosteFieldHint": "Left blank, this field reads {offQuoteLabel} — never nothing at all.",
-  "@budgetEntryWizardPosteFieldHint": {
+  "budgetEntryWizardAccountFieldHint": "Left blank, this field reads {offQuoteLabel} — never nothing at all.",
+  "@budgetEntryWizardAccountFieldHint": {
     "description": "Hint under the entry wizard's own poste field, naming what an unanswered poste reads as",
     "context": "Displayed under OcptBudgetEntryDialog's own poste field, on step 2",
     "type": "text",
@@ -14083,8 +14083,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetEntryDialogPosteFieldLabel": "Quote poste",
-  "@budgetEntryDialogPosteFieldLabel": {
+  "budgetEntryDialogAccountFieldLabel": "Quote poste",
+  "@budgetEntryDialogAccountFieldLabel": {
     "description": "Label of the entry dialog's own poste picker, offered under the expense and other-movement natures",
     "context": "Displayed above OcptBudgetEntryDialog's own poste picker",
     "type": "text",
@@ -14265,8 +14265,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommitmentDialogMissingLabelAndPosteHint": "Enter a label and choose a poste to save this commitment.",
-  "@budgetCommitmentDialogMissingLabelAndPosteHint": {
+  "budgetCommitmentDialogMissingLabelAndAccountHint": "Enter a label and choose a poste to save this commitment.",
+  "@budgetCommitmentDialogMissingLabelAndAccountHint": {
     "description": "Hint next to Save while both the label and the poste are still missing",
     "context": "Displayed next to OcptBudgetCommitmentDialog's own Save action while it is withheld",
     "type": "text",
@@ -14279,8 +14279,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetCommitmentDialogMissingPosteHint": "Choose a poste to save this commitment.",
-  "@budgetCommitmentDialogMissingPosteHint": {
+  "budgetCommitmentDialogMissingAccountHint": "Choose a poste to save this commitment.",
+  "@budgetCommitmentDialogMissingAccountHint": {
     "description": "Hint next to Save while the poste is still missing",
     "context": "Displayed next to OcptBudgetCommitmentDialog's own Save action while it is withheld",
     "type": "text",
@@ -14660,22 +14660,22 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetResourceDialogPosteFieldLabel": "Poste offset",
-  "@budgetResourceDialogPosteFieldLabel": {
+  "budgetResourceDialogAccountFieldLabel": "Poste offset",
+  "@budgetResourceDialogAccountFieldLabel": {
     "description": "Label of the resource dialog's own poste picker, shown only while the kind is a contribution in kind",
     "context": "Displayed inside OcptBudgetResourceDialog",
     "type": "text",
     "placeholders": {}
   },
-  "budgetResourceDialogPosteFieldHelper": "The cost this contribution covers in the quote — a counterpart line is minted there, valued at the same figure.",
-  "@budgetResourceDialogPosteFieldHelper": {
+  "budgetResourceDialogAccountFieldHelper": "The cost this contribution covers in the quote — a counterpart line is minted there, valued at the same figure.",
+  "@budgetResourceDialogAccountFieldHelper": {
     "description": "Helper text under the resource dialog's own poste picker, shown only while the kind is a contribution in kind",
     "context": "Displayed inside OcptBudgetResourceDialog",
     "type": "text",
     "placeholders": {}
   },
-  "budgetResourceDialogPosteRequiredError": "Choose the poste this contribution offsets.",
-  "@budgetResourceDialogPosteRequiredError": {
+  "budgetResourceDialogAccountRequiredError": "Choose the poste this contribution offsets.",
+  "@budgetResourceDialogAccountRequiredError": {
     "description": "Validation error under the resource dialog's own poste picker while it is left unanswered for a contribution in kind",
     "context": "Displayed inside OcptBudgetResourceDialog",
     "type": "text",
@@ -14874,8 +14874,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetLogisticsProvisionPosteLabel": "Poste",
-  "@budgetLogisticsProvisionPosteLabel": {
+  "budgetLogisticsProvisionAccountLabel": "Poste",
+  "@budgetLogisticsProvisionAccountLabel": {
     "description": "Hint of the provisioning band's own poste picker",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
@@ -14888,8 +14888,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetLogisticsProvisionNoPosteHint": "This project's quote holds no poste to provision into yet.",
-  "@budgetLogisticsProvisionNoPosteHint": {
+  "budgetLogisticsProvisionNoAccountHint": "This project's quote holds no poste to provision into yet.",
+  "@budgetLogisticsProvisionNoAccountHint": {
     "description": "Shown in place of the provisioning picker while the quote holds no poste",
     "context": "Displayed in the budget mode's own catering-and-defrayals view",
     "type": "text",
@@ -15975,15 +15975,15 @@
       }
     }
   },
-  "budgetNewBreakdownSetAllPosteLabel": "File all under",
-  "@budgetNewBreakdownSetAllPosteLabel": {
+  "budgetNewBreakdownSetAllAccountLabel": "File all under",
+  "@budgetNewBreakdownSetAllAccountLabel": {
     "description": "Label of the breakdown selector's own header control that files every element under one poste at once — the default each row inherits until it is given its own",
     "context": "Displayed before the set-all poste dropdown, OcptBudgetNewDialog's own breakdown step",
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewBreakdownPosteChooseHint": "Choose a poste",
-  "@budgetNewBreakdownPosteChooseHint": {
+  "budgetNewBreakdownAccountChooseHint": "Choose a poste",
+  "@budgetNewBreakdownAccountChooseHint": {
     "description": "Placeholder shown in a breakdown element's own poste dropdown while no poste has been chosen for it — the row cannot be created until one is",
     "context": "Displayed inside an empty per-element poste dropdown, OcptBudgetNewDialog's own breakdown step",
     "type": "text",
@@ -16128,8 +16128,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportUnavailableNoPosteReason": "No poste is quoted yet.",
-  "@budgetExportUnavailableNoPosteReason": {
+  "budgetExportUnavailableNoAccountReason": "No poste is quoted yet.",
+  "@budgetExportUnavailableNoAccountReason": {
     "description": "Reason shown in place of the quote's (or the financial report's) own card description while the project holds no live poste",
     "context": "Displayed on a card of the budget mode's export panel while unavailable",
     "type": "text",
@@ -16251,8 +16251,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportQuotePosteSubtotalLabel": "Subtotal",
-  "@budgetExportQuotePosteSubtotalLabel": {
+  "budgetExportQuoteAccountSubtotalLabel": "Subtotal",
+  "@budgetExportQuoteAccountSubtotalLabel": {
     "description": "The label printed beside a poste's own subtotal row",
     "context": "OcptBudgetQuoteLabels.posteSubtotalLabel",
     "type": "text",
@@ -16384,8 +16384,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportFinancialReportPosteHeader": "Poste",
-  "@budgetExportFinancialReportPosteHeader": {
+  "budgetExportFinancialReportAccountHeader": "Poste",
+  "@budgetExportFinancialReportAccountHeader": {
     "description": "The header of the poste column",
     "context": "OcptBudgetFinancialReportLabels.posteHeader",
     "type": "text",
@@ -16475,8 +16475,8 @@
     "type": "text",
     "placeholders": {}
   },
-  "budgetExportCashJournalPosteHeader": "Poste",
-  "@budgetExportCashJournalPosteHeader": {
+  "budgetExportCashJournalAccountHeader": "Poste",
+  "@budgetExportCashJournalAccountHeader": {
     "description": "The header of the entry's own poste column",
     "context": "OcptBudgetCashJournalXlsxLabels.posteHeader",
     "type": "text",

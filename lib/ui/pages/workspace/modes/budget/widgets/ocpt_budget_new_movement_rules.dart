@@ -79,9 +79,9 @@ OcptBudgetEntryFormFields ocptBudgetNewMovementFieldsOf({
 }) => OcptBudgetEntryFormFields(
   date: date,
   label: wording.trim(),
-  posteId:
+  accountId:
       gesture == OcptBudgetGesture.recordExpense || gesture == OcptBudgetGesture.recordOtherMovement
-      ? answers.posteId
+      ? answers.accountId
       : null,
   resourceId:
       gesture == OcptBudgetGesture.recordFinancingReceipt ||

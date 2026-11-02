@@ -23,10 +23,10 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 
 /// The placeholder shown in place of a budget figure that cannot be read at all — this mode's own
 /// instance of `ocptResourcesEmptyValue`: an empty cell reads as a rendering bug, an em dash reads
-/// as "nothing here yet". Used for the excluding-tax sub-line a poste's lines carry no known rate
-/// for, for the `Consumed` column of a poste with no quote at all (a ratio would be a division by
-/// zero, not a figure), and for a cash-journal amount that cannot be read tax-inclusive — never
-/// `0 €`/`0 %`, which would claim a figure the data does not support.
+/// as "nothing here yet". Used for the excluding-tax sub-line an account's lines carry no known
+/// rate for, for the `Consumed` column of an account with no quote at all (a ratio would be a
+/// division by zero, not a figure), and for a cash-journal amount that cannot be read tax-inclusive
+/// — never `0 €`/`0 %`, which would claim a figure the data does not support.
 const ocptBudgetEmptyValue = "—";
 
 /// The pattern [ocptBudgetQuantityLabel] and [ocptBudgetQuantityMilliOf] read and write a quantity
@@ -50,66 +50,68 @@ const String _ocptBudgetQuantityDecimalComma = ",";
 /// `budget_lines.quantityMilli` stores.
 const int _ocptBudgetQuantityMilliPerUnit = 1000;
 
-/// Get [tr]'s localized label for one of `ocptBudgetCncPostes`' own ARB key names — the exhaustive
-/// switch `ocptCrewPositionLabel` already is for a crew position, here pairing every constant's own
-/// `labelKey`/`simpleLabelKey` with the `Tr` getter of the same name.
+/// Get [tr]'s localized label for one of `ocptBudgetCncAccounts`' own ARB key names — the
+/// exhaustive switch `ocptCrewPositionLabel` already is for a crew position, here pairing every
+/// constant's own `labelKey`/`simpleLabelKey` with the `Tr` getter of the same name.
 ///
-/// **A poste added to `ocptBudgetCncPostes` (`lib/constants/`) must be added here too**: the
+/// **An account added to `ocptBudgetCncAccounts` (`lib/constants/`) must be added here too**: the
 /// catalogue itself stays free of `Tr`, so this switch is the single place that resolves one of its
 /// key names into a word. A key this switch does not recognise (a constant renamed here without its
 /// own case following, which should not happen but must not go blank either) falls back to the key
 /// itself, so the seed still reads as *something* rather than nothing at all.
-String _ocptBudgetCncPosteKeyLabel(Tr tr, String key) => switch (key) {
-  "budgetCncPosteArtisticRights" => tr.budgetCncPosteArtisticRights,
-  "budgetCncPosteSimpleArtisticRights" => tr.budgetCncPosteSimpleArtisticRights,
-  "budgetCncPostePersonnel" => tr.budgetCncPostePersonnel,
-  "budgetCncPosteSimplePersonnel" => tr.budgetCncPosteSimplePersonnel,
-  "budgetCncPosteCast" => tr.budgetCncPosteCast,
-  "budgetCncPosteSimpleCast" => tr.budgetCncPosteSimpleCast,
-  "budgetCncPosteSocialCharges" => tr.budgetCncPosteSocialCharges,
-  "budgetCncPosteSimpleSocialCharges" => tr.budgetCncPosteSimpleSocialCharges,
-  "budgetCncPosteSetsAndCostumes" => tr.budgetCncPosteSetsAndCostumes,
-  "budgetCncPosteSimpleSetsAndCostumes" => tr.budgetCncPosteSimpleSetsAndCostumes,
-  "budgetCncPosteTransportPerDiemsLogistics" => tr.budgetCncPosteTransportPerDiemsLogistics,
-  "budgetCncPosteSimpleTransportPerDiemsLogistics" =>
-    tr.budgetCncPosteSimpleTransportPerDiemsLogistics,
-  "budgetCncPosteTechnicalEquipment" => tr.budgetCncPosteTechnicalEquipment,
-  "budgetCncPosteSimpleTechnicalEquipment" => tr.budgetCncPosteSimpleTechnicalEquipment,
-  "budgetCncPosteLaboratoryAndPostProduction" => tr.budgetCncPosteLaboratoryAndPostProduction,
-  "budgetCncPosteSimpleLaboratoryAndPostProduction" =>
-    tr.budgetCncPosteSimpleLaboratoryAndPostProduction,
-  "budgetCncPosteInsuranceAndMiscellaneous" => tr.budgetCncPosteInsuranceAndMiscellaneous,
-  "budgetCncPosteSimpleInsuranceAndMiscellaneous" =>
-    tr.budgetCncPosteSimpleInsuranceAndMiscellaneous,
-  "budgetCncPosteOverheads" => tr.budgetCncPosteOverheads,
-  "budgetCncPosteSimpleOverheads" => tr.budgetCncPosteSimpleOverheads,
+String _ocptBudgetCncAccountKeyLabel(Tr tr, String key) => switch (key) {
+  "budgetCncAccountArtisticRights" => tr.budgetCncAccountArtisticRights,
+  "budgetCncAccountSimpleArtisticRights" => tr.budgetCncAccountSimpleArtisticRights,
+  "budgetCncAccountPersonnel" => tr.budgetCncAccountPersonnel,
+  "budgetCncAccountSimplePersonnel" => tr.budgetCncAccountSimplePersonnel,
+  "budgetCncAccountCast" => tr.budgetCncAccountCast,
+  "budgetCncAccountSimpleCast" => tr.budgetCncAccountSimpleCast,
+  "budgetCncAccountSocialCharges" => tr.budgetCncAccountSocialCharges,
+  "budgetCncAccountSimpleSocialCharges" => tr.budgetCncAccountSimpleSocialCharges,
+  "budgetCncAccountSetsAndCostumes" => tr.budgetCncAccountSetsAndCostumes,
+  "budgetCncAccountSimpleSetsAndCostumes" => tr.budgetCncAccountSimpleSetsAndCostumes,
+  "budgetCncAccountTransportPerDiemsLogistics" => tr.budgetCncAccountTransportPerDiemsLogistics,
+  "budgetCncAccountSimpleTransportPerDiemsLogistics" =>
+    tr.budgetCncAccountSimpleTransportPerDiemsLogistics,
+  "budgetCncAccountTechnicalEquipment" => tr.budgetCncAccountTechnicalEquipment,
+  "budgetCncAccountSimpleTechnicalEquipment" => tr.budgetCncAccountSimpleTechnicalEquipment,
+  "budgetCncAccountLaboratoryAndPostProduction" => tr.budgetCncAccountLaboratoryAndPostProduction,
+  "budgetCncAccountSimpleLaboratoryAndPostProduction" =>
+    tr.budgetCncAccountSimpleLaboratoryAndPostProduction,
+  "budgetCncAccountInsuranceAndMiscellaneous" => tr.budgetCncAccountInsuranceAndMiscellaneous,
+  "budgetCncAccountSimpleInsuranceAndMiscellaneous" =>
+    tr.budgetCncAccountSimpleInsuranceAndMiscellaneous,
+  "budgetCncAccountOverheads" => tr.budgetCncAccountOverheads,
+  "budgetCncAccountSimpleOverheads" => tr.budgetCncAccountSimpleOverheads,
   _ => key,
 };
 
-/// Get [ocptBudgetCncPostes] resolved into the seed `OcptBudgetQuoteService.loadPostes` asks for,
-/// through [_ocptBudgetCncPosteKeyLabel] — the one place a constant's `labelKey`/`simpleLabelKey`
-/// becomes a word, since neither `lib/constants/` nor the manager layer beneath it may see a `Tr`.
+/// Get [ocptBudgetCncAccounts] resolved into the seed `OcptBudgetQuoteService.loadAccounts` asks
+/// for, through [_ocptBudgetCncAccountKeyLabel] — the one place a constant's
+/// `labelKey`/`simpleLabelKey` becomes a word, since neither `lib/constants/` nor the manager layer
+/// beneath it may see a `Tr`.
 ///
 /// Read **once**, by `OcptBudgetMode` when it creates `OcptBudgetBloc`, and handed in as a
 /// constructor argument rather than watched: see that bloc's own doc comment for why.
-List<OcptBudgetPosteSeed> ocptBudgetCncPosteSeeds(Tr tr) => [
-  for (final poste in ocptBudgetCncPostes)
-    OcptBudgetPosteSeed(
-      id: poste.id,
-      code: poste.code,
-      label: _ocptBudgetCncPosteKeyLabel(tr, poste.labelKey),
-      simpleLabel: _ocptBudgetCncPosteKeyLabel(tr, poste.simpleLabelKey),
+List<OcptBudgetAccountSeed> ocptBudgetCncAccountSeeds(Tr tr) => [
+  for (final account in ocptBudgetCncAccounts)
+    OcptBudgetAccountSeed(
+      id: account.id,
+      code: account.code,
+      label: _ocptBudgetCncAccountKeyLabel(tr, account.labelKey),
+      simpleLabel: _ocptBudgetCncAccountKeyLabel(tr, account.simpleLabelKey),
     ),
 ];
 
-/// Get [poste]'s own displayed name under the header's simplified/detailed switch —
-/// `OcptBudgetCostTracking`'s own reading of [OcptBudgetPoste.simpleLabel]/[OcptBudgetPoste.label],
-/// lifted here so a second view (the cash journal's own poste column and filter caption) reads a
-/// poste's name exactly the same way rather than re-deriving the fallback itself: [isSimplified]
-/// true answers [OcptBudgetPoste.simpleLabel], falling back to [OcptBudgetPoste.label] when that is
-/// null, and false answers [OcptBudgetPoste.label] outright.
-String ocptBudgetPosteDisplayLabel(OcptBudgetPoste poste, {required bool isSimplified}) =>
-    isSimplified ? (poste.simpleLabel ?? poste.label) : poste.label;
+/// Get [account]'s own displayed name under the header's simplified/detailed switch —
+/// `OcptBudgetCostTracking`'s own reading of
+/// [OcptBudgetAccount.simpleLabel]/[OcptBudgetAccount.label], lifted here so a second view (the
+/// cash journal's own account column and filter caption) reads an account's name exactly the same
+/// way rather than re-deriving the fallback itself: [isSimplified] true answers
+/// [OcptBudgetAccount.simpleLabel], falling back to [OcptBudgetAccount.label] when that is null,
+/// and false answers [OcptBudgetAccount.label] outright.
+String ocptBudgetAccountDisplayLabel(OcptBudgetAccount account, {required bool isSimplified}) =>
+    isSimplified ? (account.simpleLabel ?? account.label) : account.label;
 
 /// Get [status]'s own localized word — shared between the committed-spending view's own status
 /// badge
@@ -355,7 +357,7 @@ OcptBudgetQuoteLabels ocptBudgetQuoteLabelsOf(BuildContext context) {
     quantityHeader: tr.budgetExportQuoteQuantityHeader,
     unitPriceHeader: tr.budgetExportQuoteUnitPriceHeader,
     lineTotalHeader: tr.budgetExportQuoteLineTotalHeader,
-    posteSubtotalLabel: tr.budgetExportQuotePosteSubtotalLabel,
+    accountSubtotalLabel: tr.budgetExportQuoteAccountSubtotalLabel,
     projectTotalLabel: tr.budgetExportQuoteProjectTotalLabel,
     includingTaxCaption: tr.budgetExportQuoteIncludingTaxCaption,
     excludingTaxCaption: tr.budgetExportQuoteExcludingTaxCaption,
@@ -420,7 +422,7 @@ OcptBudgetCashJournalXlsxLabels ocptBudgetCashJournalXlsxLabelsOf(BuildContext c
     dateHeader: tr.budgetExportCashJournalDateHeader,
     voucherHeader: tr.budgetExportCashJournalVoucherHeader,
     labelHeader: tr.budgetExportCashJournalLabelHeader,
-    posteHeader: tr.budgetExportCashJournalPosteHeader,
+    accountHeader: tr.budgetExportCashJournalAccountHeader,
     settlesHeader: tr.budgetExportCashJournalSettlesHeader,
     debitHeader: tr.budgetExportCashJournalDebitHeader,
     creditHeader: tr.budgetExportCashJournalCreditHeader,
@@ -441,7 +443,7 @@ OcptBudgetFinancialReportLabels ocptBudgetFinancialReportLabelsOf(BuildContext c
     fileNameSuffix: tr.budgetExportFinancialReportFileNameSuffix,
     documentTitle: tr.budgetExportFinancialReportDocumentTitle,
     versionLabel: tr.budgetExportVersionLabel,
-    posteHeader: tr.budgetExportFinancialReportPosteHeader,
+    accountHeader: tr.budgetExportFinancialReportAccountHeader,
     quotedHeader: tr.budgetExportFinancialReportQuotedHeader,
     paidHeader: tr.budgetExportFinancialReportPaidHeader,
     committedHeader: tr.budgetExportFinancialReportCommittedHeader,

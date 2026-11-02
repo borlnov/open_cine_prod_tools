@@ -21,7 +21,7 @@ void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.
   Widget buildTable({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetCommitment> commitments = const [],
     List<OcptBudgetEntry> entries = const [],
     OcptBudgetSelection? selection,
@@ -29,9 +29,9 @@ void main() {
     bool isSimplified = false,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
     int? defaultVatRateBasisPoints,
-    Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
-    int Function(String posteId) committedCentsOf = testZero,
-    int Function(String posteId) inKindCoveredCentsOf = testZero,
+    Map<String, OcptBudgetCoveredTotal> paidByAccountId = const {},
+    int Function(String accountId) committedCentsOf = testZero,
+    int Function(String accountId) inKindCoveredCentsOf = testZero,
     OcptBudgetCoveredTotal offQuoteTotal = const OcptBudgetCoveredTotal(
       amountCents: 0,
       coveredLineCount: 0,
@@ -43,15 +43,15 @@ void main() {
     int mealCount = 0,
     int buffetCount = 0,
     bool isReadOnly = false,
-    ValueChanged<String>? onPosteSelected,
+    ValueChanged<String>? onAccountSelected,
     ValueChanged<String>? onLineSelected,
     ValueChanged<String>? onCommitmentSelected,
     ValueChanged<String>? onEntrySelected,
     ValueChanged<String>? onNodeExpansionToggled,
-    VoidCallback? onPosteCreationRequested,
-    void Function(String posteId, {required bool moveUp})? onPosteReorderRequested,
-    ValueChanged<String>? onPosteDeletionRequested,
-    ValueChanged<String>? onPosteFilterRequested,
+    VoidCallback? onAccountCreationRequested,
+    void Function(String accountId, {required bool moveUp})? onAccountReorderRequested,
+    ValueChanged<String>? onAccountDeletionRequested,
+    ValueChanged<String>? onAccountFilterRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
     ValueChanged<String>? onCommitmentUnsettleRequested,
@@ -62,7 +62,7 @@ void main() {
     VoidCallback? onScheduleFeedRequested,
     VoidCallback? onCateringFeedRequested,
   }) => OcptBudgetCostTracking(
-    postes: postes,
+    accounts: accounts,
     commitments: commitments,
     entries: entries,
     selection: selection,
@@ -71,7 +71,7 @@ void main() {
     taxBasis: taxBasis,
     defaultVatRateBasisPoints: defaultVatRateBasisPoints,
     currencyCode: "EUR",
-    paidByPosteId: paidByPosteId,
+    paidByAccountId: paidByAccountId,
     committedCentsOf: committedCentsOf,
     inKindCoveredCentsOf: inKindCoveredCentsOf,
     offQuoteTotal: offQuoteTotal,
@@ -81,15 +81,15 @@ void main() {
     mealCount: mealCount,
     buffetCount: buffetCount,
     isReadOnly: isReadOnly,
-    onPosteSelected: onPosteSelected ?? (_) {},
+    onAccountSelected: onAccountSelected ?? (_) {},
     onLineSelected: onLineSelected ?? (_) {},
     onCommitmentSelected: onCommitmentSelected ?? (_) {},
     onEntrySelected: onEntrySelected ?? (_) {},
     onNodeExpansionToggled: onNodeExpansionToggled ?? (_) {},
-    onPosteCreationRequested: onPosteCreationRequested,
-    onPosteReorderRequested: onPosteReorderRequested,
-    onPosteDeletionRequested: onPosteDeletionRequested,
-    onPosteFilterRequested: onPosteFilterRequested,
+    onAccountCreationRequested: onAccountCreationRequested,
+    onAccountReorderRequested: onAccountReorderRequested,
+    onAccountDeletionRequested: onAccountDeletionRequested,
+    onAccountFilterRequested: onAccountFilterRequested,
     onCommitmentEditRequested: onCommitmentEditRequested,
     onCommitmentSettleRequested: onCommitmentSettleRequested,
     onCommitmentUnsettleRequested: onCommitmentUnsettleRequested,
@@ -102,7 +102,7 @@ void main() {
   );
 
   group("at a compact width", () {
-    const posteOne = OcptBudgetPoste(
+    const accountOne = OcptBudgetAccount(
       id: "poste-1",
       code: "1",
       label: "Poste one",
@@ -111,7 +111,7 @@ void main() {
       sortKey: "a0",
       lines: [],
     );
-    const posteTwo = OcptBudgetPoste(
+    const accountTwo = OcptBudgetAccount(
       id: "poste-2",
       code: "2",
       label: "Poste two",
@@ -123,7 +123,7 @@ void main() {
 
     testTestWidgets("draws one card per poste and no wide table", (tester) async {
       await tester.pumpWidget(
-        wrap(buildTable(postes: [posteOne, posteTwo]), width: 500, height: 900),
+        wrap(buildTable(accounts: [accountOne, accountTwo]), width: 500, height: 900),
       );
 
       expect(find.byType(Card), findsNWidgets(2));
@@ -136,21 +136,21 @@ void main() {
     testTestWidgets("a card shows the poste's own Devis, Engagé, Payé, Reste and Écart figures", (
       tester,
     ) async {
-      final poste = OcptBudgetPoste(
+      final account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Poste one",
         simpleLabel: null,
         estimateToCompleteCents: null,
         sortKey: "a0",
-        lines: [testLine(id: "line-1", posteId: "poste-1", amountCents: 10000)],
+        lines: [testLine(id: "line-1", accountId: "poste-1", amountCents: 10000)],
       );
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [poste],
-            paidByPosteId: {
+            accounts: [account],
+            paidByAccountId: {
               "poste-1": const OcptBudgetCoveredTotal(
                 amountCents: 5000,
                 coveredLineCount: 1,
@@ -182,11 +182,11 @@ void main() {
     testTestWidgets("tapping a card selects its poste, exactly as tapping its row does", (
       tester,
     ) async {
-      String? selectedPosteId;
+      String? selectedAccountId;
 
       await tester.pumpWidget(
         wrap(
-          buildTable(postes: [posteOne], onPosteSelected: (id) => selectedPosteId = id),
+          buildTable(accounts: [accountOne], onAccountSelected: (id) => selectedAccountId = id),
           width: 500,
           height: 900,
         ),
@@ -194,7 +194,7 @@ void main() {
 
       await tester.tap(find.text("Poste one"));
 
-      expect(selectedPosteId, "poste-1");
+      expect(selectedAccountId, "poste-1");
     });
 
     testTestWidgets(
@@ -202,14 +202,14 @@ void main() {
       "exactly as OcptBudgetCostTracking.onPosteSelected is never gated on isReadOnly for the "
       "desktop row either",
       (tester) async {
-        String? selectedPosteId;
+        String? selectedAccountId;
 
         await tester.pumpWidget(
           wrap(
             buildTable(
-              postes: [posteOne],
+              accounts: [accountOne],
               isReadOnly: true,
-              onPosteSelected: (id) => selectedPosteId = id,
+              onAccountSelected: (id) => selectedAccountId = id,
             ),
             width: 500,
             height: 900,
@@ -218,7 +218,7 @@ void main() {
 
         await tester.tap(find.text("Poste one"));
 
-        expect(selectedPosteId, "poste-1");
+        expect(selectedAccountId, "poste-1");
       },
     );
 
@@ -226,8 +226,8 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteOne, posteTwo],
-            selection: const OcptBudgetPosteSelection("poste-1"),
+            accounts: [accountOne, accountTwo],
+            selection: const OcptBudgetAccountSelection("poste-1"),
           ),
           width: 500,
           height: 900,
@@ -243,7 +243,7 @@ void main() {
     });
 
     testTestWidgets("keeps the desktop table unchanged above the breakpoint", (tester) async {
-      await tester.pumpWidget(wrap(buildTable(postes: [posteOne, posteTwo])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [accountOne, accountTwo])));
 
       expect(find.byType(Card), findsNothing);
       expect(find.byType(OcptHorizontalScrollView), findsOneWidget);

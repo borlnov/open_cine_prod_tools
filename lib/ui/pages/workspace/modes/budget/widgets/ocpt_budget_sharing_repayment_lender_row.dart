@@ -59,7 +59,7 @@ class OcptBudgetSharingRepaymentLenderRow extends StatelessWidget {
     final person = this.person;
     final displayLabel = person != null
         ? person.displayName
-        : (line.label.isEmpty ? tr.budgetPosteUnnamed : line.label);
+        : (line.label.isEmpty ? tr.budgetAccountUnnamed : line.label);
     final isOutstanding = line.outstandingCents > 0;
 
     return Padding(

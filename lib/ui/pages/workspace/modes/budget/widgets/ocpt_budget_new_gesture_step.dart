@@ -70,7 +70,7 @@ class OcptBudgetNewGestureStep extends StatelessWidget {
 
 /// The filter tag atop a filtered step 1: what the list is narrowed to, and the `Show all` action
 /// that lifts it whole. Drawn only while a filter is in effect — the mockup's own removable-tag
-/// idiom the mode already uses for its poste filter.
+/// idiom the mode already uses for its account filter.
 class _OcptBudgetNewFilterTag extends StatelessWidget {
   /// The word the filter is named by, or null.
   final String? filterLabel;

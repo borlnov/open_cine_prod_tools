@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_stepper.dart';
 
-/// The poste variant's own proportion bar, drawn in [OcptBudgetDetailStepper]'s own slot: the paid
-/// amount, then the committed one, over a track that fills the full width the detail panel gives it
-/// — measured through a [LayoutBuilder] rather than fixed, so it reads the same width as every
-/// other block in the panel (`docs/architecture/budget.md`).
+/// The account variant's own proportion bar, drawn in [OcptBudgetDetailStepper]'s own slot: the
+/// paid amount, then the committed one, over a track that fills the full width the detail panel
+/// gives it — measured through a [LayoutBuilder] rather than fixed, so it reads the same width as
+/// every other block in the panel (`docs/architecture/budget.md`).
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
@@ -17,32 +17,32 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// the quote itself falls on that stretched scale — drawn only while there is an overrun to place
 /// it against, since without one the quote sits exactly at the bar's own right edge, where a tick
 /// would say nothing a reader could not already see.
-class OcptBudgetPosteProportionBar extends StatelessWidget {
-  /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
+class OcptBudgetAccountProportionBar extends StatelessWidget {
+  /// The account's own quoted total, in cents — the track's own scale while nothing overruns it.
   final int quotedAmountCents;
 
-  /// The poste's own paid total, in cents — the bar's own first segment.
+  /// The account's own paid total, in cents — the bar's own first segment.
   final int paidCents;
 
-  /// The poste's own committed total, in cents — the bar's own second segment, drawn right after
+  /// The account's own committed total, in cents — the bar's own second segment, drawn right after
   /// [paidCents].
   final int committedCents;
 
   /// Class constructor
-  const OcptBudgetPosteProportionBar({
+  const OcptBudgetAccountProportionBar({
     super.key,
     required this.quotedAmountCents,
     required this.paidCents,
     required this.committedCents,
   });
 
-  /// Build the budget poste proportion bar as a [LayoutBuilder].
+  /// Build the budget account proportion bar as a [LayoutBuilder].
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final radius = BorderRadius.circular(ocptBudgetPosteProportionBarHeight / 2);
-    // Never negative: a poste's own quote, paid and committed totals are all sums of non-negative
-    // amounts (`docs/architecture/budget.md`'s "The money rule").
+    final radius = BorderRadius.circular(ocptBudgetAccountProportionBarHeight / 2);
+    // Never negative: an account's own quote, paid and committed totals are all sums of
+    // non-negative amounts (`docs/architecture/budget.md`'s "The money rule").
     final quoteCents = quotedAmountCents < 0 ? 0 : quotedAmountCents;
     final totalCents = paidCents + committedCents;
     final overrunCents = totalCents > quoteCents ? totalCents - quoteCents : 0;
@@ -64,7 +64,7 @@ class OcptBudgetPosteProportionBar extends StatelessWidget {
         final width = constraints.maxWidth;
         final track = Container(
           width: width,
-          height: ocptBudgetPosteProportionBarHeight,
+          height: ocptBudgetAccountProportionBarHeight,
           decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: radius),
         );
 
@@ -78,7 +78,7 @@ class OcptBudgetPosteProportionBar extends StatelessWidget {
 
         return SizedBox(
           width: width,
-          height: ocptBudgetPosteProportionBarHeight,
+          height: ocptBudgetAccountProportionBarHeight,
           child: Stack(
             clipBehavior: Clip.none,
             children: [

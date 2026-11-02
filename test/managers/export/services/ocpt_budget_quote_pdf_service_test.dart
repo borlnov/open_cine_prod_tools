@@ -28,7 +28,7 @@ const _labels = OcptBudgetQuoteLabels(
   quantityHeader: "Qty",
   unitPriceHeader: "Unit price",
   lineTotalHeader: "Total",
-  posteSubtotalLabel: "Poste total",
+  accountSubtotalLabel: "Poste total",
   projectTotalLabel: "Grand total",
   includingTaxCaption: "Amounts include tax",
   excludingTaxCaption: "Amounts exclude tax",
@@ -41,7 +41,7 @@ const _labels = OcptBudgetQuoteLabels(
 /// Builds a quote line, every field left at a neutral value unless the test overrides it.
 OcptBudgetLine _buildLine({
   required String id,
-  required String posteId,
+  required String accountId,
   String label = "Line",
   int quantityMilli = 1000,
   String unit = "day",
@@ -52,7 +52,7 @@ OcptBudgetLine _buildLine({
   String? inKindResourceId,
 }) => OcptBudgetLine(
   id: id,
-  posteId: posteId,
+  accountId: accountId,
   label: label,
   quantityMilli: quantityMilli,
   unit: unit,
@@ -69,13 +69,13 @@ OcptBudgetLine _buildLine({
   sortKey: "a",
 );
 
-/// Builds a poste holding [lines].
-OcptBudgetPoste _buildPoste({
+/// Builds an account holding [lines].
+OcptBudgetAccount _buildAccount({
   required String id,
   String code = "1",
   String label = "Rights",
   List<OcptBudgetLine> lines = const [],
-}) => OcptBudgetPoste(
+}) => OcptBudgetAccount(
   id: id,
   code: code,
   label: label,
@@ -93,10 +93,10 @@ void main() {
   const pageSetup = OcptPageSetup.standard();
 
   OcptBudgetSnapshot buildSnapshot({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     int? defaultVatRateBasisPoints,
   }) => OcptBudgetSnapshot.build(
-    postes: postes,
+    accounts: accounts,
     entries: const [],
     commitments: const [],
     defaultVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -106,10 +106,10 @@ void main() {
   group("generate", () {
     test("produces bytes starting with the %PDF magic string", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
           ),
         ],
       );
@@ -130,10 +130,10 @@ void main() {
 
     test("the title page is one page of its own, and toggling it off drops it", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
           ),
         ],
       );
@@ -169,10 +169,10 @@ void main() {
 
     test("reading the same quote in the two tax bases prints two different documents", () async {
       final snapshot = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", vatRateBasisPoints: 2000)],
           ),
         ],
       );
@@ -197,18 +197,18 @@ void main() {
       "a line minted from a breakdown element prints its own name differently from a plain line",
       () async {
         final withElement = buildSnapshot(
-          postes: [
-            _buildPoste(
+          accounts: [
+            _buildAccount(
               id: "poste-1",
-              lines: [_buildLine(id: "line-1", posteId: "poste-1", elementId: "element-1")],
+              lines: [_buildLine(id: "line-1", accountId: "poste-1", elementId: "element-1")],
             ),
           ],
         );
         final withoutElement = buildSnapshot(
-          postes: [
-            _buildPoste(
+          accounts: [
+            _buildAccount(
               id: "poste-1",
-              lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+              lines: [_buildLine(id: "line-1", accountId: "poste-1")],
             ),
           ],
         );
@@ -237,18 +237,18 @@ void main() {
       // printed text itself (see this file's own top-level doc comment on `_labels`), a
       // counterpart line is never meant to change any amount it prints.
       final withCounterpart = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1", inKindResourceId: "resource-1")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1", inKindResourceId: "resource-1")],
           ),
         ],
       );
       final plain = buildSnapshot(
-        postes: [
-          _buildPoste(
+        accounts: [
+          _buildAccount(
             id: "poste-1",
-            lines: [_buildLine(id: "line-1", posteId: "poste-1")],
+            lines: [_buildLine(id: "line-1", accountId: "poste-1")],
           ),
         ],
       );
@@ -271,7 +271,7 @@ void main() {
 
     test("a poste holding no line at all still prints, with its own subtotal of zero", () async {
       final bytes = await service.generate(
-        snapshot: buildSnapshot(postes: [_buildPoste(id: "poste-1")]),
+        snapshot: buildSnapshot(accounts: [_buildAccount(id: "poste-1")]),
         elementNameById: const {},
         pageSetup: pageSetup,
         taxBasis: OcptBudgetTaxBasis.includingTax,

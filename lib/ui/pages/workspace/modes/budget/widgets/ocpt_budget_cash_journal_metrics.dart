@@ -11,7 +11,7 @@ const double ocptBudgetCashJournalDateColumnWidth = 92;
 const double ocptBudgetCashJournalVoucherColumnWidth = 76;
 
 /// The `Poste` column's own fixed width, in logical pixels.
-const double ocptBudgetCashJournalPosteColumnWidth = 200;
+const double ocptBudgetCashJournalAccountColumnWidth = 200;
 
 /// The `Debit`, `Credit` and `Balance` columns' own fixed width, in logical pixels.
 const double ocptBudgetCashJournalAmountColumnWidth = 108;

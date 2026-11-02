@@ -8,7 +8,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_breakdown_account_dropdown.dart';
 
-/// One element of the breakdown selector: its checkbox, its name and scene count, the poste it
+/// One element of the breakdown selector: its checkbox, its name and scene count, the account it
 /// will be filed under and the quantity of the line to create.
 class OcptBudgetNewBreakdownRow extends StatelessWidget {
   /// The element the row stands for.
@@ -20,11 +20,11 @@ class OcptBudgetNewBreakdownRow extends StatelessWidget {
   /// The quantity field's controller, owned by the wizard's state.
   final TextEditingController quantityController;
 
-  /// The poste the element will be filed under, or null while none is chosen.
-  final String? posteId;
+  /// The account the element will be filed under, or null while none is chosen.
+  final String? accountId;
 
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Whether the mode's header currently reads simplified.
   final bool isSimplified;
@@ -32,8 +32,8 @@ class OcptBudgetNewBreakdownRow extends StatelessWidget {
   /// Called with the checkbox's new value.
   final ValueChanged<bool?> onCheckedChanged;
 
-  /// Called with the poste picked for this row.
-  final ValueChanged<String?> onPosteChanged;
+  /// Called with the account picked for this row.
+  final ValueChanged<String?> onAccountChanged;
 
   /// Called with the quantity field's text as it changes.
   final ValueChanged<String> onQuantityChanged;
@@ -44,11 +44,11 @@ class OcptBudgetNewBreakdownRow extends StatelessWidget {
     required this.element,
     required this.isSelected,
     required this.quantityController,
-    required this.posteId,
-    required this.postes,
+    required this.accountId,
+    required this.accounts,
     required this.isSimplified,
     required this.onCheckedChanged,
-    required this.onPosteChanged,
+    required this.onAccountChanged,
     required this.onQuantityChanged,
   });
 
@@ -84,13 +84,13 @@ class OcptBudgetNewBreakdownRow extends StatelessWidget {
           const SizedBox(width: 8),
           SizedBox(
             width: 132,
-            child: OcptBudgetNewBreakdownPosteDropdown(
-              dropdownKey: Key("ocptBudgetNewBreakdownPoste-${element.id}"),
-              value: posteId,
+            child: OcptBudgetNewBreakdownAccountDropdown(
+              dropdownKey: Key("ocptBudgetNewBreakdownAccount-${element.id}"),
+              value: accountId,
               enabled: isSelected,
-              postes: postes,
+              accounts: accounts,
               isSimplified: isSimplified,
-              onChanged: onPosteChanged,
+              onChanged: onAccountChanged,
             ),
           ),
           const SizedBox(width: 8),

@@ -38,11 +38,11 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// A minimal, three-entry seed used by every test that isn't about the seeding path itself, so
-/// their own assertions aren't drowned in ten postes.
+/// their own assertions aren't drowned in ten accounts.
 const _smallSeed = [
-  OcptBudgetPosteSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
-  OcptBudgetPosteSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
-  OcptBudgetPosteSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
+  OcptBudgetAccountSeed(id: "seed-1", code: "1", label: "Poste one", simpleLabel: "P1"),
+  OcptBudgetAccountSeed(id: "seed-2", code: "2", label: "Poste two", simpleLabel: "P2"),
+  OcptBudgetAccountSeed(id: "seed-3", code: "3", label: "Poste three", simpleLabel: "P3"),
 ];
 
 /// Run the tests of [OcptBudgetFinancingBloc].
@@ -81,7 +81,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [_smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = _smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = _smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -122,7 +122,7 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "Lent by the lab",
-            posteId: null,
+            accountId: null,
           ),
         ),
       );
@@ -166,7 +166,7 @@ void main() {
             status: OcptBudgetResourceStatus.confirmed,
             isReimbursable: true,
             notes: "Repaid before the split",
-            posteId: null,
+            accountId: null,
           ),
         ),
       );
@@ -213,7 +213,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -225,15 +225,15 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "Lent by the lab",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final state = await waitForState(bloc, (state) => state.selectedResourceId != null);
       final resourceId = state.selectedResourceId!;
 
-      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
-      final counterpartLines = poste.lines.where((line) => line.inKindResourceId == resourceId);
+      final account = state.accounts.singleWhere((account) => account.id == accountId);
+      final counterpartLines = account.lines.where((line) => line.inKindResourceId == resourceId);
       expect(counterpartLines, hasLength(1));
       final line = counterpartLines.single;
       expect(line.label, "Camera loan");
@@ -247,7 +247,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -259,7 +259,7 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
@@ -277,19 +277,19 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final state = await waitForState(
         bloc,
         (state) =>
-            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.unitPrice.amountCents ==
+            ocptBudgetInKindCounterpartLineOf(state.accounts, resourceId)?.unitPrice.amountCents ==
             400000,
       );
 
-      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
-      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+      final account = state.accounts.singleWhere((account) => account.id == accountId);
+      expect(account.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
     });
 
     test("renaming the contribution updates the line's own label", () async {
@@ -297,7 +297,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -309,7 +309,7 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
@@ -327,18 +327,19 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final state = await waitForState(
         bloc,
         (state) =>
-            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.label == "Zoom lens loan",
+            ocptBudgetInKindCounterpartLineOf(state.accounts, resourceId)?.label ==
+            "Zoom lens loan",
       );
 
-      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
-      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+      final account = state.accounts.singleWhere((account) => account.id == accountId);
+      expect(account.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
     });
 
     test("changing the poste re-homes the line, still exactly one", () async {
@@ -346,8 +347,8 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final originalPosteId = loaded.postes[0].id;
-      final newPosteId = loaded.postes[1].id;
+      final originalAccountId = loaded.accounts[0].id;
+      final newAccountId = loaded.accounts[1].id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -359,7 +360,7 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: originalPosteId,
+            accountId: originalAccountId,
           ),
         ),
       );
@@ -377,20 +378,21 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: newPosteId,
+            accountId: newAccountId,
           ),
         ),
       );
       final state = await waitForState(
         bloc,
         (state) =>
-            ocptBudgetInKindCounterpartLineOf(state.postes, resourceId)?.posteId == newPosteId,
+            ocptBudgetInKindCounterpartLineOf(state.accounts, resourceId)?.accountId ==
+            newAccountId,
       );
 
-      final oldPoste = state.postes.singleWhere((poste) => poste.id == originalPosteId);
-      final newPoste = state.postes.singleWhere((poste) => poste.id == newPosteId);
-      expect(oldPoste.lines.where((line) => line.inKindResourceId == resourceId), isEmpty);
-      expect(newPoste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+      final oldAccount = state.accounts.singleWhere((account) => account.id == originalAccountId);
+      final newAccount = state.accounts.singleWhere((account) => account.id == newAccountId);
+      expect(oldAccount.lines.where((line) => line.inKindResourceId == resourceId), isEmpty);
+      expect(newAccount.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
     });
 
     test("reclassifying in-kind to cash removes the line", () async {
@@ -398,7 +400,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -410,13 +412,13 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
       final resourceId = created.selectedResourceId!;
-      expect(ocptBudgetInKindCounterpartLineOf(created.postes, resourceId), isNotNull);
+      expect(ocptBudgetInKindCounterpartLineOf(created.accounts, resourceId), isNotNull);
 
       financingBloc.add(
         OcptBudgetResourceUpdateConfirmedEvent(
@@ -429,13 +431,13 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: null,
+            accountId: null,
           ),
         ),
       );
       final state = await waitForState(
         bloc,
-        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId) == null,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.accounts, resourceId) == null,
       );
 
       expect(
@@ -449,7 +451,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         const OcptBudgetResourceCreationConfirmedEvent(
@@ -461,13 +463,13 @@ void main() {
             status: OcptBudgetResourceStatus.confirmed,
             isReimbursable: false,
             notes: "",
-            posteId: null,
+            accountId: null,
           ),
         ),
       );
       final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
       final resourceId = created.selectedResourceId!;
-      expect(ocptBudgetInKindCounterpartLineOf(created.postes, resourceId), isNull);
+      expect(ocptBudgetInKindCounterpartLineOf(created.accounts, resourceId), isNull);
 
       financingBloc.add(
         OcptBudgetResourceUpdateConfirmedEvent(
@@ -480,17 +482,17 @@ void main() {
             status: OcptBudgetResourceStatus.confirmed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final state = await waitForState(
         bloc,
-        (state) => ocptBudgetInKindCounterpartLineOf(state.postes, resourceId) != null,
+        (state) => ocptBudgetInKindCounterpartLineOf(state.accounts, resourceId) != null,
       );
 
-      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
-      expect(poste.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
+      final account = state.accounts.singleWhere((account) => account.id == accountId);
+      expect(account.lines.where((line) => line.inKindResourceId == resourceId), hasLength(1));
     });
 
     test("deleting the contribution tombstones its counterpart line", () async {
@@ -498,7 +500,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       financingBloc.add(
         OcptBudgetResourceCreationConfirmedEvent(
@@ -510,19 +512,19 @@ void main() {
             status: OcptBudgetResourceStatus.agreed,
             isReimbursable: false,
             notes: "",
-            posteId: posteId,
+            accountId: accountId,
           ),
         ),
       );
       final created = await waitForState(bloc, (state) => state.selectedResourceId != null);
       final resourceId = created.selectedResourceId!;
-      final lineId = ocptBudgetInKindCounterpartLineOf(created.postes, resourceId)!.id;
+      final lineId = ocptBudgetInKindCounterpartLineOf(created.accounts, resourceId)!.id;
 
       financingBloc.add(OcptBudgetResourceDeletionConfirmedEvent(resourceId: resourceId));
       final state = await waitForState(bloc, (state) => state.resources.isEmpty);
 
-      final poste = state.postes.singleWhere((poste) => poste.id == posteId);
-      expect(poste.lines.any((line) => line.id == lineId), isFalse);
+      final account = state.accounts.singleWhere((account) => account.id == accountId);
+      expect(account.lines.any((line) => line.id == lineId), isFalse);
     });
   });
 
@@ -544,7 +546,7 @@ void main() {
       addTearDown(bloc.close);
       final financingBloc = buildFinancing(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       final handled = <String>[];
       Future<void> proves(
@@ -564,7 +566,7 @@ void main() {
         status: OcptBudgetResourceStatus.agreed,
         isReimbursable: false,
         notes: "",
-        posteId: null,
+        accountId: null,
       );
       OcptBudgetAllowanceFormFields allowance(String label) => OcptBudgetAllowanceFormFields(
         personId: null,
@@ -611,7 +613,7 @@ void main() {
 
       await proves(
         OcptBudgetProvisionConfirmedEvent(
-          posteId: posteId,
+          accountId: accountId,
           entries: const [
             OcptBudgetProvisionEntry(
               kind: OcptBudgetProvisionKind.meal,
@@ -623,7 +625,7 @@ void main() {
             ),
           ],
         ),
-        (state) => state.postes.first.lines.any((line) => line.label == "Meals"),
+        (state) => state.accounts.first.lines.any((line) => line.label == "Meals"),
       );
 
       expect(handled.toSet(), hasLength(7), reason: "one proof per event of the hierarchy");

@@ -150,7 +150,7 @@ class OcptBudgetFinancingPlanPdfService extends AbsOcptService {
     final groupTotals = ocptBudgetResourcesTotalByGroupKind(snapshot.resources);
     final grandTotalCents = ocptBudgetResourcesTotalCents(snapshot.resources);
 
-    final allLines = [for (final poste in snapshot.postes) ...poste.lines];
+    final allLines = [for (final account in snapshot.accounts) ...account.lines];
     final needs = ocptBudgetTotalOf(
       allLines,
       basis: OcptBudgetTaxBasis.includingTax,

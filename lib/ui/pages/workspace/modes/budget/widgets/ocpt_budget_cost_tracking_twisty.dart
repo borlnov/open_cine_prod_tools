@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 
-/// The twisty every poste and quote line row draws — an arrow while [isExpandable], nothing but
+/// The twisty every account and quote line row draws — an arrow while [isExpandable], nothing but
 /// its own reserved width otherwise, so a row with nothing to expand still lines its own label up
 /// with a sibling that does.
 ///

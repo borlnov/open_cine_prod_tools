@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 
 /// One editable field, mirroring `OcptResourcesSheetField`'s own controller idiom without depending
-/// on that mode's widget — unchanged from `OcptBudgetPosteInspector`'s own private field widget.
+/// on that mode's widget — unchanged from `OcptBudgetAccountInspector`'s own private field widget.
 class OcptBudgetInlineField extends StatefulWidget {
   /// The field's label.
   final String label;
@@ -17,7 +17,7 @@ class OcptBudgetInlineField extends StatefulWidget {
   final String? hintText;
 
   /// A helper sentence drawn under the field, standing whatever the field holds, or null — the
-  /// poste estimate-to-complete field's own sentence saying what typing a figure changes.
+  /// account estimate-to-complete field's own sentence saying what typing a figure changes.
   final String? helperText;
 
   /// Chrome shown after the typed text, or null.
@@ -27,7 +27,7 @@ class OcptBudgetInlineField extends StatefulWidget {
   final bool multiline;
 
   /// An inline error message, or null while the field's own value stands as typed. Never blocks nor
-  /// reverts the typed value — it is drawn beside it, exactly the way a duplicate poste code is
+  /// reverts the typed value — it is drawn beside it, exactly the way a duplicate account code is
   /// signalled rather than blocked (`docs/architecture/budget.md`).
   final String? errorText;
 

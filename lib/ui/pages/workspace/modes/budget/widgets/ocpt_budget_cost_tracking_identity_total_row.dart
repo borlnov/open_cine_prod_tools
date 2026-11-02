@@ -15,13 +15,13 @@ class OcptBudgetCostTrackingIdentityTotalRow extends StatelessWidget {
   final bool isSimplified;
 
   /// The `Poste` column's own width, computed by the table.
-  final double posteWidth;
+  final double accountWidth;
 
   /// Class constructor
   const OcptBudgetCostTrackingIdentityTotalRow({
     super.key,
     required this.isSimplified,
-    required this.posteWidth,
+    required this.accountWidth,
   });
 
   /// Build the budget cost tracking identity total row as a [DecoratedBox].
@@ -40,7 +40,7 @@ class OcptBudgetCostTrackingIdentityTotalRow extends StatelessWidget {
           children: [
             if (!isSimplified) const SizedBox(width: ocptBudgetCostTrackingNumberColumnWidth),
             SizedBox(
-              width: posteWidth,
+              width: accountWidth,
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: Text(

@@ -120,7 +120,7 @@ class OcptBudgetCashJournalBloc
       database: project.database,
       date: fields.date,
       label: fields.label,
-      posteId: fields.posteId,
+      accountId: fields.accountId,
       resourceId: resourceId ?? fields.resourceId,
       revenueId: revenueId ?? fields.revenueId,
       shareId: shareId ?? fields.shareId,
@@ -148,8 +148,8 @@ class OcptBudgetCashJournalBloc
   ///
   /// **[OcptBudgetEntryFormFields.commitmentId] and [OcptBudgetEntryFormFields.personId] are
   /// written only while non-null, mirroring `voucherNumber`'s own guard rather than
-  /// `posteId`/`resourceId`/`revenueId`/`shareId`'s.** `OcptBudgetEntryDialog` carries no field for
-  /// either yet, so `event.fields` never actually names one; reading a null here as "clear the
+  /// `accountId`/`resourceId`/`revenueId`/`shareId`'s.** `OcptBudgetEntryDialog` carries no field
+  /// for either yet, so `event.fields` never actually names one; reading a null here as "clear the
   /// link" the way the four ordinary link fields do would silently un-settle a commitment, or drop
   /// a reimbursement's own person, the very next time somebody edited that entry through the
   /// ordinary `Edit` gesture. Undoing a settlement already has its own dedicated event
@@ -180,7 +180,7 @@ class OcptBudgetCashJournalBloc
       entryId: event.entryId,
       date: Value(fields.date),
       label: Value(fields.label),
-      posteId: Value(fields.posteId),
+      accountId: Value(fields.accountId),
       resourceId: Value(resourceId ?? fields.resourceId),
       revenueId: Value(revenueId ?? fields.revenueId),
       shareId: Value(shareId ?? fields.shareId),
@@ -290,7 +290,7 @@ class OcptBudgetCashJournalBloc
     final fields = event.fields;
     await _budgetJournalService.createCommitment(
       database: project.database,
-      posteId: fields.posteId,
+      accountId: fields.accountId,
       label: fields.label,
       dueDate: fields.dueDate,
       amountCents: fields.amountCents,
@@ -303,7 +303,7 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Write `event.fields` onto commitment `event.commitmentId` — `fields.posteId` is never sent
+  /// Write `event.fields` onto commitment `event.commitmentId` — `fields.accountId` is never sent
   /// on, see `OcptBudgetCommitmentUpdateConfirmedEvent`'s own doc comment.
   Future<void> _onCommitmentUpdateConfirmed(
     OcptBudgetCommitmentUpdateConfirmedEvent event,
@@ -320,7 +320,7 @@ class OcptBudgetCashJournalBloc
       commitmentId: event.commitmentId,
       dueDate: Value(fields.dueDate),
       label: Value(fields.label),
-      posteId: Value(fields.posteId),
+      accountId: Value(fields.accountId),
       amountCents: Value(fields.amountCents),
       isTaxInclusive: Value(fields.isTaxInclusive),
       vatRateBasisPoints: Value(fields.vatRateBasisPoints),
@@ -366,7 +366,7 @@ class OcptBudgetCashJournalBloc
       database: project.database,
       date: fields.date,
       label: fields.label,
-      posteId: fields.posteId,
+      accountId: fields.accountId,
       resourceId: fields.resourceId,
       revenueId: fields.revenueId,
       shareId: fields.shareId,
@@ -389,14 +389,14 @@ class OcptBudgetCashJournalBloc
   }
 
   /// Promote off-line debit entry `event.entryId` into the quote — the detail panel's own banner
-  /// and its `Add to the quote` action, offered on a debit that names a poste but no commitment
+  /// and its `Add to the quote` action, offered on a debit that names an account but no commitment
   /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
   /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
   /// basis), then a commitment from that line exactly as `OcptBudgetExpensesBloc` does for a line
   /// paid directly (`createCommitment`, naming it through `lineId`) — and finally **re-points the
   /// entry itself at that fresh commitment** (`updateEntry`, `commitmentId` alone) rather than
   /// creating a second entry: the debit that settles the commitment is the very one already on the
-  /// ledger. Skipping the relink would leave the commitment unsettled, adding to the poste's
+  /// ledger. Skipping the relink would leave the commitment unsettled, adding to the account's
   /// committed total on top of what is already paid — the exact double-count this whole mode
   /// refuses everywhere else.
   Future<void> _onEntryPromotedToQuote(
@@ -409,14 +409,14 @@ class OcptBudgetCashJournalBloc
     }
 
     final entry = modeBloc.state.entries.where((entry) => entry.id == event.entryId).firstOrNull;
-    final posteId = entry?.posteId;
-    if (entry == null || posteId == null || !ocptBudgetEntryIsOffLineDebit(entry)) {
+    final accountId = entry?.accountId;
+    if (entry == null || accountId == null || !ocptBudgetEntryIsOffLineDebit(entry)) {
       return;
     }
 
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
-      posteId: posteId,
+      accountId: accountId,
       label: entry.label,
       quantityMilli: const Value(1000),
       unitAmountCents: Value(entry.debitCents),
@@ -429,7 +429,7 @@ class OcptBudgetCashJournalBloc
 
     final commitmentId = await _budgetJournalService.createCommitment(
       database: project.database,
-      posteId: posteId,
+      accountId: accountId,
       label: entry.label,
       amountCents: entry.debitCents,
       isTaxInclusive: entry.isTaxInclusive,
@@ -449,11 +449,11 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Detach off-line debit entry `event.entryId` from its poste — the detail panel's own banner and
-  /// its `Move off-quote` action, the other way to reconcile the very entry
+  /// Detach off-line debit entry `event.entryId` from its account — the detail panel's own banner
+  /// and its `Move off-quote` action, the other way to reconcile the very entry
   /// [_onEntryPromotedToQuote] promotes: rather than folding the spend into the quote, this admits
-  /// it was never quoted at all. Clears `posteId` back to null and nothing else, so the entry reads
-  /// as an honest off-quote spend from then on ([OcptBudgetEntryMovedOffQuoteEvent]'s own doc
+  /// it was never quoted at all. Clears `accountId` back to null and nothing else, so the entry
+  /// reads as an honest off-quote spend from then on ([OcptBudgetEntryMovedOffQuoteEvent]'s own doc
   /// comment).
   Future<void> _onEntryMovedOffQuote(
     OcptBudgetEntryMovedOffQuoteEvent event,
@@ -472,20 +472,20 @@ class OcptBudgetCashJournalBloc
     await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: entry.id,
-      posteId: const Value(null),
+      accountId: const Value(null),
     );
 
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
   /// Promote off-line commitment `event.commitmentId` into the quote — the detail panel's own
-  /// banner and its `Add to the quote` action, offered on a commitment that names a poste but no
+  /// banner and its `Add to the quote` action, offered on a commitment that names an account but no
   /// quote line ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole
   /// mechanism). Creates a quote line from the commitment (`createLine`, quantity `1.0`, its own
   /// label, amount and tax basis), then **re-points the commitment itself at that fresh line**
   /// (`updateCommitment`, `lineId` alone). The entry that settles the commitment is left untouched
   /// — it already names the commitment — so the chain gains only the quote line it lacked, and the
-  /// poste's quote grows by the amount that made it overrun.
+  /// account's quote grows by the amount that made it overrun.
   Future<void> _onCommitmentPromotedToQuote(
     OcptBudgetCommitmentPromotedToQuoteEvent event,
     Emitter<OcptBudgetCashJournalState> emitter,
@@ -504,7 +504,7 @@ class OcptBudgetCashJournalBloc
 
     final lineId = await _budgetQuoteService.createLine(
       database: project.database,
-      posteId: commitment.posteId,
+      accountId: commitment.accountId,
       label: commitment.label,
       quantityMilli: const Value(1000),
       unitAmountCents: Value(commitment.amount.amountCents),

@@ -53,7 +53,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
   /// replaced, the selection and the selected share cleared and the selection moved with the cause
   /// [OcptBudgetSelectionCause.load].
   ///
-  /// No version is previewed when [previewedVersionId] is null, and the provision poste goes back
+  /// No version is previewed when [previewedVersionId] is null, and the provision account goes back
   /// to the default one of [snapshot].
   OcptBudgetState copyToLoaded({
     required String title,
@@ -80,7 +80,7 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     people: people,
     elements: elements,
     mileageRates: mileageRates,
-    provisionPosteId: ocptBudgetDefaultProvisionPosteIdOf(snapshot.postes),
+    provisionAccountId: ocptBudgetDefaultProvisionAccountIdOf(snapshot.accounts),
     logisticsDecorNameByDayId: logisticsDecorNameByDayId,
     rightDockFraction: rightDockFraction,
     lastRightDockTab: lastRightDockTab,
@@ -93,9 +93,9 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
   ///
   /// What the new [snapshot] no longer holds is dropped in the same copy, and moves the selection
   /// with the cause [OcptBudgetSelectionCause.reconciled]: the selection when it is not
-  /// [selectionStillExists], the poste filter when it is not [filterStillExists] and the selected
-  /// share when it is not [shareStillExists]. The provision poste stays unless [snapshot] no longer
-  /// holds it, and then goes back to the default one.
+  /// [selectionStillExists], the account filter when it is not [filterStillExists] and the selected
+  /// share when it is not [shareStillExists]. The provision account stays unless [snapshot] no
+  /// longer holds it, and then goes back to the default one.
   OcptBudgetState copyWithReconciledSnapshot({
     required OcptBudgetSnapshot snapshot,
     required List<OcptRole> roles,
@@ -115,13 +115,14 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
       people: people,
       elements: elements,
       mileageRates: mileageRates,
-      provisionPosteId:
-          provisionPosteId != null && snapshot.postes.any((poste) => poste.id == provisionPosteId)
-          ? provisionPosteId
-          : ocptBudgetDefaultProvisionPosteIdOf(snapshot.postes),
+      provisionAccountId:
+          provisionAccountId != null &&
+              snapshot.accounts.any((account) => account.id == provisionAccountId)
+          ? provisionAccountId
+          : ocptBudgetDefaultProvisionAccountIdOf(snapshot.accounts),
       logisticsDecorNameByDayId: logisticsDecorNameByDayId,
       forceSelectionValue: !selectionStillExists,
-      forceFilterPosteIdValue: !filterStillExists,
+      forceFilterAccountIdValue: !filterStillExists,
       forceSelectedShareIdValue: !shareStillExists,
       selectionEpoch: hasDroppedSelection ? selectionEpoch + 1 : null,
       selectionCause: hasDroppedSelection ? OcptBudgetSelectionCause.reconciled : null,
@@ -225,26 +226,26 @@ extension OcptBudgetStateCopiesExtension on OcptBudgetState {
     selectionCause: OcptBudgetSelectionCause.shareSelected,
   );
 
-  /// Copy this state with the poste filter cleared, moving the selection with the cause
+  /// Copy this state with the account filter cleared, moving the selection with the cause
   /// [OcptBudgetSelectionCause.filtered].
-  OcptBudgetState copyWithPosteFilterCleared() => copyWith(
-    forceFilterPosteIdValue: true,
+  OcptBudgetState copyWithAccountFilterCleared() => copyWith(
+    forceFilterAccountIdValue: true,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBudgetSelectionCause.filtered,
   );
 
-  /// Copy this state with every view narrowed to the poste [posteId], moving the selection with
+  /// Copy this state with every view narrowed to the account [accountId], moving the selection with
   /// the cause [OcptBudgetSelectionCause.filtered].
-  OcptBudgetState copyWithPosteFilter({required String posteId}) => copyWith(
-    filterPosteId: posteId,
+  OcptBudgetState copyWithAccountFilter({required String accountId}) => copyWith(
+    filterAccountId: accountId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBudgetSelectionCause.filtered,
   );
 
-  /// Copy this state with the poste [posteId] as the provision poste, moving the selection with
-  /// the cause [OcptBudgetSelectionCause.provisionSelected].
-  OcptBudgetState copyWithProvisionPoste({required String posteId}) => copyWith(
-    provisionPosteId: posteId,
+  /// Copy this state with the account [accountId] as the provision account, moving the selection
+  /// with the cause [OcptBudgetSelectionCause.provisionSelected].
+  OcptBudgetState copyWithProvisionAccount({required String accountId}) => copyWith(
+    provisionAccountId: accountId,
     selectionEpoch: selectionEpoch + 1,
     selectionCause: OcptBudgetSelectionCause.provisionSelected,
   );

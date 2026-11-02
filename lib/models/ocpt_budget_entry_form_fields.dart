@@ -22,12 +22,12 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// This entry's free-text wording, trimmed — the dialog's own only required field.
   final String label;
 
-  /// The poste this entry is priced against, or null meaning "no poste" — a real state an entry may
-  /// carry on purpose (`OcptBudgetEntry.posteId`'s own doc comment), not an unfinished pick.
-  final String? posteId;
+  /// The account this entry is priced against, or null meaning "no poste" — a real state an entry
+  /// may carry on purpose (`OcptBudgetEntry.accountId`'s own doc comment), not an unfinished pick.
+  final String? accountId;
 
   /// The financing resource this entry settles, or null meaning "no resource" — the normal case,
-  /// read exactly the way [posteId]'s own null is.
+  /// read exactly the way [accountId]'s own null is.
   final String? resourceId;
 
   /// The taking this entry is the actual cash for, or null meaning "no taking" — the normal case,
@@ -87,7 +87,7 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// The VAT rate this entry's figures carry, in basis points, or null.
   ///
   /// **Null means "inherit the project's own rate", whether the field was left empty or typed
-  /// something that didn't parse.** Unlike the poste inspector's own per-line override — where an
+  /// something that didn't parse.** Unlike the account inspector's own per-line override — where an
   /// empty submission must not be read as "inherit", since it rides a keystroke-by-keystroke
   /// autosave a stray backspace could trigger by accident — this dialog submits a whole entry at
   /// once, on one explicit `Save` action nobody reaches without meaning to: there is no accidental
@@ -122,7 +122,7 @@ class OcptBudgetEntryFormFields extends Equatable {
   const OcptBudgetEntryFormFields({
     required this.date,
     required this.label,
-    required this.posteId,
+    required this.accountId,
     required this.resourceId,
     required this.revenueId,
     required this.shareId,
@@ -143,7 +143,7 @@ class OcptBudgetEntryFormFields extends Equatable {
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() =>
-      "OcptBudgetEntryFormFields(date: $date, label: $label, posteId: $posteId, "
+      "OcptBudgetEntryFormFields(date: $date, label: $label, accountId: $accountId, "
       "isDebit: $isDebit, amountCents: $amountCents)";
 
   /// List the fields that decide equality.
@@ -151,7 +151,7 @@ class OcptBudgetEntryFormFields extends Equatable {
   List<Object?> get props => [
     date,
     label,
-    posteId,
+    accountId,
     resourceId,
     revenueId,
     shareId,

@@ -95,8 +95,8 @@ class OcptBudgetHelp extends StatelessWidget {
   /// `tools › cashFlow` reads the very same chain as `expenses`: it is that document's own middle
   /// state, seen on its own page, never a chain of its own. **[OcptBudgetView.dashboard] reads it
   /// too, for the same reason**: its KPI tiles are that very chain's own figures, read at the
-  /// whole-project level rather than poste by poste, so the chain that explains them is the very
-  /// one that already explains the other two.
+  /// whole-project level rather than account by account, so the chain that explains them is the
+  /// very one that already explains the other two.
   List<(String label, String caption)> _chainStepsOf(Tr tr) => switch ((view, toolsView)) {
     (OcptBudgetView.tools, OcptBudgetToolsView.logistics) => const [],
     (OcptBudgetView.dashboard, _) || (OcptBudgetView.expenses, _) => _expensesChainSteps(tr),
@@ -151,9 +151,9 @@ class OcptBudgetHelp extends StatelessWidget {
   /// where none stands for it in particular.
   ///
   /// **`expenses` and [OcptBudgetView.resources] both highlight nothing.** Each reads every one of
-  /// its own columns at once — the cost report a poste's estimate, commitment and payment side by
-  /// side, the resources tree a row's promise and its receipt side by side — so no single step of
-  /// the chain is the one it stands in, unlike `tools › cashFlow` (a payment, the chain's own
+  /// its own columns at once — the cost report an account's estimate, commitment and payment side
+  /// by side, the resources tree a row's promise and its receipt side by side — so no single step
+  /// of the chain is the one it stands in, unlike `tools › cashFlow` (a payment, the chain's own
   /// `Paid` step). Saying so a second time under the chain would only restate what "nothing
   /// highlighted" already says; the sentence there is left to state how a step becomes the next
   /// instead, exactly as every other route's does. `tools › sharing` highlights nothing for the
@@ -250,8 +250,8 @@ class OcptBudgetHelp extends StatelessWidget {
         tr.budgetCostTrackingColumnCommitted,
         // The detail panel's own field label, not the table's retired column of the same name: the
         // estimate to complete is typed there and nowhere else.
-        tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
-        tr.budgetInspectorPosteEstimateToCompleteDeriveAction,
+        tr.budgetInspectorAccountEstimateToCompleteFieldLabel,
+        tr.budgetInspectorAccountEstimateToCompleteDeriveAction,
       ),
       tr.budgetHelpExpensesBody7(
         tr.budgetCostTrackingColumnVariance,

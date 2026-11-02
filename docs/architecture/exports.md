@@ -67,7 +67,7 @@ sit.
   journal as an XLSX workbook, the financial report as a PDF — through
   `OcptWorkspaceExportDialog<OcptBudgetExportDocument>`, above that standing project-package card.
   It is the mode where the "greyed and inert, never hidden" rule earns its keep most often: each of
-  the four names a real state in which it cannot print (no poste, no resource, no entry), and each
+  the four names a real state in which it cannot print (no account, no resource, no entry), and each
   says so on its own card rather than disappearing (`budget.md`).
   The **same flow with no project open** is a home page project card's `⋮` `Export…`
   (`OcptHomeBloc` mixes the very same mixin in, answering `flushPendingProjectWrites` with a no-op):

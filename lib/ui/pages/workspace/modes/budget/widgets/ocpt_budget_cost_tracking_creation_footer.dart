@@ -33,7 +33,7 @@ class OcptBudgetCostTrackingCreationFooter extends StatelessWidget {
             Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
             const SizedBox(width: 6),
             Text(
-              tr.budgetPosteCreationAction,
+              tr.budgetAccountCreationAction,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
             ),
           ],

@@ -10,9 +10,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_feed_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_empty_mode.dart';
 
-/// The empty state drawn in place of the two-pane table while the project holds no poste — see
+/// The empty state drawn in place of the two-pane table while the project holds no account — see
 /// [OcptBudgetCostTracking]'s class doc comment. The creation footer is kept, exactly as it is
-/// drawn today, so the way to create the first poste never disappears.
+/// drawn today, so the way to create the first account never disappears.
 class OcptBudgetCostTrackingEmptyState extends StatelessWidget {
   /// How many breakdown elements carry a price.
   final int breakdownPricedElementCount;
@@ -39,7 +39,7 @@ class OcptBudgetCostTrackingEmptyState extends StatelessWidget {
   final VoidCallback onCateringFeedRequested;
 
   /// Called when the creation footer is clicked, or null to withhold the footer.
-  final VoidCallback? onPosteCreationRequested;
+  final VoidCallback? onAccountCreationRequested;
 
   /// Class constructor
   const OcptBudgetCostTrackingEmptyState({
@@ -52,14 +52,14 @@ class OcptBudgetCostTrackingEmptyState extends StatelessWidget {
     required this.onBreakdownFeedRequested,
     required this.onScheduleFeedRequested,
     required this.onCateringFeedRequested,
-    required this.onPosteCreationRequested,
+    required this.onAccountCreationRequested,
   });
 
   /// Build the budget cost tracking empty as a [Column].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final onCreation = onPosteCreationRequested;
+    final onCreation = onAccountCreationRequested;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

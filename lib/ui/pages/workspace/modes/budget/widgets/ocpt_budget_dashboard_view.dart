@@ -14,10 +14,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The budget mode's dashboard: the summary of the other pages, opened by default.
 ///
 /// **Every callback it needs is one the mode bloc already has an event for** — a dashboard alert
-/// row's own poste-over-quote action selects the poste and switches to [OcptBudgetView.expenses]
-/// in one gesture (see `OcptBudgetDashboard.onPosteOpened`'s own doc comment for why a plain
-/// selection would not be enough); the cash-negative alert's own row opens the tools drawer's own
-/// `Flux de trésorerie` page — the very reading it answers.
+/// row's own account-over-quote action selects the account and switches to
+/// [OcptBudgetView.expenses] in one gesture (see `OcptBudgetDashboard.onAccountOpened`'s own doc
+/// comment for why a plain selection would not be enough); the cash-negative alert's own row opens
+/// the tools drawer's own `Flux de trésorerie` page — the very reading it answers.
 class OcptBudgetDashboardView extends StatelessWidget {
   /// The mode's state, which the dashboard's figures and alerts are read from.
   final OcptBudgetState state;
@@ -31,35 +31,35 @@ class OcptBudgetDashboardView extends StatelessWidget {
     final bloc = context.read<OcptBudgetBloc>();
 
     return OcptBudgetDashboard(
-      postes: state.postes,
+      accounts: state.accounts,
       taxBasis: state.taxBasis,
       defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
       currencyCode: state.currencyCode,
       cashTotals: state.cashTotals,
-      paidByPosteId: state.paidByPosteId,
+      paidByAccountId: state.paidByAccountId,
       offQuotePaidTotal: state.offQuotePaidTotal,
-      committedByPosteId: state.committedByPosteId,
+      committedByAccountId: state.committedByAccountId,
       alerts: state.alerts,
       resources: state.resources,
-      onPosteOpened: (posteId) => _handlePosteOpened(bloc, posteId),
+      onAccountOpened: (accountId) => _handleAccountOpened(bloc, accountId),
       onCashAlertActionRequested: () => _handleCashAlertActionRequested(bloc),
     );
   }
 
-  /// Handle a dashboard alert row is a link to where the poste is worked on, not a selection of its
-  /// own —
-  /// see `OcptBudgetDashboard.onPosteOpened`'s own doc comment. Selects [posteId] and switches to
-  /// [OcptBudgetView.expenses] in the same gesture.
-  void _handlePosteOpened(OcptBudgetBloc bloc, String posteId) {
+  /// Handle a dashboard alert row is a link to where the account is worked on, not a selection of
+  /// its own —
+  /// see `OcptBudgetDashboard.onAccountOpened`'s own doc comment. Selects [accountId] and switches
+  /// to [OcptBudgetView.expenses] in the same gesture.
+  void _handleAccountOpened(OcptBudgetBloc bloc, String accountId) {
     bloc
-      ..add(OcptBudgetPosteSelectedEvent(posteId: posteId))
+      ..add(OcptBudgetAccountSelectedEvent(accountId: accountId))
       ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.expenses));
   }
 
   /// Handle the cash-projection alert's own action: the cash question it raises is exactly what the
   /// tools
   /// drawer's own `Flux de trésorerie` page answers, so it opens straight onto it, the view and the
-  /// tools view both set in one gesture, mirroring [_handlePosteOpened]'s own shape.
+  /// tools view both set in one gesture, mirroring [_handleAccountOpened]'s own shape.
   void _handleCashAlertActionRequested(OcptBudgetBloc bloc) {
     bloc
       ..add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.tools))

@@ -11,15 +11,15 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// The `Reste` column's own cell: the remaining figure, then, in small muted type, how much of it
 /// an in-kind contribution already covers — [Tr.budgetCostTrackingInKindCoveredHint] — while the
-/// poste this cell belongs to carries any in-kind coverage at all
+/// account this cell belongs to carries any in-kind coverage at all
 /// ([OcptBudgetCostTracking.inKindCoveredCentsOf] positive for it). Mirrors
 /// [OcptBudgetCostTrackingQuoteCell]'s own two-line layout, so the extra line never drifts the row
 /// out of [ocptBudgetCostTrackingRowHeight].
 class OcptBudgetCostTrackingRemainingCell extends StatelessWidget {
-  /// The poste's own `Reste` figure, in cents, under the reading basis.
+  /// The account's own `Reste` figure, in cents, under the reading basis.
   final int remainingCents;
 
-  /// The poste's own in-kind covered total, in cents — the hint draws only while this is
+  /// The account's own in-kind covered total, in cents — the hint draws only while this is
   /// positive.
   final int inKindCoveredCents;
 

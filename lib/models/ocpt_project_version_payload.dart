@@ -147,16 +147,16 @@ class OcptProjectVersionPayload extends Equatable {
   final List<OcptProjectDictionaryWordRow> projectDictionaryWords;
 
   /// The `budget_postes` rows of the project: the budget mode's own catalogue, tombstones included.
-  final List<OcptBudgetPosteRow> budgetPostes;
+  final List<OcptBudgetAccountRow> budgetAccounts;
 
-  /// The `budget_lines` rows of the project: the quote lines inside each poste.
+  /// The `budget_lines` rows of the project: the quote lines inside each account.
   final List<OcptBudgetLineRow> budgetLines;
 
   /// The `budget_entries` rows of the project: the cash journal's own movements, tombstones
   /// included.
   final List<OcptBudgetEntryRow> budgetEntries;
 
-  /// The `budget_commitments` rows of the project: money committed against a poste but not yet
+  /// The `budget_commitments` rows of the project: money committed against an account but not yet
   /// paid.
   final List<OcptBudgetCommitmentRow> budgetCommitments;
 
@@ -312,7 +312,7 @@ class OcptProjectVersionPayload extends Equatable {
     required this.shootingSlotGuests,
     required this.shootingDayEvents,
     required this.projectDictionaryWords,
-    required this.budgetPostes,
+    required this.budgetAccounts,
     required this.budgetLines,
     required this.budgetEntries,
     required this.budgetCommitments,
@@ -360,7 +360,7 @@ class OcptProjectVersionPayload extends Equatable {
       "shootingSlotGuests: ${shootingSlotGuests.length}, "
       "shootingDayEvents: ${shootingDayEvents.length}, "
       "projectDictionaryWords: ${projectDictionaryWords.length}, "
-      "budgetPostes: ${budgetPostes.length}, budgetLines: ${budgetLines.length}, "
+      "budgetAccounts: ${budgetAccounts.length}, budgetLines: ${budgetLines.length}, "
       "budgetEntries: ${budgetEntries.length}, budgetCommitments: ${budgetCommitments.length}, "
       "budgetResources: ${budgetResources.length}, "
       "budgetMileageRates: ${budgetMileageRates.length}, "
@@ -412,7 +412,7 @@ class OcptProjectVersionPayload extends Equatable {
     shootingSlotGuests,
     shootingDayEvents,
     projectDictionaryWords,
-    budgetPostes,
+    budgetAccounts,
     budgetLines,
     budgetEntries,
     budgetCommitments,

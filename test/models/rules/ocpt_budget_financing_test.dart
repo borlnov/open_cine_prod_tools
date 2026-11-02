@@ -18,7 +18,7 @@ void main() {
     String id = "entry-1",
     DateTime? date,
     String label = "An entry",
-    String? posteId,
+    String? accountId,
     String? resourceId,
     int debitCents = 0,
     int creditCents = 0,
@@ -30,7 +30,7 @@ void main() {
     id: id,
     date: date ?? DateTime(2026),
     label: label,
-    posteId: posteId,
+    accountId: accountId,
     debitCents: debitCents,
     creditCents: creditCents,
     isTaxInclusive: isTaxInclusive,
@@ -197,7 +197,7 @@ void main() {
     });
 
     test("an incomplete needs figure still reports its own coverage", () {
-      // Only 1 of 3 postes carries a known rate.
+      // Only 1 of 3 accounts carries a known rate.
       const needs = OcptBudgetCoveredTotal(amountCents: 4000, coveredLineCount: 1, lineCount: 3);
 
       final balance = ocptBudgetNeedsResourcesBalanceOf(needs: needs, resourcesCents: 4000);

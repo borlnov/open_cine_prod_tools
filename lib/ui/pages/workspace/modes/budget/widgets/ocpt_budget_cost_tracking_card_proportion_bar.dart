@@ -5,22 +5,22 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 
-/// A poste card's own proportion bar: the paid amount, then the committed one, over a track
+/// An account card's own proportion bar: the paid amount, then the committed one, over a track
 /// scaled to the quote — the very same reading and the very same [ColorScheme] colours
-/// `OcptBudgetDetail`'s own poste-variant proportion bar already draws these figures in, so this
-/// card and the detail panel it opens onto never disagree about what a poste's own bar means.
+/// `OcptBudgetDetail`'s own account-variant proportion bar already draws these figures in, so this
+/// card and the detail panel it opens onto never disagree about what an account's own bar means.
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
 /// and the overrun's own length eats the end of the bar in [ColorScheme.error].
 class OcptBudgetCostTrackingCardProportionBar extends StatelessWidget {
-  /// The poste's own quoted total, in cents — the track's own scale while nothing overruns it.
+  /// The account's own quoted total, in cents — the track's own scale while nothing overruns it.
   final int quotedAmountCents;
 
-  /// The poste's own paid total, in cents — the bar's own first segment.
+  /// The account's own paid total, in cents — the bar's own first segment.
   final int paidCents;
 
-  /// The poste's own committed total, in cents — the bar's own second segment, drawn right after
+  /// The account's own committed total, in cents — the bar's own second segment, drawn right after
   /// [paidCents].
   final int committedCents;
 
@@ -37,8 +37,8 @@ class OcptBudgetCostTrackingCardProportionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final radius = BorderRadius.circular(ocptBudgetCostTrackingCardProportionBarHeight / 2);
-    // Never negative: a poste's own quote, paid and committed totals are all sums of non-negative
-    // amounts (`docs/architecture/budget.md`'s "The money rule").
+    // Never negative: an account's own quote, paid and committed totals are all sums of
+    // non-negative amounts (`docs/architecture/budget.md`'s "The money rule").
     final quoteCents = quotedAmountCents < 0 ? 0 : quotedAmountCents;
     final totalCents = paidCents + committedCents;
     final overrunCents = totalCents > quoteCents ? totalCents - quoteCents : 0;

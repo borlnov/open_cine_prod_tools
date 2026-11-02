@@ -93,10 +93,10 @@ class OcptExportManagerBuilder extends AbsLifeCycleFactory<OcptExportManager> {
 /// reading the very same [OcptShootingPlanPdfService]'s own [OcptShootingPlanGrids], a five-sheet
 /// XLSX workbook), as its cast's own *Day Out of Days*, as the compact one-line schedule, as a
 /// day's own sides booklet, its crew and cast as a standalone, whole-production contact list, and
-/// its budget as the quote (a PDF, poste by poste with its lines), the financing plan (a PDF, its
-/// in-kind contributions kept apart), the cash journal (an XLSX workbook, every entry in its own
-/// chronological order) and the financial report (a PDF, the quote read against what has actually
-/// moved).
+/// its budget as the quote (a PDF, account by account with its lines), the financing plan (a PDF,
+/// its in-kind contributions kept apart), the cash journal (an XLSX workbook, every entry in its
+/// own chronological order) and the financial report (a PDF, the quote read against what has
+/// actually moved).
 ///
 /// Holds the native save/open dialogs; the actual bytes/text conversion is delegated to
 /// [fountainIoService], [scriptImportService], [pdfExportService], [shotListXlsxExportService],

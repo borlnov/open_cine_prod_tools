@@ -14,7 +14,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// The shared layout every variant of [OcptBudgetDetail] draws: breadcrumb, title and amount, an
 /// optional hint (with an optional status badge beside it), an optional stepper, the figures row,
-/// an optional outstanding block, an optional details section (the poste's or the line's own
+/// an optional outstanding block, an optional details section (the account's or the line's own
 /// editable fields), one primary action and up to two secondary ones.
 class OcptBudgetDetailScaffold extends StatelessWidget {
   /// The breadcrumb segments, from the outermost ancestor to the object itself.
@@ -36,15 +36,15 @@ class OcptBudgetDetailScaffold extends StatelessWidget {
   final Color? badgeColor;
 
   /// The stepper's own step labels — two or three words, or empty while this variant draws none
-  /// (the poste variant, which draws [proportionBar] in this very slot instead).
+  /// (the account variant, which draws [proportionBar] in this very slot instead).
   final List<String> stepLabels;
 
   /// How many of [stepLabels] are reached.
   final int reachedCount;
 
-  /// The poste variant's own proportion bar, drawn in the very slot [stepLabels] would otherwise
+  /// The account variant's own proportion bar, drawn in the very slot [stepLabels] would otherwise
   /// fill — null for every other variant, which keeps its stepper
-  /// (`docs/architecture/budget.md`). Never both at once: a poste
+  /// (`docs/architecture/budget.md`). Never both at once: an account
   /// carries no [stepLabels], and every other variant carries no [proportionBar].
   final Widget? proportionBar;
 
@@ -59,7 +59,7 @@ class OcptBudgetDetailScaffold extends StatelessWidget {
   /// drawn only while [outstandingLabel] is not null.
   final String? outstandingValue;
 
-  /// The poste's or the line's own editable fields, or null while this variant carries none.
+  /// The account's or the line's own editable fields, or null while this variant carries none.
   final Widget? details;
 
   /// A quote line's own list of the payments made against its commitment, one instalment per row —
@@ -70,7 +70,7 @@ class OcptBudgetDetailScaffold extends StatelessWidget {
   /// off-line debit entry's or an off-line commitment's own `Add to the quote`/`Move off-quote`
   /// banner (`OcptBudgetOffLineBanner`), a counterpart quote line's own calm note naming the
   /// contribution it is covered in kind by, or an in-kind resource's own calm note naming the
-  /// poste its counterpart line offsets (both `OcptBudgetDetailInfoBanner`).
+  /// account its counterpart line offsets (both `OcptBudgetDetailInfoBanner`).
   final Widget? banner;
 
   /// The one primary action, or null while withheld or none applies.

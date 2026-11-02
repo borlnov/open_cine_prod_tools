@@ -39,7 +39,7 @@ void main() {
   OcptBudgetStatusBar statusBar(WidgetTester tester) =>
       tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
 
-  /// Opens the expenses table, then the twisty of its first poste.
+  /// Opens the expenses table, then the twisty of its first account.
   Future<void> openExpensesExpanded(WidgetTester tester) async {
     await harness.tapHeader(tester, harness.trOf(tester).budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
@@ -72,8 +72,8 @@ void main() {
       "settles it, and the payment shows in the journal and in the line's own fiche", (
     tester,
   ) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
@@ -91,11 +91,11 @@ void main() {
     final entry = (await harness.readEntries()).single;
     expect(commitment.label, "Camera deposit");
     expect(commitment.amount.amountCents, 10000);
-    expect(commitment.posteId, posteId);
+    expect(commitment.accountId, accountId);
     expect(commitment.lineId, isNotNull);
     expect(entry.debitCents, 10000);
     expect(entry.commitmentId, commitment.id);
-    expect(entry.posteId, posteId);
+    expect(entry.accountId, accountId);
 
     // The detail panel stays on the line, which now lists its payment and no longer offers to pay
     // it.
@@ -109,8 +109,8 @@ void main() {
 
   testWidgets("committing a quote line, then paying it, then undoing that settlement moves the "
       "commitment between upcoming and settled while the entry stays", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
@@ -137,7 +137,7 @@ void main() {
     await harness.tap(tester, inDetail(find.text(tr.budgetLineUncommitAction)));
     await harness.confirmDialog(tester, tr.budgetLineUncommitAction);
     expect(await harness.readCommitments(), isEmpty);
-    expect((await harness.readPoste("Camera")).lines, hasLength(1));
+    expect((await harness.readAccount("Camera")).lines, hasLength(1));
     await harness.tap(tester, inDetail(find.text(tr.budgetLineCommitAction)));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     expect(await harness.readCommitments(), hasLength(1));
@@ -165,16 +165,16 @@ void main() {
 
   testWidgets("undoing the settlement of a commitment paid in instalments frees every instalment "
       "and deletes none", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    final lineId = await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    final lineId = await harness.seedLine(accountId, "Camera deposit");
     final commitmentId = await harness.seedCommitment(
-      posteId,
+      accountId,
       "Camera deposit",
       amountCents: 10000,
       lineId: lineId,
     );
-    await harness.seedDebit("Deposit", 6000, posteId: posteId, commitmentId: commitmentId);
-    await harness.seedDebit("Balance", 4000, posteId: posteId, commitmentId: commitmentId);
+    await harness.seedDebit("Deposit", 6000, accountId: accountId, commitmentId: commitmentId);
+    await harness.seedDebit("Balance", 4000, accountId: accountId, commitmentId: commitmentId);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
@@ -194,21 +194,21 @@ void main() {
 
   testWidgets("an off-line debit is promoted into the quote through a line and a commitment, or "
       "moved off the quote altogether, from its own fiche", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
-    await harness.seedDebit("Taxi", 1500, posteId: posteId);
-    await harness.seedDebit("Coffee", 700, posteId: posteId);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
+    await harness.seedDebit("Taxi", 1500, accountId: accountId);
+    await harness.seedDebit("Coffee", 700, accountId: accountId);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
 
     await harness.tap(tester, find.text("Taxi"));
     await harness.tap(tester, inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)));
-    final poste = await harness.readPoste("Camera");
-    expect(poste.lines.map((line) => line.label), ["Camera deposit", "Taxi"]);
-    expect(poste.lines.last.unitPrice.amountCents, 1500);
+    final account = await harness.readAccount("Camera");
+    expect(account.lines.map((line) => line.label), ["Camera deposit", "Taxi"]);
+    expect(account.lines.last.unitPrice.amountCents, 1500);
     final commitment = (await harness.readCommitments()).single;
-    expect(commitment.lineId, poste.lines.last.id);
+    expect(commitment.lineId, account.lines.last.id);
     final entries = await harness.readEntries();
     expect(entries.firstWhere((entry) => entry.label == "Taxi").commitmentId, commitment.id);
     expect(entries.firstWhere((entry) => entry.label == "Coffee").commitmentId, isNull);
@@ -220,7 +220,7 @@ void main() {
 
     await harness.tap(tester, find.text("Coffee"));
     await harness.tap(tester, inDetail(find.text(tr.budgetDetailEntryMoveOffQuoteAction)));
-    expect((await harness.readEntries()).firstWhere((e) => e.label == "Coffee").posteId, isNull);
+    expect((await harness.readEntries()).firstWhere((e) => e.label == "Coffee").accountId, isNull);
     expect(inDetail(find.text(tr.budgetDetailEntryMoveOffQuoteAction)), findsNothing);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
@@ -228,66 +228,66 @@ void main() {
 
   testWidgets("promoting an off-line commitment adds a quote line for it and re-points the "
       "commitment at that line", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedCommitment(posteId, "Lens order", amountCents: 3000);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedCommitment(accountId, "Lens order", amountCents: 3000);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
 
     await harness.tap(tester, find.text("Lens order"));
     await harness.tap(tester, inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)));
-    final poste = await harness.readPoste("Camera");
-    expect(poste.lines.single.label, "Lens order");
-    expect(poste.lines.single.unitPrice.amountCents, 3000);
-    expect((await harness.readCommitments()).single.lineId, poste.lines.single.id);
+    final account = await harness.readAccount("Camera");
+    expect(account.lines.single.label, "Lens order");
+    expect(account.lines.single.unitPrice.amountCents, 3000);
+    expect((await harness.readCommitments()).single.lineId, account.lines.single.id);
     expect(statusBar(tester).quotedTotalCents, 3000);
     expect(inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)), findsNothing);
   });
 
   testWidgets("a new poste is appended, selected and opened in the fiche, and a line born from "
       "the wizard is selected in its turn", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
 
-    await harness.tap(tester, inTracking(find.text(tr.budgetPosteCreationAction)));
-    expect((await harness.readPostes()).map((poste) => poste.label), ["Camera", ""]);
-    expect(statusBar(tester).posteCount, 2);
+    await harness.tap(tester, inTracking(find.text(tr.budgetAccountCreationAction)));
+    expect((await harness.readAccounts()).map((account) => account.label), ["Camera", ""]);
+    expect(statusBar(tester).accountCount, 2);
     expect(
-      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
       findsOneWidget,
     );
     await harness.type(
       tester,
-      harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
+      harness.fieldLabelled(tr.budgetInspectorAccountLabelFieldLabel),
       "Sound",
     );
     await harness.letDebounceRun(tester);
-    expect((await harness.readPostes()).last.label, "Sound");
+    expect((await harness.readAccounts()).last.label, "Sound");
 
-    // The wizard's step 2 picks the poste; step 3 holds label, quantity, unit and price.
+    // The wizard's step 2 picks the account; step 3 holds label, quantity, unit and price.
     await openWizard(tester);
     await harness.tap(tester, inWizard(find.text("Sound")));
     await harness.tap(tester, find.byKey(const Key("ocptBudgetNewAttachmentContinueButton")));
     await fillWizard(tester, ["Boom pole", "2", "day", "35"]);
     await saveWizard(tester);
-    final line = (await harness.readPoste("Sound")).lines.single;
+    final line = (await harness.readAccount("Sound")).lines.single;
     expect(line.label, "Boom pole");
     expect(line.quantityMilli, 2000);
     expect(line.unit, "day");
     expect(line.unitPrice.amountCents, 3500);
     expect(statusBar(tester).quotedTotalCents, 7000);
-    // The new line is the selection: the detail panel shows a line, not the poste it replaced.
+    // The new line is the selection: the detail panel shows a line, not the account it replaced.
     expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
     expect(inDetail(find.text("Boom pole")), findsWidgets);
   });
 
   testWidgets("a payment recorded from the cash flow page shows in the journal, in the "
       "expenses table and on the dashboard", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
@@ -302,7 +302,7 @@ void main() {
     final entry = (await harness.readEntries()).single;
     expect(entry.label, "Camera rental");
     expect(entry.debitCents, 4000);
-    expect(entry.posteId, (await harness.readPoste("Camera")).id);
+    expect(entry.accountId, (await harness.readAccount("Camera")).id);
     expect(find.text("Camera rental"), findsOneWidget);
 
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
@@ -316,7 +316,7 @@ void main() {
 
   testWidgets("an in-kind contribution recorded in the financing plan mints its counterpart "
       "line in the quote, and a cash resource receipt shows as a credit", (tester) async {
-    await harness.seedPoste("Camera");
+    await harness.seedAccount("Camera");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
@@ -329,7 +329,7 @@ void main() {
     await saveWizard(tester);
 
     expect((await harness.readResources()).single.label, "Lent camera");
-    final line = (await harness.readPoste("Camera")).lines.single;
+    final line = (await harness.readAccount("Camera")).lines.single;
     expect(line.label, "Lent camera");
     expect(line.unitPrice.amountCents, 40000);
     expect(line.inKindResourceId, (await harness.readResources()).single.id);
@@ -340,7 +340,7 @@ void main() {
       find.descendant(of: find.byType(OcptBudgetFinancing), matching: find.text(r"$400.00")),
       findsWidgets,
     );
-    // The new resource is the selection, but unlike a new poste or line it does not open the
+    // The new resource is the selection, but unlike a new account or line it does not open the
     // dock: the detail panel is there once the dock is.
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     await harness.openRightDock(tester);
@@ -400,7 +400,7 @@ void main() {
     await harness.tap(tester, harness.menuInRowOf(tester, "Writer"));
     await harness.tap(
       tester,
-      find.widgetWithText(PopupMenuItem<String>, tr.budgetPosteMoveUpAction),
+      find.widgetWithText(PopupMenuItem<String>, tr.budgetAccountMoveUpAction),
     );
     expect((await harness.readShares()).map((share) => share.label), [
       "Producer",
@@ -426,8 +426,8 @@ void main() {
 
     await harness.tap(tester, find.text(tr.budgetLogisticsProvisionAction));
     await harness.confirmDialog(tester, tr.budgetLogisticsProvisionAction);
-    final transport = (await harness.readPostes()).firstWhere(
-      (poste) => poste.id == "d75aa74c-ed99-494a-bca0-3508b166ec18",
+    final transport = (await harness.readAccounts()).firstWhere(
+      (account) => account.id == "d75aa74c-ed99-494a-bca0-3508b166ec18",
     );
     expect(transport.lines, hasLength(1));
     expect(transport.lines.single.provisionKey, isNotNull);
@@ -441,9 +441,9 @@ void main() {
 
   testWidgets("the header counts the alerts, and the link of an over-quote alert row selects "
       "the poste on the expenses table", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedLine(posteId, "Camera deposit");
-    await harness.seedDebit("Camera rental", 25000, posteId: posteId);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedLine(accountId, "Camera deposit");
+    await harness.seedDebit("Camera rental", 25000, accountId: accountId);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -458,15 +458,15 @@ void main() {
     );
     expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
     expect(
-      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      inDetail(find.text(tr.budgetInspectorAccountCodeFieldLabel.toUpperCase())),
       findsOneWidget,
     );
   });
 
   testWidgets("a cash alert on the dashboard opens the cash flow page, where the commitment that "
       "causes it can be selected", (tester) async {
-    final posteId = await harness.seedPoste("Camera");
-    await harness.seedCommitment(posteId, "Lens order", amountCents: 3000);
+    final accountId = await harness.seedAccount("Camera");
+    await harness.seedCommitment(accountId, "Lens order", amountCents: 3000);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -479,8 +479,8 @@ void main() {
 
   testWidgets("a defrayal is created from the wizard, shows in the catering page and is deleted "
       "after a question, and postes move up and down from their row menu", (tester) async {
-    await harness.seedPoste("Camera");
-    await harness.seedPoste("Sound");
+    await harness.seedAccount("Camera");
+    await harness.seedAccount("Sound");
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -491,9 +491,9 @@ void main() {
     );
     await harness.tap(
       tester,
-      find.widgetWithText(PopupMenuItem<String>, tr.budgetPosteMoveUpAction),
+      find.widgetWithText(PopupMenuItem<String>, tr.budgetAccountMoveUpAction),
     );
-    expect((await harness.readPostes()).map((poste) => poste.label), ["Sound", "Camera"]);
+    expect((await harness.readAccounts()).map((account) => account.label), ["Sound", "Camera"]);
 
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tapHeader(tester, tr.budgetHeaderLogisticsSegmentLabel);

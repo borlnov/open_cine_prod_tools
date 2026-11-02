@@ -50,7 +50,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -115,7 +115,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -192,7 +192,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -258,7 +258,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -324,7 +324,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -428,7 +428,7 @@ void main() {
             isDeleted: false,
           ),
         ],
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -473,7 +473,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -539,7 +539,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -602,7 +602,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -665,7 +665,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -728,7 +728,7 @@ void main() {
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
         roleCandidates: payload.roleCandidates,
-        budgetPostes: payload.budgetPostes,
+        budgetAccounts: payload.budgetAccounts,
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
         budgetCommitments: payload.budgetCommitments,
@@ -775,7 +775,7 @@ void main() {
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(relearned)));
     });
 
-    test('changes when a budget poste is renamed', () {
+    test('changes when a budget account is renamed', () {
       final payload = buildRichPayload();
       final renamed = OcptProjectVersionPayload(
         screenplays: payload.screenplays,
@@ -796,9 +796,9 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
-        budgetPostes: [
-          payload.budgetPostes.first.copyWith(label: "Personnel technique"),
-          payload.budgetPostes.last,
+        budgetAccounts: [
+          payload.budgetAccounts.first.copyWith(label: "Personnel technique"),
+          payload.budgetAccounts.last,
         ],
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -864,9 +864,9 @@ void main() {
         elements: payload.elements,
         sceneElements: payload.sceneElements,
         roleElements: payload.roleElements,
-        budgetPostes: [
-          payload.budgetPostes.first.copyWith(estimateToCompleteCents: const drift.Value(90000)),
-          payload.budgetPostes.last,
+        budgetAccounts: [
+          payload.budgetAccounts.first.copyWith(estimateToCompleteCents: const drift.Value(90000)),
+          payload.budgetAccounts.last,
         ],
         budgetLines: payload.budgetLines,
         budgetEntries: payload.budgetEntries,
@@ -906,8 +906,8 @@ void main() {
         shootingBlockCandidates: payload.shootingBlockCandidates,
       );
 
-      // Two projects agreeing on every quote line but disagreeing on what a human now expects a
-      // poste to end up costing are not the same project: a digest that left the column out would
+      // Two projects agreeing on every quote line but disagreeing on what a human now expects an
+      // account to end up costing are not the same project: a digest that left the column out would
       // let the working-copy card claim no drift after a real cost report's own adjustment.
       expect(codec.contentDigest(payload), isNot(codec.contentDigest(adjusted)));
     });

@@ -29,7 +29,7 @@ void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.
   Widget buildTable({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetCommitment> commitments = const [],
     List<OcptBudgetEntry> entries = const [],
     OcptBudgetSelection? selection,
@@ -37,9 +37,9 @@ void main() {
     bool isSimplified = false,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
     int? defaultVatRateBasisPoints,
-    Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
-    int Function(String posteId) committedCentsOf = testZero,
-    int Function(String posteId) inKindCoveredCentsOf = testZero,
+    Map<String, OcptBudgetCoveredTotal> paidByAccountId = const {},
+    int Function(String accountId) committedCentsOf = testZero,
+    int Function(String accountId) inKindCoveredCentsOf = testZero,
     OcptBudgetCoveredTotal offQuoteTotal = const OcptBudgetCoveredTotal(
       amountCents: 0,
       coveredLineCount: 0,
@@ -51,15 +51,15 @@ void main() {
     int mealCount = 0,
     int buffetCount = 0,
     bool isReadOnly = false,
-    ValueChanged<String>? onPosteSelected,
+    ValueChanged<String>? onAccountSelected,
     ValueChanged<String>? onLineSelected,
     ValueChanged<String>? onCommitmentSelected,
     ValueChanged<String>? onEntrySelected,
     ValueChanged<String>? onNodeExpansionToggled,
-    VoidCallback? onPosteCreationRequested,
-    void Function(String posteId, {required bool moveUp})? onPosteReorderRequested,
-    ValueChanged<String>? onPosteDeletionRequested,
-    ValueChanged<String>? onPosteFilterRequested,
+    VoidCallback? onAccountCreationRequested,
+    void Function(String accountId, {required bool moveUp})? onAccountReorderRequested,
+    ValueChanged<String>? onAccountDeletionRequested,
+    ValueChanged<String>? onAccountFilterRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
     ValueChanged<String>? onCommitmentUnsettleRequested,
@@ -70,7 +70,7 @@ void main() {
     VoidCallback? onScheduleFeedRequested,
     VoidCallback? onCateringFeedRequested,
   }) => OcptBudgetCostTracking(
-    postes: postes,
+    accounts: accounts,
     commitments: commitments,
     entries: entries,
     selection: selection,
@@ -79,7 +79,7 @@ void main() {
     taxBasis: taxBasis,
     defaultVatRateBasisPoints: defaultVatRateBasisPoints,
     currencyCode: "EUR",
-    paidByPosteId: paidByPosteId,
+    paidByAccountId: paidByAccountId,
     committedCentsOf: committedCentsOf,
     inKindCoveredCentsOf: inKindCoveredCentsOf,
     offQuoteTotal: offQuoteTotal,
@@ -89,15 +89,15 @@ void main() {
     mealCount: mealCount,
     buffetCount: buffetCount,
     isReadOnly: isReadOnly,
-    onPosteSelected: onPosteSelected ?? (_) {},
+    onAccountSelected: onAccountSelected ?? (_) {},
     onLineSelected: onLineSelected ?? (_) {},
     onCommitmentSelected: onCommitmentSelected ?? (_) {},
     onEntrySelected: onEntrySelected ?? (_) {},
     onNodeExpansionToggled: onNodeExpansionToggled ?? (_) {},
-    onPosteCreationRequested: onPosteCreationRequested,
-    onPosteReorderRequested: onPosteReorderRequested,
-    onPosteDeletionRequested: onPosteDeletionRequested,
-    onPosteFilterRequested: onPosteFilterRequested,
+    onAccountCreationRequested: onAccountCreationRequested,
+    onAccountReorderRequested: onAccountReorderRequested,
+    onAccountDeletionRequested: onAccountDeletionRequested,
+    onAccountFilterRequested: onAccountFilterRequested,
     onCommitmentEditRequested: onCommitmentEditRequested,
     onCommitmentSettleRequested: onCommitmentSettleRequested,
     onCommitmentUnsettleRequested: onCommitmentUnsettleRequested,
@@ -109,8 +109,8 @@ void main() {
     onCateringFeedRequested: onCateringFeedRequested ?? () {},
   );
 
-  /// A poste quoted at 50.00 € (one line: 1 × 50.00 €).
-  OcptBudgetPoste quotedPoste({int? estimateToCompleteCents}) => OcptBudgetPoste(
+  /// An account quoted at 50.00 € (one line: 1 × 50.00 €).
+  OcptBudgetAccount quotedAccount({int? estimateToCompleteCents}) => OcptBudgetAccount(
     id: "poste-1",
     code: "1",
     label: "Poste one",
@@ -120,7 +120,7 @@ void main() {
     lines: [
       const OcptBudgetLine(
         id: "line-1",
-        posteId: "poste-1",
+        accountId: "poste-1",
         label: "Line one",
         quantityMilli: 1000,
         unit: "u",
@@ -139,22 +139,22 @@ void main() {
     "the detailed header shows the poste code; the simplified one hides it and uses the "
     "simple label",
     (tester) async {
-      final poste = OcptBudgetPoste(
+      final account = OcptBudgetAccount(
         id: "poste-1",
         code: "7",
         label: "Technical equipment",
         simpleLabel: "Camera and lighting gear",
         estimateToCompleteCents: null,
         sortKey: "a0",
-        lines: [testLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
+        lines: [testLine(id: "line-1", accountId: "poste-1", vatRateBasisPoints: 2000)],
       );
 
-      await tester.pumpWidget(wrap(buildTable(postes: [poste])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account])));
 
       expect(find.text("7"), findsOneWidget);
       expect(find.text("Technical equipment"), findsOneWidget);
 
-      await tester.pumpWidget(wrap(buildTable(postes: [poste], isSimplified: true)));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account], isSimplified: true)));
 
       expect(find.text("7"), findsNothing);
       expect(find.text("Camera and lighting gear"), findsOneWidget);
@@ -164,7 +164,7 @@ void main() {
   testTestWidgets(
     "the header shows the six columns in the Devis, Engagé, Payé, Reste, Coût final, Écart order",
     (tester) async {
-      const poste = OcptBudgetPoste(
+      const account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Poste one",
@@ -174,7 +174,7 @@ void main() {
         lines: [],
       );
 
-      await tester.pumpWidget(wrap(buildTable(postes: [poste])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account])));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
       expect(find.text(tr.budgetCostTrackingColumnQuote.toUpperCase()), findsOneWidget);
@@ -193,17 +193,17 @@ void main() {
     "the total row reports how many postes its coverage reaches while a line carries no known "
     "rate, under the excluding-tax basis",
     (tester) async {
-      final postes = [
-        OcptBudgetPoste(
+      final accounts = [
+        OcptBudgetAccount(
           id: "poste-1",
           code: "1",
           label: "Covered",
           simpleLabel: null,
           estimateToCompleteCents: null,
           sortKey: "a0",
-          lines: [testLine(id: "line-1", posteId: "poste-1", vatRateBasisPoints: 2000)],
+          lines: [testLine(id: "line-1", accountId: "poste-1", vatRateBasisPoints: 2000)],
         ),
-        OcptBudgetPoste(
+        OcptBudgetAccount(
           id: "poste-2",
           code: "2",
           label: "Uncovered",
@@ -211,18 +211,18 @@ void main() {
           estimateToCompleteCents: null,
           sortKey: "a1",
           // No rate on this line, and none on the project either: its excluding-tax figure is
-          // unknown, so this poste never counts as covered under that basis.
-          lines: [testLine(id: "line-2", posteId: "poste-2")],
+          // unknown, so this account never counts as covered under that basis.
+          lines: [testLine(id: "line-2", accountId: "poste-2")],
         ),
       ];
 
       await tester.pumpWidget(
-        wrap(buildTable(postes: postes, taxBasis: OcptBudgetTaxBasis.excludingTax)),
+        wrap(buildTable(accounts: accounts, taxBasis: OcptBudgetTaxBasis.excludingTax)),
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      // Poste 1's own 10.00 € tax-inclusive line, at 20 %, reads 8.33 € excluding tax
-      // (1000 × 10000 / 12000, rounded) — the only poste this basis actually covers.
+      // Account 1's own 10.00 € tax-inclusive line, at 20 %, reads 8.33 € excluding tax
+      // (1000 × 10000 / 12000, rounded) — the only account this basis actually covers.
       final coveredAmount = ocptBudgetAmountLabel(833, "EUR");
       expect(find.text(tr.budgetCostTrackingCoverageReadOut(coveredAmount, 1, 2)), findsOneWidget);
     },
@@ -231,7 +231,7 @@ void main() {
   testTestWidgets(
     "withholds the creation footer and every poste row's own ⋮ menu while isReadOnly",
     (tester) async {
-      const poste = OcptBudgetPoste(
+      const account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Poste one",
@@ -242,11 +242,11 @@ void main() {
       );
 
       await tester.pumpWidget(
-        wrap(buildTable(postes: [poste], isReadOnly: true, onPosteCreationRequested: () {})),
+        wrap(buildTable(accounts: [account], isReadOnly: true, onAccountCreationRequested: () {})),
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+      expect(find.text(tr.budgetAccountCreationAction), findsNothing);
       expect(find.byType(PopupMenuButton<String>), findsNothing);
     },
   );
@@ -254,7 +254,7 @@ void main() {
   testTestWidgets(
     "the poste label stays visible after the amounts pane is scrolled to its own far right",
     (tester) async {
-      const poste = OcptBudgetPoste(
+      const account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Artistic rights and costumes",
@@ -269,7 +269,7 @@ void main() {
       // fixed-width amount columns and the menu column (108 × 6 + 36) combined — the regression
       // this table's split into two panes exists to fix: before it, a table this narrow scrolled
       // the `Poste` column itself out of view along with the amounts.
-      await tester.pumpWidget(wrap(buildTable(postes: [poste]), width: 900));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account]), width: 900));
 
       expect(_amountsPaneScrollFinder, findsOneWidget);
       await tester.drag(_amountsPaneScrollFinder, const Offset(-2000, 0));
@@ -282,8 +282,8 @@ void main() {
   testTestWidgets(
     "selecting a poste highlights it in both the pinned pane and the scrolling pane",
     (tester) async {
-      const postes = [
-        OcptBudgetPoste(
+      const accounts = [
+        OcptBudgetAccount(
           id: "poste-1",
           code: "1",
           label: "Poste one",
@@ -292,7 +292,7 @@ void main() {
           sortKey: "a0",
           lines: [],
         ),
-        OcptBudgetPoste(
+        OcptBudgetAccount(
           id: "poste-2",
           code: "2",
           label: "Poste two",
@@ -304,11 +304,13 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        wrap(buildTable(postes: postes, selection: const OcptBudgetPosteSelection("poste-1"))),
+        wrap(
+          buildTable(accounts: accounts, selection: const OcptBudgetAccountSelection("poste-1")),
+        ),
       );
 
       // One `ColoredBox` per pane per row (identity, amounts) — exactly two of the four painted
-      // here (two postes, two panes) leave the selected poste's own transparent default.
+      // here (two accounts, two panes) leave the selected account's own transparent default.
       final highlightedCount = tester
           .widgetList<ColoredBox>(find.byType(ColoredBox))
           .where((box) => box.color != Colors.transparent)
@@ -321,7 +323,7 @@ void main() {
   testTestWidgets(
     "simplified mode drops the N° column and narrows the pinned pane by that column's own width",
     (tester) async {
-      const poste = OcptBudgetPoste(
+      const account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Poste one",
@@ -335,10 +337,12 @@ void main() {
       // column sits at its own floor in both modes, so the pinned pane's own width changes by
       // exactly the `N°` column's width rather than the `Poste` column silently absorbing the
       // difference (which it does the moment there is room to spare).
-      await tester.pumpWidget(wrap(buildTable(postes: [poste]), width: 900));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account]), width: 900));
       final detailedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
 
-      await tester.pumpWidget(wrap(buildTable(postes: [poste], isSimplified: true), width: 900));
+      await tester.pumpWidget(
+        wrap(buildTable(accounts: [account], isSimplified: true), width: 900),
+      );
       final simplifiedAmountsPaneLeftEdge = tester.getTopLeft(_amountsPaneScrollFinder).dx;
 
       expect(find.text("1"), findsNothing);
@@ -356,8 +360,8 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [quotedPoste()],
-            paidByPosteId: {
+            accounts: [quotedAccount()],
+            paidByAccountId: {
               "poste-1": const OcptBudgetCoveredTotal(
                 amountCents: 1200,
                 coveredLineCount: 1,
@@ -371,18 +375,18 @@ void main() {
 
       // Quoted 50.00 €, Payé 12.00 €, Engagé 3.00 €, Reste 35.00 € (50 - 12 - 3), derived
       // estimate to complete max(0, 35) = 35.00 € (not drawn), Coût final 50.00 € (12 + 3 + 35),
-      // Écart -35.00 € (12 + 3 - 50). The single poste's own Payé figure is also the whole
+      // Écart -35.00 € (12 + 3 - 50). The single account's own Payé figure is also the whole
       // table's grand Payé total (no off-quote spending here), so 12.00 € is drawn twice: this
-      // poste's own row, and the total row.
+      // account's own row, and the total row.
       expect(find.text(ocptBudgetAmountLabel(1200, "EUR")), findsNWidgets(2));
       expect(find.text(ocptBudgetAmountLabel(300, "EUR")), findsOneWidget);
       expect(find.text(ocptBudgetAmountLabel(3500, "EUR")), findsOneWidget);
       expect(find.text(ocptBudgetAmountLabel(-3500, "EUR")), findsOneWidget);
-      // Coût final: 50.00 € drawn twice (this poste's own row, and the total row) — on top of
+      // Coût final: 50.00 € drawn twice (this account's own row, and the total row) — on top of
       // the 50.00 € quote itself drawn twice the very same way, four in all.
       expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsNWidgets(4));
       // The total row's own `Engagé`, `Reste` and `Écart` cells always print the em dash (there
-      // is no grand reading for any of them); this poste's own row contributes none of its own.
+      // is no grand reading for any of them); this account's own row contributes none of its own.
       expect(find.text(ocptBudgetEmptyValue), findsNWidgets(3));
     },
   );
@@ -391,9 +395,9 @@ void main() {
     "a poste with no entry or commitment against it shows zero rather than a hole for Payé and "
     "Engagé",
     (tester) async {
-      await tester.pumpWidget(wrap(buildTable(postes: [quotedPoste()])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [quotedAccount()])));
 
-      // Payé and Engagé both read a real zero on this poste's own row — nothing having moved
+      // Payé and Engagé both read a real zero on this account's own row — nothing having moved
       // against it is a known fact now that the journal exists, not a stand-in for an unknown
       // figure — and the grand Payé total in the total row is the very same real zero, once
       // more: three widgets in all.
@@ -409,8 +413,8 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [quotedPoste()],
-            inKindCoveredCentsOf: (posteId) => posteId == "poste-1" ? 5000 : 0,
+            accounts: [quotedAccount()],
+            inKindCoveredCentsOf: (accountId) => accountId == "poste-1" ? 5000 : 0,
           ),
         ),
       );
@@ -426,13 +430,13 @@ void main() {
   testTestWidgets(
     "a poste row's own ⋮ menu offers Show this poste only, reporting the poste's own id",
     (tester) async {
-      String? filteredPosteId;
+      String? filteredAccountId;
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [quotedPoste()],
-            onPosteFilterRequested: (posteId) => filteredPosteId = posteId,
+            accounts: [quotedAccount()],
+            onAccountFilterRequested: (accountId) => filteredAccountId = accountId,
           ),
         ),
       );
@@ -446,7 +450,7 @@ void main() {
       await tester.tap(find.text(tr.budgetCostTrackingFilterOnlyAction));
       await tester.pumpAndSettle();
 
-      expect(filteredPosteId, "poste-1");
+      expect(filteredAccountId, "poste-1");
     },
   );
 
@@ -455,7 +459,13 @@ void main() {
     "entry of that same menu — it only ever reads the project",
     (tester) async {
       await tester.pumpWidget(
-        wrap(buildTable(postes: [quotedPoste()], isReadOnly: true, onPosteFilterRequested: (_) {})),
+        wrap(
+          buildTable(
+            accounts: [quotedAccount()],
+            isReadOnly: true,
+            onAccountFilterRequested: (_) {},
+          ),
+        ),
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
@@ -465,13 +475,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(tr.budgetCostTrackingFilterOnlyAction), findsOneWidget);
-      expect(find.text(tr.budgetPosteRenameAction), findsNothing);
-      expect(find.text(tr.budgetPosteDeleteAction), findsNothing);
+      expect(find.text(tr.budgetAccountRenameAction), findsNothing);
+      expect(find.text(tr.budgetAccountDeleteAction), findsNothing);
     },
   );
 
   group("the off-quote row", () {
-    /// 25.00 € worth of debits naming no poste at all, fully covered.
+    /// 25.00 € worth of debits naming no account at all, fully covered.
     const offQuoteTotal = OcptBudgetCoveredTotal(
       amountCents: 2500,
       coveredLineCount: 1,
@@ -482,19 +492,19 @@ void main() {
       "is drawn between the last poste and the Total row while there is off-quote spending",
       (tester) async {
         await tester.pumpWidget(
-          wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
+          wrap(buildTable(accounts: [quotedAccount()], offQuoteTotal: offQuoteTotal)),
         );
 
         final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
         expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
-        // Its own Payé cell reads the off-quote total, and, since no poste itself was paid, the
+        // Its own Payé cell reads the off-quote total, and, since no account itself was paid, the
         // total row's own grand Payé figure reads the very same amount — drawn twice.
         expect(find.text(ocptBudgetAmountLabel(2500, "EUR")), findsNWidgets(2));
       },
     );
 
     testTestWidgets("is absent while there is no off-quote spending at all", (tester) async {
-      await tester.pumpWidget(wrap(buildTable(postes: [quotedPoste()])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [quotedAccount()])));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
       expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsNothing);
@@ -504,20 +514,20 @@ void main() {
       "carries no ⋮ menu, prints the em dash in every column it has no reading for, and a tap on "
       "it does not select a poste",
       (tester) async {
-        String? selectedPosteId;
+        String? selectedAccountId;
 
         await tester.pumpWidget(
           wrap(
             buildTable(
-              postes: [quotedPoste()],
+              accounts: [quotedAccount()],
               offQuoteTotal: offQuoteTotal,
-              onPosteSelected: (posteId) => selectedPosteId = posteId,
+              onAccountSelected: (accountId) => selectedAccountId = accountId,
             ),
           ),
         );
 
         final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-        // Exactly one ⋮ menu on screen: the single poste's own — none for the off-quote row.
+        // Exactly one ⋮ menu on screen: the single account's own — none for the off-quote row.
         expect(find.byType(PopupMenuButton<String>), findsOneWidget);
 
         // Devis, Engagé, Reste, Coût final, Écart: five em dashes on the off-quote row's own
@@ -528,7 +538,7 @@ void main() {
         await tester.tap(find.text(tr.budgetCostTrackingOffQuoteLabel));
         await tester.pumpAndSettle();
 
-        expect(selectedPosteId, isNull);
+        expect(selectedAccountId, isNull);
       },
     );
 
@@ -536,14 +546,14 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [quotedPoste()],
+            accounts: [quotedAccount()],
             entries: [testEntry(id: "e1", debitCents: 2500)],
             offQuoteTotal: offQuoteTotal,
           ),
         ),
       );
 
-      // The poste's own twisty (one line to expand onto) plus the off-quote row's own: two closed
+      // The account's own twisty (one line to expand onto) plus the off-quote row's own: two closed
       // arrows on screen.
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNWidgets(2));
     });
@@ -556,7 +566,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             buildTable(
-              postes: [quotedPoste()],
+              accounts: [quotedAccount()],
               entries: [testEntry(id: "e1", debitCents: 2500)],
               offQuoteTotal: offQuoteTotal,
               onNodeExpansionToggled: (id) => toggledId = id,
@@ -564,7 +574,7 @@ void main() {
           ),
         );
 
-        // The off-quote row draws after the poste in the tree, so its own twisty is the second —
+        // The off-quote row draws after the account in the tree, so its own twisty is the second —
         // and last — closed arrow on screen.
         await tester.tap(find.byIcon(Icons.keyboard_arrow_right).last);
         await tester.pumpAndSettle();
@@ -588,7 +598,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             buildTable(
-              postes: [quotedPoste()],
+              accounts: [quotedAccount()],
               entries: entries,
               offQuoteTotal: offQuoteTotal,
               onNodeExpansionToggled: (id) => capturedToggleId = id,
@@ -603,7 +613,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             buildTable(
-              postes: [quotedPoste()],
+              accounts: [quotedAccount()],
               entries: entries,
               offQuoteTotal: offQuoteTotal,
               expandedNodeIds: {sentinelId},
@@ -619,12 +629,12 @@ void main() {
         await tester.pumpAndSettle();
         expect(selectedEntryId, "e1");
 
-        // The poste's own ⋮ menu plus this entry sub-row's own: two menus on screen.
+        // The account's own ⋮ menu plus this entry sub-row's own: two menus on screen.
         final menus = find.byType(PopupMenuButton<String>);
         expect(menus, findsNWidgets(2));
 
         // The last one is this entry sub-row's own — the scrolling pane's own list draws the
-        // poste's row first, this one after it — but it sits past the amounts pane's own
+        // account's row first, this one after it — but it sits past the amounts pane's own
         // horizontal scroll, exactly as the tree's own established `⋮` menu tests already scroll
         // to it first.
         final entryMenu = menus.last;
@@ -641,15 +651,15 @@ void main() {
   });
 
   group("Coût final", () {
-    /// A poste quoted at 100.00 € (one line: 1 × 100.00 €).
-    OcptBudgetPoste poste({required int? estimateToCompleteCents}) => OcptBudgetPoste(
+    /// An account quoted at 100.00 € (one line: 1 × 100.00 €).
+    OcptBudgetAccount account({required int? estimateToCompleteCents}) => OcptBudgetAccount(
       id: "poste-1",
       code: "1",
       label: "Poste one",
       simpleLabel: null,
       estimateToCompleteCents: estimateToCompleteCents,
       sortKey: "a0",
-      lines: [testLine(id: "line-1", posteId: "poste-1", amountCents: 10000)],
+      lines: [testLine(id: "line-1", accountId: "poste-1", amountCents: 10000)],
     );
 
     testTestWidgets("reads the quote itself while the derived estimate leaves nothing over", (
@@ -658,8 +668,8 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [poste(estimateToCompleteCents: null)],
-            paidByPosteId: {
+            accounts: [account(estimateToCompleteCents: null)],
+            paidByAccountId: {
               "poste-1": const OcptBudgetCoveredTotal(
                 amountCents: 2000,
                 coveredLineCount: 1,
@@ -673,7 +683,7 @@ void main() {
 
       // Quote 100.00 €, Payé 20.00 €, Engagé 10.00 €: Reste and the derived estimate to complete
       // both read 70.00 € (max(0, 100 - 20 - 10)), so Coût final (20 + 10 + 70) comes back to
-      // exactly the quote — this poste's own row and the total row each draw 100.00 € for both
+      // exactly the quote — this account's own row and the total row each draw 100.00 € for both
       // Devis and Coût final, four widgets in all.
       expect(find.text(ocptBudgetAmountLabel(10000, "EUR")), findsNWidgets(4));
     });
@@ -682,8 +692,8 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [poste(estimateToCompleteCents: 9000)],
-            paidByPosteId: {
+            accounts: [account(estimateToCompleteCents: 9000)],
+            paidByAccountId: {
               "poste-1": const OcptBudgetCoveredTotal(
                 amountCents: 2000,
                 coveredLineCount: 1,
@@ -695,7 +705,7 @@ void main() {
         ),
       );
 
-      // Coût final: 20.00 + 10.00 + 90.00 (typed) = 120.00 €, on both the poste's own row and the
+      // Coût final: 20.00 + 10.00 + 90.00 (typed) = 120.00 €, on both the account's own row and the
       // total row.
       expect(find.text(ocptBudgetAmountLabel(12000, "EUR")), findsNWidgets(2));
     });
@@ -709,7 +719,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      wrap(buildTable(postes: [quotedPoste()], offQuoteTotal: offQuoteTotal)),
+      wrap(buildTable(accounts: [quotedAccount()], offQuoteTotal: offQuoteTotal)),
     );
 
     // See the off-quote group's own comment for the full count.
@@ -720,36 +730,36 @@ void main() {
     "the total row sums Coût final poste by poste, never re-derived from the grand Devis, Payé "
     "and Engagé",
     (tester) async {
-      final postes = [
+      final accounts = [
         // Quote 100.00 €, Payé 30.00 €, Engagé 20.00 €: derived estimate to complete 50.00 €
         // (max(0, 100 - 30 - 20)), Coût final 100.00 € (30 + 20 + 50).
-        OcptBudgetPoste(
+        OcptBudgetAccount(
           id: "poste-1",
           code: "1",
           label: "Poste one",
           simpleLabel: null,
           estimateToCompleteCents: null,
           sortKey: "a0",
-          lines: [testLine(id: "line-1", posteId: "poste-1", amountCents: 10000)],
+          lines: [testLine(id: "line-1", accountId: "poste-1", amountCents: 10000)],
         ),
         // Quote 60.00 €, Payé 10.00 €, Engagé 5.00 €, a typed estimate to complete of 40.00 €
         // (the derived one would have been 45.00 €): Coût final 55.00 € (10 + 5 + 40).
-        OcptBudgetPoste(
+        OcptBudgetAccount(
           id: "poste-2",
           code: "2",
           label: "Poste two",
           simpleLabel: null,
           estimateToCompleteCents: 4000,
           sortKey: "a1",
-          lines: [testLine(id: "line-2", posteId: "poste-2", amountCents: 6000)],
+          lines: [testLine(id: "line-2", accountId: "poste-2", amountCents: 6000)],
         ),
       ];
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: postes,
-            paidByPosteId: {
+            accounts: accounts,
+            paidByAccountId: {
               "poste-1": const OcptBudgetCoveredTotal(
                 amountCents: 3000,
                 coveredLineCount: 1,
@@ -761,14 +771,14 @@ void main() {
                 lineCount: 1,
               ),
             },
-            committedCentsOf: (posteId) => posteId == "poste-1" ? 2000 : 500,
+            committedCentsOf: (accountId) => accountId == "poste-1" ? 2000 : 500,
           ),
         ),
       );
 
-      // The honest grand Coût final is 100.00 + 55.00 = 155.00 € — summed poste by poste, the
-      // derived figure resolved for poste-1 and the typed one read verbatim for poste-2. A wrong
-      // re-derivation from the grand Devis (160.00 €), Payé (40.00 €) and Engagé (25.00 €) —
+      // The honest grand Coût final is 100.00 + 55.00 = 155.00 € — summed account by account, the
+      // derived figure resolved for account-1 and the typed one read verbatim for account-2. A
+      // wrong re-derivation from the grand Devis (160.00 €), Payé (40.00 €) and Engagé (25.00 €) —
       // 40 + 25 + max(0, 160 - 40 - 25) — would instead collapse to the grand Devis itself, which
       // is on screen anyway (the total row's own `Devis` cell), so 155.00 € is the one figure
       // that tells the two readings apart.

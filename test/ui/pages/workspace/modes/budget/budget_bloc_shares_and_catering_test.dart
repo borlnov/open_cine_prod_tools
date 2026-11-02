@@ -64,7 +64,7 @@ void main() {
   });
 
   /// Builds a bloc wired to the test project, seeded with [seed] (defaulting to [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -256,15 +256,15 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
 
-      // A poste selection first, so the switch away from it is what this test actually proves.
-      bloc.add(OcptBudgetPosteSelectedEvent(posteId: loaded.postes.last.id));
-      await waitForState(bloc, (state) => state.selectedPosteId == loaded.postes.last.id);
+      // An account selection first, so the switch away from it is what this test actually proves.
+      bloc.add(OcptBudgetAccountSelectedEvent(accountId: loaded.accounts.last.id));
+      await waitForState(bloc, (state) => state.selectedAccountId == loaded.accounts.last.id);
 
       bloc.add(OcptBudgetLineSelectedEvent(lineId: lineId));
       final state = await waitForState(
@@ -293,17 +293,17 @@ void main() {
       addTearDown(bloc.close);
       final expensesBloc = buildExpenses(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
-      expensesBloc.add(OcptBudgetLineCreatedEvent(posteId: posteId));
-      final withLine = await waitForState(bloc, (state) => state.postes.first.lines.isNotEmpty);
-      final lineId = withLine.postes.first.lines.single.id;
+      expensesBloc.add(OcptBudgetLineCreatedEvent(accountId: accountId));
+      final withLine = await waitForState(bloc, (state) => state.accounts.first.lines.isNotEmpty);
+      final lineId = withLine.accounts.first.lines.single.id;
       await waitForState(bloc, (state) => state.selection == OcptBudgetLineSelection(lineId));
 
       expensesBloc.add(OcptBudgetLineDeletionConfirmedEvent(lineId: lineId));
       final state = await waitForState(
         bloc,
-        (state) => state.postes.firstWhere((poste) => poste.id == posteId).lines.isEmpty,
+        (state) => state.accounts.firstWhere((account) => account.id == accountId).lines.isEmpty,
       );
 
       expect(state.selection, isNull);
@@ -314,14 +314,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetCommitmentCreationConfirmedEvent(
           fields: OcptBudgetCommitmentFormFields(
             dueDate: null,
             label: "Insurance",
-            posteId: posteId,
+            accountId: accountId,
             amountCents: 12000,
             isTaxInclusive: true,
             vatRateBasisPoints: null,
@@ -358,14 +358,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Camera rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -410,14 +410,14 @@ void main() {
         addTearDown(bloc.close);
         final journalBloc = buildJournal(bloc);
         final loaded = await waitForState(bloc, (state) => !state.isLoading);
-        final posteId = loaded.postes.first.id;
+        final accountId = loaded.accounts.first.id;
 
         journalBloc.add(
           OcptBudgetEntryCreationConfirmedEvent(
             fields: OcptBudgetEntryFormFields(
               date: DateTime(2026, 3),
               label: "Camera rental",
-              posteId: posteId,
+              accountId: accountId,
               resourceId: null,
               revenueId: null,
               shareId: null,
@@ -461,14 +461,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetEntryCreationConfirmedEvent(
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Camera rental",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,

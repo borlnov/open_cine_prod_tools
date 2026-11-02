@@ -46,7 +46,7 @@ Future<void> ocptBudgetEditEntry(
     context,
     existing: entry,
     existingReceipt: state.receiptsByEntryId[entry.id],
-    postes: state.postes,
+    accounts: state.accounts,
     resources: state.resources,
     revenues: state.revenues,
     shares: state.shares,
@@ -73,7 +73,7 @@ Future<void> ocptBudgetEditCommitment(
   final fields = await OcptBudgetCommitmentDialog.show(
     context,
     existing: commitment,
-    postes: state.postes,
+    accounts: state.accounts,
     currencyCode: state.currencyCode,
     defaultVatRateBasisPoints: state.defaultVatRateBasisPoints,
     isSimplified: state.isSimplified,
@@ -90,10 +90,10 @@ Future<void> ocptBudgetEditCommitment(
 /// Open the resource dialog pre-filled with [resource], then dispatch the update if the user
 /// confirmed it.
 ///
-/// [OcptBudgetResourceDialog.initialPosteId] seeds the `Poste` picker from [resource]'s own
-/// counterpart line, found by [ocptBudgetInKindCounterpartLineOf] — the poste an in-kind
+/// [OcptBudgetResourceDialog.initialAccountId] seeds the `Poste` picker from [resource]'s own
+/// counterpart line, found by [ocptBudgetInKindCounterpartLineOf] — the account an in-kind
 /// contribution offsets lives on that line, not on the resource itself
-/// (`OcptBudgetResourceFormFields.posteId`'s own doc comment).
+/// (`OcptBudgetResourceFormFields.accountId`'s own doc comment).
 Future<void> ocptBudgetEditResource(
   BuildContext context,
   OcptBudgetState state,
@@ -106,8 +106,8 @@ Future<void> ocptBudgetEditResource(
     groupKind: resource.groupKind,
     people: state.people,
     currencyCode: state.currencyCode,
-    postes: state.postes,
-    initialPosteId: ocptBudgetInKindCounterpartLineOf(state.postes, resource.id)?.posteId,
+    accounts: state.accounts,
+    initialAccountId: ocptBudgetInKindCounterpartLineOf(state.accounts, resource.id)?.accountId,
     isSimplified: state.isSimplified,
   );
   if (fields == null) {

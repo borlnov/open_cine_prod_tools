@@ -19,16 +19,16 @@ import 'package:uuid/uuid.dart';
 ///
 /// {@macro open_cine_prod_tools.tombstones}
 ///
-/// **Seeds the ten CNC postes on the first read of an empty `budget_postes` table**
-/// ([loadPostes]), not at project creation, so an existing project gets them too — the labels are
-/// resolved by the caller (`OcptBudgetPosteSeed`, already localized), since no service ever sees a
-/// `Tr`.
+/// **Seeds the ten CNC accounts on the first read of an empty `budget_postes` table**
+/// ([loadAccounts]), not at project creation, so an existing project gets them too — the labels are
+/// resolved by the caller (`OcptBudgetAccountSeed`, already localized), since no service ever sees
+/// a `Tr`.
 ///
 /// **`budget_postes` is ordered flat by `sortKey`**, like `OcptElementsService`'s own catalogue —
 /// see that service's doc comment for why one flat order beats one order per department.
-/// **`budget_lines` is ordered by `sortKey` within its own `posteId`**, like
+/// **`budget_lines` is ordered by `sortKey` within its own `accountId`**, like
 /// `OcptShotListService`'s shots within a scene: a line only ever competes for a position against
-/// the other lines of the very poste it prices.
+/// the other lines of the very account it prices.
 class OcptBudgetQuoteService extends AbsOcptService {
   /// Resolves the device id every stamp this service's own writes carry — see
   /// [OcptDeviceIdGetter].
@@ -37,52 +37,52 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// Class constructor
   const OcptBudgetQuoteService({required super.logger, required this.deviceId});
 
-  /// Load every live poste of [database], in `sortKey` order, each joined with its own live
+  /// Load every live account of [database], in `sortKey` order, each joined with its own live
   /// `budget_lines` rows (themselves in their own `sortKey` order) — seeding [seed] first if the
   /// table holds no row at all, tombstone included.
-  Future<List<OcptBudgetPoste>> loadPostes({
+  Future<List<OcptBudgetAccount>> loadAccounts({
     required OcptProjectDatabase database,
-    required List<OcptBudgetPosteSeed> seed,
+    required List<OcptBudgetAccountSeed> seed,
   }) async {
     await _seedIfEmpty(database: database, seed: seed);
 
-    final posteRows = await _livePosteRows(database);
+    final accountRows = await _liveAccountRows(database);
     final lineRows = await _liveLineRows(database);
 
-    final linesByPosteId = <String, List<OcptBudgetLine>>{};
+    final linesByAccountId = <String, List<OcptBudgetLine>>{};
     for (final row in lineRows) {
-      linesByPosteId.putIfAbsent(row.posteId, () => []).add(OcptBudgetLine.fromRow(row));
+      linesByAccountId.putIfAbsent(row.accountId, () => []).add(OcptBudgetLine.fromRow(row));
     }
 
     return [
-      for (final row in posteRows)
-        OcptBudgetPoste.fromRow(row: row, lines: linesByPosteId[row.id] ?? const []),
+      for (final row in accountRows)
+        OcptBudgetAccount.fromRow(row: row, lines: linesByAccountId[row.id] ?? const []),
     ];
   }
 
-  /// Create a new poste named [label], appended at the end of the catalogue, and return its
+  /// Create a new account named [label], appended at the end of the catalogue, and return its
   /// freshly generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> createPoste({
+  Future<String?> createAccount({
     required OcptProjectDatabase database,
     required String label,
   }) async {
-    if (database.refusesUserWrite("createPoste")) {
+    if (database.refusesUserWrite("createAccount")) {
       return null;
     }
 
-    final existing = await _livePosteRows(database);
+    final existing = await _liveAccountRows(database);
     final id = const Uuid().v4();
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptBudgetPostesTable,
+        table: database.ocptBudgetAccountsTable,
         rowId: id,
         current: null,
-        next: OcptBudgetPosteRow(
+        next: OcptBudgetAccountRow(
           id: id,
           sortKey: ocptFractionalKeyBetween(
             before: existing.isEmpty ? null : existing.last.sortKey,
@@ -99,24 +99,24 @@ class OcptBudgetQuoteService extends AbsOcptService {
     return id;
   }
 
-  /// Update the fields of poste [posteId] in [database] that are passed as something other than
+  /// Update the fields of account [accountId] in [database] that are passed as something other than
   /// [Value.absent]. Never touches `sortKey` or `isDeleted`: those only change through
-  /// [reorderPoste] and [deletePoste].
+  /// [reorderAccount] and [deleteAccount].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updatePoste({
+  Future<void> updateAccount({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     Value<String> code = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<String?> simpleLabel = const Value.absent(),
     Value<int?> estimateToCompleteCents = const Value.absent(),
   }) async {
-    if (database.refusesUserWrite("updatePoste")) {
+    if (database.refusesUserWrite("updateAccount")) {
       return;
     }
 
-    final companion = OcptBudgetPostesTableCompanion(
+    final companion = OcptBudgetAccountsTableCompanion(
       code: code,
       label: label,
       simpleLabel: simpleLabel,
@@ -124,7 +124,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     );
 
     await database.transaction(() async {
-      final current = await _livePosteRowOrNull(database: database, posteId: posteId);
+      final current = await _liveAccountRowOrNull(database: database, accountId: accountId);
       if (current == null) {
         return;
       }
@@ -132,8 +132,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptBudgetPostesTable,
-        rowId: posteId,
+        table: database.ocptBudgetAccountsTable,
+        rowId: accountId,
         current: current,
         next: current.copyWithCompanion(companion),
         stamps: stamps,
@@ -142,27 +142,27 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Move poste [posteId] to [newPosition] (0-based) within the catalogue's flat `sortKey` order,
-  /// by giving it a `sortKey` sitting between the two postes it lands between. Writes **exactly one
-  /// row**.
+  /// Move account [accountId] to [newPosition] (0-based) within the catalogue's flat `sortKey`
+  /// order, by giving it a `sortKey` sitting between the two accounts it lands between. Writes
+  /// **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderPoste({
+  Future<void> reorderAccount({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     required int newPosition,
   }) async {
-    if (database.refusesUserWrite("reorderPoste")) {
+    if (database.refusesUserWrite("reorderAccount")) {
       return;
     }
 
     await database.transaction(() async {
-      final current = await _livePosteRowOrNull(database: database, posteId: posteId);
+      final current = await _liveAccountRowOrNull(database: database, accountId: accountId);
       if (current == null) {
         return;
       }
 
-      final others = (await _livePosteRows(database))..removeWhere((row) => row.id == posteId);
+      final others = (await _liveAccountRows(database))..removeWhere((row) => row.id == accountId);
 
       final clampedPosition = newPosition < 0
           ? 0
@@ -176,8 +176,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
       await OcptRowStampService.writeAndStamp(
         database: database,
-        table: database.ocptBudgetPostesTable,
-        rowId: posteId,
+        table: database.ocptBudgetAccountsTable,
+        rowId: accountId,
         current: current,
         next: current.copyWith(sortKey: sortKey),
         stamps: stamps,
@@ -186,21 +186,24 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Tombstone poste [posteId] in [database] and every live `budget_lines` row it holds, in the
+  /// Tombstone account [accountId] in [database] and every live `budget_lines` row it holds, in the
   /// same transaction.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePoste({required OcptProjectDatabase database, required String posteId}) async {
-    if (database.refusesUserWrite("deletePoste")) {
+  Future<void> deleteAccount({
+    required OcptProjectDatabase database,
+    required String accountId,
+  }) async {
+    if (database.refusesUserWrite("deleteAccount")) {
       return;
     }
 
     await database.transaction(() async {
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final lineRows = await _liveLineRowsOfPoste(database, posteId: posteId);
+      final lineRows = await _liveLineRowsOfAccount(database, accountId: accountId);
       for (final row in lineRows) {
         await OcptRowStampService.writeAndStamp(
           database: database,
@@ -212,14 +215,14 @@ class OcptBudgetQuoteService extends AbsOcptService {
         );
       }
 
-      final poste = await _livePosteRowOrNull(database: database, posteId: posteId);
-      if (poste != null) {
+      final account = await _liveAccountRowOrNull(database: database, accountId: accountId);
+      if (account != null) {
         await OcptRowStampService.writeAndStamp(
           database: database,
-          table: database.ocptBudgetPostesTable,
-          rowId: posteId,
-          current: poste,
-          next: poste.copyWith(isDeleted: true),
+          table: database.ocptBudgetAccountsTable,
+          rowId: accountId,
+          current: account,
+          next: account.copyWith(isDeleted: true),
           stamps: stamps,
         );
       }
@@ -228,8 +231,8 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Create a new line named [label] inside poste [posteId], appended at the end of that poste's
-  /// own lines, and return its freshly generated id.
+  /// Create a new line named [label] inside account [accountId], appended at the end of that
+  /// account's own lines, and return its freshly generated id.
   ///
   /// [provisionKey], [provisionDigest] and [quantityMilli] are what the logistics view's own
   /// `Provision into the quote` gesture fills in, through [applyProvision] — see
@@ -264,7 +267,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<String?> createLine({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     required String label,
     Value<String?> elementId = const Value.absent(),
     Value<int> quantityMilli = const Value.absent(),
@@ -280,7 +283,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
       return null;
     }
 
-    final existing = await _liveLineRowsOfPoste(database, posteId: posteId);
+    final existing = await _liveLineRowsOfAccount(database, accountId: accountId);
     final id = const Uuid().v4();
 
     await database.transaction(() async {
@@ -296,7 +299,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
             before: existing.isEmpty ? null : existing.last.sortKey,
           ),
           isDeleted: false,
-          posteId: posteId,
+          accountId: accountId,
           label: label,
           quantityMilli: quantityMilli.present ? quantityMilli.value : 1000,
           unit: unit.present ? unit.value : '',
@@ -318,7 +321,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   }
 
   /// Update the fields of line [lineId] in [database] that are passed as something other than
-  /// [Value.absent]. Never touches `sortKey`, `isDeleted` or `posteId`: those only change through
+  /// [Value.absent]. Never touches `sortKey`, `isDeleted` or `accountId`: those only change through
   /// [reorderLine] and [deleteLine] — this table carries no "move to another poste" of its own,
   /// which would need its own `sortKey` recomputed against a different group entirely.
   ///
@@ -379,7 +382,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Move line [lineId] to [newPosition] (0-based) within its own poste's `sortKey` order, by
+  /// Move line [lineId] to [newPosition] (0-based) within its own account's `sortKey` order, by
   /// giving it a `sortKey` sitting between the two lines it lands between. Writes **exactly one
   /// row**.
   ///
@@ -398,7 +401,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
         database.ocptBudgetLinesTable,
       )..where((table) => table.id.equals(lineId))).getSingle();
 
-      final others = (await _liveLineRowsOfPoste(database, posteId: line.posteId))
+      final others = (await _liveLineRowsOfAccount(database, accountId: line.accountId))
         ..removeWhere((row) => row.id == lineId);
 
       final clampedPosition = newPosition < 0
@@ -452,7 +455,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Write [entries] onto poste [posteId], one quote line per nature — the logistics view's own
+  /// Write [entries] onto account [accountId], one quote line per nature — the logistics view's own
   /// `Provision into the quote` gesture.
   ///
   /// **Takes a plan rather than computing one**: `ocptBudgetProvisionPlanOf` decides what would
@@ -474,7 +477,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> applyProvision({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
     required List<OcptBudgetProvisionEntry> entries,
   }) async {
     if (database.refusesUserWrite("applyProvision")) {
@@ -487,7 +490,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
           case OcptBudgetProvisionOutcome.created:
             await createLine(
               database: database,
-              posteId: posteId,
+              accountId: accountId,
               label: entry.label,
               quantityMilli: Value(entry.quantityMilli),
               unitAmountCents: Value(entry.unitAmountCents),
@@ -512,23 +515,23 @@ class OcptBudgetQuoteService extends AbsOcptService {
   }
 
   /// Seed [database]'s `budget_postes` table with [seed], **once**: only when the table holds
-  /// **no row at all, tombstones included**. A user who deleted every poste has not asked for them
-  /// back, and a table already holding rows — seeded earlier, or built up by hand on a project that
-  /// predates this seed list — is left exactly as it is.
+  /// **no row at all, tombstones included**. A user who deleted every account has not asked for
+  /// them back, and a table already holding rows — seeded earlier, or built up by hand on a project
+  /// that predates this seed list — is left exactly as it is.
   ///
   /// Guarded like every other write: a preview connection never gains a seeded row it would then
   /// show as if the user had asked for it.
   Future<void> _seedIfEmpty({
     required OcptProjectDatabase database,
-    required List<OcptBudgetPosteSeed> seed,
+    required List<OcptBudgetAccountSeed> seed,
   }) async {
-    if (database.refusesUserWrite("seedBudgetPostes") || seed.isEmpty) {
+    if (database.refusesUserWrite("seedBudgetAccounts") || seed.isEmpty) {
       return;
     }
 
     await database.transaction(() async {
       final anyRow = await (database.select(
-        database.ocptBudgetPostesTable,
+        database.ocptBudgetAccountsTable,
       )..limit(1)).getSingleOrNull();
       if (anyRow != null) {
         return;
@@ -538,19 +541,19 @@ class OcptBudgetQuoteService extends AbsOcptService {
 
       final keys = ocptFractionalKeySequence(seed.length);
       for (var i = 0; i < seed.length; i++) {
-        final posteSeed = seed[i];
+        final accountSeed = seed[i];
         await OcptRowStampService.writeAndStamp(
           database: database,
-          table: database.ocptBudgetPostesTable,
-          rowId: posteSeed.id,
+          table: database.ocptBudgetAccountsTable,
+          rowId: accountSeed.id,
           current: null,
-          next: OcptBudgetPosteRow(
-            id: posteSeed.id,
+          next: OcptBudgetAccountRow(
+            id: accountSeed.id,
             sortKey: keys[i],
             isDeleted: false,
-            code: posteSeed.code,
-            label: posteSeed.label,
-            simpleLabel: posteSeed.simpleLabel,
+            code: accountSeed.code,
+            label: accountSeed.label,
+            simpleLabel: accountSeed.simpleLabel,
           ),
           stamps: stamps,
         );
@@ -560,20 +563,20 @@ class OcptBudgetQuoteService extends AbsOcptService {
     });
   }
 
-  /// Get every live poste row of [database], ordered by `sortKey`.
-  Future<List<OcptBudgetPosteRow>> _livePosteRows(OcptProjectDatabase database) =>
-      (database.select(database.ocptBudgetPostesTable)
+  /// Get every live account row of [database], ordered by `sortKey`.
+  Future<List<OcptBudgetAccountRow>> _liveAccountRows(OcptProjectDatabase database) =>
+      (database.select(database.ocptBudgetAccountsTable)
             ..where((table) => table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Get the live poste row [posteId], or null if it doesn't exist or has been tombstoned.
-  Future<OcptBudgetPosteRow?> _livePosteRowOrNull({
+  /// Get the live account row [accountId], or null if it doesn't exist or has been tombstoned.
+  Future<OcptBudgetAccountRow?> _liveAccountRowOrNull({
     required OcptProjectDatabase database,
-    required String posteId,
+    required String accountId,
   }) => (database.select(
-    database.ocptBudgetPostesTable,
-  )..where((table) => table.id.equals(posteId) & table.isDeleted.not())).getSingleOrNull();
+    database.ocptBudgetAccountsTable,
+  )..where((table) => table.id.equals(accountId) & table.isDeleted.not())).getSingleOrNull();
 
   /// Get every live line row of [database], ordered by `sortKey`.
   Future<List<OcptBudgetLineRow>> _liveLineRows(OcptProjectDatabase database) =>
@@ -582,13 +585,13 @@ class OcptBudgetQuoteService extends AbsOcptService {
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 
-  /// Get every live line row of poste [posteId], ordered by `sortKey`.
-  Future<List<OcptBudgetLineRow>> _liveLineRowsOfPoste(
+  /// Get every live line row of account [accountId], ordered by `sortKey`.
+  Future<List<OcptBudgetLineRow>> _liveLineRowsOfAccount(
     OcptProjectDatabase database, {
-    required String posteId,
+    required String accountId,
   }) =>
       (database.select(database.ocptBudgetLinesTable)
-            ..where((table) => table.posteId.equals(posteId) & table.isDeleted.not())
+            ..where((table) => table.accountId.equals(accountId) & table.isDeleted.not())
             ..orderBy([(table) => OrderingTerm.asc(table.sortKey)]))
           .get();
 

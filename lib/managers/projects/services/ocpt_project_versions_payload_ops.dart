@@ -111,7 +111,7 @@ abstract final class OcptProjectVersionsPayloadOps {
           .get(),
       shootingDayEvents: await database.select(database.ocptShootingDayEventsTable).get(),
       projectDictionaryWords: await database.select(database.ocptProjectDictionaryWordsTable).get(),
-      budgetPostes: await database.select(database.ocptBudgetPostesTable).get(),
+      budgetAccounts: await database.select(database.ocptBudgetAccountsTable).get(),
       budgetLines: await database.select(database.ocptBudgetLinesTable).get(),
       budgetEntries: await database.select(database.ocptBudgetEntriesTable).get(),
       budgetCommitments: await database.select(database.ocptBudgetCommitmentsTable).get(),
@@ -280,13 +280,13 @@ abstract final class OcptProjectVersionsPayloadOps {
       // A dictionary word names no person — only the word itself and its tombstone — so there is
       // nothing here for this scrub to reach either.
       projectDictionaryWords: payload.projectDictionaryWords,
-      // Neither a budget poste nor a budget line names a person: a line points at a poste and,
+      // Neither a budget account nor a budget line names a person: a line points at an account and,
       // optionally, an element, never at the address book. Both travel through unchanged.
-      budgetPostes: payload.budgetPostes,
+      budgetAccounts: payload.budgetAccounts,
       budgetLines: payload.budgetLines,
-      // Nor does a journal entry or a commitment: an entry points at a poste and, at most, a
-      // resource, and a commitment at a poste and, at most, at the entry that settled it — never at
-      // the address book. Both travel through unchanged too.
+      // Nor does a journal entry or a commitment: an entry points at an account and, at most, a
+      // resource, and a commitment at an account and, at most, at the entry that settled it — never
+      // at the address book. Both travel through unchanged too.
       budgetEntries: payload.budgetEntries,
       budgetCommitments: payload.budgetCommitments,
       // A mileage rate names no person at all: a label and a rate. A financing resource may,

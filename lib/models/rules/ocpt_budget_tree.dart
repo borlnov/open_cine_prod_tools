@@ -11,31 +11,31 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 /// from
 /// `ocpt_budget_totals.dart` because it reads a **line's own commitments**, a grouping
 /// `ocpt_budget_journal.dart`/`ocpt_budget_projection.dart` never need: those two files each read
-/// every commitment or every entry of the whole project, grouped by poste, and a line is a poste's
-/// own subdivision their own maps carry no key for at all. Everything else the expenses tree's own
-/// line row shows — `Devis`, `Reste`, `Coût final`, `Écart` — is answered in full by a function
-/// that already exists (`ocptBudgetTotalOf` over the single line, `ocptBudgetRemainingCents`,
-/// `ocptBudgetEstimateToCompleteCents`, `ocptBudgetFinalCostCents`, `ocptBudgetVarianceCents`), so
-/// this file adds nothing beside [ocptBudgetLineCommittedTotalOf] and its own sibling
-/// [ocptBudgetLinePaidTotalOf].
+/// every commitment or every entry of the whole project, grouped by account, and a line is an
+/// account's own subdivision their own maps carry no key for at all. Everything else the expenses
+/// tree's own line row shows — `Devis`, `Reste`, `Coût final`, `Écart` — is answered in full by a
+/// function that already exists (`ocptBudgetTotalOf` over the single line,
+/// `ocptBudgetRemainingCents`, `ocptBudgetEstimateToCompleteCents`, `ocptBudgetFinalCostCents`,
+/// `ocptBudgetVarianceCents`), so this file adds nothing beside [ocptBudgetLineCommittedTotalOf]
+/// and its own sibling [ocptBudgetLinePaidTotalOf].
 ///
 /// The tax-inclusive total of every **unsettled** commitment in [lineCommitments]' own
 /// **outstanding** amount, honouring the "null, never zero" coverage rule
-/// [ocptBudgetCommittedCentsByPosteId] already keeps for a poste — a settled commitment is excluded
-/// outright rather than merely counted as zero, and a part-paid one contributes only what it still
-/// owes, never its own full amount: the money already paid against it has left the account and is
-/// [ocptBudgetLinePaidTotalOf]'s own figure now, so summing any of it here too, as still committed,
-/// would show that same money twice. Settlement, and the outstanding figure itself, are both read
-/// off [entries], through [ocptBudgetCommitmentIsSettledOf] and
+/// [ocptBudgetCommittedCentsByAccountId] already keeps for an account — a settled commitment is
+/// excluded outright rather than merely counted as zero, and a part-paid one contributes only what
+/// it still owes, never its own full amount: the money already paid against it has left the account
+/// and is [ocptBudgetLinePaidTotalOf]'s own figure now, so summing any of it here too, as still
+/// committed, would show that same money twice. Settlement, and the outstanding figure itself, are
+/// both read off [entries], through [ocptBudgetCommitmentIsSettledOf] and
 /// [ocptBudgetCommitmentOutstandingCentsOf] — the very same readings
-/// `ocptBudgetCommittedCentsByPosteId` sums for a poste, so a line's own `Engagé` and its poste's
-/// own can never disagree about what one shared commitment still owes.
+/// `ocptBudgetCommittedCentsByAccountId` sums for an account, so a line's own `Engagé` and its
+/// account's own can never disagree about what one shared commitment still owes.
 ///
 /// [lineCommitments] is **every** commitment naming the line, settled or not — this function does
-/// its own split, exactly the way `ocptBudgetCommittedCentsByPosteId` takes every commitment
-/// naming a poste and does its own: a caller narrows `OcptBudgetSnapshot.commitments` down to one
-/// line's own (`commitment.lineId == line.id`) and hands the whole list in, rather than filtering
-/// twice over.
+/// its own split, exactly the way `ocptBudgetCommittedCentsByAccountId` takes every commitment
+/// naming an account and does its own: a caller narrows `OcptBudgetSnapshot.commitments` down to
+/// one line's own (`commitment.lineId == line.id`) and hands the whole list in, rather than
+/// filtering twice over.
 OcptBudgetCoveredTotal ocptBudgetLineCommittedTotalOf(
   List<OcptBudgetCommitment> lineCommitments, {
   required List<OcptBudgetEntry> entries,

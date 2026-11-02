@@ -75,7 +75,7 @@ void main() {
   );
 
   test("a project that has defrayed nobody reads empty, nothing seeded", () async {
-    // Unlike the CNC postes, and for the reason the mileage scales are not seeded either: what a
+    // Unlike the CNC accounts, and for the reason the mileage scales are not seeded either: what a
     // production pays back is entirely its own business.
     expect(await service.loadAllowances(database: database), isEmpty);
   });

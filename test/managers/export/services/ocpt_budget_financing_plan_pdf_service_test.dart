@@ -94,7 +94,7 @@ OcptBudgetEntry _buildCreditEntry({
   id: id,
   date: DateTime(2026),
   label: "",
-  posteId: null,
+  accountId: null,
   debitCents: 0,
   creditCents: creditCents,
   isTaxInclusive: true,
@@ -116,11 +116,11 @@ void main() {
   const pageSetup = OcptPageSetup.standard();
 
   OcptBudgetSnapshot buildSnapshot({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetEntry> entries = const [],
   }) => OcptBudgetSnapshot.build(
-    postes: postes,
+    accounts: accounts,
     entries: entries,
     commitments: const [],
     resources: resources,
@@ -205,8 +205,8 @@ void main() {
         resources: [_buildResource(id: "res-1", groupKind: OcptBudgetResourceGroupKind.cash)],
       );
       final covered = buildSnapshot(
-        postes: [
-          const OcptBudgetPoste(
+        accounts: [
+          const OcptBudgetAccount(
             id: "poste-1",
             code: "1",
             label: "Rights",
@@ -216,7 +216,7 @@ void main() {
             lines: [
               OcptBudgetLine(
                 id: "line-1",
-                posteId: "poste-1",
+                accountId: "poste-1",
                 label: "Line",
                 quantityMilli: 1000,
                 unit: "day",

@@ -10,7 +10,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_breakdown_row.dart';
 
 /// Step 3 of `addQuoteLinesFromBreakdown`: the breakdown elements no quote line prices yet, a
-/// search field, a `File all under` poste for every row and the per-row poste and quantity.
+/// search field, a `File all under` account for every row and the per-row account and quantity.
 class OcptBudgetNewBreakdownStep extends StatelessWidget {
   /// Every live breakdown element no live quote line prices yet.
   final List<OcptElement> unpricedElements;
@@ -21,23 +21,23 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
   /// The ids of the checked elements.
   final Set<String> selectedIds;
 
-  /// The poste every row inherits until it is given one of its own, or null.
-  final String? bulkPosteId;
+  /// The account every row inherits until it is given one of its own, or null.
+  final String? bulkAccountId;
 
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Whether the mode's header currently reads simplified.
   final bool isSimplified;
 
-  /// The poste a row will be filed under: its own override, else the bulk default, else null.
-  final String? Function(String elementId) posteIdOf;
+  /// The account a row will be filed under: its own override, else the bulk default, else null.
+  final String? Function(String elementId) accountIdOf;
 
   /// The quantity controller of an element, created by the wizard's state on first request.
   final TextEditingController Function(OcptElement element) quantityControllerOf;
 
-  /// Called with the `File all under` poste picked.
-  final ValueChanged<String?> onBulkPosteChanged;
+  /// Called with the `File all under` account picked.
+  final ValueChanged<String?> onBulkAccountChanged;
 
   /// Called with the search field's text as it changes.
   final ValueChanged<String> onQueryChanged;
@@ -45,8 +45,8 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
   /// Called when an element's checkbox changes, with the element and its new checked state.
   final void Function(OcptElement element, {required bool isChecked}) onElementCheckedChanged;
 
-  /// Called when a row is given a poste of its own, with the element id and the poste.
-  final void Function(String elementId, String? posteId) onElementPosteChanged;
+  /// Called when a row is given an account of its own, with the element id and the account.
+  final void Function(String elementId, String? accountId) onElementAccountChanged;
 
   /// Called when a row's quantity text changes, with the element id and the text.
   final void Function(String elementId, String value) onQuantityChanged;
@@ -57,15 +57,15 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
     required this.unpricedElements,
     required this.query,
     required this.selectedIds,
-    required this.bulkPosteId,
-    required this.postes,
+    required this.bulkAccountId,
+    required this.accounts,
     required this.isSimplified,
-    required this.posteIdOf,
+    required this.accountIdOf,
     required this.quantityControllerOf,
-    required this.onBulkPosteChanged,
+    required this.onBulkAccountChanged,
     required this.onQueryChanged,
     required this.onElementCheckedChanged,
-    required this.onElementPosteChanged,
+    required this.onElementAccountChanged,
     required this.onQuantityChanged,
   });
 
@@ -89,18 +89,18 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
         Row(
           children: [
             Text(
-              tr.budgetNewBreakdownSetAllPosteLabel,
+              tr.budgetNewBreakdownSetAllAccountLabel,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OcptBudgetNewBreakdownPosteDropdown(
-                dropdownKey: const Key("ocptBudgetNewBreakdownSetAllPoste"),
-                value: bulkPosteId,
+              child: OcptBudgetNewBreakdownAccountDropdown(
+                dropdownKey: const Key("ocptBudgetNewBreakdownSetAllAccount"),
+                value: bulkAccountId,
                 enabled: true,
-                postes: postes,
+                accounts: accounts,
                 isSimplified: isSimplified,
-                onChanged: onBulkPosteChanged,
+                onChanged: onBulkAccountChanged,
               ),
             ),
           ],
@@ -130,12 +130,12 @@ class OcptBudgetNewBreakdownStep extends StatelessWidget {
               element: element,
               isSelected: selectedIds.contains(element.id),
               quantityController: quantityControllerOf(element),
-              posteId: posteIdOf(element.id),
-              postes: postes,
+              accountId: accountIdOf(element.id),
+              accounts: accounts,
               isSimplified: isSimplified,
               onCheckedChanged: (checked) =>
                   onElementCheckedChanged(element, isChecked: checked ?? false),
-              onPosteChanged: (posteId) => onElementPosteChanged(element.id, posteId),
+              onAccountChanged: (accountId) => onElementAccountChanged(element.id, accountId),
               onQuantityChanged: (value) => onQuantityChanged(element.id, value),
             ),
       ],

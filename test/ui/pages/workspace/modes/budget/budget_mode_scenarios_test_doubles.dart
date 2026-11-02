@@ -373,7 +373,7 @@ class _ScenarioBudgetJournalService extends OcptBudgetJournalService {
     required OcptProjectDatabase database,
     required DateTime date,
     required String label,
-    String? posteId,
+    String? accountId,
     String? resourceId,
     String? revenueId,
     String? shareId,
@@ -392,7 +392,7 @@ class _ScenarioBudgetJournalService extends OcptBudgetJournalService {
       database: database,
       date: date,
       label: label,
-      posteId: posteId,
+      accountId: accountId,
       resourceId: resourceId,
       revenueId: revenueId,
       shareId: shareId,
@@ -502,13 +502,13 @@ class BudgetScenarioHarness {
     await tempDir.delete(recursive: true);
   }
 
-  /// Reads the live postes, with their lines, back from the database.
-  Future<List<OcptBudgetPoste>> readPostes() =>
-      projectsManager.budgetQuoteService.loadPostes(database: database, seed: const []);
+  /// Reads the live accounts, with their lines, back from the database.
+  Future<List<OcptBudgetAccount>> readAccounts() =>
+      projectsManager.budgetQuoteService.loadAccounts(database: database, seed: const []);
 
-  /// Reads the poste called [label] back from the database.
-  Future<OcptBudgetPoste> readPoste(String label) async =>
-      (await readPostes()).firstWhere((poste) => poste.label == label);
+  /// Reads the account called [label] back from the database.
+  Future<OcptBudgetAccount> readAccount(String label) async =>
+      (await readAccounts()).firstWhere((account) => account.label == label);
 
   /// Reads the live journal entries back from the database.
   Future<List<OcptBudgetEntry>> readEntries() =>
@@ -534,21 +534,21 @@ class BudgetScenarioHarness {
   Future<List<OcptBudgetAllowance>> readAllowances() =>
       projectsManager.budgetAllowancesService.loadAllowances(database: database);
 
-  /// Creates a poste called [label], returning the id.
-  Future<String> seedPoste(String label) async {
-    final id = await projectsManager.budgetQuoteService.createPoste(
+  /// Creates an account called [label], returning the id.
+  Future<String> seedAccount(String label) async {
+    final id = await projectsManager.budgetQuoteService.createAccount(
       database: database,
       label: label,
     );
     return id!;
   }
 
-  /// Creates a line called [label] in poste [posteId], quoted [unitAmountCents] for one unit,
+  /// Creates a line called [label] in account [accountId], quoted [unitAmountCents] for one unit,
   /// returning the id.
-  Future<String> seedLine(String posteId, String label, {int unitAmountCents = 10000}) async {
+  Future<String> seedLine(String accountId, String label, {int unitAmountCents = 10000}) async {
     final id = await projectsManager.budgetQuoteService.createLine(
       database: database,
-      posteId: posteId,
+      accountId: accountId,
       label: label,
       quantityMilli: const Value(1000),
       unitAmountCents: Value(unitAmountCents),
@@ -556,16 +556,16 @@ class BudgetScenarioHarness {
     return id!;
   }
 
-  /// Creates a commitment called [label] against poste [posteId], returning the id.
+  /// Creates a commitment called [label] against account [accountId], returning the id.
   Future<String> seedCommitment(
-    String posteId,
+    String accountId,
     String label, {
     int amountCents = 5000,
     String? lineId,
   }) async {
     final id = await projectsManager.budgetJournalService.createCommitment(
       database: database,
-      posteId: posteId,
+      accountId: accountId,
       label: label,
       amountCents: amountCents,
       lineId: lineId,
@@ -577,14 +577,14 @@ class BudgetScenarioHarness {
   Future<String> seedDebit(
     String label,
     int debitCents, {
-    String? posteId,
+    String? accountId,
     String? commitmentId,
   }) async {
     final id = await projectsManager.budgetJournalService.createEntry(
       database: database,
       date: DateTime(2026),
       label: label,
-      posteId: posteId,
+      accountId: accountId,
       commitmentId: commitmentId,
       debitCents: debitCents,
     );

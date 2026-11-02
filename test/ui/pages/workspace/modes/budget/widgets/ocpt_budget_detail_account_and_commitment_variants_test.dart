@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'ocpt_budget_detail_test_doubles.dart';
 
-/// Run the tests of the budget detail panel poste and commitment variants.
+/// Run the tests of the budget detail panel account and commitment variants.
 void main() {
   testWidgets("shows the empty hint while nothing is selected", (tester) async {
     useTallSurface(tester);
@@ -31,7 +31,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      wrap(testDetail(selection: const OcptBudgetPosteSelection("gone"), postes: const [])),
+      wrap(testDetail(selection: const OcptBudgetAccountSelection("gone"), accounts: const [])),
     );
 
     expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
@@ -42,7 +42,7 @@ void main() {
       "shows the breadcrumb, the six figures, the remaining amount and the editable fields",
       (tester) async {
         await tester.pumpWidget(
-          wrap(testDetail(selection: const OcptBudgetPosteSelection("poste-1"))),
+          wrap(testDetail(selection: const OcptBudgetAccountSelection("poste-1"))),
         );
         final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
@@ -60,8 +60,8 @@ void main() {
         expect(find.text(tr.budgetCostTrackingColumnVariance.toUpperCase()), findsOneWidget);
         // The outstanding block's own label is not upper-cased.
         expect(find.text(tr.budgetInspectorFigureRemaining), findsOneWidget);
-        // No stepper draws for the poste variant any more — a poste is an aggregate, not a single
-        // debt working through a lifecycle, and the stepper's own dots would lie about it.
+        // No stepper draws for the account variant any more — an account is an aggregate, not a
+        // single debt working through a lifecycle, and the stepper's own dots would lie about it.
         expect(find.byIcon(Icons.circle), findsNothing);
         expect(find.byIcon(Icons.circle_outlined), findsNothing);
         // The label field's own editable value, and the simple-label field's own hint — both
@@ -73,7 +73,7 @@ void main() {
 
     testWidgets("draws a proportion bar in place of the stepper", (tester) async {
       await tester.pumpWidget(
-        wrap(testDetail(selection: const OcptBudgetPosteSelection("poste-1"))),
+        wrap(testDetail(selection: const OcptBudgetAccountSelection("poste-1"))),
       );
 
       // The bar's own track: a Container of the proportion bar's own height, stretched to fill the
@@ -94,10 +94,10 @@ void main() {
     ) async {
       useTallSurface(tester);
       await tester.pumpWidget(
-        wrap(testDetail(selection: const OcptBudgetPosteSelection("poste-1"))),
+        wrap(testDetail(selection: const OcptBudgetAccountSelection("poste-1"))),
       );
 
-      // The poste's own Add/From breakdown actions moved to the capture wizard: no primary, no
+      // The account's own Add/From breakdown actions moved to the capture wizard: no primary, no
       // secondary action is drawn on this variant any more.
       expect(find.byType(FilledButton), findsNothing);
       expect(find.byType(OutlinedButton), findsNothing);
@@ -105,7 +105,7 @@ void main() {
 
     testWidgets("a code shared with another live poste turns the code field red, keeping the "
         "typed value", (tester) async {
-      const otherPoste = OcptBudgetPoste(
+      const otherAccount = OcptBudgetAccount(
         id: "poste-2",
         code: "5",
         label: "Another poste",
@@ -117,25 +117,25 @@ void main() {
       await tester.pumpWidget(
         wrap(
           testDetail(
-            selection: const OcptBudgetPosteSelection("poste-1"),
-            postes: const [testPoste, otherPoste],
+            selection: const OcptBudgetAccountSelection("poste-1"),
+            accounts: const [testAccount, otherAccount],
           ),
         ),
       );
       final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-      expect(find.text(tr.budgetInspectorPosteCodeDuplicateError), findsOneWidget);
+      expect(find.text(tr.budgetInspectorAccountCodeDuplicateError), findsOneWidget);
       // The typed value is kept, never reverted or blanked.
       expect(find.widgetWithText(TextField, "5"), findsOneWidget);
     });
 
     testWidgets("no error while no other live poste shares the same code", (tester) async {
       await tester.pumpWidget(
-        wrap(testDetail(selection: const OcptBudgetPosteSelection("poste-1"))),
+        wrap(testDetail(selection: const OcptBudgetAccountSelection("poste-1"))),
       );
       final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-      expect(find.text(tr.budgetInspectorPosteCodeDuplicateError), findsNothing);
+      expect(find.text(tr.budgetInspectorAccountCodeDuplicateError), findsNothing);
     });
   });
 
@@ -267,7 +267,7 @@ void main() {
         id: "entry-later",
         date: DateTime(2026, 8, 20),
         label: "Balance",
-        posteId: "poste-1",
+        accountId: "poste-1",
         debitCents: 200,
         creditCents: 0,
         isTaxInclusive: true,
@@ -284,7 +284,7 @@ void main() {
         id: "entry-earlier",
         date: DateTime(2026, 8),
         label: "Deposit",
-        posteId: "poste-1",
+        accountId: "poste-1",
         debitCents: 800,
         creditCents: 0,
         isTaxInclusive: true,
@@ -347,7 +347,7 @@ void main() {
       (tester) async {
         const inKindLine = OcptBudgetLine(
           id: "line-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           label: "Camera loan",
           quantityMilli: 1000,
           unit: "u",
@@ -359,7 +359,7 @@ void main() {
           notes: "",
           sortKey: "a0",
         );
-        const inKindPoste = OcptBudgetPoste(
+        const inKindAccount = OcptBudgetAccount(
           id: "poste-1",
           code: "5",
           label: "Sets and costumes",
@@ -374,7 +374,7 @@ void main() {
           wrap(
             testDetail(
               selection: const OcptBudgetLineSelection("line-1"),
-              postes: const [inKindPoste],
+              accounts: const [inKindAccount],
               resources: [buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
               onLinePayDirectlyRequested: (_) {},
               onLineCommitRequested: (_) {},

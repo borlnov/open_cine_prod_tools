@@ -96,7 +96,7 @@ class OcptBudgetSharingShareRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        share.label.isEmpty ? tr.budgetPosteUnnamed : share.label,
+                        share.label.isEmpty ? tr.budgetAccountUnnamed : share.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall,
@@ -188,12 +188,12 @@ class OcptBudgetSharingShareRow extends StatelessWidget {
                           if (onMoveUpRequested != null)
                             PopupMenuItem<String>(
                               value: "up",
-                              child: Text(tr.budgetPosteMoveUpAction),
+                              child: Text(tr.budgetAccountMoveUpAction),
                             ),
                           if (onMoveDownRequested != null)
                             PopupMenuItem<String>(
                               value: "down",
-                              child: Text(tr.budgetPosteMoveDownAction),
+                              child: Text(tr.budgetAccountMoveDownAction),
                             ),
                           if (onDeletionRequested != null)
                             PopupMenuItem<String>(

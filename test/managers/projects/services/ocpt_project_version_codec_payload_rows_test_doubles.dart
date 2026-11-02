@@ -238,9 +238,9 @@ List<OcptProjectDictionaryWordRow> richProjectDictionaryWords() => const [
   OcptProjectDictionaryWordRow(id: "word-2", word: "Marc", isDeleted: true),
 ];
 
-/// The `budgetPostes` rows of the payload `buildRichPayload` builds.
-List<OcptBudgetPosteRow> richBudgetPostes() => const [
-  OcptBudgetPosteRow(
+/// The `budgetAccounts` rows of the payload `buildRichPayload` builds.
+List<OcptBudgetAccountRow> richBudgetAccounts() => const [
+  OcptBudgetAccountRow(
     id: "poste-1",
     sortKey: "V",
     isDeleted: false,
@@ -249,7 +249,7 @@ List<OcptBudgetPosteRow> richBudgetPostes() => const [
     simpleLabel: "Crew",
     estimateToCompleteCents: 42000,
   ),
-  OcptBudgetPosteRow(
+  OcptBudgetAccountRow(
     id: "poste-2",
     sortKey: "k",
     isDeleted: true,
@@ -264,7 +264,7 @@ List<OcptBudgetLineRow> richBudgetLines() => const [
     id: "line-1",
     sortKey: "V",
     isDeleted: false,
-    posteId: "poste-1",
+    accountId: "poste-1",
     label: "First assistant camera",
     quantityMilli: 1500,
     unit: "day",
@@ -278,7 +278,7 @@ List<OcptBudgetLineRow> richBudgetLines() => const [
     id: "line-2",
     sortKey: "k",
     isDeleted: true,
-    posteId: "poste-1",
+    accountId: "poste-1",
     label: "",
     quantityMilli: 1000,
     unit: "",
@@ -296,7 +296,7 @@ List<OcptBudgetEntryRow> richBudgetEntries() => [
     isDeleted: false,
     date: DateTime.utc(2026, 3, 10),
     label: "Location camion",
-    posteId: "poste-1",
+    accountId: "poste-1",
     debitCents: 15000,
     creditCents: 0,
     isTaxInclusive: true,
@@ -329,7 +329,7 @@ List<OcptBudgetCommitmentRow> richBudgetCommitments() => [
     isDeleted: false,
     dueDate: DateTime.utc(2026, 4, 15),
     label: "Assurance tournage",
-    posteId: "poste-1",
+    accountId: "poste-1",
     amountCents: 45000,
     isTaxInclusive: false,
     vatRateBasisPoints: 2000,
@@ -340,7 +340,7 @@ List<OcptBudgetCommitmentRow> richBudgetCommitments() => [
     sortKey: "k",
     isDeleted: true,
     label: "",
-    posteId: "poste-1",
+    accountId: "poste-1",
     amountCents: 0,
     isTaxInclusive: true,
     status: OcptBudgetCommitmentStatus.quoteAccepted,

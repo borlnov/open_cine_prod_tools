@@ -114,7 +114,7 @@ class OcptBudgetFinancingResourceRow extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
+                                resource.label.isEmpty ? tr.budgetAccountUnnamed : resource.label,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall,

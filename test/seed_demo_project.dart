@@ -276,7 +276,7 @@ void main() {
       seaId: seaId,
       shotsByScene: shotsByScene,
     );
-    final (:costumesLineId, :posteIdOf) = await seedQuote(
+    final (:costumesLineId, :accountIdOf) = await seedQuote(
       budgetQuoteService: budgetQuoteService,
       database: database,
     );
@@ -286,7 +286,7 @@ void main() {
       budgetSharingService: budgetSharingService,
       costumesLineId: costumesLineId,
       database: database,
-      posteIdOf: posteIdOf,
+      accountIdOf: accountIdOf,
     );
     await seedSharing(
       budgetJournalService: budgetJournalService,

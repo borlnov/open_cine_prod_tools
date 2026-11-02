@@ -18,13 +18,13 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 /// argues for.
 enum OcptBudgetView {
   /// The whole project's standing reading: the KPI tiles, the balance band, the standing alerts.
-  /// Opens on nothing of its own — a poste row here selects the poste and switches to [expenses],
-  /// which is where the detail panel then opens.
+  /// Opens on nothing of its own — an account row here selects the account and switches to
+  /// [expenses], which is where the detail panel then opens.
   dashboard,
 
-  /// The quote itself, poste by poste: the working surface for creating, renaming and reordering
-  /// postes and lines, reading what each poste has consumed and picking the poste every other
-  /// view is narrowed to.
+  /// The quote itself, account by account: the working surface for creating, renaming and
+  /// reordering accounts and lines, reading what each account has consumed and picking the account
+  /// every other view is narrowed to.
   expenses,
 
   /// The financing plan: every live `budget_resources` row, grouped by
@@ -37,15 +37,16 @@ enum OcptBudgetView {
   tools,
 }
 
-/// Tell whether [view] can honour the mode's own poste filter (`OcptBudgetState.filterPosteId`).
+/// Tell whether [view] can honour the mode's own account filter
+/// (`OcptBudgetState.filterAccountId`).
 ///
-/// **True for [OcptBudgetView.expenses] alone.** It is the only surface left that draws a
-/// poste-keyed row — the tools drawer's cash-flow page no longer honours the filter (a statement
+/// **True for [OcptBudgetView.expenses] alone.** It is the only surface left that draws an
+/// account-keyed row — the tools drawer's cash-flow page no longer honours the filter (a statement
 /// reads across the whole account, not one category of it) and the resources plan and the tools
-/// drawer's other two pages read no poste at all. A filter silently ignored elsewhere would be
+/// drawer's other two pages read no account at all. A filter silently ignored elsewhere would be
 /// worse than one that is visibly out of scope, since a reader would take an unfiltered view for
 /// a filtered one.
-bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
+bool ocptBudgetViewHonoursAccountFilter(OcptBudgetView view) => switch (view) {
   OcptBudgetView.expenses => true,
   OcptBudgetView.dashboard || OcptBudgetView.resources || OcptBudgetView.tools => false,
 };
@@ -56,12 +57,12 @@ bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
 /// **False for [OcptBudgetView.dashboard] and `tools › regie` alone.** The detail panel reads
 /// `OcptBudgetState.selection` directly, and [OcptBudgetView.expenses], [OcptBudgetView.resources]
 /// and the tools drawer's own `cashFlow`/`sharing` pages each select something of their own: the
-/// quote a poste, a line, a commitment or an entry, the resources plan a resource or a taking, cash
-/// flow an entry, sharing a revenue or a share. The dashboard's own over-quote alert row is a *link
-/// to where the poste is worked on*, not a selection of its own: it selects the poste **and**
-/// switches to [OcptBudgetView.expenses] in the same gesture, which is where the detail panel then
-/// opens. Logistics selects nothing at all — it is not a stage of anything, and reads no row that
-/// the detail panel could ever open on.
+/// quote an account, a line, a commitment or an entry, the resources plan a resource or a taking,
+/// cash flow an entry, sharing a revenue or a share. The dashboard's own over-quote alert row is a
+/// *link to where the account is worked on*, not a selection of its own: it selects the account
+/// **and** switches to [OcptBudgetView.expenses] in the same gesture, which is where the detail
+/// panel then opens. Logistics selects nothing at all — it is not a stage of anything, and reads no
+/// row that the detail panel could ever open on.
 bool ocptBudgetViewHasInspector(OcptBudgetView view, OcptBudgetToolsView toolsView) =>
     switch (view) {
       OcptBudgetView.expenses || OcptBudgetView.resources => true,

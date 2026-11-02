@@ -30,7 +30,7 @@ OcptBudgetEntry _buildEntry({
   id: id,
   date: date ?? DateTime(2026, 3),
   label: label,
-  posteId: null,
+  accountId: null,
   debitCents: debitCents,
   creditCents: 0,
   isTaxInclusive: true,
@@ -44,8 +44,8 @@ OcptBudgetEntry _buildEntry({
   personId: personId,
 );
 
-/// A minimal poste holding no line, offered by the provisioning band's own picker.
-OcptBudgetPoste _buildPoste({required String id}) => OcptBudgetPoste(
+/// A minimal account holding no line, offered by the provisioning band's own picker.
+OcptBudgetAccount _buildAccount({required String id}) => OcptBudgetAccount(
   id: id,
   code: "6",
   label: "Régie",
@@ -65,8 +65,8 @@ void main() {
     List<OcptBudgetEntry> entries = const [],
     Map<String, OcptBudgetCoveredTotal> reimbursedByPersonId = const {},
     int? defaultVatRateBasisPoints,
-    List<OcptBudgetPoste> postes = const [],
-    String? provisionPosteId,
+    List<OcptBudgetAccount> accounts = const [],
+    String? provisionAccountId,
     int provisionedTotalCents = 0,
     Map<String, String> decorNameByDayId = const {},
     int? mealPriceCents,
@@ -85,7 +85,7 @@ void main() {
     ValueChanged<String>? onAllowanceEditRequested,
     ValueChanged<String>? onAllowanceDeletionRequested,
     ValueChanged<String>? onPersonReimburseRequested,
-    ValueChanged<String>? onProvisionPosteSelected,
+    ValueChanged<String>? onProvisionAccountSelected,
     VoidCallback? onProvisionRequested,
     String? provisionNote,
     Size size = const Size(1400, 700),
@@ -111,8 +111,8 @@ void main() {
           entries: entries,
           reimbursedByPersonId: reimbursedByPersonId,
           defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-          postes: postes,
-          provisionPosteId: provisionPosteId,
+          accounts: accounts,
+          provisionAccountId: provisionAccountId,
           provisionedTotalCents: provisionedTotalCents,
           roles: roles,
           people: people,
@@ -125,7 +125,7 @@ void main() {
           onAllowanceEditRequested: onAllowanceEditRequested ?? (_) {},
           onAllowanceDeletionRequested: onAllowanceDeletionRequested ?? (_) {},
           onPersonReimburseRequested: onPersonReimburseRequested ?? (_) {},
-          onProvisionPosteSelected: onProvisionPosteSelected ?? (_) {},
+          onProvisionAccountSelected: onProvisionAccountSelected ?? (_) {},
           onProvisionRequested: onProvisionRequested ?? () {},
           provisionNote: provisionNote,
           onScheduleOpenRequested: onScheduleOpenRequested ?? () {},
@@ -340,8 +340,8 @@ void main() {
       tester,
       days: days,
       allowances: [buildAllowance(id: "allowance-1", quantityMilli: 168000)],
-      postes: [_buildPoste(id: "poste-1")],
-      provisionPosteId: "poste-1",
+      accounts: [_buildAccount(id: "poste-1")],
+      provisionAccountId: "poste-1",
       provisionedTotalCents: 3000,
     );
 
@@ -370,8 +370,8 @@ void main() {
     await pumpView(
       tester,
       days: days,
-      postes: [_buildPoste(id: "poste-1")],
-      provisionPosteId: "poste-1",
+      accounts: [_buildAccount(id: "poste-1")],
+      provisionAccountId: "poste-1",
       provisionNote: "Nothing to provision.",
     );
 
@@ -394,7 +394,7 @@ void main() {
     await pumpView(tester, days: days);
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetLogistics)));
-    expect(find.text(tr.budgetLogisticsProvisionNoPosteHint), findsOneWidget);
+    expect(find.text(tr.budgetLogisticsProvisionNoAccountHint), findsOneWidget);
     expect(find.text(tr.budgetLogisticsProvisionAction), findsNothing);
   });
 
@@ -413,8 +413,8 @@ void main() {
       tester,
       days: days,
       allowances: [buildAllowance(id: "allowance-1")],
-      postes: [_buildPoste(id: "poste-1")],
-      provisionPosteId: "poste-1",
+      accounts: [_buildAccount(id: "poste-1")],
+      provisionAccountId: "poste-1",
       isReadOnly: true,
     );
 

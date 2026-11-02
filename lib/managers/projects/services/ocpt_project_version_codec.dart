@@ -186,8 +186,8 @@ class OcptProjectVersionCodec extends AbsOcptService {
       for (final row in payload.shootingDayEvents)
         OcptVersionScheduleJson.shootingDayEventToJson(row),
     ],
-    OcptVersionJsonProductionKeys.budgetPostesKey: [
-      for (final row in payload.budgetPostes) OcptVersionBudgetJson.budgetPosteToJson(row),
+    OcptVersionJsonProductionKeys.budgetAccountsKey: [
+      for (final row in payload.budgetAccounts) OcptVersionBudgetJson.budgetAccountToJson(row),
     ],
     OcptVersionJsonProductionKeys.budgetLinesKey: [
       for (final row in payload.budgetLines) OcptVersionBudgetJson.budgetLineToJson(row),
@@ -324,7 +324,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   ///   `roleCandidates`, `assets`, `breakdownTags`, `sceneBreakdowns`, `shootingDays`,
   ///   `shootingSlots`, `shootingSlotCrew`, `shootingSlotCast`, `shootingDayBlocks`,
   ///   `shootingSlotGuests`, `shootingBlockCandidates`, `shootingDayEvents`,
-  ///   `projectDictionaryWords`, `budgetPostes`, `budgetLines`, `budgetEntries`,
+  ///   `projectDictionaryWords`, `budgetAccounts`, `budgetLines`, `budgetEntries`,
   ///   `budgetCommitments`, `budgetResources`, `budgetMileageRates`, `budgetRevenues`,
   ///   `budgetShares` — every column of each — plus `pageSetup.format`, `settingsJson` and
   ///   `currencyCode`. This is "the project", as a user would describe it, and the resources tables
@@ -361,7 +361,7 @@ class OcptProjectVersionCodec extends AbsOcptService {
   ///   would hide that; `screenplayLanguage` is the same case again, for the same reason: two
   ///   projects agreeing on everything else but disagreeing on the language their screenplays are
   ///   written in are not the same project — one of them would be spell-checked and the other would
-  ///   not — so it stays in, null exactly as legitimately as `minimumRestMinutes`. `budgetPostes`
+  ///   not — so it stays in, null exactly as legitimately as `minimumRestMinutes`. `budgetAccounts`
   ///   and `budgetLines` are the same case once more, from payload format 16 on: leave them out and
   ///   a whole quote typed in would hash identically to a project with no budget at all — the
   ///   working-copy card would claim no drift, and a restore over that afternoon's work would skip
@@ -560,10 +560,10 @@ class OcptProjectVersionCodec extends AbsOcptService {
         primaryKeyOf: (row) => row.id,
         toJson: OcptVersionResourcesJson.projectDictionaryWordToJson,
       ),
-      OcptVersionJsonProductionKeys.budgetPostesKey: _canonicalRows(
-        payload.budgetPostes,
+      OcptVersionJsonProductionKeys.budgetAccountsKey: _canonicalRows(
+        payload.budgetAccounts,
         primaryKeyOf: (row) => row.id,
-        toJson: OcptVersionBudgetJson.budgetPosteToJson,
+        toJson: OcptVersionBudgetJson.budgetAccountToJson,
       ),
       OcptVersionJsonProductionKeys.budgetLinesKey: _canonicalRows(
         payload.budgetLines,

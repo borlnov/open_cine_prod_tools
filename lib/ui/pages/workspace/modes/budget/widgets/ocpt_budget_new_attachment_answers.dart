@@ -17,18 +17,18 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_gesture_attachment.dart';
 ///
 /// The wizard's state owns one instance and mutates it inside its own `setState` calls.
 class OcptBudgetNewAttachmentAnswers {
-  /// The poste answered under `poste`/`optionalPoste`/`posteAndLine`, or null.
-  String? posteId;
+  /// The account answered under `account`/`optionalAccount`/`accountAndLine`, or null.
+  String? accountId;
 
-  /// Whether a `poste`/`optionalPoste` answer has been given at all — `optionalPoste`'s own `Hors
-  /// devis` answers this true while leaving [posteId] null, which a bare null cannot tell apart
-  /// from "nothing chosen yet".
-  bool posteAnswered;
+  /// Whether a `account`/`optionalAccount` answer has been given at all — `optionalAccount`'s own
+  /// `Hors devis` answers this true while leaving [accountId] null, which a bare null cannot tell
+  /// apart from "nothing chosen yet".
+  bool accountAnswered;
 
-  /// The quote line answered under `posteAndLine`, or null.
+  /// The quote line answered under `accountAndLine`, or null.
   String? lineId;
 
-  /// Whether `posteAndLine`'s own third answer, `Aucune`, was picked.
+  /// Whether `accountAndLine`'s own third answer, `Aucune`, was picked.
   bool lineNoneAnswered;
 
   /// The financing resource answered under `financingResource`, or null.
@@ -51,17 +51,17 @@ class OcptBudgetNewAttachmentAnswers {
   OcptBudgetShareFormFields? pendingNewShare;
 
   /// Class constructor
-  OcptBudgetNewAttachmentAnswers() : posteAnswered = false, lineNoneAnswered = false;
+  OcptBudgetNewAttachmentAnswers() : accountAnswered = false, lineNoneAnswered = false;
 
-  /// Answer the poste, null standing for `Hors devis`.
-  void selectPoste(String? posteId) {
-    this.posteId = posteId;
-    posteAnswered = true;
+  /// Answer the account, null standing for `Hors devis`.
+  void selectAccount(String? accountId) {
+    this.accountId = accountId;
+    accountAnswered = true;
   }
 
-  /// Take the poste answer back, along with the line answered under it.
-  void clearPoste() {
-    posteAnswered = false;
+  /// Take the account answer back, along with the line answered under it.
+  void clearAccount() {
+    accountAnswered = false;
     lineId = null;
     lineNoneAnswered = false;
   }
@@ -110,10 +110,10 @@ class OcptBudgetNewAttachmentAnswers {
 
     return switch (ocptBudgetGestureAttachmentOf(gesture)) {
       OcptBudgetGestureAttachment.none => true,
-      OcptBudgetGestureAttachment.poste ||
-      OcptBudgetGestureAttachment.optionalPoste => posteAnswered,
-      OcptBudgetGestureAttachment.posteAndLine =>
-        posteAnswered && (lineId != null || lineNoneAnswered),
+      OcptBudgetGestureAttachment.account ||
+      OcptBudgetGestureAttachment.optionalAccount => accountAnswered,
+      OcptBudgetGestureAttachment.accountAndLine =>
+        accountAnswered && (lineId != null || lineNoneAnswered),
       OcptBudgetGestureAttachment.financingResource =>
         resourceId != null || pendingNewResource != null,
       OcptBudgetGestureAttachment.participant => shareId != null || pendingNewShare != null,
@@ -121,14 +121,14 @@ class OcptBudgetNewAttachmentAnswers {
     };
   }
 
-  /// Get the quote line [lineId] answered, searched across [postes], or null.
-  OcptBudgetLine? lineIn(List<OcptBudgetPoste> postes) {
+  /// Get the quote line [lineId] answered, searched across [accounts], or null.
+  OcptBudgetLine? lineIn(List<OcptBudgetAccount> accounts) {
     final lineId = this.lineId;
     if (lineId == null) {
       return null;
     }
-    for (final poste in postes) {
-      final line = poste.lines.where((line) => line.id == lineId).firstOrNull;
+    for (final account in accounts) {
+      final line = account.lines.where((line) => line.id == lineId).firstOrNull;
       if (line != null) {
         return line;
       }
@@ -136,21 +136,21 @@ class OcptBudgetNewAttachmentAnswers {
     return null;
   }
 
-  /// Get `commitSpend`'s own prefill when reached through the ordinary three-step flow (a poste,
+  /// Get `commitSpend`'s own prefill when reached through the ordinary three-step flow (an account,
   /// and
   /// optionally a line, just answered in step 2) — mirrors `budget_wizard_flows.dart`'s own
   /// `_handleLineCommitRequested`, everything the line already states carried across.
-  OcptBudgetCommitmentFormFields? commitmentPrefillIn(List<OcptBudgetPoste> postes) {
-    final posteId = this.posteId;
-    if (posteId == null && !posteAnswered) {
+  OcptBudgetCommitmentFormFields? commitmentPrefillIn(List<OcptBudgetAccount> accounts) {
+    final accountId = this.accountId;
+    if (accountId == null && !accountAnswered) {
       return null;
     }
 
-    final line = lineNoneAnswered ? null : lineIn(postes);
+    final line = lineNoneAnswered ? null : lineIn(accounts);
     return OcptBudgetCommitmentFormFields(
       dueDate: null,
       label: line?.label ?? "",
-      posteId: posteId ?? "",
+      accountId: accountId ?? "",
       amountCents: line == null ? 0 : ocptBudgetLineTotalCents(line),
       isTaxInclusive: line?.unitPrice.isTaxInclusive ?? true,
       vatRateBasisPoints: line?.unitPrice.vatRateBasisPoints,

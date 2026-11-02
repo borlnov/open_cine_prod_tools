@@ -12,18 +12,18 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_card_proportion_bar.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// One poste's own card, drawn in place of its row pair at a compact width — see
+/// One account's own card, drawn in place of its row pair at a compact width — see
 /// [OcptBudgetCostTracking]'s own class doc comment. Its own name, a proportion bar and its
-/// `Engagé`/`Payé`/`Reste`/`Écart` figures, tapping it selecting the poste exactly as tapping
+/// `Engagé`/`Payé`/`Reste`/`Écart` figures, tapping it selecting the account exactly as tapping
 /// either half of its desktop row does.
-class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
-  /// The poste this card shows.
-  final OcptBudgetPoste poste;
+class OcptBudgetCostTrackingAccountCard extends StatelessWidget {
+  /// The account this card shows.
+  final OcptBudgetAccount account;
 
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;
 
-  /// Whether this poste is the currently selected one.
+  /// Whether this account is the currently selected one.
   final bool isSelected;
 
   /// Which basis the header's excluding/including-tax switch currently reads every amount in.
@@ -35,24 +35,24 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// This poste's own paid total, in cents.
+  /// This account's own paid total, in cents.
   final int paidCents;
 
-  /// This poste's own committed total, in cents.
+  /// This account's own committed total, in cents.
   final int committedCents;
 
-  /// This poste's own in-kind covered total, in cents.
+  /// This account's own in-kind covered total, in cents.
   final int inKindCoveredCents;
 
-  /// Called when this card is tapped — never withheld under a read-only preview, selecting a poste
-  /// being a read, not a write ([OcptBudgetCostTracking.onPosteSelected] is never gated on
-  /// `isReadOnly` for the very same reason on the desktop row).
+  /// Called when this card is tapped — never withheld under a read-only preview, selecting an
+  /// account being a read, not a write ([OcptBudgetCostTracking.onAccountSelected] is never gated
+  /// on `isReadOnly` for the very same reason on the desktop row).
   final VoidCallback onTap;
 
   /// Class constructor
-  const OcptBudgetCostTrackingPosteCard({
+  const OcptBudgetCostTrackingAccountCard({
     super.key,
-    required this.poste,
+    required this.account,
     required this.isSimplified,
     required this.isSelected,
     required this.taxBasis,
@@ -64,14 +64,14 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Build the budget cost tracking poste card as a [Card].
+  /// Build the budget cost tracking account card as a [Card].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
-    final label = ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified);
-    final figures = OcptBudgetCostTrackingPosteFigures.of(
-      poste: poste,
+    final label = ocptBudgetAccountDisplayLabel(account, isSimplified: isSimplified);
+    final figures = OcptBudgetCostTrackingAccountFigures.of(
+      account: account,
       taxBasis: taxBasis,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       paidCents: paidCents,
@@ -97,7 +97,7 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
                   children: [
                     if (!isSimplified) ...[
                       Text(
-                        poste.code,
+                        account.code,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -106,7 +106,7 @@ class OcptBudgetCostTrackingPosteCard extends StatelessWidget {
                     ],
                     Expanded(
                       child: Text(
-                        label.isEmpty ? tr.budgetPosteUnnamed : label,
+                        label.isEmpty ? tr.budgetAccountUnnamed : label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(

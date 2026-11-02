@@ -14,11 +14,11 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 /// **No `receivedCents` column, though the shape it was first sketched with carried one.** What has
 /// actually been received against a resource is the sum of the `budget_entries` credits naming it
 /// through `budget_entries.resourceId`, computed on every read rather than stored beside it — the
-/// very same argument `docs/architecture/budget.md` already makes twice, in "A poste's quoted
+/// very same argument `docs/architecture/budget.md` already makes twice, in "An account's quoted
 /// amount is not stored" and in "A commitment settles by naming the entry that paid it": a stored
 /// second copy of one truth has to be kept in step by a write nobody can guarantee never to forget.
-/// A subsidy's own instalments are read exactly the way a poste's paid total already is — off the
-/// journal, never off a duplicate counter.
+/// A subsidy's own instalments are read exactly the way an account's paid total already is — off
+/// the journal, never off a duplicate counter.
 ///
 /// **No money triple either — no `isTaxInclusive`, no `vatRateBasisPoints`.** A financing resource
 /// is money coming *in*, and `docs/architecture/budget.md`'s own "Money that has moved is read

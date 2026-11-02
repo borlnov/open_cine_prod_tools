@@ -36,13 +36,13 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   /// Seeds a fresh commitment's own fields while [existing] is null, or null to start from the
   /// dialog's own defaults.
   ///
-  /// Set by the quote's own `Commit this line…`, which carries the line's poste, wording, amount
+  /// Set by the quote's own `Commit this line…`, which carries the line's account, wording, amount
   /// and tax reading across so the only things left to say are the two a quote line does not hold:
   /// who is owed, and when. Mirrors `OcptBudgetEntryDialog.prefill` exactly.
   final OcptBudgetCommitmentFormFields? prefill;
 
-  /// Every live poste of the project, offered by the `Poste` picker while creating.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project, offered by the `Poste` picker while creating.
+  final List<OcptBudgetAccount> accounts;
 
   /// The project's currency, an ISO 4217 code, shown beside the `Amount` field.
   final String currencyCode;
@@ -51,8 +51,8 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
   /// reads while it is left empty.
   final int? defaultVatRateBasisPoints;
 
-  /// Whether the mode's header currently reads simplified — switches a poste's own displayed name
-  /// exactly as every other view of this mode does.
+  /// Whether the mode's header currently reads simplified — switches an account's own displayed
+  /// name exactly as every other view of this mode does.
   final bool isSimplified;
 
   /// Class constructor
@@ -60,7 +60,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     super.key,
     required this.existing,
     this.prefill,
-    required this.postes,
+    required this.accounts,
     required this.currencyCode,
     required this.defaultVatRateBasisPoints,
     required this.isSimplified,
@@ -76,7 +76,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     BuildContext context, {
     required OcptBudgetCommitment? existing,
     OcptBudgetCommitmentFormFields? prefill,
-    required List<OcptBudgetPoste> postes,
+    required List<OcptBudgetAccount> accounts,
     required String currencyCode,
     required int? defaultVatRateBasisPoints,
     required bool isSimplified,
@@ -85,7 +85,7 @@ class OcptBudgetCommitmentDialog extends StatefulWidget {
     builder: (context) => OcptBudgetCommitmentDialog(
       existing: existing,
       prefill: prefill,
-      postes: postes,
+      accounts: accounts,
       currencyCode: currencyCode,
       defaultVatRateBasisPoints: defaultVatRateBasisPoints,
       isSimplified: isSimplified,
@@ -125,7 +125,7 @@ class _OcptBudgetCommitmentDialogState extends State<OcptBudgetCommitmentDialog>
       content: OcptBudgetCommitmentFormBody(
         existing: widget.existing,
         prefill: widget.prefill,
-        postes: widget.postes,
+        accounts: widget.accounts,
         currencyCode: widget.currencyCode,
         defaultVatRateBasisPoints: widget.defaultVatRateBasisPoints,
         isSimplified: widget.isSimplified,

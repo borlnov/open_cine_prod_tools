@@ -18,12 +18,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'ocpt_budget_cost_tracking_test_doubles.dart';
 
-/// A commitment of [amountCents] (10.00 € by default), tax-inclusive, against [posteId], naming
+/// A commitment of [amountCents] (10.00 € by default), tax-inclusive, against [accountId], naming
 /// [lineId] or none — settlement is read off whichever entries the test hands in alongside it,
 /// through `ocptBudgetCommitmentIsSettledOf`, never a field of the commitment itself any more.
 OcptBudgetCommitment _commitment({
   required String id,
-  required String posteId,
+  required String accountId,
   String? lineId,
   int amountCents = 1000,
   OcptBudgetCommitmentStatus status = OcptBudgetCommitmentStatus.quoteAccepted,
@@ -32,7 +32,7 @@ OcptBudgetCommitment _commitment({
   id: id,
   dueDate: null,
   label: label.isEmpty ? "Commitment $id" : label,
-  posteId: posteId,
+  accountId: accountId,
   amount: OcptMoney(amountCents: amountCents, isTaxInclusive: true, vatRateBasisPoints: null),
   status: status,
   lineId: lineId,
@@ -44,7 +44,7 @@ void main() {
   /// Builds the table with every writing affordance withheld and every list empty, overridable
   /// field by field — every test below starts from this and only names what it actually varies.
   Widget buildTable({
-    List<OcptBudgetPoste> postes = const [],
+    List<OcptBudgetAccount> accounts = const [],
     List<OcptBudgetCommitment> commitments = const [],
     List<OcptBudgetEntry> entries = const [],
     OcptBudgetSelection? selection,
@@ -52,9 +52,9 @@ void main() {
     bool isSimplified = false,
     OcptBudgetTaxBasis taxBasis = OcptBudgetTaxBasis.includingTax,
     int? defaultVatRateBasisPoints,
-    Map<String, OcptBudgetCoveredTotal> paidByPosteId = const {},
-    int Function(String posteId) committedCentsOf = testZero,
-    int Function(String posteId) inKindCoveredCentsOf = testZero,
+    Map<String, OcptBudgetCoveredTotal> paidByAccountId = const {},
+    int Function(String accountId) committedCentsOf = testZero,
+    int Function(String accountId) inKindCoveredCentsOf = testZero,
     OcptBudgetCoveredTotal offQuoteTotal = const OcptBudgetCoveredTotal(
       amountCents: 0,
       coveredLineCount: 0,
@@ -66,15 +66,15 @@ void main() {
     int mealCount = 0,
     int buffetCount = 0,
     bool isReadOnly = false,
-    ValueChanged<String>? onPosteSelected,
+    ValueChanged<String>? onAccountSelected,
     ValueChanged<String>? onLineSelected,
     ValueChanged<String>? onCommitmentSelected,
     ValueChanged<String>? onEntrySelected,
     ValueChanged<String>? onNodeExpansionToggled,
-    VoidCallback? onPosteCreationRequested,
-    void Function(String posteId, {required bool moveUp})? onPosteReorderRequested,
-    ValueChanged<String>? onPosteDeletionRequested,
-    ValueChanged<String>? onPosteFilterRequested,
+    VoidCallback? onAccountCreationRequested,
+    void Function(String accountId, {required bool moveUp})? onAccountReorderRequested,
+    ValueChanged<String>? onAccountDeletionRequested,
+    ValueChanged<String>? onAccountFilterRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentEditRequested,
     ValueChanged<OcptBudgetCommitment>? onCommitmentSettleRequested,
     ValueChanged<String>? onCommitmentUnsettleRequested,
@@ -85,7 +85,7 @@ void main() {
     VoidCallback? onScheduleFeedRequested,
     VoidCallback? onCateringFeedRequested,
   }) => OcptBudgetCostTracking(
-    postes: postes,
+    accounts: accounts,
     commitments: commitments,
     entries: entries,
     selection: selection,
@@ -94,7 +94,7 @@ void main() {
     taxBasis: taxBasis,
     defaultVatRateBasisPoints: defaultVatRateBasisPoints,
     currencyCode: "EUR",
-    paidByPosteId: paidByPosteId,
+    paidByAccountId: paidByAccountId,
     committedCentsOf: committedCentsOf,
     inKindCoveredCentsOf: inKindCoveredCentsOf,
     offQuoteTotal: offQuoteTotal,
@@ -104,15 +104,15 @@ void main() {
     mealCount: mealCount,
     buffetCount: buffetCount,
     isReadOnly: isReadOnly,
-    onPosteSelected: onPosteSelected ?? (_) {},
+    onAccountSelected: onAccountSelected ?? (_) {},
     onLineSelected: onLineSelected ?? (_) {},
     onCommitmentSelected: onCommitmentSelected ?? (_) {},
     onEntrySelected: onEntrySelected ?? (_) {},
     onNodeExpansionToggled: onNodeExpansionToggled ?? (_) {},
-    onPosteCreationRequested: onPosteCreationRequested,
-    onPosteReorderRequested: onPosteReorderRequested,
-    onPosteDeletionRequested: onPosteDeletionRequested,
-    onPosteFilterRequested: onPosteFilterRequested,
+    onAccountCreationRequested: onAccountCreationRequested,
+    onAccountReorderRequested: onAccountReorderRequested,
+    onAccountDeletionRequested: onAccountDeletionRequested,
+    onAccountFilterRequested: onAccountFilterRequested,
     onCommitmentEditRequested: onCommitmentEditRequested,
     onCommitmentSettleRequested: onCommitmentSettleRequested,
     onCommitmentUnsettleRequested: onCommitmentUnsettleRequested,
@@ -125,21 +125,21 @@ void main() {
   );
 
   group("the tree", () {
-    /// A poste with one quote line, priced at 20.00 €.
-    OcptBudgetPoste posteWithLine() => OcptBudgetPoste(
+    /// An account with one quote line, priced at 20.00 €.
+    OcptBudgetAccount accountWithLine() => OcptBudgetAccount(
       id: "poste-1",
       code: "1",
       label: "Poste one",
       simpleLabel: null,
       estimateToCompleteCents: null,
       sortKey: "a0",
-      lines: [testLine(id: "line-1", posteId: "poste-1", amountCents: 2000, label: "Line one")],
+      lines: [testLine(id: "line-1", accountId: "poste-1", amountCents: 2000, label: "Line one")],
     );
 
     testTestWidgets(
       "a poste with a line but no commitment and no off-line row still draws a twisty",
       (tester) async {
-        await tester.pumpWidget(wrap(buildTable(postes: [posteWithLine()])));
+        await tester.pumpWidget(wrap(buildTable(accounts: [accountWithLine()])));
 
         expect(find.byIcon(Icons.keyboard_arrow_right), findsOneWidget);
         expect(find.text("Line one"), findsNothing);
@@ -149,7 +149,7 @@ void main() {
     testTestWidgets("a poste row's own twisty is 28 wide over the row's full 48 px height", (
       tester,
     ) async {
-      await tester.pumpWidget(wrap(buildTable(postes: [posteWithLine()])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [accountWithLine()])));
 
       final twistyInkWell = find
           .ancestor(of: find.byIcon(Icons.keyboard_arrow_right), matching: find.byType(InkWell))
@@ -165,10 +165,10 @@ void main() {
     ) async {
       // The two panes are laid out independently and share only a vertical scroll, so a row
       // whose halves disagree on their height silently slides every row under it out of step:
-      // a poste ends up named beside the poste above's money. Each amount below is unique to
+      // an account ends up named beside the account above's money. Each amount below is unique to
       // one row, so the match cannot be an accident of two rows reading alike.
-      final postes = [
-        OcptBudgetPoste(
+      final accounts = [
+        OcptBudgetAccount(
           id: "poste-1",
           code: "1",
           label: "Poste one",
@@ -176,11 +176,11 @@ void main() {
           estimateToCompleteCents: null,
           sortKey: "a0",
           lines: [
-            testLine(id: "line-1", posteId: "poste-1", amountCents: 2000, label: "Line one"),
-            testLine(id: "line-2", posteId: "poste-1", amountCents: 500, label: "Line two"),
+            testLine(id: "line-1", accountId: "poste-1", amountCents: 2000, label: "Line one"),
+            testLine(id: "line-2", accountId: "poste-1", amountCents: 500, label: "Line two"),
           ],
         ),
-        OcptBudgetPoste(
+        OcptBudgetAccount(
           id: "poste-2",
           code: "2",
           label: "Poste two",
@@ -188,22 +188,22 @@ void main() {
           estimateToCompleteCents: null,
           sortKey: "a1",
           lines: [
-            testLine(id: "line-3", posteId: "poste-2", amountCents: 7300, label: "Line three"),
+            testLine(id: "line-3", accountId: "poste-2", amountCents: 7300, label: "Line three"),
           ],
         ),
       ];
 
       await tester.pumpWidget(
-        wrap(buildTable(postes: postes, expandedNodeIds: const {"poste-1"}), height: 800),
+        wrap(buildTable(accounts: accounts, expandedNodeIds: const {"poste-1"}), height: 800),
       );
 
-      // The expanded poste's own first line: its name on the left, its quote on the right.
+      // The expanded account's own first line: its name on the left, its quote on the right.
       expect(
         tester.getCenter(find.text("Line one")).dy,
         tester.getCenter(find.text("€20.00").first).dy,
       );
 
-      // And the poste below the expansion, which is where any drift has accumulated.
+      // And the account below the expansion, which is where any drift has accumulated.
       expect(
         tester.getCenter(find.text("Poste two")).dy,
         tester.getCenter(find.text("€73.00").first).dy,
@@ -211,7 +211,7 @@ void main() {
     });
 
     testTestWidgets("a poste with nothing at all to expand onto draws no twisty", (tester) async {
-      const poste = OcptBudgetPoste(
+      const account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Empty poste",
@@ -221,7 +221,7 @@ void main() {
         lines: [],
       );
 
-      await tester.pumpWidget(wrap(buildTable(postes: [poste])));
+      await tester.pumpWidget(wrap(buildTable(accounts: [account])));
 
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
@@ -230,11 +230,11 @@ void main() {
     testTestWidgets("expanding a poste reveals its own line, and a line with no commitment draws "
         "no twisty of its own", (tester) async {
       await tester.pumpWidget(
-        wrap(buildTable(postes: [posteWithLine()], expandedNodeIds: const {"poste-1"})),
+        wrap(buildTable(accounts: [accountWithLine()], expandedNodeIds: const {"poste-1"})),
       );
 
       expect(find.text("Line one"), findsOneWidget);
-      // The poste's own twisty is now pointing down; the line beneath it has nothing to expand
+      // The account's own twisty is now pointing down; the line beneath it has nothing to expand
       // onto, so there is exactly one twisty on screen.
       expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_right), findsNothing);
@@ -242,7 +242,7 @@ void main() {
 
     testTestWidgets("a counterpart line shows the in-kind badge beside its own label; an ordinary "
         "line shows none", (tester) async {
-      final poste = OcptBudgetPoste(
+      final account = OcptBudgetAccount(
         id: "poste-1",
         code: "1",
         label: "Poste one",
@@ -252,16 +252,16 @@ void main() {
         lines: [
           testLine(
             id: "line-1",
-            posteId: "poste-1",
+            accountId: "poste-1",
             label: "Line one",
             inKindResourceId: "resource-1",
           ),
-          testLine(id: "line-2", posteId: "poste-1", label: "Line two"),
+          testLine(id: "line-2", accountId: "poste-1", label: "Line two"),
         ],
       );
 
       await tester.pumpWidget(
-        wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
+        wrap(buildTable(accounts: [account], expandedNodeIds: const {"poste-1"})),
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
@@ -272,7 +272,7 @@ void main() {
       "a counterpart line's own Payé and Engagé cells read the em dash — a valuation is "
       "neither paid nor committed",
       (tester) async {
-        final poste = OcptBudgetPoste(
+        final account = OcptBudgetAccount(
           id: "poste-1",
           code: "1",
           label: "Poste one",
@@ -282,7 +282,7 @@ void main() {
           lines: [
             testLine(
               id: "line-1",
-              posteId: "poste-1",
+              accountId: "poste-1",
               amountCents: 5000,
               label: "Line one",
               inKindResourceId: "resource-1",
@@ -291,7 +291,7 @@ void main() {
         );
 
         await tester.pumpWidget(
-          wrap(buildTable(postes: [poste], expandedNodeIds: const {"poste-1"})),
+          wrap(buildTable(accounts: [account], expandedNodeIds: const {"poste-1"})),
         );
 
         // The total row's own Engagé, Reste and Écart cells always print the em dash (3 — see
@@ -305,14 +305,14 @@ void main() {
       tester,
     ) async {
       String? toggledNodeId;
-      String? selectedPosteId;
+      String? selectedAccountId;
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             onNodeExpansionToggled: (nodeId) => toggledNodeId = nodeId,
-            onPosteSelected: (posteId) => selectedPosteId = posteId,
+            onAccountSelected: (accountId) => selectedAccountId = accountId,
           ),
         ),
       );
@@ -321,7 +321,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(toggledNodeId, "poste-1");
-      expect(selectedPosteId, isNull);
+      expect(selectedAccountId, isNull);
     });
 
     testTestWidgets("clicking a line row selects it, opening on the poste it belongs to", (
@@ -332,7 +332,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             expandedNodeIds: const {"poste-1"},
             onLineSelected: (lineId) => selectedLineId = lineId,
           ),
@@ -347,24 +347,29 @@ void main() {
 
     testTestWidgets("a line's own Devis, Engagé, Payé, Reste, Coût final and Écart read its own "
         "commitments and their settling entries, never the poste's", (tester) async {
-      final poste = posteWithLine();
+      final account = accountWithLine();
       // Line one is quoted at 20.00 €: one unsettled commitment of 5.00 € (Engagé), one settled
       // commitment of 8.00 €, paid in full by an 8.00 € entry naming it (Payé reads what has
       // actually been paid against it, not the commitment's own amount, though the two agree once
       // it is settled) — Reste 20 - 5 - 8 = 7.00 €, derived estimate to complete max(0, 7) =
       // 7.00 €, Coût final 5 + 8 + 7 = 20.00 €, Écart 5 + 8 - 20 = -7.00 €.
       final commitments = [
-        _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1", amountCents: 500),
-        _commitment(id: "commitment-2", posteId: "poste-1", lineId: "line-1", amountCents: 800),
+        _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1", amountCents: 500),
+        _commitment(id: "commitment-2", accountId: "poste-1", lineId: "line-1", amountCents: 800),
       ];
       final entries = [
-        testEntry(id: "entry-1", posteId: "poste-1", debitCents: 800, commitmentId: "commitment-2"),
+        testEntry(
+          id: "entry-1",
+          accountId: "poste-1",
+          debitCents: 800,
+          commitmentId: "commitment-2",
+        ),
       ];
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [poste],
+            accounts: [account],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1"},
@@ -372,7 +377,7 @@ void main() {
         ),
       );
 
-      // Devis (2000) is left unchecked here: the poste's own row reads the very same 20.00 €,
+      // Devis (2000) is left unchecked here: the account's own row reads the very same 20.00 €,
       // since it holds this one line alone, so the figure would not tell the two rows apart.
       expect(find.text(ocptBudgetAmountLabel(500, "EUR")), findsOneWidget); // Engagé
       expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget); // Payé
@@ -384,14 +389,14 @@ void main() {
       final commitments = [
         _commitment(
           id: "commitment-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           lineId: "line-1",
           amountCents: 500,
           label: "The rental quote",
         ),
         _commitment(
           id: "commitment-2",
-          posteId: "poste-1",
+          accountId: "poste-1",
           lineId: "line-1",
           amountCents: 800,
           label: "The invoice",
@@ -400,7 +405,7 @@ void main() {
       final entries = [
         testEntry(
           id: "entry-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 800,
           label: "The payment",
           commitmentId: "commitment-2",
@@ -410,7 +415,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1", "line-1"},
@@ -432,13 +437,13 @@ void main() {
     testTestWidgets("an unsettled commitment draws the muted 'no entry' hint instead of an entry "
         "row", (tester) async {
       final commitments = [
-        _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1", amountCents: 500),
+        _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1", amountCents: 500),
       ];
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             expandedNodeIds: const {"poste-1", "line-1"},
           ),
@@ -452,11 +457,11 @@ void main() {
     testTestWidgets("a commitment only part-paid draws its own instalment, not the no-entry hint", (
       tester,
     ) async {
-      final commitments = [_commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1")];
+      final commitments = [_commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1")];
       final entries = [
         testEntry(
           id: "entry-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 400,
           label: "First instalment",
           commitmentId: "commitment-1",
@@ -466,7 +471,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1", "line-1"},
@@ -485,19 +490,19 @@ void main() {
         // No lineId: an off-line commitment.
         _commitment(
           id: "commitment-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           amountCents: 300,
           label: "Off-line commitment",
         ),
       ];
       final entries = [
-        testEntry(id: "entry-1", posteId: "poste-1", debitCents: 400, label: "Off-line entry"),
+        testEntry(id: "entry-1", accountId: "poste-1", debitCents: 400, label: "Off-line entry"),
       ];
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1"},
@@ -513,12 +518,17 @@ void main() {
       tester,
     ) async {
       final commitments = [
-        _commitment(id: "commitment-1", posteId: "poste-1", amountCents: 890, label: "Green brief"),
+        _commitment(
+          id: "commitment-1",
+          accountId: "poste-1",
+          amountCents: 890,
+          label: "Green brief",
+        ),
       ];
       final entries = [
         testEntry(
           id: "entry-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 890,
           label: "Green brief invoice",
           commitmentId: "commitment-1",
@@ -528,7 +538,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1"},
@@ -540,19 +550,24 @@ void main() {
       // twisty rather than drawing as a second, same-level, same-named row beside it.
       expect(find.text("Green brief"), findsOneWidget);
       expect(find.text("Green brief invoice"), findsNothing);
-      // The poste is expanded (a down chevron), so the one right-facing chevron left is the
+      // The account is expanded (a down chevron), so the one right-facing chevron left is the
       // commitment's own — proving a paid off-line commitment is itself an expandable node.
       expect(find.byIcon(Icons.keyboard_arrow_right), findsOneWidget);
     });
 
     testTestWidgets("a paid off-line commitment reveals its payment once expanded", (tester) async {
       final commitments = [
-        _commitment(id: "commitment-1", posteId: "poste-1", amountCents: 890, label: "Green brief"),
+        _commitment(
+          id: "commitment-1",
+          accountId: "poste-1",
+          amountCents: 890,
+          label: "Green brief",
+        ),
       ];
       final entries = [
         testEntry(
           id: "entry-1",
-          posteId: "poste-1",
+          accountId: "poste-1",
           debitCents: 890,
           label: "Green brief invoice",
           commitmentId: "commitment-1",
@@ -562,7 +577,7 @@ void main() {
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: commitments,
             entries: entries,
             expandedNodeIds: const {"poste-1", "commitment-1"},
@@ -576,12 +591,12 @@ void main() {
 
     testTestWidgets("a commitment sub-row's own ⋮ menu offers Settle while unsettled, Undo "
         "settlement while settled, Edit and Delete", (tester) async {
-      final unsettled = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
+      final unsettled = _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1");
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: [unsettled],
             expandedNodeIds: const {"poste-1", "line-1"},
             onCommitmentEditRequested: (_) {},
@@ -593,7 +608,7 @@ void main() {
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      // Index 1: the poste's own row draws its own ⋮ menu first (index 0), the commitment
+      // Index 1: the account's own row draws its own ⋮ menu first (index 0), the commitment
       // sub-row's own menu comes next.
       final menuFinder = find.byType(PopupMenuButton<String>).at(1);
       await tester.ensureVisible(menuFinder);
@@ -607,13 +622,13 @@ void main() {
     });
 
     testTestWidgets("an entry sub-row's own ⋮ menu offers Edit and Delete", (tester) async {
-      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
-      final entry = testEntry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
+      final commitment = _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1");
+      final entry = testEntry(id: "entry-1", accountId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: [commitment],
             entries: [entry],
             expandedNodeIds: const {"poste-1", "line-1"},
@@ -624,7 +639,7 @@ void main() {
       );
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      // Index 1: the poste's own row draws its own ⋮ menu first (index 0); the settled
+      // Index 1: the account's own row draws its own ⋮ menu first (index 0); the settled
       // commitment's own menu is null here (every one of its own entries is withheld), so the
       // entry sub-row's own menu is the very next one.
       final menuFinder = find.byType(PopupMenuButton<String>).at(1);
@@ -637,13 +652,13 @@ void main() {
     });
 
     testTestWidgets("withholds every sub-row's own ⋮ menu while isReadOnly", (tester) async {
-      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
-      final entry = testEntry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
+      final commitment = _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1");
+      final entry = testEntry(id: "entry-1", accountId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: [commitment],
             entries: [entry],
             expandedNodeIds: const {"poste-1", "line-1"},
@@ -662,13 +677,13 @@ void main() {
     testTestWidgets("selecting a commitment or an entry highlights its own sub-row", (
       tester,
     ) async {
-      final commitment = _commitment(id: "commitment-1", posteId: "poste-1", lineId: "line-1");
-      final entry = testEntry(id: "entry-1", posteId: "poste-1", commitmentId: "commitment-1");
+      final commitment = _commitment(id: "commitment-1", accountId: "poste-1", lineId: "line-1");
+      final entry = testEntry(id: "entry-1", accountId: "poste-1", commitmentId: "commitment-1");
 
       await tester.pumpWidget(
         wrap(
           buildTable(
-            postes: [posteWithLine()],
+            accounts: [accountWithLine()],
             commitments: [commitment],
             entries: [entry],
             expandedNodeIds: const {"poste-1", "line-1"},
@@ -713,10 +728,10 @@ void main() {
     testTestWidgets("keeps the creation footer below the feed card, exactly as it is drawn today", (
       tester,
     ) async {
-      await tester.pumpWidget(wrap(buildTable(onPosteCreationRequested: () {})));
+      await tester.pumpWidget(wrap(buildTable(onAccountCreationRequested: () {})));
 
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-      expect(find.text(tr.budgetPosteCreationAction), findsOneWidget);
+      expect(find.text(tr.budgetAccountCreationAction), findsOneWidget);
     });
 
     testTestWidgets(
@@ -724,11 +739,11 @@ void main() {
       "does",
       (tester) async {
         await tester.pumpWidget(
-          wrap(buildTable(isReadOnly: true, onPosteCreationRequested: () {})),
+          wrap(buildTable(isReadOnly: true, onAccountCreationRequested: () {})),
         );
 
         final tr = Tr.of(tester.element(find.byType(OcptBudgetCostTracking)));
-        expect(find.text(tr.budgetPosteCreationAction), findsNothing);
+        expect(find.text(tr.budgetAccountCreationAction), findsNothing);
       },
     );
 

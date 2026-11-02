@@ -37,8 +37,8 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   /// The form step 3 validates against, whichever of its own bodies is currently drawn.
   final GlobalKey<FormState> formKey;
 
-  /// Every live poste of the project.
-  final List<OcptBudgetPoste> postes;
+  /// Every live account of the project.
+  final List<OcptBudgetAccount> accounts;
 
   /// Every live person of the project's address book.
   final List<OcptPerson> people;
@@ -139,17 +139,17 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   /// The ids of the elements checked in the breakdown selector.
   final Set<String> breakdownSelectedIds;
 
-  /// The breakdown selector's `File all under` poste, or null.
-  final String? breakdownBulkPosteId;
+  /// The breakdown selector's `File all under` account, or null.
+  final String? breakdownBulkAccountId;
 
-  /// The poste a breakdown row will be filed under, or null.
-  final String? Function(String elementId) breakdownPosteIdOf;
+  /// The account a breakdown row will be filed under, or null.
+  final String? Function(String elementId) breakdownAccountIdOf;
 
   /// The quantity controller of a breakdown element.
   final TextEditingController Function(OcptElement element) breakdownQuantityControllerOf;
 
-  /// Called with the `File all under` poste picked.
-  final ValueChanged<String?> onBreakdownBulkPosteChanged;
+  /// Called with the `File all under` account picked.
+  final ValueChanged<String?> onBreakdownBulkAccountChanged;
 
   /// Called with the breakdown search text as it changes.
   final ValueChanged<String> onBreakdownQueryChanged;
@@ -158,8 +158,8 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   final void Function(OcptElement element, {required bool isChecked})
   onBreakdownElementCheckedChanged;
 
-  /// Called when a breakdown row is given a poste of its own.
-  final void Function(String elementId, String? posteId) onBreakdownElementPosteChanged;
+  /// Called when a breakdown row is given an account of its own.
+  final void Function(String elementId, String? accountId) onBreakdownElementAccountChanged;
 
   /// Called when a breakdown row's quantity text changes.
   final void Function(String elementId, String value) onBreakdownQuantityChanged;
@@ -169,7 +169,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
     super.key,
     required this.gesture,
     required this.formKey,
-    required this.postes,
+    required this.accounts,
     required this.people,
     required this.mileageRates,
     required this.commitments,
@@ -203,13 +203,13 @@ class OcptBudgetNewFormStep extends StatelessWidget {
     required this.unpricedElements,
     required this.breakdownQuery,
     required this.breakdownSelectedIds,
-    required this.breakdownBulkPosteId,
-    required this.breakdownPosteIdOf,
+    required this.breakdownBulkAccountId,
+    required this.breakdownAccountIdOf,
     required this.breakdownQuantityControllerOf,
-    required this.onBreakdownBulkPosteChanged,
+    required this.onBreakdownBulkAccountChanged,
     required this.onBreakdownQueryChanged,
     required this.onBreakdownElementCheckedChanged,
-    required this.onBreakdownElementPosteChanged,
+    required this.onBreakdownElementAccountChanged,
     required this.onBreakdownQuantityChanged,
   });
 
@@ -234,7 +234,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
         suggestions: matchingSuggestions,
         selectedSuggestionIndex: selectedSuggestionIndex,
         commitments: commitments,
-        postes: postes,
+        accounts: accounts,
         currencyCode: currencyCode,
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
         isSimplified: isSimplified,
@@ -259,37 +259,37 @@ class OcptBudgetNewFormStep extends StatelessWidget {
         unpricedElements: unpricedElements,
         query: breakdownQuery,
         selectedIds: breakdownSelectedIds,
-        bulkPosteId: breakdownBulkPosteId,
-        postes: postes,
+        bulkAccountId: breakdownBulkAccountId,
+        accounts: accounts,
         isSimplified: isSimplified,
-        posteIdOf: breakdownPosteIdOf,
+        accountIdOf: breakdownAccountIdOf,
         quantityControllerOf: breakdownQuantityControllerOf,
-        onBulkPosteChanged: onBreakdownBulkPosteChanged,
+        onBulkAccountChanged: onBreakdownBulkAccountChanged,
         onQueryChanged: onBreakdownQueryChanged,
         onElementCheckedChanged: onBreakdownElementCheckedChanged,
-        onElementPosteChanged: onBreakdownElementPosteChanged,
+        onElementAccountChanged: onBreakdownElementAccountChanged,
         onQuantityChanged: onBreakdownQuantityChanged,
       ),
       OcptBudgetGesture.commitSpend => OcptBudgetCommitmentFormBody(
         existing: null,
         prefill: commitmentPrefill,
-        postes: postes,
+        accounts: accounts,
         currencyCode: currencyCode,
         defaultVatRateBasisPoints: defaultVatRateBasisPoints,
         isSimplified: isSimplified,
         formKey: formKey,
         onDraftChanged: onCommitmentDraftChanged,
         onMissingFieldsHintChanged: onCommitmentMissingHintChanged,
-        // Step 2 has already asked the poste (`posteAndLine`, or `commitmentPrefill`'s own
+        // Step 2 has already asked the account (`accountAndLine`, or `commitmentPrefill`'s own
         // shortcut) — drawing the picker again here would ask the same question twice.
-        posteAlreadyAnswered: true,
+        accountAlreadyAnswered: true,
       ),
       OcptBudgetGesture.planSubsidy => OcptBudgetResourceFormBody(
         existing: null,
         groupKind: OcptBudgetResourceGroupKind.subsidy,
         people: people,
         currencyCode: currencyCode,
-        postes: postes,
+        accounts: accounts,
         isSimplified: isSimplified,
         formKey: formKey,
         onDraftChanged: onResourceDraftChanged,
@@ -299,7 +299,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
         groupKind: OcptBudgetResourceGroupKind.cash,
         people: people,
         currencyCode: currencyCode,
-        postes: postes,
+        accounts: accounts,
         isSimplified: isSimplified,
         formKey: formKey,
         onDraftChanged: onResourceDraftChanged,

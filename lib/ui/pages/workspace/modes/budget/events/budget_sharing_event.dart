@@ -45,7 +45,7 @@ class OcptBudgetRevenueUpdateConfirmedEvent extends OcptBudgetSharingEvent {
 }
 
 /// Move revenue [revenueId] to [newPosition] (0-based) within the sharing view's own flat order,
-/// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetPosteReorderedEvent`.
+/// dispatched by a row's own `⋮` menu `▲`/`▼` entries — mirrors `OcptBudgetAccountReorderedEvent`.
 class OcptBudgetRevenueReorderedEvent extends OcptBudgetSharingEvent {
   /// The id of the revenue to reorder.
   final String revenueId;

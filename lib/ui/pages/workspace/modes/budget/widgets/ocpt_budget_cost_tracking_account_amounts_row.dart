@@ -15,14 +15,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_remaining_cell.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The scrolling pane's own row: one poste's six amount cells and its own `⋮` menu — see
-/// [OcptBudgetCostTrackingPosteIdentityRow]'s own doc comment for why it shares [isSelected] and
+/// The scrolling pane's own row: one account's six amount cells and its own `⋮` menu — see
+/// [OcptBudgetCostTrackingAccountIdentityRow]'s own doc comment for why it shares [isSelected] and
 /// [onTap] with the pinned half of the very same row.
-class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
-  /// The poste this row shows.
-  final OcptBudgetPoste poste;
+class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
+  /// The account this row shows.
+  final OcptBudgetAccount account;
 
-  /// Whether this poste is the currently selected one.
+  /// Whether this account is the currently selected one.
   final bool isSelected;
 
   /// Which basis the header's excluding/including-tax switch currently reads every amount in.
@@ -34,39 +34,39 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// This poste's own paid total, in cents.
+  /// This account's own paid total, in cents.
   final int paidCents;
 
-  /// This poste's own committed total, in cents.
+  /// This account's own committed total, in cents.
   final int committedCents;
 
-  /// This poste's own in-kind covered total, in cents.
+  /// This account's own in-kind covered total, in cents.
   final int inKindCoveredCents;
 
   /// Called when this row is clicked.
   final VoidCallback onTap;
 
-  /// Called when the row's own `⋮` menu asks to rename this poste, or null while withheld.
+  /// Called when the row's own `⋮` menu asks to rename this account, or null while withheld.
   final VoidCallback? onRenameRequested;
 
-  /// Called when the row's own `⋮` menu asks to move this poste up, or null while withheld.
+  /// Called when the row's own `⋮` menu asks to move this account up, or null while withheld.
   final VoidCallback? onMoveUpRequested;
 
-  /// Called when the row's own `⋮` menu asks to move this poste down, or null while withheld.
+  /// Called when the row's own `⋮` menu asks to move this account down, or null while withheld.
   final VoidCallback? onMoveDownRequested;
 
-  /// Called when the row's own `⋮` menu asks to delete this poste, or null while withheld.
+  /// Called when the row's own `⋮` menu asks to delete this account, or null while withheld.
   final VoidCallback? onDeletionRequested;
 
-  /// Called when the row's own `⋮` menu asks to narrow the mode to this poste, or null while
+  /// Called when the row's own `⋮` menu asks to narrow the mode to this account, or null while
   /// withheld — never gated on a read-only preview, unlike every other callback here (see
-  /// `OcptBudgetCostTracking.onPosteFilterRequested`'s own doc comment).
+  /// `OcptBudgetCostTracking.onAccountFilterRequested`'s own doc comment).
   final VoidCallback? onFilterRequested;
 
   /// Class constructor
-  const OcptBudgetCostTrackingPosteAmountsRow({
+  const OcptBudgetCostTrackingAccountAmountsRow({
     super.key,
-    required this.poste,
+    required this.account,
     required this.isSelected,
     required this.taxBasis,
     required this.defaultVatRateBasisPoints,
@@ -82,13 +82,13 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
     required this.onFilterRequested,
   });
 
-  /// Build the budget cost tracking poste amounts row as an [InkWell].
+  /// Build the budget cost tracking account amounts row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final quoted = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
@@ -96,12 +96,12 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
         ? OcptBudgetTaxBasis.excludingTax
         : OcptBudgetTaxBasis.includingTax;
     final secondary = ocptBudgetTotalOf(
-      poste.lines,
+      account.lines,
       basis: secondaryBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final uniformRate = ocptBudgetPosteUniformVatRateOf(
-      poste.lines,
+    final uniformRate = ocptBudgetAccountUniformVatRateOf(
+      account.lines,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
     // Resolved once per row, not once per cell, so no two cells reading the resolved estimate to
@@ -111,7 +111,7 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
       paidCents: paidCents,
       committedCents: committedCents,
       inKindCoveredCents: inKindCoveredCents,
-      typedEstimateToCompleteCents: poste.estimateToCompleteCents,
+      typedEstimateToCompleteCents: account.estimateToCompleteCents,
     );
     final finalCostCents = ocptBudgetFinalCostCents(
       paidCents: paidCents,
@@ -191,17 +191,17 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
                           if (onRenameRequested != null)
                             PopupMenuItem<String>(
                               value: "rename",
-                              child: Text(tr.budgetPosteRenameAction),
+                              child: Text(tr.budgetAccountRenameAction),
                             ),
                           if (onMoveUpRequested != null)
                             PopupMenuItem<String>(
                               value: "up",
-                              child: Text(tr.budgetPosteMoveUpAction),
+                              child: Text(tr.budgetAccountMoveUpAction),
                             ),
                           if (onMoveDownRequested != null)
                             PopupMenuItem<String>(
                               value: "down",
-                              child: Text(tr.budgetPosteMoveDownAction),
+                              child: Text(tr.budgetAccountMoveDownAction),
                             ),
                           if (onFilterRequested != null)
                             PopupMenuItem<String>(
@@ -211,7 +211,7 @@ class OcptBudgetCostTrackingPosteAmountsRow extends StatelessWidget {
                           if (onDeletionRequested != null)
                             PopupMenuItem<String>(
                               value: "delete",
-                              child: Text(tr.budgetPosteDeleteAction),
+                              child: Text(tr.budgetAccountDeleteAction),
                             ),
                         ],
                       ),

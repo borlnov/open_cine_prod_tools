@@ -163,7 +163,7 @@ part '../../generated/models/database/ocpt_project_database.g.dart';
 /// timetable ([OcptShootingDayBlocksTable]) and its candidacies
 /// ([OcptShootingBlockCandidatesTable]), and what a day does not control, at an absolute hour
 /// ([OcptShootingDayEventsTable]); the budget mode — the seeded-then-editable CNC nomenclature and
-/// its quote lines ([OcptBudgetPostesTable], [OcptBudgetLinesTable]), the cash journal
+/// its quote lines ([OcptBudgetAccountsTable], [OcptBudgetLinesTable]), the cash journal
 /// ([OcptBudgetEntriesTable], [OcptBudgetCommitmentsTable]), the financing plan
 /// ([OcptBudgetMileageRatesTable], [OcptBudgetResourcesTable]), the revenue sharing
 /// ([OcptBudgetRevenuesTable], [OcptBudgetSharesTable]) and the per-diem allowances
@@ -232,7 +232,7 @@ part '../../generated/models/database/ocpt_project_database.g.dart';
     OcptShootingBlockCandidatesTable,
     OcptShootingDayEventsTable,
     OcptProjectDictionaryWordsTable,
-    OcptBudgetPostesTable,
+    OcptBudgetAccountsTable,
     OcptBudgetLinesTable,
     OcptBudgetEntriesTable,
     OcptBudgetCommitmentsTable,

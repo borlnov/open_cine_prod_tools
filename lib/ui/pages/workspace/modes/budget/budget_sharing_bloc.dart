@@ -113,7 +113,7 @@ class OcptBudgetSharingBloc
   }
 
   /// Move revenue `event.revenueId` to `event.newPosition` within the sharing view's own flat
-  /// order — mirrors `OcptBudgetPosteReorderedEvent`'s own handler.
+  /// order — mirrors `OcptBudgetAccountReorderedEvent`'s own handler.
   Future<void> _onRevenueReordered(
     OcptBudgetRevenueReorderedEvent event,
     Emitter<OcptBudgetSharingState> emitter,

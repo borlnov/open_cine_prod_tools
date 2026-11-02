@@ -8,7 +8,7 @@ import 'package:equatable/equatable.dart';
 /// panel that shows an object's breadcrumb, stepper, figures and outstanding amount, whichever of
 /// the mode's several kinds of row it is standing on.
 ///
-/// **One fact, not several id fields.** The poste tree's own selection and the financing view's
+/// **One fact, not several id fields.** The account tree's own selection and the financing view's
 /// own highlight used to be two independent ids; a detail panel able to show any object can only
 /// ever be looking at one of them at a time. `OcptBudgetState.selectedRevenueId` folds onto
 /// [OcptBudgetRevenueSelection] — a plain getter now, read by the resources tree's own revenue row
@@ -16,28 +16,28 @@ import 'package:equatable/equatable.dart';
 /// so it has nothing to fold onto.
 ///
 /// Every variant carries only the id it names — mirroring the `state` holding the actual objects,
-/// exactly as `OcptBudgetState.selectedPosteId` never carried an `OcptBudgetPoste` of its own.
+/// exactly as `OcptBudgetState.selectedAccountId` never carried an `OcptBudgetAccount` of its own.
 sealed class OcptBudgetSelection extends Equatable {
   /// Class constructor
   const OcptBudgetSelection();
 }
 
-/// A selected poste — the cost-tracking table's own row, or a poste opened from elsewhere in the
-/// mode.
-final class OcptBudgetPosteSelection extends OcptBudgetSelection {
-  /// The id of the selected poste.
-  final String posteId;
+/// A selected account — the cost-tracking table's own row, or an account opened from elsewhere in
+/// the mode.
+final class OcptBudgetAccountSelection extends OcptBudgetSelection {
+  /// The id of the selected account.
+  final String accountId;
 
   /// Class constructor
-  const OcptBudgetPosteSelection(this.posteId);
+  const OcptBudgetAccountSelection(this.accountId);
 
   /// List the fields that decide equality.
   @override
-  List<Object?> get props => [posteId];
+  List<Object?> get props => [accountId];
 }
 
 /// A selected quote line — the row the detail panel reads its own editable fields off, in the
-/// expenses tree or under the poste it belongs to.
+/// expenses tree or under the account it belongs to.
 final class OcptBudgetLineSelection extends OcptBudgetSelection {
   /// The id of the selected quote line.
   final String lineId;

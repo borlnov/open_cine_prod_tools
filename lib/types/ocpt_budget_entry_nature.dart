@@ -30,7 +30,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_link_kind.dart';
 /// have folded a défraiement's own repayment into the sharing document's `Repaying the
 /// contributions` card, a debt that document does not price.
 enum OcptBudgetEntryNature {
-  /// `J'ai payé quelque chose` — a debit, attached to a quote poste (left unanswered, `Hors
+  /// `J'ai payé quelque chose` — a debit, attached to a quote account (left unanswered, `Hors
   /// devis`), and the one nature the wizard is also opened onto pre-filled from a commitment's own
   /// `Settle` gesture.
   expense,
@@ -57,8 +57,8 @@ enum OcptBudgetEntryNature {
   repayment,
 
   /// `Autre mouvement` — agios, an internal transfer, a regularisation. Attached to an *optional*
-  /// poste (also `Hors devis` while unanswered), and the one nature whose direction is still asked,
-  /// in step 2, rather than fixed by the answer itself — see the class doc comment.
+  /// account (also `Hors devis` while unanswered), and the one nature whose direction is still
+  /// asked, in step 2, rather than fixed by the answer itself — see the class doc comment.
   other,
 
   /// `J'ai remboursé quelqu'un` — a debit, attached to a person through
@@ -85,18 +85,18 @@ bool? ocptBudgetEntryNatureDirectionOf(OcptBudgetEntryNature nature) => switch (
 /// Tell which single field step 2 of the wizard asks for under [nature] — the one link every other
 /// nature's own field is silent about, per the class doc comment.
 ///
-/// [OcptBudgetEntryNature.other] answers [OcptBudgetEntryLinkKind.poste] too: its own poste is
+/// [OcptBudgetEntryNature.other] answers [OcptBudgetEntryLinkKind.account] too: its own account is
 /// optional, exactly as [OcptBudgetEntryNature.expense]'s is, the two natures sharing the very
-/// same field for the very same reason — an entry naming no poste at all still has to land
+/// same field for the very same reason — an entry naming no account at all still has to land
 /// somewhere a reader can see, which is what `Hors devis` is for.
 OcptBudgetEntryLinkKind ocptBudgetEntryNatureLinkKindOf(OcptBudgetEntryNature nature) =>
     switch (nature) {
-      OcptBudgetEntryNature.expense => OcptBudgetEntryLinkKind.poste,
+      OcptBudgetEntryNature.expense => OcptBudgetEntryLinkKind.account,
       OcptBudgetEntryNature.financing => OcptBudgetEntryLinkKind.financingResource,
       OcptBudgetEntryNature.revenue => OcptBudgetEntryLinkKind.taking,
       OcptBudgetEntryNature.payout => OcptBudgetEntryLinkKind.participant,
       OcptBudgetEntryNature.repayment => OcptBudgetEntryLinkKind.financingResource,
-      OcptBudgetEntryNature.other => OcptBudgetEntryLinkKind.poste,
+      OcptBudgetEntryNature.other => OcptBudgetEntryLinkKind.account,
       OcptBudgetEntryNature.personReimbursement => OcptBudgetEntryLinkKind.person,
     };
 
@@ -113,7 +113,7 @@ OcptBudgetEntryLinkKind ocptBudgetEntryNatureLinkKindOf(OcptBudgetEntryNature na
 /// [isDebit].** A financing resource is named by money coming in
 /// ([OcptBudgetEntryNature.financing]) and by money going back out
 /// ([OcptBudgetEntryNature.repayment]) alike; reading the link on its own recalled a repayment as a
-/// receipt. No other pair is ambiguous — a person, a poste, a taking and a share each admit one
+/// receipt. No other pair is ambiguous — a person, an account, a taking and a share each admit one
 /// direction only — so the direction is consulted for that one field and no other.
 ///
 /// An entry naming none of the five is [OcptBudgetEntryNature.other], exactly the answer built for
@@ -121,7 +121,7 @@ OcptBudgetEntryLinkKind ocptBudgetEntryNatureLinkKindOf(OcptBudgetEntryNature na
 /// defensively.
 OcptBudgetEntryNature ocptBudgetEntryNatureOfLinks({
   required bool isDebit,
-  required String? posteId,
+  required String? accountId,
   required String? resourceId,
   required String? revenueId,
   required String? shareId,
@@ -139,7 +139,7 @@ OcptBudgetEntryNature ocptBudgetEntryNatureOfLinks({
   if (shareId != null) {
     return OcptBudgetEntryNature.payout;
   }
-  if (posteId != null) {
+  if (accountId != null) {
     return OcptBudgetEntryNature.expense;
   }
 

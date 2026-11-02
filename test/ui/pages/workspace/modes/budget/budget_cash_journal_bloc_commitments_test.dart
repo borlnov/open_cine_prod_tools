@@ -63,7 +63,7 @@ void main() {
 
   /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
   /// [smallSeed]).
-  OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
+  OcptBudgetBloc buildBloc({List<OcptBudgetAccountSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
     propertiesManager: propertiesManager,
@@ -93,14 +93,14 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       journalBloc.add(
         OcptBudgetCommitmentCreationConfirmedEvent(
           fields: OcptBudgetCommitmentFormFields(
             dueDate: DateTime(2026, 6),
             label: "Camera deposit",
-            posteId: posteId,
+            accountId: accountId,
             amountCents: 5000,
             isTaxInclusive: true,
             vatRateBasisPoints: null,
@@ -113,7 +113,7 @@ void main() {
       expect(state.commitments, hasLength(1));
       final commitment = state.commitments.single;
       expect(commitment.label, "Camera deposit");
-      expect(commitment.posteId, posteId);
+      expect(commitment.accountId, accountId);
       expect(commitment.amount.amountCents, 5000);
       expect(commitment.status, OcptBudgetCommitmentStatus.quoteAccepted);
       expect(
@@ -129,12 +129,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Original",
         amountCents: 1000,
       );
@@ -149,7 +149,7 @@ void main() {
           fields: OcptBudgetCommitmentFormFields(
             dueDate: DateTime(2026, 3),
             label: "Renamed",
-            posteId: posteId,
+            accountId: accountId,
             amountCents: 750,
             isTaxInclusive: false,
             vatRateBasisPoints: 2000,
@@ -163,7 +163,7 @@ void main() {
       );
 
       final commitment = state.commitments.single;
-      expect(commitment.posteId, posteId);
+      expect(commitment.accountId, accountId);
       expect(commitment.amount.amountCents, 750);
       expect(commitment.amount.isTaxInclusive, isFalse);
       expect(commitment.amount.vatRateBasisPoints, 2000);
@@ -177,12 +177,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "To be deleted",
         amountCents: 500,
       );
@@ -204,12 +204,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Camera deposit",
         amountCents: 5000,
       );
@@ -224,7 +224,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 4),
             label: "Camera deposit",
-            posteId: posteId,
+            accountId: accountId,
             resourceId: null,
             revenueId: null,
             shareId: null,
@@ -253,8 +253,8 @@ void main() {
       expect(entry.creditCents, 0);
       final commitment = state.commitments.single;
       expect(entry.commitmentId, commitment.id);
-      // Settled, it no longer counts as committed against the poste.
-      expect(state.committedCentsOf(posteId), 0);
+      // Settled, it no longer counts as committed against the account.
+      expect(state.committedCentsOf(accountId), 0);
     });
   });
 
@@ -264,12 +264,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Camera deposit",
         amountCents: 5000,
       );
@@ -278,7 +278,7 @@ void main() {
         database: project.database,
         date: DateTime(2026, 4),
         label: "Camera deposit",
-        posteId: posteId,
+        accountId: accountId,
         commitmentId: commitmentId,
         debitCents: 5000,
       );
@@ -317,12 +317,12 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
       final project = projectsManager.currentProject!;
 
       final commitmentId = await projectsManager.budgetJournalService.createCommitment(
         database: project.database,
-        posteId: posteId,
+        accountId: accountId,
         label: "Camera deposit",
         amountCents: 5000,
       );
@@ -331,7 +331,7 @@ void main() {
         database: project.database,
         date: DateTime(2026, 4),
         label: "Deposit",
-        posteId: posteId,
+        accountId: accountId,
         commitmentId: commitmentId,
         debitCents: 3000,
       );
@@ -339,7 +339,7 @@ void main() {
         database: project.database,
         date: DateTime(2026, 5),
         label: "Balance",
-        posteId: posteId,
+        accountId: accountId,
         commitmentId: commitmentId,
         debitCents: 2000,
       );
@@ -395,7 +395,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Grant instalment",
-            posteId: null,
+            accountId: null,
             resourceId: resourceId,
             revenueId: null,
             shareId: null,
@@ -444,7 +444,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Grant instalment",
-            posteId: null,
+            accountId: null,
             resourceId: resourceId,
             revenueId: null,
             shareId: null,
@@ -489,7 +489,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Prize received",
-            posteId: null,
+            accountId: null,
             resourceId: null,
             revenueId: revenueId,
             shareId: null,
@@ -532,7 +532,7 @@ void main() {
           fields: OcptBudgetEntryFormFields(
             date: DateTime(2026, 3),
             label: "Payout",
-            posteId: null,
+            accountId: null,
             resourceId: null,
             revenueId: null,
             shareId: shareId,
@@ -576,7 +576,7 @@ void main() {
       addTearDown(bloc.close);
       final journalBloc = buildJournal(bloc);
       final loaded = await waitForState(bloc, (state) => !state.isLoading);
-      final posteId = loaded.postes.first.id;
+      final accountId = loaded.accounts.first.id;
 
       final handled = <String>[];
       Future<void> proves(
@@ -591,7 +591,7 @@ void main() {
       OcptBudgetEntryFormFields entry(String label) => OcptBudgetEntryFormFields(
         date: DateTime(2026, 3),
         label: label,
-        posteId: posteId,
+        accountId: accountId,
         resourceId: null,
         revenueId: null,
         shareId: null,
@@ -606,7 +606,7 @@ void main() {
       OcptBudgetCommitmentFormFields commitment(String label) => OcptBudgetCommitmentFormFields(
         dueDate: DateTime(2026, 6),
         label: label,
-        posteId: posteId,
+        accountId: accountId,
         amountCents: 5000,
         isTaxInclusive: true,
         vatRateBasisPoints: null,
@@ -625,7 +625,7 @@ void main() {
       );
       await proves(
         OcptBudgetEntryMovedOffQuoteEvent(entryId: entryId),
-        (state) => state.entries.single.posteId == null,
+        (state) => state.entries.single.accountId == null,
       );
       await proves(
         OcptBudgetEntryDeletionConfirmedEvent(entryId: entryId),

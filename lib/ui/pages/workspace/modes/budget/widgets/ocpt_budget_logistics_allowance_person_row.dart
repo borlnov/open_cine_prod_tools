@@ -87,7 +87,7 @@ class OcptBudgetLogisticsAllowancePersonRow extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        person?.displayName ?? tr.budgetPosteUnnamed,
+                        person?.displayName ?? tr.budgetAccountUnnamed,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall,

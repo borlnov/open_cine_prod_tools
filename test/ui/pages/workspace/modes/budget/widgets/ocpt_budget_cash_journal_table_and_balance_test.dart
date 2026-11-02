@@ -26,7 +26,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -67,7 +67,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: const [],
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -95,7 +95,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: const [],
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: [testCommitment(id: "c1", dueDate: DateTime(2026, 9, 5), amountCents: 5000)],
           onCommitmentSelected: (_) {},
@@ -124,7 +124,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: const [],
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -156,7 +156,7 @@ void main() {
             shareableCents: 420000,
             onOpenSharing: () => opened = true,
             entries: [testEntry(id: "e1", date: DateTime(2026, 3, 2), creditCents: 570000)],
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -194,7 +194,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: () {},
             entries: [testEntry(id: "e1", date: DateTime(2026, 3, 2), debitCents: 11000)],
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -217,14 +217,14 @@ void main() {
   testWidgets("the running balance is the whole journal's, never reset at a poste's own boundary", (
     tester,
   ) async {
-    // A poste-2 credit lands first, so poste-1's own two debits fall from +10000 rather than
-    // from zero — the figure a balance wrongly reset at every poste's own boundary would show
-    // instead. This page honours no poste filter of its own any more, but the two postes still
-    // prove the balance is one column read top to bottom, not one per poste.
+    // An account-2 credit lands first, so account-1's own two debits fall from +10000 rather than
+    // from zero — the figure a balance wrongly reset at every account's own boundary would show
+    // instead. This page honours no account filter of its own any more, but the two accounts still
+    // prove the balance is one column read top to bottom, not one per account.
     final entries = [
-      testEntry(id: "e1", date: DateTime(2026), posteId: "poste-2", creditCents: 10000),
-      testEntry(id: "e2", date: DateTime(2026, 1, 2), posteId: "poste-1", debitCents: 4000),
-      testEntry(id: "e3", date: DateTime(2026, 1, 3), posteId: "poste-1", debitCents: 1000),
+      testEntry(id: "e1", date: DateTime(2026), accountId: "poste-2", creditCents: 10000),
+      testEntry(id: "e2", date: DateTime(2026, 1, 2), accountId: "poste-1", debitCents: 4000),
+      testEntry(id: "e3", date: DateTime(2026, 1, 3), accountId: "poste-1", debitCents: 1000),
     ];
 
     await tester.pumpWidget(
@@ -233,9 +233,9 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: [
-            testPoste(id: "poste-1", label: "Camera"),
-            testPoste(id: "poste-2", label: "Grant"),
+          accounts: [
+            testAccount(id: "poste-1", label: "Camera"),
+            testAccount(id: "poste-2", label: "Grant"),
           ],
           receiptsByEntryId: const {},
           commitments: const [],
@@ -254,8 +254,8 @@ void main() {
 
     expect(find.text(ocptBudgetAmountLabel(6000, "EUR")), findsWidgets);
     expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
-    // Neither poste-1 row is poisoned into starting over from zero: a balance reset at the
-    // poste boundary would go negative from the very first one.
+    // Neither account-1 row is poisoned into starting over from zero: a balance reset at the
+    // account boundary would go negative from the very first one.
     expect(find.text(ocptBudgetAmountLabel(-4000, "EUR")), findsNothing);
     expect(find.text(ocptBudgetAmountLabel(-5000, "EUR")), findsNothing);
   });
@@ -276,7 +276,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: null,
             entries: entries,
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -309,7 +309,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -363,7 +363,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: null,
             entries: entries,
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -382,9 +382,9 @@ void main() {
       final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
 
       // The credit's own label reaches an ordinary row, its `Poste` cell reading the very same
-      // wording a poste-less debit already reads.
+      // wording an account-less debit already reads.
       expect(find.text("Grant instalment"), findsOneWidget);
-      expect(find.text(tr.budgetCashJournalNoPosteLabel), findsNWidgets(2));
+      expect(find.text(tr.budgetCashJournalNoAccountLabel), findsNWidgets(2));
       // Its amount is drawn in the `Credit` column, once: the statement's closing row states the
       // balance alone, so a credit's own figure is printed nowhere but on its own row.
       expect(find.text(ocptBudgetAmountLabel(800, "EUR")), findsOneWidget);
@@ -424,7 +424,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -441,7 +441,7 @@ void main() {
     );
 
     final tr = Tr.of(tester.element(find.byType(OcptBudgetCashJournal)));
-    expect(find.text(tr.budgetCashJournalNoPosteLabel), findsOneWidget);
+    expect(find.text(tr.budgetCashJournalNoAccountLabel), findsOneWidget);
   });
 
   testWidgets("the coverage read-out appears while an entry carries no known rate, and disappears "
@@ -457,7 +457,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -492,7 +492,7 @@ void main() {
               vatRateBasisPoints: 2000,
             ),
           ],
-          postes: const [],
+          accounts: const [],
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -517,9 +517,9 @@ void main() {
     var written = false;
     var selected = false;
     final entries = [
-      testEntry(id: "e1", date: DateTime(2026), posteId: "poste-1", debitCents: 1000),
+      testEntry(id: "e1", date: DateTime(2026), accountId: "poste-1", debitCents: 1000),
     ];
-    final postes = [testPoste(id: "poste-1", label: "Camera")];
+    final accounts = [testAccount(id: "poste-1", label: "Camera")];
 
     await tester.pumpWidget(
       wrap(
@@ -527,7 +527,7 @@ void main() {
           shareableCents: 0,
           onOpenSharing: null,
           entries: entries,
-          postes: postes,
+          accounts: accounts,
           receiptsByEntryId: const {},
           commitments: const [],
           onCommitmentSelected: (_) {},
@@ -566,7 +566,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: null,
             entries: entries,
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -592,7 +592,7 @@ void main() {
       tester,
     ) async {
       // Wide enough that the row's own trailing `⋮` menu sits inside the default 800×600 test
-      // surface: the row's menu column is its very last one, past the date, voucher, poste,
+      // surface: the row's menu column is its very last one, past the date, voucher, account,
       // label, debit and balance columns the [wrap] default width already draws in full.
       tester.view.physicalSize = const Size(1400, 700);
       tester.view.devicePixelRatio = 1.0;
@@ -609,7 +609,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: null,
             entries: entries,
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},
@@ -651,7 +651,7 @@ void main() {
             shareableCents: 0,
             onOpenSharing: null,
             entries: entries,
-            postes: const [],
+            accounts: const [],
             receiptsByEntryId: const {},
             commitments: const [],
             onCommitmentSelected: (_) {},

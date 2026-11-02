@@ -205,7 +205,7 @@ class OcptSharingView extends StatelessWidget {
 
 /// The Partager screen's own [SegmentedButton] and the segment-specific body it selects between —
 /// [_OcptSharingSegment.remote] (unchanged) and [_OcptSharingSegment.host] (the "Héberger sur ce
-/// poste" panel, driven by the very same [OcptHostingBloc] [OcptSharingPage] already provides).
+/// account" panel, driven by the very same [OcptHostingBloc] [OcptSharingPage] already provides).
 ///
 /// A `StatefulWidget` for the one piece of state that belongs to this screen alone: which segment
 /// is selected — defaulting to [_OcptSharingSegment.remote], per the approved layout.

@@ -84,9 +84,9 @@ class OcptBudgetCommitmentCreationConfirmedEvent extends OcptBudgetCashJournalEv
 
 /// Write [fields] onto commitment [commitmentId], dispatched by the mode once
 /// `OcptBudgetCommitmentDialog` returned a result for an existing commitment it was opened to edit.
-/// [fields]' own `posteId` is never sent on: `OcptBudgetJournalService.updateCommitment` carries no
-/// such parameter, a commitment's own poste being fixed the moment it is created
-/// (`OcptBudgetCommitmentFormFields.posteId`'s own doc comment).
+/// [fields]' own `accountId` is never sent on: `OcptBudgetJournalService.updateCommitment` carries
+/// no such parameter, a commitment's own account being fixed the moment it is created
+/// (`OcptBudgetCommitmentFormFields.accountId`'s own doc comment).
 class OcptBudgetCommitmentUpdateConfirmedEvent extends OcptBudgetCashJournalEvent {
   /// The id of the commitment being edited.
   final String commitmentId;
@@ -144,17 +144,17 @@ class OcptBudgetCommitmentSettlementConfirmedEvent extends OcptBudgetCashJournal
 }
 
 /// Promote off-line debit entry [entryId] into the quote it never went through — the banner's own
-/// `Add to the quote` action, dispatched on an entry that names a poste but no commitment (a till
-/// receipt for something the quote never anticipated). The bloc creates a quote line from the entry
-/// first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit price
-/// and tax basis), then a commitment from that line exactly as `OcptBudgetLinePaidDirectlyEvent`
-/// does (`OcptBudgetJournalService.createCommitment`, seeded from the line, naming it through
-/// `lineId`), and finally **re-points [entryId] at that fresh commitment**
-/// (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than minting a second
-/// entry — the entry already exists, so the debit that settles the commitment is the very one this
-/// event promotes. Skipping the relink would leave the commitment unsettled, adding to the poste's
-/// committed total on top of what is already paid: the exact double-count this whole mode refuses
-/// everywhere else.
+/// `Add to the quote` action, dispatched on an entry that names an account but no commitment (a
+/// till receipt for something the quote never anticipated). The bloc creates a quote line from the
+/// entry first (`OcptBudgetQuoteService.createLine`, the entry's own label, quantity `1.0`, unit
+/// price and tax basis), then a commitment from that line exactly as
+/// `OcptBudgetLinePaidDirectlyEvent` does (`OcptBudgetJournalService.createCommitment`, seeded from
+/// the line, naming it through `lineId`), and finally **re-points [entryId] at that fresh
+/// commitment** (`OcptBudgetJournalService.updateEntry`, `commitmentId` alone) rather than minting
+/// a second entry — the entry already exists, so the debit that settles the commitment is the very
+/// one this event promotes. Skipping the relink would leave the commitment unsettled, adding to the
+/// account's committed total on top of what is already paid: the exact double-count this whole mode
+/// refuses everywhere else.
 class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetCashJournalEvent {
   /// The id of the off-line debit entry to promote.
   final String entryId;
@@ -167,15 +167,15 @@ class OcptBudgetEntryPromotedToQuoteEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Detach off-line debit entry [entryId] from its poste — the banner's own `Move off-quote`
+/// Detach off-line debit entry [entryId] from its account — the banner's own `Move off-quote`
 /// action, dispatched on the very same kind of entry [OcptBudgetEntryPromotedToQuoteEvent]
 /// promotes, the other way to reconcile it: rather than folding the spend into the quote, this
-/// admits it was never quoted at all. Clears `posteId` back to null
+/// admits it was never quoted at all. Clears `accountId` back to null
 /// (`OcptBudgetJournalService.updateEntry`) and nothing else, so the entry becomes an honest
 /// off-quote spend, read by `ocptBudgetOffQuotePaidTotalOf` like any other
 /// (`docs/architecture/budget.md`'s "Off-quote spending is named, never hidden").
 class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetCashJournalEvent {
-  /// The id of the off-line debit entry to detach from its poste.
+  /// The id of the off-line debit entry to detach from its account.
   final String entryId;
 
   /// Class constructor
@@ -187,15 +187,15 @@ class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetCashJournalEvent {
 }
 
 /// Promote off-line commitment [commitmentId] into the quote — the detail panel's own banner and
-/// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
+/// its `Add to the quote` action, offered on a commitment that names an account but no quote line
 /// (`ocptBudgetCommitmentIsOffLine`). This is `OcptBudgetLinePaidDirectlyEvent` run the other way
 /// round: the bloc creates a quote line from the commitment (`OcptBudgetQuoteService.createLine`,
 /// the commitment's own label, quantity `1.0`, its amount and tax basis), then **re-points the
 /// commitment at that fresh line** (`OcptBudgetJournalService.updateCommitment`, `lineId` alone).
 /// The entry that settles the commitment is untouched — it already names the commitment, so the
-/// chain simply gains the quote line it lacked, and the poste's quote grows by the amount that made
-/// it overrun. A commitment always names a poste, so there is no "move off-quote" counterpart, the
-/// way an off-line debit has one.
+/// chain simply gains the quote line it lacked, and the account's quote grows by the amount that
+/// made it overrun. A commitment always names an account, so there is no "move off-quote"
+/// counterpart, the way an off-line debit has one.
 class OcptBudgetCommitmentPromotedToQuoteEvent extends OcptBudgetCashJournalEvent {
   /// The id of the off-line commitment to promote.
   final String commitmentId;
