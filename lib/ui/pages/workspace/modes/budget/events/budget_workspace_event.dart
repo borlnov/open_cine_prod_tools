@@ -69,7 +69,7 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
 /// header's own chip**, where the reader is leaving one document for another and the object they
 /// had open belonged to the one they are leaving, so the Inspector greets the new view empty rather
 /// than still showing a poste on the takings page. It is **false for every gesture that switches
-/// the view *and* selects something in one move** (`_handleDashboardPosteOpened`,
+/// the view *and* selects something in one move** (`OcptBudgetDashboardView._handlePosteOpened`,
 /// `_handleLineShowCommitment` Requested), which would otherwise wipe the very selection it just
 /// made, whichever order the two events happen to run in.
 class OcptBudgetViewSelectedEvent extends OcptBudgetWorkspaceEvent {

@@ -111,8 +111,8 @@ const _scrubbedChildBlankedKeys = {
 /// This is the **third** implementation of one rule, and the only one that is not typed:
 /// `OcptPeopleService.deletePerson` (with `OcptAssetsService.erasePersonAssets` and
 /// `OcptRoleCandidatesService.eraseCandidaciesOfPerson`) applies it to a
-/// live row, `OcptProjectVersionsService._scrubErasedPeople` applies it to a decoded payload on its
-/// way to a preview or a restore, and this one applies it to the stored JSON of a payload being
+/// live row, `OcptProjectVersionsPayloadOps.scrubErasedPeople` applies it to a decoded payload on
+/// its way to a preview or a restore, and this one applies it to the stored JSON of a payload being
 /// **copied out of the project** — the export of a portable package, which must not carry an erased
 /// person's data to somebody else's machine. It reads the payload's own keys instead of the
 /// schema's Dart types because a package may be built from a project file at **any** schema

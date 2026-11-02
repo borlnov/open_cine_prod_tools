@@ -211,7 +211,7 @@ model, the title page, the spell-checking, the docks and the syntax guide.
   **script** page number.
 
 - Page numbers: every simulated sheet carries the number the printed screenplay would show on it,
-  painted by the same `_OcptPageSheetsPainter` that paints the sheets themselves and gated on page
+  painted by the same `OcptPageSheetsPainter` that paints the sheets themselves and gated on page
   simulation (there is nothing to number on the fluid surface). The rule itself lives once, in
   `lib/models/rules/ocpt_script_page_number.dart`: `N.` at the top right,
   `ocptScriptPageNumberTopInches` (0.5") below the sheet's top edge whatever the configured margin,

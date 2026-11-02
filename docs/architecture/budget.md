@@ -191,13 +191,13 @@ are all here, and this file is the whole record of them.
   it may look like one, since it is a reading over the journal's own poste-less debits, not a record
   anybody can rename, reorder or delete.
   **It does carry a twisty, and opens** — `OcptBudgetCostTrackingOffQuoteIdentityRow`, keyed by the
-  reserved `_ocptCostTrackingOffQuoteNodeId` rather than by a poste or a line id, since the row sums
-  a reading over the journal and names no record of its own to key one by. A reader landing on the
-  total could not otherwise reach what made it up, and that is the whole of the distinction this row
-  turns on: it is still a *reading*, which is why it mints no id anybody can rename, reorder or
-  delete, but a reading is allowed to open. Every child it reveals is an ordinary entry sub-row,
-  with the menu and the selection every other entry sub-row has — the debit itself is a real
-  `budget_entries` row, only the total above it is not a record of anything.
+  reserved `ocptBudgetCostTrackingOffQuoteNodeId` rather than by a poste or a line id, since the
+  row sums a reading over the journal and names no record of its own to key one by. A reader landing
+  on the total could not otherwise reach what made it up, and that is the whole of the distinction
+  this row turns on: it is still a *reading*, which is why it mints no id anybody can rename,
+  reorder or delete, but a reading is allowed to open. Every child it reveals is an ordinary entry
+  sub-row, with the menu and the selection every other entry sub-row has — the debit itself is a
+  real `budget_entries` row, only the total above it is not a record of anything.
 - The table's own `Total` row folds `paidByPosteId` and the off-quote total together
   (`ocptBudgetCoveredTotalsFoldOf`, `lib/models/rules/ocpt_budget_totals.dart`) into its own `Paid`
   cell, so that column adds up to what actually left the account — the only reading a reader adding
@@ -305,7 +305,7 @@ are all here, and this file is the whole record of them.
   (which stays on as a secondary, beside `Delete`, for a cost acted before it is paid). The gesture
   is `onLinePayDirectlyRequested`, and it opens the capture wizard on `recordExpense` pre-filled from
   the line — its full quoted total, in the line's own tax basis and rate, as today's debit — exactly
-  as `_handleCommitmentSettleRequested` pre-fills from a commitment.
+  as `ocptBudgetSettleCommitment` pre-fills from a commitment.
 - On confirm it dispatches `OcptBudgetLinePaidDirectlyEvent`, and the bloc does **as one write** the
   two the promote-then-pay path does apart: it creates the commitment from the line first
   (`createCommitment`, seeded from the line, naming it through `lineId`, at the line's full quoted
@@ -315,7 +315,7 @@ are all here, and this file is the whole record of them.
   who only ever quoted and paid. A **partial** payment leaves the commitment standing at its full
   amount with its own outstanding, read back off the link exactly as one made by hand.
 - The **lettrage strip is withheld** on both explicit-payment doors — this direct pay and
-  `_handleCommitmentSettleRequested` — because the payment belongs to a line or a commitment the
+  `ocptBudgetSettleCommitment` — because the payment belongs to a line or a commitment the
   reader has already named, so every candidate the strip could rank is a *different* object, and
   offering to reroute onto one only invites a rapprochement they never meant (`offersLettrage:
   false`, `OcptBudgetNewDialog`'s own field). The strip stays on in the generic `+` capture alone,
@@ -571,11 +571,11 @@ are all here, and this file is the whole record of them.
   badge (see "The alerts compute themselves" below).
 - **The alert row is the page's own only link out — nothing else on this page goes anywhere.** A
   poste over its quote selects that poste and switches to `expenses` in the same gesture
-  (`OcptBudgetMode._handleDashboardPosteOpened`), which is where the fiche then opens: a click that
+  (`OcptBudgetDashboardView._handlePosteOpened`), which is where the fiche then opens: a click that
   only selected would leave the reader on a read-only summary with nothing on it to do about what
   they had just picked, so the gesture goes where the poste is actually worked on. Narrowing is
   still nobody's side effect — the filter is untouched by it. The cash projection going negative
-  switches to `tools › cashFlow` (`OcptBudgetMode._handleCashAlertActionRequested`), the very
+  switches to `tools › cashFlow` (`OcptBudgetDashboardView._handleCashAlertActionRequested`), the very
   statement that answers it. `ocptBudgetViewHasInspector` answers false for `dashboard` for the same
   reason: a dashboard row is a link to where the thing is worked on, not a selection this page
   itself displays.
@@ -773,7 +773,7 @@ are all here, and this file is the whole record of them.
 - **The header's own chip drops the fiche's own selection as it switches view**
   (`OcptBudgetViewSelectedEvent.clearSelection`, true only there; the second segmented switch does
   the same for the tools drawer). The object a reader had open belonged to the view they are
-  leaving, so the Inspector greets the new view empty (`OcptBudgetFiche`'s own `_emptyState`) rather
+  leaving, so the Inspector greets the new view empty (`OcptBudgetFicheEmptyState`) rather
   than still showing, say, a poste on the takings page. **Every gesture that switches the view *and*
   selects in one move keeps `clearSelection` false** — `_handleDashboardPosteOpened`,
   `_handleLineShowCommitmentRequested` — since clearing would otherwise wipe the very selection they
@@ -873,13 +873,13 @@ are all here, and this file is the whole record of them.
   selection can land in two different postes. A `File all under` control at the selector's own head
   fills every row at once — the common case, and what the old single-poste step used to do — and
   clears any per-row override as it does, since "file all under X" is a promise about every row; a
-  row not given one of its own inherits that bulk default (`_breakdownPosteFor`). The `Create N
-  lines` button is withheld until **every** checked element resolves a poste, its own or the
-  default: a line with no poste is a row the quote has nowhere to file.
-  `OcptBudgetNewLinesFromBreakdownOutcome` carries the poste per line rather than one for the batch,
-  and `ocptBudgetApplyNewOutcome` (`budget_wizard_flows.dart`) dispatches one
-  `OcptBudgetLineCreatedFromElementEvent` per line naming it — the event always took its own
-  `posteId`, so nothing downstream had to change.
+  row not given one of its own inherits that bulk default
+  (`OcptBudgetNewBreakdownSelection.posteFor`). The `Create N lines` button is withheld until
+  **every** checked element resolves a poste, its own or the default: a line with no poste is a row
+  the quote has nowhere to file. `OcptBudgetNewLinesFromBreakdownOutcome` carries the poste per line
+  rather than one for the batch, and `ocptBudgetApplyNewOutcome` (`budget_wizard_flows.dart`)
+  dispatches one `OcptBudgetLineCreatedFromElementEvent` per line naming it — the event always took
+  its own `posteId`, so nothing downstream had to change.
 - **Step 3 speaks one label idiom throughout** — the label above, the field dense, the way the
   sheets already do — the fix for a row that used to mix an external label over a dense
   `InputDecorator`, a floating internal label and a bare external one, which is the whole reason
@@ -935,7 +935,7 @@ are all here, and this file is the whole record of them.
   and `OcptBudgetCommitmentSettlementConfirmedEvent`, the second naming the commitment it settles
   alongside the very same fields the first collects. Every door the mode offers converges on one of
   these two, never inventing a third. The wizard's own step-3 save returns an `OcptBudgetNewOutcome`
-  that `OcptBudgetMode._handleNewOutcome` turns into a write, whether it was opened from the `+ New`
+  that `ocptBudgetApplyNewOutcome` turns into a write, whether it was opened from the `+ New`
   button or pre-filled by a contextual shortcut — a resource's `Record a receipt`, a taking's
   `Receive`, a commitment's `Pay`, a share's `Record a payout`, a person's `Reimburse`, reached from
   a row's own `⋮` menu or a fiche's own primary action. When that outcome carries an accepted
@@ -1007,13 +1007,13 @@ are all here, and this file is the whole record of them.
 - Each alert card offers exactly one action back into the data it is about, never a dismiss, since
   the alert is not a notification to clear, it is a standing fact about the project that stays true
   until the underlying figures change. A poste over its quote reuses the very gesture a dashboard
-  poste row already makes (`OcptBudgetMode._handleDashboardPosteOpened`): it selects that poste and
+  poste row already makes (`OcptBudgetDashboardView._handlePosteOpened`): it selects that poste and
   switches to `expenses` in the same gesture, exactly as "The dashboard" above already argues for a
   poste row in general — the alert itself sits on a read-only summary, never where a poste is
   actually worked on. The cash projection going negative switches straight to `tools › cashFlow`
-  (`OcptBudgetMode._handleCashAlertActionRequested`), the very statement its own projection now
-  scrolls under, as `À venir` — see "The journal scrolls rather than losing a column" below for
-  where that projection draws today.
+  (`OcptBudgetDashboardView._handleCashAlertActionRequested`), the very statement its own
+  projection now scrolls under, as `À venir` — see "The journal scrolls rather than losing a column"
+  below for where that projection draws today.
 
 ## The voucher
 
@@ -1591,8 +1591,9 @@ are all here, and this file is the whole record of them.
   to buy the crew lunch, even though both end up as a `budget_resources` row — the product owner
   could not tell a valuation from real money through a single `Resource` button, which opened one
   form for all three kinds with no word said about which one was being created.
-  `_OcptAddResourceButton` replaces it: a `MenuAnchor` anchored on one button, naming the three
-  kinds (`Subvention`/`Apport en numéraire`/`Apport en nature` in French), chosen over three
+  A `MenuAnchor` anchored on one button replaced it, naming the three kinds (`Subvention`/`Apport
+  en numéraire`/`Apport en nature` in French; the `+ New` wizard's `planSubsidy` and
+  `planContribution` gestures have since taken that role), chosen over three
   separate buttons the tree's own header row has no width to spare for, and over a `Wrap` of
   `MenuItemButton`s, which throws the moment a `MenuAnchor` hands one an unbounded width
   (`AGENTS.md`'s own known pitfall). Picking one opens `OcptBudgetResourceDialog` with that kind

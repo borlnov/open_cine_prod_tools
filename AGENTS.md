@@ -209,7 +209,9 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
   `isDeleted`, a "delete" is an update to it, and every read filters tombstones back out. The two
   local tables — `project_versions` and `local_erasures` — are the only exceptions.
 - Ordering is `sortKey`, a fractional index (`lib/models/rules/ocpt_fractional_key.dart`), so a move
-  writes exactly one row. The legacy `position` column is never renumbered and nothing reads it.
+  writes exactly one row. On a table that has a `sortKey`, the legacy `position` column is never
+  renumbered and nothing reads it. `scenes.position` is the exception: it is the scene's index in the
+  screenplay, rewritten at every index and sorted on by several services.
 - A schema number is allocated **at merge time, not at branch time** (ADR 0007), and a new
   synchronised table has to reach `OcptProjectVersionCodec`'s payload, its `contentDigest` and its
   `OcptProjectVersionsRestoreOps.applyPayload` together (its `hydratePreview` sits in the same
@@ -220,7 +222,9 @@ What follows is the short list of rules that hold **everywhere**, and that a fil
   express it as a null callback, composite panels take an `isReadOnly` flag.
 - **No manager or service ever sees a `Tr`**: a mode resolves every word and hands it in as a
   labels object or as plain strings. Every user-visible string in the UI goes through
-  `Tr.of(context)`.
+  `Tr.of(context)`. Two files under `lib/managers/` break it on purpose: `ocpt_routes_helper.dart`
+  reads the app title for the licenses page, and `ocpt_global_manager.dart` hands the locales
+  manager `Tr.delegate.supportedLocales`.
 - Every export is reached from the toolbar's own `Export` control and writes through a native save
   dialog — no export ever writes to a default location silently.
 - Layering: `packages/fountain_kit` stays free of Flutter imports, a `lib/models/` file may not
@@ -277,7 +281,7 @@ A project rule overrides these. The overrides this project has made:
 - **RFL2:** a test's mounting helper (`Widget _wrap(...)`) may stay a function, since it is never
   rebuilt.
 - **RFL3:** a page's view may be public (`OcptXxxView`) when its widget tests pump it directly
-  with a stubbed bloc.
+  with a stubbed bloc, and it then shares the page's file.
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
   on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
@@ -288,15 +292,21 @@ A project rule overrides these. The overrides this project has made:
 - **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
   where the value is read or written outside an event handler, so that no `emit` runs: a stream
   listener, `close`, an overridden `add`, a widget leaving the tree. Or where it marks work in
-  flight, which a state emitted later would report too late. The fields are listed, with the reason
+  flight, which a state emitted later would report too late. Or where it mirrors a value already
+  written elsewhere (the stored preference) or is a throttle clock set by a write that may emit
+  nothing. The fields are listed, with the reason
   for each, in `test/ui/pages/workspace/bloc_final_fields_test.dart`, which fails on any other.
 - **RSHELL1:** a Bash script may start with `#!/usr/bin/env bash`.
 
-The rule asking for doc comments that start with an imperative verb is read this way here: a
+The rule asking for doc comments that start with an imperative verb is read this way here. A
 method, getter, setter, operator or function opens with the verb (`Build`, `Get the`, `Tell
-whether`), a constructor with `Create` or `Build`, a class, mixin, enum, extension or typedef with
-the noun phrase saying what it is (unless it opens with a third-person verb), and a field,
-constant or enum value with a noun phrase.
+whether`), never with an article or a third-person verb (`Builds`): `test/documentation_test.dart`
+fails on it, except in `test/`, which is exempt. A constructor opens with `Class constructor`, the
+idiom `actlibs/` uses throughout. A class, mixin, enum, extension or typedef opens with the noun
+phrase saying what it is, except an event, which may open with the verb it asks for (`Request`,
+`Select`, `Toggle`); a field, constant or enum value opens with a noun phrase. The guard reads only
+the members listed first: the opening of a constructor, a class or a field is a convention that
+nothing checks.
 
 House style: `Ocpt` prefix on app classes, doc comments on every declaration, match the
 existing files' idioms exactly. Tests use inline private test doubles (no shared helpers

@@ -116,7 +116,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   person rather than only ids: `notes` is what somebody wrote about them at an audition, so erasing
   a person blanks it and tombstones the row, in all three implementations kept in step by hand
   (`OcptPeopleService.deletePerson` → `eraseCandidaciesOfPerson`,
-  `OcptProjectVersionsService._scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
+  `OcptProjectVersionsPayloadOps.scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`).
   **`OcptRoleSheetCandidatesCard`** sits under the casting card on the role sheet: one row per
   candidacy — `OcptPersonAvatar`, the name, a status pill, the audition date and a foldable note
   riding the sheets' own 2 s debounce through a sixth `pending…FieldEdits` map — the **retained row
@@ -166,7 +166,7 @@ their sets, the elements catalogue, and the two documents the mode prints.
   since it may have been cast in the meantime and losing every link is what already handles a
   character leaving the script. A role whose character disappeared keeps its casting and its notes
   and gains an `orphanedName` (`OcptRemovedRoleAlert`, the sibling of
-  `OcptShotRemovedCharacterAlert`), and a hand-added `silent`/`extra` role is never touched.
+  `OcptRoleCollisionAlert`), and a hand-added `silent`/`extra` role is never touched.
   **Rejecting an action-detected role is final**: reading a name out of an action line is a
   convention, not a syntax, so an acronym or a shouted word (`OK`, `STOP`, `INTERPOL`) is
   occasionally read as a character, and `reconcile` refuses to recreate one whose tombstone is

@@ -227,9 +227,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   `OcptWorkspaceMode { screenplay, breakdown, shotList, resources, schedule, budget }` is ordered by
   the order the work happens in (write, break down, shoot-list, resource, schedule) with `budget`
   last since it is the one mode that reads every other mode's own figures rather than one anybody
-  starts from, and is persisted through `OcptPropertiesManager.workspaceMode` by **name** rather
-  than by index (modelled on `editorMode`), so opening a project restores the last mode used and
-  reordering the enum is safe. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
+  starts from, and is never persisted: a fresh `OcptWorkspaceBloc` is built each time a project
+  opens and always starts on `screenplay`. The modes are `OcptEditorPage` (screenplay, under `lib/ui/pages/editor/`),
   `OcptBreakdownMode`, `OcptShotListMode`, `OcptResourcesMode`, `OcptScheduleMode` and
   `OcptBudgetMode` (each under `lib/ui/pages/workspace/modes/<mode>/`, each owning its own bloc, which
   is a mode bloc and its view blocs once the mode is split, ADR 0034; the shot list, the schedule,
@@ -652,13 +651,15 @@ the persistence, the project versions, the sync-ready data model and the read-on
   two keys always have room for a third): `ocptFractionalKeyBetween` allocates one,
   `ocptFractionalKeySequence` backfills a whole group, `ocptFractionalKeyRekeyPlan` gives the
   minimal set of writes a reorder needs, so an insertion or a move writes exactly one row.
-  `position` survives as a legacy column stamped once at insertion and never renumbered — nothing
-  reads it, and `OcptShot.position` is a read-time rank the loading service counts off, not that
-  column. `row_field_versions` holds the per-column version stamps a merge resolves conflicts with;
-  a version restore (above) and the domain services write them through `OcptRowStampService` — a
-  composite primary key is rendered into `rowId` through
-  `ocptCompositeRowStampKey` (`lib/models/rules/ocpt_row_stamp_key.dart`), the app's single encoding
-  of one. `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
+  On a table that has a `sortKey`, `position` survives as a legacy column stamped once at insertion
+  and never renumbered — nothing reads it, and `OcptShot.position` is a read-time rank the loading
+  service counts off, not that column. `scenes.position` is the exception: it is the scene's index
+  in the screenplay, rewritten at every index and sorted on by several services.
+  `row_field_versions` holds the per-column version stamps a merge resolves conflicts with; a
+  version restore (above) and the domain services write them through `OcptRowStampService` — a
+  composite primary key is rendered into `rowId` through `ocptCompositeRowStampKey`
+  (`lib/models/rules/ocpt_row_stamp_key.dart`), the app's single encoding of one.
+  `OcptPropertiesManager.loadOrCreateDeviceId()` mints and keeps this replica's UUID.
 
 - Binary assets (ADR 0013): a photo or a signed document is **referenced, never embedded**. The
   `assets` table holds a path, a kind and its subject's id; no bytes ever enter the `.ocpt`, so
@@ -692,7 +693,7 @@ the persistence, the project versions, the sync-ready data model and the read-on
   personal columns**, so the file stops holding a phone number, a home address and an allergy for
   someone who asked to be removed. Versions cut across that — a payload captured earlier still
   holds a full copy — so the erased ids are kept in `local_erasures` and the **restore path scrubs
-  on decode** (`OcptProjectVersionsService._scrubErasedPeople`, reading the list fresh from the
+  on decode** (`OcptProjectVersionsPayloadOps.scrubErasedPeople`, reading the list fresh from the
   database so an erasure recorded *after* a version was taken still binds): versions stay
   byte-identical (the codec never rewrites a stored payload), and the working copy never
   resurrects an erased person. The scrubbed row is blanked and tombstoned rather than dropped —
@@ -700,13 +701,13 @@ the persistence, the project versions, the sync-ready data model and the read-on
   still point at it. **Their `assets` rows are blanked too, path and label**: an absolute path
   routinely names the person (`…/cession-droits-Jean-Dupont.pdf`) and always says where a
   photograph of them sits, so tombstoning the row without emptying it would leave the leak open.
-  **`_scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
+  **`OcptProjectVersionsPayloadOps.scrubErasedPeople` and `OcptPeopleService.deletePerson` (with
   `OcptAssetsService.erasePersonAssets`) implement the same erasure from two starting points and
   must be kept in step by hand**: a column blanked by one but not the other reopens the leak.
   **`role_candidates` joins that rule**, being the first *link* table to hold something about a
   person rather than only ids: its `notes` is what somebody wrote about them at an audition, so
   erasing a person blanks it and tombstones the row, in all three implementations
-  (`eraseCandidaciesOfPerson`, `_scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`) — and the
+  (`eraseCandidaciesOfPerson`, `scrubErasedPeople`, `ocptScrubErasedPeopleFromPayload`) — and the
   test walking every key the codec writes for a person is what catches a miss.
   `shooting_block_candidates` does **not** join it: the link carries no `personId`, pointing at a
   candidacy rather than at a person, and it drops out on its own once that candidacy is tombstoned.
@@ -742,16 +743,17 @@ the persistence, the project versions, the sync-ready data model and the read-on
   what is missing. `project_versions` travel **scrubbed**: on the staged copy alone, every stored
   payload is rewritten with the erased people taken back out
   (`ocptScrubErasedPeopleFromPayload`, `lib/models/rules/`, the third implementation of the erasure
-  rule after `OcptPeopleService.deletePerson` and `OcptProjectVersionsService._scrubErasedPeople`, and
-  the only untyped one — a package may be built from a file at any schema version, so it reads the
-  payload's own keys; a test walks every key the codec writes for a person and fails unless this one
-  classifies it), `content_digest` nulled on the rows actually touched, and `local_erasures` emptied.
-  Everything the mode side needs is `MixinOcptProjectPackageBloc`/`MixinOcptProjectPackageState`
-  (`lib/ui/pages/workspace/blocs/`), mixed in beside `MixinOcptProjectVersionsBloc` and declaring
-  the **same `flushPendingProjectWrites` hook**, for the same reason: the package is built from the
-  file on disk, so a debounced field edit has to reach it first. `OcptHomeBloc` mixes it in too, for
-  a project card's `Export…` with nothing open. See `exports.md` for where the two gestures sit in
-  the UI.
+  rule after `OcptPeopleService.deletePerson` and
+  `OcptProjectVersionsPayloadOps.scrubErasedPeople`, and the only untyped one — a package may be
+  built from a file at any schema version, so it reads the payload's own keys; a test walks every
+  key the codec writes for a person and fails unless this one classifies it), `content_digest`
+  nulled on the rows actually touched, and `local_erasures` emptied. Everything the mode side needs
+  is `MixinOcptProjectPackageBloc`/`MixinOcptProjectPackageState` (`lib/ui/pages/workspace/blocs/`),
+  mixed in beside `MixinOcptProjectVersionsBloc` and declaring the **same
+  `flushPendingProjectWrites` hook**, for the same reason: the package is built from the file on
+  disk, so a debounced field edit has to reach it first. `OcptHomeBloc` mixes it in too, for a
+  project card's `Export…` with nothing open. See `exports.md` for where the two gestures sit in the
+  UI.
 
 - Opening a project file from another build (ADR 0022): **no `.ocpt` reaches drift before it has
   been read.** `OcptProjectFileCompatibilityService` (`lib/managers/projects/services/`) probes it

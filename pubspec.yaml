@@ -191,8 +191,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Parses Dart sources in the test that guards the shape of the try statements, which no text scan
-  # can read (it is already resolved for the code generators)
+  # Parses Dart sources in the tests that guard the shape of the code (the try statements, the
+  # member order, the doc comments), which no text scan can read (it is already resolved for the
+  # code generators)
   analyzer: ^10.0.1
 
   # Runs the code generators (drift_dev, intl_utils) declared as build_runner builders

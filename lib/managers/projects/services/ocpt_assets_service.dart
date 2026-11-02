@@ -194,8 +194,8 @@ class OcptAssetsService extends AbsOcptService {
   /// not what removing a person from a production means.
   ///
   /// **Unguarded, for the reason [insertAsset] is**: it runs inside `deletePerson`'s transaction.
-  /// Its mirror on the version side is `OcptProjectVersionsService._scrubErasedPeople`, and the two
-  /// must be kept in step by hand. Stamps through [stamps], for the same reason [insertAsset] does.
+  /// Its mirror on the version side is `OcptProjectVersionsPayloadOps.scrubErasedPeople`, and the
+  /// two must be kept in step by hand. Stamps through [stamps], for the same reason [insertAsset] does.
   Future<void> erasePersonAssets({
     required OcptProjectDatabase database,
     required String personId,
