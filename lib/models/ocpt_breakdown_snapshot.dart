@@ -155,7 +155,7 @@ class OcptBreakdownSnapshot extends Equatable {
 
     final scenesWithTags = [
       for (final scene in scenes)
-        scene.copyWith(tags: tagsBySceneId[scene.id] ?? const <OcptBreakdownTag>[]),
+        scene.copyWithTags(tags: tagsBySceneId[scene.id] ?? const <OcptBreakdownTag>[]),
     ];
 
     final positionBySceneId = {for (final scene in scenes) scene.id: scene.position};

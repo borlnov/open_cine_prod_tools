@@ -109,7 +109,7 @@ class OcptBreakdownScene extends Equatable {
   /// Get this scene with [tags] replacing its own — how `OcptBreakdownSnapshot.build` attaches each
   /// live tag to the scene it belongs to, once `OcptBreakdownService.loadScenes` has loaded the
   /// scenes with none.
-  OcptBreakdownScene copyWith({required List<OcptBreakdownTag> tags}) => OcptBreakdownScene(
+  OcptBreakdownScene copyWithTags({required List<OcptBreakdownTag> tags}) => OcptBreakdownScene(
     id: id,
     position: position,
     heading: heading,
