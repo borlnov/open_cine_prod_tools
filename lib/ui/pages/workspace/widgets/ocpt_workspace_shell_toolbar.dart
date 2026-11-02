@@ -371,9 +371,10 @@ class _OcptToolbarEpisodeSelector extends StatelessWidget {
 /// this control shares the toolbar's flexible width with the project title, and a window too
 /// narrow for the whole band ellipsizes the label down to the glyph instead of striping the row.
 ///
-/// Never built at all below [ocptCompactWidthBreakpoint] — the toolbar withholds it there — and [ocptPhoneWidthBreakpoint] is always below that breakpoint too, so this
-/// widget never has to reduce itself to an icon-only trigger the way the selector does: by the
-/// time it runs, the toolbar is already wide enough for its label.
+/// Never built at all below [ocptCompactWidthBreakpoint] — the toolbar withholds it there — and
+/// [ocptPhoneWidthBreakpoint] is always below that breakpoint too, so this widget never
+/// has to reduce itself to an icon-only trigger the way the selector does: by the time it runs,
+/// the toolbar is already wide enough for its label.
 class _OcptToolbarAddEpisodeAction extends StatelessWidget {
   /// Called when the button is tapped.
   final VoidCallback onPressed;

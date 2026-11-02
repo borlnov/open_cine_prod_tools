@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_identity_header_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_identity_total_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_line_amounts_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_menus.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_off_quote_amounts_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_off_quote_identity_row.dart';
@@ -890,7 +891,7 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
         ),
         currencyCode: costTracking.currencyCode,
         menuBuilder: (context) => costTracking._hasEntryMenu()
-            ? _OcptCostTrackingEntryMenu(costTracking: costTracking, entry: row.entry)
+            ? OcptBudgetCostTrackingEntryMenu(costTracking: costTracking, entry: row.entry)
             : null,
       ),
       OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteAmountsRow(
@@ -901,7 +902,8 @@ class _OcptCostTrackingAmountsRow extends StatelessWidget {
   }
 }
 
-/// A commitment's own amounts sub-row: its cash figure in `Engagé` while unsettled, what has been paid against it in `Payé` once it is, read off the table's entries.
+/// A commitment's own amounts sub-row: its cash figure in `Engagé` while unsettled, what has been
+/// paid against it in `Payé` once it is, read off the table's entries.
 class _OcptCostTrackingCommitmentAmountsRow extends StatelessWidget {
   /// The cost tracking table whose entries and callbacks the row reads.
   final OcptBudgetCostTracking costTracking;
@@ -943,96 +945,8 @@ class _OcptCostTrackingCommitmentAmountsRow extends StatelessWidget {
       activeCents: activeCents,
       currencyCode: costTracking.currencyCode,
       menuBuilder: (context) => costTracking._hasCommitmentMenu(commitment)
-          ? _OcptCostTrackingCommitmentMenu(costTracking: costTracking, commitment: commitment)
+          ? OcptBudgetCostTrackingCommitmentMenu(costTracking: costTracking, commitment: commitment)
           : null,
-    );
-  }
-}
-
-/// A commitment's own `⋮` menu: edit, settle or unsettle, delete — each entry withheld on its own
-/// terms (see [OcptBudgetCostTracking]'s class doc comment).
-class _OcptCostTrackingCommitmentMenu extends StatelessWidget {
-  /// The cost tracking table whose callbacks and entries the menu is wired to.
-  final OcptBudgetCostTracking costTracking;
-
-  /// The commitment the menu acts on.
-  final OcptBudgetCommitment commitment;
-
-  /// Class constructor
-  const _OcptCostTrackingCommitmentMenu({required this.costTracking, required this.commitment});
-
-  /// Build the commitment menu as a [PopupMenuButton].
-  @override
-  Widget build(BuildContext context) {
-    final isSettled = ocptBudgetCommitmentIsSettledOf(
-      commitment,
-      costTracking.entries,
-      projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
-    );
-    final isReadOnly = costTracking.isReadOnly;
-    final onEdit = isReadOnly ? null : costTracking.onCommitmentEditRequested;
-    final onSettle = isReadOnly || isSettled ? null : costTracking.onCommitmentSettleRequested;
-    final onUnsettle = isReadOnly || !isSettled ? null : costTracking.onCommitmentUnsettleRequested;
-    final onDelete = isReadOnly ? null : costTracking.onCommitmentDeletionRequested;
-    final tr = Tr.of(context);
-
-    return PopupMenuButton<String>(
-      tooltip: "",
-      icon: const Icon(Icons.more_vert, size: 18),
-      onSelected: (value) => switch (value) {
-        "edit" => onEdit?.call(commitment),
-        "settle" => onSettle?.call(commitment),
-        "unsettle" => onUnsettle?.call(commitment.id),
-        "delete" => onDelete?.call(commitment.id),
-        _ => null,
-      },
-      itemBuilder: (context) => [
-        if (onEdit != null)
-          PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
-        if (onSettle != null)
-          PopupMenuItem<String>(value: "settle", child: Text(tr.budgetCommittedSettleAction)),
-        if (onUnsettle != null)
-          PopupMenuItem<String>(value: "unsettle", child: Text(tr.budgetCommittedUnsettleAction)),
-        if (onDelete != null)
-          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetCommittedDeleteAction)),
-      ],
-    );
-  }
-}
-
-/// An entry's own `⋮` menu: edit and delete, each withheld while its callback is.
-class _OcptCostTrackingEntryMenu extends StatelessWidget {
-  /// The cost tracking table whose callbacks the menu is wired to.
-  final OcptBudgetCostTracking costTracking;
-
-  /// The entry the menu acts on.
-  final OcptBudgetEntry entry;
-
-  /// Class constructor
-  const _OcptCostTrackingEntryMenu({required this.costTracking, required this.entry});
-
-  /// Build the entry menu as a [PopupMenuButton].
-  @override
-  Widget build(BuildContext context) {
-    final isReadOnly = costTracking.isReadOnly;
-    final onEdit = isReadOnly ? null : costTracking.onEntryEditRequested;
-    final onDelete = isReadOnly ? null : costTracking.onEntryDeletionRequested;
-    final tr = Tr.of(context);
-
-    return PopupMenuButton<String>(
-      tooltip: "",
-      icon: const Icon(Icons.more_vert, size: 18),
-      onSelected: (value) => switch (value) {
-        "edit" => onEdit?.call(entry),
-        "delete" => onDelete?.call(entry.id),
-        _ => null,
-      },
-      itemBuilder: (context) => [
-        if (onEdit != null)
-          PopupMenuItem<String>(value: "edit", child: Text(tr.budgetFinancingEditAction)),
-        if (onDelete != null)
-          PopupMenuItem<String>(value: "delete", child: Text(tr.budgetEntryDeleteAction)),
-      ],
     );
   }
 }

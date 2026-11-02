@@ -156,8 +156,8 @@ class OcptBreakdownSceneInspector extends StatefulWidget {
   State<OcptBreakdownSceneInspector> createState() => _OcptBreakdownSceneInspectorState();
 }
 
-/// What [OcptBreakdownSceneInspector] reads off one scene: its live targets, the ones still to find,
-/// its tags flagged to check, and one group of alphabetised targets per bucket.
+/// What [OcptBreakdownSceneInspector] reads off one scene: its live targets, the ones still to
+/// find, its tags flagged to check, and one group of alphabetised targets per bucket.
 class _OcptBreakdownSceneInspection {
   /// Every live target of the scene.
   final List<OcptBreakdownTarget> targets;

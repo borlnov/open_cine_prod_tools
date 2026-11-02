@@ -294,8 +294,8 @@ class _OcptLogisticsAllowanceRowEntry extends StatelessWidget {
         currencyCode: column.currencyCode,
         isExpanded: row.isExpanded,
         onTwistyTap: () => column.onNodeExpansionToggled(row.personId),
-        // Navigation, not a write: never withheld under [column.isReadOnly] — mirrors the very same reading
-        // this menu entry already followed on the flat table.
+        // Navigation, not a write: never withheld under a read-only table — mirrors the very same
+        // reading this menu entry already followed on the flat table.
         onPersonOpenRequested: () => column.onPersonOpenRequested(row.personId),
         onReimburseRequested: column.isReadOnly || column.onReimburseRequested == null
             ? null
