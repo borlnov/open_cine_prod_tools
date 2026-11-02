@@ -829,12 +829,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// Every handler that writes to the schedule tables ends here.
   ///
   /// Answers false when the read failed, so that a handler with something left to do after it
-  /// stops there. With no project open nothing is read and nothing fails: that answers true.
+  /// stops there. With no project open when it is called nothing is read and nothing fails: that
+  /// answers true, whatever happens to the project meanwhile.
   @useResult
   Future<bool> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
+    final hasProject = _projectsManager.currentProject != null;
     final isRead = await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
 
-    return isRead || _projectsManager.currentProject == null;
+    return isRead || !hasProject;
   }
 
   /// Write every pending write of the mode's views immediately, through the flushers they
