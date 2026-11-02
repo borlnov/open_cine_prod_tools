@@ -87,3 +87,6 @@ d5324a56e21248737044fdf57961ff2b78dbfc29
 
 # style: wrap the lines over 100 characters
 a0951b6e5655853dee4c2200b1e2a100b43afc28
+
+# style: indent the shell scripts with 4 spaces
+7ce1ac571565114859feaf8775430999ec5df846
