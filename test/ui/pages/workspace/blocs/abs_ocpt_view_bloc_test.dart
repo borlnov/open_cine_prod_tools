@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
@@ -234,6 +235,9 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Whether writing the typed text without state fails.
   bool failsToWriteWithoutState = false;
 
+  /// Whether the stateless flush answers a failure instead of raising one.
+  bool answersFailureWithoutState = false;
+
   /// When set, a write without state waits for it before it succeeds or fails: a write that is
   /// still in flight.
   Completer<void>? writeGate;
@@ -320,11 +324,16 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     if (state.pending.isNotEmpty) {
       await flushEditsWithoutState({"text": state.pending}, (edits) async {
         final fails = failsToWriteWithoutState;
+        final answersFailure = answersFailureWithoutState;
         await writeGate?.future;
         if (fails) {
           throw StateError("write failed");
         }
+        if (answersFailure) {
+          return const OcptDatabaseOutcome(status: OcptDatabaseStatus.databaseError);
+        }
         sink.add("${edits["text"]} (without state)");
+        return null;
       });
     }
   }
@@ -644,6 +653,24 @@ void main() {
       view.writeGate!.complete();
       await flushing;
       await closing;
+
+      expect(sink, ['hello (without state)']);
+
+      await mode.close();
+    });
+
+    test('is written again when the first write answered a failure', () async {
+      final sink = <String>[];
+      final mode = _ModeBloc();
+      final view = _ViewBloc(modeBloc: mode, sink: sink);
+      view.add(const _TypeEvent("hello"));
+      await pumpEventQueue();
+      view.answersFailureWithoutState = true;
+      await mode.flushViewsWithoutState();
+      expect(sink, isEmpty);
+
+      view.answersFailureWithoutState = false;
+      await view.close();
 
       expect(sink, ['hello (without state)']);
 

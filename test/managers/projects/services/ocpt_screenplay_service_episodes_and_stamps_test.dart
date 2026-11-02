@@ -27,6 +27,7 @@ import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the screenplay service episodes and stamps.
 void main() {
@@ -419,20 +420,22 @@ void main() {
 
         // A shooting day whose one slot holds a block placing the deleted episode's shot, plus a
         // milestone block that places nothing.
-        final dayId = (await scheduleService.createDay(database: database, date: DateTime(2026)))!;
-        final scheduleBefore = await scheduleService.loadSchedule(database: database);
+        final dayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026))
+            .valueOrFail);
+        final scheduleBefore = await scheduleService.loadSchedule(database: database).valueOrFail;
         final slotId = scheduleBefore.slotsByDayId[dayId]!.single.id;
-        final shotBlockId = (await scheduleService.placeShot(
-          database: database,
-          slotId: slotId,
-          shotId: shotId,
-        ))!;
-        final milestoneBlockId = (await scheduleService.createBlock(
-          database: database,
-          slotId: slotId,
-          kind: OcptShootingBlockKind.preparation,
-          label: "Prep",
-        ))!;
+        final shotBlockId = (await scheduleService
+            .placeShot(database: database, slotId: slotId, shotId: shotId)
+            .valueOrFail);
+        final milestoneBlockId = (await scheduleService
+            .createBlock(
+              database: database,
+              slotId: slotId,
+              kind: OcptShootingBlockKind.preparation,
+              label: "Prep",
+            )
+            .valueOrFail);
 
         final deleted = await service.deleteEpisode(database: database, screenplayId: screenplayId);
         expect(deleted, isTrue);

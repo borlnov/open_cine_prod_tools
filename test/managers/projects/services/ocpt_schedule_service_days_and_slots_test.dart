@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the schedule service days and slots.
 void main() {
@@ -133,10 +134,9 @@ void main() {
     setUp(insertScreenplay);
 
     test("createDay mints exactly one slot anchored by its start at the default minute", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
 
       final slots = await readLiveSlots(dayId);
       expect(slots, hasLength(1));
@@ -148,41 +148,35 @@ void main() {
 
     test("loadSchedule ranks days chronologically, and renumbers when a date moves", () async {
       // Created out of chronological order: the 12th first, then the 10th, then the 11th.
-      final laterId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 12),
-      ))!;
-      final earliestId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
-      final middleId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 11),
-      ))!;
+      final laterId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 12))
+          .valueOrFail);
+      final earliestId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
+      final middleId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 11))
+          .valueOrFail);
 
-      var snapshot = await scheduleService.loadSchedule(database: database);
+      var snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(snapshot.days.map((day) => day.id), [earliestId, middleId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
 
       // Moving the middle day's date before the earliest one renumbers all three — J1/J2/J3 are a
       // label read off the dates, not the days' own creation order.
-      await scheduleService.updateDay(
-        database: database,
-        dayId: middleId,
-        date: Value(DateTime(2026, 8, 9)),
-      );
+      await scheduleService
+          .updateDay(database: database, dayId: middleId, date: Value(DateTime(2026, 8, 9)))
+          .okOrFail;
 
-      snapshot = await scheduleService.loadSchedule(database: database);
+      snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(snapshot.days.map((day) => day.id), [middleId, earliestId, laterId]);
       expect(snapshot.days.map((day) => day.dayNumber), [1, 2, 3]);
     });
 
     test("deleteDay tombstones the day and everything hanging off it", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slots = await readLiveSlots(dayId);
       final slotId = slots.single.id;
 
@@ -190,22 +184,28 @@ void main() {
       final roleId = await createRole("role-1");
       final shotId = await createShot("shot-1");
 
-      await scheduleService.addSlotCrewMember(
-        database: database,
-        slotId: slotId,
-        personId: personId,
-      );
-      await scheduleService.addSlotCastRole(database: database, slotId: slotId, roleId: roleId);
-      await scheduleService.placeShot(database: database, slotId: slotId, shotId: shotId);
-      await scheduleService.addSlotGuest(database: database, slotId: slotId, freeName: "Le maire");
-      await scheduleService.createDayEvent(
-        database: database,
-        dayId: dayId,
-        minute: 1020,
-        label: "Feu d'artifice du village",
-      );
+      await scheduleService
+          .addSlotCrewMember(database: database, slotId: slotId, personId: personId)
+          .maybeValueOrFail;
+      await scheduleService
+          .addSlotCastRole(database: database, slotId: slotId, roleId: roleId)
+          .maybeValueOrFail;
+      await scheduleService
+          .placeShot(database: database, slotId: slotId, shotId: shotId)
+          .maybeValueOrFail;
+      await scheduleService
+          .addSlotGuest(database: database, slotId: slotId, freeName: "Le maire")
+          .maybeValueOrFail;
+      await scheduleService
+          .createDayEvent(
+            database: database,
+            dayId: dayId,
+            minute: 1020,
+            label: "Feu d'artifice du village",
+          )
+          .maybeValueOrFail;
 
-      await scheduleService.deleteDay(database: database, dayId: dayId);
+      await scheduleService.deleteDay(database: database, dayId: dayId).okOrFail;
 
       expect((await readDay(dayId)).isDeleted, isTrue);
       final allSlots = await readAllSlots(dayId);
@@ -217,72 +217,77 @@ void main() {
       expect((await readAllGuests(slotId)).every((row) => row.isDeleted), isTrue);
       expect((await readAllEvents(dayId)).every((row) => row.isDeleted), isTrue);
 
-      final snapshot = await scheduleService.loadSchedule(database: database);
+      final snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(snapshot.days, isEmpty);
     });
 
     test("duplicateDay copies the slots, crew, cast and guests with fresh ids, and neither the "
         "shots, the crew note, nor the source day's events", () async {
-      final sourceDayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final sourceDayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
 
-      await scheduleService.updateSlot(
-        database: database,
-        slotId: sourceSlotId,
-        label: const Value("Matin"),
-      );
-      await scheduleService.setSlotAnchor(
-        database: database,
-        slotId: sourceSlotId,
-        edge: OcptShootingSlotAnchorEdge.start,
-        minute: 420,
-      );
-      await scheduleService.updateDay(
-        database: database,
-        dayId: sourceDayId,
-        crewNote: const Value("Apporter les parapluies"),
-      );
+      await scheduleService
+          .updateSlot(database: database, slotId: sourceSlotId, label: const Value("Matin"))
+          .okOrFail;
+      await scheduleService
+          .setSlotAnchor(
+            database: database,
+            slotId: sourceSlotId,
+            edge: OcptShootingSlotAnchorEdge.start,
+            minute: 420,
+          )
+          .maybeValueOrFail;
+      await scheduleService
+          .updateDay(
+            database: database,
+            dayId: sourceDayId,
+            crewNote: const Value("Apporter les parapluies"),
+          )
+          .okOrFail;
 
       final personId = (await peopleService.createPerson(database: database))!;
       final roleId = await createRole("role-1");
       final shotId = await createShot("shot-1");
 
-      final sourceCrewId = (await scheduleService.addSlotCrewMember(
-        database: database,
-        slotId: sourceSlotId,
-        personId: personId,
-        positionId: "director",
-      ))!;
+      final sourceCrewId = (await scheduleService
+          .addSlotCrewMember(
+            database: database,
+            slotId: sourceSlotId,
+            personId: personId,
+            positionId: "director",
+          )
+          .valueOrFail);
 
-      final sourceCastId = (await scheduleService.addSlotCastRole(
-        database: database,
-        slotId: sourceSlotId,
-        roleId: roleId,
-      ))!;
+      final sourceCastId = (await scheduleService
+          .addSlotCastRole(database: database, slotId: sourceSlotId, roleId: roleId)
+          .valueOrFail);
 
-      final sourceGuestId = (await scheduleService.addSlotGuest(
-        database: database,
-        slotId: sourceSlotId,
-        freeName: "Le maire",
-        reason: "Prête la place",
-      ))!;
+      final sourceGuestId = (await scheduleService
+          .addSlotGuest(
+            database: database,
+            slotId: sourceSlotId,
+            freeName: "Le maire",
+            reason: "Prête la place",
+          )
+          .valueOrFail);
 
-      await scheduleService.placeShot(database: database, slotId: sourceSlotId, shotId: shotId);
-      await scheduleService.createDayEvent(
-        database: database,
-        dayId: sourceDayId,
-        minute: 1020,
-        label: "Feu d'artifice du village",
-      );
+      await scheduleService
+          .placeShot(database: database, slotId: sourceSlotId, shotId: shotId)
+          .maybeValueOrFail;
+      await scheduleService
+          .createDayEvent(
+            database: database,
+            dayId: sourceDayId,
+            minute: 1020,
+            label: "Feu d'artifice du village",
+          )
+          .maybeValueOrFail;
 
-      final newDayId = (await scheduleService.duplicateDay(
-        database: database,
-        sourceDayId: sourceDayId,
-        date: DateTime(2026, 8, 20),
-      ))!;
+      final newDayId = (await scheduleService
+          .duplicateDay(database: database, sourceDayId: sourceDayId, date: DateTime(2026, 8, 20))
+          .valueOrFail);
 
       expect(newDayId, isNot(sourceDayId));
       final newDay = await readDay(newDayId);
@@ -321,18 +326,15 @@ void main() {
     });
 
     test("duplicateDay mints the default slot when the source day has no live slot left", () async {
-      final sourceDayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final sourceDayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final sourceSlotId = (await readLiveSlots(sourceDayId)).single.id;
-      await scheduleService.deleteSlot(database: database, slotId: sourceSlotId);
+      await scheduleService.deleteSlot(database: database, slotId: sourceSlotId).okOrFail;
 
-      final newDayId = (await scheduleService.duplicateDay(
-        database: database,
-        sourceDayId: sourceDayId,
-        date: DateTime(2026, 8, 20),
-      ))!;
+      final newDayId = (await scheduleService
+          .duplicateDay(database: database, sourceDayId: sourceDayId, date: DateTime(2026, 8, 20))
+          .valueOrFail);
 
       final newSlots = await readLiveSlots(newDayId);
       expect(newSlots, hasLength(1));
@@ -346,24 +348,23 @@ void main() {
     test(
       "setSlotAnchor pins an edge to a typed hour, and to another slot's opposite one",
       () async {
-        final dayId = (await scheduleService.createDay(
-          database: database,
-          date: DateTime(2026, 8, 10),
-        ))!;
+        final dayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026, 8, 10))
+            .valueOrFail);
         final slotA = (await readLiveSlots(dayId)).single.id;
-        final slotB = (await scheduleService.createSlot(
-          database: database,
-          shootingDayId: dayId,
-          anchorMinute: 1080,
-        ))!;
+        final slotB = (await scheduleService
+            .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080)
+            .valueOrFail);
 
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.end,
-            minute: 1320,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.end,
+                minute: 1320,
+              )
+              .valueOrFail,
           isTrue,
         );
         var slots = {for (final row in await readLiveSlots(dayId)) row.id: row};
@@ -372,12 +373,14 @@ void main() {
         expect(slots[slotB]!.anchorSlotId, isNull);
 
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.start,
-            sourceSlotId: slotA,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.start,
+                sourceSlotId: slotA,
+              )
+              .valueOrFail,
           isTrue,
         );
         slots = {for (final row in await readLiveSlots(dayId)) row.id: row};
@@ -391,34 +394,35 @@ void main() {
     test(
       "setSlotAnchor refuses everything that isn't exactly one half of the discriminator",
       () async {
-        final dayId = (await scheduleService.createDay(
-          database: database,
-          date: DateTime(2026, 8, 10),
-        ))!;
+        final dayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026, 8, 10))
+            .valueOrFail);
         final slotA = (await readLiveSlots(dayId)).single.id;
-        final slotB = (await scheduleService.createSlot(
-          database: database,
-          shootingDayId: dayId,
-          anchorMinute: 1080,
-        ))!;
+        final slotB = (await scheduleService
+            .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080)
+            .valueOrFail);
 
         // Neither half, then both.
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.start,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.start,
+              )
+              .valueOrFail,
           isFalse,
         );
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.start,
-            minute: 600,
-            sourceSlotId: slotA,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.start,
+                minute: 600,
+                sourceSlotId: slotA,
+              )
+              .valueOrFail,
           isFalse,
         );
 
@@ -431,56 +435,60 @@ void main() {
     test(
       "setSlotAnchor refuses a link to itself, to another day's slot, and to a circle",
       () async {
-        final dayId = (await scheduleService.createDay(
-          database: database,
-          date: DateTime(2026, 8, 10),
-        ))!;
-        final otherDayId = (await scheduleService.createDay(
-          database: database,
-          date: DateTime(2026, 8, 11),
-        ))!;
+        final dayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026, 8, 10))
+            .valueOrFail);
+        final otherDayId = (await scheduleService
+            .createDay(database: database, date: DateTime(2026, 8, 11))
+            .valueOrFail);
         final slotA = (await readLiveSlots(dayId)).single.id;
-        final slotB = (await scheduleService.createSlot(
-          database: database,
-          shootingDayId: dayId,
-          anchorMinute: 1080,
-        ))!;
+        final slotB = (await scheduleService
+            .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080)
+            .valueOrFail);
         final foreignSlot = (await readLiveSlots(otherDayId)).single.id;
 
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.start,
-            sourceSlotId: slotB,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.start,
+                sourceSlotId: slotB,
+              )
+              .valueOrFail,
           isFalse,
         );
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotB,
-            edge: OcptShootingSlotAnchorEdge.start,
-            sourceSlotId: foreignSlot,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotB,
+                edge: OcptShootingSlotAnchorEdge.start,
+                sourceSlotId: foreignSlot,
+              )
+              .valueOrFail,
           isFalse,
         );
 
         // B now reads A; A reading B back would close the circle the pure function only defends
         // against, and this is what keeps that defence unreachable.
-        await scheduleService.setSlotAnchor(
-          database: database,
-          slotId: slotB,
-          edge: OcptShootingSlotAnchorEdge.start,
-          sourceSlotId: slotA,
-        );
+        await scheduleService
+            .setSlotAnchor(
+              database: database,
+              slotId: slotB,
+              edge: OcptShootingSlotAnchorEdge.start,
+              sourceSlotId: slotA,
+            )
+            .maybeValueOrFail;
         expect(
-          await scheduleService.setSlotAnchor(
-            database: database,
-            slotId: slotA,
-            edge: OcptShootingSlotAnchorEdge.start,
-            sourceSlotId: slotB,
-          ),
+          await scheduleService
+              .setSlotAnchor(
+                database: database,
+                slotId: slotA,
+                edge: OcptShootingSlotAnchorEdge.start,
+                sourceSlotId: slotB,
+              )
+              .valueOrFail,
           isFalse,
         );
 
@@ -491,44 +499,45 @@ void main() {
     );
 
     test("deleteSlot freezes the hour each of its dependents was reading", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final source = (await readLiveSlots(dayId)).single.id; // 08:00
-      final follower = (await scheduleService.createSlot(
-        database: database,
-        shootingDayId: dayId,
-        anchorMinute: 1080,
-      ))!;
-      final before = (await scheduleService.createSlot(
-        database: database,
-        shootingDayId: dayId,
-        anchorMinute: 1080,
-      ))!;
+      final follower = (await scheduleService
+          .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080)
+          .valueOrFail);
+      final before = (await scheduleService
+          .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080)
+          .valueOrFail);
 
       // The source runs 08:00 -> 09:00, so its follower starts at 09:00 and the slot pinned to end
       // when it begins ends at 08:00.
-      await scheduleService.createBlock(
-        database: database,
-        slotId: source,
-        kind: OcptShootingBlockKind.preparation,
-        durationMinutes: 60,
-      );
-      await scheduleService.setSlotAnchor(
-        database: database,
-        slotId: follower,
-        edge: OcptShootingSlotAnchorEdge.start,
-        sourceSlotId: source,
-      );
-      await scheduleService.setSlotAnchor(
-        database: database,
-        slotId: before,
-        edge: OcptShootingSlotAnchorEdge.end,
-        sourceSlotId: source,
-      );
+      await scheduleService
+          .createBlock(
+            database: database,
+            slotId: source,
+            kind: OcptShootingBlockKind.preparation,
+            durationMinutes: 60,
+          )
+          .maybeValueOrFail;
+      await scheduleService
+          .setSlotAnchor(
+            database: database,
+            slotId: follower,
+            edge: OcptShootingSlotAnchorEdge.start,
+            sourceSlotId: source,
+          )
+          .maybeValueOrFail;
+      await scheduleService
+          .setSlotAnchor(
+            database: database,
+            slotId: before,
+            edge: OcptShootingSlotAnchorEdge.end,
+            sourceSlotId: source,
+          )
+          .maybeValueOrFail;
 
-      await scheduleService.deleteSlot(database: database, slotId: source);
+      await scheduleService.deleteSlot(database: database, slotId: source).okOrFail;
 
       final slots = {for (final row in await readLiveSlots(dayId)) row.id: row};
       expect(slots.keys, unorderedEquals([follower, before]));
@@ -543,29 +552,30 @@ void main() {
     });
 
     test("duplicateDay remaps a link onto the copy, never back across the two days", () async {
-      final sourceDayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final sourceDayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final first = (await readLiveSlots(sourceDayId)).single.id;
-      final second = (await scheduleService.createSlot(
-        database: database,
-        shootingDayId: sourceDayId,
-        anchorMinute: 1080,
-        label: "Soir",
-      ))!;
-      await scheduleService.setSlotAnchor(
-        database: database,
-        slotId: second,
-        edge: OcptShootingSlotAnchorEdge.start,
-        sourceSlotId: first,
-      );
+      final second = (await scheduleService
+          .createSlot(
+            database: database,
+            shootingDayId: sourceDayId,
+            anchorMinute: 1080,
+            label: "Soir",
+          )
+          .valueOrFail);
+      await scheduleService
+          .setSlotAnchor(
+            database: database,
+            slotId: second,
+            edge: OcptShootingSlotAnchorEdge.start,
+            sourceSlotId: first,
+          )
+          .maybeValueOrFail;
 
-      final newDayId = (await scheduleService.duplicateDay(
-        database: database,
-        sourceDayId: sourceDayId,
-        date: DateTime(2026, 8, 20),
-      ))!;
+      final newDayId = (await scheduleService
+          .duplicateDay(database: database, sourceDayId: sourceDayId, date: DateTime(2026, 8, 20))
+          .valueOrFail);
 
       final newSlots = await readLiveSlots(newDayId);
       expect(newSlots, hasLength(2));
@@ -578,40 +588,28 @@ void main() {
 
     test("deleteSlot moves its live blocks, in order, to the end of the day's first other live "
         "slot", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slotA = (await readLiveSlots(dayId)).single.id;
-      final slotB = (await scheduleService.createSlot(
-        database: database,
-        shootingDayId: dayId,
-        anchorMinute: 1080,
-        label: "Soir",
-      ))!;
+      final slotB = (await scheduleService
+          .createSlot(database: database, shootingDayId: dayId, anchorMinute: 1080, label: "Soir")
+          .valueOrFail);
 
-      final x1 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotB,
-        kind: OcptShootingBlockKind.preparation,
-      ))!;
-      final x2 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotB,
-        kind: OcptShootingBlockKind.hairMakeUp,
-      ))!;
-      final y1 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotA,
-        kind: OcptShootingBlockKind.meal,
-      ))!;
-      final y2 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotA,
-        kind: OcptShootingBlockKind.wrap,
-      ))!;
+      final x1 = (await scheduleService
+          .createBlock(database: database, slotId: slotB, kind: OcptShootingBlockKind.preparation)
+          .valueOrFail);
+      final x2 = (await scheduleService
+          .createBlock(database: database, slotId: slotB, kind: OcptShootingBlockKind.hairMakeUp)
+          .valueOrFail);
+      final y1 = (await scheduleService
+          .createBlock(database: database, slotId: slotA, kind: OcptShootingBlockKind.meal)
+          .valueOrFail);
+      final y2 = (await scheduleService
+          .createBlock(database: database, slotId: slotA, kind: OcptShootingBlockKind.wrap)
+          .valueOrFail);
 
-      await scheduleService.deleteSlot(database: database, slotId: slotA);
+      await scheduleService.deleteSlot(database: database, slotId: slotA).okOrFail;
 
       expect((await readAllSlots(dayId)).firstWhere((row) => row.id == slotA).isDeleted, isTrue);
 
@@ -622,24 +620,19 @@ void main() {
     });
 
     test("deleteSlot tombstones its own blocks too when it is the day's last live slot", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
 
-      final y1 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.meal,
-      ))!;
-      final y2 = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.wrap,
-      ))!;
+      final y1 = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.meal)
+          .valueOrFail);
+      final y2 = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.wrap)
+          .valueOrFail);
 
-      await scheduleService.deleteSlot(database: database, slotId: slotId);
+      await scheduleService.deleteSlot(database: database, slotId: slotId).okOrFail;
 
       expect((await readAllSlots(dayId)).single.isDeleted, isTrue);
       final blocks = await readAllBlocks(dayId);
@@ -648,41 +641,33 @@ void main() {
     });
 
     test("deleteSlot tombstones its own guests, a guest being convoked by the slot", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
-      final guestId = (await scheduleService.addSlotGuest(
-        database: database,
-        slotId: slotId,
-        freeName: "Le maire",
-      ))!;
+      final guestId = (await scheduleService
+          .addSlotGuest(database: database, slotId: slotId, freeName: "Le maire")
+          .valueOrFail);
 
-      await scheduleService.deleteSlot(database: database, slotId: slotId);
+      await scheduleService.deleteSlot(database: database, slotId: slotId).okOrFail;
 
       final guest = (await readAllGuests(slotId)).firstWhere((row) => row.id == guestId);
       expect(guest.isDeleted, isTrue);
     });
 
     test("addSlotCastRole refuses convoking the same role twice in one slot", () async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
       final roleId = await createRole("role-1");
 
-      final firstId = await scheduleService.addSlotCastRole(
-        database: database,
-        slotId: slotId,
-        roleId: roleId,
-      );
-      final secondId = await scheduleService.addSlotCastRole(
-        database: database,
-        slotId: slotId,
-        roleId: roleId,
-      );
+      final firstId = await scheduleService
+          .addSlotCastRole(database: database, slotId: slotId, roleId: roleId)
+          .maybeValueOrFail;
+      final secondId = await scheduleService
+          .addSlotCastRole(database: database, slotId: slotId, roleId: roleId)
+          .maybeValueOrFail;
 
       expect(secondId, firstId);
       expect(await readAllCast(slotId), hasLength(1));

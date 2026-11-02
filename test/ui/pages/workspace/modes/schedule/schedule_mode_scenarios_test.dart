@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_slot_card.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_strip_agenda.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_mode_scenarios_test_doubles.dart';
 
 /// Three dates far from any clock the test could run on: one long past, two in the far future.
@@ -80,16 +81,20 @@ void main() {
     final shotId = (await harness.seedShots(1)).single;
     final firstDay = await harness.seedDay(_first);
     final secondDay = await harness.seedDay(_second);
-    await harness.projectsManager.scheduleService.updateSlot(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(secondDay),
-      label: const Value("Cave"),
-    );
-    await harness.projectsManager.scheduleService.placeShot(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(firstDay),
-      shotId: shotId,
-    );
+    await harness.projectsManager.scheduleService
+        .updateSlot(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(secondDay),
+          label: const Value("Cave"),
+        )
+        .okOrFail;
+    await harness.projectsManager.scheduleService
+        .placeShot(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(firstDay),
+          shotId: shotId,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.openRightDock(tester);
@@ -129,11 +134,13 @@ void main() {
       "picked after it takes the inspector back", (tester) async {
     await harness.seedShots(2);
     final dayId = await harness.seedDay(_first);
-    final blockId = await harness.projectsManager.scheduleService.createBlock(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(dayId),
-      kind: OcptShootingBlockKind.meal,
-    );
+    final blockId = await harness.projectsManager.scheduleService
+        .createBlock(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(dayId),
+          kind: OcptShootingBlockKind.meal,
+        )
+        .maybeValueOrFail;
     expect(blockId, isNotNull);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -238,11 +245,13 @@ void main() {
       "back by the block's inspector", (tester) async {
     final shotId = (await harness.seedShots(1)).single;
     final dayId = await harness.seedDay(_first);
-    await harness.projectsManager.scheduleService.placeShot(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(dayId),
-      shotId: shotId,
-    );
+    await harness.projectsManager.scheduleService
+        .placeShot(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(dayId),
+          shotId: shotId,
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -275,11 +284,13 @@ void main() {
     expect(slot.crew.single.personId, isNotEmpty);
 
     // A position given outside the mode shows once the next write reloads the plan.
-    await harness.projectsManager.scheduleService.updateSlotCrewMember(
-      database: harness.database,
-      crewMemberId: slot.crew.single.id,
-      customLabel: const Value("Gaffer"),
-    );
+    await harness.projectsManager.scheduleService
+        .updateSlotCrewMember(
+          database: harness.database,
+          crewMemberId: slot.crew.single.id,
+          customLabel: const Value("Gaffer"),
+        )
+        .okOrFail;
 
     // An uncast role convoked raises an alert: the status bar and the day badge.
     expect(find.textContaining(tr.scheduleStatsAlerts(0)), findsOneWidget);
@@ -347,17 +358,19 @@ void main() {
     final otherDayId = await harness.seedDay(_second);
     final slotId = await harness.firstSlotOf(dayId);
     final service = harness.projectsManager.scheduleService;
-    await service.placeShot(database: harness.database, slotId: slotId, shotId: shotId);
-    await service.createBlock(
-      database: harness.database,
-      slotId: slotId,
-      kind: OcptShootingBlockKind.meal,
-    );
-    await service.addSlotCastRole(
-      database: harness.database,
-      slotId: slotId,
-      roleId: await harness.seedUncastRole("MARIE"),
-    );
+    await service
+        .placeShot(database: harness.database, slotId: slotId, shotId: shotId)
+        .maybeValueOrFail;
+    await service
+        .createBlock(database: harness.database, slotId: slotId, kind: OcptShootingBlockKind.meal)
+        .maybeValueOrFail;
+    await service
+        .addSlotCastRole(
+          database: harness.database,
+          slotId: slotId,
+          roleId: await harness.seedUncastRole("MARIE"),
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     expect(find.textContaining(tr.scheduleStatsAlerts(1)), findsOneWidget);
@@ -425,11 +438,13 @@ void main() {
   testWidgets("a day created, duplicated and re-statused from the left dock is selected as soon as "
       "it exists", (tester) async {
     final dayId = await harness.seedDay(_first);
-    await harness.projectsManager.scheduleService.updateSlot(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(dayId),
-      label: const Value("Cave"),
-    );
+    await harness.projectsManager.scheduleService
+        .updateSlot(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(dayId),
+          label: const Value("Cave"),
+        )
+        .okOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     await harness.openRightDock(tester);
@@ -504,22 +519,24 @@ void main() {
     final dayId = await harness.seedDay(_first);
     final service = harness.projectsManager.scheduleService;
     final firstSlotId = await harness.firstSlotOf(dayId);
-    await service.updateSlot(
-      database: harness.database,
-      slotId: firstSlotId,
-      label: const Value("Cave"),
-    );
-    final secondSlotId = (await service.createSlot(
-      database: harness.database,
-      shootingDayId: dayId,
-      anchorMinute: 780,
-      label: "Garden",
-    ))!;
-    final blockId = (await service.createBlock(
-      database: harness.database,
-      slotId: firstSlotId,
-      kind: OcptShootingBlockKind.meal,
-    ))!;
+    await service
+        .updateSlot(database: harness.database, slotId: firstSlotId, label: const Value("Cave"))
+        .okOrFail;
+    final secondSlotId = (await service
+        .createSlot(
+          database: harness.database,
+          shootingDayId: dayId,
+          anchorMinute: 780,
+          label: "Garden",
+        )
+        .valueOrFail);
+    final blockId = (await service
+        .createBlock(
+          database: harness.database,
+          slotId: firstSlotId,
+          kind: OcptShootingBlockKind.meal,
+        )
+        .valueOrFail);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

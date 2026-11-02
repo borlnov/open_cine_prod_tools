@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
@@ -108,20 +109,19 @@ void main() {
     );
     expect(shotId, isNotNull);
 
-    final dayId = await projectsManager.scheduleService.createDay(
-      database: project.database,
-      date: DateTime(2026, 8, 10),
-    );
+    final dayId = await projectsManager.scheduleService
+        .createDay(database: project.database, date: DateTime(2026, 8, 10))
+        .maybeValueOrFail;
     expect(dayId, isNotNull);
 
-    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
+    final snapshot = await projectsManager.scheduleService
+        .loadSchedule(database: project.database)
+        .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
-    final blockId = await projectsManager.scheduleService.placeShot(
-      database: project.database,
-      slotId: slotId,
-      shotId: shotId!,
-    );
+    final blockId = await projectsManager.scheduleService
+        .placeShot(database: project.database, slotId: slotId, shotId: shotId!)
+        .maybeValueOrFail;
     expect(blockId, isNotNull);
 
     return (shotId: shotId, dayId: dayId!, blockId: blockId!);
@@ -256,13 +256,12 @@ void main() {
         personId: personId,
       );
 
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
-      final schedule = await projectsManager.scheduleService.loadSchedule(
-        database: project.database,
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
+      final schedule = await projectsManager.scheduleService
+          .loadSchedule(database: project.database)
+          .valueOrFail;
 
       return (schedule.slotsByDayId[dayId]!.single.id, roleCandidateId!);
     }
@@ -402,10 +401,9 @@ void main() {
       final project = projectsManager.currentProject!;
 
       // A second day, later than the fixture's own — J2 for now.
-      final laterDayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 20),
-      );
+      final laterDayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 20))
+          .maybeValueOrFail;
       expect(laterDayId, isNotNull);
 
       final bloc = buildBloc();

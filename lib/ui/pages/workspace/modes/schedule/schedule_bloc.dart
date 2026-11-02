@@ -30,6 +30,7 @@ import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
@@ -263,7 +264,12 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     for (final scope in scopes) {
       switch (scope) {
         case OcptScheduleReloadScope.schedule:
-          snapshot = await _loadScheduleSnapshot(project);
+          final read = await _loadScheduleSnapshot(project);
+          if (read.isError) {
+            return false;
+          }
+
+          snapshot = read.value;
         case OcptScheduleReloadScope.shotLists:
           shotLists = await _loadShotLists(project);
       }
@@ -298,7 +304,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptScheduleState> emitter) => _load(emitter);
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptScheduleState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -331,7 +337,10 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// stale one is dropped rather than trusted to still mean the same thing. The selected **day**
   /// is dropped for the same reason and then chosen afresh out of what was just read, by
   /// [_defaultSelectedDayOf] — never carried over.
-  Future<void> _load(Emitter<OcptScheduleState> emitter) async {
+  ///
+  /// Answers false when the schedule could not be read, in which case nothing is emitted and the
+  /// caller stops there.
+  Future<bool> _load(Emitter<OcptScheduleState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.scheduleLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -353,14 +362,19 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           firstWeekday: firstWeekday,
         ),
       );
-      return;
+      return true;
     }
 
     // Queued with the views' reloads: a read made here but emitted after a newer one would put
     // older data over it.
-    await runSerially(() async {
+    return runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final snapshot = await _loadScheduleSnapshot(project);
+      final scheduleRead = await _loadScheduleSnapshot(project);
+      if (scheduleRead.isError) {
+        return false;
+      }
+
+      final snapshot = scheduleRead.value!;
       final shotLists = await _loadShotLists(project);
       final locations = await _locationsService.loadLocations(database: project.database);
       final roles = await _roleIndexService.loadRoles(database: project.database);
@@ -396,6 +410,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
           firstWeekday: firstWeekday,
         ),
       );
+      return true;
     });
   }
 
@@ -447,8 +462,9 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   }
 
   /// Read [project]'s whole schedule.
-  Future<OcptScheduleSnapshot> _loadScheduleSnapshot(OcptOpenProjectModel project) =>
-      _scheduleService.loadSchedule(database: project.database);
+  Future<OcptDatabaseResult<OcptScheduleSnapshot>> _loadScheduleSnapshot(
+    OcptOpenProjectModel project,
+  ) => _scheduleService.loadSchedule(database: project.database);
 
   /// Read every live candidacy of [project], flattened out of the per-role map the service
   /// answers with: this mode never asks "who was seen for this part" — it asks "who is this
@@ -695,9 +711,16 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    final dayId = await _scheduleService.createDay(database: project.database, date: event.date);
+    final created = await _scheduleService.createDay(database: project.database, date: event.date);
+    if (created.isError) {
+      return;
+    }
 
-    await _applyScheduleSnapshot(emitter);
+    if (!await _applyScheduleSnapshot(emitter)) {
+      return;
+    }
+
+    final dayId = created.value;
     if (dayId != null) {
       emitter(state.copyWithAddedDay(dayId: dayId));
     }
@@ -713,11 +736,15 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.updateDay(
+    final updated = await _scheduleService.updateDay(
       database: project.database,
       dayId: event.dayId,
       date: Value(event.date),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await _applyScheduleSnapshot(emitter);
   }
 
@@ -731,11 +758,15 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.updateDay(
+    final updated = await _scheduleService.updateDay(
       database: project.database,
       dayId: event.dayId,
       status: Value(event.status),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await _applyScheduleSnapshot(emitter);
   }
 
@@ -749,13 +780,20 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    final newDayId = await _scheduleService.duplicateDay(
+    final duplicated = await _scheduleService.duplicateDay(
       database: project.database,
       sourceDayId: event.sourceDayId,
       date: event.date,
     );
+    if (duplicated.isError) {
+      return;
+    }
 
-    await _applyScheduleSnapshot(emitter);
+    if (!await _applyScheduleSnapshot(emitter)) {
+      return;
+    }
+
+    final newDayId = duplicated.value;
     if (newDayId != null) {
       emitter(state.copyWithAddedDay(dayId: newDayId));
     }
@@ -771,7 +809,14 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
       return;
     }
 
-    await _scheduleService.deleteDay(database: project.database, dayId: event.dayId);
+    final deleted = await _scheduleService.deleteDay(
+      database: project.database,
+      dayId: event.dayId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await _applyScheduleSnapshot(emitter);
   }
 
@@ -779,8 +824,13 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   /// fresh snapshot still holds (see [reloadScopesIn]).
   ///
   /// Every handler that writes to the schedule tables ends here.
-  Future<void> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
-    await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
+  ///
+  /// Answers false when the read failed, so that a handler with something left to do after it
+  /// stops there. With no project open nothing is read and nothing fails: that answers true.
+  Future<bool> _applyScheduleSnapshot(Emitter<OcptScheduleState> emitter) async {
+    final isRead = await reloadSerially({OcptScheduleReloadScope.schedule}, emitter);
+
+    return isRead || _projectsManager.currentProject == null;
   }
 
   /// Write every pending write of the mode's views immediately, through the flushers they
@@ -826,5 +876,7 @@ class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
   Future<void> _onProjectSettingsChanged(
     OcptScheduleProjectSettingsChangedEvent event,
     Emitter<OcptScheduleState> emitter,
-  ) => _load(emitter);
+  ) async {
+    await _load(emitter);
+  }
 }

@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_one_line_schedule_export_option
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_plan_xlsx_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_sides_export_options.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sides_presentation.dart';
@@ -34,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_export_bloc_test_doubles.dart';
 
 /// A schedule service whose slot writes always fail, as a full disk would.
@@ -43,14 +45,17 @@ class _FailingScheduleService extends OcptScheduleService {
 
   /// Fail as a refused slot write does.
   @override
-  Future<void> updateSlot({
+  Future<OcptDatabaseOutcome> updateSlot({
     required OcptProjectDatabase database,
     required String slotId,
     Value<String> label = const Value.absent(),
     Value<String?> locationId = const Value.absent(),
     Value<String?> setId = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) async => throw StateError("slot write intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "slot write intentionally failed for the test",
+  );
 }
 
 /// The fixed device id [_FailingScheduleService] stamps its writes with.
@@ -123,20 +128,19 @@ void main() {
     );
     expect(shotId, isNotNull);
 
-    final dayId = await projectsManager.scheduleService.createDay(
-      database: project.database,
-      date: DateTime(2026, 8, 10),
-    );
+    final dayId = await projectsManager.scheduleService
+        .createDay(database: project.database, date: DateTime(2026, 8, 10))
+        .maybeValueOrFail;
     expect(dayId, isNotNull);
 
-    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
+    final snapshot = await projectsManager.scheduleService
+        .loadSchedule(database: project.database)
+        .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
-    final blockId = await projectsManager.scheduleService.placeShot(
-      database: project.database,
-      slotId: slotId,
-      shotId: shotId!,
-    );
+    final blockId = await projectsManager.scheduleService
+        .placeShot(database: project.database, slotId: slotId, shotId: shotId!)
+        .maybeValueOrFail;
     expect(blockId, isNotNull);
 
     return (shotId: shotId, dayId: dayId!, slotId: slotId, blockId: blockId!);

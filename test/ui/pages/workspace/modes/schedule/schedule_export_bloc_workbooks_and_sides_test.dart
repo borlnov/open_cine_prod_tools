@@ -25,6 +25,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_export_bloc_test_doubles.dart';
 
 /// Run the tests of the schedule export bloc workbooks and sides.
@@ -94,20 +95,19 @@ void main() {
     );
     expect(shotId, isNotNull);
 
-    final dayId = await projectsManager.scheduleService.createDay(
-      database: project.database,
-      date: DateTime(2026, 8, 10),
-    );
+    final dayId = await projectsManager.scheduleService
+        .createDay(database: project.database, date: DateTime(2026, 8, 10))
+        .maybeValueOrFail;
     expect(dayId, isNotNull);
 
-    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
+    final snapshot = await projectsManager.scheduleService
+        .loadSchedule(database: project.database)
+        .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
-    final blockId = await projectsManager.scheduleService.placeShot(
-      database: project.database,
-      slotId: slotId,
-      shotId: shotId!,
-    );
+    final blockId = await projectsManager.scheduleService
+        .placeShot(database: project.database, slotId: slotId, shotId: shotId!)
+        .maybeValueOrFail;
     expect(blockId, isNotNull);
 
     return (shotId: shotId, dayId: dayId!, slotId: slotId, blockId: blockId!);
@@ -459,17 +459,13 @@ void main() {
         );
         expect(secondShotId, isNotNull);
 
-        final secondSlotId = await projectsManager.scheduleService.createSlot(
-          database: project.database,
-          shootingDayId: fixture.dayId,
-          anchorMinute: 600,
-        );
+        final secondSlotId = await projectsManager.scheduleService
+            .createSlot(database: project.database, shootingDayId: fixture.dayId, anchorMinute: 600)
+            .maybeValueOrFail;
         expect(secondSlotId, isNotNull);
-        final secondBlockId = await projectsManager.scheduleService.placeShot(
-          database: project.database,
-          slotId: secondSlotId!,
-          shotId: secondShotId!,
-        );
+        final secondBlockId = await projectsManager.scheduleService
+            .placeShot(database: project.database, slotId: secondSlotId!, shotId: secondShotId!)
+            .maybeValueOrFail;
         expect(secondBlockId, isNotNull);
 
         final exportManager = FakeScheduleExportManager(sidesResult: "/tmp/sides.pdf");

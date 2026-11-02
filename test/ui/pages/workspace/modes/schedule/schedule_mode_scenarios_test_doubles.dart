@@ -46,6 +46,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [ScheduleScenarioHarness.wrap] mounts, so [ScheduleScenarioRouterManager.pop]
 /// closes a dialog opened through `showDialog` exactly as the real router would.
@@ -350,7 +351,7 @@ class ScheduleScenarioHarness {
 
   /// Reads the whole schedule back from the database.
   Future<OcptScheduleSnapshot> readSchedule() =>
-      projectsManager.scheduleService.loadSchedule(database: database);
+      projectsManager.scheduleService.loadSchedule(database: database).valueOrFail;
 
   /// Reads the first episode's shot list back from the database.
   Future<OcptShotListSnapshot> readShotList() => projectsManager.shotListService.loadShotList(
@@ -382,10 +383,8 @@ class ScheduleScenarioHarness {
   }
 
   /// Creates a shooting day on [date], returning its id. The service gives it one default slot.
-  Future<String> seedDay(DateTime date) async {
-    final id = await projectsManager.scheduleService.createDay(database: database, date: date);
-    return id!;
-  }
+  Future<String> seedDay(DateTime date) =>
+      projectsManager.scheduleService.createDay(database: database, date: date).valueOrFail;
 
   /// Returns the id of the first slot of day [dayId].
   Future<String> firstSlotOf(String dayId) async =>

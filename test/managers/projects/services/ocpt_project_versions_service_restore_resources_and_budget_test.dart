@@ -33,6 +33,7 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_screenplay_language.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of `restoreVersion`.
 void main() {
@@ -461,7 +462,9 @@ void main() {
             ..where((table) => table.id.equals("slot-1")))
           .write(const OcptShootingSlotsTableCompanion(anchorMinute: Value(360)));
       await insertShootingDay(id: "day-2", date: DateTime.utc(2026, 3, 11), sortKey: "k");
-      await scheduleService.removeSlotCrewMember(database: database, crewMemberId: "crew-1");
+      await scheduleService
+          .removeSlotCrewMember(database: database, crewMemberId: "crew-1")
+          .okOrFail;
 
       final result = await restore(version.id);
 
@@ -496,35 +499,35 @@ void main() {
     test("a guest and an event survive a capture and a restore, tombstones included", () async {
       await insertShootingDay(id: "day-1", date: DateTime.utc(2026, 3, 10));
       await insertShootingSlot(id: "slot-1", shootingDayId: "day-1");
-      final guestId = await scheduleService.addSlotGuest(
-        database: database,
-        slotId: "slot-1",
-        freeName: "Le maire",
-        reason: "Prête la place",
-      );
-      final eventId = await scheduleService.createDayEvent(
-        database: database,
-        dayId: "day-1",
-        minute: 1020,
-        label: "Feu d'artifice du village",
-      );
+      final guestId = await scheduleService
+          .addSlotGuest(
+            database: database,
+            slotId: "slot-1",
+            freeName: "Le maire",
+            reason: "Prête la place",
+          )
+          .maybeValueOrFail;
+      final eventId = await scheduleService
+          .createDayEvent(
+            database: database,
+            dayId: "day-1",
+            minute: 1020,
+            label: "Feu d'artifice du village",
+          )
+          .maybeValueOrFail;
 
       final version = await createVersion(name: "v1 — Guest and event planned");
 
       // Diverge: the guest and the event are both removed in the working copy, and a second
       // guest is added on a new slot.
-      await scheduleService.deleteSlotGuest(database: database, guestId: guestId!);
-      await scheduleService.deleteDayEvent(database: database, eventId: eventId!);
-      final secondSlotId = await scheduleService.createSlot(
-        database: database,
-        shootingDayId: "day-1",
-        anchorMinute: 600,
-      );
-      await scheduleService.addSlotGuest(
-        database: database,
-        slotId: secondSlotId!,
-        freeName: "Une journaliste",
-      );
+      await scheduleService.deleteSlotGuest(database: database, guestId: guestId!).okOrFail;
+      await scheduleService.deleteDayEvent(database: database, eventId: eventId!).okOrFail;
+      final secondSlotId = await scheduleService
+          .createSlot(database: database, shootingDayId: "day-1", anchorMinute: 600)
+          .maybeValueOrFail;
+      await scheduleService
+          .addSlotGuest(database: database, slotId: secondSlotId!, freeName: "Une journaliste")
+          .maybeValueOrFail;
 
       final result = await restore(version.id);
 
@@ -554,7 +557,7 @@ void main() {
 
       // And the schedule mode reads the guest and the event back exactly the way they were
       // written.
-      final restoredSnapshot = await scheduleService.loadSchedule(database: database);
+      final restoredSnapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(restoredSnapshot.slotsByDayId["day-1"]!.first.guests.single.freeName, "Le maire");
       expect(restoredSnapshot.eventsByDayId["day-1"]!.single.label, "Feu d'artifice du village");
     });

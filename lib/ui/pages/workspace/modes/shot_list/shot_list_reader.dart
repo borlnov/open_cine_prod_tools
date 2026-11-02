@@ -21,6 +21,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_field_suggestions.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_display_number.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 
 /// The reads `OcptShotListBloc` makes of the data its mode shows: the shot list joined with the
@@ -87,7 +88,12 @@ class OcptShotListReader {
   /// The scenes are numbered with their episode's own prefix: the live episodes are read through
   /// [_projectsManager]'s `screenplayService` (never through [_shotListService], which
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
-  Future<OcptShotListSnapshot> loadSnapshot(OcptOpenProjectModel project) async {
+  ///
+  /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
+  /// not be read.
+  Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
+    OcptOpenProjectModel project,
+  ) async {
     final database = project.database;
     final screenplayId = _screenplayIdOf(project);
 
@@ -97,9 +103,15 @@ class OcptShotListReader {
       screenplayId: screenplayId,
       episodeNumber: ocptEpisodePrefixNumberOf(episodes: episodes, screenplayId: screenplayId),
     );
-    final placements = await _scheduleService.loadShotPlacements(database: database);
+    final placementsRead = await _scheduleService.loadShotPlacements(database: database);
+    if (placementsRead.isError) {
+      return OcptDatabaseResult(status: placementsRead.status, extraInfo: placementsRead.extraInfo);
+    }
 
-    return snapshot.copyWithPlacements(placements);
+    return OcptDatabaseResult(
+      status: OcptDatabaseStatus.ok,
+      value: snapshot.copyWithPlacements(placementsRead.value!),
+    );
   }
 
   /// Read the whole storyboard of the selected episode's screenplay — every live shot's panels,

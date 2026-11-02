@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
@@ -246,11 +247,16 @@ abstract class AbsOcptViewBloc<
   /// it neither repeats it nor returns before it is done. A value typed since is a different value
   /// and is written again. So is every edit once the mode has read its data again or flushed this
   /// view with state, since the database may have changed under what was remembered. [write]
-  /// throwing forgets what it was given, so the next call retries.
+  /// throwing, or answering an [OcptDatabaseOutcome] that is a failure, forgets what it was given,
+  /// so the next call retries.
+  ///
+  /// Answers that failure, or `ok` when [write] succeeded or had nothing to write. [write] is typed
+  /// loosely, a view that has not moved to [OcptDatabaseOutcome] yet still returning nothing, and
+  /// the answer of one that has is read here, in the one place a view's write can fail.
   @protected
-  Future<void> flushEditsWithoutState<K, V>(
+  Future<OcptDatabaseOutcome> flushEditsWithoutState<K, V, R>(
     Map<K, V> pending,
-    Future<void> Function(Map<K, V> edits) write,
+    Future<R> Function(Map<K, V> edits) write,
   ) async {
     while (_writeWithoutStateInFlight != null) {
       try {
@@ -267,28 +273,39 @@ abstract class AbsOcptViewBloc<
           entry.key: entry.value,
     };
     if (unwritten.isEmpty) {
-      return;
+      return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
     }
 
-    _editsWrittenWithoutState.addAll(unwritten);
-    final writing = Future<void>.sync(() => write(unwritten));
-    _writeWithoutStateInFlight = writing;
-    try {
-      await writing;
-    } catch (_) {
-      // Only what this call remembered: a read of the data in between may have cleared it, and a
-      // newer call may have remembered a newer value for the same key.
+    // Only what this call remembered: a read of the data in between may have cleared it, and a
+    // newer call may have remembered a newer value for the same key.
+    void forgetUnwritten() {
       for (final entry in unwritten.entries) {
         if (_editsWrittenWithoutState[entry.key] == entry.value) {
           _editsWrittenWithoutState.remove(entry.key);
         }
       }
+    }
+
+    _editsWrittenWithoutState.addAll(unwritten);
+    final writing = Future<R>.sync(() => write(unwritten));
+    _writeWithoutStateInFlight = writing;
+    var outcome = const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
+    try {
+      final answer = await writing;
+      if (answer is OcptDatabaseOutcome && answer.isError) {
+        forgetUnwritten();
+        outcome = answer;
+      }
+    } catch (_) {
+      forgetUnwritten();
       rethrow;
     } finally {
       if (identical(_writeWithoutStateInFlight, writing)) {
         _writeWithoutStateInFlight = null;
       }
     }
+
+    return outcome;
   }
 
   /// Turn an epoch moving in the mode's state into [OcptViewModeStateChangedEvent].

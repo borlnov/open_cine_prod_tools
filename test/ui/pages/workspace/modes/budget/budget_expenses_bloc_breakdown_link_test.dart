@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry_form_fields.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_category.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_source_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
@@ -82,7 +83,7 @@ class _FlakyQuoteService extends OcptBudgetQuoteService {
 
 /// A snapshot loader whose read can be made to fail.
 class _FlakySnapshotLoader extends OcptBudgetSnapshotLoader {
-  /// Whether [load] throws.
+  /// Whether [load] answers a failure.
   bool fails = false;
 
   /// Class constructor
@@ -90,9 +91,12 @@ class _FlakySnapshotLoader extends OcptBudgetSnapshotLoader {
 
   /// Fail when told to, otherwise load the budget as the real loader does.
   @override
-  Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
+  Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     if (fails) {
-      throw StateError("budget read intentionally failed for the test");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "budget read intentionally failed for the test",
+      );
     }
 
     return super.load(project);

@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_se
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the schedule service auditions.
 void main() {
@@ -132,10 +133,9 @@ void main() {
     Future<(String dayId, String slotId, String roleId, String candidacyId)> createCastingDay({
       String suffix = "",
     }) async {
-      final dayId = (await scheduleService.createDay(
-        database: database,
-        date: DateTime(2026, 8, 10),
-      ))!;
+      final dayId = (await scheduleService
+          .createDay(database: database, date: DateTime(2026, 8, 10))
+          .valueOrFail);
       final slotId = (await readLiveSlots(dayId)).single.id;
       final roleId = await createRole("role$suffix");
       final personId = (await peopleService.createPerson(database: database))!;
@@ -151,12 +151,14 @@ void main() {
     test("createBlock mints an audition naming nobody, which is an ordinary state", () async {
       final (dayId, slotId, _, _) = await createCastingDay();
 
-      final blockId = await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-        durationMinutes: 20,
-      );
+      final blockId = await scheduleService
+          .createBlock(
+            database: database,
+            slotId: slotId,
+            kind: OcptShootingBlockKind.audition,
+            durationMinutes: 20,
+          )
+          .maybeValueOrFail;
 
       expect(blockId, isNotNull);
       final block = await readBlock(blockId!);
@@ -169,12 +171,14 @@ void main() {
       final (_, slotId, _, _) = await createCastingDay();
       final sceneId = await createScene("scene-1");
 
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.rehearsal,
-        sceneId: sceneId,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(
+            database: database,
+            slotId: slotId,
+            kind: OcptShootingBlockKind.rehearsal,
+            sceneId: sceneId,
+          )
+          .valueOrFail);
 
       expect((await readBlock(blockId)).sceneId, sceneId);
     });
@@ -182,38 +186,38 @@ void main() {
     test("updateBlock turning a hold into a rehearsal keeps the sequence it was holding", () async {
       final (_, slotId, _, _) = await createCastingDay();
       final sceneId = await createScene("scene-1");
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.hold,
-        sceneId: sceneId,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(
+            database: database,
+            slotId: slotId,
+            kind: OcptShootingBlockKind.hold,
+            sceneId: sceneId,
+          )
+          .valueOrFail);
 
-      await scheduleService.updateBlock(
-        database: database,
-        blockId: blockId,
-        kind: const Value(OcptShootingBlockKind.rehearsal),
-      );
+      await scheduleService
+          .updateBlock(
+            database: database,
+            blockId: blockId,
+            kind: const Value(OcptShootingBlockKind.rehearsal),
+          )
+          .okOrFail;
 
       expect((await readBlock(blockId)).sceneId, sceneId);
     });
 
     test("addBlockCandidate mints a convocation, reloaded by loadSchedule", () async {
       final (dayId, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
 
-      final convocationId = await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final convocationId = await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
       expect(convocationId, isNotNull);
-      final snapshot = await scheduleService.loadSchedule(database: database);
+      final snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       final candidate = snapshot.blocksByDayId[dayId]!.single.candidates.single;
       expect(candidate.id, convocationId);
       expect(candidate.blockId, blockId);
@@ -229,24 +233,18 @@ void main() {
         roleId: await createRole("role-2"),
         personId: (await peopleService.createPerson(database: database))!,
       );
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
 
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: first,
-      );
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: second,
-      );
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: first)
+          .maybeValueOrFail;
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: second)
+          .maybeValueOrFail;
 
-      final snapshot = await scheduleService.loadSchedule(database: database);
+      final snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(
         snapshot.blocksByDayId[dayId]!.single.candidates.map(
           (candidate) => candidate.roleCandidateId,
@@ -257,17 +255,13 @@ void main() {
 
     test("addBlockCandidate refuses a block that is not an audition", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.meal,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.meal)
+          .valueOrFail);
 
-      final convocationId = await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final convocationId = await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
       expect(convocationId, isNull);
       expect(await readAllBlockCandidates(blockId), isEmpty);
@@ -275,22 +269,16 @@ void main() {
 
     test("addBlockCandidate refuses a second row for a pair the block already names", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
 
-      final first = await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
-      final second = await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final first = await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
+      final second = await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
       expect(second, first);
       expect(await readAllBlockCandidates(blockId), hasLength(1));
@@ -300,26 +288,19 @@ void main() {
       "addBlockCandidate revives a convocation removed earlier rather than duplicating",
       () async {
         final (_, slotId, _, candidacyId) = await createCastingDay();
-        final blockId = (await scheduleService.createBlock(
-          database: database,
-          slotId: slotId,
-          kind: OcptShootingBlockKind.audition,
-        ))!;
-        final convocationId = (await scheduleService.addBlockCandidate(
-          database: database,
-          blockId: blockId,
-          roleCandidateId: candidacyId,
-        ))!;
-        await scheduleService.removeBlockCandidate(
-          database: database,
-          blockCandidateId: convocationId,
-        );
+        final blockId = (await scheduleService
+            .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+            .valueOrFail);
+        final convocationId = (await scheduleService
+            .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+            .valueOrFail);
+        await scheduleService
+            .removeBlockCandidate(database: database, blockCandidateId: convocationId)
+            .okOrFail;
 
-        final revived = await scheduleService.addBlockCandidate(
-          database: database,
-          blockId: blockId,
-          roleCandidateId: candidacyId,
-        );
+        final revived = await scheduleService
+            .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+            .maybeValueOrFail;
 
         expect(revived, convocationId);
         final rows = await readAllBlockCandidates(blockId);
@@ -335,29 +316,25 @@ void main() {
         roleId: await createRole("role-2"),
         personId: (await peopleService.createPerson(database: database))!,
       );
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: first,
-      );
-      final secondConvocationId = (await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: second,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: first)
+          .maybeValueOrFail;
+      final secondConvocationId = (await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: second)
+          .valueOrFail);
 
-      await scheduleService.reorderBlockCandidate(
-        database: database,
-        blockCandidateId: secondConvocationId,
-        newPosition: 0,
-      );
+      await scheduleService
+          .reorderBlockCandidate(
+            database: database,
+            blockCandidateId: secondConvocationId,
+            newPosition: 0,
+          )
+          .okOrFail;
 
-      final snapshot = await scheduleService.loadSchedule(database: database);
+      final snapshot = await scheduleService.loadSchedule(database: database).valueOrFail;
       expect(
         snapshot.blocksByDayId[dayId]!.single.candidates.map(
           (candidate) => candidate.roleCandidateId,
@@ -368,21 +345,16 @@ void main() {
 
     test("removeBlockCandidate tombstones the link and leaves the audition alone", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      final convocationId = (await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      ))!;
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      final convocationId = (await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .valueOrFail);
 
-      await scheduleService.removeBlockCandidate(
-        database: database,
-        blockCandidateId: convocationId,
-      );
+      await scheduleService
+          .removeBlockCandidate(database: database, blockCandidateId: convocationId)
+          .okOrFail;
 
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
       expect((await readBlock(blockId)).isDeleted, isFalse);
@@ -390,22 +362,20 @@ void main() {
 
     test("updateBlock turning an audition into anything else drops its candidacies", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
-      await scheduleService.updateBlock(
-        database: database,
-        blockId: blockId,
-        kind: const Value(OcptShootingBlockKind.pause),
-      );
+      await scheduleService
+          .updateBlock(
+            database: database,
+            blockId: blockId,
+            kind: const Value(OcptShootingBlockKind.pause),
+          )
+          .okOrFail;
 
       expect((await readBlock(blockId)).kind, OcptShootingBlockKind.pause);
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
@@ -413,22 +383,16 @@ void main() {
 
     test("updateBlock editing an audition's own duration leaves its candidacies alone", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
-      await scheduleService.updateBlock(
-        database: database,
-        blockId: blockId,
-        durationMinutes: const Value(25),
-      );
+      await scheduleService
+          .updateBlock(database: database, blockId: blockId, durationMinutes: const Value(25))
+          .okOrFail;
 
       expect((await readBlock(blockId)).durationMinutes, 25);
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isFalse);
@@ -436,18 +400,14 @@ void main() {
 
     test("deleteBlock carries the candidacies it named off with it", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
-      await scheduleService.deleteBlock(database: database, blockId: blockId);
+      await scheduleService.deleteBlock(database: database, blockId: blockId).okOrFail;
 
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
       // The candidacy itself outlives the audition that was going to see it.
@@ -459,36 +419,28 @@ void main() {
 
     test("deleting a day's last slot carries its auditions' candidacies off too", () async {
       final (_, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
-      await scheduleService.deleteSlot(database: database, slotId: slotId);
+      await scheduleService.deleteSlot(database: database, slotId: slotId).okOrFail;
 
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
     });
 
     test("deleting a day carries every candidacy of its auditions off with it", () async {
       final (dayId, slotId, _, candidacyId) = await createCastingDay();
-      final blockId = (await scheduleService.createBlock(
-        database: database,
-        slotId: slotId,
-        kind: OcptShootingBlockKind.audition,
-      ))!;
-      await scheduleService.addBlockCandidate(
-        database: database,
-        blockId: blockId,
-        roleCandidateId: candidacyId,
-      );
+      final blockId = (await scheduleService
+          .createBlock(database: database, slotId: slotId, kind: OcptShootingBlockKind.audition)
+          .valueOrFail);
+      await scheduleService
+          .addBlockCandidate(database: database, blockId: blockId, roleCandidateId: candidacyId)
+          .maybeValueOrFail;
 
-      await scheduleService.deleteDay(database: database, dayId: dayId);
+      await scheduleService.deleteDay(database: database, dayId: dayId).okOrFail;
 
       expect((await readAllBlockCandidates(blockId)).single.isDeleted, isTrue);
     });
@@ -498,27 +450,32 @@ void main() {
       addTearDown(preview.close);
 
       expect(
-        await scheduleService.addBlockCandidate(
-          database: preview,
-          blockId: "missing-block",
-          roleCandidateId: "missing-candidacy",
-        ),
+        await scheduleService
+            .addBlockCandidate(
+              database: preview,
+              blockId: "missing-block",
+              roleCandidateId: "missing-candidacy",
+            )
+            .maybeValueOrFail,
         isNull,
       );
-      await scheduleService.updateBlockCandidate(
-        database: preview,
-        blockCandidateId: "missing-convocation",
-        notes: const Value("nope"),
-      );
-      await scheduleService.reorderBlockCandidate(
-        database: preview,
-        blockCandidateId: "missing-convocation",
-        newPosition: 0,
-      );
-      await scheduleService.removeBlockCandidate(
-        database: preview,
-        blockCandidateId: "missing-convocation",
-      );
+      await scheduleService
+          .updateBlockCandidate(
+            database: preview,
+            blockCandidateId: "missing-convocation",
+            notes: const Value("nope"),
+          )
+          .okOrFail;
+      await scheduleService
+          .reorderBlockCandidate(
+            database: preview,
+            blockCandidateId: "missing-convocation",
+            newPosition: 0,
+          )
+          .okOrFail;
+      await scheduleService
+          .removeBlockCandidate(database: preview, blockCandidateId: "missing-convocation")
+          .okOrFail;
 
       expect(await preview.select(preview.ocptShootingBlockCandidatesTable).get(), isEmpty);
     });

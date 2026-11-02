@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_package_events.dart';
@@ -26,6 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The fixed device id the failing service stamps its writes with.
 Future<String> _testDeviceId() async => "test-device";
@@ -39,7 +41,7 @@ class _SilentRouterManager extends OcptRouterManager {
 
 /// A schedule service whose slot writes fail while [isFailing] is set, as a full disk would.
 class _FlakyScheduleService extends OcptScheduleService {
-  /// Whether [updateSlot] throws.
+  /// Whether [updateSlot] answers a failure.
   bool isFailing = true;
 
   /// Class constructor
@@ -48,7 +50,7 @@ class _FlakyScheduleService extends OcptScheduleService {
   /// Fail as a refused slot write does while told to, otherwise update the slot as the real service
   /// does.
   @override
-  Future<void> updateSlot({
+  Future<OcptDatabaseOutcome> updateSlot({
     required OcptProjectDatabase database,
     required String slotId,
     Value<String> label = const Value.absent(),
@@ -57,7 +59,10 @@ class _FlakyScheduleService extends OcptScheduleService {
     Value<String> notes = const Value.absent(),
   }) async {
     if (isFailing) {
-      throw StateError("slot write intentionally failed for the test");
+      return const OcptDatabaseOutcome(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "slot write intentionally failed for the test",
+      );
     }
     return super.updateSlot(
       database: database,
@@ -143,11 +148,12 @@ void main() {
   >
   setUpTypedEdit(_FlakyScheduleService service) async {
     final project = projectsManager.currentProject!;
-    final dayId = await projectsManager.scheduleService.createDay(
-      database: project.database,
-      date: DateTime(2026, 8, 10),
-    );
-    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
+    final dayId = await projectsManager.scheduleService
+        .createDay(database: project.database, date: DateTime(2026, 8, 10))
+        .maybeValueOrFail;
+    final snapshot = await projectsManager.scheduleService
+        .loadSchedule(database: project.database)
+        .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
     final version = await projectsManager.createProjectVersion(name: "v1", note: "");
 
@@ -211,10 +217,9 @@ void main() {
       final service = _FlakyScheduleService();
       final fixture = await setUpTypedEdit(service);
       final project = projectsManager.currentProject!;
-      await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 11),
-      );
+      await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 11))
+          .maybeValueOrFail;
       final versionCount = (await projectsManager.listProjectVersions()).length;
 
       fixture.mode.add(

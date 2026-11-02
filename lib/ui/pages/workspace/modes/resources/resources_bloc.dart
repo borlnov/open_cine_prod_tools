@@ -284,7 +284,10 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) => _load(emitter);
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptResourcesState> emitter) async {
+    await _load(emitter);
+    return true;
+  }
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   @protected

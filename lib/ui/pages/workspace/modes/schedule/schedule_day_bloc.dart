@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
@@ -14,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
@@ -48,16 +47,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 /// it does so in the very reload this bloc asks for.
 class OcptScheduleDayBloc
     extends AbsOcptViewBloc<OcptScheduleDayState, OcptScheduleState, OcptScheduleBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "schedule_day_bloc";
-
   /// The start minute a slot created by [_onSlotCreated] is given: 08:00, mirroring
   /// `OcptScheduleService`'s own private `_defaultStartMinute` (not exported, so this is its own
   /// copy of the same figure).
   static const int _defaultSlotStartMinute = 480;
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
 
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
@@ -78,8 +71,7 @@ class OcptScheduleDayBloc
     OcptScheduleService? scheduleService,
     OcptShotListService? shotListService,
     Duration fieldEditDebounce = OcptScheduleBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _scheduleService =
            scheduleService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).scheduleService,
@@ -194,7 +186,11 @@ class OcptScheduleDayBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    await _writeAllPendingFieldEdits(project, pending);
+    final written = await _writeAllPendingFieldEdits(project, pending);
+    if (written.isError) {
+      return OcptPendingWritesStatus.failed;
+    }
+
     if (!await modeBloc.reload({OcptScheduleReloadScope.schedule})) {
       // The write landed but the mode could not read it back: answering that all went well
       // would let a preview, an export or a restore run on the snapshot from before the write, so
@@ -224,7 +220,8 @@ class OcptScheduleDayBloc
   /// guarantees the last [_fieldEditDebounce] worth of typing isn't lost. Unlike
   /// [onFlushRequested], this never touches [state]: `emit` may only be called from inside a
   /// registered `on<Event>` handler, and by the time this runs the widget tree that would show a
-  /// fresh state is already gone anyway. A failure here is only logged.
+  /// fresh state is already gone anyway. A write that fails is logged by the service, and the
+  /// edit is left to be written again by the next flush.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();
@@ -239,19 +236,10 @@ class OcptScheduleDayBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutState(
-        edits,
-        (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending schedule field edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    await flushEditsWithoutState(
+      edits,
+      (unwritten) => _writeAllPendingFieldEdits(project, unwritten),
+    );
   }
 
   /// Get the ids of every row of [snapshot] a free-text field can be typed into: the days, the
@@ -282,11 +270,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.createSlot(
+    final created = await _scheduleService.createSlot(
       database: project.database,
       shootingDayId: event.dayId,
       anchorMinute: _defaultSlotStartMinute,
     );
+    if (created.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -300,12 +292,16 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateSlot(
+    final updated = await _scheduleService.updateSlot(
       database: project.database,
       slotId: event.slotId,
       locationId: Value(event.locationId),
       setId: Value(event.setId),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -319,13 +315,17 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.setSlotAnchor(
+    final anchored = await _scheduleService.setSlotAnchor(
       database: project.database,
       slotId: event.slotId,
       edge: event.edge,
       minute: event.minute,
       sourceSlotId: event.sourceSlotId,
     );
+    if (anchored.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -339,11 +339,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.reorderSlot(
+    final reordered = await _scheduleService.reorderSlot(
       database: project.database,
       slotId: event.slotId,
       newPosition: event.newPosition,
     );
+    if (reordered.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -357,7 +361,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.deleteSlot(database: project.database, slotId: event.slotId);
+    final deleted = await _scheduleService.deleteSlot(
+      database: project.database,
+      slotId: event.slotId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -371,11 +382,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.addSlotCrewMember(
+    final added = await _scheduleService.addSlotCrewMember(
       database: project.database,
       slotId: event.slotId,
       personId: event.personId,
     );
+    if (added.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -389,12 +404,16 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateSlotCrewMember(
+    final updated = await _scheduleService.updateSlotCrewMember(
       database: project.database,
       crewMemberId: event.crewMemberId,
       positionId: Value(event.positionId),
       customLabel: Value(event.customLabel),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -408,10 +427,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.removeSlotCrewMember(
+    final removed = await _scheduleService.removeSlotCrewMember(
       database: project.database,
       crewMemberId: event.crewMemberId,
     );
+    if (removed.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -425,11 +448,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.addSlotCastRole(
+    final added = await _scheduleService.addSlotCastRole(
       database: project.database,
       slotId: event.slotId,
       roleId: event.roleId,
     );
+    if (added.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -443,10 +470,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.removeSlotCastRole(
+    final removed = await _scheduleService.removeSlotCastRole(
       database: project.database,
       castRoleId: event.castRoleId,
     );
+    if (removed.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -460,11 +491,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.addBlockCandidate(
+    final added = await _scheduleService.addBlockCandidate(
       database: project.database,
       blockId: event.blockId,
       roleCandidateId: event.roleCandidateId,
     );
+    if (added.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -478,10 +513,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.removeBlockCandidate(
+    final removed = await _scheduleService.removeBlockCandidate(
       database: project.database,
       blockCandidateId: event.blockCandidateId,
     );
+    if (removed.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -495,11 +534,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.addSlotGuest(
+    final added = await _scheduleService.addSlotGuest(
       database: project.database,
       slotId: event.slotId,
       personId: event.personId,
     );
+    if (added.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -513,7 +556,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.deleteSlotGuest(database: project.database, guestId: event.guestId);
+    final deleted = await _scheduleService.deleteSlotGuest(
+      database: project.database,
+      guestId: event.guestId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -527,11 +577,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.createDayEvent(
+    final created = await _scheduleService.createDayEvent(
       database: project.database,
       dayId: event.dayId,
       minute: event.minute,
     );
+    if (created.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -545,11 +599,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateDayEvent(
+    final updated = await _scheduleService.updateDayEvent(
       database: project.database,
       eventId: event.eventId,
       minute: Value(event.minute),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -563,7 +621,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.deleteDayEvent(database: project.database, eventId: event.eventId);
+    final deleted = await _scheduleService.deleteDayEvent(
+      database: project.database,
+      eventId: event.eventId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -600,11 +665,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.createBlock(
+    final created = await _scheduleService.createBlock(
       database: project.database,
       slotId: event.slotId,
       kind: event.kind,
     );
+    if (created.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -620,11 +689,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.placeShot(
+    final placed = await _scheduleService.placeShot(
       database: project.database,
       slotId: event.slotId,
       shotId: event.shotId,
     );
+    if (placed.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -638,11 +711,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateBlock(
+    final updated = await _scheduleService.updateBlock(
       database: project.database,
       blockId: event.blockId,
       durationMinutes: Value(event.durationMinutes),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -656,11 +733,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateBlock(
+    final updated = await _scheduleService.updateBlock(
       database: project.database,
       blockId: event.blockId,
       anchorMinute: Value(event.anchorMinute),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -676,11 +757,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.updateBlock(
+    final updated = await _scheduleService.updateBlock(
       database: project.database,
       blockId: event.blockId,
       sceneId: Value(event.sceneId),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -694,11 +779,15 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.reorderBlock(
+    final reordered = await _scheduleService.reorderBlock(
       database: project.database,
       blockId: event.blockId,
       newPosition: event.newPosition,
     );
+    if (reordered.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -718,12 +807,16 @@ class OcptScheduleDayBloc
         for (final block in blocks)
           if (block.slotId == event.targetSlotId) block,
     ];
-    await _scheduleService.moveBlockToSlot(
+    final moved = await _scheduleService.moveBlockToSlot(
       database: project.database,
       blockId: event.blockId,
       targetSlotId: event.targetSlotId,
       newPosition: targetBlocks.length,
     );
+    if (moved.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -737,7 +830,14 @@ class OcptScheduleDayBloc
       return;
     }
 
-    await _scheduleService.deleteBlock(database: project.database, blockId: event.blockId);
+    final deleted = await _scheduleService.deleteBlock(
+      database: project.database,
+      blockId: event.blockId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptScheduleReloadScope.schedule});
   }
 
@@ -765,7 +865,10 @@ class OcptScheduleDayBloc
   /// Write every one of [edits] to [project]'s database, one write per entry — the shared write
   /// loop [onFlushRequested] and [flushPendingWritesWithoutState] both run, so the switch over
   /// [OcptScheduleField] is written once.
-  Future<void> _writeAllPendingFieldEdits(
+  ///
+  /// Stops at the first write that failed and answers its failure, leaving the entries after it
+  /// unwritten.
+  Future<OcptDatabaseOutcome> _writeAllPendingFieldEdits(
     OcptOpenProjectModel project,
     Map<OcptSchedulePendingFieldKey, String> edits,
   ) async {
@@ -773,98 +876,88 @@ class OcptScheduleDayBloc
       final (targetId, field) = entry.key;
       final value = entry.value;
 
-      switch (field) {
-        case OcptScheduleField.dayCrewNote:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            crewNote: Value(value),
-          );
-        case OcptScheduleField.dayWeatherNote:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            weatherNote: Value(value),
-          );
-        case OcptScheduleField.dayNotes:
-          await _scheduleService.updateDay(
-            database: project.database,
-            dayId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.slotLabel:
-          await _scheduleService.updateSlot(
-            database: project.database,
-            slotId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.slotNotes:
-          await _scheduleService.updateSlot(
-            database: project.database,
-            slotId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.blockLabel:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.blockNotes:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.blockCrewNote:
-          await _scheduleService.updateBlock(
-            database: project.database,
-            blockId: targetId,
-            crewNote: Value(value),
-          );
-        case OcptScheduleField.crewMemberCustomLabel:
-          await _scheduleService.updateSlotCrewMember(
-            database: project.database,
-            crewMemberId: targetId,
-            customLabel: Value(value),
-          );
-        case OcptScheduleField.crewMemberNotes:
-          await _scheduleService.updateSlotCrewMember(
-            database: project.database,
-            crewMemberId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.castMemberNotes:
-          await _scheduleService.updateSlotCastRole(
-            database: project.database,
-            castRoleId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.guestReason:
-          await _scheduleService.updateSlotGuest(
-            database: project.database,
-            guestId: targetId,
-            reason: Value(value),
-          );
-        case OcptScheduleField.guestNotes:
-          await _scheduleService.updateSlotGuest(
-            database: project.database,
-            guestId: targetId,
-            notes: Value(value),
-          );
-        case OcptScheduleField.dayEventLabel:
-          await _scheduleService.updateDayEvent(
-            database: project.database,
-            eventId: targetId,
-            label: Value(value),
-          );
-        case OcptScheduleField.dayEventNotes:
-          await _scheduleService.updateDayEvent(
-            database: project.database,
-            eventId: targetId,
-            notes: Value(value),
-          );
+      final written = switch (field) {
+        OcptScheduleField.dayCrewNote => await _scheduleService.updateDay(
+          database: project.database,
+          dayId: targetId,
+          crewNote: Value(value),
+        ),
+        OcptScheduleField.dayWeatherNote => await _scheduleService.updateDay(
+          database: project.database,
+          dayId: targetId,
+          weatherNote: Value(value),
+        ),
+        OcptScheduleField.dayNotes => await _scheduleService.updateDay(
+          database: project.database,
+          dayId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.slotLabel => await _scheduleService.updateSlot(
+          database: project.database,
+          slotId: targetId,
+          label: Value(value),
+        ),
+        OcptScheduleField.slotNotes => await _scheduleService.updateSlot(
+          database: project.database,
+          slotId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.blockLabel => await _scheduleService.updateBlock(
+          database: project.database,
+          blockId: targetId,
+          label: Value(value),
+        ),
+        OcptScheduleField.blockNotes => await _scheduleService.updateBlock(
+          database: project.database,
+          blockId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.blockCrewNote => await _scheduleService.updateBlock(
+          database: project.database,
+          blockId: targetId,
+          crewNote: Value(value),
+        ),
+        OcptScheduleField.crewMemberCustomLabel => await _scheduleService.updateSlotCrewMember(
+          database: project.database,
+          crewMemberId: targetId,
+          customLabel: Value(value),
+        ),
+        OcptScheduleField.crewMemberNotes => await _scheduleService.updateSlotCrewMember(
+          database: project.database,
+          crewMemberId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.castMemberNotes => await _scheduleService.updateSlotCastRole(
+          database: project.database,
+          castRoleId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.guestReason => await _scheduleService.updateSlotGuest(
+          database: project.database,
+          guestId: targetId,
+          reason: Value(value),
+        ),
+        OcptScheduleField.guestNotes => await _scheduleService.updateSlotGuest(
+          database: project.database,
+          guestId: targetId,
+          notes: Value(value),
+        ),
+        OcptScheduleField.dayEventLabel => await _scheduleService.updateDayEvent(
+          database: project.database,
+          eventId: targetId,
+          label: Value(value),
+        ),
+        OcptScheduleField.dayEventNotes => await _scheduleService.updateDayEvent(
+          database: project.database,
+          eventId: targetId,
+          notes: Value(value),
+        ),
+      };
+      if (written.isError) {
+        return written;
       }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }

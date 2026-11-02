@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dar
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
@@ -34,6 +35,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/schedule_
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] only records that it was called: these bloc tests don't build a
 /// real GoRouter for it to operate on.
@@ -61,7 +63,7 @@ class _CountingScheduleService extends OcptScheduleService {
   /// The label of each slot write, in the order they were made.
   final List<String?> slotLabelWrites = [];
 
-  /// Whether [loadSchedule] throws.
+  /// Whether [loadSchedule] answers a failure.
   bool loadFails = false;
 
   /// Class constructor
@@ -69,9 +71,14 @@ class _CountingScheduleService extends OcptScheduleService {
 
   /// Fail when told to, otherwise load the schedule as the real service does.
   @override
-  Future<OcptScheduleSnapshot> loadSchedule({required OcptProjectDatabase database}) {
+  Future<OcptDatabaseResult<OcptScheduleSnapshot>> loadSchedule({
+    required OcptProjectDatabase database,
+  }) async {
     if (loadFails) {
-      throw StateError("schedule read intentionally failed for the test");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "schedule read intentionally failed for the test",
+      );
     }
 
     return super.loadSchedule(database: database);
@@ -79,7 +86,7 @@ class _CountingScheduleService extends OcptScheduleService {
 
   /// Remember the label written, then update the slot as the real service does.
   @override
-  Future<void> updateSlot({
+  Future<OcptDatabaseOutcome> updateSlot({
     required OcptProjectDatabase database,
     required String slotId,
     Value<String> label = const Value.absent(),
@@ -170,29 +177,28 @@ void main() {
     );
     expect(shotId, isNotNull);
 
-    final dayId = await projectsManager.scheduleService.createDay(
-      database: project.database,
-      date: DateTime(2026, 8, 10),
-    );
+    final dayId = await projectsManager.scheduleService
+        .createDay(database: project.database, date: DateTime(2026, 8, 10))
+        .maybeValueOrFail;
     expect(dayId, isNotNull);
 
-    final snapshot = await projectsManager.scheduleService.loadSchedule(database: project.database);
+    final snapshot = await projectsManager.scheduleService
+        .loadSchedule(database: project.database)
+        .valueOrFail;
     final slotId = snapshot.slotsByDayId[dayId]!.single.id;
 
-    final blockId = await projectsManager.scheduleService.placeShot(
-      database: project.database,
-      slotId: slotId,
-      shotId: shotId!,
-    );
+    final blockId = await projectsManager.scheduleService
+        .placeShot(database: project.database, slotId: slotId, shotId: shotId!)
+        .maybeValueOrFail;
     expect(blockId, isNotNull);
 
     return (shotId: shotId, dayId: dayId!, slotId: slotId, blockId: blockId!);
   }
 
   /// Reads the schedule straight from the database.
-  Future<OcptScheduleSnapshot> readSchedule() => projectsManager.scheduleService.loadSchedule(
-    database: projectsManager.currentProject!.database,
-  );
+  Future<OcptScheduleSnapshot> readSchedule() => projectsManager.scheduleService
+      .loadSchedule(database: projectsManager.currentProject!.database)
+      .valueOrFail;
 
   /// Builds the mode bloc wired to the test project.
   OcptScheduleBloc buildBloc() => OcptScheduleBloc(
@@ -269,13 +275,12 @@ void main() {
         personId: personId,
       );
 
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
-      final schedule = await projectsManager.scheduleService.loadSchedule(
-        database: project.database,
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
+      final schedule = await projectsManager.scheduleService
+          .loadSchedule(database: project.database)
+          .valueOrFail;
 
       return (schedule.slotsByDayId[dayId]!.single.id, roleCandidateId!);
     }
@@ -458,8 +463,7 @@ void main() {
     test("a flush whose re-read fails after the write stops what it was for", () async {
       final fixture = await writePlacedShot();
       final service = _CountingScheduleService();
-      // The mode lets a failed read escape its handler, as the old handlers did: it reaches the
-      // zone as an uncaught error, which this test collects.
+      // A failed read is answered, not raised: nothing may reach the zone as an uncaught error.
       final uncaught = <Object>[];
       await runZonedGuarded(() async {
         final bloc = OcptScheduleBloc(
@@ -494,13 +498,13 @@ void main() {
         await bloc.close();
       }, (error, stackTrace) => uncaught.add(error));
 
-      expect(uncaught.whereType<StateError>(), isNotEmpty);
+      expect(uncaught, isEmpty);
     });
 
     test("a debounced edit whose re-read fails stays pending and is written again", () async {
       final fixture = await writePlacedShot();
       final service = _CountingScheduleService();
-      // The failed read may reach the zone as an uncaught error: this test is about the edit.
+      // A failed read is answered, not raised: this test is about the edit.
       final uncaught = <Object>[];
       await runZonedGuarded(() async {
         final bloc = OcptScheduleBloc(
@@ -541,6 +545,8 @@ void main() {
         await dayBloc.close();
         await bloc.close();
       }, (error, stackTrace) => uncaught.add(error));
+
+      expect(uncaught, isEmpty);
     });
 
     test("flushing every pending write writes the edit and has the mode read it back", () async {
@@ -693,10 +699,9 @@ void main() {
       () async {
         final fixture = await writePlacedShot();
         final project = projectsManager.currentProject!;
-        final otherDayId = await projectsManager.scheduleService.createDay(
-          database: project.database,
-          date: DateTime(2026, 8, 20),
-        );
+        final otherDayId = await projectsManager.scheduleService
+            .createDay(database: project.database, date: DateTime(2026, 8, 20))
+            .maybeValueOrFail;
         final bloc = buildBloc();
         final dayBloc = buildDay(bloc);
         await waitForState(bloc, (state) => !state.isLoading);

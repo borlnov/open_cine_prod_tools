@@ -26,6 +26,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_bloc_test_doubles.dart';
 
 /// Run the tests of the budget bloc shares and catering.
@@ -154,26 +155,25 @@ void main() {
         );
         expect(locationId, isNotNull);
 
-        final dayId = await projectsManager.scheduleService.createDay(
-          database: project.database,
-          date: DateTime(2026, 3),
-        );
+        final dayId = await projectsManager.scheduleService
+            .createDay(database: project.database, date: DateTime(2026, 3))
+            .maybeValueOrFail;
         expect(dayId, isNotNull);
 
-        final scheduleSnapshot = await projectsManager.scheduleService.loadSchedule(
-          database: project.database,
-        );
+        final scheduleSnapshot = await projectsManager.scheduleService
+            .loadSchedule(database: project.database)
+            .valueOrFail;
         final slotId = scheduleSnapshot.slotsByDayId[dayId]!.single.id;
-        await projectsManager.scheduleService.updateSlot(
-          database: project.database,
-          slotId: slotId,
-          locationId: drift.Value(locationId),
-        );
-        await projectsManager.scheduleService.addSlotCrewMember(
-          database: project.database,
-          slotId: slotId,
-          personId: personId,
-        );
+        await projectsManager.scheduleService
+            .updateSlot(
+              database: project.database,
+              slotId: slotId,
+              locationId: drift.Value(locationId),
+            )
+            .okOrFail;
+        await projectsManager.scheduleService
+            .addSlotCrewMember(database: project.database, slotId: slotId, personId: personId)
+            .maybeValueOrFail;
 
         await projectsManager.saveCurrentProjectMealPriceCents(1200);
         await projectsManager.saveCurrentProjectSnackPriceCents(400);

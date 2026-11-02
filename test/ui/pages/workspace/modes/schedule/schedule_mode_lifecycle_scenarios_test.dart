@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario waits, in real time, for the working copy capture throttle to let go.
@@ -107,26 +108,26 @@ void main() {
     final dayId = await harness.seedDay(_first);
     final slotId = await harness.firstSlotOf(dayId);
     final service = harness.projectsManager.scheduleService;
-    await service.updateSlot(
-      database: harness.database,
-      slotId: slotId,
-      label: const Value("Cave"),
-    );
-    await service.placeShot(database: harness.database, slotId: slotId, shotId: shotId);
-    await service.addSlotCrewMember(
-      database: harness.database,
-      slotId: slotId,
-      personId: await harness.seedPerson("Alice"),
-    );
+    await service
+        .updateSlot(database: harness.database, slotId: slotId, label: const Value("Cave"))
+        .okOrFail;
+    await service
+        .placeShot(database: harness.database, slotId: slotId, shotId: shotId)
+        .maybeValueOrFail;
+    await service
+        .addSlotCrewMember(
+          database: harness.database,
+          slotId: slotId,
+          personId: await harness.seedPerson("Alice"),
+        )
+        .maybeValueOrFail;
     expect(await harness.projectsManager.createProjectVersion(name: "v1", note: ""), isNotNull);
 
     // Written after the version was captured, so the preview cannot show it.
     await harness.seedDay(_second);
-    await service.createBlock(
-      database: harness.database,
-      slotId: slotId,
-      kind: OcptShootingBlockKind.meal,
-    );
+    await service
+        .createBlock(database: harness.database, slotId: slotId, kind: OcptShootingBlockKind.meal)
+        .maybeValueOrFail;
 
     await harness.mount(tester);
     final tr = harness.trOf(tester);
@@ -184,9 +185,9 @@ void main() {
 
     // The working copy file holds it already, though the debounce never ran out.
     final fileDatabase = harness.projectsManager.currentProject!.fileDatabase;
-    final stored = await harness.projectsManager.scheduleService.loadSchedule(
-      database: fileDatabase,
-    );
+    final stored = await harness.projectsManager.scheduleService
+        .loadSchedule(database: fileDatabase)
+        .valueOrFail;
     expect(stored.slotsByDayId[dayId]!.single.label, "Late note");
 
     // The preview shows the version, which never had it.

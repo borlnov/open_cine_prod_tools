@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [_wrapWithLocalization] mounts, so [_RecordingRouterManager.pop] can close a
 /// dialog opened through `showDialog` (the export panel, the shooting plan options dialog)
@@ -150,10 +151,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
       expect(dayId, isNotNull);
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));
@@ -185,10 +185,9 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final project = projectsManager.currentProject!;
-      final dayId = await projectsManager.scheduleService.createDay(
-        database: project.database,
-        date: DateTime(2026, 8, 10),
-      );
+      final dayId = await projectsManager.scheduleService
+          .createDay(database: project.database, date: DateTime(2026, 8, 10))
+          .maybeValueOrFail;
       expect(dayId, isNotNull);
 
       await tester.pumpWidget(_wrapWithLocalization(const OcptScheduleMode()));

@@ -220,16 +220,21 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
 
     var isReloaded = false;
     try {
+      var isRead = true;
       // A switch statement over an enum must name every value: a scope added to the enum does not
       // compile until it is read here.
       for (final scope in scopes) {
         switch (scope) {
           case OcptBudgetReloadScope.snapshot:
-            await _readBudgetSnapshot(emitter, project);
+            isRead = await _readBudgetSnapshot(emitter, project);
+        }
+
+        if (!isRead) {
+          break;
         }
       }
 
-      isReloaded = true;
+      isReloaded = isRead;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -254,7 +259,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) => _load(emitter);
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptBudgetState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -287,7 +292,10 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// pending field edit are always cleared on a (re)load: a preview or a restore changes the whole
   /// database underneath, so a stale selection is dropped rather than trusted to still mean
   /// something.
-  Future<void> _load(Emitter<OcptBudgetState> emitter) async {
+  ///
+  /// Answers false when the budget could not be read, in which case nothing is emitted and the
+  /// caller stops there.
+  Future<bool> _load(Emitter<OcptBudgetState> emitter) async {
     final rightDockFraction =
         await _propertiesManager.budgetRightDockFraction.load() ??
         OcptWorkspaceDock.rightDefaultFraction;
@@ -302,14 +310,19 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           lastRightDockTab: lastRightDockTab,
         ),
       );
-      return;
+      return true;
     }
 
     // Queued with the views' reloads: a read made here but emitted after a newer one would put
     // older data over it.
-    await runSerially(() async {
+    return runSerially(() async {
       final previewedVersion = project.previewedVersion;
-      final loaded = await _loader.load(project);
+      final read = await _loader.load(project);
+      if (read.isError) {
+        return false;
+      }
+
+      final loaded = read.value!;
       final pageSetup = await _loadPageSetup(project);
 
       emitter(
@@ -327,6 +340,7 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
           pageSetup: pageSetup,
         ),
       );
+      return true;
     });
   }
 
@@ -663,11 +677,18 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
   /// [OcptBudgetSelectionCause.reconciled]. `OcptBudgetReceiptSelection` names a `budget_entries`
   /// row exactly as `OcptBudgetEntrySelection` does, so it is checked against the entries the same
   /// way.
-  Future<void> _readBudgetSnapshot(
+  ///
+  /// Answers false when the budget could not be read, in which case nothing is emitted.
+  Future<bool> _readBudgetSnapshot(
     Emitter<OcptBudgetState> emitter,
     OcptOpenProjectModel project,
   ) async {
-    final loaded = await _loader.load(project);
+    final read = await _loader.load(project);
+    if (read.isError) {
+      return false;
+    }
+
+    final loaded = read.value!;
     final snapshot = loaded.snapshot;
     // The filter is reconciled exactly as the selection is: an account deleted while every view was
     // narrowed to it would otherwise leave the mode showing nothing at all, with a header chip
@@ -720,6 +741,8 @@ class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     if (state.rightDockTab == OcptBudgetRightDockTab.versions) {
       add(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
+
+    return true;
   }
 
   /// Select financing resource `event.resourceId`, opening the right dock on the `Inspector` tab —

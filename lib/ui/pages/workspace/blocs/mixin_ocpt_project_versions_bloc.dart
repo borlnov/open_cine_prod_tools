@@ -102,9 +102,13 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
   /// it just read, since that data comes from whichever database the id names. Emitting the two
   /// separately would leave one frame showing a version's content with every editing affordance of
   /// the working copy still on it.
+  ///
+  /// Answers whether the mode could read its data. A mode whose read failed answers false, and the
+  /// handler that asked stops there, as a raised failure used to stop it: the version list is not
+  /// emitted over data the mode did not read.
   /// {@endtemplate}
   @protected
-  Future<void> reloadFromProjectDatabase(Emitter<S> emitter);
+  Future<bool> reloadFromProjectDatabase(Emitter<S> emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -295,7 +299,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
       return;
     }
 
-    await reloadFromProjectDatabase(emitter);
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
     await _emitVersions(emitter);
   });
 
@@ -386,7 +393,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     }
 
     emitter(state.copyWithWorkingCopyCleared());
-    await reloadFromProjectDatabase(emitter);
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
     emitter(state.copyWithDeletionDismissed());
   });
 
@@ -410,7 +420,10 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
     final workingCopy = await _captureWorkingCopyState();
     emitter(state.copyWithCapturedWorkingCopy(workingCopy: workingCopy));
 
-    await reloadFromProjectDatabase(emitter);
+    if (!await reloadFromProjectDatabase(emitter)) {
+      return;
+    }
+
     emitter(state.copyWithDeletionDismissed());
   });
 

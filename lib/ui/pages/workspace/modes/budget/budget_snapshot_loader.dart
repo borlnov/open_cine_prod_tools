@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_read.dart';
 
 /// Read the budget mode's whole data from the open project: the services it joins are resolved
@@ -95,7 +96,9 @@ class OcptBudgetSnapshotLoader {
   /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
-  Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
+  ///
+  /// Answers the failure of the first read that failed, in place of the whole read.
+  Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
     final accounts = await _budgetQuoteService.loadAccounts(database: database, seed: seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
@@ -108,7 +111,12 @@ class OcptBudgetSnapshotLoader {
     final defaultVatRateBasisPoints = await _projectsManager
         .loadCurrentProjectDefaultVatRateBasisPoints();
 
-    final scheduleSnapshot = await _scheduleService.loadSchedule(database: database);
+    final scheduleRead = await _scheduleService.loadSchedule(database: database);
+    if (scheduleRead.isError) {
+      return OcptDatabaseResult(status: scheduleRead.status, extraInfo: scheduleRead.extraInfo);
+    }
+
+    final scheduleSnapshot = scheduleRead.value!;
     final roles = await _roleIndexService.loadRoles(database: database);
     final people = await _peopleService.loadPeople(database: database);
     final elements = await _elementsService.loadElements(database: database);
@@ -139,16 +147,19 @@ class OcptBudgetSnapshotLoader {
       shares: shares,
     );
 
-    return OcptBudgetRead(
-      snapshot: snapshot,
-      roles: roles,
-      people: people,
-      elements: elements,
-      mileageRates: mileageRates,
-      logisticsSetNameByDayId: _logisticsSetNameByDayId(
-        days: scheduleSnapshot.days,
-        slotsByDayId: scheduleSnapshot.slotsByDayId,
-        locations: locations,
+    return OcptDatabaseResult(
+      status: OcptDatabaseStatus.ok,
+      value: OcptBudgetRead(
+        snapshot: snapshot,
+        roles: roles,
+        people: people,
+        elements: elements,
+        mileageRates: mileageRates,
+        logisticsSetNameByDayId: _logisticsSetNameByDayId(
+          days: scheduleSnapshot.days,
+          slotsByDayId: scheduleSnapshot.slotsByDayId,
+          locations: locations,
+        ),
       ),
     );
   }

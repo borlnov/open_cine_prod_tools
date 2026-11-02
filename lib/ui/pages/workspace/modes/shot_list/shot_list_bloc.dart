@@ -266,12 +266,16 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       Map<String, List<OcptFloorPlanSymbol>>? setScopeSymbolsBySetId;
       List<OcptRole>? roles;
 
+      var isRead = true;
+
       // A switch statement over an enum must name every value: a scope added to the enum does not
       // compile until it is read here.
       for (final scope in scopes) {
         switch (scope) {
           case OcptShotListReloadScope.snapshot:
-            snapshot = await _reader.loadSnapshot(project);
+            final read = await _reader.loadSnapshot(project);
+            isRead = !read.isError;
+            snapshot = read.value;
           case OcptShotListReloadScope.suggestions:
             suggestions = await _reader.loadSuggestions(project);
           case OcptShotListReloadScope.storyboard:
@@ -285,20 +289,29 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           case OcptShotListReloadScope.roles:
             roles = await _reader.loadRoles(project);
         }
+
+        if (!isRead) {
+          break;
+        }
       }
 
-      emitter(
-        state.copyWithReloadedData(
-          snapshot: snapshot,
-          suggestions: suggestions,
-          storyboardSnapshot: storyboardSnapshot,
-          floorPlanSnapshot: floorPlanSnapshot,
-          locations: locations,
-          setScopeSymbolsBySetId: setScopeSymbolsBySetId,
-          roles: roles,
-        ),
-      );
-      isReloaded = true;
+      if (isRead) {
+        emitter(
+          state.copyWithReloadedData(
+            snapshot: snapshot,
+            suggestions: suggestions,
+            storyboardSnapshot: storyboardSnapshot,
+            floorPlanSnapshot: floorPlanSnapshot,
+            locations: locations,
+            setScopeSymbolsBySetId: setScopeSymbolsBySetId,
+            roles: roles,
+          ),
+        );
+      } else {
+        emitter(state.copyToWriteFailed());
+      }
+
+      isReloaded = isRead;
     } catch (error, stackTrace) {
       _logger.e(
         "A problem occurred when tried to read again the $scopes of project "
@@ -315,7 +328,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// {@macro open_cine_prod_tools.MixinOcptProjectVersionsBloc.reloadFromProjectDatabase}
   @protected
   @override
-  Future<void> reloadFromProjectDatabase(Emitter<OcptShotListState> emitter) => _load(emitter);
+  Future<bool> reloadFromProjectDatabase(Emitter<OcptShotListState> emitter) => _load(emitter);
 
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
@@ -348,7 +361,10 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
   /// This is also [MixinOcptProjectVersionsBloc]'s [reloadFromProjectDatabase] hook, so it emits
   /// which version is being previewed alongside the shot list it just read, the two reaching the
   /// mode together (see the hook's own doc comment).
-  Future<void> _load(Emitter<OcptShotListState> emitter) async {
+  ///
+  /// Answers false when the shot list could not be read, in which case nothing is emitted and the
+  /// caller stops there.
+  Future<bool> _load(Emitter<OcptShotListState> emitter) async {
     final leftDockFraction =
         await _propertiesManager.shotListLeftDockFraction.load() ??
         OcptWorkspaceDock.leftDefaultFraction;
@@ -375,16 +391,21 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           centreView: centreView,
         ),
       );
-      return;
+      return true;
     }
 
     // Queued with the views' reloads: a read made here but emitted after a newer one would put
     // older data over it.
-    await runSerially(() async {
+    return runSerially(() async {
       final previewedVersion = project.previewedVersion;
       final screenplayText = await _reader.loadScreenplayText(project);
       final pageSetup = await _reader.loadPageSetup(project);
-      final snapshot = await _reader.loadSnapshot(project);
+      final snapshotRead = await _reader.loadSnapshot(project);
+      if (snapshotRead.isError) {
+        return false;
+      }
+
+      final snapshot = snapshotRead.value!;
       final storyboardSnapshot = await _reader.loadStoryboard(project);
       final floorPlanSnapshot = await _reader.loadFloorPlans(project);
       final locations = await _reader.loadLocations(project);
@@ -440,6 +461,7 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           suggestions: suggestions,
         ),
       );
+      return true;
     });
   }
 
@@ -521,7 +543,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
         sceneId: sequence.sceneId,
       );
       await runSerially(() async {
-        final snapshot = await _reader.loadSnapshot(project);
+        final snapshotRead = await _reader.loadSnapshot(project);
+        if (snapshotRead.isError) {
+          emitter(state.copyToWriteFailed());
+          return;
+        }
+
+        final snapshot = snapshotRead.value!;
 
         await _persistLastRightDockTab(OcptShotListRightDockTab.inspector);
 
@@ -722,7 +750,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     try {
       await _shotListService.deleteShot(database: project.database, shotId: event.shotId);
       await runSerially(() async {
-        final snapshot = await _reader.loadSnapshot(project);
+        final snapshotRead = await _reader.loadSnapshot(project);
+        if (snapshotRead.isError) {
+          emitter(state.copyToWriteFailed());
+          return;
+        }
+
+        final snapshot = snapshotRead.value!;
         final reselectedShotId = wasSelected
             ? ocptFirstShotIdOf(snapshot: snapshot, sequenceId: state.selectedSequenceId)
             : state.selectedShotId;

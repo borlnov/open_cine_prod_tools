@@ -8,6 +8,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_inspector.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'schedule_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario lets the mode's 2 s field-edit debounce run out.
@@ -114,11 +115,9 @@ void main() {
       "left right after typing", (tester) async {
     final dayId = await harness.seedDay(_shootingDate);
     final slotId = await harness.firstSlotOf(dayId);
-    final blockId = (await harness.projectsManager.scheduleService.createBlock(
-      database: harness.database,
-      slotId: slotId,
-      kind: OcptShootingBlockKind.meal,
-    ))!;
+    final blockId = (await harness.projectsManager.scheduleService
+        .createBlock(database: harness.database, slotId: slotId, kind: OcptShootingBlockKind.meal)
+        .valueOrFail);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -151,16 +150,12 @@ void main() {
     final dayId = await harness.seedDay(_shootingDate);
     final slotId = await harness.firstSlotOf(dayId);
     final service = harness.projectsManager.scheduleService;
-    final eventId = (await service.createDayEvent(
-      database: harness.database,
-      dayId: dayId,
-      minute: 600,
-    ))!;
-    final guestId = (await service.addSlotGuest(
-      database: harness.database,
-      slotId: slotId,
-      freeName: "The mayor",
-    ))!;
+    final eventId = (await service
+        .createDayEvent(database: harness.database, dayId: dayId, minute: 600)
+        .valueOrFail);
+    final guestId = (await service
+        .addSlotGuest(database: harness.database, slotId: slotId, freeName: "The mayor")
+        .valueOrFail);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -197,11 +192,13 @@ void main() {
       "keystroke", (tester) async {
     final dayId = await harness.seedDay(_shootingDate);
     final slotId = await harness.firstSlotOf(dayId);
-    await harness.projectsManager.scheduleService.addSlotCrewMember(
-      database: harness.database,
-      slotId: slotId,
-      personId: await harness.seedPerson("Alice"),
-    );
+    await harness.projectsManager.scheduleService
+        .addSlotCrewMember(
+          database: harness.database,
+          slotId: slotId,
+          personId: await harness.seedPerson("Alice"),
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -234,11 +231,13 @@ void main() {
       "nothing for a cancelled dialog", (tester) async {
     final dayId = await harness.seedDay(_shootingDate);
     await harness.seedDay(DateTime(2099, 3, 2));
-    await harness.projectsManager.scheduleService.addSlotCrewMember(
-      database: harness.database,
-      slotId: await harness.firstSlotOf(dayId),
-      personId: await harness.seedPerson("Alice"),
-    );
+    await harness.projectsManager.scheduleService
+        .addSlotCrewMember(
+          database: harness.database,
+          slotId: await harness.firstSlotOf(dayId),
+          personId: await harness.seedPerson("Alice"),
+        )
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

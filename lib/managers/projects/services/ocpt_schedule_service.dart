@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_blocks_ops.dart';
@@ -13,6 +14,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_event.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_placement.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_day_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -125,20 +127,33 @@ class OcptScheduleService extends AbsOcptService {
   const OcptScheduleService({required super.logger, required this.deviceId});
 
   /// Forward to [OcptScheduleDaysOps.loadSchedule].
-  Future<OcptScheduleSnapshot> loadSchedule({required OcptProjectDatabase database}) =>
-      OcptScheduleDaysOps.loadSchedule(database: database);
+  @useResult
+  Future<OcptDatabaseResult<OcptScheduleSnapshot>> loadSchedule({
+    required OcptProjectDatabase database,
+  }) => guardResult("loadSchedule", () => OcptScheduleDaysOps.loadSchedule(database: database));
 
   /// Forward to [OcptScheduleDaysOps.loadShotPlacements].
-  Future<Map<String, List<OcptShotPlacement>>> loadShotPlacements({
+  @useResult
+  Future<OcptDatabaseResult<Map<String, List<OcptShotPlacement>>>> loadShotPlacements({
     required OcptProjectDatabase database,
-  }) => OcptScheduleDaysOps.loadShotPlacements(database: database);
+  }) => guardResult(
+    "loadShotPlacements",
+    () => OcptScheduleDaysOps.loadShotPlacements(database: database),
+  );
 
   /// Forward to [OcptScheduleDaysOps.createDay].
-  Future<String?> createDay({required OcptProjectDatabase database, required DateTime date}) =>
-      OcptScheduleDaysOps.createDay(database: database, date: date, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseResult<String>> createDay({
+    required OcptProjectDatabase database,
+    required DateTime date,
+  }) => guardResult(
+    "createDay",
+    () => OcptScheduleDaysOps.createDay(database: database, date: date, deviceId: deviceId),
+  );
 
   /// Forward to [OcptScheduleDaysOps.updateDay].
-  Future<void> updateDay({
+  @useResult
+  Future<OcptDatabaseOutcome> updateDay({
     required OcptProjectDatabase database,
     required String dayId,
     Value<DateTime> date = const Value.absent(),
@@ -146,35 +161,49 @@ class OcptScheduleService extends AbsOcptService {
     Value<String> crewNote = const Value.absent(),
     Value<String> weatherNote = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleDaysOps.updateDay(
-    database: database,
-    dayId: dayId,
-    date: date,
-    status: status,
-    crewNote: crewNote,
-    weatherNote: weatherNote,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateDay",
+    () => OcptScheduleDaysOps.updateDay(
+      database: database,
+      dayId: dayId,
+      date: date,
+      status: status,
+      crewNote: crewNote,
+      weatherNote: weatherNote,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleDaysOps.deleteDay].
-  Future<void> deleteDay({required OcptProjectDatabase database, required String dayId}) =>
-      OcptScheduleDaysOps.deleteDay(database: database, dayId: dayId, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> deleteDay({
+    required OcptProjectDatabase database,
+    required String dayId,
+  }) => guardOutcome(
+    "deleteDay",
+    () => OcptScheduleDaysOps.deleteDay(database: database, dayId: dayId, deviceId: deviceId),
+  );
 
   /// Forward to [OcptScheduleDaysOps.duplicateDay].
-  Future<String?> duplicateDay({
+  @useResult
+  Future<OcptDatabaseResult<String>> duplicateDay({
     required OcptProjectDatabase database,
     required String sourceDayId,
     required DateTime date,
-  }) => OcptScheduleDaysOps.duplicateDay(
-    database: database,
-    sourceDayId: sourceDayId,
-    date: date,
-    deviceId: deviceId,
+  }) => guardResult(
+    "duplicateDay",
+    () => OcptScheduleDaysOps.duplicateDay(
+      database: database,
+      sourceDayId: sourceDayId,
+      date: date,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleSlotsOps.createSlot].
-  Future<String?> createSlot({
+  @useResult
+  Future<OcptDatabaseResult<String>> createSlot({
     required OcptProjectDatabase database,
     required String shootingDayId,
     required int anchorMinute,
@@ -182,297 +211,402 @@ class OcptScheduleService extends AbsOcptService {
     String? locationId,
     String? setId,
     String notes = "",
-  }) => OcptScheduleSlotsOps.createSlot(
-    database: database,
-    shootingDayId: shootingDayId,
-    anchorMinute: anchorMinute,
-    label: label,
-    locationId: locationId,
-    setId: setId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "createSlot",
+    () => OcptScheduleSlotsOps.createSlot(
+      database: database,
+      shootingDayId: shootingDayId,
+      anchorMinute: anchorMinute,
+      label: label,
+      locationId: locationId,
+      setId: setId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleSlotsOps.updateSlot].
-  Future<void> updateSlot({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSlot({
     required OcptProjectDatabase database,
     required String slotId,
     Value<String> label = const Value.absent(),
     Value<String?> locationId = const Value.absent(),
     Value<String?> setId = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleSlotsOps.updateSlot(
-    database: database,
-    slotId: slotId,
-    label: label,
-    locationId: locationId,
-    setId: setId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateSlot",
+    () => OcptScheduleSlotsOps.updateSlot(
+      database: database,
+      slotId: slotId,
+      label: label,
+      locationId: locationId,
+      setId: setId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleSlotsOps.setSlotAnchor].
-  Future<bool> setSlotAnchor({
+  @useResult
+  Future<OcptDatabaseResult<bool>> setSlotAnchor({
     required OcptProjectDatabase database,
     required String slotId,
     required OcptShootingSlotAnchorEdge edge,
     int? minute,
     String? sourceSlotId,
-  }) => OcptScheduleSlotsOps.setSlotAnchor(
-    database: database,
-    slotId: slotId,
-    edge: edge,
-    minute: minute,
-    sourceSlotId: sourceSlotId,
-    deviceId: deviceId,
+  }) => guardResult(
+    "setSlotAnchor",
+    () => OcptScheduleSlotsOps.setSlotAnchor(
+      database: database,
+      slotId: slotId,
+      edge: edge,
+      minute: minute,
+      sourceSlotId: sourceSlotId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleSlotsOps.reorderSlot].
-  Future<void> reorderSlot({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderSlot({
     required OcptProjectDatabase database,
     required String slotId,
     required int newPosition,
-  }) => OcptScheduleSlotsOps.reorderSlot(
-    database: database,
-    slotId: slotId,
-    newPosition: newPosition,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "reorderSlot",
+    () => OcptScheduleSlotsOps.reorderSlot(
+      database: database,
+      slotId: slotId,
+      newPosition: newPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleSlotsOps.deleteSlot].
-  Future<void> deleteSlot({required OcptProjectDatabase database, required String slotId}) =>
-      OcptScheduleSlotsOps.deleteSlot(database: database, slotId: slotId, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> deleteSlot({
+    required OcptProjectDatabase database,
+    required String slotId,
+  }) => guardOutcome(
+    "deleteSlot",
+    () => OcptScheduleSlotsOps.deleteSlot(database: database, slotId: slotId, deviceId: deviceId),
+  );
 
   /// Forward to [OcptScheduleConvocationsOps.addSlotCrewMember].
-  Future<String?> addSlotCrewMember({
+  @useResult
+  Future<OcptDatabaseResult<String>> addSlotCrewMember({
     required OcptProjectDatabase database,
     required String slotId,
     required String personId,
     String positionId = "",
     String customLabel = "",
     String notes = "",
-  }) => OcptScheduleConvocationsOps.addSlotCrewMember(
-    database: database,
-    slotId: slotId,
-    personId: personId,
-    positionId: positionId,
-    customLabel: customLabel,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addSlotCrewMember",
+    () => OcptScheduleConvocationsOps.addSlotCrewMember(
+      database: database,
+      slotId: slotId,
+      personId: personId,
+      positionId: positionId,
+      customLabel: customLabel,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.updateSlotCrewMember].
-  Future<void> updateSlotCrewMember({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSlotCrewMember({
     required OcptProjectDatabase database,
     required String crewMemberId,
     Value<String> personId = const Value.absent(),
     Value<String> positionId = const Value.absent(),
     Value<String> customLabel = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleConvocationsOps.updateSlotCrewMember(
-    database: database,
-    crewMemberId: crewMemberId,
-    personId: personId,
-    positionId: positionId,
-    customLabel: customLabel,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateSlotCrewMember",
+    () => OcptScheduleConvocationsOps.updateSlotCrewMember(
+      database: database,
+      crewMemberId: crewMemberId,
+      personId: personId,
+      positionId: positionId,
+      customLabel: customLabel,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.removeSlotCrewMember].
-  Future<void> removeSlotCrewMember({
+  @useResult
+  Future<OcptDatabaseOutcome> removeSlotCrewMember({
     required OcptProjectDatabase database,
     required String crewMemberId,
-  }) => OcptScheduleConvocationsOps.removeSlotCrewMember(
-    database: database,
-    crewMemberId: crewMemberId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "removeSlotCrewMember",
+    () => OcptScheduleConvocationsOps.removeSlotCrewMember(
+      database: database,
+      crewMemberId: crewMemberId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.addSlotCastRole].
-  Future<String?> addSlotCastRole({
+  @useResult
+  Future<OcptDatabaseResult<String>> addSlotCastRole({
     required OcptProjectDatabase database,
     required String slotId,
     required String roleId,
     String notes = "",
-  }) => OcptScheduleConvocationsOps.addSlotCastRole(
-    database: database,
-    slotId: slotId,
-    roleId: roleId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addSlotCastRole",
+    () => OcptScheduleConvocationsOps.addSlotCastRole(
+      database: database,
+      slotId: slotId,
+      roleId: roleId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.updateSlotCastRole].
-  Future<void> updateSlotCastRole({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSlotCastRole({
     required OcptProjectDatabase database,
     required String castRoleId,
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleConvocationsOps.updateSlotCastRole(
-    database: database,
-    castRoleId: castRoleId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateSlotCastRole",
+    () => OcptScheduleConvocationsOps.updateSlotCastRole(
+      database: database,
+      castRoleId: castRoleId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.removeSlotCastRole].
-  Future<void> removeSlotCastRole({
+  @useResult
+  Future<OcptDatabaseOutcome> removeSlotCastRole({
     required OcptProjectDatabase database,
     required String castRoleId,
-  }) => OcptScheduleConvocationsOps.removeSlotCastRole(
-    database: database,
-    castRoleId: castRoleId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "removeSlotCastRole",
+    () => OcptScheduleConvocationsOps.removeSlotCastRole(
+      database: database,
+      castRoleId: castRoleId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.addSlotGuest].
-  Future<String?> addSlotGuest({
+  @useResult
+  Future<OcptDatabaseResult<String>> addSlotGuest({
     required OcptProjectDatabase database,
     required String slotId,
     String? personId,
     String? freeName,
     String reason = "",
     String notes = "",
-  }) => OcptScheduleConvocationsOps.addSlotGuest(
-    database: database,
-    slotId: slotId,
-    personId: personId,
-    freeName: freeName,
-    reason: reason,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addSlotGuest",
+    () => OcptScheduleConvocationsOps.addSlotGuest(
+      database: database,
+      slotId: slotId,
+      personId: personId,
+      freeName: freeName,
+      reason: reason,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.updateSlotGuest].
-  Future<void> updateSlotGuest({
+  @useResult
+  Future<OcptDatabaseOutcome> updateSlotGuest({
     required OcptProjectDatabase database,
     required String guestId,
     Value<String?> personId = const Value.absent(),
     Value<String> freeName = const Value.absent(),
     Value<String> reason = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleConvocationsOps.updateSlotGuest(
-    database: database,
-    guestId: guestId,
-    personId: personId,
-    freeName: freeName,
-    reason: reason,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateSlotGuest",
+    () => OcptScheduleConvocationsOps.updateSlotGuest(
+      database: database,
+      guestId: guestId,
+      personId: personId,
+      freeName: freeName,
+      reason: reason,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.deleteSlotGuest].
-  Future<void> deleteSlotGuest({required OcptProjectDatabase database, required String guestId}) =>
-      OcptScheduleConvocationsOps.deleteSlotGuest(
-        database: database,
-        guestId: guestId,
-        deviceId: deviceId,
-      );
+  @useResult
+  Future<OcptDatabaseOutcome> deleteSlotGuest({
+    required OcptProjectDatabase database,
+    required String guestId,
+  }) => guardOutcome(
+    "deleteSlotGuest",
+    () => OcptScheduleConvocationsOps.deleteSlotGuest(
+      database: database,
+      guestId: guestId,
+      deviceId: deviceId,
+    ),
+  );
 
   /// Forward to [OcptScheduleConvocationsOps.addBlockCandidate].
-  Future<String?> addBlockCandidate({
+  @useResult
+  Future<OcptDatabaseResult<String>> addBlockCandidate({
     required OcptProjectDatabase database,
     required String blockId,
     required String roleCandidateId,
     String notes = "",
-  }) => OcptScheduleConvocationsOps.addBlockCandidate(
-    database: database,
-    blockId: blockId,
-    roleCandidateId: roleCandidateId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "addBlockCandidate",
+    () => OcptScheduleConvocationsOps.addBlockCandidate(
+      database: database,
+      blockId: blockId,
+      roleCandidateId: roleCandidateId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.updateBlockCandidate].
-  Future<void> updateBlockCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> updateBlockCandidate({
     required OcptProjectDatabase database,
     required String blockCandidateId,
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleConvocationsOps.updateBlockCandidate(
-    database: database,
-    blockCandidateId: blockCandidateId,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateBlockCandidate",
+    () => OcptScheduleConvocationsOps.updateBlockCandidate(
+      database: database,
+      blockCandidateId: blockCandidateId,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.reorderBlockCandidate].
-  Future<void> reorderBlockCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderBlockCandidate({
     required OcptProjectDatabase database,
     required String blockCandidateId,
     required int newPosition,
-  }) => OcptScheduleConvocationsOps.reorderBlockCandidate(
-    database: database,
-    blockCandidateId: blockCandidateId,
-    newPosition: newPosition,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "reorderBlockCandidate",
+    () => OcptScheduleConvocationsOps.reorderBlockCandidate(
+      database: database,
+      blockCandidateId: blockCandidateId,
+      newPosition: newPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleConvocationsOps.removeBlockCandidate].
-  Future<void> removeBlockCandidate({
+  @useResult
+  Future<OcptDatabaseOutcome> removeBlockCandidate({
     required OcptProjectDatabase database,
     required String blockCandidateId,
-  }) => OcptScheduleConvocationsOps.removeBlockCandidate(
-    database: database,
-    blockCandidateId: blockCandidateId,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "removeBlockCandidate",
+    () => OcptScheduleConvocationsOps.removeBlockCandidate(
+      database: database,
+      blockCandidateId: blockCandidateId,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleDaysOps.createDayEvent].
-  Future<String?> createDayEvent({
+  @useResult
+  Future<OcptDatabaseResult<String>> createDayEvent({
     required OcptProjectDatabase database,
     required String dayId,
     required int minute,
     String label = "",
     String notes = "",
-  }) => OcptScheduleDaysOps.createDayEvent(
-    database: database,
-    dayId: dayId,
-    minute: minute,
-    label: label,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardResult(
+    "createDayEvent",
+    () => OcptScheduleDaysOps.createDayEvent(
+      database: database,
+      dayId: dayId,
+      minute: minute,
+      label: label,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleDaysOps.updateDayEvent].
-  Future<void> updateDayEvent({
+  @useResult
+  Future<OcptDatabaseOutcome> updateDayEvent({
     required OcptProjectDatabase database,
     required String eventId,
     Value<int> minute = const Value.absent(),
     Value<String> label = const Value.absent(),
     Value<String> notes = const Value.absent(),
-  }) => OcptScheduleDaysOps.updateDayEvent(
-    database: database,
-    eventId: eventId,
-    minute: minute,
-    label: label,
-    notes: notes,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateDayEvent",
+    () => OcptScheduleDaysOps.updateDayEvent(
+      database: database,
+      eventId: eventId,
+      minute: minute,
+      label: label,
+      notes: notes,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleDaysOps.deleteDayEvent].
-  Future<void> deleteDayEvent({required OcptProjectDatabase database, required String eventId}) =>
-      OcptScheduleDaysOps.deleteDayEvent(database: database, eventId: eventId, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> deleteDayEvent({
+    required OcptProjectDatabase database,
+    required String eventId,
+  }) => guardOutcome(
+    "deleteDayEvent",
+    () => OcptScheduleDaysOps.deleteDayEvent(
+      database: database,
+      eventId: eventId,
+      deviceId: deviceId,
+    ),
+  );
 
   /// Forward to [OcptScheduleBlocksOps.placeShot].
-  Future<String?> placeShot({
+  @useResult
+  Future<OcptDatabaseResult<String>> placeShot({
     required OcptProjectDatabase database,
     required String slotId,
     required String shotId,
     int? atPosition,
-  }) => OcptScheduleBlocksOps.placeShot(
-    database: database,
-    slotId: slotId,
-    shotId: shotId,
-    atPosition: atPosition,
-    deviceId: deviceId,
+  }) => guardResult(
+    "placeShot",
+    () => OcptScheduleBlocksOps.placeShot(
+      database: database,
+      slotId: slotId,
+      shotId: shotId,
+      atPosition: atPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleBlocksOps.deleteBlock].
-  Future<void> deleteBlock({required OcptProjectDatabase database, required String blockId}) =>
-      OcptScheduleBlocksOps.deleteBlock(database: database, blockId: blockId, deviceId: deviceId);
+  @useResult
+  Future<OcptDatabaseOutcome> deleteBlock({
+    required OcptProjectDatabase database,
+    required String blockId,
+  }) => guardOutcome(
+    "deleteBlock",
+    () =>
+        OcptScheduleBlocksOps.deleteBlock(database: database, blockId: blockId, deviceId: deviceId),
+  );
 
   /// Forward to [OcptScheduleBlocksOps.createBlock].
-  Future<String?> createBlock({
+  @useResult
+  Future<OcptDatabaseResult<String>> createBlock({
     required OcptProjectDatabase database,
     required String slotId,
     required OcptShootingBlockKind kind,
@@ -482,21 +616,25 @@ class OcptScheduleService extends AbsOcptService {
     int? anchorMinute,
     String notes = "",
     int? atPosition,
-  }) => OcptScheduleBlocksOps.createBlock(
-    database: database,
-    slotId: slotId,
-    kind: kind,
-    sceneId: sceneId,
-    label: label,
-    durationMinutes: durationMinutes,
-    anchorMinute: anchorMinute,
-    notes: notes,
-    atPosition: atPosition,
-    deviceId: deviceId,
+  }) => guardResult(
+    "createBlock",
+    () => OcptScheduleBlocksOps.createBlock(
+      database: database,
+      slotId: slotId,
+      kind: kind,
+      sceneId: sceneId,
+      label: label,
+      durationMinutes: durationMinutes,
+      anchorMinute: anchorMinute,
+      notes: notes,
+      atPosition: atPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleBlocksOps.updateBlock].
-  Future<void> updateBlock({
+  @useResult
+  Future<OcptDatabaseOutcome> updateBlock({
     required OcptProjectDatabase database,
     required String blockId,
     Value<OcptShootingBlockKind> kind = const Value.absent(),
@@ -506,43 +644,54 @@ class OcptScheduleService extends AbsOcptService {
     Value<int?> anchorMinute = const Value.absent(),
     Value<String> notes = const Value.absent(),
     Value<String> crewNote = const Value.absent(),
-  }) => OcptScheduleBlocksOps.updateBlock(
-    database: database,
-    blockId: blockId,
-    kind: kind,
-    sceneId: sceneId,
-    label: label,
-    durationMinutes: durationMinutes,
-    anchorMinute: anchorMinute,
-    notes: notes,
-    crewNote: crewNote,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "updateBlock",
+    () => OcptScheduleBlocksOps.updateBlock(
+      database: database,
+      blockId: blockId,
+      kind: kind,
+      sceneId: sceneId,
+      label: label,
+      durationMinutes: durationMinutes,
+      anchorMinute: anchorMinute,
+      notes: notes,
+      crewNote: crewNote,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleBlocksOps.reorderBlock].
-  Future<void> reorderBlock({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderBlock({
     required OcptProjectDatabase database,
     required String blockId,
     required int newPosition,
-  }) => OcptScheduleBlocksOps.reorderBlock(
-    database: database,
-    blockId: blockId,
-    newPosition: newPosition,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "reorderBlock",
+    () => OcptScheduleBlocksOps.reorderBlock(
+      database: database,
+      blockId: blockId,
+      newPosition: newPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleBlocksOps.moveBlockToSlot].
-  Future<void> moveBlockToSlot({
+  @useResult
+  Future<OcptDatabaseOutcome> moveBlockToSlot({
     required OcptProjectDatabase database,
     required String blockId,
     required String targetSlotId,
     required int newPosition,
-  }) => OcptScheduleBlocksOps.moveBlockToSlot(
-    database: database,
-    blockId: blockId,
-    targetSlotId: targetSlotId,
-    newPosition: newPosition,
-    deviceId: deviceId,
+  }) => guardOutcome(
+    "moveBlockToSlot",
+    () => OcptScheduleBlocksOps.moveBlockToSlot(
+      database: database,
+      blockId: blockId,
+      targetSlotId: targetSlotId,
+      newPosition: newPosition,
+      deviceId: deviceId,
+    ),
   );
 
   /// Forward to [OcptScheduleBlocksOps.tombstoneShotBlocks].
