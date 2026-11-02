@@ -168,7 +168,28 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
                     WidgetSpan(
                       alignment: PlaceholderAlignment.baseline,
                       baseline: TextBaseline.alphabetic,
-                      child: _wordWidgetAt(block.words[i], displayRuns[i], printStyle, baseStyle),
+                      child: _OcptBreakdownWordSlot(
+                        word: _OcptBreakdownWord(
+                          runs: displayRuns[i],
+                          isUppercase: printStyle.isUppercase,
+                          style: baseStyle,
+                          paint: _paintOf(block.words[i]),
+                          onTap: _onTapFor(block.words[i]),
+                        ),
+                        popover: _isPopoverAnchorWord(block.words[i])
+                            ? OcptBreakdownTagPopover(
+                                taggedText: pendingTagRange!.taggedText,
+                                candidates: candidates,
+                                onCandidateSelected: (candidate) =>
+                                    onPopoverTargetLinked(candidate.kind, candidate.id),
+                                onCategorySelected: onPopoverElementCreationRequested,
+                                locations: locations,
+                                onSetCreationSelected: onPopoverSetCreationRequested,
+                                onOpenInResourcesRequested: onOpenInResourcesRequested,
+                                onClose: onPopoverCancelled,
+                              )
+                            : null,
+                      ),
                     ),
                 ],
               ),
@@ -327,43 +348,30 @@ class OcptBreakdownScriptBlock extends StatelessWidget {
 
     return () => onWordClicked(scene.id, word.startOffset, word.endOffset);
   }
+}
 
-  /// Build the widget rendered for [word] at its [runs]/[printStyle]/[baseStyle]: the plain click
-  /// target,
-  /// or — for the one word [_isPopoverAnchorWord] names — that same target anchoring
-  /// [OcptBreakdownTagPopover] under it through [OcptBreakdownTagPopoverAnchor].
-  Widget _wordWidgetAt(
-    OcptScriptWord word,
-    List<OcptFountainDisplayRun> runs,
-    FountainPrintStyle printStyle,
-    TextStyle baseStyle,
-  ) {
-    final wordWidget = _OcptBreakdownWord(
-      runs: runs,
-      isUppercase: printStyle.isUppercase,
-      style: baseStyle,
-      paint: _paintOf(word),
-      onTap: _onTapFor(word),
-    );
+/// One word of a script block: the plain click target, or — for the one word that anchors the
+/// pending tag's popover — that same target anchoring [popover] under it through
+/// [OcptBreakdownTagPopoverAnchor].
+class _OcptBreakdownWordSlot extends StatelessWidget {
+  /// The word's click target.
+  final Widget word;
 
-    if (!_isPopoverAnchorWord(word)) {
-      return wordWidget;
+  /// The popover the word anchors, or null for a word that anchors none.
+  final OcptBreakdownTagPopover? popover;
+
+  /// Class constructor
+  const _OcptBreakdownWordSlot({required this.word, required this.popover});
+
+  /// Build the word slot as the word itself or an [OcptBreakdownTagPopoverAnchor] around it.
+  @override
+  Widget build(BuildContext context) {
+    final popover = this.popover;
+    if (popover == null) {
+      return word;
     }
 
-    final range = pendingTagRange!;
-    return OcptBreakdownTagPopoverAnchor(
-      popover: OcptBreakdownTagPopover(
-        taggedText: range.taggedText,
-        candidates: candidates,
-        onCandidateSelected: (candidate) => onPopoverTargetLinked(candidate.kind, candidate.id),
-        onCategorySelected: onPopoverElementCreationRequested,
-        locations: locations,
-        onSetCreationSelected: onPopoverSetCreationRequested,
-        onOpenInResourcesRequested: onOpenInResourcesRequested,
-        onClose: onPopoverCancelled,
-      ),
-      child: wordWidget,
-    );
+    return OcptBreakdownTagPopoverAnchor(popover: popover, child: word);
   }
 }
 
