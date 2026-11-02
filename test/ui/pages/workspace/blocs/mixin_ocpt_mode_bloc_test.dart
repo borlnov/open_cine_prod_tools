@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_writes_flusher.dart';
@@ -68,12 +69,12 @@ class _Flusher implements OcptPendingWritesFlusher {
 
   /// Count the flush, fail when told to, and report whether anything was pending.
   @override
-  Future<bool> flushPendingWrites() async {
+  Future<OcptPendingWritesStatus> flushPendingWrites() async {
     flushCount++;
     if (fails) {
-      throw StateError("write failed");
+      return OcptPendingWritesStatus.failed;
     }
-    return hasPending;
+    return hasPending ? OcptPendingWritesStatus.ok : OcptPendingWritesStatus.nothingToWrite;
   }
 
   /// Count the flush.

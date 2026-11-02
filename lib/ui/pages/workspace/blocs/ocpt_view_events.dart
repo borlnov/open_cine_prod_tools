@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_awaited_event.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 
@@ -41,8 +42,9 @@ class OcptViewModeStateChangedEvent<MS extends MixinOcptModeState<MS>> extends O
   List<Object?> get props => [...super.props, modeState, hasReloaded, hasSelectionMoved];
 }
 
-/// Request writing the edits the view holds, answering whether there were any.
-class OcptViewFlushRequestedEvent extends OcptViewEvent with MixinOcptAwaitedEvent<bool> {
+/// Request writing the edits the view holds, answering what the write came to.
+class OcptViewFlushRequestedEvent extends OcptViewEvent
+    with MixinOcptAwaitedEvent<OcptPendingWritesStatus> {
   /// Class constructor
   OcptViewFlushRequestedEvent();
 }

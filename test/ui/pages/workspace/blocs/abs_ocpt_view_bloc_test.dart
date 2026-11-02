@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
@@ -224,6 +225,9 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Whether writing the typed text fails, as a full disk would.
   bool failsToWrite = false;
 
+  /// Whether writing the typed text raises instead of answering, as a mistake in the view would.
+  bool raisesToWrite = false;
+
   /// Whether writing the typed text without state fails.
   bool failsToWriteWithoutState = false;
 
@@ -279,21 +283,24 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
     );
   }
 
-  /// Write the pending text to the sink and clear it, or fail when told to; report whether anything
-  /// was written.
+  /// Write the pending text to the sink and clear it, or fail when told to; report what came of it.
   @override
-  Future<bool> onFlushRequested(Emitter<_ViewState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(Emitter<_ViewState> emitter) async {
     if (state.pending.isEmpty) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
+    }
+
+    if (raisesToWrite) {
+      throw StateError("write raised");
     }
 
     if (failsToWrite) {
-      throw StateError("write failed");
+      return OcptPendingWritesStatus.failed;
     }
 
     sink.add(state.pending);
     emitter(state.copyWith(pending: ""));
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write the pending text to the sink through the stateless flush, waiting for the gate and
@@ -423,8 +430,28 @@ void main() {
     await mode.close();
   });
 
+  test('a view whose write raises answers a failure to the flush and keeps its edit', () async {
+    final sink = <String>[];
+    final mode = _ModeBloc();
+    final view = _ViewBloc(modeBloc: mode, sink: sink)..raisesToWrite = true;
+    view.add(const _TypeEvent("hello"));
+    await pumpEventQueue();
+
+    expect(await view.flushPendingWrites(), OcptPendingWritesStatus.failed);
+    expect(await mode.flushAllPendingWrites(), isFalse);
+    expect(view.state.pending, 'hello');
+    expect(sink, isEmpty);
+
+    view.raisesToWrite = false;
+    expect(await view.flushPendingWrites(), OcptPendingWritesStatus.ok);
+    expect(sink, ['hello']);
+
+    await view.close();
+    await mode.close();
+  });
+
   test(
-    'a view whose write fails throws it to the flush, which keeps what the view holds',
+    'a view whose write fails answers a failure to the flush, which keeps what the view holds',
     () async {
       final sink = <String>[];
       final mode = _ModeBloc();
@@ -432,7 +459,7 @@ void main() {
       view.add(const _TypeEvent("hello"));
       await pumpEventQueue();
 
-      await expectLater(view.flushPendingWrites(), throwsStateError);
+      expect(await view.flushPendingWrites(), OcptPendingWritesStatus.failed);
       expect(await mode.flushAllPendingWrites(), isFalse);
       expect(view.state.pending, 'hello');
       expect(sink, isEmpty);
@@ -648,7 +675,7 @@ void main() {
     final mode = _ModeBloc();
     final view = _ViewBloc(modeBloc: mode, sink: []);
 
-    expect(await view.flushPendingWrites(), isFalse);
+    expect(await view.flushPendingWrites(), OcptPendingWritesStatus.nothingToWrite);
 
     await view.close();
     await mode.close();

@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_max_daily_presence.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_person_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_resources_right_dock_tab.dart';
@@ -155,18 +156,20 @@ class OcptResourcesPeopleBloc
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
   @override
-  Future<bool> onFlushRequested(Emitter<OcptResourcesPeopleState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(
+    Emitter<OcptResourcesPeopleState> emitter,
+  ) async {
     cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWithFieldEditsCleared());
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     var isWritten = false;
@@ -184,7 +187,7 @@ class OcptResourcesPeopleBloc
     }
 
     if (!isWritten) {
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     // A read that fails changes nothing here: the write landed, so what was written is forgotten
@@ -208,7 +211,7 @@ class OcptResourcesPeopleBloc
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
 
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write every pending field edit directly to the database, bypassing the debounce timer, the

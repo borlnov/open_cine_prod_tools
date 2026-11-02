@@ -17,6 +17,7 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versions_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.dart';
@@ -166,20 +167,22 @@ class OcptBreakdownInspectorBloc
   /// to be up to date (a selection, a right dock tab change, a tag write, a version preview, an
   /// export).
   @override
-  Future<bool> onFlushRequested(Emitter<OcptBreakdownInspectorState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(
+    Emitter<OcptBreakdownInspectorState> emitter,
+  ) async {
     cancelDebounce();
 
     final pendingElementFields = state.pendingElementFieldEdits;
     final pendingSceneNotes = state.pendingSceneNotesEdits;
     final pendingSetNames = state.pendingSetNameEdits;
     if (!_hasPendingEdits(state)) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWithPendingEditsCleared());
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     var hasWritten = true;
@@ -228,7 +231,7 @@ class OcptBreakdownInspectorBloc
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
 
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write every pending edit directly to the database, bypassing the debounce timer, the bloc's

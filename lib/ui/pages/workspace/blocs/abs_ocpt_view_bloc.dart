@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_writes_flusher.dart';
@@ -209,21 +210,23 @@ abstract class AbsOcptViewBloc<
     Emitter<S> emitter,
   ) async {}
 
-  /// Write what this view holds in a debounce and emit the state without it, answering whether
-  /// there was anything to write. Nothing by default: a view with no typed edits holds nothing.
+  /// Write what this view holds in a debounce and emit the state without it, answering what the
+  /// write came to. Nothing by default: a view with no typed edits holds nothing.
   @protected
-  Future<bool> onFlushRequested(Emitter<S> emitter) async => false;
+  Future<OcptPendingWritesStatus> onFlushRequested(Emitter<S> emitter) async =>
+      OcptPendingWritesStatus.nothingToWrite;
 
-  /// Ask the view's own bloc to write what it holds, and answer whether it had anything. Answers
-  /// false at once on a view that is closing, and throws what the write threw: see
-  /// [OcptPendingWritesFlusher.flushPendingWrites].
+  /// Ask the view's own bloc to write what it holds, and answer what the write came to. Answers
+  /// that there was nothing to write at once on a view that is closing, and that it failed when
+  /// the write did: see [OcptPendingWritesFlusher.flushPendingWrites].
   @override
-  Future<bool> flushPendingWrites() async {
+  Future<OcptPendingWritesStatus> flushPendingWrites() async {
     if (_isClosing) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
-    return await OcptViewFlushRequestedEvent().addToAndWait(this) ?? false;
+    return await OcptViewFlushRequestedEvent().addToAndWait(this) ??
+        OcptPendingWritesStatus.nothingToWrite;
   }
 
   /// Write nothing by default: a view with no typed edits holds nothing. A view that does writes
@@ -354,18 +357,19 @@ abstract class AbsOcptViewBloc<
     }
   }
 
-  /// Write what the view holds, then tell the dispatcher what it found, or that it failed: the
-  /// error goes to the dispatcher, which must not take a failed write for an empty one, and to
-  /// this bloc's own error report.
+  /// Write what the view holds, then tell the dispatcher what it found. A write that raises
+  /// anyway is told as a failure, which the dispatcher must not take for an empty flush; the error
+  /// goes to this bloc's own error report and stops here, since a handler that lets it out would
+  /// leave it unhandled.
   Future<void> _onFlushRequested(OcptViewFlushRequestedEvent event, Emitter<S> emitter) async {
     _editsWrittenWithoutState.clear();
+    var status = OcptPendingWritesStatus.failed;
     try {
-      event.complete(await onFlushRequested(emitter));
+      status = await onFlushRequested(emitter);
     } catch (error, stackTrace) {
-      event.completeError(error, stackTrace);
       addError(error, stackTrace);
     } finally {
-      event.complete(false);
+      event.complete(status);
     }
   }
 

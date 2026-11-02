@@ -16,6 +16,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_covera
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_shot_list_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_difficulty_axis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
@@ -518,7 +519,7 @@ void main() {
       await waitUntil(() => inspector.state.pendingFieldEdits.isEmpty);
 
       // Nothing is left to write: a flush is a no-op rather than a write to a deleted shot.
-      expect(await inspector.flushPendingWrites(), isFalse);
+      expect(await inspector.flushPendingWrites(), OcptPendingWritesStatus.nothingToWrite);
 
       await closeAll(inspector, mode);
     });

@@ -20,6 +20,7 @@ import 'package:open_cine_prod_tools/models/ocpt_script_word.dart';
 import 'package:open_cine_prod_tools/models/ocpt_script_word_layout.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -204,18 +205,20 @@ class OcptShotListInspectorBloc
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
   @override
-  Future<bool> onFlushRequested(Emitter<OcptShotListInspectorState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(
+    Emitter<OcptShotListInspectorState> emitter,
+  ) async {
     cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWithFieldEditsCleared());
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     try {
@@ -249,7 +252,7 @@ class OcptShotListInspectorBloc
       );
     }
 
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write every pending field edit directly to the database, bypassing the debounce timer, the
@@ -318,9 +321,10 @@ class OcptShotListInspectorBloc
     OcptShotListInspectorFieldEditFlushRequestedEvent event,
     Emitter<OcptShotListInspectorState> emitter,
   ) async {
-    final hasWritten = await onFlushRequested(emitter);
+    final status = await onFlushRequested(emitter);
 
-    if (hasWritten && modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
+    if (status == OcptPendingWritesStatus.ok &&
+        modeBloc.state.rightDockTab == OcptShotListRightDockTab.versions) {
       addToMode(const OcptProjectWorkingCopyRefreshRequestedEvent());
     }
   }

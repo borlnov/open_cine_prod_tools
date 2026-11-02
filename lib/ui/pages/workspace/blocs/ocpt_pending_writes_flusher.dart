@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
+
 /// What asking every flusher of a mode to write came to: whether any of them had something to
 /// write, and whether any of them failed.
 typedef OcptPendingWritesRun = ({bool hasWritten, bool hasFailed});
@@ -14,15 +16,16 @@ typedef OcptPendingWritesRun = ({bool hasWritten, bool hasFailed});
 /// preview, leaving the workspace. It does not know what each of them holds, only that it can be
 /// asked to let go of it.
 abstract interface class OcptPendingWritesFlusher {
-  /// Write whatever this holds, forget it, and answer whether there was anything to write.
+  /// Write whatever this holds, forget it, and answer what that came to: written, nothing to
+  /// write, or failed.
   ///
   /// Runs inside the flusher's own bloc, so it may emit the now-empty state.
   ///
-  /// Throws when the write failed, and then keeps what it holds: an answer of "nothing to write"
-  /// would let the action waiting on the flush (a preview, a restore, an export) go on as if the
-  /// database were up to date, and drop the edit with it. A flusher that reports its own failures
-  /// to the user and wants the action to go on catches them itself instead.
-  Future<bool> flushPendingWrites();
+  /// Answers `failed` when the write failed, and then keeps what it holds: an answer of "nothing
+  /// to write" would let the action waiting on the flush (a preview, a restore, an export) go on
+  /// as if the database were up to date, and drop the edit with it. A flusher that reports its own
+  /// failures to the user and wants the action to go on answers `ok` instead.
+  Future<OcptPendingWritesStatus> flushPendingWrites();
 
   /// Write whatever this holds **without touching any state**, for the moments no handler can
   /// emit from: a widget leaving the tree, a bloc closing. A failure is only logged. Both moments

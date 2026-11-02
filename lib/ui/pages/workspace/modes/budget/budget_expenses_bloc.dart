@@ -22,6 +22,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_view_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
@@ -143,34 +144,34 @@ class OcptBudgetExpensesBloc
   /// stored value between the two. A no-op while nothing is pending. Answers whether there was
   /// anything pending.
   ///
-  /// A failed write throws, and the edit stays pending. When the mode could not read the snapshot
-  /// again the edits stay pending too: they were written, but what is on screen is still the older
-  /// data.
+  /// A failed write leaves the edit pending, and so does a mode that could not read the snapshot
+  /// again, which answers `failed`: the edits were written, but what is on screen is still the
+  /// older data.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
   @override
-  Future<bool> onFlushRequested(Emitter<OcptBudgetExpensesState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(Emitter<OcptBudgetExpensesState> emitter) async {
     cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWithFieldEditsCleared());
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     await _writeAllPendingFieldEdits(project, pending);
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
-      // The write landed but the mode could not read it back, which the old handler let escape
-      // and so stopped the action behind the flush: answering that all went well would let a
-      // preview, an export or a restore run on the snapshot from before the write. The edit stays
-      // pending, and the next flush writes it again.
-      throw StateError("The data could not be read again after the pending edits were written");
+      // The write landed but the mode could not read it back: answering that all went well
+      // would let a preview, an export or a restore run on the snapshot from before the write, so
+      // the flush answers that it failed. The edit stays pending, and the next flush writes it
+      // again.
+      return OcptPendingWritesStatus.failed;
     }
 
     emitter(
@@ -181,7 +182,7 @@ class OcptBudgetExpensesBloc
         ),
       ),
     );
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write every pending field edit directly to the database, bypassing both the debounce timer

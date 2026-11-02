@@ -36,16 +36,6 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
     }
   }
 
-  /// Tell the dispatcher the handler failed: [addToAndWait] throws [error] to whoever waits.
-  ///
-  /// For a handler whose dispatcher has to know the work did not happen, which an answer of
-  /// "nothing to report" would hide. Like [complete], it does nothing once the event was completed.
-  void completeError(Object error, [StackTrace? stackTrace]) {
-    if (!_completer.isCompleted) {
-      _completer.completeError(error, stackTrace);
-    }
-  }
-
   /// Add this event to [bloc], then wait until its handler completed it and return the answer, or
   /// return null as soon as [bloc] closes, without waiting for a handler that will never run.
   Future<T?> addToAndWait(Bloc<BlocEventForMixin, Object?> bloc) async {

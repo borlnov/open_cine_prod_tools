@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/mixin_ocpt_mode_state.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_mode_events.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_pending_writes_flusher.dart';
@@ -157,12 +158,13 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
     var hasWritten = false;
     var hasFailed = false;
     for (final flusher in List.of(_flushers)) {
-      try {
-        if (await flusher.flushPendingWrites()) {
+      switch (await flusher.flushPendingWrites()) {
+        case OcptPendingWritesStatus.ok:
           hasWritten = true;
-        }
-      } catch (_) {
-        hasFailed = true;
+        case OcptPendingWritesStatus.failed:
+          hasFailed = true;
+        case OcptPendingWritesStatus.nothingToWrite:
+          break;
       }
     }
     return (hasWritten: hasWritten, hasFailed: hasFailed);

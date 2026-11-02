@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day_block.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_schedule_selection_cause.dart';
@@ -173,33 +174,33 @@ class OcptScheduleDayBloc
   /// what it wrote, so what a field shows never falls back to a stale stored value between the two.
   /// A no-op while nothing is pending. Answers whether there was anything pending.
   ///
-  /// When the mode could not read the schedule again the edits stay pending: they were written, but
-  /// what is on screen is still the older data.
+  /// When the mode could not read the schedule again the flush answers `failed` and the edits stay
+  /// pending: they were written, but what is on screen is still the older data.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
   @override
-  Future<bool> onFlushRequested(Emitter<OcptScheduleDayState> emitter) async {
+  Future<OcptPendingWritesStatus> onFlushRequested(Emitter<OcptScheduleDayState> emitter) async {
     cancelDebounce();
 
     final pending = state.pendingFieldEdits;
     if (pending.isEmpty) {
-      return false;
+      return OcptPendingWritesStatus.nothingToWrite;
     }
 
     final project = _projectsManager.currentProject;
     if (project == null) {
       emitter(state.copyWithFieldEditsCleared());
-      return true;
+      return OcptPendingWritesStatus.ok;
     }
 
     await _writeAllPendingFieldEdits(project, pending);
     if (!await modeBloc.reload({OcptScheduleReloadScope.schedule})) {
-      // The write landed but the mode could not read it back, which the old handler let escape
-      // and so stopped the action behind the flush: answering that all went well would let a
-      // preview, an export or a restore run on the snapshot from before the write. The edit stays
-      // pending, and the next flush writes it again.
-      throw StateError("The data could not be read again after the pending edits were written");
+      // The write landed but the mode could not read it back: answering that all went well
+      // would let a preview, an export or a restore run on the snapshot from before the write, so
+      // the flush answers that it failed. The edit stays pending, and the next flush writes it
+      // again.
+      return OcptPendingWritesStatus.failed;
     }
 
     emitter(
@@ -210,7 +211,7 @@ class OcptScheduleDayBloc
         ),
       ),
     );
-    return true;
+    return OcptPendingWritesStatus.ok;
   }
 
   /// Write every pending field edit directly to the database, bypassing both the debounce timer
