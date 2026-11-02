@@ -65,9 +65,12 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   /// The filter field's own controller.
   final _filterController = TextEditingController();
 
-  /// The filter field's current text, trimmed and lower-cased once per rebuild rather than once
+  /// The filter field's current text, trimmed and lower-cased once per change rather than once
   /// per row.
   String _filterQuery = "";
+
+  /// [_words] narrowed to the ones containing [_filterQuery], worked out whenever either changes.
+  late List<String> _filtered = _words;
 
   /// The add field's own controller.
   final _addController = TextEditingController();
@@ -93,9 +96,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final filtered = _filterQuery.isEmpty
-        ? _words
-        : _words.where((word) => word.toLowerCase().contains(_filterQuery)).toList();
+    final filtered = _filtered;
 
     return PopScope(
       canPop: false,
@@ -149,8 +150,16 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
 
   /// Re-filter the list on every keystroke of the filter field.
   void _onFilterChanged() {
-    setState(() => _filterQuery = _filterController.text.trim().toLowerCase());
+    setState(() {
+      _filterQuery = _filterController.text.trim().toLowerCase();
+      _filtered = _filteredOf(_words);
+    });
   }
+
+  /// Get the words of [words] containing [_filterQuery], or [words] itself while it is empty.
+  List<String> _filteredOf(List<String> words) => _filterQuery.isEmpty
+      ? words
+      : words.where((word) => word.toLowerCase().contains(_filterQuery)).toList();
 
   /// Clear a standing duplicate error the moment the add field is touched again — the user is
   /// mid-correction, and the stale error would otherwise outlive the very keystroke fixing it.
@@ -164,6 +173,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   void _removeWord(String word) {
     setState(() {
       _words = List.of(_words)..remove(word);
+      _filtered = _filteredOf(_words);
       _confirmingRemovalOf = null;
     });
   }
@@ -185,6 +195,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
 
     setState(() {
       _words = _sorted([..._words, trimmed]);
+      _filtered = _filteredOf(_words);
       _addController.clear();
       _isAddDuplicate = false;
     });
