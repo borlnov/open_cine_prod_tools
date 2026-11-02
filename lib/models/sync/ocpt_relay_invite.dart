@@ -18,8 +18,9 @@ import 'package:open_cine_prod_tools/types/ocpt_relay_invite_status.dart';
 /// ocpt://join?r=<relayBaseUri>&p=<projectId>&t=<token>
 /// ```
 ///
-/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayInvite.parse] reads that string back, rejecting anything that is not this exact shape — a QR code
-/// aimed at some unrelated app must fail cleanly rather than half-parse.
+/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayInvite.parse] reads
+/// that string back, rejecting anything that is not this exact shape — a QR code aimed at some
+/// unrelated app must fail cleanly rather than half-parse.
 class OcptRelayInvite extends Equatable {
   /// The URI scheme of an invite link.
   static const String _scheme = 'ocpt';

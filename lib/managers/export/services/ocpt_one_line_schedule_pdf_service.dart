@@ -474,9 +474,10 @@ class OcptOneLineSchedulePdfService extends AbsOcptService {
 
 /// One printed line: a run of one or more consecutive [OcptShootingBlockKind.shot] blocks on the
 /// same slot and the same scene, collapsed exactly as `OcptCallSheetPdfService`'s own
-/// `OcptCallSheetDayRow.shotRun` folds one ([shots] non-empty), or a single [OcptShootingBlockKind.hold] block,
-/// which never folds with anything ([shots] always empty for one). See [_buildOneLineRows]'s own
-/// doc comment for why every other block kind gives no line at all.
+/// `OcptCallSheetDayRow.shotRun` folds one ([shots] non-empty), or a single
+/// [OcptShootingBlockKind.hold] block, which never folds with anything ([shots] always empty for
+/// one). See [_buildOneLineRows]'s own doc comment for why every other block kind gives no line at
+/// all.
 class _OneLineRow {
   /// The slot this row's blocks were placed on.
   final String slotId;

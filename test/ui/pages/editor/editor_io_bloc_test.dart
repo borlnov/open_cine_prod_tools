@@ -522,8 +522,8 @@ void main() {
 
     bloc.add(const OcptEditorImportRequestedEvent(fileTypeLabel: "Screenplay"));
     // The text/dirty change and the re-parse are separate emissions of the mode, and the notice is
-    // the file exchange bloc's own, emitted once the mode holds the text: wait for the re-parse, the
-    // last of the mode's two, and for the notice.
+    // the file exchange bloc's own, emitted once the mode holds the text: wait for the re-parse,
+    // the last of the mode's two, and for the notice.
     final state = await waitForState(
       bloc,
       (state) => state.scenes.isNotEmpty && state.ioNotice != null,

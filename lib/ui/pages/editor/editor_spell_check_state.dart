@@ -49,9 +49,9 @@ class OcptEditorSpellCheckState extends BlocStateForMixin<OcptEditorSpellCheckSt
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [rawSpellCheckRanges] and [styledSpellCheckRanges] need no clear flag despite legitimately going
-  /// back to empty: `const []`/`const {}` are themselves values, passed explicitly by the caller
-  /// wanting that. [caches] is never replaced: the copy shares it.
+  /// [rawSpellCheckRanges] and [styledSpellCheckRanges] need no clear flag despite legitimately
+  /// going back to empty: `const []`/`const {}` are themselves values, passed explicitly by the
+  /// caller wanting that. [caches] is never replaced: the copy shares it.
   @override
   OcptEditorSpellCheckState copyWith({
     List<SpellRange>? rawSpellCheckRanges,

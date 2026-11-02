@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_pending_tag.dart';
 /// The state of `OcptBreakdownTaggingBloc`: the range interaction of the script view, not yet
 /// written to the project database.
 ///
-/// Both pending values are ephemeral and write nothing on their own: the interaction they drive only
-/// touches the database once the popover it opens answers with a link or an element creation.
+/// Both pending values are ephemeral and write nothing on their own: the interaction they drive
+/// only touches the database once the popover it opens answers with a link or an element creation.
 class OcptBreakdownTaggingState extends BlocStateForMixin<OcptBreakdownTaggingState> {
   /// The first word clicked of a range not yet closed, or null while none is open — the script
   /// view's own cue to mark that word as pending. Cleared the moment the range closes

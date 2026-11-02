@@ -25,12 +25,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc
 /// PDF export, and importing a screenplay file over the current text.
 ///
 /// The text stays the mode's: this bloc asks it to write what is pending before an export reads it
-/// (`OcptEditorBloc` saves a dirty text tagged `OcptSnapshotReason.export`), reads the text the mode's
-/// state then holds, and hands it to [OcptExportManager], which owns both the document building and
-/// the native save dialog. An import is the one flow that writes: it has the mode save the typed
-/// text first, so the snapshot of the replaced screenplay holds it, writes the imported text through
-/// [OcptScreenplayService], and hands it to the mode to show. A cancelled dialog is a silent no-op; a
-/// failure raises the transient notice in [OcptEditorIoState.ioNotice].
+/// (`OcptEditorBloc` saves a dirty text tagged `OcptSnapshotReason.export`), reads the text the
+/// mode's state then holds, and hands it to [OcptExportManager], which owns both the document
+/// building and the native save dialog. An import is the one flow that writes: it has the mode save
+/// the typed text first, so the snapshot of the replaced screenplay holds it, writes the imported
+/// text through [OcptScreenplayService], and hands it to the mode to show. A cancelled dialog is a
+/// silent no-op; a failure raises the transient notice in [OcptEditorIoState.ioNotice].
 class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorState, OcptEditorBloc> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "editor_io_bloc";
@@ -76,9 +76,9 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
 
   /// Export the current screenplay to a `.fountain` file.
   ///
-  /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty, so the
-  /// exported file matches exactly what the project stores. A cancelled save dialog is a silent
-  /// no-op; a failure raises the transient export-failed notice.
+  /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty,
+  /// so the exported file matches exactly what the project stores. A cancelled save dialog is a
+  /// silent no-op; a failure raises the transient export-failed notice.
   Future<void> _onExportRequested(
     OcptEditorExportRequestedEvent event,
     Emitter<OcptEditorIoState> emitter,
@@ -122,11 +122,11 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
 
   /// Export the current screenplay to a PDF file.
   ///
-  /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty, so the
-  /// exported PDF matches exactly what the project stores. The document is re-parsed fresh from
-  /// `OcptEditorState.text` rather than reusing `OcptEditorState.document`, since the latter lags
-  /// behind by the parse debounce. A cancelled save dialog is a silent no-op; a failure raises the
-  /// transient PDF-export-failed notice.
+  /// Has the mode save the current text first (tagged `OcptSnapshotReason.export`) if it's dirty,
+  /// so the exported PDF matches exactly what the project stores. The document is re-parsed fresh
+  /// from `OcptEditorState.text` rather than reusing `OcptEditorState.document`, since the latter
+  /// lags behind by the parse debounce. A cancelled save dialog is a silent no-op; a failure raises
+  /// the transient PDF-export-failed notice.
   Future<void> _onExportPdfRequested(
     OcptEditorExportPdfRequestedEvent event,
     Emitter<OcptEditorIoState> emitter,
@@ -181,10 +181,10 @@ class OcptEditorIoBloc extends AbsOcptViewBloc<OcptEditorIoState, OcptEditorStat
   /// If the editor is dirty, the mode saves the current text first (tagged
   /// `OcptSnapshotReason.manual`) so the pre-import snapshot holds the user's latest keystrokes
   /// rather than a stale database copy; the imported text is then saved, tagged
-  /// `OcptSnapshotReason.import`, which snapshots the pre-import text, and handed to the mode to show.
-  /// A cancelled file dialog is a silent no-op; a file that cannot be read as a screenplay raises
-  /// the transient import-unreadable notice and replaces nothing, and a write failure raises the
-  /// import-failed one.
+  /// `OcptSnapshotReason.import`, which snapshots the pre-import text, and handed to the mode to
+  /// show. A cancelled file dialog is a silent no-op; a file that cannot be read as a screenplay
+  /// raises the transient import-unreadable notice and replaces nothing, and a write failure raises
+  /// the import-failed one.
   Future<void> _onImportRequested(
     OcptEditorImportRequestedEvent event,
     Emitter<OcptEditorIoState> emitter,

@@ -111,8 +111,8 @@ class OcptEditorCentre extends StatelessWidget {
 
     // Read here, and closed over: the styled editor flushes its pending edit from its own
     // `deactivate`, which runs after this widget was itself deactivated (the shell moves its centre
-    // between the row and the drawers, and leaving the page does the same), so a `context.read` made
-    // when the callback runs would look up an inactive element and lose the edit.
+    // between the row and the drawers, and leaving the page does the same), so a `context.read`
+    // made when the callback runs would look up an inactive element and lose the edit.
     final editorBloc = context.read<OcptEditorBloc>();
     final spellCheckBloc = context.read<OcptEditorSpellCheckBloc>();
 

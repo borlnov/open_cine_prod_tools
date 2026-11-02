@@ -54,9 +54,9 @@ class RecordingRouterManager extends OcptRouterManager {
 }
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
-/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
-/// preview's backdrop) resolve one, just like the real app always does, and [navigatorKey] so
-/// [RecordingRouterManager.pop] can close a dialog opened through `showDialog`.
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the
+/// raw-mode preview's backdrop) resolve one, just like the real app always does, and [navigatorKey]
+/// so [RecordingRouterManager.pop] can close a dialog opened through `showDialog`.
 Widget wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: navigatorKey,
   theme: ocpt_theme.ocptTheme.lightThemeData,

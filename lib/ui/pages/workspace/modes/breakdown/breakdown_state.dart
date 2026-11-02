@@ -384,8 +384,9 @@ class OcptBreakdownState extends BlocStateForMixin<OcptBreakdownState>
   /// legitimately go back to null while the mode is alive (a fresh load, a selection dropped, the
   /// dock closed), so each has its own force flag instead. [hiddenLegendKeys] is replaced wholesale
   /// rather than merged — the caller (the bloc's own legend handlers) always computes the full next
-  /// set. [searchQuery] needs no force flag either: an empty string is already a perfectly valid value for it (the field cleared), so
-  /// `searchQuery: ""` is passed like any other value rather than through a `clear…` flag.
+  /// set. [searchQuery] needs no force flag either: an empty string is already a perfectly valid
+  /// value for it (the field cleared), so `searchQuery: ""` is passed like any other value rather
+  /// than through a `clear…` flag.
   ///
   /// [selectedTargetSuggestions] is the one field this recomputes rather than carries over, and it
   /// does so only when one of the three things it derives from ([snapshot], [screenplayText] and

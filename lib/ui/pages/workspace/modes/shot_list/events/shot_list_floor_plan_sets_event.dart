@@ -136,7 +136,8 @@ class OcptShotListFloorPlanBlockingCopyRequestedEvent extends OcptShotListFloorP
 /// Record the floor plans canvas's own zoom as last **settled** by
 /// `OcptFloorPlanViewportController`, dispatched once a zoom gesture (the tool bar's `−`/`+`
 /// buttons, or the canvas's own scroll-wheel zoom, debounced) ends — never per frame. A view
-/// preference, held for the session alone; see `OcptShotListFloorPlanSetsState.floorPlanZoom`'s own doc comment.
+/// preference, held for the session alone; see `OcptShotListFloorPlanSetsState.floorPlanZoom`'s own
+/// doc comment.
 class OcptShotListFloorPlanZoomChangedEvent extends OcptShotListFloorPlanSetsEvent {
   /// The zoom just settled on.
   final double zoom;

@@ -370,7 +370,8 @@ class OcptCallSheetPdfService extends AbsOcptService {
     ];
     final headingBySceneId = ocptScheduleHeadingBySceneId(plan);
     // Narrowed twice: to the units this recipient is on, then to what they are actually in on them
-    // ([ocptCallSheetEntriesOfRecipient]). A sheet is read down by one person to know their own day.
+    // ([ocptCallSheetEntriesOfRecipient]). A sheet is read down by one person to know their own
+    // day.
     final orderedEntries = ocptCallSheetEntriesOfRecipient(
       plan: plan,
       convocation: convocation,
@@ -586,7 +587,11 @@ class OcptCallSheetPdfService extends AbsOcptService {
   /// returns, since the reference call sheet's own contacts-by-department table sits between the
   /// sun block and the main table; they are added by [generateGeneralCallSheet] itself rather than
   /// folded in here, over the very same
-  /// [OcptCallSheetHeaderSections.contactsBlock]/[OcptCallSheetTableSections.mainTableSection]/[OcptCallSheetTableSections.castTableSection]/[OcptCallSheetTableSections.peopleListSection]/[OcptCallSheetTableSections.guestsSection]
+  /// [OcptCallSheetHeaderSections.contactsBlock],
+  /// [OcptCallSheetTableSections.mainTableSection],
+  /// [OcptCallSheetTableSections.castTableSection],
+  /// [OcptCallSheetTableSections.peopleListSection] and
+  /// [OcptCallSheetTableSections.guestsSection]
   /// builders [generateNamedCallSheet] also calls directly. [generateNamedCallSheet] does not call
   /// this method at all: its own recipient line and its own single band
   /// ([OcptCallSheetHeaderSections.ownBandSection], replacing the day-wide time bands this method

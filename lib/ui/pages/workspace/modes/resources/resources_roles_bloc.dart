@@ -146,8 +146,9 @@ class OcptResourcesRolesBloc
   /// A write that fails drops **every** edit of the mode and raises the one write error (see
   /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
   /// after a write that landed which fails only raises the write error: what was written is
-  /// forgotten and the other views keep what they hold, to be written in their turn. When the write landed and the `Versions` tab is the one showing, also asks the mode
-  /// to refresh its working-copy card.
+  /// forgotten and the other views keep what they hold, to be written in their turn. When the write
+  /// landed and the `Versions` tab is the one showing, also asks the mode to refresh its
+  /// working-copy card.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
@@ -309,8 +310,8 @@ class OcptResourcesRolesBloc
   }
 
   /// Record the raw text just typed into `event.field` of role `event.roleId` as a pending edit,
-  /// visible immediately, and (re)starts the field-edit debounce that eventually writes it: a role's
-  /// and a candidacy's pending edits are always flushed together, by the very same timer.
+  /// visible immediately, and (re)starts the field-edit debounce that eventually writes it: a
+  /// role's and a candidacy's pending edits are always flushed together, by the very same timer.
   Future<void> _onRoleFieldChanged(
     OcptResourcesRoleFieldChangedEvent event,
     Emitter<OcptResourcesRolesState> emitter,

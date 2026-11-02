@@ -24,8 +24,9 @@ final String _longSampleText = List.generate(
 /// origin lines up with the test surface's own origin, keeping [WidgetTester.getRect] comparisons
 /// simple), the same constrained-panel setup the real editor page's `Expanded` gives the preview.
 ///
-/// [theme] defaults to [ocpt_theme.ocptTheme]'s light variant: the preview reads its backdrop color from an
-/// [OcptSpecificColors] theme extension, which only a theme built from [ocpt_theme.ocptTheme] carries.
+/// [theme] defaults to [ocpt_theme.ocptTheme]'s light variant: the preview reads its backdrop color
+/// from an [OcptSpecificColors] theme extension, which only a theme built from
+/// [ocpt_theme.ocptTheme] carries.
 ///
 /// [textScaler] stands in for the platform's font-scaling preference, which the desktop hands the
 /// app through `MediaQuery`.

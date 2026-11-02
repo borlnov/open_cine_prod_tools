@@ -13,7 +13,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_fiche_scaffold.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The taking variant — mirrors [OcptBudgetFicheResource] with no `Dossier` group and no in-kind reading.
+/// The taking variant — mirrors [OcptBudgetFicheResource] with no `Dossier` group and no in-kind
+/// reading.
 class OcptBudgetFicheRevenue extends StatelessWidget {
   /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
   final OcptBudgetFiche fiche;

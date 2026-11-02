@@ -130,8 +130,8 @@ class OcptScheduleDayBloc
   ///
   /// When the mode read everything again (`OcptScheduleSelectionCause.load`: entry, a version
   /// preview or a restore, the project settings page) every pending edit goes, whichever row it was
-  /// typed into: the database underneath may be another one. When it only read the schedule again, a
-  /// pending edit whose row no longer exists in it (deleted, or cascaded away) goes, and only
+  /// typed into: the database underneath may be another one. When it only read the schedule again,
+  /// a pending edit whose row no longer exists in it (deleted, or cascaded away) goes, and only
   /// that one. Selecting a day, a block or a shot clears nothing: this bloc holds no selection.
   ///
   /// Reads the schedule from [modeBloc]'s current state — the latest data — but the cause of the
@@ -224,10 +224,10 @@ class OcptScheduleDayBloc
   /// `OcptBreakdownBloc.flushPendingFieldEdits`: `deactivate()` runs before `dispose()` for every
   /// removal from the tree, so triggering the write here — rather than dispatching an event, which
   /// would only be processed on a later microtask this widget might not survive to see — is what
-  /// guarantees the last [_fieldEditDebounce] worth of typing isn't lost. Unlike [onFlushRequested],
-  /// this never touches [state]: `emit` may only be called from inside a registered `on<Event>`
-  /// handler, and by the time this runs the widget tree that would show a fresh state is already
-  /// gone anyway. A failure here is only logged.
+  /// guarantees the last [_fieldEditDebounce] worth of typing isn't lost. Unlike
+  /// [onFlushRequested], this never touches [state]: `emit` may only be called from inside a
+  /// registered `on<Event>` handler, and by the time this runs the widget tree that would show a
+  /// fresh state is already gone anyway. A failure here is only logged.
   @override
   Future<void> flushPendingWritesWithoutState() async {
     cancelDebounce();

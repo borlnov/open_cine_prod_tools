@@ -47,10 +47,10 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// **The `N°` and `Poste` columns are pinned**, drawn in their own pane at the left edge that
 /// never moves; only the six amount columns and the trailing `⋮` menu, in a second pane to their
 /// right, scroll horizontally once the centre dock narrows past
-/// [ocptBudgetCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure nobody
-/// can read yet, so a row's own identity survives the scroll even when its own numbers no longer
-/// fit. The two panes share one vertical scroll, so the whole table still moves together, and, row
-/// for row, the exact same height ([ocptBudgetCostTrackingRowHeight]'s and
+/// [ocptBudgetCostTrackingPosteColumnMinWidth] — a poste nobody can name is worse than a figure
+/// nobody can read yet, so a row's own identity survives the scroll even when its own numbers no
+/// longer fit. The two panes share one vertical scroll, so the whole table still moves together,
+/// and, row for row, the exact same height ([ocptBudgetCostTrackingRowHeight]'s and
 /// [ocptBudgetCostTrackingSubRowHeight]'s own doc comments argue why).
 ///
 /// **The tree is flattened once, top to bottom, into [_rowsOf]' own list**, and both panes then
@@ -113,13 +113,13 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// (`ocptBudgetOffQuotePaidTotalOf`, `lib/models/rules/ocpt_budget_journal.dart`), which
 /// [paidByPosteId] never keys at all. It is drawn only while some such debit exists and only its
 /// own `Payé` cell carries a figure; it is not a poste, so it carries no `N°`, no `⋮` menu and no
-/// selection of its own — see `OcptBudgetCostTrackingOffQuoteIdentityRow`'s own doc comment. **It gains
-/// a twisty, opening onto the very debits it sums**, each an ordinary entry sub-row keyed by the
-/// reserved [ocptBudgetCostTrackingOffQuoteNodeId] rather than by a poste or a line id, since the row
-/// sums a reading over the journal and names no record of its own to key one by. An entry drawn
-/// here that also settles a commitment nested under some poste is not excluded the way a poste's
-/// own off-line entries are — `_rowsOf`' own doc comment argues why it legitimately appears in
-/// both places. The total row's own `Payé` cell then folds [paidByPosteId] and [offQuoteTotal]
+/// selection of its own — see `OcptBudgetCostTrackingOffQuoteIdentityRow`'s own doc comment. **It
+/// gains a twisty, opening onto the very debits it sums**, each an ordinary entry sub-row keyed by
+/// the reserved [ocptBudgetCostTrackingOffQuoteNodeId] rather than by a poste or a line id, since
+/// the row sums a reading over the journal and names no record of its own to key one by. An entry
+/// drawn here that also settles a commitment nested under some poste is not excluded the way a
+/// poste's own off-line entries are — `_rowsOf`' own doc comment argues why it legitimately appears
+/// in both places. The total row's own `Payé` cell then folds [paidByPosteId] and [offQuoteTotal]
 /// together ([ocptBudgetCoveredTotalsFoldOf]), since together they are what actually left the
 /// account.
 ///
@@ -141,15 +141,15 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one
 /// [OcptBudgetCostTrackingPosteCard] per live poste**, scrolling vertically, above the very same
 /// `+ Poste` creation footer. A card draws a poste's own name, a proportion bar reading its own
-/// paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the very colours
-/// `OcptBudgetFiche`'s own poste-variant bar already uses for the same figures), and its own
-/// `Engagé`/`Payé`/`Reste`/`Écart` figures — read through [OcptBudgetCostTrackingPosteFigures.of], the
-/// very same calls [OcptBudgetCostTrackingPosteAmountsRow] makes for its own row, so a card never
-/// disagrees with the table over the same poste. Tapping a card selects its poste exactly as
-/// tapping either half of its row does — [onPosteSelected] is never withheld under
-/// [isReadOnly], selecting a poste being a read, not a write. Only the tree — quote lines,
-/// commitments, entries, the off-quote reading — is reduced away at this width; the table above the
-/// breakpoint is unchanged.
+/// paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the very
+/// colours `OcptBudgetFiche`'s own poste-variant bar already uses for the same figures), and its
+/// own `Engagé`/`Payé`/`Reste`/`Écart` figures — read through
+/// [OcptBudgetCostTrackingPosteFigures.of], the very same calls
+/// [OcptBudgetCostTrackingPosteAmountsRow] makes for its own row, so a card never disagrees with
+/// the table over the same poste. Tapping a card selects its poste exactly as tapping either half
+/// of its row does — [onPosteSelected] is never withheld under [isReadOnly], selecting a poste
+/// being a read, not a write. Only the tree — quote lines, commitments, entries, the off-quote
+/// reading — is reduced away at this width; the table above the breakpoint is unchanged.
 class OcptBudgetCostTracking extends StatelessWidget {
   /// Every live poste, in display order.
   final List<OcptBudgetPoste> postes;
@@ -474,13 +474,13 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// **The off-quote row follows the last poste, drawn exactly as it always was — only while
   /// [offQuoteTotal] holds something ([OcptBudgetCoveredTotal.lineCount] above zero).** Its own
   /// children — every debit naming no poste at all — draw only while
-  /// [ocptBudgetCostTrackingOffQuoteNodeId] is in [expandedNodeIds] too. Unlike a poste's own off-line
-  /// entries, this list is **not** narrowed by `settlingEntryIds`: a poste-less debit that also
-  /// settles a commitment nested under some poste is exactly the case the off-quote total sums, and
-  /// hiding it here because it is reachable elsewhere would leave the total's own children not
-  /// actually adding up to the figure it prints. It legitimately draws twice — once here, once
-  /// nested under the commitment it settles — and that is the honest reading of a poste-less
-  /// payment that happens to also be a settlement.
+  /// [ocptBudgetCostTrackingOffQuoteNodeId] is in [expandedNodeIds] too. Unlike a poste's own
+  /// off-line entries, this list is **not** narrowed by `settlingEntryIds`: a poste-less debit that
+  /// also settles a commitment nested under some poste is exactly the case the off-quote total
+  /// sums, and hiding it here because it is reachable elsewhere would leave the total's own
+  /// children not actually adding up to the figure it prints. It legitimately draws twice — once
+  /// here, once nested under the commitment it settles — and that is the honest reading of a
+  /// poste-less payment that happens to also be a settlement.
   List<OcptBudgetCostTrackingTreeRow> _rowsOf() {
     final rows = <OcptBudgetCostTrackingTreeRow>[];
     // Every entry naming a commitment at all, settled or still owed — an off-line entry list must

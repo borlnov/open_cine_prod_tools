@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 
 /// The pinned pane's own total row: just the `Total` label, spanning the `N°`/`Poste` cells' own
-/// width so it lines up with [OcptBudgetCostTrackingAmountsTotalRow], the other half of the very same
-/// row, in the scrolling pane.
+/// width so it lines up with [OcptBudgetCostTrackingAmountsTotalRow], the other half of the very
+/// same row, in the scrolling pane.
 class OcptBudgetCostTrackingIdentityTotalRow extends StatelessWidget {
   /// Whether the header's simplified/detailed switch currently reads simplified.
   final bool isSimplified;

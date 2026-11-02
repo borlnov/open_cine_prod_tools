@@ -271,8 +271,8 @@ class OcptShotListStoryboardBloc
 
   /// Select panel `event.panelId` on the board, dispatched by a click on one of the selected
   /// shot's own panel frames. Clears the annotation tool and mark selection: both are scoped to
-  /// the panel that was selected before this one (`OcptShotListStoryboardState.activeAnnotationTool`'s
-  /// own doc comment).
+  /// the panel that was selected before this one
+  /// (`OcptShotListStoryboardState.activeAnnotationTool`'s own doc comment).
   Future<void> _onPanelSelected(
     OcptShotListPanelSelectedEvent event,
     Emitter<OcptShotListStoryboardState> emitter,

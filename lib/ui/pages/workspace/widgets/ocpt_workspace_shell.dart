@@ -417,10 +417,10 @@ class _OcptWorkspaceShellState extends State<OcptWorkspaceShell> {
 ///
 /// Below [ocptCompactWidthBreakpoint] ([isCompact], resolved once by the caller from the very
 /// same width [build] already reads for the toolbar) the two side docks can no longer coexist
-/// with the centre floor as persistent columns, so the row reduces to [_OcptWorkspaceCompactDrawers]:
-/// `centre` fills the whole width and at most one panel slides over it as an edge drawer,
-/// summoned by the toolbar's own dock toggles. Above the breakpoint the row keeps its persistent
-/// side columns unchanged.
+/// with the centre floor as persistent columns, so the row reduces to
+/// [_OcptWorkspaceCompactDrawers]: `centre` fills the whole width and at most one panel slides over
+/// it as an edge drawer, summoned by the toolbar's own dock toggles. Above the breakpoint the row
+/// keeps its persistent side columns unchanged.
 class _OcptWorkspaceDocksRow extends StatelessWidget {
   /// The shell whose panels and callbacks the row lays out.
   final OcptWorkspaceShell shell;
@@ -522,8 +522,8 @@ class _OcptWorkspaceDocksRow extends StatelessWidget {
 /// over it as an edge drawer, dimming the centre behind a scrim that closes the drawer when
 /// tapped.
 ///
-/// The drawers are summoned by the toolbar's own dock toggles (`OcptWorkspaceShellToolbar`), but their
-/// visibility here is [compactDrawer] alone — never
+/// The drawers are summoned by the toolbar's own dock toggles (`OcptWorkspaceShellToolbar`), but
+/// their visibility here is [compactDrawer] alone — never
 /// [OcptWorkspaceShell.isLeftDockOpen]/[OcptWorkspaceShell.isRightDockOpen] — which is what keeps
 /// both closed the moment a mode mounts and keeps the two mutually exclusive no matter what a
 /// mode's own flags say. A side whose panel the mode never built
@@ -564,8 +564,8 @@ class _OcptWorkspaceCompactDrawers extends StatelessWidget {
   /// Build the workspace compact drawers as a [ListenableBuilder].
   @override
   Widget build(BuildContext context) {
-    // Non-null in this branch: [_OcptWorkspaceDocksRow] returns the bare centre when the controller is
-    // null.
+    // Non-null in this branch: [_OcptWorkspaceDocksRow] returns the bare centre when the controller
+    // is null.
     final controller = shell.dockLayoutController!;
     final leftPanel = shell.leftPanel;
     final rightPanel = shell.rightPanel;

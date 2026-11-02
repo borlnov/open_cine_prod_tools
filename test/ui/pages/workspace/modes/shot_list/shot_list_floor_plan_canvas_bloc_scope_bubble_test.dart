@@ -692,8 +692,8 @@ void main() {
   });
 
   group("the bloc as a whole", () {
-    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
-    /// this fail to compile until the list below names it too.
+    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it
+    /// makes this fail to compile until the list below names it too.
     String nameOf(OcptShotListFloorPlanCanvasEvent event) => switch (event) {
       OcptShotListFloorPlanToolSelectedEvent() => "tool",
       OcptShotListFloorPlanSymbolPlacedEvent() => "placed",

@@ -337,7 +337,8 @@ void main() {
       final database = projectsManager.currentProject!.database;
       await database.customStatement("CREATE TABLE write_log (written INTEGER)");
       await database.customStatement(
-        "CREATE TRIGGER log_write AFTER UPDATE ON people BEGIN INSERT INTO write_log VALUES (1); END",
+        "CREATE TRIGGER log_write AFTER UPDATE ON people "
+        "BEGIN INSERT INTO write_log VALUES (1); END",
       );
 
       // What the widget leaving the tree does: the flush starts, and the bloc closes in the same
@@ -368,8 +369,8 @@ void main() {
         await waitForState(peopleBloc, (state) => state.pendingFieldEdits.isNotEmpty);
 
         final database = projectsManager.currentProject!.database;
-        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
-        // does: the write lands and the read fails.
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after
+        // it does: the write lands and the read fails.
         await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
         try {
           final mayProceed = await bloc.flushAllPendingWrites();

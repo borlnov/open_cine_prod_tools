@@ -692,9 +692,9 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   void replaceAllMatches(String replacement) => _search.replaceAllMatches(replacement);
 
   /// Apply [rangesByNodeId] — the bloc's own answer, keyed by node id — to
-  /// `OcptStyledSpellCheckRanges.styler`, replacing whatever it held before: every node this widget could
-  /// conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s is
-  /// added only for a node id [rangesByNodeId] actually names.
+  /// `OcptStyledSpellCheckRanges.styler`, replacing whatever it held before: every node this widget
+  /// could conceivably report is first cleared (`clearAllErrors`), then a fresh set of `TextError`s
+  /// is added only for a node id [rangesByNodeId] actually names.
   ///
   /// Two guards `docs/architecture/screenplay.md` is explicit about, applied to every range
   /// before it becomes a
@@ -860,11 +860,11 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// attribution span, only touching the metadata of the nodes that actually need it.
   ///
   /// Also reports a fresh set of checkable spell-check texts ([_reportSpellCheckTexts]), right here
-  /// rather than from [_onDocumentChanged] itself: `OcptStyledDocumentSettle.settle`'s own reclassify pass, just
-  /// above, is what makes a node's `blockType` metadata authoritative again after an edit (a line
-  /// that just became a scene heading, say), and `OcptStyledSpellCheckRanges.checkableTexts` reads exactly that
-  /// metadata — reporting any earlier would report a node still classified under its *previous*
-  /// type.
+  /// rather than from [_onDocumentChanged] itself: `OcptStyledDocumentSettle.settle`'s own
+  /// reclassify pass, just above, is what makes a node's `blockType` metadata authoritative again
+  /// after an edit (a line that just became a scene heading, say), and
+  /// `OcptStyledSpellCheckRanges.checkableTexts` reads exactly that metadata — reporting any
+  /// earlier would report a node still classified under its *previous* type.
   void _syncAfterEdit() {
     if (!mounted) {
       return;
@@ -897,13 +897,13 @@ class _OcptStyledScreenplayEditorState extends State<OcptStyledScreenplayEditor>
   /// reason: what this pass corrects is part of the document's *base* state rather than of any
   /// gesture, and a restore brings the document back to a snapshot taken before it ran.
   ///
-  /// `isHistorical: false`, unlike `OcptStyledDocumentSettle.settle`'s own call to the same function: this pass
-  /// runs before the writer has done anything at all, so an undo step here could only ever be a
-  /// Ctrl+Z that un-corrects the numbering. It is refused history at the command level rather than
-  /// through [OcptStyledHistory.mergePolicy], which cannot help here — a merge onto an empty history is an append
-  /// (`Editor.endTransaction`), which is exactly the transaction to avoid. Nothing this executes
-  /// therefore ever reaches the policy, which is why this pass is not wrapped in
-  /// [_runDerivedPass].
+  /// `isHistorical: false`, unlike `OcptStyledDocumentSettle.settle`'s own call to the same
+  /// function: this pass runs before the writer has done anything at all, so an undo step here
+  /// could only ever be a Ctrl+Z that un-corrects the numbering. It is refused history at the
+  /// command level rather than through [OcptStyledHistory.mergePolicy], which cannot help here — a
+  /// merge onto an empty history is an append (`Editor.endTransaction`), which is exactly the
+  /// transaction to avoid. Nothing this executes therefore ever reaches the policy, which is why
+  /// this pass is not wrapped in [_runDerivedPass].
   void _syncSceneNumbers() {
     final requests = sceneNumberNormalizationRequests(_document, isHistorical: false);
     if (requests.isEmpty) {

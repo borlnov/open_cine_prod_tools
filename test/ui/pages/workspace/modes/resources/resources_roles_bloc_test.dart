@@ -514,8 +514,8 @@ void main() {
         await waitForState(rolesBloc, (state) => state.pendingRoleFieldEdits.isNotEmpty);
 
         final database = projectsManager.currentProject!.database;
-        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
-        // does: the write lands and the read fails.
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after
+        // it does: the write lands and the read fails.
         await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
         try {
           final mayProceed = await bloc.flushAllPendingWrites();

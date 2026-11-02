@@ -54,8 +54,8 @@ final class OcptStyledSearch {
   /// or a version is being previewed.
   OcptEditorSearchQuery? _query;
 
-  /// The current-match index [update] last set, among the matches [orderedSearchMatches] computes for
-  /// [query]; null while there is none.
+  /// The current-match index [update] last set, among the matches [orderedSearchMatches] computes
+  /// for [query]; null while there is none.
   int? _currentMatchIndex;
 
   /// Get the active find/replace query, or null while there is no active search.
@@ -148,16 +148,16 @@ final class OcptStyledSearch {
   }
 
   /// Select [match] inside the node [nodeId] and scroll it into view, the styled mode's own
-  /// counterpart to the state's own jump handling — **deliberately never calls `_focusNode.requestFocus()`**:
-  /// the find field must keep the keyboard focus while the user types a query or presses
-  /// Next/Previous. `build`'s `selectionPolicies` already sets
+  /// counterpart to the state's own jump handling — **deliberately never calls
+  /// `_focusNode.requestFocus()`**: the find field must keep the keyboard focus while the user
+  /// types a query or presses Next/Previous. `build`'s `selectionPolicies` already sets
   /// `clearSelectionWhenEditorLosesFocus: false` on this exact editor for that reason, so the
   /// selection placed here survives staying unfocused.
   ///
-  /// The scroll itself runs in a post-frame callback, unlike the state's own jump handling's own synchronous
-  /// call: unlike a scene jump (always triggered from an already-built frame), this can run from
-  /// [OcptStyledEditorController.attach] inside `initState`, before the document layout — and with
-  /// it, [_documentLayoutKey]'s own component lookup — exists for this build at all.
+  /// The scroll itself runs in a post-frame callback, unlike the state's own jump handling's own
+  /// synchronous call: unlike a scene jump (always triggered from an already-built frame), this can
+  /// run from [OcptStyledEditorController.attach] inside `initState`, before the document layout —
+  /// and with it, [_documentLayoutKey]'s own component lookup — exists for this build at all.
   void navigateTo(String nodeId, OcptTextMatch match) {
     if (!mounted || _document.getNodeById(nodeId) == null) {
       return;

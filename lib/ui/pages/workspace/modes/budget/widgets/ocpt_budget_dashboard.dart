@@ -594,9 +594,9 @@ class _OcptDashboardAlert extends StatelessWidget {
 }
 
 /// One row of [_OcptDashboardAlertsCard]: a coloured badge, the message and an amount right-aligned
-/// — the whole row is the click target, [ocpt_theme.ocptClickableCursor] hinting it exactly as a table row
-/// already does everywhere else in this mode. The message wraps rather than clipping; see the
-/// comment on the row's own `Row` for why this one cell breaks the mode's own habit.
+/// — the whole row is the click target, [ocpt_theme.ocptClickableCursor] hinting it exactly as a
+/// table row already does everywhere else in this mode. The message wraps rather than clipping; see
+/// the comment on the row's own `Row` for why this one cell breaks the mode's own habit.
 class _OcptDashboardAlertRow extends StatelessWidget {
   /// The row's own badge text.
   final String badge;

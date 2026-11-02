@@ -78,7 +78,8 @@ class OcptJoiningState extends BlocStateForMixin<OcptJoiningState> {
   ///
   /// [joinStep] legitimately goes back to null once a join ends, so it has its own
   /// `forceJoinStepValue` flag rather than a bare nullable parameter, which could never tell "leave
-  /// it alone" apart from "clear it" — exactly `OcptHostingState.forcePresenceRosterValue`'s own reasoning.
+  /// it alone" apart from "clear it" — exactly `OcptHostingState.forcePresenceRosterValue`'s own
+  /// reasoning.
   @override
   OcptJoiningState copyWith({
     bool? isJoining,

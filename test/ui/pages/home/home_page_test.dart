@@ -38,8 +38,8 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sqlite3/sqlite3.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests, and with
-/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the project
-/// card's poster tint) resolve one, just like the real app always does.
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the
+/// project card's poster tint) resolve one, just like the real app always does.
 ///
 /// [navigatorKey] is only given by the tests that need a dialog to *close* again: the app closes
 /// one through `OcptRouterManager.pop`, which drives a real `GoRouter` no widget test builds, so

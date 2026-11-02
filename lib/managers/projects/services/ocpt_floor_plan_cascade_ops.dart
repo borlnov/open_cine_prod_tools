@@ -87,7 +87,8 @@ abstract final class OcptFloorPlanCascadeOps {
   /// between two of them, from set [sourceSetId] onto shot [destinationShotId] of set
   /// [destinationSetId] — the same set for a same-set copy, a different one for a copy across sets
   /// — as **independent copies**, appended after [destinationShotId]'s own current symbols of each
-  /// layer. Creates [destinationSetId]'s plan if it doesn't exist yet ([OcptFloorPlanRows.ensurePlan]).
+  /// layer. Creates [destinationSetId]'s plan if it doesn't exist yet
+  /// ([OcptFloorPlanRows.ensurePlan]).
   ///
   /// An arrow whose either end is a set-scope or scene-scope symbol (a set element the source
   /// shot's own blocking points at or from) is **not copied**: that symbol belongs to

@@ -332,9 +332,9 @@ class OcptRelayHostManager extends AbsWithLifeCycle {
   ///
   /// A failure at any step tears down whatever was already opened — ending the self-seeded sync
   /// session first, so it never talks to a socket that is already gone (see [_teardown]) —
-  /// reports [OcptRelayHostFailed] with the error's own message, logs the failure, and returns rather than
-  /// rethrowing — a bring-up failure is a state to render, exactly like `OcptSyncStatus`, not an
-  /// exception to propagate.
+  /// reports [OcptRelayHostFailed] with the error's own message, logs the failure, and returns
+  /// rather than rethrowing — a bring-up failure is a state to render, exactly like
+  /// `OcptSyncStatus`, not an exception to propagate.
   ///
   /// This method's own [port] parameter, when non-null, binds that port instead of this manager's
   /// own [port] field default — what the hosting panel's own port field applies after

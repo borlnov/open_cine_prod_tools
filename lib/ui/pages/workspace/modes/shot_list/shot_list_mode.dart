@@ -89,7 +89,8 @@ class OcptShotListMode extends StatelessWidget {
         ),
       ),
       // Built with the mode rather than on first read: a view bloc registers itself with the mode
-      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it
+      // holds.
       BlocProvider(
         lazy: false,
         create: (context) => OcptShotListExportBloc(modeBloc: context.read<OcptShotListBloc>()),
@@ -210,9 +211,10 @@ class _ShotListViewState extends State<_ShotListView> {
               ),
               modeLabel: Tr.of(context).workspaceModeLabelShotList,
               onExportRequested: (anchor) => unawaited(_requestExport(context, state, anchor)),
-              // The mode's `⋮` overflow menu: resetting the panel layout, alone — the exports are the
-              // toolbar's own `Export` button and its panel (see [_requestExport]). A `⋮` holding one
-              // entry is thin, but honest: moving it somewhere else is a separate question.
+              // The mode's `⋮` overflow menu: resetting the panel layout, alone — the exports are
+              // the toolbar's own `Export` button and its panel (see [_requestExport]). A `⋮`
+              // holding one entry is thin, but honest: moving it somewhere else is a separate
+              // question.
               overflowEntries: [
                 PopupMenuItem<void>(
                   onTap: () => context.read<OcptShotListBloc>().add(

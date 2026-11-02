@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// The pinned pane's own row: one poste's `N°` and `Poste` cells, with a leading twisty while it
 /// has anything at all to expand onto.
 ///
-/// **This row is one half of the poste's own row** — [OcptBudgetCostTrackingPosteAmountsRow] draws the
-/// other, in the scrolling pane, for the very same [poste]. The two share [isSelected], so they
+/// **This row is one half of the poste's own row** — [OcptBudgetCostTrackingPosteAmountsRow] draws
+/// the other, in the scrolling pane, for the very same [poste]. The two share [isSelected], so they
 /// paint the very same background, and each carries its own tap target calling the very same
 /// [onTap], so a click on either half selects the poste: together they read as one row to the
 /// user even though they are two separate widgets with no `RenderObject` in common.

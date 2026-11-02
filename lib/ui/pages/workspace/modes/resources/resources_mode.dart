@@ -87,7 +87,8 @@ class OcptResourcesMode extends StatelessWidget {
         ),
       ),
       // Built with the mode rather than on first read: a view bloc registers itself with the mode
-      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it
+      // holds.
       BlocProvider(
         lazy: false,
         create: (context) => OcptResourcesExportBloc(modeBloc: context.read<OcptResourcesBloc>()),

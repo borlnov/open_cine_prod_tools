@@ -169,12 +169,12 @@ class OcptBudgetFinancingBloc
   }
 
   /// Keep in-kind contribution `resourceId`'s own counterpart quote line in step with `fields`,
-  /// called right after `OcptBudgetFinancingFormWrites.writeResourceFields` writes the contribution itself, from both
-  /// [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the resource and its
-  /// counterpart line are two rows kept in step by one caller, the same "one write, two rows"
-  /// shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment and its entry
-  /// together (`docs/architecture/budget.md`, "A quote line is paid directly, the commitment made
-  /// for it").
+  /// called right after `OcptBudgetFinancingFormWrites.writeResourceFields` writes the contribution
+  /// itself, from both [_onResourceCreationConfirmed] and [_onResourceUpdateConfirmed] — the
+  /// resource and its counterpart line are two rows kept in step by one caller, the same "one
+  /// write, two rows" shape [OcptBudgetLinePaidDirectlyEvent] already uses to create a commitment
+  /// and its entry together (`docs/architecture/budget.md`, "A quote line is paid directly, the
+  /// commitment made for it").
   ///
   /// **Exactly one counterpart line exists whenever `fields` describes an in-kind contribution,
   /// and none does otherwise** — the invariant `docs/architecture/budget.md`'s "A balanced in-kind

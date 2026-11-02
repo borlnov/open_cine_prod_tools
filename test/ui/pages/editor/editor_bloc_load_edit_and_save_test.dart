@@ -93,9 +93,9 @@ void main() {
 
   /// Builds a bloc wired to the test project, with debounces short enough to await in a test.
   ///
-  /// [exportManager] defaults to an [InertExportManager]: no test here exports. [overrideProjectsManager]
-  /// lets a test swap in a manager of its own (already holding an open project), for the one that
-  /// needs to observe its calls.
+  /// [exportManager] defaults to an [InertExportManager]: no test here exports.
+  /// [overrideProjectsManager] lets a test swap in a manager of its own (already holding an open
+  /// project), for the one that needs to observe its calls.
   OcptEditorBloc buildBloc({
     OcptScreenplayService? screenplayService,
     OcptRouterManager? routerManager,

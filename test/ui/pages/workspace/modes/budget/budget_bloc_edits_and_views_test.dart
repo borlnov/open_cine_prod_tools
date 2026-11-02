@@ -108,8 +108,8 @@ void main() {
   }
 
   group("what writes the typed edits first", () {
-    /// Types an edit into the expenses view, dispatches [event] to the mode, and answers whether the
-    /// edit was written (and so forgotten) by the time the mode has handled it.
+    /// Types an edit into the expenses view, dispatches [event] to the mode, and answers whether
+    /// the edit was written (and so forgotten) by the time the mode has handled it.
     Future<bool> flushes(OcptBudgetEvent event) async {
       final bloc = buildBloc();
       final expensesBloc = buildExpenses(bloc, fieldEditDebounce: const Duration(days: 1));

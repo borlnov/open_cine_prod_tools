@@ -61,8 +61,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 ///
 /// Every pending edit the views hold is flushed immediately whenever the selected record, or the
 /// active tab, changes, when the workspace is left, ahead of a version preview or a package export,
-/// and (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the mode
-/// leaves the widget tree for any other reason, so a pending edit is never silently dropped. A
+/// and (through [flushPendingFieldEdits], called by the mode's own `deactivate()`) whenever the
+/// mode leaves the widget tree for any other reason, so a pending edit is never silently dropped. A
 /// flush that fails drops the edits of every view, shows the one write error and lets the action go
 /// ahead on the value the database still holds ([OcptResourcesPendingEditsLostEvent]).
 ///

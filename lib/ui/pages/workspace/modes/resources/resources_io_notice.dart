@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/resources_io_notice_kind.dart';
 
-/// A transient notice, produced by `OcptResourcesExportBloc`, reporting the outcome of an export, shown
-/// as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.
+/// A transient notice, produced by `OcptResourcesExportBloc`, reporting the outcome of an export,
+/// shown as a SnackBar then dismissed. Modelled on `OcptShotListIoNotice`.
 class OcptResourcesIoNotice extends Equatable {
   /// The outcome this notice reports.
   final OcptResourcesIoNoticeKind kind;

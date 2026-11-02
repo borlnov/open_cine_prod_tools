@@ -68,11 +68,11 @@ class OcptBudgetExportBloc
   /// Export the quote as a single PDF, written through the native save dialog.
   ///
   /// Built exactly as every other mode's own export handlers are: have the mode write whatever
-  /// field edit is still sitting in the debounce first — an export must never print a figure the user has typed
-  /// but the debounce has not yet written (`OcptBudgetMode`'s own class doc comment) — then hand
-  /// what the mode's state now carries to [OcptExportManager.exportBudgetQuote]. A cancelled save dialog is
-  /// a silent no-op; a failure raises the transient export-failed notice. Nothing is exported when the write of a
-  /// pending edit failed.
+  /// field edit is still sitting in the debounce first — an export must never print a figure the
+  /// user has typed but the debounce has not yet written (`OcptBudgetMode`'s own class doc comment)
+  /// — then hand what the mode's state now carries to [OcptExportManager.exportBudgetQuote]. A
+  /// cancelled save dialog is a silent no-op; a failure raises the transient export-failed notice.
+  /// Nothing is exported when the write of a pending edit failed.
   Future<void> _onQuoteExportRequested(
     OcptBudgetQuoteExportRequestedEvent event,
     Emitter<OcptBudgetExportState> emitter,

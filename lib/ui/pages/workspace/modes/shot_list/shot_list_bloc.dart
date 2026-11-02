@@ -51,8 +51,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// sequences are built in memory by joining the scene index with the shots referencing it, so the
 /// mode always shows the screenplay as it stands — together with the screenplay's speaking
 /// characters, every free-text field's suggestion list, and where each shot sits in the schedule
-/// (joined onto the snapshot by [OcptShotListReader.loadSnapshot]: the schedule mode is the only writer of a shot's
-/// placement), and holds the selection, the dock geometry and the visible table columns on top.
+/// (joined onto the snapshot by [OcptShotListReader.loadSnapshot]: the schedule mode is the only
+/// writer of a shot's placement), and holds the selection, the dock geometry and the visible table
+/// columns on top.
 ///
 /// What the inspector does with a shot — its typed fields and their autosave, its difficulty, its
 /// characters, its scenario coverage ranges and the cast-wide role changes — belongs to
@@ -61,11 +62,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// floor plans' sets, underlays and tray to `OcptShotListFloorPlanSetsBloc`, and the gestures made
 /// on the plan — the tool, the selected symbol or arrow, placing, moving, resizing, rotating and
 /// duplicating a symbol, drawing and bending an arrow, the scope question — to
-/// `OcptShotListFloorPlanCanvasBloc`. What the inspector's Placements group does with a symbol or an
-/// arrow — deleting, hiding, restoring, a camera's field of view and the label typed in place, with
-/// its autosave debounce — belongs to `OcptShotListFloorPlanPlacementsBloc`, which asks this bloc to
-/// read the floor plans again and, when it removed or hid a placement, to move the selection with
-/// the cause that says so (`OcptShotListFloorPlanPlacementChangedEvent`).
+/// `OcptShotListFloorPlanCanvasBloc`. What the inspector's Placements group does with a symbol or
+/// an arrow — deleting, hiding, restoring, a camera's field of view and the label typed in place,
+/// with its autosave debounce — belongs to `OcptShotListFloorPlanPlacementsBloc`, which asks this
+/// bloc to read the floor plans again and, when it removed or hid a placement, to move the
+/// selection with the cause that says so (`OcptShotListFloorPlanPlacementChangedEvent`).
 ///
 /// Every pending edit the view blocs hold is flushed immediately whenever the selected shot or
 /// sequence changes, when the workspace is left, and (through [flushPendingFieldEdits], called by
@@ -738,8 +739,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             suggestions: suggestions,
             storyboardSnapshot: storyboardSnapshot,
             // `OcptShotListService.deleteShot`'s own cascade tombstones the shot's floor plan
-            // symbols and arrows alongside it (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`),
-            // so the floor plans view must re-read too, exactly as the board does above.
+            // symbols and arrows alongside it
+            // (`OcptFloorPlanService.tombstoneFloorPlanRowsOfShot`), so the floor plans view must
+            // re-read too, exactly as the board does above.
             floorPlanSnapshot: floorPlanSnapshot,
             reselectedShotId: reselectedShotId,
             wasSelected: wasSelected,

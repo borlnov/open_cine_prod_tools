@@ -25,8 +25,8 @@ class RecordingRouterManager extends OcptRouterManager {
   }
 }
 
-/// Wraps [child] with the localization delegates, [navigatorKey], [ocpt_theme.ocptTheme]'s light theme and a
-/// bare [Scaffold] — mirrors `schedule_mode_test.dart`'s own `wrapWithLocalization`.
+/// Wraps [child] with the localization delegates, [navigatorKey], [ocpt_theme.ocptTheme]'s light
+/// theme and a bare [Scaffold] — mirrors `schedule_mode_test.dart`'s own `wrapWithLocalization`.
 Widget wrapWithLocalization(Widget child) => MaterialApp(
   navigatorKey: navigatorKey,
   theme: ocpt_theme.ocptTheme.lightThemeData,

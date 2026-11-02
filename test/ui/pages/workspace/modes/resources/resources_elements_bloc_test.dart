@@ -241,8 +241,9 @@ void main() {
       await closeAll(elementsBloc, bloc);
     });
 
-    // The cost is typed as money and stored as cents, and what cannot be read as an amount is stored
-    // as no amount at all rather than as zero — a prop whose price is unknown is not a free one.
+    // The cost is typed as money and stored as cents, and what cannot be read as an amount is
+    // stored as no amount at all rather than as zero — a prop whose price is unknown is not a free
+    // one.
     test("a typed cost is stored in cents, and what isn't an amount as no cost at all", () async {
       final bloc = buildBloc();
       final elementsBloc = buildElements(bloc);
@@ -321,8 +322,8 @@ void main() {
         await waitForState(elementsBloc, (state) => state.pendingElementFieldEdits.isNotEmpty);
 
         final database = projectsManager.currentProject!.database;
-        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
-        // does: the write lands and the read fails.
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after
+        // it does: the write lands and the read fails.
         await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
         try {
           final mayProceed = await bloc.flushAllPendingWrites();

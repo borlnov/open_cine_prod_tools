@@ -416,8 +416,9 @@ abstract final class OcptVersionJsonKeys {
 
   /// This is the key used to stringify or parse a `startMinute` column (an unavailability's or a
   /// location availability's) from a JSON object. A `shooting_slots` row reads its own start off
-  /// [OcptVersionJsonProductionKeys.anchorMinuteKey]/[OcptVersionJsonProductionKeys.anchorEdgeKey]/[OcptVersionJsonProductionKeys.anchorSlotIdKey]
-  /// instead.
+  /// [OcptVersionJsonProductionKeys.anchorMinuteKey],
+  /// [OcptVersionJsonProductionKeys.anchorEdgeKey] and
+  /// [OcptVersionJsonProductionKeys.anchorSlotIdKey] instead.
   static const startMinuteKey = "startMinute";
 
   /// This is the key used to stringify or parse an unavailability's `endMinute` column from a JSON

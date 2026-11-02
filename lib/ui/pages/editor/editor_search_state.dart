@@ -4,8 +4,8 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 
-/// The state of `OcptEditorSearchBloc`: the editor's live find/replace state — one search, kept in a
-/// bloc rather than in either editing surface, which is what lets it survive a raw ⇄ styled mode
+/// The state of `OcptEditorSearchBloc`: the editor's live find/replace state — one search, kept in
+/// a bloc rather than in either editing surface, which is what lets it survive a raw ⇄ styled mode
 /// toggle.
 class OcptEditorSearchState extends BlocStateForMixin<OcptEditorSearchState> {
   /// Whether the find/replace bar is open at all.

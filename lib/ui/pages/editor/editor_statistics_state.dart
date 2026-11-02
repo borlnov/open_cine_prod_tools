@@ -34,8 +34,8 @@ class OcptEditorStatisticsState extends BlocStateForMixin<OcptEditorStatisticsSt
 
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
-  /// [statistics] never goes back to [FountainScriptStatistics.empty] once set, so it needs no force
-  /// flag; [sceneStatistics] goes back to null when the caret precedes every scene, through
+  /// [statistics] never goes back to [FountainScriptStatistics.empty] once set, so it needs no
+  /// force flag; [sceneStatistics] goes back to null when the caret precedes every scene, through
   /// [forceSceneStatisticsValue].
   @override
   OcptEditorStatisticsState copyWith({

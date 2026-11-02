@@ -156,8 +156,8 @@ void main() {
     return created.selectedShotId!;
   }
 
-  /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting it,
-  /// per the import handler), answering the blocs and the ids.
+  /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting
+  /// it, per the import handler), answering the blocs and the ids.
   Future<({OcptShotListBloc mode, OcptShotListStoryboardBloc board, String shotId, String panelId})>
   mountWithAPanel({
     Duration fieldEditDebounce = const Duration(milliseconds: 30),

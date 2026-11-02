@@ -347,55 +347,50 @@ void main() {
       await closeAll(locationsBloc, bloc);
     });
 
-    test(
-      "removing a set drops its own pending edit at once and keeps the location's, which a flush writes",
-      () async {
-        final bloc = buildBloc();
-        final locationsBloc = buildLocations(bloc, fieldEditDebounce: _neverDebounce);
-        await waitForState(bloc, (state) => !state.isLoading);
-        final locationId = await createLocation(bloc, locationsBloc);
-        locationsBloc.add(OcptResourcesSetAddedEvent(locationId: locationId));
-        final withSet = await waitForState(
-          bloc,
-          (state) => state.selectedLocation!.sets.length == 1,
-        );
-        final setId = withSet.selectedLocation!.sets.single.id;
+    test("removing a set drops its own pending edit at once and keeps the location's, "
+        "which a flush writes", () async {
+      final bloc = buildBloc();
+      final locationsBloc = buildLocations(bloc, fieldEditDebounce: _neverDebounce);
+      await waitForState(bloc, (state) => !state.isLoading);
+      final locationId = await createLocation(bloc, locationsBloc);
+      locationsBloc.add(OcptResourcesSetAddedEvent(locationId: locationId));
+      final withSet = await waitForState(bloc, (state) => state.selectedLocation!.sets.length == 1);
+      final setId = withSet.selectedLocation!.sets.single.id;
 
-        locationsBloc.add(
-          OcptResourcesLocationFieldChangedEvent(
-            locationId: locationId,
-            field: OcptLocationField.name,
-            rawValue: "Grotto",
-          ),
-        );
-        locationsBloc.add(
-          OcptResourcesSetFieldChangedEvent(
-            setId: setId,
-            field: OcptSetField.name,
-            rawValue: "Front room",
-          ),
-        );
-        await waitForState(
-          locationsBloc,
-          (state) =>
-              state.pendingLocationFieldEdits.isNotEmpty && state.pendingSetFieldEdits.isNotEmpty,
-        );
+      locationsBloc.add(
+        OcptResourcesLocationFieldChangedEvent(
+          locationId: locationId,
+          field: OcptLocationField.name,
+          rawValue: "Grotto",
+        ),
+      );
+      locationsBloc.add(
+        OcptResourcesSetFieldChangedEvent(
+          setId: setId,
+          field: OcptSetField.name,
+          rawValue: "Front room",
+        ),
+      );
+      await waitForState(
+        locationsBloc,
+        (state) =>
+            state.pendingLocationFieldEdits.isNotEmpty && state.pendingSetFieldEdits.isNotEmpty,
+      );
 
-        locationsBloc.add(OcptResourcesSetRemovedEvent(setId: setId));
-        await waitForState(locationsBloc, (state) => state.pendingSetFieldEdits.isEmpty);
-        await waitForState(bloc, (state) => state.selectedLocation!.sets.isEmpty);
-        expect(locationsBloc.state.pendingLocationFieldEdits, isNotEmpty);
+      locationsBloc.add(OcptResourcesSetRemovedEvent(setId: setId));
+      await waitForState(locationsBloc, (state) => state.pendingSetFieldEdits.isEmpty);
+      await waitForState(bloc, (state) => state.selectedLocation!.sets.isEmpty);
+      expect(locationsBloc.state.pendingLocationFieldEdits, isNotEmpty);
 
-        await bloc.flushAllPendingWrites();
+      await bloc.flushAllPendingWrites();
 
-        final location = (await readLocations()).single;
-        expect(location.name, "Grotto");
-        expect(location.sets, isEmpty);
-        expect(bloc.state.hasWriteError, isFalse);
+      final location = (await readLocations()).single;
+      expect(location.name, "Grotto");
+      expect(location.sets, isEmpty);
+      expect(bloc.state.hasWriteError, isFalse);
 
-        await closeAll(locationsBloc, bloc);
-      },
-    );
+      await closeAll(locationsBloc, bloc);
+    });
 
     test("are written once when the widget leaves the tree and the bloc then closes", () async {
       final bloc = buildBloc();
@@ -447,8 +442,8 @@ void main() {
         await waitForState(locationsBloc, (state) => state.pendingLocationFieldEdits.isNotEmpty);
 
         final database = projectsManager.currentProject!.database;
-        // The write of an edit never touches the episodes, whereas the read of the catalogue after it
-        // does: the write lands and the read fails.
+        // The write of an edit never touches the episodes, whereas the read of the catalogue after
+        // it does: the write lands and the read fails.
         await database.customStatement("ALTER TABLE screenplays RENAME TO screenplays_gone");
         try {
           final mayProceed = await bloc.flushAllPendingWrites();

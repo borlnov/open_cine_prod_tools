@@ -31,8 +31,8 @@ enum OcptShotListIoNoticeKind {
   floorPlansExportFailed,
 }
 
-/// A transient notice, produced by `OcptShotListExportBloc`, reporting the outcome of an export, shown
-/// as a SnackBar then dismissed.
+/// A transient notice, produced by `OcptShotListExportBloc`, reporting the outcome of an export,
+/// shown as a SnackBar then dismissed.
 ///
 /// Modelled on the screenplay editor's own `OcptEditorIoNotice`, and deliberately kept apart from
 /// `OcptShotListState.hasWriteError`: a failed export leaves the project untouched and says

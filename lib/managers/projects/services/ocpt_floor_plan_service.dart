@@ -28,13 +28,13 @@ import 'package:uuid/uuid.dart';
 ///
 /// **The plan belongs to the Resources set, not to a sequence** — `floor_plan_sets.id` **is**
 /// `sets.id` (see `OcptFloorPlanSetsTable`'s own doc comment), created lazily on the first write
-/// ([OcptFloorPlanRows.ensurePlan]) rather than eagerly for every Resources set the project holds. A sequence's
-/// floor-plan tabs are its live `scene_sets` links, which this service reads but never writes —
-/// that link is `OcptLocationsService`'s (`assignSceneToSet`/`removeSceneFromSet`), and this
-/// service has no reference to it at all: `OcptLocationsService` depends on this one instead (for
-/// its own delete cascade, [tombstoneFloorPlanRowsOfSet]), and dependencies never reference their
-/// dependents. [duplicateSet] is accordingly narrower than "duplicate this set" end to end — see
-/// its own doc comment for how the two services' halves are put together by the caller.
+/// ([OcptFloorPlanRows.ensurePlan]) rather than eagerly for every Resources set the project holds.
+/// A sequence's floor-plan tabs are its live `scene_sets` links, which this service reads but never
+/// writes — that link is `OcptLocationsService`'s (`assignSceneToSet`/`removeSceneFromSet`), and
+/// this service has no reference to it at all: `OcptLocationsService` depends on this one instead
+/// (for its own delete cascade, [tombstoneFloorPlanRowsOfSet]), and dependencies never reference
+/// their dependents. [duplicateSet] is accordingly narrower than "duplicate this set" end to end —
+/// see its own doc comment for how the two services' halves are put together by the caller.
 ///
 /// [assetsService] is the one place a set's underlay `assets` row is minted or tombstoned
 /// (`OcptAssetKind.floorPlanUnderlay`) — this service never reads or writes `assets.path` itself.
@@ -94,7 +94,8 @@ class OcptFloorPlanService extends AbsOcptService {
 
   /// Set Resources set [setId]'s underlay to the file at [path], framed at
   /// `(xM, yM, widthM, heightM, rotationDeg)`: creates the plan row if it doesn't exist yet
-  /// ([OcptFloorPlanRows.ensurePlan]), tombstones its previous underlay `assets` row (if any) and mints a fresh one.
+  /// ([OcptFloorPlanRows.ensurePlan]), tombstones its previous underlay `assets` row (if any) and
+  /// mints a fresh one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   Future<void> setSetUnderlay({

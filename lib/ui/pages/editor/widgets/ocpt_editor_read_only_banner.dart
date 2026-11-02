@@ -13,9 +13,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_r
 /// The band naming the version being previewed, the shell's `banner`.
 ///
 /// The page draws none while the working copy is on screen, and none either — the banner is simply
-/// not drawn — in the narrow window where the previewed version isn't in the list the panel was drawn
-/// from any more: the refresh ending every version handler resolves it on its own, and a band that
-/// named nothing would say less than no band at all.
+/// not drawn — in the narrow window where the previewed version isn't in the list the panel was
+/// drawn from any more: the refresh ending every version handler resolves it on its own, and a band
+/// that named nothing would say less than no band at all.
 class OcptEditorReadOnlyBanner extends StatelessWidget {
   /// The version being previewed.
   final OcptProjectVersion version;

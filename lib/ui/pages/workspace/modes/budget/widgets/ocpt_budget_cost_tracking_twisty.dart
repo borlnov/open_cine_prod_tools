@@ -10,12 +10,12 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// its own reserved width otherwise, so a row with nothing to expand still lines its own label up
 /// with a sibling that does.
 ///
-/// **Its own tap target is [ocptBudgetCostTrackingTwistyWidth] wide over the whole of [rowHeight]**, not
-/// a square of the twisty's own width: the theme's own floor for an icon button already exceeds a
-/// column this narrow, so the row's own height, whichever fixed figure the row it sits on draws at,
-/// is what the tap target claims instead (`docs/architecture/budget.md`). The 18 px arrow itself
-/// stays centred in that taller target — `Icon` centres its own glyph inside whatever box its
-/// surrounding layout hands it.
+/// **Its own tap target is [ocptBudgetCostTrackingTwistyWidth] wide over the whole of
+/// [rowHeight]**, not a square of the twisty's own width: the theme's own floor for an icon button
+/// already exceeds a column this narrow, so the row's own height, whichever fixed figure the row it
+/// sits on draws at, is what the tap target claims instead (`docs/architecture/budget.md`). The 18
+/// px arrow itself stays centred in that taller target — `Icon` centres its own glyph inside
+/// whatever box its surrounding layout hands it.
 class OcptBudgetCostTrackingTwisty extends StatelessWidget {
   /// Whether this row has anything at all to expand onto.
   final bool isExpandable;

@@ -31,8 +31,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// buffet, next to every defrayal the production owes somebody — the layout the validated mockup
 /// lays this view out as, **two columns side by side, the catering table taking roughly two thirds
 /// and the defrayals one third, wrapping onto one another once the centre narrows past
-/// [ocptBudgetRegieWrapWidth]** rather than crushing either column unreadable — and, underneath both,
-/// the band that provisions the whole thing into the quote.
+/// [ocptBudgetRegieWrapWidth]** rather than crushing either column unreadable — and, underneath
+/// both, the band that provisions the whole thing into the quote.
 ///
 /// **The two halves are read in opposite directions, and that is the point of the view.** The
 /// catering is *computed*: it is read off the schedule and the project's own two unit prices, and
@@ -326,7 +326,8 @@ class OcptBudgetRegie extends StatelessWidget {
 
               // Stacked, each pane takes the height its own heading band and rows need, and the
               // view scrolls when the two together are taller than it — see
-              // [ocptBudgetRegieStackedMinRowCount] for why a share of the height cannot be used here.
+              // [ocptBudgetRegieStackedMinRowCount] for why a share of the height cannot be used
+              // here.
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

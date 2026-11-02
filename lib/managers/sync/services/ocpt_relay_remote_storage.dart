@@ -46,8 +46,8 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// Every route is authenticated with `Authorization: Bearer <token>`; an append that might be the
 /// first request ever made for [projectId] also carries `X-Ocpt-Enrolment-Secret` when
 /// [enrolmentSecret] is set (see that field's own doc comment). A non-2xx response is decoded as
-/// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's `404`, which [fetchLatestSnapshot] maps
-/// to `null` per its own contract.
+/// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's
+/// `404`, which [fetchLatestSnapshot] maps to `null` per its own contract.
 class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// The name of the HTTP header carrying the bearer token.
   static const _authorizationHeader = 'Authorization';

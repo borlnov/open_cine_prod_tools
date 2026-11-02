@@ -98,7 +98,8 @@ class OcptBudgetCostTrackingCommitmentHintTreeRow extends OcptBudgetCostTracking
 
 /// An entry row — either the entry that settled a commitment, at that commitment's own
 /// indentation, or one of the poste's own off-line entries, one step under it, or one of the
-/// off-quote total's own children, also one step under it (see [OcptBudgetCostTrackingOffQuoteTreeRow]).
+/// off-quote total's own children, also one step under it (see
+/// [OcptBudgetCostTrackingOffQuoteTreeRow]).
 class OcptBudgetCostTrackingEntryTreeRow extends OcptBudgetCostTrackingTreeRow {
   /// The entry this row draws.
   final OcptBudgetEntry entry;

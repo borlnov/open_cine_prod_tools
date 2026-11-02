@@ -58,9 +58,9 @@ class OcptWorkspaceState extends BlocStateForMixin<OcptWorkspaceState> {
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [forceRevealRequestValue] is how [revealRequest] goes back to null, a null [revealRequest]
-  /// meaning "leave it alone" like every other nullable field of a state in this app. [selectedEpisodeId]
-  /// follows the same idiom through [forceSelectedEpisodeIdValue], for the case (an episode-less
-  /// project, in principle unreachable today) where it has to go back to null too.
+  /// meaning "leave it alone" like every other nullable field of a state in this app.
+  /// [selectedEpisodeId] follows the same idiom through [forceSelectedEpisodeIdValue], for the case
+  /// (an episode-less project, in principle unreachable today) where it has to go back to null too.
   @override
   OcptWorkspaceState copyWith({
     bool? isLoading,

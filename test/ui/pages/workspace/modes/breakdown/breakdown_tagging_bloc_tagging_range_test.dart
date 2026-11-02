@@ -279,7 +279,7 @@ void main() {
       await bloc.close();
     });
 
-    test("a link refused behind the popover's back raises the notice and keeps the range", () async {
+    test("a link refused behind the popover's back raises the notice, keeps the range", () async {
       final tagged = await writeTaggedElement();
       final bloc = buildBloc();
       final taggingBloc = buildTagging(bloc);

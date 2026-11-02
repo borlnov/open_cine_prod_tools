@@ -553,8 +553,9 @@ class _OcptScheduleDaySummaryBand extends StatelessWidget {
 }
 
 /// The day's own events band, under the slot cards and their `+ Slot` footer, above the day's
-/// own crew note — built exactly like the summary band's own container. `OcptScheduleDayEventsList`'s
-/// own doc comment explains why this band is the day view's only representation of an event.
+/// own crew note — built exactly like the summary band's own container.
+/// `OcptScheduleDayEventsList`'s own doc comment explains why this band is the day view's only
+/// representation of an event.
 class _OcptScheduleDayEventsBand extends StatelessWidget {
   /// The day's live events, ordered by hour.
   final List<OcptShootingDayEvent> events;

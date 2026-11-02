@@ -17,8 +17,9 @@ double ocptBudgetRegieStackedCardHeight(int rowCount, double rowHeight) =>
 /// Count how many top-level rows [allowances] draws in the stacked layout's own height guess: one
 /// per
 /// distinct person named, plus one for every defrayal naming nobody, each its own group of one —
-/// never the sub-rows a group's own twisty later reveals, since [ocptBudgetRegieStackedCardHeight]'s own
-/// clamp already floors and ceilings this into a reasonable card height either way.
+/// never the sub-rows a group's own twisty later reveals, since
+/// [ocptBudgetRegieStackedCardHeight]'s own clamp already floors and ceilings this into a
+/// reasonable card height either way.
 int ocptBudgetRegieAllowanceGroupCountOf(List<OcptBudgetAllowance> allowances) {
   final personIds = <String>{};
   var noPersonCount = 0;

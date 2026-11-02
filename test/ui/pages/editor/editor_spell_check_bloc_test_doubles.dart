@@ -233,7 +233,8 @@ class Editor {
   void add(BlocEventForMixin event) =>
       event is OcptEditorSpellCheckEvent ? spell.add(event) : mode.add(event);
 
-  /// Answers the styled editor's context menu, see `OcptEditorSpellCheckBloc.spellingSuggestionsFor`.
+  /// Answers the styled editor's context menu, see
+  /// `OcptEditorSpellCheckBloc.spellingSuggestionsFor`.
   Future<List<String>> spellingSuggestionsFor(String word) => spell.spellingSuggestionsFor(word);
 
   /// Closes both blocs, the spell-check one first as the tree does.

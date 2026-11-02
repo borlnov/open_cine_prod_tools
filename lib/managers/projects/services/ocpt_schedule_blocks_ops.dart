@@ -331,8 +331,9 @@ abstract final class OcptScheduleBlocksOps {
   ///
   /// **`sortKey` stays day-wide** — these tables have no per-slot scope of their own, so a key
   /// allocated between two of one slot's blocks may well land, numerically, among another slot's.
-  /// That is harmless: ordering is only ever read *within* a slot ([OcptScheduleRows.liveBlockRowsOfSlot]), and two
-  /// slots' chains are independent of one another (ADR 0015, amended).
+  /// That is harmless: ordering is only ever read *within* a slot
+  /// ([OcptScheduleRows.liveBlockRowsOfSlot]), and two slots' chains are independent of one another
+  /// (ADR 0015, amended).
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
   static Future<void> reorderBlock({

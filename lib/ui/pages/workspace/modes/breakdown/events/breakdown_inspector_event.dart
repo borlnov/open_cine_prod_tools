@@ -8,7 +8,8 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 import 'package:open_cine_prod_tools/types/ocpt_element_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/events/breakdown_base_event.dart';
 
-/// The events about the inspector: the selected scene's sheet, the selected target's sheet and the tags they remove.
+/// The events about the inspector: the selected scene's sheet, the selected target's sheet and the
+/// tags they remove.
 sealed class OcptBreakdownInspectorEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownInspectorEvent();

@@ -35,8 +35,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// service, then `await modeBloc.reload(…)` for the snapshot, and only then the selection of the
 /// person it created) and the edits typed into the sheet's free-text fields and not yet written
 /// ([OcptResourcesPeopleState.pendingFieldEdits]), which it writes
-/// [OcptResourcesBloc.defaultFieldEditDebounce] after the last keystroke, on a timer of its own; the
-/// mode flushes them ahead of anything that needs the database to be up to date.
+/// [OcptResourcesBloc.defaultFieldEditDebounce] after the last keystroke, on a timer of its own;
+/// the mode flushes them ahead of anything that needs the database to be up to date.
 ///
 /// A person's discrete fields (colour, birth date, transport autonomy, mileage rate, image rights
 /// status and date), every sub-list (positions, skills, unavailabilities) and the photo and signed
@@ -152,8 +152,9 @@ class OcptResourcesPeopleBloc
   /// A write that fails drops **every** edit of the mode and raises the one write error (see
   /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
   /// after a write that landed which fails only raises the write error: what was written is
-  /// forgotten and the other views keep what they hold, to be written in their turn. When the write landed and the `Versions` tab is the one showing, also asks the mode
-  /// to refresh its working-copy card.
+  /// forgotten and the other views keep what they hold, to be written in their turn. When the write
+  /// landed and the `Versions` tab is the one showing, also asks the mode to refresh its
+  /// working-copy card.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.
@@ -260,12 +261,12 @@ class OcptResourcesPeopleBloc
   /// the new person.
   ///
   /// The freshly created person is immediately given an avatar colour derived from their rank in
-  /// the address book — `peopleCount` read *before* the insert, so the first person is 0, the second
-  /// 1, and so on — rather than being left at `people.colorIndex`'s own table default of 0, which
-  /// would otherwise make every new person share the same avatar tint. `OcptPerson.colorIndex` is
-  /// read back through `ocptCoverageColorAt` wherever a person's avatar is painted
-  /// (`OcptPeopleList`, `OcptPersonSheet`), the same way a shot's colour is derived from its rank
-  /// within its sequence.
+  /// the address book — `peopleCount` read *before* the insert, so the first person is 0, the
+  /// second 1, and so on — rather than being left at `people.colorIndex`'s own table default of 0,
+  /// which would otherwise make every new person share the same avatar tint.
+  /// `OcptPerson.colorIndex` is read back through `ocptCoverageColorAt` wherever a person's avatar
+  /// is painted (`OcptPeopleList`, `OcptPersonSheet`), the same way a shot's colour is derived from
+  /// its rank within its sequence.
   ///
   /// Writes whatever is pending first, so adding a person right after typing never loses it.
   Future<void> _onPersonCreationRequested(

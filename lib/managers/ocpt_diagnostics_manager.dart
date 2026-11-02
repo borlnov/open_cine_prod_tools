@@ -80,9 +80,9 @@ class OcptDiagnosticsManager extends AbsWithLifeCycle {
   /// exceeded, and broadcast the updated list on [entriesStream].
   ///
   /// Also forwards the entry to this manager's logger, at the level [category]/[level] map to,
-  /// prefixed with [category]'s own name — so the console and, when `logs.file.enabled` is true, the
-  /// crash-survivable file external logger capture these hosting/sync/join/relay/presence events
-  /// too, on top of this manager's own in-memory buffer.
+  /// prefixed with [category]'s own name — so the console and, when `logs.file.enabled` is true,
+  /// the crash-survivable file external logger capture these hosting/sync/join/relay/presence
+  /// events too, on top of this manager's own in-memory buffer.
   ///
   /// The buffer is device-local and shown to its own user, a log file is something a user may send
   /// away: a [message] carrying a detail that must not reach a log (a project's name, a network

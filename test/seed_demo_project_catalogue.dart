@@ -20,7 +20,8 @@ import 'package:open_cine_prod_tools/types/ocpt_permit_status.dart';
 
 import 'seed_demo_project_data.dart';
 
-/// Seeds the address book: the crew and the cast members, plus the script supervisor's unavailability.
+/// Seeds the address book: the crew and the cast members, plus the script supervisor's
+/// unavailability.
 Future<({Map<String, String> actorIds, Map<String, String> crewIds})> seedAddressBook({
   required OcptProjectDatabase database,
   required OcptPeopleService peopleService,

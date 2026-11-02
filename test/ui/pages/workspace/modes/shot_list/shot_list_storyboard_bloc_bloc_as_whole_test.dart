@@ -46,8 +46,8 @@ import 'shot_list_storyboard_bloc_test_doubles.dart';
 /// The fixed device id every stamping test double in this file uses.
 Future<String> _testDeviceId() async => "test-device";
 
-/// A storyboard service whose panel creation, reordering and comment writes always fail, to exercise
-/// the board's write error path.
+/// A storyboard service whose panel creation, reordering and comment writes always fail, to
+/// exercise the board's write error path.
 class _FailingStoryboardService extends OcptStoryboardService {
   /// Class constructor
   const _FailingStoryboardService()
@@ -315,8 +315,8 @@ void main() {
     return mode.state.selectedSetId!;
   }
 
-  /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting it,
-  /// per the import handler), answering the blocs and the ids.
+  /// Mounts both blocs on [twoSceneText] with one shot, and imports one panel onto it (selecting
+  /// it, per the import handler), answering the blocs and the ids.
   Future<({OcptShotListBloc mode, OcptShotListStoryboardBloc board, String shotId, String panelId})>
   mountWithAPanel({
     Duration fieldEditDebounce = const Duration(milliseconds: 30),
@@ -354,8 +354,8 @@ void main() {
   }
 
   group("the bloc as a whole", () {
-    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
-    /// this fail to compile until the list below names it too.
+    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it
+    /// makes this fail to compile until the list below names it too.
     String nameOf(OcptShotListStoryboardEvent event) => switch (event) {
       OcptShotListPanelSelectedEvent() => "panel selected",
       OcptShotListPanelSizeChangedEvent() => "panel size",
@@ -472,9 +472,9 @@ void main() {
       expect(board.state.selectedPanelId, mounted.panelId);
 
       // A frame is drawn in a task of the event loop of its own, so a task scheduled the moment the
-      // mode's state is delivered stands for the next frame: what the board holds in it is what that
-      // frame would draw. A reaction that waited for a timer, or for anything but microtasks, would
-      // not have happened yet.
+      // mode's state is delivered stands for the next frame: what the board holds in it is what
+      // that frame would draw. A reaction that waited for a timer, or for anything but microtasks,
+      // would not have happened yet.
       final boardInTheNextTask = Completer<String?>();
       final subscription = mode.stream.listen((state) {
         if (state.selectionCause == OcptShotListSelectionCause.shot &&

@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// nothing but its own reserved width otherwise, so a row with nothing to expand still lines its
 /// own label up with a sibling that does.
 ///
-/// **Its own tap target is [ocptBudgetFinancingTwistyWidth] wide over the whole of [rowHeight]**, not a
-/// square of the twisty's own width — mirrors `OcptBudgetCostTracking`'s own
+/// **Its own tap target is [ocptBudgetFinancingTwistyWidth] wide over the whole of [rowHeight]**,
+/// not a square of the twisty's own width — mirrors `OcptBudgetCostTracking`'s own
 /// `_OcptCostTrackingTwisty` exactly, the theme's own floor for an icon button already exceeding a
 /// column this narrow (`docs/architecture/budget.md`).
 class OcptBudgetFinancingTwisty extends StatelessWidget {

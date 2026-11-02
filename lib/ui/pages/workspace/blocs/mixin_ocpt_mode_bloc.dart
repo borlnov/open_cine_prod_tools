@@ -119,10 +119,10 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   /// closing, and as soon as the bloc closes without having run the handler.
   ///
   /// This is how a view moves the mode's shared selection **and then** emits its own: with a plain
-  /// `add`, the view's next emit lands before the mode has even started on the event, and the view's
-  /// reaction to the move (which clears what was scoped to the previous selection) then clears what
-  /// the view just emitted. A view bloc uses `AbsOcptViewBloc.addToModeAndWait`, which also waits
-  /// for its own reaction.
+  /// `add`, the view's next emit lands before the mode has even started on the event, and the
+  /// view's reaction to the move (which clears what was scoped to the previous selection) then
+  /// clears what the view just emitted. A view bloc uses `AbsOcptViewBloc.addToModeAndWait`, which
+  /// also waits for its own reaction.
   Future<void> addAndWait(BlocEventForMixin event) async {
     if (isClosing) {
       return;
@@ -169,7 +169,8 @@ mixin MixinOcptModeBloc<S extends MixinOcptModeState<S>, Scope extends Enum> on 
   }
 
   /// Ask every registered flusher to write what it holds without touching any state, for the
-  /// moments no handler can emit from (see [OcptPendingWritesFlusher.flushPendingWritesWithoutState]).
+  /// moments no handler can emit from (see
+  /// [OcptPendingWritesFlusher.flushPendingWritesWithoutState]).
   @protected
   Future<void> runPendingWritesFlushersWithoutState() async {
     for (final flusher in List.of(_flushers)) {

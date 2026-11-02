@@ -14,8 +14,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// One person group row: a twisty, the person's own name with their role underneath in small muted
 /// type, the three running-account figures, then their own `⋮` menu.
 class OcptBudgetRegieAllowancePersonRow extends StatelessWidget {
-  /// The person this row names, or null — see [OcptBudgetRegieAllowancePersonGroupRow.person]'s own doc
-  /// comment.
+  /// The person this row names, or null — see [OcptBudgetRegieAllowancePersonGroupRow.person]'s own
+  /// doc comment.
   final OcptPerson? person;
 
   /// What that person is on the shoot, or null.

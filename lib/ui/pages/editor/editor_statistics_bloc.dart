@@ -18,8 +18,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index
 /// status bar and the metadata panel, and the statistics of the scene the caret is in, shown by the
 /// inspector.
 ///
-/// It computes nothing of its own to compute from: it reads the mode's document, caret line and page
-/// setup off the mode's state when it reacts, at three speeds.
+/// It computes nothing of its own to compute from: it reads the mode's document, caret line and
+/// page setup off the mode's state when it reacts, at three speeds.
 ///
 /// - A new document (the mode's parse debounce) refreshes the scene's counters right away, which is
 ///   cheap relative to the script-wide pagination, and (re)starts this bloc's own debounce, so the
@@ -27,8 +27,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_current_scene_index
 ///   parse tick. `FountainScriptComposer.compose` (which it calls to get the page count) measured
 ///   at ~14 ms per pass on a 141-page script, close enough to a frame budget that it must not run
 ///   on every 150 ms parse tick while the user is typing continuously.
-/// - The caret landing on a different scene refreshes the scene's counters at once: moving the caret
-///   is far rarer than typing a character.
+/// - The caret landing on a different scene refreshes the scene's counters at once: moving the
+///   caret is far rarer than typing a character.
 /// - Any deliberate, infrequent change of what the mode shows (a load, an import, a title page
 ///   rewrite, a page setup change) recomputes both at once, dropping the pending debounce, so the
 ///   counters are up to date rather than waiting out the typing debounce.

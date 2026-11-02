@@ -34,8 +34,8 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 ///
 /// Unlike the screenplay editor's own state, this one carries no single dirty/saving pair: most
 /// of a shot's fields (status, a difficulty axis, a character chip) write straight to the project
-/// database the moment they change. The typed free-text fields are the exception, and each view bloc
-/// holds its own in a 2 s autosave debounce.
+/// database the moment they change. The typed free-text fields are the exception, and each view
+/// bloc holds its own in a 2 s autosave debounce.
 class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     with
         MixinOcptProjectVersionsState<OcptShotListState>,
@@ -325,8 +325,9 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
   /// {@macro act_flutter_utility.BlocStateForMixin.copyWith}
   ///
   /// [snapshot] is only replaced when a new one is given: it never goes back to null once loaded,
-  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] all legitimately go back to null while the mode is alive (nothing selected any
-  /// more, the dock closed), so each has its own force flag instead.
+  /// so it needs no force flag. [selectedSequenceId], [selectedShotId], [rightDockTab] all
+  /// legitimately go back to null while the mode is alive (nothing selected any more, the dock
+  /// closed), so each has its own force flag instead.
   ///
   /// **[reloadEpoch] moves by itself** whenever a copy replaces any of the data read from the
   /// project database ([snapshot], [storyboardSnapshot], [floorPlanSnapshot], [locations],

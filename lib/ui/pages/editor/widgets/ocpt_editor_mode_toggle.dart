@@ -9,9 +9,9 @@ import 'package:open_cine_prod_tools/types/ocpt_editor_mode.dart';
 /// The toolbar button toggling the styled/raw editing mode.
 ///
 /// It shows the persisted `OcptEditorState.mode` rather than the mode actually live: this toggle is
-/// the user's own desktop preference, left untouched by a phone width forcing the styled editor onto
-/// the screen — it keeps stating (and toggling) what will apply once the window widens back out, not
-/// what happens to be rendered right this moment.
+/// the user's own desktop preference, left untouched by a phone width forcing the styled editor
+/// onto the screen — it keeps stating (and toggling) what will apply once the window widens back
+/// out, not what happens to be rendered right this moment.
 class OcptEditorModeToggle extends StatelessWidget {
   /// The persisted editing mode.
   final OcptEditorMode mode;

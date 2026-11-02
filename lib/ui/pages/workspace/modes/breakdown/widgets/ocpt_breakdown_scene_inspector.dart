@@ -480,7 +480,8 @@ class _ToCheckAlert extends StatelessWidget {
   /// `{(kind, id): target}`, resolving each tag's target.
   final OcptBreakdownTargetsById targetById;
 
-  /// Called with a tag's id when `Mark as checked` is clicked, or null while it may not be answered.
+  /// Called with a tag's id when `Mark as checked` is clicked, or null while it may not be
+  /// answered.
   final ValueChanged<String>? onTagNeedsCheckCleared;
 
   /// Called with a tag's id when `Remove` is clicked, or null while it may not be answered.

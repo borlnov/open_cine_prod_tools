@@ -133,7 +133,8 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to [smallSeed]).
+  /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
+  /// [smallSeed]).
   OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,

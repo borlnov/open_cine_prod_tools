@@ -12,8 +12,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_poste_card.dart';
 
 /// The compact reduction of the two-pane table — see [OcptBudgetCostTracking]'s class doc
-/// comment's own "at a compact width" note: one [OcptBudgetCostTrackingPosteCard] per live poste, in a
-/// plain scrolling list, above the very same `+ Poste` creation footer the table itself draws
+/// comment's own "at a compact width" note: one [OcptBudgetCostTrackingPosteCard] per live poste,
+/// in a plain scrolling list, above the very same `+ Poste` creation footer the table itself draws
 /// below its own two panes. The tree — quote lines, commitments, entries, the off-quote reading —
 /// is not offered here at all; a poste's own card opens straight onto its `Inspector` tab, where
 /// that detail already lives.

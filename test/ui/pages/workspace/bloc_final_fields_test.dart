@@ -11,7 +11,8 @@ final _blocFile = RegExp(r"^(.+_bloc|mixin_.*bloc.*)\.dart$");
 
 /// A single-line instance field declaration in a class body, captured as its type and its name.
 final _field = RegExp(
-  r"^  (?!static |const |return |@|//)((?:late )?(?:final )?)([A-Za-z_](?:(?! get | set )[\w<>?,. ()])*?) (_?\w+)(?: = [^;]+)?;$",
+  "^  (?!static |const |return |@|//)((?:late )?(?:final )?)"
+  r"([A-Za-z_](?:(?! get | set )[\w<>?,. ()])*?) (_?\w+)(?: = [^;]+)?;$",
 );
 
 /// The first line of a class or a mixin.

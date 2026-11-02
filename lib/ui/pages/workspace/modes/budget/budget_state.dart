@@ -48,8 +48,8 @@ export 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 
 /// The state of `OcptBudgetBloc`.
 ///
-/// [view], [toolsView], [isSimplified] and [taxBasis] are **not persisted**: the schedule mode's own
-/// agenda mode is the precedent, only [rightDockFraction] and [lastRightDockTab] surviving a
+/// [view], [toolsView], [isSimplified] and [taxBasis] are **not persisted**: the schedule mode's
+/// own agenda mode is the precedent, only [rightDockFraction] and [lastRightDockTab] surviving a
 /// relaunch. The free-text fields typed and not yet written belong to `OcptBudgetExpensesBloc`.
 class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     with

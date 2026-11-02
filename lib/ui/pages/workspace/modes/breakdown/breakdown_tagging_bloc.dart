@@ -238,7 +238,8 @@ class OcptBreakdownTaggingBloc
   /// selecting a tagged word already does: linking *is* what makes this passage a tagged word. Then
   /// the popover closes and the anchor clears. A refusal (the overlap, or a preview database that
   /// slipped past the guard above) leaves the range and the popover exactly as they were,
-  /// surfacing [OcptBreakdownTaggingState.hasTagWriteError] instead of silently closing on the user.
+  /// surfacing [OcptBreakdownTaggingState.hasTagWriteError] instead of silently closing on the
+  /// user.
   Future<void> _onPopoverTargetLinked(
     OcptBreakdownPopoverTargetLinkedEvent event,
     Emitter<OcptBreakdownTaggingState> emitter,
@@ -365,8 +366,8 @@ class OcptBreakdownTaggingBloc
   }
 
   /// End the popover's interaction once its tag is written: has the mode read the snapshot again,
-  /// then select the target of the tag in the scene of [range] on the `Inspector` tab, and only then
-  /// closes the popover and clears the anchor.
+  /// then select the target of the tag in the scene of [range] on the `Inspector` tab, and only
+  /// then closes the popover and clears the anchor.
   ///
   /// Stops when the mode could not read: the tag is written, but the range stays open rather than
   /// the mode selecting a target its snapshot may not hold.

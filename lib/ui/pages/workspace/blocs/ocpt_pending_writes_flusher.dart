@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/// What asking every flusher of a mode to write came to: whether any of them had something to write,
-/// and whether any of them failed.
+/// What asking every flusher of a mode to write came to: whether any of them had something to
+/// write, and whether any of them failed.
 typedef OcptPendingWritesRun = ({bool hasWritten, bool hasFailed});
 
 /// Something that holds edits typed into a field and written only once the typing stops, and can

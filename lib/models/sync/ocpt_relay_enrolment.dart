@@ -25,9 +25,10 @@ import 'package:open_cine_prod_tools/types/ocpt_relay_enrolment_status.dart';
 /// ocpt://relay?r=<relayBaseUri>&e=<enrolmentSecret>
 /// ```
 ///
-/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayEnrolment.parse] reads that string back, rejecting anything that is not this exact shape — a QR code
-/// aimed at some unrelated app, or at the sharing screen's own `ocpt://join` invite, must fail
-/// cleanly rather than half-parse.
+/// every value percent-encoded as an ordinary URI query parameter. [OcptRelayEnrolment.parse] reads
+/// that string back, rejecting anything that is not this exact shape — a QR code aimed at some
+/// unrelated app, or at the sharing screen's own `ocpt://join` invite, must fail cleanly rather
+/// than half-parse.
 class OcptRelayEnrolment extends Equatable {
   /// The URI scheme of an enrolment link.
   static const String _scheme = 'ocpt';

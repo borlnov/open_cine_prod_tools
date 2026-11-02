@@ -30,7 +30,8 @@ const _modeFolders = <String, String>{"editor": "/pages/editor/"};
 
 /// The names a dispatch goes through, as a method call.
 final _dispatchCall = RegExp(
-  r"(\.\.?|\b)(add|addToMode|addAndWait|addToModeAndWait|addUnlessClosing|dispatchIfShotSelected)\s*\(",
+  r"(\.\.?|\b)(add|addToMode|addAndWait|addToModeAndWait|addUnlessClosing|"
+  r"dispatchIfShotSelected)\s*\(",
 );
 
 /// An event class named in a call's arguments.

@@ -210,7 +210,7 @@ void main() {
       await bloc.close();
     });
 
-    test("a selection moves the selection epoch with its own cause, a stale one does not", () async {
+    test("a selection moves the selection epoch with its own cause, not a stale one", () async {
       final bloc = buildBloc();
       await waitForState(bloc, (state) => !state.isLoading);
       final personId = await seedPerson(bloc);

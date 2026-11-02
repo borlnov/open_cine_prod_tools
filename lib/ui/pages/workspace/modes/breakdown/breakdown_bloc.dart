@@ -672,8 +672,8 @@ class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
   ///
   /// The moment `event.query` turns non-empty while the script view is active, switches the centre
   /// to the recap in the same emitted state — carrying the just-typed text into the view that
-  /// actually answers it — and moves the selection epoch for the same reason [_onCentreViewSelected]
-  /// does. Clearing the field back to empty afterward does **not** switch
+  /// actually answers it — and moves the selection epoch for the same reason
+  /// [_onCentreViewSelected] does. Clearing the field back to empty afterward does **not** switch
   /// back to the script view, per [OcptBreakdownSearchQueryChangedEvent]'s own doc comment.
   Future<void> _onSearchQueryChanged(
     OcptBreakdownSearchQueryChangedEvent event,

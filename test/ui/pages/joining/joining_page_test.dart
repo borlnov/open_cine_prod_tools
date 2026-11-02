@@ -244,10 +244,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField), inviteLink);
     await tester.tap(find.text(tr.joiningJoinAction));
-    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` answers a failure straight away, which
-    // `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this test only
-    // cares that submitting doesn't overflow or crash the widget tree, not about that failure
-    // itself.
+    // A bounded pump only: `_FailFastSyncManager.joinFromRelay` answers a failure straight away,
+    // which `OcptJoiningBloc._join` catches and reports as `OcptJoiningState.joinFailed` — this
+    // test only cares that submitting doesn't overflow or crash the widget tree, not about that
+    // failure itself.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 

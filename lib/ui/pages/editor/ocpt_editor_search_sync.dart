@@ -96,8 +96,8 @@ class OcptEditorSearchSync {
   ///
   /// The styled editor's own delegate recomputes matches reactively from the live document on every
   /// keystroke made inside it (only it has access to each node's current text), and its controller
-  /// notifies its listeners for other reasons too (a block-type or inline-style read-state refresh),
-  /// which must never be mistaken for a fresh match count.
+  /// notifies its listeners for other reasons too (a block-type or inline-style read-state
+  /// refresh), which must never be mistaken for a fresh match count.
   void reportStyledMatchCount({
     required bool isStyledSurfaceLive,
     required OcptEditorSearchBloc searchBloc,
@@ -183,10 +183,10 @@ class OcptEditorSearchSync {
   /// Unlike [syncRaw], this has nothing to *report*: the styled editor's own delegate
   /// recomputes matches reactively from the live document on every keystroke made inside it (only
   /// it has access to each node's current text) and reports the count itself, through
-  /// `_EditorViewState._onStyledEditorControllerChanged`. This method's only job is *navigation* — placing the
-  /// selection on the current match and scrolling it into view — which it only forwards when
-  /// [_lastNavigatedStyledSearchTarget] shows the navigation target actually changed, exactly like
-  /// [syncRaw] gates [_navigateToMatch] the same way (so typing elsewhere in the styled
+  /// `_EditorViewState._onStyledEditorControllerChanged`. This method's only job is *navigation* —
+  /// placing the selection on the current match and scrolling it into view — which it only forwards
+  /// when [_lastNavigatedStyledSearchTarget] shows the navigation target actually changed, exactly
+  /// like [syncRaw] gates [_navigateToMatch] the same way (so typing elsewhere in the styled
   /// document never yanks the caret back onto "the current match" on every keystroke either).
   void syncStyled(OcptEditorState state, OcptEditorSearchState search) {
     final isStyledSurfaceLive = _liveMode(state) == OcptEditorMode.styled;

@@ -32,8 +32,8 @@ class _RecordingRouterManager extends OcptRouterManager {
 }
 
 /// Wraps [child] in the app's own light theme — the dialog paints its backdrop from the
-/// `OcptSpecificColors` extension, which only a theme built from [ocpt_theme.ocptTheme] carries — plus the
-/// localization delegates so [Tr.of] lookups resolve.
+/// `OcptSpecificColors` extension, which only a theme built from [ocpt_theme.ocptTheme] carries —
+/// plus the localization delegates so [Tr.of] lookups resolve.
 Widget _wrapInApp(Widget child) => MaterialApp(
   theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [

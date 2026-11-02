@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// [OcptStoryboardBoard] rows, wired to the mode bloc for what is shared (the shots, the selected
 /// shot, the roles) and to [OcptShotListStoryboardBloc] for what the board does with its panels.
 ///
-/// Every write is withheld (a null callback) under a version preview, which this reads from the mode
-/// bloc: the view bloc has nothing to know about it. Deleting a panel is only *asked*, through
+/// Every write is withheld (a null callback) under a version preview, which this reads from the
+/// mode bloc: the view bloc has nothing to know about it. Deleting a panel is only *asked*, through
 /// [onPanelDeleteRequested]: the mode owns the confirmation dialog.
 class OcptStoryboardView extends StatelessWidget {
   /// The selected sequence, whose shots the board lists.

@@ -67,9 +67,10 @@ class OcptBudgetCashJournalXlsxExportService extends AbsOcptService {
   /// and return its bytes.
   ///
   /// [linkLabelByEntryId] is the "what this entry settles" column's own text, keyed by
-  /// `OcptBudgetEntry.id` — see the class doc comment. Answers [OcptXlsxExportStatus.encodingFailed] if the
-  /// workbook cannot be encoded, which the caller reports as a failed export: `excel_community`
-  /// returns null there rather than throwing anything of its own.
+  /// `OcptBudgetEntry.id` — see the class doc comment. Answers
+  /// [OcptXlsxExportStatus.encodingFailed] if the workbook cannot be encoded, which the caller
+  /// reports as a failed export: `excel_community` returns null there rather than throwing anything
+  /// of its own.
   ResultWithStatus<OcptXlsxExportStatus, Uint8List> generate({
     required OcptBudgetSnapshot snapshot,
     required Map<String, String> linkLabelByEntryId,

@@ -13,8 +13,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// an in-kind contribution already covers — [Tr.budgetCostTrackingInKindCoveredHint] — while the
 /// poste this cell belongs to carries any in-kind coverage at all
 /// ([OcptBudgetCostTracking.inKindCoveredCentsOf] positive for it). Mirrors
-/// [OcptBudgetCostTrackingQuoteCell]'s own two-line layout, so the extra line never drifts the row out
-/// of [ocptBudgetCostTrackingRowHeight].
+/// [OcptBudgetCostTrackingQuoteCell]'s own two-line layout, so the extra line never drifts the row
+/// out of [ocptBudgetCostTrackingRowHeight].
 class OcptBudgetCostTrackingRemainingCell extends StatelessWidget {
   /// The poste's own `Reste` figure, in cents, under the reading basis.
   final int remainingCents;

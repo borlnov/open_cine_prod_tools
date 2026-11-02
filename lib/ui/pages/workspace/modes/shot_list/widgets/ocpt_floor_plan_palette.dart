@@ -353,9 +353,10 @@ class _GroupTitle extends StatelessWidget {
 /// One placeable tool's own entry: an icon and its label, armed by a click
 /// ([OcptFloorPlanPalette.onToolSelected], and, for a typed set-element entry,
 /// [OcptFloorPlanPalette.onSetElementShapeSelected]/
-/// [OcptFloorPlanPalette.onSetElementScopeSelected] too) and offered as a drag source (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at
-/// the pointer so `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released,
-/// carrying [setElementShape]/[sceneScope] on the drag itself).
+/// [OcptFloorPlanPalette.onSetElementScopeSelected] too) and offered as a drag source
+/// (`Draggable<OcptFloorPlanPaletteDragPayload>`, anchored at the pointer so
+/// `OcptFloorPlanCanvas`'s own `DragTarget` drops it exactly where released, carrying
+/// [setElementShape]/[sceneScope] on the drag itself).
 ///
 /// [setElementShape]/[sceneScope] are set for one of the palette's own typed set-element entries
 /// (wall, door, furniture, freeform — each of the last two appearing twice, once per scope) and
@@ -468,8 +469,8 @@ class _Entry extends StatelessWidget {
   }
 }
 
-/// The `Sequence` group's own breakdown-props chips: one chip per [OcptFloorPlanPalette.propsChips] entry, plus the
-/// fixed add-prop button for a free-typed label.
+/// The `Sequence` group's own breakdown-props chips: one chip per [OcptFloorPlanPalette.propsChips]
+/// entry, plus the fixed add-prop button for a free-typed label.
 class _PropsChips extends StatelessWidget {
   /// The palette this part belongs to, which supplies the armed tool, the visibility state and
   /// the callbacks.
@@ -494,9 +495,10 @@ class _PropsChips extends StatelessWidget {
 }
 
 /// One breakdown prop's own chip: click-to-arms [OcptFloorPlanTool.prop] with [chip]'s own name
-/// ([OcptFloorPlanPalette.onToolSelected] then [OcptFloorPlanPalette.onPropChipSelected]), and stays usable after a placement — two
-/// candles, two drops — since arming never consumes it. Offered as a drag source too, carrying
-/// [chip]'s own name on the drag itself. Shows `<name> ×<quantity>` while [chip] carries one.
+/// ([OcptFloorPlanPalette.onToolSelected] then [OcptFloorPlanPalette.onPropChipSelected]), and
+/// stays usable after a placement — two candles, two drops — since arming never consumes it.
+/// Offered as a drag source too, carrying [chip]'s own name on the drag itself. Shows
+/// `<name> ×<quantity>` while [chip] carries one.
 class _PropChip extends StatelessWidget {
   /// The palette this part belongs to, which supplies the armed tool, the visibility state and
   /// the callbacks.
@@ -561,12 +563,12 @@ class _PropChip extends StatelessWidget {
   }
 }
 
-/// The fixed add-prop button: asks for a free-typed label ([OcptFloorPlanPalette.onOtherPropRequested]) before arming
-/// [OcptFloorPlanTool.prop] with it and placing it at once — the mode reuses the character
-/// name-picker's own dialog pattern for the typing itself. Reads as "add a prop to this
-/// sequence" rather than one more prop chip: a leading [Icons.add] plus the word alone
-/// ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries the plus, so the label text
-/// never repeats it.
+/// The fixed add-prop button: asks for a free-typed label
+/// ([OcptFloorPlanPalette.onOtherPropRequested]) before arming [OcptFloorPlanTool.prop] with it and
+/// placing it at once — the mode reuses the character name-picker's own dialog pattern for the
+/// typing itself. Reads as "add a prop to this sequence" rather than one more prop chip: a leading
+/// [Icons.add] plus the word alone ([Tr.shotListFloorPlanAddPropAction]) — the icon already carries
+/// the plus, so the label text never repeats it.
 class _AddPropButton extends StatelessWidget {
   /// The palette this part belongs to, which supplies the armed tool, the visibility state and
   /// the callbacks.
@@ -604,9 +606,9 @@ class _AddPropButton extends StatelessWidget {
   }
 }
 
-/// The cameras row, expanded into one sub-row per [OcptFloorPlanPalette.sequenceCameras] entry with its own eye — its
-/// own title carries that list's own count, exactly like a plain layer row (each entry
-/// already carries its own individual eye, so the title itself has none to withhold).
+/// The cameras row, expanded into one sub-row per [OcptFloorPlanPalette.sequenceCameras] entry with
+/// its own eye — its own title carries that list's own count, exactly like a plain layer row (each
+/// entry already carries its own individual eye, so the title itself has none to withhold).
 class _CamerasRow extends StatelessWidget {
   /// The palette this part belongs to, which supplies the armed tool, the visibility state and
   /// the callbacks.
@@ -796,10 +798,10 @@ class _ShowFieldOfViewToggle extends StatelessWidget {
 }
 
 /// One `View` group layer row: a leading colour swatch, the label with its own
-/// [OcptFloorPlanPalette.layerElementCounts] count, and a trailing eye toggling its visibility. No radio dot: every
-/// remaining layer places through its own palette entry or tool, not through an "active layer"
-/// pick — the set layer having merged into one (`OcptFloorPlanLayer.set`) is the only sequence
-/// layer left, and every shot layer already has its own dedicated entry above.
+/// [OcptFloorPlanPalette.layerElementCounts] count, and a trailing eye toggling its visibility. No
+/// radio dot: every remaining layer places through its own palette entry or tool, not through an
+/// "active layer" pick — the set layer having merged into one (`OcptFloorPlanLayer.set`) is the
+/// only sequence layer left, and every shot layer already has its own dedicated entry above.
 ///
 /// The eye is withheld (disabled, not hidden) while the layer's own count is `0` and it isn't
 /// already hidden — nothing to hide — but stays enabled while hidden regardless of the count, so

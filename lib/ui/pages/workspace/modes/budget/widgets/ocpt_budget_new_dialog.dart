@@ -92,11 +92,11 @@ class OcptBudgetNewDialog extends StatefulWidget {
   final OcptBudgetGestureFamily? promotedFamily;
 
   /// The gestures step 1 offers, or null to offer them all — the semantic filter the route it was
-  /// opened from carries (`budget_wizard_flows.dart`'s own `_wizardGesturesForView`): the expenses route
-  /// hands the ones that spend, the resources route the ones that bring money in, each drawer page
-  /// its own family. A family with no offered gesture draws no heading at all, and the reader can
-  /// lift the filter whole from inside step 1 (`Show all`), after which every family is shown in
-  /// the natural order. Null everywhere step 1 is skipped, and on the dashboard, which filters
+  /// opened from carries (`budget_wizard_flows.dart`'s own `_wizardGesturesForView`): the expenses
+  /// route hands the ones that spend, the resources route the ones that bring money in, each drawer
+  /// page its own family. A family with no offered gesture draws no heading at all, and the reader
+  /// can lift the filter whole from inside step 1 (`Show all`), after which every family is shown
+  /// in the natural order. Null everywhere step 1 is skipped, and on the dashboard, which filters
   /// nothing.
   final Set<OcptBudgetGesture>? allowedGestures;
 

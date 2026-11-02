@@ -162,7 +162,8 @@ abstract final class OcptCallSheetHeaderSections {
   }) {
     final lines = [
       "${labels.arrivalHeader} : ${ocptFormatDayMinute(convocation.arrivalMinute)}",
-      "${labels.bandLabelOf(isPatBand: convocation.isPatBand)} : ${ocptCallSheetPatCellOf(convocation)}",
+      "${labels.bandLabelOf(isPatBand: convocation.isPatBand)} : "
+          "${ocptCallSheetPatCellOf(convocation)}",
       "${labels.departureLabel} : ${ocptFormatDayMinute(convocation.departureMinute)}",
     ];
 

@@ -18,9 +18,9 @@ mixin MixinOcptModeState<S extends MixinOcptModeState<S>> on BlocStateForMixin<S
   /// Count how many times the mode has replaced data it read from the project database: on entry,
   /// after a
   /// flush, after a write a view asked it to reload for, after any write of its own that reads a
-  /// snapshot back, and when a version preview is entered or left. It moves with **every** emit that
-  /// replaces a snapshot a view can read, whichever handler made it, so a view prunes whatever it
-  /// holds about a row that is gone when this moves — it never has to guess which writes read.
+  /// snapshot back, and when a version preview is entered or left. It moves with **every** emit
+  /// that replaces a snapshot a view can read, whichever handler made it, so a view prunes whatever
+  /// it holds about a row that is gone when this moves — it never has to guess which writes read.
   /// {@endtemplate}
   int get reloadEpoch;
 

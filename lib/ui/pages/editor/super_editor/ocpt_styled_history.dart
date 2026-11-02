@@ -126,10 +126,10 @@ final class OcptStyledHistory {
   ///
   /// That renumbering is not a detail: `Editor.undo()`/`redo()` restore every `Editable` to the
   /// snapshot `MutableDocument` took in its own constructor and replay the historical
-  /// transactions, and the load-time scene numbering pass' load-time pass is deliberately *not* one of them, so
-  /// every restore drops what it had corrected — on any screenplay whose headings the editor
-  /// numbered when it opened them, which is every screenplay written without `#N#` tags by hand.
-  /// Left to the debounced settle to notice instead, that renumbering would come back as a
+  /// transactions, and the load-time scene numbering pass' load-time pass is deliberately *not* one
+  /// of them, so every restore drops what it had corrected — on any screenplay whose headings the
+  /// editor numbered when it opened them, which is every screenplay written without `#N#` tags by
+  /// hand. Left to the debounced settle to notice instead, that renumbering would come back as a
   /// document change of its own: it would mark the redo stack stale (no redo would ever survive
   /// an undo) and, once the history is empty again, append a transaction whose only content is a
   /// numbering nobody asked to change — an undo step that un-numbers the screenplay. Re-derived

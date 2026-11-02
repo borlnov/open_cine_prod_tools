@@ -150,8 +150,8 @@ class OcptEditorTitlePageChangedEvent extends OcptEditorDocumentEvent {
 /// Request writing the unsaved text before an export reads it, and complete once it is written.
 ///
 /// Dispatched by `OcptEditorIoBloc`, which waits for it; it isn't meant to be sent by widgets. The
-/// text is saved tagged `OcptSnapshotReason.export`, and the pending parse and autosave debounces are
-/// dropped.
+/// text is saved tagged `OcptSnapshotReason.export`, and the pending parse and autosave debounces
+/// are dropped.
 class OcptEditorSaveForExportRequestedEvent extends OcptEditorDocumentEvent {
   /// Class constructor
   const OcptEditorSaveForExportRequestedEvent();

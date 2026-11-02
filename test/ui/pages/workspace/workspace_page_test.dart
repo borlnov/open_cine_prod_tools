@@ -40,9 +40,9 @@ class _RecordingRouterManager extends OcptRouterManager {
   }
 }
 
-/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and [ocpt_theme.ocptTheme]'s
-/// light theme so widgets reading its `OcptSpecificColors` extension resolve one, just like the
-/// real app always does.
+/// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, and
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension
+/// resolve one, just like the real app always does.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [

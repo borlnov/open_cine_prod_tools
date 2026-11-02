@@ -28,8 +28,8 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 /// What the budget mode reads from the project database in one go: the joined snapshot, and the
 /// raw catalogues and the decor names the views read directly.
 class OcptBudgetRead {
-  /// The quote, the cash journal, the financing plan, the revenue sharing and the catering-and-travel
-  /// pass, joined.
+  /// The quote, the cash journal, the financing plan, the revenue sharing and the
+  /// catering-and-travel pass, joined.
   final OcptBudgetSnapshot snapshot;
 
   /// Every live role of the project.

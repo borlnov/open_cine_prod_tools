@@ -308,8 +308,8 @@ void main() {
       mode.state.selectedSet!.symbols.firstWhere((symbol) => symbol.id == symbolId).label;
 
   group("the bloc as a whole", () {
-    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
-    /// this fail to compile until the list below names it too.
+    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it
+    /// makes this fail to compile until the list below names it too.
     String nameOf(OcptShotListFloorPlanPlacementsEvent event) => switch (event) {
       OcptShotListFloorPlanSymbolDeletionRequestedEvent() => "delete",
       OcptShotListFloorPlanSymbolDeleteEverywhereRequestedEvent() => "delete everywhere",

@@ -529,8 +529,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
   /// Answers [OcptSyncFlowStatus.emptyRelay] when [storage] holds no snapshot yet — an empty relay
   /// is not something to join, only to create (the Partager flow does that, by publishing the
   /// first one through [publishSnapshot]) — and [OcptSyncFlowStatus.rejected] or
-  /// [OcptSyncFlowStatus.unreachable] when it cannot be asked at all. A snapshot that does not match
-  /// its digest, cannot be unpacked or carries no pairing row of its own answers
+  /// [OcptSyncFlowStatus.unreachable] when it cannot be asked at all. A snapshot that does not
+  /// match its digest, cannot be unpacked or carries no pairing row of its own answers
   /// [OcptSyncFlowStatus.snapshotFailed].
   ///
   /// **How the project id, the relay address and the token are obtained**, since the newly
@@ -708,7 +708,8 @@ class OcptSyncManager extends AbsWithLifeCycle {
 
   /// Stop the current sync session, if any — cancels its timer and its `newWorkStream` subscription
   /// and close its status stream — and dispose the current presence service
-  /// alongside it, if any (which stops it). Safe to call with no session (or presence service) running.
+  /// alongside it, if any (which stops it). Safe to call with no session (or presence service)
+  /// running.
   ///
   /// Closes the manager-level [syncStatusChanges]/[presenceRosterChanges] out with a null, so an
   /// indicator listening to them hides again when the session ends, and stops forwarding the

@@ -7,7 +7,8 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line_form_fields.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/events/budget_base_event.dart';
 
-/// The events of the budget mode about the expenses view: postes, quote lines and the fields typed into them.
+/// The events of the budget mode about the expenses view: postes, quote lines and the fields typed
+/// into them.
 sealed class OcptBudgetExpensesEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetExpensesEvent();

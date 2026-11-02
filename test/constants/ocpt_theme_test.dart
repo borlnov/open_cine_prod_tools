@@ -123,8 +123,8 @@ void main() {
 
   group('clickable controls show the hand cursor', () {
     // Material's own defaults resolve to the plain arrow outside the web, so every control that
-    // reads its cursor from the theme must be handed [ocpt_theme.ocptClickableCursor] here: a missing entry
-    // is a control that silently stops looking clickable on Linux and Windows.
+    // reads its cursor from the theme must be handed [ocpt_theme.ocptClickableCursor] here: a
+    // missing entry is a control that silently stops looking clickable on Linux and Windows.
     for (final brightness in Brightness.values) {
       final themeData = brightness == Brightness.light
           ? ocpt_theme.ocptTheme.lightThemeData!

@@ -9,9 +9,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_poste_card.dart';
 
 /// One poste's own quote/remaining/final-cost/variance figures, computed exactly as
-/// [OcptBudgetCostTrackingPosteAmountsRow.build] computes them for the desktop table's own row — pulled
-/// out into a pure holder so [OcptBudgetCostTrackingPosteCard] reads the very same readings rather than
-/// a second calculation that could quietly disagree with the table over the same poste.
+/// [OcptBudgetCostTrackingPosteAmountsRow.build] computes them for the desktop table's own row —
+/// pulled out into a pure holder so [OcptBudgetCostTrackingPosteCard] reads the very same readings
+/// rather than a second calculation that could quietly disagree with the table over the same poste.
 class OcptBudgetCostTrackingPosteFigures {
   /// The poste's own quoted total, in cents, under the reading basis.
   final int quotedAmountCents;

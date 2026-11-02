@@ -9,12 +9,12 @@ import 'package:open_cine_prod_tools/types/ocpt_element_editable_field.dart';
 /// not yet written.
 ///
 /// A field is shown from here while an edit is pending, and from the stored row otherwise
-/// (`elementFieldValueOf`, `sceneNotesValueOf`, `setNameValueOf`), so what the user sees never falls
-/// back to an older stored value between the keystroke and the write.
+/// (`elementFieldValueOf`, `sceneNotesValueOf`, `setNameValueOf`), so what the user sees never
+/// falls back to an older stored value between the keystroke and the write.
 class OcptBreakdownInspectorState extends BlocStateForMixin<OcptBreakdownInspectorState> {
   /// A typed field of the selected target's own sheet still sitting in the field-edit debounce,
-  /// keyed by the element's id and which `OcptElementField` it is: `name`, `subCategory`, `quantity`
-  /// or `notes`, the only four the target inspector ever edits.
+  /// keyed by the element's id and which `OcptElementField` it is: `name`, `subCategory`,
+  /// `quantity` or `notes`, the only four the target inspector ever edits.
   final Map<(String, OcptElementField), String> pendingElementFieldEdits;
 
   /// A scene's own breakdown notes still sitting in the field-edit debounce, keyed by the scene's
@@ -45,8 +45,8 @@ class OcptBreakdownInspectorState extends BlocStateForMixin<OcptBreakdownInspect
       pendingElementFieldEdits[(elementId, field)] ?? storedValue;
 
   /// Get [sceneId]'s current value for its own breakdown notes — a pending edit still sitting in
-  /// [pendingSceneNotesEdits], or [storedValue] (the scene's own value, read off the mode's selected
-  /// scene at the call site) otherwise.
+  /// [pendingSceneNotesEdits], or [storedValue] (the scene's own value, read off the mode's
+  /// selected scene at the call site) otherwise.
   String sceneNotesValueOf(String sceneId, String storedValue) =>
       pendingSceneNotesEdits[sceneId] ?? storedValue;
 

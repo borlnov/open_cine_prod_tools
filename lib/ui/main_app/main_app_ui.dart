@@ -44,12 +44,13 @@ const double _ocptMobileUiScale = 1.2;
 /// The whole tree is wrapped in [ScreenUtilInit], which initialises `flutter_screenutil` before
 /// calling its `builder` — so `.sp`/`.w`/`.r` are valid by the time the [BlocBuilder] below reads
 /// them. On a **phone** (mobile, and a shortest side below [ocptPhoneWidthBreakpoint]) the theme is
-/// rebuilt with those scalers ([ocpt_theme.buildOcptThemeModel]); on a tablet and on desktop it is not — a
-/// tablet has desktop-class room, especially in landscape, so magnifying every size by the phone
-/// design-size ratio would blow the type and the controls up out of proportion. There the app keeps
-/// the bloc state's own theme model (the global [ocpt_theme.ocptTheme]) unchanged and `.sp`/`.w`/`.r` are
-/// never called. Phones and tablets are told apart by the rotation-invariant shortest side, the
-/// same 600dp line the orientation policy and Android's `sw600dp` qualifier draw.
+/// rebuilt with those scalers ([ocpt_theme.buildOcptThemeModel]); on a tablet and on desktop it is
+/// not — a tablet has desktop-class room, especially in landscape, so magnifying every size by the
+/// phone design-size ratio would blow the type and the controls up out of proportion. There the app
+/// keeps the bloc state's own theme model (the global [ocpt_theme.ocptTheme]) unchanged and
+/// `.sp`/`.w`/`.r` are never called. Phones and tablets are told apart by the rotation-invariant
+/// shortest side, the same 600dp line the orientation policy and Android's `sw600dp` qualifier
+/// draw.
 class OcptMainAppUi extends StatelessWidget {
   /// Create the main app widget.
   const OcptMainAppUi({super.key});

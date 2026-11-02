@@ -43,9 +43,9 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// longer honours the header's own poste filter at all** (`ocptBudgetViewHonoursPosteFilter` is
 /// now `OcptBudgetView.expenses` alone): a bank statement reads across the whole account, not one
 /// category narrowed out of it, and mockup `4b` draws no filtered reading of this page. The closing
-/// balance ([OcptBudgetCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own ruling
-/// is that this is the production's bank account, and it does not change because a view narrowed to
-/// one poste.
+/// balance ([OcptBudgetCashStatementFooterRow]) is the whole journal's, unchanged — Benoit's own
+/// ruling is that this is the production's bank account, and it does not change because a view
+/// narrowed to one poste.
 ///
 /// **No capture affordance of any kind — read-only means nothing is created from a statement, not
 /// that nothing can be touched.** The `+ Entry` action mockup `2a`/`3a` used to draw here is gone

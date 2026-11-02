@@ -153,8 +153,8 @@ void main() {
         expect(checkedState.rawSpellCheckRanges, isNotEmpty);
 
         bloc.add(const OcptEditorSpellCheckToggledEvent());
-        // The spell-check bloc clears the underlines as it sees the switch move, a microtask after the
-        // mode's emit.
+        // The spell-check bloc clears the underlines as it sees the switch move, a microtask after
+        // the mode's emit.
         final disabledState = await waitForState(
           bloc,
           (state) => !state.isSpellCheckVisible && state.rawSpellCheckRanges.isEmpty,

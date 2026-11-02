@@ -22,10 +22,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// fill the view's own height.** This is `OcptBudgetFinancing`'s own house style (its group cards
 /// size to their content, the page simply carrying empty space below them), so each column here is
 /// a plain, content-sized `Column` of cards, and it is *that* — not a card's own body — which sits
-/// inside the scroll view: [OcptBudgetSharingLeftColumn]/[OcptBudgetSharingDistributionColumn] carry no
-/// `Expanded` of their own, and neither does a card's own list of rows, which is a plain `Column`
-/// rather than a `ListView`. Wide, each column scrolls on its own (`SingleChildScrollView`,
-/// side by side in a `Row`); narrow, one scroll view carries both columns in sequence.
+/// inside the scroll view: [OcptBudgetSharingLeftColumn]/[OcptBudgetSharingDistributionColumn]
+/// carry no `Expanded` of their own, and neither does a card's own list of rows, which is a plain
+/// `Column` rather than a `ListView`. Wide, each column scrolls on its own
+/// (`SingleChildScrollView`, side by side in a `Row`); narrow, one scroll view carries both columns
+/// in sequence.
 ///
 /// **Left column**: `Repaying the contributions` ([sharingPot]'s own four-line read-out, the order
 /// that card exists to make legible — the reimbursable contributions come before any sharing at

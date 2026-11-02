@@ -16,15 +16,15 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// One `À venir` row: a commitment falling due, still unsettled — [step]'s own cash figure, read
 /// against [commitment] so the row can print its own label and poste, [step] itself carrying
 /// neither. Clicking the row only selects it, opening the right dock's fiche on the commitment —
-/// never a write, so never withheld under a previewed version, exactly as [OcptBudgetCashJournalRow]'s
-/// own click is never withheld.
+/// never a write, so never withheld under a previewed version, exactly as
+/// [OcptBudgetCashJournalRow]'s own click is never withheld.
 ///
-/// Drawn in the very same fixed column widths [OcptBudgetCashJournalRow] uses, so the two tables' amount
-/// columns line up — the `Voucher` and `⋮` menu columns print nothing, an unsettled commitment
-/// carrying neither a voucher of its own nor the entry table's `Modifier`/`Supprimer` menu (see the
-/// class doc comment for why this section carries no `⋮` menu at all). `Credit` and `Balance` print
-/// [ocptBudgetEmptyValue]: a commitment is a cost still owed, never a credit, and its own row
-/// contributes no running balance of its own — that reading is the footer's.
+/// Drawn in the very same fixed column widths [OcptBudgetCashJournalRow] uses, so the two tables'
+/// amount columns line up — the `Voucher` and `⋮` menu columns print nothing, an unsettled
+/// commitment carrying neither a voucher of its own nor the entry table's `Modifier`/`Supprimer`
+/// menu (see the class doc comment for why this section carries no `⋮` menu at all). `Credit` and
+/// `Balance` print [ocptBudgetEmptyValue]: a commitment is a cost still owed, never a credit, and
+/// its own row contributes no running balance of its own — that reading is the footer's.
 class OcptBudgetCashUpcomingRow extends StatelessWidget {
   /// The projection step this row draws.
   final OcptBudgetProjectionStep step;

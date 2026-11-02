@@ -22,8 +22,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 ///
 /// The exports read the shot list rather than writing to it, so this bloc owns no data of its own:
 /// it asks [OcptShotListBloc] to write every pending edit first
-/// ([OcptShotListBloc.flushAllPendingWrites], which also reads the snapshots again, so a value typed
-/// seconds before the export is in the document and not only on screen), then hands what the
+/// ([OcptShotListBloc.flushAllPendingWrites], which also reads the snapshots again, so a value
+/// typed seconds before the export is in the document and not only on screen), then hands what the
 /// mode's state now carries to [OcptExportManager], which owns both the document building and the
 /// native save dialog. A cancelled save dialog is a silent no-op; a failure raises the transient
 /// export-failed notice in [OcptShotListExportState.ioNotice].

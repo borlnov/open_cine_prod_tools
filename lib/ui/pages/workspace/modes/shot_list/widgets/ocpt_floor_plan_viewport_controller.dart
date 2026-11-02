@@ -97,9 +97,9 @@ class OcptFloorPlanViewportController extends ChangeNotifier {
   }
 
   /// Push the bloc's persisted [zoom] onto this controller — e.g. once this controller is first
-  /// created from `OcptShotListFloorPlanSetsState.floorPlanZoom`, or should the bloc's own value change for a
-  /// reason other than this controller's own commit. A no-op for the value already current, which
-  /// is what a zoom gesture's own settled-value report relies on to not bounce the value it just
-  /// committed.
+  /// created from `OcptShotListFloorPlanSetsState.floorPlanZoom`, or should the bloc's own value
+  /// change for a reason other than this controller's own commit. A no-op for the value already
+  /// current, which is what a zoom gesture's own settled-value report relies on to not bounce the
+  /// value it just committed.
   void syncZoomFromPersisted(double zoom) => setZoom(zoom);
 }

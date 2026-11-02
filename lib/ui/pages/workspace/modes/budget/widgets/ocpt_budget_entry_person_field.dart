@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_entry_nature.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_entry_share_field.dart';
 
 /// `Personne` — offered under [OcptBudgetEntryNature.personReimbursement] alone. Mirrors
-/// [OcptBudgetEntryShareField] verbatim: the field that gives [OcptBudgetEntryLinkKind.person] a real
-/// screen instead of a thrown error.
+/// [OcptBudgetEntryShareField] verbatim: the field that gives [OcptBudgetEntryLinkKind.person] a
+/// real screen instead of a thrown error.
 class OcptBudgetEntryPersonField extends StatelessWidget {
   /// Every person.
   final List<OcptPerson> people;

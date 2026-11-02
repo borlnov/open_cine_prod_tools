@@ -65,8 +65,8 @@ class OcptBreakdownExportBloc
 
   /// Export one breakdown sheet per scene, as a PDF.
   ///
-  /// Writes every pending edit first — that also re-reads the snapshot, so a sheet holds the name or
-  /// the note the user typed seconds ago — then hands what the mode's state now carries to
+  /// Writes every pending edit first — that also re-reads the snapshot, so a sheet holds the name
+  /// or the note the user typed seconds ago — then hands what the mode's state now carries to
   /// [OcptExportManager.exportBreakdownSheets]. A cancelled save dialog is a silent no-op; a
   /// failure raises the transient export-failed notice.
   ///

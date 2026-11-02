@@ -26,9 +26,9 @@ class OcptEditorStatisticsRecomputeRequestedEvent extends OcptEditorStatisticsEv
 /// caret and page setup, right away.
 ///
 /// Dispatched by the bloc to itself when it sees a new document (the parse debounce) or the caret
-/// land on another scene; it isn't meant to be sent by widgets. Composing the whole document to read
-/// one scene's slice of it is too heavy for every keystroke, but a parse tick and a caret change of
-/// scene are rare enough.
+/// land on another scene; it isn't meant to be sent by widgets. Composing the whole document to
+/// read one scene's slice of it is too heavy for every keystroke, but a parse tick and a caret
+/// change of scene are rare enough.
 class OcptEditorStatisticsSceneRefreshRequestedEvent extends OcptEditorStatisticsEvent {
   /// Class constructor
   const OcptEditorStatisticsSceneRefreshRequestedEvent();

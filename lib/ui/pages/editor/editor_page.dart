@@ -81,7 +81,8 @@ class OcptEditorPage extends StatelessWidget {
         ),
       ),
       // Built with the mode rather than on first read: a view bloc registers itself with the mode
-      // bloc when it is built, and one that is not there yet cannot be asked to write what it holds.
+      // bloc when it is built, and one that is not there yet cannot be asked to write what it
+      // holds.
       BlocProvider(
         lazy: false,
         create: (context) => OcptEditorSpellCheckBloc(modeBloc: context.read<OcptEditorBloc>()),
@@ -339,8 +340,8 @@ class _EditorViewState extends State<_EditorView> {
                 onEpisodeSelected: (episodeId) => context.read<OcptWorkspaceBloc>().add(
                   OcptWorkspaceEpisodeSelectedEvent(episodeId: episodeId),
                 ),
-                // Withheld under a preview like every other way into the project settings: a preview
-                // has nothing there that may be written.
+                // Withheld under a preview like every other way into the project settings: a
+                // preview has nothing there that may be written.
                 onAddEpisodeRequested: isReadOnly
                     ? null
                     : () => OcptEditorDialogFlows.projectSettings(
@@ -350,12 +351,13 @@ class _EditorViewState extends State<_EditorView> {
                 // A version being previewed leaves the whole group out: the format controls write,
                 // and the two remaining ones are about an editing mode that isn't shown at all then
                 // (the centre is the formatted preview whichever mode is active, and the dock's
-                // preview tab doesn't exist). Every dock tab stays reachable from the dock's own tab
-                // row. Below the compact breakpoint the format controls fold into the overflow
+                // preview tab doesn't exist). Every dock tab stays reachable from the dock's own
+                // tab row. Below the compact breakpoint the format controls fold into the overflow
                 // menu: the fixed-width inline row has no room left beside everything else the
                 // toolbar already carries there. Both widgets read and write the very same
                 // controller, so this is never a second flow, only how it is presented. The preview
-                // and syntax selectors are raw-mode only: the styled mode has no preview tab at all.
+                // and syntax selectors are raw-mode only: the styled mode has no preview tab at
+                // all.
                 toolbarActions: isReadOnly
                     ? const []
                     : [
@@ -484,11 +486,12 @@ class _EditorViewState extends State<_EditorView> {
   /// [OcptToolbarMenuItemLabel]; every other entry here has none to state and stays a plain [Text].
   ///
   /// The two exports moved to the toolbar's own `Export` button and its panel (see
-  /// `OcptEditorDialogFlows.export`) — this menu keeps everything else. While a version is being previewed, the
-  /// entries that rewrite the screenplay — import and replace, find and replace, page setup, title
-  /// page — are left out, and so is plain find: the centre is then the read-only preview, which
-  /// carries no bar to open. The rest stays: the page-simulation, scene-numbers, spell-check and
-  /// panel-layout entries are app-wide display preferences that never touch a project.
+  /// `OcptEditorDialogFlows.export`) — this menu keeps everything else. While a version is being
+  /// previewed, the entries that rewrite the screenplay — import and replace, find and replace,
+  /// page setup, title page — are left out, and so is plain find: the centre is then the read-only
+  /// preview, which carries no bar to open. The rest stays: the page-simulation, scene-numbers,
+  /// spell-check and panel-layout entries are app-wide display preferences that never touch a
+  /// project.
   List<PopupMenuEntry<void>> _overflowEntriesOf(BuildContext context, OcptEditorState state) {
     final tr = Tr.of(context);
     final isReadOnly = state.isPreviewingVersion;

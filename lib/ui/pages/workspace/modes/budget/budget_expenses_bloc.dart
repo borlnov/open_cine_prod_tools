@@ -42,9 +42,10 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// own; the mode flushes them ahead of anything that needs the database to be up to date.
 ///
 /// **Reacting.** A row being selected clears nothing here, and an ordinary re-read after a write
-/// leaves the typed edits alone: an edit typed into a row that was deleted meanwhile is written like
-/// any other, as it always was. When the mode reads everything again (entry, a version preview, a
-/// restore) every pending edit is dropped, since the database underneath may be another one.
+/// leaves the typed edits alone: an edit typed into a row that was deleted meanwhile is written
+/// like any other, as it always was. When the mode reads everything again (entry, a version
+/// preview, a restore) every pending edit is dropped, since the database underneath may be another
+/// one.
 ///
 /// **A write that fails is not caught.** The service's error stops the handler, the edit stays
 /// pending and on screen, the database is unchanged, and the debounce is gone until the next
@@ -73,8 +74,8 @@ class OcptBudgetExpensesBloc
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests,
-  /// to keep it fast and deterministic.
+  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by
+  /// tests, to keep it fast and deterministic.
   OcptBudgetExpensesBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,

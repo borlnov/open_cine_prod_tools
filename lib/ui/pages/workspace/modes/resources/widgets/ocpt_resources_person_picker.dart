@@ -122,8 +122,8 @@ class OcptResourcesPersonPicker extends StatelessWidget {
       person.displayName.isEmpty ? tr.resourcesUnnamedPerson : person.displayName;
 }
 
-/// The badge itself: the named person, or the picker's empty label in italics, followed by the drop-down
-/// marker only while the menu may actually be opened.
+/// The badge itself: the named person, or the picker's empty label in italics, followed by the
+/// drop-down marker only while the menu may actually be opened.
 class _Badge extends StatelessWidget {
   /// The widget this one belongs to.
   final OcptResourcesPersonPicker picker;

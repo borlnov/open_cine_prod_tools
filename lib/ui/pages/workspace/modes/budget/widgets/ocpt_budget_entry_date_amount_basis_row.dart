@@ -62,9 +62,9 @@ class OcptBudgetEntryDateAmountBasisRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           // `Amount`'s own label sits above the field, dense, exactly as `Date` and `Base` carry
-          // theirs — a `labelText` inside the decoration would float the label into the box and drop
-          // the field lower than its two `CrossAxisAlignment.start` siblings, which is what left the
-          // three misaligned.
+          // theirs — a `labelText` inside the decoration would float the label into the box and
+          // drop the field lower than its two `CrossAxisAlignment.start` siblings, which is what
+          // left the three misaligned.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

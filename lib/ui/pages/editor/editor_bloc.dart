@@ -120,8 +120,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// The text of the latest [OcptEditorTextChangedEvent] added and not handled yet, if any.
   ///
   /// The styled editor hands its last edit over from its own `deactivate`, which runs just before
-  /// the bloc is closed, and an event is delivered to its handler asynchronously: [disposeLifeCycle]
-  /// would otherwise flush a text older than the one the user left behind.
+  /// the bloc is closed, and an event is delivered to its handler asynchronously:
+  /// [disposeLifeCycle] would otherwise flush a text older than the one the user left behind.
   String? _undeliveredText;
 
   /// Whether [disposeLifeCycle] has started.
@@ -709,8 +709,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
 
   /// Toggle whether this machine shows the spell-check underlines, and persist the new value.
   ///
-  /// `OcptEditorSpellCheckBloc` sees the switch move: it clears the underlines when it is now off and
-  /// loads or unloads the dictionary as the two switches of `docs/architecture/screenplay.md` dictate.
+  /// `OcptEditorSpellCheckBloc` sees the switch move: it clears the underlines when it is now off
+  /// and loads or unloads the dictionary as the two switches of `docs/architecture/screenplay.md`
+  /// dictate.
   Future<void> _onSpellCheckToggled(
     OcptEditorSpellCheckToggledEvent event,
     Emitter<OcptEditorState> emitter,
@@ -737,9 +738,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// `OcptEditorSpellCheckBloc` drives its dictionary from.
   ///
   /// These are the only fields of the project settings page this bloc's own state depends on: the
-  /// currency has nothing to do with a screenplay's pagination or its spell-checking. Re-reading them
-  /// rather than carrying them on the event is what lets the project settings page own the write
-  /// without this bloc having to learn its shape.
+  /// currency has nothing to do with a screenplay's pagination or its spell-checking. Re-reading
+  /// them rather than carrying them on the event is what lets the project settings page own the
+  /// write without this bloc having to learn its shape.
   Future<void> _onProjectSettingsChanged(
     OcptEditorProjectSettingsChangedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -766,9 +767,9 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   /// Write the unsaved text, tagged [OcptSnapshotReason.export], before an export reads it, so the
   /// exported file matches exactly what the project stores.
   ///
-  /// The parse and autosave debounces are cancelled first: the save below is the one that counts, and
-  /// the export that asked for it hands the text over as it stands once this is done. A failed save
-  /// raises the transient save error like any other and the export carries on with the text.
+  /// The parse and autosave debounces are cancelled first: the save below is the one that counts,
+  /// and the export that asked for it hands the text over as it stands once this is done. A failed
+  /// save raises the transient save error like any other and the export carries on with the text.
   Future<void> _onSaveForExportRequested(
     OcptEditorSaveForExportRequestedEvent event,
     Emitter<OcptEditorState> emitter,
@@ -782,8 +783,8 @@ class OcptEditorBloc extends BlocForMixin<OcptEditorState>
   }
 
   /// Replace the screenplay text with the one an import has just written to the project: the text
-  /// is clean (the import saved it), the caret goes back to the first line, and the document and the
-  /// counters follow at once instead of waiting for the typing debounces.
+  /// is clean (the import saved it), the caret goes back to the first line, and the document and
+  /// the counters follow at once instead of waiting for the typing debounces.
   Future<void> _onImportedTextApplied(
     OcptEditorImportedTextAppliedEvent event,
     Emitter<OcptEditorState> emitter,

@@ -413,7 +413,8 @@ void main() {
     expect(remaining.map((tag) => tag.sceneId), [scenes[1].id]);
     // The scene links the tags once ensured are the resources mode's too: they stay.
     expect((await elementNamed("Teapot")).sceneLinks, hasLength(2));
-    // It is still tagged in the second scene, so its sheet stays; the first scene's words are plain.
+    // It is still tagged in the second scene, so its sheet stays; the first scene's words are
+    // plain.
     expect(find.byType(OcptBreakdownTargetInspector), findsOneWidget);
     expect(inScript(find.text("teapot ")), findsOneWidget);
     expect(inScript(find.text("teapot")), findsOneWidget);

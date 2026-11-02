@@ -101,8 +101,8 @@ class OcptBudgetCashJournalBloc
   /// other — the one reading no single database column mirrors, see that model's own doc comment.
   ///
   /// Writes whatever `event.fields` collected about the fresh entry's own voucher
-  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) once it exists, in this very handler, before the one reload at
-  /// its end.
+  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) once it exists, in this very handler,
+  /// before the one reload at its end.
   Future<void> _onEntryCreationConfirmed(
     OcptBudgetEntryCreationConfirmedEvent event,
     Emitter<OcptBudgetCashJournalState> emitter,
@@ -157,7 +157,8 @@ class OcptBudgetCashJournalBloc
   /// accident.
   ///
   /// Writes whatever `event.fields` collected about the entry's own voucher
-  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) in this very handler too, before the one reload at its end.
+  /// (`OcptBudgetJournalFormWrites.writeEntryReceiptChange`) in this very handler too, before the
+  /// one reload at its end.
   Future<void> _onEntryUpdateConfirmed(
     OcptBudgetEntryUpdateConfirmedEvent event,
     Emitter<OcptBudgetCashJournalState> emitter,
@@ -391,12 +392,13 @@ class OcptBudgetCashJournalBloc
   /// `Add to the quote` action, offered on a debit that names a poste but no commitment
   /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
   /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
-  /// basis), then a commitment from that line exactly as `OcptBudgetExpensesBloc` does for a line paid directly
-  /// (`createCommitment`, naming it through `lineId`) — and finally **re-points the entry itself at
-  /// that fresh commitment** (`updateEntry`, `commitmentId` alone) rather than creating a second
-  /// entry: the debit that settles the commitment is the very one already on the ledger. Skipping
-  /// the relink would leave the commitment unsettled, adding to the poste's committed total on top
-  /// of what is already paid — the exact double-count this whole mode refuses everywhere else.
+  /// basis), then a commitment from that line exactly as `OcptBudgetExpensesBloc` does for a line
+  /// paid directly (`createCommitment`, naming it through `lineId`) — and finally **re-points the
+  /// entry itself at that fresh commitment** (`updateEntry`, `commitmentId` alone) rather than
+  /// creating a second entry: the debit that settles the commitment is the very one already on the
+  /// ledger. Skipping the relink would leave the commitment unsettled, adding to the poste's
+  /// committed total on top of what is already paid — the exact double-count this whole mode
+  /// refuses everywhere else.
   Future<void> _onEntryPromotedToQuote(
     OcptBudgetEntryPromotedToQuoteEvent event,
     Emitter<OcptBudgetCashJournalState> emitter,

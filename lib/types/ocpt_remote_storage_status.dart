@@ -13,10 +13,12 @@ enum OcptRemoteStorageStatus with MixinResultStatus {
   /// The call went through.
   ok(isSuccess: true, canBeRetried: false),
 
-  /// The relay answered with a sync error (a bad token, an unknown project, a sequence conflict…); the `extraInfo` is that `OcptSyncError`.
+  /// The relay answered with a sync error (a bad token, an unknown project, a sequence conflict…);
+  /// the `extraInfo` is that `OcptSyncError`.
   rejected(isSuccess: false, canBeRetried: false),
 
-  /// The transport itself failed (no network, a file that cannot be read, an answer that cannot be decoded); the `extraInfo` is an `OcptSyncTransportFailure`.
+  /// The transport itself failed (no network, a file that cannot be read, an answer that cannot be
+  /// decoded); the `extraInfo` is an `OcptSyncTransportFailure`.
   unreachable(isSuccess: false, canBeRetried: false);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}

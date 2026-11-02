@@ -229,13 +229,14 @@ class OcptWysiwygCodec {
 
   /// Encode [document] back into Fountain source text, the inverse of [decode]: rejoins each
   /// node's inline attributions into marked-up display text
-  /// ([FountainInlineSerializer.write]/[OcptWysiwygInlineRuns.runsFromAttributedText]), then lets [FountainLineWriter]
-  /// decide, left to right with the already-fixed earlier lines as context, whether each node's
-  /// stored `blockType` needs a forcing marker to (re-)classify correctly, honoring
-  /// [ocptHadForcingMarkerMetadataKey] to preserve a marker even when auto-detection alone would
-  /// already suffice. [trailingBlankLines] (normally [OcptWysiwygDecodeResult.trailingBlankLines],
-  /// carried forward by the caller across a session, since nothing in this model's node structure
-  /// tracks it) is appended as that many blank lines at the very end.
+  /// ([FountainInlineSerializer.write]/[OcptWysiwygInlineRuns.runsFromAttributedText]), then lets
+  /// [FountainLineWriter] decide, left to right with the already-fixed earlier lines as context,
+  /// whether each node's stored `blockType` needs a forcing marker to (re-)classify correctly,
+  /// honoring [ocptHadForcingMarkerMetadataKey] to preserve a marker even when auto-detection alone
+  /// would already suffice. [trailingBlankLines] (normally
+  /// [OcptWysiwygDecodeResult.trailingBlankLines], carried forward by the caller across a session,
+  /// since nothing in this model's node structure tracks it) is appended as that many blank lines
+  /// at the very end.
   ///
   /// **Empty-node rule:** a node whose display text is empty (having nothing to serialize, and
   /// nowhere to attach a forcing marker even if [ocptHadForcingMarkerMetadataKey] is set) always

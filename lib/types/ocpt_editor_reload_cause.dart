@@ -6,8 +6,8 @@
 ///
 /// A view reads the cause to know how much of what it holds the new data invalidates: the
 /// spell-check underlines of the previous screenplay are dropped by a whole load but kept, then
-/// refreshed, when only the text was replaced, whereas the counters are recomputed at once for all of
-/// them.
+/// refreshed, when only the text was replaced, whereas the counters are recomputed at once for all
+/// of them.
 enum OcptEditorReloadCause {
   /// Nothing has moved the epoch yet.
   none,

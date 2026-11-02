@@ -15,13 +15,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// mode's state really holds it. The event therefore carries a [Completer] the handler completes
 /// when it is finished ([complete]), and the dispatcher waits on it through [addToAndWait].
 ///
-/// The completer is deliberately **not** part of the event's `props`: two events asking for the same
-/// thing stay equal, whichever of them somebody is waiting on.
+/// The completer is deliberately **not** part of the event's `props`: two events asking for the
+/// same thing stay equal, whichever of them somebody is waiting on.
 ///
 /// Waiting never hangs on a bloc that is going away: [addToAndWait] stops waiting the moment the
 /// bloc's state stream ends, and refuses to wait at all on a bloc that is already closed. A handler
-/// must still call [complete] in a `finally` so a failure does not leave its dispatcher waiting for a
-/// bloc that stays alive.
+/// must still call [complete] in a `finally` so a failure does not leave its dispatcher waiting for
+/// a bloc that stays alive.
 mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
   /// The completer the handler completes and [addToAndWait] waits on.
   final Completer<T?> _completer = Completer<T?>();
@@ -38,8 +38,8 @@ mixin MixinOcptAwaitedEvent<T> on BlocEventForMixin {
 
   /// Tell the dispatcher the handler failed: [addToAndWait] throws [error] to whoever waits.
   ///
-  /// For a handler whose dispatcher has to know the work did not happen, which an answer of "nothing
-  /// to report" would hide. Like [complete], it does nothing once the event was completed.
+  /// For a handler whose dispatcher has to know the work did not happen, which an answer of
+  /// "nothing to report" would hide. Like [complete], it does nothing once the event was completed.
   void completeError(Object error, [StackTrace? stackTrace]) {
     if (!_completer.isCompleted) {
       _completer.completeError(error, stackTrace);

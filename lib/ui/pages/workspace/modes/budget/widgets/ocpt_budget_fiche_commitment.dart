@@ -53,9 +53,9 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    // Mirrors `OcptBudgetFicheLine`'s own reading: `Payé` only ever states a figure once this commitment is
-    // settled, matching what a single, exact-amount payment already read before a commitment could
-    // be paid in instalments.
+    // Mirrors `OcptBudgetFicheLine`'s own reading: `Payé` only ever states a figure once this
+    // commitment is settled, matching what a single, exact-amount payment already read before a
+    // commitment could be paid in instalments.
     final paidCents = isSettled
         ? ocptBudgetCommitmentPaidCentsOf(
             commitment,

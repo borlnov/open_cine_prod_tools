@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/ui/pages/editor/editor_statistics_state.dar
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_saved_time_segment.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_status_bar.dart';
 
-/// The shell's `statusBar`: the screenplay's own ordered counters (pages, scenes, characters, words,
-/// signs — the first three never dropped) plus the self-refreshing last-saved segment.
+/// The shell's `statusBar`: the screenplay's own ordered counters (pages, scenes, characters,
+/// words, signs — the first three never dropped) plus the self-refreshing last-saved segment.
 ///
 /// Only the statistics bloc's state rebuilds it, so a keystroke does not.
 class OcptEditorStatusBar extends StatelessWidget {

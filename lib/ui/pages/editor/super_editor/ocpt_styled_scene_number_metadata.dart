@@ -16,8 +16,9 @@ final class OcptStyledSceneNumberMetadata {
   /// by node id, read straight off each node's [ocptSceneNumberMetadataKey] metadata.
   ///
   /// By the time this is called (every build), that metadata is already correct: it was set by
-  /// [OcptWysiwygCodec.decode] for an explicit tag, or normalized by the styled editor's own `sceneNumberNormalizationRequests` pass right after every rebuild or
-  /// edit, so this is a plain read, not a fresh computation.
+  /// [OcptWysiwygCodec.decode] for an explicit tag, or normalized by the styled editor's own
+  /// `sceneNumberNormalizationRequests` pass right after every rebuild or edit, so this is a plain
+  /// read, not a fresh computation.
   static Map<String, String> of(Document document) {
     final numbers = <String, String>{};
     for (final node in document) {

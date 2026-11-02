@@ -20,12 +20,12 @@ const int _multilineMinLines = 3;
 ///
 /// [value] is the field's current authoritative value — a pending edit still sitting in
 /// `OcptResourcesPeopleState.pendingFieldEdits` (or `pendingRoleFieldEdits`), or the record's own
-/// stored value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own fields. The
-/// internal controller is only ever reset to it when [ownerId] changes (the sheet now shows a
-/// different record) or when [value] genuinely differs from what the controller already holds (an
-/// edit landed, or a reload changed the underlying data): a rebuild for an unrelated reason
-/// (another field's pending edit, a dock resize) never touches the controller, so the caret never
-/// jumps mid-typing.
+/// stored value otherwise, exactly as `OcptShotListMode._fieldValueOf` resolves a shot's own
+/// fields. The internal controller is only ever reset to it when [ownerId] changes (the sheet now
+/// shows a different record) or when [value] genuinely differs from what the controller already
+/// holds (an edit landed, or a reload changed the underlying data): a rebuild for an unrelated
+/// reason (another field's pending edit, a dock resize) never touches the controller, so the caret
+/// never jumps mid-typing.
 class OcptResourcesSheetField extends StatefulWidget {
   /// The id of the record this field belongs to — a person on the people tab, a role on the roles
   /// tab — used only to detect a switch from one to another (see the class doc comment).

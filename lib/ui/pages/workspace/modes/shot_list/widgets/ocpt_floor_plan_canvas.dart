@@ -83,11 +83,11 @@ const double _wheelZoomStep = 0.08;
 /// on drag end, the pointer's own bearing around the symbol's centre computed in **canvas space**
 /// through `RenderBox.globalToLocal` — never the handle's own local position, which reads it
 /// relative to the handle's tiny hit box instead — holding `Shift` snaps it to
-/// [ocptFloorPlanRotateSnapStepDeg]° steps). A selected camera also draws two edge handles on its own
-/// field-of-view wedge; dragging either narrows or widens it (one [onSymbolFovChanged] on drag end,
-/// in degrees). `Ctrl+D` on the selected symbol, or an `Alt`-drag of any symbol (the drag preview
-/// follows the pointer exactly like a plain move, but on release the *source* symbol is left
-/// untouched and a new, independent copy is placed at the release point instead —
+/// [ocptFloorPlanRotateSnapStepDeg]° steps). A selected camera also draws two edge handles on its
+/// own field-of-view wedge; dragging either narrows or widens it (one [onSymbolFovChanged] on drag
+/// end, in degrees). `Ctrl+D` on the selected symbol, or an `Alt`-drag of any symbol (the drag
+/// preview follows the pointer exactly like a plain move, but on release the *source* symbol is
+/// left untouched and a new, independent copy is placed at the release point instead —
 /// [onSymbolDuplicateDragged]), duplicates it: never a link.
 ///
 /// Every write is **withheld** under [isReadOnly] (a null `onSymbolPlaced`/move/resize/rotate/fov/
@@ -95,8 +95,8 @@ const double _wheelZoomStep = 0.08;
 /// do); zoom, pan, selecting, the metrics overlay and the tray's own visibility toggles stay
 /// available, since they only read.
 ///
-/// **Arrow selection**: a click under `select` that lands within `ocptFloorPlanArrowHitTolerancePx` of a
-/// (non-ghost) arrow's own shaft (straight or curved, `ocptFloorPlanArrowHitAt`) selects it
+/// **Arrow selection**: a click under `select` that lands within `ocptFloorPlanArrowHitTolerancePx`
+/// of a (non-ghost) arrow's own shaft (straight or curved, `ocptFloorPlanArrowHitAt`) selects it
 /// ([onArrowSelected]) instead of clearing the selection — mutually exclusive with a symbol's own
 /// selection. The selected arrow draws its own midpoint handle: dragging it bends the arrow through
 /// a live bezier control point (one [onArrowCurveChanged] on drag end), dropping it back onto the
@@ -482,8 +482,8 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
                             sheet,
                           ),
                           onPanUpdate: (details) => widget.viewportController.panBy(details.delta),
-                          // Its own layer: the plan repaints on every pan, zoom and drag frame, and the
-                          // widgets stacked over it do not repaint with it.
+                          // Its own layer: the plan repaints on every pan, zoom and drag frame, and
+                          // the widgets stacked over it do not repaint with it.
                           child: RepaintBoundary(
                             child: CustomPaint(
                               size: canvasSize,
@@ -781,9 +781,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   /// `prop` on [OcptFloorPlanCanvas.focusSceneId] with [OcptFloorPlanCanvas.activeLabel], or
   /// `camera`/`character`/`light` on [OcptFloorPlanCanvas.focusShotId]'s own shot layer — a no-op
   /// while no shot is focused, defensive only); under `select`, selects the arrow it lands near
-  /// ([ocptFloorPlanArrowHitAt]) instead of clearing, when one is close enough; cancels the arrow tool's own
-  /// pending anchor under `arrow`; clears both selections otherwise (`label`, an arrow tool with
-  /// nothing pending, or `select` finding no arrow close enough).
+  /// ([ocptFloorPlanArrowHitAt]) instead of clearing, when one is close enough; cancels the arrow
+  /// tool's own pending anchor under `arrow`; clears both selections otherwise (`label`, an arrow
+  /// tool with nothing pending, or `select` finding no arrow close enough).
   void _handleBackgroundTap(
     Offset localPosition,
     Size canvasSize,
@@ -967,8 +967,9 @@ class _OcptFloorPlanCanvasState extends State<OcptFloorPlanCanvas> {
   }
 
   /// Report the dragged arrow's own settled control point and clear the live drag state — unless
-  /// it landed close enough to the straight from-to line ([ocptFloorPlanArrowStraightenToleranceM]),
-  /// in which case it straightens the arrow back out instead.
+  /// it landed close enough to the straight from-to line
+  /// ([ocptFloorPlanArrowStraightenToleranceM]), in which case it straightens the arrow back out
+  /// instead.
   void _commitArrowCurveDrag(OcptFloorPlanArrowShape arrow) {
     final live = _drag.endArrowCurveDrag();
 

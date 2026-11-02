@@ -118,9 +118,10 @@ void main() {
     );
   }
 
-  /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a manager of its own (already holding an open
-  /// project), for the one that needs to observe its calls. Its export manager is a plain one
-  /// nothing ever exports through: the exports are the export bloc's own, tested apart.
+  /// Builds a bloc wired to the test project. [overrideProjectsManager] lets a test swap in a
+  /// manager of its own (already holding an open project), for the one that needs to observe its
+  /// calls. Its export manager is a plain one nothing ever exports through: the exports are the
+  /// export bloc's own, tested apart.
   OcptShotListBloc buildBloc({
     OcptRouterManager? routerManager,
     OcptShotListService? shotListService,
@@ -139,9 +140,9 @@ void main() {
     selectedEpisodeId: selectedEpisodeId,
   );
 
-  /// Builds the inspector bloc of [modeBloc], for the tests that write through it. [fieldEditDebounce]
-  /// defaults to a short duration so tests exercising the field-edit debounce don't have to wait out
-  /// the real 2 s one.
+  /// Builds the inspector bloc of [modeBloc], for the tests that write through it.
+  /// [fieldEditDebounce] defaults to a short duration so tests exercising the field-edit debounce
+  /// don't have to wait out the real 2 s one.
   OcptShotListInspectorBloc buildInspector(
     OcptShotListBloc modeBloc, {
     Duration fieldEditDebounce = const Duration(milliseconds: 30),

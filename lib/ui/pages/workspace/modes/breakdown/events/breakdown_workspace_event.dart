@@ -7,7 +7,8 @@ import 'package:open_cine_prod_tools/types/ocpt_breakdown_centre_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_breakdown_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/events/breakdown_base_event.dart';
 
-/// The events about the mode itself: loading, leaving, the docks, the legend, the centre and its search.
+/// The events about the mode itself: loading, leaving, the docks, the legend, the centre and its
+/// search.
 sealed class OcptBreakdownWorkspaceEvent extends OcptBreakdownEvent {
   /// Class constructor
   const OcptBreakdownWorkspaceEvent();

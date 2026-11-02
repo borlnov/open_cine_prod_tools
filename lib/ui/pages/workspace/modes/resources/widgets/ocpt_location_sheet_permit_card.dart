@@ -134,7 +134,8 @@ class _Document extends StatelessWidget {
   /// Called when the document's remove control is clicked, or null while it may not be used.
   final VoidCallback? onPermitDocumentCleared;
 
-  /// Called with the document's newly picked "valid from" date, or null while it may not be changed.
+  /// Called with the document's newly picked "valid from" date, or null while it may not be
+  /// changed.
   final ValueChanged<DateTime?>? onPermitDocumentValidFromChanged;
 
   /// Called with the document's newly picked "valid until" date, or null while it may not be

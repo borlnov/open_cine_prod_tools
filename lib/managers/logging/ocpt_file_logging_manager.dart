@@ -47,8 +47,8 @@ bool _defaultIsDesktopPlatform() => !(Platform.isAndroid || Platform.isIOS);
 /// so a rotating log file there earns nothing, and production deliberately turns the config flag on
 /// for the desktop diagnostics it does buy (`assets/config/production.yaml`). Any I/O failure while
 /// resolving the log directory or setting up the file itself (a read-only file system, a sandboxed
-/// environment) is caught and logged as a warning through the manager's own logger — file logging is a
-/// diagnostic nicety, never something app start may fail over.
+/// environment) is caught and logged as a warning through the manager's own logger — file logging
+/// is a diagnostic nicety, never something app start may fail over.
 class OcptFileLoggingManager extends AbsWithLifeCycle {
   /// The logger category linked to this manager.
   static const _loggerCategory = "file_logging";

@@ -143,14 +143,14 @@ class OcptWorkspaceShellToolbar extends StatelessWidget {
   ///
   /// That last part takes **two** overrides, and neither alone is enough.
   /// [MaterialTapTargetSize.shrinkWrap] drops the stock 48 px touch target, which silently wins
-  /// over the [ocpt_theme.ocptToolbarChromeButtonSize] minimum below — the very reason the `iconButtonTheme`
-  /// already shrink-wraps every icon button of the app. [VisualDensity.standard] is the one that
-  /// actually shows: a [TextButton] takes its density from the ambient theme, which on a desktop
-  /// platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so this button
-  /// drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default density
-  /// being standard whatever the theme says. Beware that `flutter test` reports the Android density
-  /// unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a widget test
-  /// cannot see by default.
+  /// over the [ocpt_theme.ocptToolbarChromeButtonSize] minimum below — the very reason the
+  /// `iconButtonTheme` already shrink-wraps every icon button of the app. [VisualDensity.standard]
+  /// is the one that actually shows: a [TextButton] takes its density from the ambient theme, which
+  /// on a desktop platform is [VisualDensity.compact] and takes **8 px off** every minimum size, so
+  /// this button drew 22 px tall beside 30 px toggles — an [IconButton] never does, its own default
+  /// density being standard whatever the theme says. Beware that `flutter test` reports the Android
+  /// density unless the test overrides `debugDefaultTargetPlatform`, so this is a difference a
+  /// widget test cannot see by default.
   ///
   /// Wrapped in its own [Builder] so `onPressed` can resolve the button's own screen [Rect] from
   /// its `RenderBox` at tap time — the anchor [OcptWorkspaceShell.onExportRequested] hands down for

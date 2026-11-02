@@ -11,8 +11,8 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dar
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 import 'package:uuid/uuid.dart';
 
-/// The convocation windows of a shooting day: a slot's creation, its edit, its anchor, its order and
-/// its deletion, which moves or drops the blocks scheduled inside it.
+/// The convocation windows of a shooting day: a slot's creation, its edit, its anchor, its order
+/// and its deletion, which moves or drops the blocks scheduled inside it.
 ///
 /// What `OcptScheduleService` forwards to; see `OcptScheduleDaysOps`.
 abstract final class OcptScheduleSlotsOps {

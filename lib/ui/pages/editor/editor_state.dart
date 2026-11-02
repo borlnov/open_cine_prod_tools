@@ -310,8 +310,8 @@ class OcptEditorState extends BlocStateForMixin<OcptEditorState>
   ///
   /// [document], [lastSavedAt] and [jumpRequest] are only replaced when a new value is given: they
   /// never go back to null once set, so no force flag is needed for them. [rightDockTab],
-  /// [autoClosedRightDockTab] and [screenplayLanguage] are only replaced when a new value is given or
-  /// their force flag is true ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
+  /// [autoClosedRightDockTab] and [screenplayLanguage] are only replaced when a new value is given
+  /// or their force flag is true ([forceRightDockTabValue], [forceAutoClosedRightDockTabValue],
   /// [forceScreenplayLanguageValue]): all three legitimately go back to null during the editor's
   /// lifetime (closing the dock, restoring it on a mode switch, a project's language being unset),
   /// so the "never goes back to null" shortcut used above doesn't apply to them.

@@ -41,16 +41,16 @@ const double ocptBudgetCostTrackingRowHeight = 48;
 /// nothing shared to agree through but this constant.
 const double ocptBudgetCostTrackingSubRowHeight = 36;
 
-/// The header row's own fixed height, in logical pixels — see `ocptBudgetCostTrackingRowHeight`'s own
-/// doc comment for why the two panes need every row, the header included, to claim a named height
-/// rather than size to its own single-line content.
+/// The header row's own fixed height, in logical pixels — see `ocptBudgetCostTrackingRowHeight`'s
+/// own doc comment for why the two panes need every row, the header included, to claim a named
+/// height rather than size to its own single-line content.
 const double ocptBudgetCostTrackingHeaderRowHeight = 36;
 
 /// The total row's own fixed height, in logical pixels — tall enough for
 /// `tr.budgetCostTrackingCoverageReadOut`'s own two lines, printed here in place of the plain
 /// amount while the excluding-tax total does not yet cover every poste; see
-/// `ocptBudgetCostTrackingRowHeight`'s own doc comment for why a named height, not the tallest cell's
-/// own, is what keeps this row's two panes aligned.
+/// `ocptBudgetCostTrackingRowHeight`'s own doc comment for why a named height, not the tallest
+/// cell's own, is what keeps this row's two panes aligned.
 const double ocptBudgetCostTrackingTotalRowHeight = 48;
 
 /// How far a sub-row indents for every step of tree depth, in logical pixels — a quote line sits

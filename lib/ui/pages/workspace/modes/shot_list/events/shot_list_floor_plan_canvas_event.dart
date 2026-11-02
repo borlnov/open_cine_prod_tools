@@ -76,7 +76,8 @@ class OcptShotListFloorPlanSymbolPlacedEvent extends OcptShotListFloorPlanCanvas
   final OcptFloorPlanSetElementShape? setElementShape;
 
   /// A `prop` placement's own armed label — from the placing chip's own drag payload or the
-  /// click-to-armed `OcptShotListFloorPlanSetsState.floorPlanActiveLabel`. Empty on every other layer.
+  /// click-to-armed `OcptShotListFloorPlanSetsState.floorPlanActiveLabel`. Empty on every other
+  /// layer.
   final String label;
 
   /// Class constructor

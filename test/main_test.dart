@@ -22,10 +22,10 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve in tests,
-/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the raw-mode
-/// preview's backdrop) resolve one, just like the real app always does, and an `OcptWorkspaceBloc`
-/// ancestor: the real `OcptWorkspacePage` always provides one, and `OcptEditorPage` now reads it
-/// for the episode selector's episodes/selection.
+/// [ocpt_theme.ocptTheme]'s light theme so widgets reading its `OcptSpecificColors` extension (the
+/// raw-mode preview's backdrop) resolve one, just like the real app always does, and an
+/// `OcptWorkspaceBloc` ancestor: the real `OcptWorkspacePage` always provides one, and
+/// `OcptEditorPage` now reads it for the episode selector's episodes/selection.
 Widget _wrapWithLocalization(Widget child) => MaterialApp(
   theme: ocpt_theme.ocptTheme.lightThemeData,
   localizationsDelegates: const [

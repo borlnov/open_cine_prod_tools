@@ -187,7 +187,8 @@ void main() {
         );
         expect(selected.selectionCause, OcptBreakdownSelectionCause.scene);
 
-        // Selecting the scene again is still a move: the views are told even though nothing changed.
+        // Selecting the scene again is still a move: the views are told even though nothing
+        // changed.
         bloc.add(OcptBreakdownSceneSelectedEvent(sceneId: sceneId));
         await waitForState(bloc, (state) => state.selectionEpoch > selected.selectionEpoch);
 

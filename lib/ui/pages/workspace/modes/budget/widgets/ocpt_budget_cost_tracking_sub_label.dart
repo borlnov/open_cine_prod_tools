@@ -8,8 +8,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_sub_identity_row.dart';
 
 /// One line of a sub-row's own identity label: an optional coloured dot, the label itself, and an
-/// optional trailing badge pill — [OcptBudgetCostTrackingSubIdentityRow]'s own `builder` hands one of
-/// these back for every sub-row kind.
+/// optional trailing badge pill — [OcptBudgetCostTrackingSubIdentityRow]'s own `builder` hands one
+/// of these back for every sub-row kind.
 class OcptBudgetCostTrackingSubLabel extends StatelessWidget {
   /// The text shown.
   final String label;
@@ -67,9 +67,9 @@ class OcptBudgetCostTrackingSubLabel extends StatelessWidget {
         if (badgeText != null && badgeText.isNotEmpty) ...[
           const SizedBox(width: 6),
           // Capped, never left to its own natural width: at the pinned pane's own narrowest
-          // ([ocptBudgetCostTrackingPosteColumnMinWidth]), a long status word ("Quote accepted") would
-          // otherwise overflow the row outright rather than sharing the little room there is with
-          // the label beside it.
+          // ([ocptBudgetCostTrackingPosteColumnMinWidth]), a long status word ("Quote accepted")
+          // would otherwise overflow the row outright rather than sharing the little room there is
+          // with the label beside it.
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: ocptBudgetCostTrackingBadgeMaxWidth),
             child: Container(

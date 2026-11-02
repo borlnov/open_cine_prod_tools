@@ -63,8 +63,8 @@ class OcptBudgetSharingBloc
   /// Create a new taking from `event.fields` and select it, without opening the right dock —
   /// mirrors the creation of a financing resource: `OcptBudgetSharingService.createRevenue` mints
   /// the row from a date and a label alone, every other field written straight after through
-  /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call [_onRevenueUpdateConfirmed]
-  /// itself uses.
+  /// `OcptBudgetSharingFormWrites.writeRevenueFields`, the very same call
+  /// [_onRevenueUpdateConfirmed] itself uses.
   Future<void> _onRevenueCreationConfirmed(
     OcptBudgetRevenueCreationConfirmedEvent event,
     Emitter<OcptBudgetSharingState> emitter,

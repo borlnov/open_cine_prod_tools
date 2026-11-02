@@ -26,8 +26,8 @@ class OcptResourcesRolesState extends BlocStateForMixin<OcptResourcesRolesState>
   final Map<(String, OcptRoleCandidateField), String> pendingCandidateFieldEdits;
 
   /// The `lostEditsEpoch` of the mode state this bloc last reacted to, so a mode state that still
-  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when the
-  /// bloc is built: a view built after the mode lost edits has nothing to drop.
+  /// carries an epoch already handled is not taken for news. Starts at the mode's own epoch when
+  /// the bloc is built: a view built after the mode lost edits has nothing to drop.
   final int lastLostEditsEpoch;
 
   /// Class constructor

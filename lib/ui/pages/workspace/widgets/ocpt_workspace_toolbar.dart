@@ -10,8 +10,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_warning_color.dart'
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_logo_glyph.dart';
 
 /// The size of the accent-filled square carrying the back action, small enough to sit inside the
-/// [ocpt_theme.ocptToolbarHeight] band with room to breathe, and deliberately smaller than the chrome buttons
-/// around it so the accent fill reads as a compact badge rather than a button.
+/// [ocpt_theme.ocptToolbarHeight] band with room to breathe, and deliberately smaller than the
+/// chrome buttons around it so the accent fill reads as a compact badge rather than a button.
 const double _backActionSize = 26;
 
 /// The width of the logo glyph inside the back action's [_backActionSize] square.
@@ -36,8 +36,8 @@ const double _dirtyMarkerSize = 6;
 /// Below [ocptCompactWidthBreakpoint] ([isCompact]), [title] and [modeLabel] are withheld outright
 /// — see [isCompact]'s own doc comment.
 class OcptWorkspaceToolbar extends StatelessWidget {
-  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize] square,
-  /// with no padding of its own around the glyph.
+  /// The style every chrome button of the toolbar wears: [ocpt_theme.ocptToolbarChromeButtonSize]
+  /// square, with no padding of its own around the glyph.
   ///
   /// The shell builds the [dockToggles] and the [saveAction] itself and hands them in already
   /// built, so this is exposed for it to dress them exactly like the `⋮` button below. Everything
@@ -221,7 +221,8 @@ class OcptWorkspaceToolbar extends StatelessWidget {
               ),
             ),
             // The divider theme already gives this its `outlineVariant` color, 1 px thickness and
-            // no surrounding space, so the band as a whole still measures [ocpt_theme.ocptToolbarHeight].
+            // no surrounding space, so the band as a whole still measures
+            // [ocpt_theme.ocptToolbarHeight].
             const Divider(),
           ],
         ),

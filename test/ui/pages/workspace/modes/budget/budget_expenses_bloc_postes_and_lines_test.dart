@@ -63,7 +63,8 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
-  /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to [smallSeed]).
+  /// Builds the mode bloc wired to the test project, seeded with [seed] (defaulting to
+  /// [smallSeed]).
   OcptBudgetBloc buildBloc({List<OcptBudgetPosteSeed> seed = smallSeed}) => OcptBudgetBloc(
     seed: seed,
     projectsManager: projectsManager,
@@ -265,8 +266,8 @@ void main() {
       // Switching view, well inside the debounce window, must write it rather than wait it out.
       bloc.add(const OcptBudgetViewSelectedEvent(view: OcptBudgetView.resources));
 
-      // The flush reloads the snapshot first and forgets the edits after, so the state worth waiting
-      // for is the one that carries the written figure, not merely an empty pending map.
+      // The flush reloads the snapshot first and forgets the edits after, so the state worth
+      // waiting for is the one that carries the written figure, not merely an empty pending map.
       await waitForState(
         bloc,
         (state) =>

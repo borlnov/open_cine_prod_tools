@@ -63,8 +63,8 @@ const double ocptBudgetRegieHeaderRowHeight = 36;
 /// decor's own date underneath it.
 const double ocptBudgetRegieCateringRowHeight = 52;
 
-/// A defrayal row's own fixed height, in logical pixels — mirrors [ocptBudgetRegieCateringRowHeight] for
-/// the person's own name-and-role pair.
+/// A defrayal row's own fixed height, in logical pixels — mirrors
+/// [ocptBudgetRegieCateringRowHeight] for the person's own name-and-role pair.
 const double ocptBudgetRegieAllowanceRowHeight = 52;
 
 /// The narrowest the catering table is drawn at before it starts scrolling sideways, in logical

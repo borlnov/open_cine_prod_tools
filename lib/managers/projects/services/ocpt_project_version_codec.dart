@@ -45,8 +45,8 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 /// "Consequences" section, spell out why remapping was turned down). The 0.3.0 release froze format
 /// 4, which adds the storyboard and floor plan tables — additive, so a pre-4 payload decodes with
 /// its five new lists empty. The retired format-1, format-2 and format-3 shapes are pinned in
-/// `test/managers/projects/services/ocpt_project_version_codec_digest_changes_budget_and_decoding_test.dart`,
-/// per the guidance below;
+/// the digest-changes-budget-and-decoding test of the codec (under
+/// `test/managers/projects/services/`), per the guidance below;
 /// - a payload written in a **newer** format — the file has been opened by a later build of the
 ///   app — is refused with [OcptProjectVersionPayloadStatus.unsupportedFutureFormat] rather than
 ///   half-restored.
@@ -687,9 +687,8 @@ class OcptProjectVersionCodec extends AbsOcptService {
   ResultWithStatus<OcptProjectVersionPayloadStatus, OcptProjectVersionPayload> _malformed(
     String? reason,
   ) {
-    logger.e(
-      "The project version payload can't be read: ${reason ?? OcptVersionJsonReader.firstReadFailure}",
-    );
+    final cause = reason ?? OcptVersionJsonReader.firstReadFailure;
+    logger.e("The project version payload can't be read: $cause");
     return const ResultWithStatus(status: OcptProjectVersionPayloadStatus.malformedPayload);
   }
 

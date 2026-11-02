@@ -5,8 +5,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_io_notice_kind.dart';
 
-/// A transient notice, produced by `OcptBudgetExportBloc`, reporting the outcome of one of the mode's
-/// four exports, shown as a SnackBar then dismissed. Modelled on `OcptScheduleIoNotice`.
+/// A transient notice, produced by `OcptBudgetExportBloc`, reporting the outcome of one of the
+/// mode's four exports, shown as a SnackBar then dismissed. Modelled on `OcptScheduleIoNotice`.
 class OcptBudgetIoNotice extends Equatable {
   /// The outcome this notice reports.
   final OcptBudgetIoNoticeKind kind;

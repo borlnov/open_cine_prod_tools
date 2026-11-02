@@ -327,7 +327,8 @@ void main() {
     await harness.switchView(tester, tr.shotListFloorPlanSegmentLabel);
     expect(deleteSymbol, findsOneWidget);
 
-    // Leaving the sequence and coming back finds nothing selected, though the symbol is still there.
+    // Leaving the sequence and coming back finds nothing selected, though the symbol is still
+    // there.
     await tester.tap(harness.sequenceEntry("EXT. GARDEN - NIGHT"));
     await tester.pumpAndSettle();
     await tester.tap(harness.sequenceEntry("INT. KITCHEN - DAY"));

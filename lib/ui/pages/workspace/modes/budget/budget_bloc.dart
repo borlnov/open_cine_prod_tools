@@ -40,19 +40,22 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// project's currency, default VAT rate and prices), and owns that data, the page setup, the shared
 /// selection (the selected row, the filtered poste, the highlighted share, the poste the régie
 /// provisions into, the expanded nodes), the chrome (the central view, the tools page, the
-/// simplified and tax-basis switches, the right dock) and the transient write error of none of them.
+/// simplified and tax-basis switches, the right dock) and the transient write error of none of
+/// them.
 ///
 /// Everything a view writes belongs to that view's bloc — `OcptBudgetExpensesBloc`,
-/// `OcptBudgetCashJournalBloc`, `OcptBudgetFinancingBloc` and `OcptBudgetSharingBloc` — which writes
-/// through the services and asks this bloc to read the snapshot again ([reload]) before it selects
-/// or forgets anything; `OcptBudgetExportBloc` owns the four exports. A view selects the record it
-/// has just created through [OcptBudgetSelectionCreatedEvent] and [OcptBudgetShareCreatedEvent].
+/// `OcptBudgetCashJournalBloc`, `OcptBudgetFinancingBloc` and `OcptBudgetSharingBloc` — which
+/// writes through the services and asks this bloc to read the snapshot again ([reload]) before it
+/// selects or forgets anything; `OcptBudgetExportBloc` owns the four exports. A view selects the
+/// record it has just created through [OcptBudgetSelectionCreatedEvent] and
+/// [OcptBudgetShareCreatedEvent].
 ///
 /// **Every read of the snapshot reconciles the shared selection** ([_readBudgetSnapshot]): a
 /// selected row, a filtered poste or a highlighted share that the fresh snapshot no longer holds is
 /// dropped in the very state that carries the snapshot, and the selection epoch moves with
 /// [OcptBudgetSelectionCause.reconciled]. While the `Versions` tab is open, the working-copy card
-/// is refreshed once the data has landed, the mode's stand-in for "a save landing while it is open".
+/// is refreshed once the data has landed, the mode's stand-in for "a save landing while it is
+/// open".
 ///
 /// **A failed write is not caught anywhere in this mode.** The view whose write failed keeps its
 /// edit pending, and the action the flush was for does not happen: [flushAllPendingWritesIn] and

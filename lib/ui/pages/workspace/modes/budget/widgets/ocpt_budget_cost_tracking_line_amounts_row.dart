@@ -126,8 +126,8 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
             : Colors.transparent,
         child: SizedBox(
           // A quote line is a full-height row, not a sub-row: the pinned pane draws its own half
-          // at [ocptBudgetCostTrackingRowHeight] (`isSmall: false`), and the two panes have to agree
-          // row for row or every row below an expanded poste drifts out of step with its own
+          // at [ocptBudgetCostTrackingRowHeight] (`isSmall: false`), and the two panes have to
+          // agree row for row or every row below an expanded poste drifts out of step with its own
           // figures — see this widget's own class doc comment.
           height: ocptBudgetCostTrackingRowHeight,
           child: Row(

@@ -69,7 +69,8 @@ final class OcptStyledPageSimulation {
   /// Recompute which nodes start a fresh simulated page (their exact top padding stored as
   /// [ocptStartsNewPageMetadataKey] metadata, read by `OcptFountainEditorStylesheet`'s
   /// page-boundary spacing), [pageCount] and [trailingBottomPadding], for the current document,
-  /// `OcptStyledScreenplayEditor.isPageSimulationEnabled` and `OcptStyledScreenplayEditor.pageSetup`.
+  /// `OcptStyledScreenplayEditor.isPageSimulationEnabled` and
+  /// `OcptStyledScreenplayEditor.pageSetup`.
   ///
   /// While page simulation is off, this only clears any padding left over from before it was
   /// turned off (so turning it back on later starts pagination from a clean slate) and resets
@@ -77,14 +78,14 @@ final class OcptStyledPageSimulation {
   /// requests, neither of which needs `setState` from `initState`; every other caller wraps this
   /// in its own `setState`.
   ///
-  /// Its requests go through [_runDerivedPass] for the same reason `OcptStyledDocumentSettle.settle`'s do: where a
-  /// page break falls is derived from the document, never typed, so it belongs to the gesture that
-  /// moved it rather than being an undo step of its own. Keeping it *in* history (merged) rather
-  /// than out of it is what makes an undo land on a correctly paginated document straight away:
-  /// `Editor.undo()` rebuilds the document by resetting it to the snapshot `MutableDocument`'s own
-  /// constructor took — which carries no page padding at all — and replaying history, so a
-  /// non-historical padding would simply vanish on every Ctrl+Z until the next debounce put it
-  /// back.
+  /// Its requests go through [_runDerivedPass] for the same reason
+  /// `OcptStyledDocumentSettle.settle`'s do: where a page break falls is derived from the document,
+  /// never typed, so it belongs to the gesture that moved it rather than being an undo step of its
+  /// own. Keeping it *in* history (merged) rather than out of it is what makes an undo land on a
+  /// correctly paginated document straight away: `Editor.undo()` rebuilds the document by resetting
+  /// it to the snapshot `MutableDocument`'s own constructor took — which carries no page padding at
+  /// all — and replaying history, so a non-historical padding would simply vanish on every Ctrl+Z
+  /// until the next debounce put it back.
   void recompute() {
     if (!_isEnabled()) {
       final clearRequests = <EditRequest>[

@@ -171,13 +171,13 @@ class OcptShotListViewEffects extends StatelessWidget {
 
   /// Open `OcptFloorPlanCharacterNamePickerDialog` for the character symbol [symbolId] the bloc
   /// just placed, pre-filled with its own already-assigned
-  /// default label ([OcptShotListFloorPlanCentre.symbolLabelValueOf]) and offering the selected shot's
-  /// own characters as
+  /// default label ([OcptShotListFloorPlanCentre.symbolLabelValueOf]) and offering the selected
+  /// shot's own characters as
   /// one-click picks. Writes the name picked through the very same pending-edit path the inline
-  /// label editor rides — but flushed immediately (`OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent`)
-  /// rather than left to the 2 s debounce, since picking a name from a dialog is already a
-  /// deliberate, discrete action. Dismissing the dialog leaves the placement's own default label
-  /// untouched.
+  /// label editor rides — but flushed immediately
+  /// (`OcptShotListFloorPlanPlacementsFieldEditFlushRequestedEvent`) rather than left to the 2 s
+  /// debounce, since picking a name from a dialog is already a deliberate, discrete action.
+  /// Dismissing the dialog leaves the placement's own default label untouched.
   Future<void> _askCharacterName(
     BuildContext context,
     OcptShotListState state,

@@ -492,7 +492,8 @@ class _SetCreationControl extends StatelessWidget {
   /// Every location of the project, `(id, name)`.
   final List<(String, String)> locations;
 
-  /// Called with the chosen location id (null for a new location) and the name a creation would use.
+  /// Called with the chosen location id (null for a new location) and the name a creation would
+  /// use.
   final void Function(String? locationId, String name) onSetCreationSelected;
 
   /// Reads the name a creation would use, at the time of the pick.
@@ -523,9 +524,9 @@ class _SetCreationControl extends StatelessWidget {
           child: Text(tr.breakdownPopoverCreateSetInNewLocationOption),
         ),
       ],
-      // A chip rather than a button, the way every other picker of the app anchors its own menu (the
-      // location sheet's scenes, the scene inspector's sets): the tap belongs to the menu, and a
-      // button with no `onPressed` of its own would read as disabled.
+      // A chip rather than a button, the way every other picker of the app anchors its own menu
+      // (the location sheet's scenes, the scene inspector's sets): the tap belongs to the menu, and
+      // a button with no `onPressed` of its own would read as disabled.
       child: Chip(
         avatar: const Icon(Icons.add, size: 14),
         label: Text(tr.breakdownPopoverCreateSetAction),

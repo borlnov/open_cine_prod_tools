@@ -35,8 +35,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/breakdown/breakdow
 /// than patched in place) and the edits typed and not yet written
 /// ([OcptBreakdownInspectorState]), which it writes [OcptBreakdownBloc.defaultFieldEditDebounce]
 /// after the last keystroke, on a timer of its own; the mode flushes them ahead of anything that
-/// needs the database to be up to date. A single pick (a status, a category, an owner, a link, a tag
-/// removal) is written at once by its own event rather than typed.
+/// needs the database to be up to date. A single pick (a status, a category, an owner, a link, a
+/// tag removal) is written at once by its own event rather than typed.
 ///
 /// **Reacting.** A scene or a target being selected clears nothing here, and a pending edit
 /// survives the user moving on: it is written by its own debounce or by the flush the selection
@@ -72,8 +72,8 @@ class OcptBreakdownInspectorBloc
   /// Class constructor
   ///
   /// Every dependency but [modeBloc] can be overridden, which is what the tests do; in the app they
-  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by tests,
-  /// to keep it fast and deterministic.
+  /// all resolve through [globalGetIt]. [fieldEditDebounce] is only meant to be overridden by
+  /// tests, to keep it fast and deterministic.
   OcptBreakdownInspectorBloc({
     required super.modeBloc,
     OcptProjectsManager? projectsManager,
@@ -152,10 +152,10 @@ class OcptBreakdownInspectorBloc
   /// field shows never falls back to a stale stored value between the two. A no-op while nothing is
   /// pending. Answers whether there was anything pending.
   ///
-  /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is not
-  /// read again, and the flush answers true all the same: the action behind it goes ahead on the
-  /// value the database holds. A read that fails after the write landed forgets what was written
-  /// too, the mode having logged why it could not read.
+  /// A write that fails is logged and what was meant to be written is forgotten, the snapshot is
+  /// not read again, and the flush answers true all the same: the action behind it goes ahead on
+  /// the value the database holds. A read that fails after the write landed forgets what was
+  /// written too, the mode having logged why it could not read.
   ///
   /// When the write landed and the `Versions` tab is the one showing, also asks the mode to refresh
   /// its working-copy card.
@@ -638,8 +638,8 @@ class OcptBreakdownInspectorBloc
   /// Clear tag `event.tagId`'s own `needsCheck` flag through
   /// `OcptBreakdownService.clearTagNeedsCheck`, then have the mode read the snapshot again: the
   /// flag
-  /// feeds the scene panel's own warning mark and the status bar's "to check" counter, both of which
-  /// must be read back from the database rather than patched in place.
+  /// feeds the scene panel's own warning mark and the status bar's "to check" counter, both of
+  /// which must be read back from the database rather than patched in place.
   ///
   /// A no-op while no project is open, mirroring [_onTagRemovalConfirmed]'s own defensive check.
   Future<void> _onTagNeedsCheckCleared(

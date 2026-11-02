@@ -8,7 +8,8 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/events/budget_base_event.dart';
 
-/// The events of the budget mode about workspace shell, docks, views, toggles and the mode's own reads.
+/// The events of the budget mode about workspace shell, docks, views, toggles and the mode's own
+/// reads.
 sealed class OcptBudgetWorkspaceEvent extends OcptBudgetEvent {
   /// Class constructor
   const OcptBudgetWorkspaceEvent();

@@ -275,8 +275,8 @@ class OcptResourcesWriteFailedEvent extends OcptResourcesWorkspaceEvent {
 /// and **every** view drops what it still holds in its debounce, the field falling back to the
 /// value the database holds.
 ///
-/// Dispatched by a view bloc whose flush failed, never by a widget. The edits of the other views are
-/// dropped with its own, as they were when all the sheets shared one pending map: a flush that
+/// Dispatched by a view bloc whose flush failed, never by a widget. The edits of the other views
+/// are dropped with its own, as they were when all the sheets shared one pending map: a flush that
 /// failed leaves no way to tell which of the other edits would have been written on top of it.
 /// Awaited by its dispatcher, so the other views have reacted before the flush goes on to them.
 class OcptResourcesPendingEditsLostEvent extends OcptResourcesWorkspaceEvent {

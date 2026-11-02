@@ -186,7 +186,8 @@ void main() {
     return bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
   }
 
-  /// One request per export the bloc offers, each over [dayId], in the order of the sealed hierarchy.
+  /// One request per export the bloc offers, each over [dayId], in the order of the sealed
+  /// hierarchy.
   List<OcptScheduleExportEvent> everyExportRequest(String dayId) {
     final pageSetup = (format: OcptPageFormat.a4, margins: const FountainPageMargins.standard());
     return <OcptScheduleExportEvent>[
@@ -264,8 +265,8 @@ void main() {
   }
 
   group("the bloc as a whole", () {
-    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it makes
-    /// this fail to compile until the list below names it too.
+    /// Names [event] by the exhaustive switch over the sealed hierarchy: adding an event to it
+    /// makes this fail to compile until the list below names it too.
     String nameOf(OcptScheduleExportEvent event) => switch (event) {
       OcptScheduleCallSheetsExportRequestedEvent() => "call sheets",
       OcptScheduleNamedCallSheetsExportRequestedEvent() => "named call sheets",

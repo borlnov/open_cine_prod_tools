@@ -173,10 +173,10 @@ final class OcptStyledContextMenu {
   ///
   /// Also resolves the styled spelling group (`docs/architecture/screenplay.md`): if the
   /// resolved document position falls inside one of [the last applied ranges]'s own ranges
-  /// (see `OcptStyledSpellCheckRanges.misspellingAt`), the misspelled word is read out of that node's **current** display
-  /// text (never the text the range was computed against, which may be stale) and
-  /// `OcptStyledScreenplayEditor.onSpellingSuggestionsRequested` is awaited for up to five
-  /// suggestions before the menu opens — the one isolate round trip a right-click accepts
+  /// (see `OcptStyledSpellCheckRanges.misspellingAt`), the misspelled word is read out of that
+  /// node's **current** display text (never the text the range was computed against, which may be
+  /// stale) and `OcptStyledScreenplayEditor.onSpellingSuggestionsRequested` is awaited for up to
+  /// five suggestions before the menu opens — the one isolate round trip a right-click accepts
   /// paying only when a right-click actually asks for it. `details.localPosition` is captured
   /// before that await (an [Offset] the widget tree could otherwise recycle from under a stale
   /// reference), `mounted` is checked after it, and the answer is dropped outright if the caret has
@@ -186,9 +186,9 @@ final class OcptStyledContextMenu {
   /// Either way, `setState` runs right before the menu opens: nothing about a selection change
   /// (placing this exact caret included) schedules a rebuild of this widget on its own (see
   /// `_onSelectionChanged`'s own doc comment on why a separate read-state channel exists for the
-  /// toolbar), so without it the build would hand [OcptEditorContextMenu] the *previous* selection's
-  /// Cut/Copy/submenu availability — and the *previous* right-click's spelling group — instead of
-  /// the one this tap just settled on.
+  /// toolbar), so without it the build would hand [OcptEditorContextMenu] the *previous*
+  /// selection's Cut/Copy/submenu availability — and the *previous* right-click's spelling group —
+  /// instead of the one this tap just settled on.
   Future<void> onSecondaryTapUp(TapUpDetails details) async {
     final layout = _documentLayoutKey.currentState as DocumentLayout?;
     if (layout == null) {
@@ -254,7 +254,8 @@ final class OcptStyledContextMenu {
   /// rather than trusting what [onSecondaryTapUp] resolved: an edit made elsewhere while the menu
   /// was open (the suggestion fetch's own await gap, chiefly) could have moved that node's text out
   /// from under the range. A range that no longer fits is dropped — nothing is written — rather
-  /// than handed to [OcptStyledSearch.replaceMatchesInText], which would otherwise slice past the text's end.
+  /// than handed to [OcptStyledSearch.replaceMatchesInText], which would otherwise slice past the
+  /// text's end.
   void applySuggestion(String suggestion) {
     final nodeId = _misspelledNodeId;
     final range = _misspelledRange;

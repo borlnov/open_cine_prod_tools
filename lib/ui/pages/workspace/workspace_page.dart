@@ -74,18 +74,19 @@ class _WorkspaceView extends StatelessWidget {
 /// default.
 ///
 /// **Keyed on [OcptWorkspaceState.selectedEpisodeId]** rather than built `const`: switching
-/// episode must build a fresh mode bloc that loads from scratch rather than carry over a selected shot, an open tag anchor, a scroll position or a debounced field edit
-/// that were scoped to what the mode was showing before — auditing every one of those forever is
-/// not a trade this app makes. A remount also reuses, unchanged, the flush-on-leaving-the-tree
-/// path each mode already has for the version preview, so a pending write reaches the working
-/// copy before the new episode is read. The key is what actually forces it: a `const` widget of
-/// the same type short-circuits `Element.update` on identity alone, so without one the mode
-/// subtree would simply not rebuild when only [OcptWorkspaceState.selectedEpisodeId] changed —
-/// which is also why a mode reads the workspace bloc itself for its episodes rather than being
-/// handed them down its own constructor. The cost is stated, not hidden: the mode's own current
-/// selection is lost on every switch, including for the schedule and budget modes, which never
-/// show the selector themselves but remount all the same when the selection changes under them
-/// (entering or leaving a project version preview, say).
+/// episode must build a fresh mode bloc that loads from scratch rather than carry over a selected
+/// shot, an open tag anchor, a scroll position or a debounced field edit that were scoped to what
+/// the mode was showing before — auditing every one of those forever is not a trade this app makes.
+/// A remount also reuses, unchanged, the flush-on-leaving-the-tree path each mode already has for
+/// the version preview, so a pending write reaches the working copy before the new episode is read.
+/// The key is what actually forces it: a `const` widget of the same type short-circuits
+/// `Element.update` on identity alone, so without one the mode subtree would simply not rebuild
+/// when only [OcptWorkspaceState.selectedEpisodeId] changed — which is also why a mode reads the
+/// workspace bloc itself for its episodes rather than being handed them down its own constructor.
+/// The cost is stated, not hidden: the mode's own current selection is lost on every switch,
+/// including for the schedule and budget modes, which never show the selector themselves but
+/// remount all the same when the selection changes under them (entering or leaving a project
+/// version preview, say).
 class _WorkspaceActiveMode extends StatelessWidget {
   /// The workspace state naming the mode, the episode and the reveal request.
   final OcptWorkspaceState state;

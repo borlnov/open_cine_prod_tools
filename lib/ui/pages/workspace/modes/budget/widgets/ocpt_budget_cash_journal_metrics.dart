@@ -22,8 +22,8 @@ const double ocptBudgetCashJournalMenuColumnWidth = 36;
 
 /// The narrowest the entry table is ever drawn at, in logical pixels: every fixed column's own
 /// width — 92 + 76 + 200 + 3 × 108 + 36 = 728 — plus the row's own 24 px inset
-/// ([ocpt_theme.ocptTableRowHorizontalPadding], symmetric) and 232 for a `Label` column that can still hold a
-/// wording: 728 + 24 + 232 = 984.
+/// ([ocpt_theme.ocptTableRowHorizontalPadding], symmetric) and 232 for a `Label` column that can
+/// still hold a wording: 728 + 24 + 232 = 984.
 ///
 /// Below it the table **scrolls sideways inside its own frame** rather than being crushed: the
 /// `Label` column is the only flexible one, so a narrower centre used to drive it to nothing and

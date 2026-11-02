@@ -14,14 +14,15 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The pinned pane's own off-quote row: a twisty, then the `Off quote` label, in the `Poste`
 /// column's own place — the identity half of the very same row
 /// [OcptBudgetCostTrackingOffQuoteAmountsRow] draws the other half of, exactly the way
-/// [OcptBudgetCostTrackingPosteIdentityRow] and [OcptBudgetCostTrackingPosteAmountsRow] split an ordinary
-/// poste's row.
+/// [OcptBudgetCostTrackingPosteIdentityRow] and [OcptBudgetCostTrackingPosteAmountsRow] split an
+/// ordinary poste's row.
 ///
 /// **This row is not a poste, and draws nothing else that would let it pass for one**: no `N°`, no
-/// selection highlight and — [OcptBudgetCostTrackingOffQuoteAmountsRow]'s own doc comment argues why —
-/// no `⋮` menu either. Neither half carries an `onTap` of its own at all: it is a reading over the
-/// journal, not a record anybody can rename, reorder or delete, so clicking the label does nothing
-/// rather than quietly calling [OcptBudgetCostTracking.onPosteSelected] with nothing to select.
+/// selection highlight and — [OcptBudgetCostTrackingOffQuoteAmountsRow]'s own doc comment argues
+/// why — no `⋮` menu either. Neither half carries an `onTap` of its own at all: it is a reading
+/// over the journal, not a record anybody can rename, reorder or delete, so clicking the label does
+/// nothing rather than quietly calling [OcptBudgetCostTracking.onPosteSelected] with nothing to
+/// select.
 ///
 /// **The twisty is the one thing this row can do**: `OcptBudgetCostTracking._rowsOf` draws it
 /// only while the total holds at least one debit, so it is always expandable the moment it is

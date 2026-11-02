@@ -149,8 +149,9 @@ class OcptResourcesElementsBloc
   /// A write that fails drops **every** edit of the mode and raises the one write error (see
   /// [_loseEdits]); the snapshot is not read again, so the fields show the value they had. A read
   /// after a write that landed which fails only raises the write error: what was written is
-  /// forgotten and the other views keep what they hold, to be written in their turn. When the write landed and the `Versions` tab is the one showing, also asks the mode
-  /// to refresh its working-copy card.
+  /// forgotten and the other views keep what they hold, to be written in their turn. When the write
+  /// landed and the `Versions` tab is the one showing, also asks the mode to refresh its
+  /// working-copy card.
   ///
   /// Called by the debounce firing, and by the mode ahead of every action that needs the database
   /// to be up to date.

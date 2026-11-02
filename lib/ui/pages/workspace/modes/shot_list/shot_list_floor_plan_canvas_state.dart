@@ -18,8 +18,8 @@ class OcptShotListFloorPlanCanvasState extends BlocStateForMixin<OcptShotListFlo
   ///
   /// Cleared whenever the mode's selected set, shot or sequence changes: a symbol only ever
   /// belongs to the set currently shown. It is also cleared when the symbol disappears from the
-  /// mode's floor plans, or is masked by a hidden override where the canvas looks. Mutually exclusive with
-  /// [selectedFloorPlanArrowId]: selecting one clears the other.
+  /// mode's floor plans, or is masked by a hidden override where the canvas looks. Mutually
+  /// exclusive with [selectedFloorPlanArrowId]: selecting one clears the other.
   final String? selectedFloorPlanSymbolId;
 
   /// The id of the arrow currently selected on the floor plans canvas, or null while none is —
@@ -130,7 +130,8 @@ class OcptShotListFloorPlanCanvasState extends BlocStateForMixin<OcptShotListFlo
   ///
   /// The symbol selection goes when [isSymbolCleared] or [isSymbolGone], the arrow selection when
   /// any of the four selection flags is set (the arrow goes with the symbol: the two are never
-  /// selected together), the anchor when [isAnchorCleared] and the decision when [isDecisionCleared].
+  /// selected together), the anchor when [isAnchorCleared] and the decision when
+  /// [isDecisionCleared].
   OcptShotListFloorPlanCanvasState copyWithPrunedSelection({
     required bool isSymbolCleared,
     required bool isArrowCleared,

@@ -39,9 +39,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// The sets, their symbols and their underlays are the mode's data, in
 /// `OcptShotListState.floorPlanSnapshot` and `.locations`. This bloc owns what the floor plans view
 /// does with them around the canvas: it creates, links, renames, unlinks and duplicates the
-/// selected sequence's sets, copies a shot's blocking, imports, frames and clears an underlay, walks
-/// the focus from one shot to the next, and holds the session's view preferences (zoom, the layers,
-/// cameras and underlay hidden, the onion skin, the metrics overlay), the palette's armed
+/// selected sequence's sets, copies a shot's blocking, imports, frames and clears an underlay,
+/// walks the focus from one shot to the next, and holds the session's view preferences (zoom, the
+/// layers, cameras and underlay hidden, the onion skin, the metrics overlay), the palette's armed
 /// placement, the props the palette offers for the selected sequence, and the set names typed and
 /// not yet written ([OcptShotListFloorPlanSetsState.pendingFieldEdits]).
 ///

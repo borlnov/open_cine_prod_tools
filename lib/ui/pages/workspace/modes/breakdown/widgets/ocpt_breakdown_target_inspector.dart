@@ -415,7 +415,8 @@ class _StatusChips extends StatelessWidget {
   }
 }
 
-/// The two-column category grid, each entry carrying its own palette swatch, the current one marked.
+/// The two-column category grid, each entry carrying its own palette swatch, the current one
+/// marked.
 class _CategoryGrid extends StatelessWidget {
   /// The element whose category is shown.
   final OcptElement element;
@@ -456,8 +457,8 @@ class _CategoryGrid extends StatelessWidget {
 
 /// The sub-category, quantity and notes fields, then the owner and who-brings-it pickers.
 ///
-/// The name is not among them: it is the panel's own title ([_Title]), where the thing being renamed
-/// is the thing being read.
+/// The name is not among them: it is the panel's own title ([_Title]), where the thing being
+/// renamed is the thing being read.
 class _Details extends StatelessWidget {
   /// The element the fields belong to.
   final OcptElement element;
@@ -629,9 +630,9 @@ class _Occurrences extends StatelessWidget {
 
 /// The bordered list of [suggestions], the same shape [_Occurrences] builds for the live
 /// occurrences above it, each row additionally carrying a trailing add control tagging that passage
-/// — withheld, as a null [onSuggestionAccepted], while the panel is read-only. A row whose own scene
-/// has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded snapshot) is
-/// skipped rather than shown with nothing to head it.
+/// — withheld, as a null [onSuggestionAccepted], while the panel is read-only. A row whose own
+/// scene has, somehow, disappeared from [scenes] (a stale suggestion racing a freshly loaded
+/// snapshot) is skipped rather than shown with nothing to head it.
 class _SuggestedOccurrences extends StatelessWidget {
   /// The target's own suggested occurrences.
   final List<OcptBreakdownSuggestion> suggestions;
