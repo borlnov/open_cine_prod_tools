@@ -352,6 +352,39 @@ Future<void> f() async {
       expect(offences.map(_lineOfOffence), ["3", "6", "8", "10", "12", "14", "15"]);
     });
 
+    test("a method that takes the caller's stamps runs inside the caller's transaction", () {
+      const source = '''
+class OtherService {
+  Future<void> joined({required Object stamps}) async {
+    await thingService.write();
+    await thingService.write().okOrAbort();
+  }
+
+  Future<void> alone() async {
+    await thingService.write().okOrAbort();
+  }
+}
+''';
+
+      final offences = callOffencesOf({"write"}, source);
+
+      expect(offences.map(_lineOfOffence), ["3", "8"]);
+    });
+
+    test("a doc comment naming a converted method is not a tear-off, and a homonym is not it", () {
+      const source = '''
+/// Calls [thingService.reconcile] and [other.thingService.reconcile].
+Future<void> f() async {
+  await roleIndexService.reconcile(stamps: s);
+  await _roleIndexService.reconcile(stamps: s);
+}
+''';
+
+      final offences = callOffencesOf({"reconcile"}, source);
+
+      expect(offences, isEmpty);
+    });
+
     test("then and a tear-off are found", () {
       const source = '''
 Future<void> f() async {

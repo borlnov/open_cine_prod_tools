@@ -49,6 +49,12 @@ const _abortHelpers = {"okOrAbort", "valueOrAbort"};
 /// handed one that returns a converted call. None yet.
 const helpersTakingAResult = <String>{};
 
+/// The receivers that reach a participant of the same name as a converted method of another
+/// service, so that a call on them is not a call of the converted one.
+const homonymReceivers = <String, Set<String>>{
+  "reconcile": {"roleIndexService", "_roleIndexService"},
+};
+
 /// The type a call has to be a member of for [isServiceReceiver] to take its receiver for a
 /// service.
 const _serviceSuffix = "Service";
@@ -443,7 +449,9 @@ class CallFinder extends RecursiveAstVisitor<void> {
   /// Refuse the tear-off of a converted method written `service.method`.
   @override
   void visitPrefixedIdentifier(PrefixedIdentifier node) {
-    if (names.contains(node.identifier.name) && isServiceReceiver(node.prefix, serviceNames)) {
+    if (node.parent is! CommentReference &&
+        names.contains(node.identifier.name) &&
+        isServiceReceiver(node.prefix, serviceNames)) {
       _report(node, "${node.identifier.name} is torn off: call it, so its answer is read");
     }
     super.visitPrefixedIdentifier(node);
@@ -453,7 +461,9 @@ class CallFinder extends RecursiveAstVisitor<void> {
   @override
   void visitPropertyAccess(PropertyAccess node) {
     final target = node.target;
-    if (names.contains(node.propertyName.name) && isServiceReceiver(target, serviceNames)) {
+    if (node.parent is! CommentReference &&
+        names.contains(node.propertyName.name) &&
+        isServiceReceiver(target, serviceNames)) {
       _report(node, "${node.propertyName.name} is torn off: call it, so its answer is read");
     }
     super.visitPropertyAccess(node);
@@ -491,10 +501,22 @@ class CallFinder extends RecursiveAstVisitor<void> {
     if (names.contains(name)) {
       isConverted = target == null || target is ThisExpression
           ? (namesByClass[_className]?.contains(name) ?? false)
-          : isServiceReceiver(target, serviceNames);
+          : isServiceReceiver(target, serviceNames) && !_isHomonymReceiver(name, target);
     }
 
     return isConverted;
+  }
+
+  /// Tell whether [target] is a receiver that reaches a participant called [name].
+  bool _isHomonymReceiver(String name, Expression target) {
+    final last = switch (target) {
+      SimpleIdentifier() => target.name,
+      PrefixedIdentifier() => target.identifier.name,
+      PropertyAccess() => target.propertyName.name,
+      _ => null,
+    };
+
+    return last != null && (homonymReceivers[name]?.contains(last) ?? false);
   }
 
   /// Say why [call] loses its answer, or null when it is used.
@@ -634,7 +656,8 @@ class CallFinder extends RecursiveAstVisitor<void> {
     return finder.types.isNotEmpty && finder.types.every(_namesResultType);
   }
 
-  /// Tell whether [node] is inside a closure handed to a call named `transaction`.
+  /// Tell whether [node] is inside a closure handed to a call named `transaction`, or inside a
+  /// method that takes the caller's `stamps`, which runs inside its caller's transaction.
   bool _isInTransaction(AstNode node) {
     var isIn = false;
     var current = node.parent;
@@ -646,6 +669,10 @@ class CallFinder extends RecursiveAstVisitor<void> {
         }
         final invocation = holder is ArgumentList ? holder.parent : null;
         isIn = invocation is MethodInvocation && invocation.methodName.name == "transaction";
+      } else if (current is MethodDeclaration) {
+        isIn =
+            current.parameters?.parameters.any((parameter) => parameter.name?.lexeme == "stamps") ??
+            false;
       }
       current = current.parent;
     }
