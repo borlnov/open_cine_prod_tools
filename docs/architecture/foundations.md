@@ -41,7 +41,8 @@ the persistence, the project versions, the sync-ready data model and the read-on
   builds one: its owner hands it a sub-logger (`createSubLogger`) through the constructor
   `AbsOcptService` requires, so a line reads `projects / assets`. `OcptConfigManager` (which the
   logger manager itself depends on) and `OcptSecretsManager` (nothing to log) own none, and
-  `lib/models/` may not import the manager layer, so a model that must log uses `appLogger()`.
+  `lib/models/` may not import the manager layer, so a model that must log builds a `LogsHelper`
+  under its own category on each use.
   **Which level**: `e` for a failure a `catch` handles, `w` for a recoverable or unexpected
   situation (another `catch`, or a silent fall-back), `i` for a life-cycle event at a human
   frequency (a manager started or disposed, a project opened or closed, a version captured or

@@ -524,7 +524,9 @@ tables and the version codec pin on purpose.
     deleting each, settling a commitment, undoing a settlement on every entry that names it,
     promoting an entry or a commitment into the quote, moving an entry off the quote. An entry
     dialog can name a resource, a taking or a share still to be made; the bloc creates it through
-    the same writes the owning view uses (`budget_form_writes.dart`, extensions on the services),
+    the same writes the owning view uses (`budget_form_writes.dart`,
+    `budget_journal_form_writes.dart` and `budget_sharing_form_writes.dart`, extensions on the
+    services),
     so the row is the same whichever door it came through.
   - **`OcptBudgetFinancingBloc`** writes the resources, the defrayals and the provisioning of an
     account, and keeps an in-kind contribution's counterpart quote line in step (it reads the
