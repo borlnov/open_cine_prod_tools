@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager that only records the call: these bloc tests never navigate for real.
 class _RecordingRouterManager extends OcptRouterManager {
@@ -136,11 +137,9 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Original",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(database: project.database, date: DateTime(2026, 3), label: "Original")
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -174,16 +173,12 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final firstId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "First",
-      );
-      await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Second",
-      );
+      final firstId = await projectsManager.budgetSharingService
+          .createRevenue(database: project.database, date: DateTime(2026, 3), label: "First")
+          .maybeValueOrFail;
+      await projectsManager.budgetSharingService
+          .createRevenue(database: project.database, date: DateTime(2026, 3), label: "Second")
+          .maybeValueOrFail;
       expect(firstId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -203,11 +198,13 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "To be deleted",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "To be deleted",
+          )
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -260,10 +257,9 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final shareId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "Original",
-      );
+      final shareId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "Original")
+          .maybeValueOrFail;
       expect(shareId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -297,14 +293,12 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final firstId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "First",
-      );
-      await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "Second",
-      );
+      final firstId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "First")
+          .maybeValueOrFail;
+      await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "Second")
+          .maybeValueOrFail;
       expect(firstId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -324,10 +318,9 @@ void main() {
       final sharingBloc = buildSharing(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final shareId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "To be deleted",
-      );
+      final shareId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "To be deleted")
+          .maybeValueOrFail;
       expect(shareId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

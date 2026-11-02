@@ -525,11 +525,11 @@ class BudgetScenarioHarness {
 
   /// Reads the live takings back from the database.
   Future<List<OcptBudgetRevenue>> readRevenues() =>
-      projectsManager.budgetSharingService.loadRevenues(database: database);
+      projectsManager.budgetSharingService.loadRevenues(database: database).valueOrFail;
 
   /// Reads the live shares back from the database.
   Future<List<OcptBudgetShare>> readShares() =>
-      projectsManager.budgetSharingService.loadShares(database: database);
+      projectsManager.budgetSharingService.loadShares(database: database).valueOrFail;
 
   /// Reads the live defrayals back from the database.
   Future<List<OcptBudgetAllowance>> readAllowances() =>
@@ -608,30 +608,23 @@ class BudgetScenarioHarness {
 
   /// Creates a taking called [label] worth [amountCents], returning the id.
   Future<String> seedRevenue(String label, int amountCents) async {
-    final id = await projectsManager.budgetSharingService.createRevenue(
-      database: database,
-      date: DateTime(2026),
-      label: label,
-    );
-    await projectsManager.budgetSharingService.updateRevenue(
-      database: database,
-      revenueId: id!,
-      amountCents: Value(amountCents),
-    );
+    final id = await projectsManager.budgetSharingService
+        .createRevenue(database: database, date: DateTime(2026), label: label)
+        .maybeValueOrFail;
+    await projectsManager.budgetSharingService
+        .updateRevenue(database: database, revenueId: id!, amountCents: Value(amountCents))
+        .okOrFail;
     return id;
   }
 
   /// Creates a share called [label] taking [sharePermille] thousandths, returning the id.
   Future<String> seedShare(String label, {int sharePermille = 500}) async {
-    final id = await projectsManager.budgetSharingService.createShare(
-      database: database,
-      label: label,
-    );
-    await projectsManager.budgetSharingService.updateShare(
-      database: database,
-      shareId: id!,
-      sharePermille: Value(sharePermille),
-    );
+    final id = await projectsManager.budgetSharingService
+        .createShare(database: database, label: label)
+        .maybeValueOrFail;
+    await projectsManager.budgetSharingService
+        .updateShare(database: database, shareId: id!, sharePermille: Value(sharePermille))
+        .okOrFail;
     return id;
   }
 

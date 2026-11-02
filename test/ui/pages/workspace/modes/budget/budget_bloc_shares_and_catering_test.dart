@@ -111,10 +111,9 @@ void main() {
       addTearDown(bloc.close);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final shareId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "Production",
-      );
+      final shareId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "Production")
+          .maybeValueOrFail;
       expect(shareId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

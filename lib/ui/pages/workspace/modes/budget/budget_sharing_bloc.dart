@@ -72,15 +72,19 @@ class OcptBudgetSharingBloc
     }
 
     final fields = event.fields;
-    final revenueId = await _budgetSharingService.createRevenueWithFields(
+    final created = await _budgetSharingService.createRevenueWithFields(
       database: project.database,
       fields: fields,
     );
+    if (created.isError) {
+      return;
+    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
+    final revenueId = created.value;
     if (revenueId != null) {
       await addToModeAndWait(
         OcptBudgetSelectionCreatedEvent(
@@ -101,11 +105,15 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.writeRevenueFields(
+    final written = await _budgetSharingService.writeRevenueFields(
       database: project.database,
       revenueId: event.revenueId,
       fields: event.fields,
     );
+    if (written.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -120,11 +128,15 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.reorderRevenue(
+    final moved = await _budgetSharingService.reorderRevenue(
       database: project.database,
       revenueId: event.revenueId,
       newPosition: event.newPosition,
     );
+    if (moved.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -139,10 +151,14 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.deleteRevenue(
+    final deleted = await _budgetSharingService.deleteRevenue(
       database: project.database,
       revenueId: event.revenueId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -158,15 +174,19 @@ class OcptBudgetSharingBloc
     }
 
     final fields = event.fields;
-    final shareId = await _budgetSharingService.createShareWithFields(
+    final created = await _budgetSharingService.createShareWithFields(
       database: project.database,
       fields: fields,
     );
+    if (created.isError) {
+      return;
+    }
 
     if (!await modeBloc.reload({OcptBudgetReloadScope.snapshot})) {
       return;
     }
 
+    final shareId = created.value;
     if (shareId != null) {
       await addToModeAndWait(OcptBudgetShareCreatedEvent(shareId: shareId));
     }
@@ -182,11 +202,15 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.writeShareFields(
+    final written = await _budgetSharingService.writeShareFields(
       database: project.database,
       shareId: event.shareId,
       fields: event.fields,
     );
+    if (written.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -201,11 +225,15 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.reorderShare(
+    final moved = await _budgetSharingService.reorderShare(
       database: project.database,
       shareId: event.shareId,
       newPosition: event.newPosition,
     );
+    if (moved.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -220,7 +248,14 @@ class OcptBudgetSharingBloc
       return;
     }
 
-    await _budgetSharingService.deleteShare(database: project.database, shareId: event.shareId);
+    final deleted = await _budgetSharingService.deleteShare(
+      database: project.database,
+      shareId: event.shareId,
+    );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 }

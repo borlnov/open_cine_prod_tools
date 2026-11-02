@@ -28,6 +28,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_bloc_test_doubles.dart';
 
 /// The seed the ten real CNC accounts make, resolved without a `Tr` (the label text itself is never
@@ -620,15 +621,16 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
 
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Festival prize",
-      );
-      final shareId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "Production",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "Festival prize",
+          )
+          .maybeValueOrFail;
+      final shareId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "Production")
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
       expect(shareId, isNotNull);
 
@@ -653,11 +655,13 @@ void main() {
       addTearDown(bloc.close);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Festival prize",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "Festival prize",
+          )
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -677,11 +681,13 @@ void main() {
       addTearDown(bloc.close);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Festival prize",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "Festival prize",
+          )
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

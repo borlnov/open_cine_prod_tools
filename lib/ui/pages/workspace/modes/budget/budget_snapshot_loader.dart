@@ -98,8 +98,8 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the schedule read and of the defrayals read, in place of the whole
-  /// read: they are the only reads that answer a result so far. The others still raise when the
+  /// Answers the failure of the schedule, the defrayals, the takings and the shares reads, in place
+  /// of the whole read: they are the only reads that answer a result so far. The others still raise when the
   /// database fails, and the caller catches what they raise. This sentence changes as the other
   /// services convert, each read then answering its failure in the same way.
   @useResult
@@ -109,8 +109,18 @@ class OcptBudgetSnapshotLoader {
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
     final resources = await _budgetFinancingService.loadResources(database: database);
-    final revenues = await _budgetSharingService.loadRevenues(database: database);
-    final shares = await _budgetSharingService.loadShares(database: database);
+    final revenuesRead = await _budgetSharingService.loadRevenues(database: database);
+    if (revenuesRead.isError) {
+      return OcptDatabaseResult(status: revenuesRead.status, extraInfo: revenuesRead.extraInfo);
+    }
+
+    final revenues = revenuesRead.value!;
+    final sharesRead = await _budgetSharingService.loadShares(database: database);
+    if (sharesRead.isError) {
+      return OcptDatabaseResult(status: sharesRead.status, extraInfo: sharesRead.extraInfo);
+    }
+
+    final shares = sharesRead.value!;
     final receipts = await _budgetJournalService.loadReceipts(database: database);
     final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
     final defaultVatRateBasisPoints = await _projectsManager

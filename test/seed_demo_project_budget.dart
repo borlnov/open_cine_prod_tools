@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
+import 'ocpt_result_expectations.dart';
 
 /// Seeds the budget quote: the ten CNC accounts and the lines under them.
 Future<({String costumesLineId, String Function(String code) accountIdOf})> seedQuote({
@@ -244,17 +245,17 @@ Future<void> seedFinancing({
     int amountCents,
     OcptBudgetRevenueStatus status,
   ) async {
-    final id = (await budgetSharingService.createRevenue(
-      database: database,
-      date: date,
-      label: label,
-    ))!;
-    await budgetSharingService.updateRevenue(
-      database: database,
-      revenueId: id,
-      amountCents: Value(amountCents),
-      status: Value(status),
-    );
+    final id = await budgetSharingService
+        .createRevenue(database: database, date: date, label: label)
+        .valueOrFail;
+    await budgetSharingService
+        .updateRevenue(
+          database: database,
+          revenueId: id,
+          amountCents: Value(amountCents),
+          status: Value(status),
+        )
+        .okOrFail;
 
     return id;
   }
@@ -304,13 +305,15 @@ Future<void> seedSharing({
   // demonstration project shows a plan that balances; the view states the sum whenever one does
   // not.
   Future<String> share(String label, int sharePermille, int reinvestPermille) async {
-    final id = (await budgetSharingService.createShare(database: database, label: label))!;
-    await budgetSharingService.updateShare(
-      database: database,
-      shareId: id,
-      sharePermille: Value(sharePermille),
-      reinvestPermille: Value(reinvestPermille),
-    );
+    final id = await budgetSharingService.createShare(database: database, label: label).valueOrFail;
+    await budgetSharingService
+        .updateShare(
+          database: database,
+          shareId: id,
+          sharePermille: Value(sharePermille),
+          reinvestPermille: Value(reinvestPermille),
+        )
+        .okOrFail;
 
     return id;
   }

@@ -5,6 +5,7 @@
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_financing_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_journal_service.dart';
@@ -15,6 +16,7 @@ import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_projection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_reload_scope.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/abs_ocpt_view_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_bloc.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_cash_journal_state.dart';
@@ -113,8 +115,18 @@ class OcptBudgetCashJournalBloc
 
     final fields = event.fields;
     final resourceId = await _createNewResourceOf(project, fields);
-    final revenueId = await _createNewRevenueOf(project, fields);
-    final shareId = await _createNewShareOf(project, fields);
+    final revenueCreated = await _createNewRevenueOf(project, fields);
+    if (revenueCreated.isError) {
+      return;
+    }
+
+    final revenueId = revenueCreated.value;
+    final shareCreated = await _createNewShareOf(project, fields);
+    if (shareCreated.isError) {
+      return;
+    }
+
+    final shareId = shareCreated.value;
     final entryId = await _budgetJournalService.createEntry(
       database: project.database,
       date: fields.date,
@@ -172,8 +184,18 @@ class OcptBudgetCashJournalBloc
     final commitmentId = fields.commitmentId;
     final personId = fields.personId;
     final resourceId = await _createNewResourceOf(project, fields);
-    final revenueId = await _createNewRevenueOf(project, fields);
-    final shareId = await _createNewShareOf(project, fields);
+    final revenueCreated = await _createNewRevenueOf(project, fields);
+    if (revenueCreated.isError) {
+      return;
+    }
+
+    final revenueId = revenueCreated.value;
+    final shareCreated = await _createNewShareOf(project, fields);
+    if (shareCreated.isError) {
+      return;
+    }
+
+    final shareId = shareCreated.value;
     await _budgetJournalService.updateEntry(
       database: project.database,
       entryId: event.entryId,
@@ -201,19 +223,20 @@ class OcptBudgetCashJournalBloc
   }
 
   /// Create the taking `fields` carries as still-to-be-made
-  /// ([OcptBudgetEntryFormFields.newRevenue]) and answer its fresh id, or null while it carries
-  /// none — which is the ordinary case.
+  /// ([OcptBudgetEntryFormFields.newRevenue]) and answer its fresh id, no id while it carries
+  /// none — which is the ordinary case — or the failure of the write.
   ///
   /// **Written exactly the way `OcptBudgetSharingBloc` writes one**, through the same two
   /// calls, so a taking born in the journal is indistinguishable from one born in the sharing
   /// view: the door differs, never the row.
-  Future<String?> _createNewRevenueOf(
+  @useResult
+  Future<OcptDatabaseResult<String>> _createNewRevenueOf(
     OcptOpenProjectModel project,
     OcptBudgetEntryFormFields fields,
   ) async {
     final newRevenue = fields.newRevenue;
     if (newRevenue == null) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
     return _budgetSharingService.createRevenueWithFields(
@@ -243,16 +266,17 @@ class OcptBudgetCashJournalBloc
   }
 
   /// Create the revenue-sharing participant `fields` carries as still-to-be-made
-  /// ([OcptBudgetEntryFormFields.newShare]) and answer its fresh id, or null while it carries none
-  /// — mirrors [_createNewRevenueOf] exactly, written the way `OcptBudgetSharingBloc` writes
-  /// one.
-  Future<String?> _createNewShareOf(
+  /// ([OcptBudgetEntryFormFields.newShare]) and answer its fresh id, no id while it carries none,
+  /// or the failure of the write — mirrors [_createNewRevenueOf] exactly, written the way
+  /// `OcptBudgetSharingBloc` writes one.
+  @useResult
+  Future<OcptDatabaseResult<String>> _createNewShareOf(
     OcptOpenProjectModel project,
     OcptBudgetEntryFormFields fields,
   ) async {
     final newShare = fields.newShare;
     if (newShare == null) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
     return _budgetSharingService.createShareWithFields(

@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_stat
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_cash_journal_bloc_test_doubles.dart';
 
 /// Run the tests of the budget cash journal bloc commitments.
@@ -474,11 +475,13 @@ void main() {
       final journalBloc = buildJournal(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final revenueId = await projectsManager.budgetSharingService.createRevenue(
-        database: project.database,
-        date: DateTime(2026, 3),
-        label: "Festival prize",
-      );
+      final revenueId = await projectsManager.budgetSharingService
+          .createRevenue(
+            database: project.database,
+            date: DateTime(2026, 3),
+            label: "Festival prize",
+          )
+          .maybeValueOrFail;
       expect(revenueId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -518,10 +521,9 @@ void main() {
       final journalBloc = buildJournal(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final shareId = await projectsManager.budgetSharingService.createShare(
-        database: project.database,
-        label: "Production",
-      );
+      final shareId = await projectsManager.budgetSharingService
+          .createShare(database: project.database, label: "Production")
+          .maybeValueOrFail;
       expect(shareId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
