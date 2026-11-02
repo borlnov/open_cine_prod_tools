@@ -178,10 +178,9 @@ void main() {
         await projectsManager.saveCurrentProjectSnackPriceCents(400);
 
         // A mileage scale, there to pre-fill a defrayal somebody types — never to deduce one.
-        await projectsManager.budgetFinancingService.createMileageRate(
-          database: project.database,
-          label: "Car",
-        );
+        await projectsManager.budgetFinancingService
+            .createMileageRate(database: project.database, label: "Car")
+            .maybeValueOrFail;
 
         bloc.add(const OcptBudgetProjectSettingsChangedEvent());
         // Waits for the crew count itself, not merely for a day to exist: the bloc's own initial

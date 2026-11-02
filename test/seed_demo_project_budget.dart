@@ -128,15 +128,19 @@ Future<void> seedFinancing({
     OcptBudgetResourceStatus status, {
     bool isReimbursable = false,
   }) async {
-    final id = (await budgetFinancingService.createResource(database: database, label: label))!;
-    await budgetFinancingService.updateResource(
-      database: database,
-      resourceId: id,
-      groupKind: Value(groupKind),
-      amountCents: Value(amountCents),
-      status: Value(status),
-      isReimbursable: Value(isReimbursable),
-    );
+    final id = (await budgetFinancingService
+        .createResource(database: database, label: label)
+        .valueOrFail);
+    await budgetFinancingService
+        .updateResource(
+          database: database,
+          resourceId: id,
+          groupKind: Value(groupKind),
+          amountCents: Value(amountCents),
+          status: Value(status),
+          isReimbursable: Value(isReimbursable),
+        )
+        .okOrFail;
 
     return id;
   }

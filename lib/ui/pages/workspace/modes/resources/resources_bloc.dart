@@ -365,9 +365,14 @@ class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
       final snapshot = snapshotRead.value!;
       final currencyCode = await _projectsManager.loadCurrentProjectCurrencyCode();
       final pageSetup = await _loadPageSetup(project);
-      final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+      final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
         database: project.database,
       );
+      if (mileageRatesRead.isError) {
+        return false;
+      }
+
+      final mileageRates = mileageRatesRead.value!;
       final setIdsWithPlan = await _locationsService.floorPlanService.liveSetIdsWithPlan(
         database: project.database,
         setIds: [

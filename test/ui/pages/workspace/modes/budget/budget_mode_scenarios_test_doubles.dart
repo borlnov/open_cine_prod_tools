@@ -521,7 +521,7 @@ class BudgetScenarioHarness {
 
   /// Reads the live financing resources back from the database.
   Future<List<OcptBudgetResource>> readResources() =>
-      projectsManager.budgetFinancingService.loadResources(database: database);
+      projectsManager.budgetFinancingService.loadResources(database: database).valueOrFail;
 
   /// Reads the live takings back from the database.
   Future<List<OcptBudgetRevenue>> readRevenues() =>
@@ -594,15 +594,12 @@ class BudgetScenarioHarness {
 
   /// Creates a cash financing resource called [label] worth [amountCents], returning the id.
   Future<String> seedResource(String label, int amountCents) async {
-    final id = await projectsManager.budgetFinancingService.createResource(
-      database: database,
-      label: label,
-    );
-    await projectsManager.budgetFinancingService.updateResource(
-      database: database,
-      resourceId: id!,
-      amountCents: Value(amountCents),
-    );
+    final id = await projectsManager.budgetFinancingService
+        .createResource(database: database, label: label)
+        .maybeValueOrFail;
+    await projectsManager.budgetFinancingService
+        .updateResource(database: database, resourceId: id!, amountCents: Value(amountCents))
+        .okOrFail;
     return id;
   }
 

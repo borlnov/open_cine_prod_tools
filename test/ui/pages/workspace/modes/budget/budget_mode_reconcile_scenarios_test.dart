@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_sharing.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_status_bar.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_mode_scenarios_test_doubles.dart';
 
 /// The stable id of the CNC account the catering and travel provisioning starts out pointed at.
@@ -222,11 +223,13 @@ void main() {
     final accountId = await harness.seedAccount("Camera");
     await harness.seedLine(accountId, "Camera deposit");
     final resourceId = await harness.seedResource("Lent camera", 40000);
-    await harness.projectsManager.budgetFinancingService.updateResource(
-      database: harness.database,
-      resourceId: resourceId,
-      groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
-    );
+    await harness.projectsManager.budgetFinancingService
+        .updateResource(
+          database: harness.database,
+          resourceId: resourceId,
+          groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
+        )
+        .okOrFail;
     await harness.projectsManager.budgetQuoteService.createLine(
       database: harness.database,
       accountId: accountId,

@@ -114,7 +114,12 @@ class OcptBudgetCashJournalBloc
     }
 
     final fields = event.fields;
-    final resourceId = await _createNewResourceOf(project, fields);
+    final resourceCreated = await _createNewResourceOf(project, fields);
+    if (resourceCreated.isError) {
+      return;
+    }
+
+    final resourceId = resourceCreated.value;
     final revenueCreated = await _createNewRevenueOf(project, fields);
     if (revenueCreated.isError) {
       return;
@@ -183,7 +188,12 @@ class OcptBudgetCashJournalBloc
     final voucherNumber = fields.voucherNumber;
     final commitmentId = fields.commitmentId;
     final personId = fields.personId;
-    final resourceId = await _createNewResourceOf(project, fields);
+    final resourceCreated = await _createNewResourceOf(project, fields);
+    if (resourceCreated.isError) {
+      return;
+    }
+
+    final resourceId = resourceCreated.value;
     final revenueCreated = await _createNewRevenueOf(project, fields);
     if (revenueCreated.isError) {
       return;
@@ -247,16 +257,17 @@ class OcptBudgetCashJournalBloc
 
   /// Create the financing resource `fields` carries as still-to-be-made
   /// ([OcptBudgetEntryFormFields.newResource]) and answer its fresh id, or null while it carries
-  /// none — mirrors [_createNewRevenueOf] exactly, written the way `OcptBudgetFinancingBloc`
-  /// writes one, so a resource born in the journal is indistinguishable from one born in the
-  /// financing plan.
-  Future<String?> _createNewResourceOf(
+  /// none, or the failure of the write — mirrors [_createNewRevenueOf] exactly, written the way
+  /// `OcptBudgetFinancingBloc` writes one, so a resource born in the journal is indistinguishable
+  /// from one born in the financing plan.
+  @useResult
+  Future<OcptDatabaseResult<String>> _createNewResourceOf(
     OcptOpenProjectModel project,
     OcptBudgetEntryFormFields fields,
   ) async {
     final newResource = fields.newResource;
     if (newResource == null) {
-      return null;
+      return const OcptDatabaseResult(status: OcptDatabaseStatus.ok);
     }
 
     return _budgetFinancingService.createResourceWithFields(

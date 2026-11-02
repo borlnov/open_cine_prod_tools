@@ -574,10 +574,9 @@ void main() {
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
 
-      final resourceId = await projectsManager.budgetFinancingService.createResource(
-        database: project.database,
-        label: "Regional grant",
-      );
+      final resourceId = await projectsManager.budgetFinancingService
+          .createResource(database: project.database, label: "Regional grant")
+          .maybeValueOrFail;
       expect(resourceId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -595,10 +594,9 @@ void main() {
       addTearDown(bloc.close);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final resourceId = await projectsManager.budgetFinancingService.createResource(
-        database: project.database,
-        label: "Regional grant",
-      );
+      final resourceId = await projectsManager.budgetFinancingService
+          .createResource(database: project.database, label: "Regional grant")
+          .maybeValueOrFail;
       expect(resourceId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());

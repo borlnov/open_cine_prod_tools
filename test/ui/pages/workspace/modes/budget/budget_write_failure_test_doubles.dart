@@ -33,6 +33,9 @@ class BudgetFailureHarness {
   /// The mode bloc built by [buildBloc], if any.
   OcptBudgetBloc? modeBloc;
 
+  /// Get the state the mode bloc holds.
+  OcptBudgetState get state => modeBloc!.state;
+
   /// Prepare the managers the project is created through, once for the file.
   Future<void> setUpAll() async {
     OcptGlobalManager.instance;
@@ -96,7 +99,4 @@ class BudgetFailureHarness {
 
   /// Give the blocs time to handle whatever was dispatched.
   Future<void> settle() => pumpEventQueue(times: 200);
-
-  /// Get the state the mode bloc holds.
-  OcptBudgetState get state => modeBloc!.state;
 }

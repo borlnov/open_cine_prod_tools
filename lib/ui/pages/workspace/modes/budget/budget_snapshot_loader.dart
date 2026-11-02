@@ -98,17 +98,23 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the schedule, the defrayals, the takings and the shares reads, in place
-  /// of the whole read: they are the only reads that answer a result so far. The others still raise when the
-  /// database fails, and the caller catches what they raise. This sentence changes as the other
-  /// services convert, each read then answering its failure in the same way.
+  /// Answers the failure of the schedule, the resources, the mileage rates, the defrayals, the
+  /// takings and the shares reads, in place of the whole read: they are the only reads that answer
+  /// a result so far. The others still raise when the database fails, and the caller catches what
+  /// they raise. This sentence changes as the other services convert, each read then answering its
+  /// failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
     final accounts = await _budgetQuoteService.loadAccounts(database: database, seed: seed);
     final entries = await _budgetJournalService.loadEntries(database: database);
     final commitments = await _budgetJournalService.loadCommitments(database: database);
-    final resources = await _budgetFinancingService.loadResources(database: database);
+    final resourcesRead = await _budgetFinancingService.loadResources(database: database);
+    if (resourcesRead.isError) {
+      return OcptDatabaseResult(status: resourcesRead.status, extraInfo: resourcesRead.extraInfo);
+    }
+
+    final resources = resourcesRead.value!;
     final revenuesRead = await _budgetSharingService.loadRevenues(database: database);
     if (revenuesRead.isError) {
       return OcptDatabaseResult(status: revenuesRead.status, extraInfo: revenuesRead.extraInfo);
@@ -136,7 +142,15 @@ class OcptBudgetSnapshotLoader {
     final people = await _peopleService.loadPeople(database: database);
     final elements = await _elementsService.loadElements(database: database);
     final locations = await _locationsService.loadLocations(database: database);
-    final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
+    final mileageRatesRead = await _budgetFinancingService.loadMileageRates(database: database);
+    if (mileageRatesRead.isError) {
+      return OcptDatabaseResult(
+        status: mileageRatesRead.status,
+        extraInfo: mileageRatesRead.extraInfo,
+      );
+    }
+
+    final mileageRates = mileageRatesRead.value!;
     final allowancesRead = await _budgetAllowancesService.loadAllowances(database: database);
     if (allowancesRead.isError) {
       return OcptDatabaseResult(status: allowancesRead.status, extraInfo: allowancesRead.extraInfo);

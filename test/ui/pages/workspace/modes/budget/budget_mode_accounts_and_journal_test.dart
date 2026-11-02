@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_mode_test_doubles.dart';
 
 /// Run the tests of the budget mode accounts and journal.
@@ -400,15 +401,16 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final project = projectsManager.currentProject!;
-    final resourceId = await projectsManager.budgetFinancingService.createResource(
-      database: project.database,
-      label: "Regional grant",
-    );
-    await projectsManager.budgetFinancingService.updateResource(
-      database: project.database,
-      resourceId: resourceId!,
-      amountCents: const Value(10000),
-    );
+    final resourceId = await projectsManager.budgetFinancingService
+        .createResource(database: project.database, label: "Regional grant")
+        .maybeValueOrFail;
+    await projectsManager.budgetFinancingService
+        .updateResource(
+          database: project.database,
+          resourceId: resourceId!,
+          amountCents: const Value(10000),
+        )
+        .okOrFail;
     await projectsManager.budgetJournalService.createEntry(
       database: project.database,
       date: DateTime(2026),

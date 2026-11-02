@@ -382,10 +382,9 @@ void main() {
       final journalBloc = buildJournal(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final resourceId = await projectsManager.budgetFinancingService.createResource(
-        database: project.database,
-        label: "Regional grant",
-      );
+      final resourceId = await projectsManager.budgetFinancingService
+          .createResource(database: project.database, label: "Regional grant")
+          .maybeValueOrFail;
       expect(resourceId, isNotNull);
 
       bloc.add(const OcptBudgetProjectSettingsChangedEvent());
@@ -423,10 +422,9 @@ void main() {
       final journalBloc = buildJournal(bloc);
       await waitForState(bloc, (state) => !state.isLoading);
       final project = projectsManager.currentProject!;
-      final resourceId = await projectsManager.budgetFinancingService.createResource(
-        database: project.database,
-        label: "Regional grant",
-      );
+      final resourceId = await projectsManager.budgetFinancingService
+          .createResource(database: project.database, label: "Regional grant")
+          .maybeValueOrFail;
       expect(resourceId, isNotNull);
       final entryId = await projectsManager.budgetJournalService.createEntry(
         database: project.database,

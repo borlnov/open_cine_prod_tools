@@ -245,9 +245,13 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     final buffetPriceCents = await _projectsManager.loadCurrentProjectSnackPriceCents();
     final screenplayLanguage = await _projectsManager.loadCurrentProjectScreenplayLanguage();
     final episodes = await _projectsManager.screenplayService.loadEpisodes(database: _database);
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
     final dictionaryWords = await _projectsManager.projectDictionaryService.loadWords(
       database: _database,
     );
@@ -269,7 +273,7 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
         buffetPriceCents: buffetPriceCents,
         screenplayLanguage: screenplayLanguage,
         episodes: episodes,
-        mileageRates: mileageRates,
+        mileageRates: mileageRatesRead.value!,
         dictionaryWords: dictionaryWords.value!,
       ),
     );
@@ -660,14 +664,27 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMileageRateAddedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    final id = await _projectsManager.budgetFinancingService.createMileageRate(
+    final created = await _projectsManager.budgetFinancingService.createMileageRate(
       database: _database,
       label: "",
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (created.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWithMileageRateAdded(mileageRates: mileageRates, isAdded: id != null));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(
+      state.copyWithMileageRateAdded(
+        mileageRates: mileageRatesRead.value!,
+        isAdded: created.value != null,
+      ),
+    );
   }
 
   /// Write the newly committed label of mileage rate `event.rateId`, then re-read the project's
@@ -676,15 +693,23 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMileageRateLabelChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.updateMileageRate(
+    final updated = await _projectsManager.budgetFinancingService.updateMileageRate(
       database: _database,
       rateId: event.rateId,
       label: Value(event.label),
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (updated.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 
   /// Write the newly committed per-kilometre rate of mileage rate `event.rateId`, then re-read
@@ -693,15 +718,23 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMileageRateAmountChangedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.updateMileageRate(
+    final updated = await _projectsManager.budgetFinancingService.updateMileageRate(
       database: _database,
       rateId: event.rateId,
       ratePerKmMilliCents: Value(event.ratePerKmMilliCents),
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (updated.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 
   /// Delete `event.rateId`, once the page's own `OcptConfirmDialog` confirmed it, then re-read
@@ -714,13 +747,21 @@ class OcptProjectSettingsBloc extends BlocForMixin<OcptProjectSettingsState>
     OcptProjectSettingsMileageRateDeletionConfirmedEvent event,
     Emitter<OcptProjectSettingsState> emitter,
   ) async {
-    await _projectsManager.budgetFinancingService.deleteMileageRate(
+    final deleted = await _projectsManager.budgetFinancingService.deleteMileageRate(
       database: _database,
       rateId: event.rateId,
     );
-    final mileageRates = await _projectsManager.budgetFinancingService.loadMileageRates(
+    if (deleted.isError) {
+      return;
+    }
+
+    final mileageRatesRead = await _projectsManager.budgetFinancingService.loadMileageRates(
       database: _database,
     );
-    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRates));
+    if (mileageRatesRead.isError) {
+      return;
+    }
+
+    emitter(state.copyWithMileageRatesChanged(mileageRates: mileageRatesRead.value!));
   }
 }

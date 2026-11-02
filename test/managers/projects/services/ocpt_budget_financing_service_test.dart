@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_fina
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptBudgetFinancingService].
 void main() {
@@ -49,14 +50,18 @@ void main() {
 
   group("financing resources", () {
     test("a fresh project names no resource of its own", () async {
-      expect(await service.loadResources(database: database), isEmpty);
+      expect(await service.loadResources(database: database).valueOrFail, isEmpty);
     });
 
     test("createResource appends at the end of the plan", () async {
-      final firstId = await service.createResource(database: database, label: "CNC — aide");
-      final secondId = await service.createResource(database: database, label: "Région IDF");
+      final firstId = await service
+          .createResource(database: database, label: "CNC — aide")
+          .maybeValueOrFail;
+      final secondId = await service
+          .createResource(database: database, label: "Région IDF")
+          .maybeValueOrFail;
 
-      final resources = await service.loadResources(database: database);
+      final resources = await service.loadResources(database: database).valueOrFail;
       expect(resources.map((resource) => resource.id), [firstId, secondId]);
       expect(resources.first.groupKind, OcptBudgetResourceGroupKind.subsidy);
       expect(resources.first.status, OcptBudgetResourceStatus.pending);
@@ -65,19 +70,23 @@ void main() {
     });
 
     test("updateResource changes only the fields passed", () async {
-      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      final id = (await service
+          .createResource(database: database, label: "CNC — aide")
+          .valueOrFail);
 
-      await service.updateResource(
-        database: database,
-        resourceId: id,
-        groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
-        amountCents: const Value(150000),
-        status: const Value(OcptBudgetResourceStatus.confirmed),
-        isReimbursable: const Value(true),
-        notes: const Value("Caméra prêtée par le loueur"),
-      );
+      await service
+          .updateResource(
+            database: database,
+            resourceId: id,
+            groupKind: const Value(OcptBudgetResourceGroupKind.inKind),
+            amountCents: const Value(150000),
+            status: const Value(OcptBudgetResourceStatus.confirmed),
+            isReimbursable: const Value(true),
+            notes: const Value("Caméra prêtée par le loueur"),
+          )
+          .okOrFail;
 
-      final resource = (await service.loadResources(database: database)).single;
+      final resource = (await service.loadResources(database: database).valueOrFail).single;
       expect(resource.label, "CNC — aide");
       expect(resource.groupKind, OcptBudgetResourceGroupKind.inKind);
       expect(resource.amountCents, 150000);
@@ -87,12 +96,14 @@ void main() {
     });
 
     test("reorderResource moves a resource and writes exactly one row", () async {
-      final firstId = (await service.createResource(database: database, label: "A"))!;
-      final secondId = (await service.createResource(database: database, label: "B"))!;
-      final thirdId = (await service.createResource(database: database, label: "C"))!;
+      final firstId = (await service.createResource(database: database, label: "A").valueOrFail);
+      final secondId = (await service.createResource(database: database, label: "B").valueOrFail);
+      final thirdId = (await service.createResource(database: database, label: "C").valueOrFail);
       final before = await readAllResources();
 
-      await service.reorderResource(database: database, resourceId: thirdId, newPosition: 0);
+      await service
+          .reorderResource(database: database, resourceId: thirdId, newPosition: 0)
+          .okOrFail;
 
       final after = await readAllResources();
       expect(after.map((row) => row.id), [thirdId, firstId, secondId]);
@@ -103,21 +114,25 @@ void main() {
     });
 
     test("deleteResource tombstones the resource, filtered back out of a read", () async {
-      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      final id = (await service
+          .createResource(database: database, label: "CNC — aide")
+          .valueOrFail);
 
-      await service.deleteResource(database: database, resourceId: id);
+      await service.deleteResource(database: database, resourceId: id).okOrFail;
 
       final row = await (database.select(
         database.ocptBudgetResourcesTable,
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.isDeleted, isTrue);
-      expect(await service.loadResources(database: database), isEmpty);
+      expect(await service.loadResources(database: database).valueOrFail, isEmpty);
     });
 
     test("createResource is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final id = await service.createResource(database: preview, label: "CNC — aide");
+      final id = await service
+          .createResource(database: preview, label: "CNC — aide")
+          .maybeValueOrFail;
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetResourcesTable).get(), isEmpty);
@@ -133,13 +148,17 @@ void main() {
             .into(preview.ocptBudgetResourcesTable)
             .insert(OcptBudgetResourcesTableCompanion.insert(id: "resource-1", label: "CNC"));
 
-        await service.updateResource(
-          database: preview,
-          resourceId: "resource-1",
-          label: const Value("Renamed"),
-        );
-        await service.reorderResource(database: preview, resourceId: "resource-1", newPosition: 0);
-        await service.deleteResource(database: preview, resourceId: "resource-1");
+        await service
+            .updateResource(
+              database: preview,
+              resourceId: "resource-1",
+              label: const Value("Renamed"),
+            )
+            .okOrFail;
+        await service
+            .reorderResource(database: preview, resourceId: "resource-1", newPosition: 0)
+            .okOrFail;
+        await service.deleteResource(database: preview, resourceId: "resource-1").okOrFail;
 
         final row = await preview.select(preview.ocptBudgetResourcesTable).getSingle();
         expect(row.label, "CNC");
@@ -152,45 +171,51 @@ void main() {
 
   group("mileage rates", () {
     test("a fresh project names no rate of its own", () async {
-      expect(await service.loadMileageRates(database: database), isEmpty);
+      expect(await service.loadMileageRates(database: database).valueOrFail, isEmpty);
     });
 
     test("createMileageRate appends at the end of the list, defaulting the rate to zero", () async {
-      final firstId = await service.createMileageRate(
-        database: database,
-        label: "Voiture personnelle",
-      );
-      final secondId = await service.createMileageRate(database: database, label: "Camion");
+      final firstId = await service
+          .createMileageRate(database: database, label: "Voiture personnelle")
+          .maybeValueOrFail;
+      final secondId = await service
+          .createMileageRate(database: database, label: "Camion")
+          .maybeValueOrFail;
 
-      final rates = await service.loadMileageRates(database: database);
+      final rates = await service.loadMileageRates(database: database).valueOrFail;
       expect(rates.map((rate) => rate.id), [firstId, secondId]);
       expect(rates.first.ratePerKmMilliCents, 0);
     });
 
     test("updateMileageRate writes the rate exactly as typed, to three decimals", () async {
-      final id = (await service.createMileageRate(
-        database: database,
-        label: "Voiture personnelle",
-      ))!;
+      final id = (await service
+          .createMileageRate(database: database, label: "Voiture personnelle")
+          .valueOrFail);
 
       // 0.529 €/km, in thousandths of a cent.
-      await service.updateMileageRate(
-        database: database,
-        rateId: id,
-        ratePerKmMilliCents: const Value(52900),
-      );
+      await service
+          .updateMileageRate(
+            database: database,
+            rateId: id,
+            ratePerKmMilliCents: const Value(52900),
+          )
+          .okOrFail;
 
-      final rate = (await service.loadMileageRates(database: database)).single;
+      final rate = (await service.loadMileageRates(database: database).valueOrFail).single;
       expect(rate.ratePerKmMilliCents, 52900);
     });
 
     test("reorderMileageRate moves a rate and writes exactly one row", () async {
-      final firstId = (await service.createMileageRate(database: database, label: "A"))!;
-      final secondId = (await service.createMileageRate(database: database, label: "B"))!;
-      final thirdId = (await service.createMileageRate(database: database, label: "C"))!;
+      final firstId = (await service.createMileageRate(database: database, label: "A").valueOrFail);
+      final secondId = (await service
+          .createMileageRate(database: database, label: "B")
+          .valueOrFail);
+      final thirdId = (await service.createMileageRate(database: database, label: "C").valueOrFail);
       final before = await readAllMileageRates();
 
-      await service.reorderMileageRate(database: database, rateId: thirdId, newPosition: 0);
+      await service
+          .reorderMileageRate(database: database, rateId: thirdId, newPosition: 0)
+          .okOrFail;
 
       final after = await readAllMileageRates();
       expect(after.map((row) => row.id), [thirdId, firstId, secondId]);
@@ -201,24 +226,25 @@ void main() {
     });
 
     test("deleteMileageRate tombstones the rate, filtered back out of a read", () async {
-      final id = (await service.createMileageRate(
-        database: database,
-        label: "Voiture personnelle",
-      ))!;
+      final id = (await service
+          .createMileageRate(database: database, label: "Voiture personnelle")
+          .valueOrFail);
 
-      await service.deleteMileageRate(database: database, rateId: id);
+      await service.deleteMileageRate(database: database, rateId: id).okOrFail;
 
       final row = await (database.select(
         database.ocptBudgetMileageRatesTable,
       )..where((table) => table.id.equals(id))).getSingle();
       expect(row.isDeleted, isTrue);
-      expect(await service.loadMileageRates(database: database), isEmpty);
+      expect(await service.loadMileageRates(database: database).valueOrFail, isEmpty);
     });
 
     test("createMileageRate is refused on the database of a version being previewed", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
 
-      final id = await service.createMileageRate(database: preview, label: "Voiture");
+      final id = await service
+          .createMileageRate(database: preview, label: "Voiture")
+          .maybeValueOrFail;
 
       expect(id, isNull);
       expect(await preview.select(preview.ocptBudgetMileageRatesTable).get(), isEmpty);
@@ -234,13 +260,13 @@ void main() {
             .into(preview.ocptBudgetMileageRatesTable)
             .insert(OcptBudgetMileageRatesTableCompanion.insert(id: "rate-1", label: "Voiture"));
 
-        await service.updateMileageRate(
-          database: preview,
-          rateId: "rate-1",
-          label: const Value("Renamed"),
-        );
-        await service.reorderMileageRate(database: preview, rateId: "rate-1", newPosition: 0);
-        await service.deleteMileageRate(database: preview, rateId: "rate-1");
+        await service
+            .updateMileageRate(database: preview, rateId: "rate-1", label: const Value("Renamed"))
+            .okOrFail;
+        await service
+            .reorderMileageRate(database: preview, rateId: "rate-1", newPosition: 0)
+            .okOrFail;
+        await service.deleteMileageRate(database: preview, rateId: "rate-1").okOrFail;
 
         final row = await preview.select(preview.ocptBudgetMileageRatesTable).getSingle();
         expect(row.label, "Voiture");
@@ -253,7 +279,9 @@ void main() {
 
   group("stamping", () {
     test("createResource stamps every column of the new row", () async {
-      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      final id = (await service
+          .createResource(database: database, label: "CNC — aide")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -273,15 +301,19 @@ void main() {
     });
 
     test("updateResource stamps only the columns that actually changed", () async {
-      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      final id = (await service
+          .createResource(database: database, label: "CNC — aide")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateResource(
-        database: database,
-        resourceId: id,
-        amountCents: const Value(150000),
-        status: const Value(OcptBudgetResourceStatus.confirmed),
-      );
+      await service
+          .updateResource(
+            database: database,
+            resourceId: id,
+            amountCents: const Value(150000),
+            status: const Value(OcptBudgetResourceStatus.confirmed),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("budget_resources/$id/")).toSet();
@@ -289,17 +321,21 @@ void main() {
     });
 
     test("deleteResource stamps isDeleted on the resource", () async {
-      final id = (await service.createResource(database: database, label: "CNC — aide"))!;
+      final id = (await service
+          .createResource(database: database, label: "CNC — aide")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteResource(database: database, resourceId: id);
+      await service.deleteResource(database: database, resourceId: id).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_resources/$id/isDeleted"]!.version, 1);
     });
 
     test("createMileageRate stamps every column of the new row", () async {
-      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+      final id = (await service
+          .createMileageRate(database: database, label: "Voiture")
+          .valueOrFail);
 
       final stamps = await readStamps();
       final row = await (database.select(
@@ -319,14 +355,18 @@ void main() {
     });
 
     test("updateMileageRate stamps only the columns that actually changed", () async {
-      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+      final id = (await service
+          .createMileageRate(database: database, label: "Voiture")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateMileageRate(
-        database: database,
-        rateId: id,
-        ratePerKmMilliCents: const Value(52900),
-      );
+      await service
+          .updateMileageRate(
+            database: database,
+            rateId: id,
+            ratePerKmMilliCents: const Value(52900),
+          )
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys
@@ -336,10 +376,12 @@ void main() {
     });
 
     test("deleteMileageRate stamps isDeleted on the rate", () async {
-      final id = (await service.createMileageRate(database: database, label: "Voiture"))!;
+      final id = (await service
+          .createMileageRate(database: database, label: "Voiture")
+          .valueOrFail);
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteMileageRate(database: database, rateId: id);
+      await service.deleteMileageRate(database: database, rateId: id).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_mileage_rates/$id/isDeleted"]!.version, 1);

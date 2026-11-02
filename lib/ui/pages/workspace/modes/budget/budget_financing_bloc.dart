@@ -97,10 +97,15 @@ class OcptBudgetFinancingBloc
     }
 
     final fields = event.fields;
-    final resourceId = await _budgetFinancingService.createResourceWithFields(
+    final created = await _budgetFinancingService.createResourceWithFields(
       database: project.database,
       fields: fields,
     );
+    if (created.isError) {
+      return;
+    }
+
+    final resourceId = created.value;
     if (resourceId != null) {
       await _reconcileInKindCounterpartLine(project, resourceId, fields);
     }
@@ -129,11 +134,15 @@ class OcptBudgetFinancingBloc
       return;
     }
 
-    await _budgetFinancingService.writeResourceFields(
+    final written = await _budgetFinancingService.writeResourceFields(
       database: project.database,
       resourceId: event.resourceId,
       fields: event.fields,
     );
+    if (written.isError) {
+      return;
+    }
+
     await _reconcileInKindCounterpartLine(project, event.resourceId, event.fields);
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
@@ -156,10 +165,14 @@ class OcptBudgetFinancingBloc
       event.resourceId,
     );
 
-    await _budgetFinancingService.deleteResource(
+    final deleted = await _budgetFinancingService.deleteResource(
       database: project.database,
       resourceId: event.resourceId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     if (counterpartLine != null) {
       await _budgetQuoteService.deleteLine(database: project.database, lineId: counterpartLine.id);
     }
