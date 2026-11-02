@@ -5,7 +5,9 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_arrow_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_floor_plan_sheet.dart';
+import 'package:open_cine_prod_tools/models/ocpt_floor_plan_symbol_shape.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_list_event.dart';
@@ -25,7 +27,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 /// own placements at all). Removing a symbol or an arrow is only *asked*, through
 /// [onSymbolDeleteRequested] and [onArrowDeleteRequested]: the mode owns their confirmation
 /// dialogs.
-class OcptShotListPlacementsView extends StatelessWidget {
+class OcptShotListPlacementsView extends StatefulWidget {
   /// The mode's state, which the shot, the set and the sheet are read from.
   final OcptShotListState state;
 
@@ -45,16 +47,59 @@ class OcptShotListPlacementsView extends StatelessWidget {
     required this.onArrowDeleteRequested,
   });
 
-  /// Build the shot list placements view as an [OcptFloorPlanPlacementsGroup].
+  /// Create the [_OcptShotListPlacementsViewState] holding the state of the shot list placements
+  /// view.
   @override
-  Widget build(BuildContext context) {
+  State<OcptShotListPlacementsView> createState() => _OcptShotListPlacementsViewState();
+}
+
+/// What [OcptShotListPlacementsView] shows of the selected shot, worked out once per mode state:
+/// the sheet, the shot's own placements split by layer, and a line per other set.
+class _OcptShotListPlacements {
+  /// The floor plan sheet of the selected set, focused on the selected shot.
+  final OcptFloorPlanSheet sheet;
+
+  /// The selected shot's own camera placements.
+  final List<OcptFloorPlanSymbolShape> cameras;
+
+  /// The selected shot's own character placements.
+  final List<OcptFloorPlanSymbolShape> characters;
+
+  /// The selected shot's own light placements.
+  final List<OcptFloorPlanSymbolShape> lights;
+
+  /// The selected shot's own hand prop placements.
+  final List<OcptFloorPlanSymbolShape> handProps;
+
+  /// The selected shot's own arrows.
+  final List<OcptFloorPlanArrowShape> arrows;
+
+  /// One line per other set of the selected sequence.
+  final List<OcptFloorPlanPlacementsOtherSet> otherSets;
+
+  /// The name of the selected set.
+  final String setName;
+
+  /// Class constructor
+  const _OcptShotListPlacements({
+    required this.sheet,
+    required this.cameras,
+    required this.characters,
+    required this.lights,
+    required this.handProps,
+    required this.arrows,
+    required this.otherSets,
+    required this.setName,
+  });
+
+  /// Work out the placements of the selected shot on the selected set out of [state], or null while
+  /// no shot or no set is selected.
+  static _OcptShotListPlacements? of(OcptShotListState state) {
     final selectedShot = state.selectedShot;
     final selectedSet = state.selectedSet;
     if (selectedShot == null || selectedSet == null) {
-      return const SizedBox.shrink();
+      return null;
     }
-
-    final isReadOnly = state.isPreviewingVersion;
 
     final shotRankByShotId = <String, int>{
       for (final sequence in state.sequences)
@@ -76,37 +121,8 @@ class OcptShotListPlacementsView extends StatelessWidget {
         if (!arrow.isGhost && arrow.shotId == selectedShot.id) arrow,
     ];
 
-    final otherSets = [
-      for (final otherSet in state.setsOfSelectedSequence)
-        if (otherSet.id != selectedSet.id)
-          OcptFloorPlanPlacementsOtherSet(
-            setName: otherSet.name,
-            cameraCount: otherSet.symbols
-                .where(
-                  (symbol) =>
-                      symbol.layer == OcptFloorPlanLayer.cameras &&
-                      symbol.shotId == selectedShot.id,
-                )
-                .length,
-          ),
-    ];
-
-    // A selected override (visible or a hidden one's own ghost) may be a sequence- or a shot-scope
-    // shape — checked against the whole sheet, not just this shot's own placements.
-    final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
-    final selectedSymbolId = canvasState.selectedFloorPlanSymbolId;
-    final selectedShape = selectedSymbolId == null
-        ? null
-        : sheet.symbols.firstWhereOrNull((symbol) => symbol.symbolId == selectedSymbolId);
-    final selectedOverrideLevel =
-        selectedShape != null && (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost)
-        ? selectedShape.overrideLevel
-        : null;
-
-    return OcptFloorPlanPlacementsGroup(
-      setName: selectedSet.name,
-      selectedSymbolId: canvasState.selectedFloorPlanSymbolId,
-      selectedArrowId: canvasState.selectedFloorPlanArrowId,
+    return _OcptShotListPlacements(
+      sheet: sheet,
       cameras: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.cameras).toList(),
       characters: ownSymbols
           .where((symbol) => symbol.layer == OcptFloorPlanLayer.characters)
@@ -114,10 +130,77 @@ class OcptShotListPlacementsView extends StatelessWidget {
       lights: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.lights).toList(),
       handProps: ownSymbols.where((symbol) => symbol.layer == OcptFloorPlanLayer.props).toList(),
       arrows: ownArrows,
-      otherSets: otherSets,
+      otherSets: [
+        for (final otherSet in state.setsOfSelectedSequence)
+          if (otherSet.id != selectedSet.id)
+            OcptFloorPlanPlacementsOtherSet(
+              setName: otherSet.name,
+              cameraCount: otherSet.symbols
+                  .where(
+                    (symbol) =>
+                        symbol.layer == OcptFloorPlanLayer.cameras &&
+                        symbol.shotId == selectedShot.id,
+                  )
+                  .length,
+            ),
+      ],
+      setName: selectedSet.name,
+    );
+  }
+}
+
+/// The state of [OcptShotListPlacementsView]: it keeps the placements worked out from the mode's
+/// state, so that a selection moving on the canvas does not work them out again.
+class _OcptShotListPlacementsViewState extends State<OcptShotListPlacementsView> {
+  /// The selected shot's placements, or null while no shot or no set is selected.
+  late _OcptShotListPlacements? _placements = _OcptShotListPlacements.of(widget.state);
+
+  /// Work the placements out again when the mode's state has changed.
+  @override
+  void didUpdateWidget(covariant OcptShotListPlacementsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, widget.state)) {
+      _placements = _OcptShotListPlacements.of(widget.state);
+    }
+  }
+
+  /// Build the shot list placements view as an [OcptFloorPlanPlacementsGroup].
+  @override
+  Widget build(BuildContext context) {
+    final placements = _placements;
+    if (placements == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isReadOnly = widget.state.isPreviewingVersion;
+
+    // A selected override (visible or a hidden one's own ghost) may be a sequence- or a shot-scope
+    // shape — checked against the whole sheet, not just this shot's own placements.
+    final canvasState = context.watch<OcptShotListFloorPlanCanvasBloc>().state;
+    final selectedSymbolId = canvasState.selectedFloorPlanSymbolId;
+    final selectedShape = selectedSymbolId == null
+        ? null
+        : placements.sheet.symbols.firstWhereOrNull(
+            (symbol) => symbol.symbolId == selectedSymbolId,
+          );
+    final selectedOverrideLevel =
+        selectedShape != null && (selectedShape.isOverride || selectedShape.isHiddenOverrideGhost)
+        ? selectedShape.overrideLevel
+        : null;
+
+    return OcptFloorPlanPlacementsGroup(
+      setName: placements.setName,
+      selectedSymbolId: canvasState.selectedFloorPlanSymbolId,
+      selectedArrowId: canvasState.selectedFloorPlanArrowId,
+      cameras: placements.cameras,
+      characters: placements.characters,
+      lights: placements.lights,
+      handProps: placements.handProps,
+      arrows: placements.arrows,
+      otherSets: placements.otherSets,
       isReadOnly: isReadOnly,
-      onSymbolDeleteRequested: isReadOnly ? null : onSymbolDeleteRequested,
-      onArrowDeleteRequested: isReadOnly ? null : onArrowDeleteRequested,
+      onSymbolDeleteRequested: isReadOnly ? null : widget.onSymbolDeleteRequested,
+      onArrowDeleteRequested: isReadOnly ? null : widget.onArrowDeleteRequested,
       onCameraFovChanged: isReadOnly
           ? null
           : (symbolId, fovDeg) => context.read<OcptShotListFloorPlanPlacementsBloc>().add(
