@@ -26,6 +26,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_row_stamp_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
+import '../../../ocpt_result_expectations.dart';
 import 'ocpt_shot_list_service_test_doubles.dart';
 
 /// Run the tests of the shot list service tombstones and stamps.
@@ -121,11 +122,9 @@ void main() {
   /// Reconciles the scene index from [source] and returns the resulting scene rows, ordered by
   /// position.
   Future<List<OcptSceneRow>> reconcile(String source) async {
-    await sceneIndexService.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: parse(source),
-    );
+    await sceneIndexService
+        .reconcile(database: database, screenplayId: screenplayId, document: parse(source))
+        .okOrFail;
     return (database.select(database.ocptScenesTable)
           ..where((row) => row.isDeleted.equals(false))
           ..orderBy([(row) => OrderingTerm.asc(row.position)]))

@@ -167,8 +167,6 @@ const pendingServiceMethods = <String>{
   'OcptRoleIndexService.reorderRole',
   'OcptRoleIndexService.setRoleEpisodes',
   'OcptRoleIndexService.updateRole',
-  'OcptSceneIndexService.reconcile',
-  'OcptSceneIndexService.tombstoneScenesOfScreenplay',
   'OcptScreenplayService.createEpisode',
   'OcptScreenplayService.deleteEpisode',
   'OcptScreenplayService.loadEpisodes',

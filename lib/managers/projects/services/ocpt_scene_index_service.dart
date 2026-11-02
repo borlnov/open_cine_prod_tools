@@ -4,8 +4,10 @@
 
 import 'package:drift/drift.dart';
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:uuid/uuid.dart';
 
 /// A parsed scene heading paired with the character range of the scene it opens.
@@ -77,12 +79,17 @@ class OcptSceneIndexService extends AbsOcptService {
   /// one moment the about-to-vanish rows' data (their heading, in particular) is still available to
   /// copy elsewhere. See the class doc comment for why this is a callback rather than a direct
   /// call.
-  Future<void> reconcile({
+  ///
+  /// A failure of the database, or of [onScenesDeleted], is answered as `databaseError` with the
+  /// whole call rolled back; a caller inside a transaction of its own aborts that transaction on it
+  /// (`okOrAbort`), since only an exception leaving the transaction makes it roll back.
+  @useResult
+  Future<OcptDatabaseOutcome> reconcile({
     required OcptProjectDatabase database,
     required String screenplayId,
     required FountainDocument document,
     Future<void> Function(List<OcptSceneRow> scenesAboutToBeDeleted)? onScenesDeleted,
-  }) async {
+  }) => guardOutcome("reconcile", () async {
     final existingRows =
         await (database.select(database.ocptScenesTable)
               ..where((row) => row.screenplayId.equals(screenplayId) & row.isDeleted.not())
@@ -121,7 +128,7 @@ class OcptSceneIndexService extends AbsOcptService {
             );
       }
     });
-  }
+  });
 
   /// Tombstone every live scene of [screenplayId] and return the ids it tombstoned, the cascade
   /// `OcptScreenplayService.deleteEpisode` reaches for first: everything else the episode carries
@@ -133,10 +140,11 @@ class OcptSceneIndexService extends AbsOcptService {
   /// removing the episode, so a second guard here would only be able to disagree with the first.
   ///
   /// {@macro open_cine_prod_tools.tombstones}
-  Future<List<String>> tombstoneScenesOfScreenplay({
+  @useResult
+  Future<OcptDatabaseResult<List<String>>> tombstoneScenesOfScreenplay({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
+  }) => guardResult("tombstoneScenesOfScreenplay", () async {
     final rows = await (database.select(
       database.ocptScenesTable,
     )..where((table) => table.screenplayId.equals(screenplayId) & table.isDeleted.not())).get();
@@ -151,7 +159,7 @@ class OcptSceneIndexService extends AbsOcptService {
     );
 
     return ids;
-  }
+  });
 
   /// Build the ordered list of [_ParsedScene] for [document], computing each scene's character
   /// range as spanning from its heading's start offset to the next scene heading's start offset

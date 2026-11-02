@@ -277,16 +277,19 @@ class OcptScreenplayService extends AbsOcptService {
     );
 
     final document = _fountainParser.parse(fountainText);
-    await _sceneIndexService.reconcile(
-      database: database,
-      screenplayId: screenplayId,
-      document: document,
-      onScenesDeleted: (scenesAboutToBeDeleted) => _shotListService.detachShotsFromDeletedScenes(
-        database: database,
-        scenesAboutToBeDeleted: scenesAboutToBeDeleted,
-        stamps: stamps,
-      ),
-    );
+    await _sceneIndexService
+        .reconcile(
+          database: database,
+          screenplayId: screenplayId,
+          document: document,
+          onScenesDeleted: (scenesAboutToBeDeleted) =>
+              _shotListService.detachShotsFromDeletedScenes(
+                database: database,
+                scenesAboutToBeDeleted: scenesAboutToBeDeleted,
+                stamps: stamps,
+              ),
+        )
+        .okOrAbort();
 
     await _roleIndexService.reconcile(
       database: database,
@@ -536,10 +539,9 @@ class OcptScreenplayService extends AbsOcptService {
 
       final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
 
-      final sceneIds = await _sceneIndexService.tombstoneScenesOfScreenplay(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final sceneIds = (await _sceneIndexService
+          .tombstoneScenesOfScreenplay(database: database, screenplayId: screenplayId)
+          .valueOrAbort())!;
       final shotIds = await _shotListService.tombstoneShotsOfScreenplay(
         database: database,
         screenplayId: screenplayId,
