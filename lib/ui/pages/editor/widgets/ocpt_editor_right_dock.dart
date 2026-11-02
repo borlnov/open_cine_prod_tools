@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_editor_right_dock_tab.dart';
 import 'package:open_cine_prod_tools/ui/pages/editor/widgets/ocpt_editor_syntax_guide_panel.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_frame.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_tab_label.dart';
 
 /// The chrome of the editor's right dock: a compact tab row naming the tabs available in the
 /// current editing mode (the active one tinted `primary` with a 2 px underline, the others
@@ -62,117 +63,49 @@ class OcptEditorRightDock extends StatelessWidget {
   });
 
   /// Build the editor right dock as a [Column].
+  /// Build the editor right dock as an [OcptRightDockFrame].
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            // The tab cluster scrolls horizontally rather than overflowing: the dock can be
-            // resized (and squeezed by the centre floor, see
-            // `OcptWorkspaceDock.resolveDockWidths`) down to widths narrower than every tab label
-            // plus the close button combined.
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    if (isPreviewTabAvailable)
-                      _OcptRightDockTabLabel(
-                        label: tr.editorRightDockPreviewTabLabel,
-                        isActive: activeTab == OcptEditorRightDockTab.preview,
-                        onTap: () => onTabSelected(OcptEditorRightDockTab.preview),
-                      ),
-                    _OcptRightDockTabLabel(
-                      label: tr.editorRightDockSyntaxTabLabel,
-                      isActive: activeTab == OcptEditorRightDockTab.syntax,
-                      onTap: () => onTabSelected(OcptEditorRightDockTab.syntax),
-                    ),
-                    _OcptRightDockTabLabel(
-                      label: tr.editorRightDockInspectorTabLabel,
-                      isActive: activeTab == OcptEditorRightDockTab.inspector,
-                      onTap: () => onTabSelected(OcptEditorRightDockTab.inspector),
-                    ),
-                    _OcptRightDockTabLabel(
-                      label: tr.editorRightDockMetadataTabLabel,
-                      isActive: activeTab == OcptEditorRightDockTab.metadata,
-                      onTap: () => onTabSelected(OcptEditorRightDockTab.metadata),
-                    ),
-                    _OcptRightDockTabLabel(
-                      label: tr.editorRightDockVersionsTabLabel,
-                      isActive: activeTab == OcptEditorRightDockTab.versions,
-                      onTap: () => onTabSelected(OcptEditorRightDockTab.versions),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              tooltip: tr.editorRightDockCloseTooltip,
-              visualDensity: VisualDensity.compact,
-              onPressed: onClose,
-            ),
-          ],
+    return OcptRightDockFrame(
+      tabs: [
+        if (isPreviewTabAvailable)
+          OcptRightDockTabLabel(
+            label: tr.editorRightDockPreviewTabLabel,
+            isActive: activeTab == OcptEditorRightDockTab.preview,
+            onTap: () => onTabSelected(OcptEditorRightDockTab.preview),
+          ),
+        OcptRightDockTabLabel(
+          label: tr.editorRightDockSyntaxTabLabel,
+          isActive: activeTab == OcptEditorRightDockTab.syntax,
+          onTap: () => onTabSelected(OcptEditorRightDockTab.syntax),
         ),
-        Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
-        Expanded(
-          child: switch (activeTab) {
-            OcptEditorRightDockTab.preview => previewChild ?? const SizedBox.shrink(),
-            OcptEditorRightDockTab.syntax => const OcptEditorSyntaxGuidePanel(),
-            OcptEditorRightDockTab.inspector => inspectorChild,
-            OcptEditorRightDockTab.metadata => metadataChild,
-            OcptEditorRightDockTab.versions => versionsChild,
-          },
+        OcptRightDockTabLabel(
+          label: tr.editorRightDockInspectorTabLabel,
+          isActive: activeTab == OcptEditorRightDockTab.inspector,
+          onTap: () => onTabSelected(OcptEditorRightDockTab.inspector),
+        ),
+        OcptRightDockTabLabel(
+          label: tr.editorRightDockMetadataTabLabel,
+          isActive: activeTab == OcptEditorRightDockTab.metadata,
+          onTap: () => onTabSelected(OcptEditorRightDockTab.metadata),
+        ),
+        OcptRightDockTabLabel(
+          label: tr.editorRightDockVersionsTabLabel,
+          isActive: activeTab == OcptEditorRightDockTab.versions,
+          onTap: () => onTabSelected(OcptEditorRightDockTab.versions),
         ),
       ],
-    );
-  }
-}
-
-/// One clickable label of the tab row: the active tab tinted `primary` with a 2 px underline
-/// below it, the others `onSurfaceVariant` with no underline.
-class _OcptRightDockTabLabel extends StatelessWidget {
-  /// The tab's display name.
-  final String label;
-
-  /// Whether this is the currently active tab.
-  final bool isActive;
-
-  /// Called when this label is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptRightDockTabLabel({required this.label, required this.isActive, required this.onTap});
-
-  /// Build the right dock tab label as an [InkWell].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: theme.textTheme.labelSmall?.copyWith(color: color)),
-            const SizedBox(height: 4),
-            Container(
-              height: 2,
-              width: 32,
-              color: isActive ? theme.colorScheme.primary : Colors.transparent,
-            ),
-          ],
-        ),
-      ),
+      closeTooltip: tr.editorRightDockCloseTooltip,
+      onClose: onClose,
+      body: switch (activeTab) {
+        OcptEditorRightDockTab.preview => previewChild ?? const SizedBox.shrink(),
+        OcptEditorRightDockTab.syntax => const OcptEditorSyntaxGuidePanel(),
+        OcptEditorRightDockTab.inspector => inspectorChild,
+        OcptEditorRightDockTab.metadata => metadataChild,
+        OcptEditorRightDockTab.versions => versionsChild,
+      },
     );
   }
 }

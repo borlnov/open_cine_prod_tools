@@ -3,17 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_frame.dart';
+import 'package:open_cine_prod_tools/ui/widgets/ocpt_right_dock_tab_label.dart';
 
 /// The chrome of the shot list's right dock: a compact tab row (the active tab tinted `primary`
 /// with a 2 px underline, the others `onSurfaceVariant`), a trailing × close button, and the
 /// active tab's body below.
 ///
-/// Modelled on the screenplay editor's own right dock, and deliberately a separate widget rather
-/// than a shared one: the two docks host different sets of tabs, and folding both into one widget
-/// would mean a tab enum neither mode fully uses.
+/// Modelled on the screenplay editor's own right dock: both draw their chrome through
+/// [OcptRightDockFrame], and each resolves its own labels, so that no tab enum is shared between
+/// the two docks, which host different sets of tabs.
 class OcptShotListRightDock extends StatelessWidget {
   /// The currently active tab, whose body is shown below the tab row.
   final OcptShotListRightDockTab activeTab;
@@ -47,104 +48,31 @@ class OcptShotListRightDock extends StatelessWidget {
   });
 
   /// Build the shot list right dock as a [Column].
+  /// Build the shot list right dock as an [OcptRightDockFrame].
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tr = Tr.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            // The tab cluster scrolls horizontally rather than overflowing: the dock can be
-            // resized (and squeezed by the centre floor, see
-            // `OcptWorkspaceDock.resolveDockWidths`) down to widths narrower than both tab labels
-            // plus the close button combined.
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final tab in OcptShotListRightDockTab.values)
-                      _OcptShotListRightDockTabLabel(
-                        label: switch (tab) {
-                          OcptShotListRightDockTab.inspector =>
-                            tr.shotListRightDockInspectorTabLabel,
-                          OcptShotListRightDockTab.metadata => tr.shotListRightDockMetadataTabLabel,
-                          OcptShotListRightDockTab.versions => tr.shotListRightDockVersionsTabLabel,
-                        },
-                        isActive: activeTab == tab,
-                        onTap: () => onTabSelected(tab),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              tooltip: tr.shotListRightDockCloseTooltip,
-              visualDensity: VisualDensity.compact,
-              onPressed: onClose,
-            ),
-          ],
-        ),
-        Divider(height: 1, thickness: 1, color: theme.colorScheme.outlineVariant),
-        Expanded(
-          child: switch (activeTab) {
-            OcptShotListRightDockTab.inspector => inspectorChild,
-            OcptShotListRightDockTab.metadata => metadataChild,
-            OcptShotListRightDockTab.versions => versionsChild,
-          },
-        ),
+    return OcptRightDockFrame(
+      tabs: [
+        for (final tab in OcptShotListRightDockTab.values)
+          OcptRightDockTabLabel(
+            label: switch (tab) {
+              OcptShotListRightDockTab.inspector => tr.shotListRightDockInspectorTabLabel,
+              OcptShotListRightDockTab.metadata => tr.shotListRightDockMetadataTabLabel,
+              OcptShotListRightDockTab.versions => tr.shotListRightDockVersionsTabLabel,
+            },
+            isActive: activeTab == tab,
+            onTap: () => onTabSelected(tab),
+          ),
       ],
-    );
-  }
-}
-
-/// One clickable label of the tab row: the active tab tinted `primary` with a 2 px underline
-/// below it, the others `onSurfaceVariant` with no underline.
-class _OcptShotListRightDockTabLabel extends StatelessWidget {
-  /// The tab's display name.
-  final String label;
-
-  /// Whether this is the currently active tab.
-  final bool isActive;
-
-  /// Called when this label is clicked.
-  final VoidCallback onTap;
-
-  /// Class constructor
-  const _OcptShotListRightDockTabLabel({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  /// Build the shot list right dock tab label as an [InkWell].
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
-
-    return InkWell(
-      onTap: onTap,
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: theme.textTheme.labelSmall?.copyWith(color: color)),
-            const SizedBox(height: 4),
-            Container(
-              height: 2,
-              width: 32,
-              color: isActive ? theme.colorScheme.primary : Colors.transparent,
-            ),
-          ],
-        ),
-      ),
+      closeTooltip: tr.shotListRightDockCloseTooltip,
+      onClose: onClose,
+      body: switch (activeTab) {
+        OcptShotListRightDockTab.inspector => inspectorChild,
+        OcptShotListRightDockTab.metadata => metadataChild,
+        OcptShotListRightDockTab.versions => versionsChild,
+      },
     );
   }
 }
