@@ -386,66 +386,6 @@ class OcptRoleCandidatesService extends AbsOcptService {
     });
   });
 
-  /// Set candidacy [candidateId]'s status to [status], the body [setStatus], [retainCandidate] and
-  /// [unretainCandidate] each hand to the boundary of their own.
-  Future<void> _setStatus({
-    required OcptProjectDatabase database,
-    required String candidateId,
-    required OcptRoleCandidateStatus status,
-  }) async {
-    if (database.refusesUserWrite("setStatus")) {
-      return;
-    }
-
-    await database.transaction(() async {
-      final candidacy = await (database.select(
-        database.ocptRoleCandidatesTable,
-      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
-
-      if (candidacy == null) {
-        return;
-      }
-
-      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
-
-      if (status == OcptRoleCandidateStatus.retained) {
-        await _turnDownOtherLeadsOfRole(
-          database: database,
-          roleId: candidacy.roleId,
-          exceptCandidateId: candidateId,
-          stamps: stamps,
-        );
-      }
-
-      await OcptRowStampService.writeAndStamp(
-        database: database,
-        table: database.ocptRoleCandidatesTable,
-        rowId: candidateId,
-        current: candidacy,
-        next: candidacy.copyWith(status: status),
-        stamps: stamps,
-      );
-
-      if (status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(
-          database: database,
-          roleId: candidacy.roleId,
-          personId: candidacy.personId,
-          stamps: stamps,
-        );
-      } else if (candidacy.status == OcptRoleCandidateStatus.retained) {
-        await _writeRoleCasting(
-          database: database,
-          roleId: candidacy.roleId,
-          personId: null,
-          stamps: stamps,
-        );
-      }
-
-      await stamps.flush(database);
-    });
-  }
-
   /// Tombstone every `role_candidates` row naming role [roleId], the cascade
   /// `OcptRoleIndexService.deleteRole` reaches for once it has decided the role goes.
   ///
@@ -517,6 +457,66 @@ class OcptRoleCandidatesService extends AbsOcptService {
         stamps: stamps,
       );
     }
+  }
+
+  /// Set candidacy [candidateId]'s status to [status], the body [setStatus], [retainCandidate] and
+  /// [unretainCandidate] each hand to the boundary of their own.
+  Future<void> _setStatus({
+    required OcptProjectDatabase database,
+    required String candidateId,
+    required OcptRoleCandidateStatus status,
+  }) async {
+    if (database.refusesUserWrite("setStatus")) {
+      return;
+    }
+
+    await database.transaction(() async {
+      final candidacy = await (database.select(
+        database.ocptRoleCandidatesTable,
+      )..where((table) => table.id.equals(candidateId) & table.isDeleted.not())).getSingleOrNull();
+
+      if (candidacy == null) {
+        return;
+      }
+
+      final stamps = await OcptRowStampService.seed(database: database, deviceId: await deviceId());
+
+      if (status == OcptRoleCandidateStatus.retained) {
+        await _turnDownOtherLeadsOfRole(
+          database: database,
+          roleId: candidacy.roleId,
+          exceptCandidateId: candidateId,
+          stamps: stamps,
+        );
+      }
+
+      await OcptRowStampService.writeAndStamp(
+        database: database,
+        table: database.ocptRoleCandidatesTable,
+        rowId: candidateId,
+        current: candidacy,
+        next: candidacy.copyWith(status: status),
+        stamps: stamps,
+      );
+
+      if (status == OcptRoleCandidateStatus.retained) {
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: candidacy.personId,
+          stamps: stamps,
+        );
+      } else if (candidacy.status == OcptRoleCandidateStatus.retained) {
+        await _writeRoleCasting(
+          database: database,
+          roleId: candidacy.roleId,
+          personId: null,
+          stamps: stamps,
+        );
+      }
+
+      await stamps.flush(database);
+    });
   }
 
   /// Turn down every live candidacy of role [roleId] other than [exceptCandidateId] that was still

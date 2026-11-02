@@ -152,7 +152,8 @@ void main() {
     return rows.length;
   }
 
-  /// Tell whether the fixture's shot is flagged as needing a check, read straight from the database.
+  /// Tell whether the fixture's shot is flagged as needing a check, read straight from the
+  /// database.
   Future<bool> shotNeedsCheck() async {
     final rows = await projectsManager.currentProject!.database
         .customSelect("SELECT needs_check FROM shots WHERE id = '$shotId'")

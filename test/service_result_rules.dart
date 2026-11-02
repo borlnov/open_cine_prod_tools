@@ -18,6 +18,8 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
+import 'service_result_reference_finder.dart';
+
 /// The names of the life cycle methods, which stay as they are.
 const _lifeCycleMethods = {"initLifeCycle", "disposeLifeCycle"};
 
@@ -260,38 +262,6 @@ class ThrowFinder extends RecursiveAstVisitor<void> {
       lines.add(lineOf(node.offset));
     }
     super.visitMethodInvocation(node);
-  }
-}
-
-/// Finds the references to some class names.
-class ReferenceFinder extends RecursiveAstVisitor<void> {
-  /// The names looked for.
-  final Set<String> names;
-
-  /// The lines where one was named.
-  final lines = <int>[];
-
-  /// Turns an offset into a line.
-  final int Function(int offset) lineOf;
-
-  /// Class constructor
-  ReferenceFinder({required this.names, required this.lineOf});
-
-  /// Record a use of one of the names.
-  @override
-  void visitSimpleIdentifier(SimpleIdentifier node) {
-    if (names.contains(node.name)) {
-      lines.add(lineOf(node.offset));
-    }
-  }
-
-  /// Record a use of one of the names as a type, which includes building one with `const`.
-  @override
-  void visitNamedType(NamedType node) {
-    if (names.contains(node.name.lexeme)) {
-      lines.add(lineOf(node.offset));
-    }
-    super.visitNamedType(node);
   }
 }
 
