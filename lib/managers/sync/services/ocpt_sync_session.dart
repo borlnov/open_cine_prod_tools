@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:act_dart_result/act_dart_result.dart';
+import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
 import 'package:act_foundation/act_foundation.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
@@ -91,11 +92,14 @@ class OcptSyncSession {
   /// The logger this session writes to: a sub-logger built by the sync manager.
   final MixinActLogger _logger;
 
-  /// The current status, exposed through [status].
-  OcptSyncStatus _status;
+  /// The current status, exposed through [status] and [statusStream].
+  ///
+  /// It emits every value it is given, even one equal to the previous: a run reporting the same
+  /// status again is still reported.
+  final ValueKeeperWithStream<OcptSyncStatus> _status;
 
-  /// The controller behind [statusStream].
-  final StreamController<OcptSyncStatus> _statusController;
+  /// Whether [_status] has been disposed by [stop], after which it must not be written to.
+  bool _isStatusClosed;
 
   /// The merge conflicts met so far, exposed through [conflicts].
   final List<OcptScreenplayMergeConflict> _conflicts;
@@ -112,11 +116,11 @@ class OcptSyncSession {
   /// Get this session's current status. [statusStream] never replays it to a new listener — read
   /// this
   /// first to seed a fresh subscriber, exactly as this class's own doc comment says.
-  OcptSyncStatus get status => _status;
+  OcptSyncStatus get status => _status.value;
 
   /// Emit every status this session moves through from the moment a listener subscribes onward —
   /// never its current value at subscription time (see [status] and this class's own doc comment).
-  Stream<OcptSyncStatus> get statusStream => _statusController.stream;
+  Stream<OcptSyncStatus> get statusStream => _status.valueStream;
 
   /// Get every [OcptScreenplayMergeConflict] raised by any run since this session started, oldest
   /// first.
@@ -138,8 +142,11 @@ class OcptSyncSession {
     required this.storage,
     required this.changesetService,
     this.pushInterval = ocptDefaultSyncPushInterval,
-  }) : _status = const OcptSyncStatusInSync(),
-       _statusController = StreamController<OcptSyncStatus>.broadcast(),
+  }) : _status = ValueKeeperWithStream<OcptSyncStatus>(
+         value: const OcptSyncStatusInSync(),
+         emitUnchangedValue: true,
+       ),
+       _isStatusClosed = false,
        _conflicts = [],
        _isRunning = false,
        _logger = logger;
@@ -174,8 +181,9 @@ class OcptSyncSession {
     _newWorkSubscription = null;
     _pushTimer?.cancel();
     _pushTimer = null;
-    if (!_statusController.isClosed) {
-      await _statusController.close();
+    if (!_isStatusClosed) {
+      _isStatusClosed = true;
+      await _status.disposeLifeCycle();
     }
   }
 
@@ -280,9 +288,8 @@ class OcptSyncSession {
 
   /// Record [status], emit it on [statusStream] unless that is closed, and log it.
   void _setStatus(OcptSyncStatus status) {
-    _status = status;
-    if (!_statusController.isClosed) {
-      _statusController.add(status);
+    if (!_isStatusClosed) {
+      _status.value = status;
     }
     _logDiagnostics(status);
   }
@@ -294,7 +301,7 @@ class OcptSyncSession {
   /// diagnostics view names *why* syncing stopped (an unreachable relay, a closed database, …)
   /// without the reason scrolling past on every retry.
   void _logOfflineCause(Object error) {
-    if (_status is OcptSyncStatusOffline) {
+    if (_status.value is OcptSyncStatusOffline) {
       return;
     }
 
