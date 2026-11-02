@@ -228,6 +228,9 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
   /// Whether writing the typed text raises instead of answering, as a mistake in the view would.
   bool raisesToWrite = false;
 
+  /// The errors this bloc reported to its own error report, in the order it did.
+  final List<Object> reportedErrors = [];
+
   /// Whether writing the typed text without state fails.
   bool failsToWriteWithoutState = false;
 
@@ -237,6 +240,13 @@ class _ViewBloc extends AbsOcptViewBloc<_ViewState, _ModeState, _ModeBloc> {
 
   /// Class constructor
   _ViewBloc({required super.modeBloc, required this.sink}) : super(const _ViewState());
+
+  /// Remember the error, as the error report of a bloc is told of it.
+  @override
+  void onError(Object error, StackTrace stackTrace) {
+    reportedErrors.add(error);
+    super.onError(error, stackTrace);
+  }
 
   /// Register the events that type, debounce and select.
   @override
@@ -438,6 +448,7 @@ void main() {
     await pumpEventQueue();
 
     expect(await view.flushPendingWrites(), OcptPendingWritesStatus.failed);
+    expect(view.reportedErrors, [isA<StateError>()], reason: "the error reaches the error report");
     expect(await mode.flushAllPendingWrites(), isFalse);
     expect(view.state.pending, 'hello');
     expect(sink, isEmpty);

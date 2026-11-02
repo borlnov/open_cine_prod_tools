@@ -497,6 +497,52 @@ void main() {
       expect(uncaught.whereType<StateError>(), isNotEmpty);
     });
 
+    test("a debounced edit whose re-read fails stays pending and is written again", () async {
+      final fixture = await writePlacedShot();
+      final service = _CountingScheduleService();
+      // The failed read may reach the zone as an uncaught error: this test is about the edit.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        final bloc = OcptScheduleBloc(
+          projectsManager: projectsManager,
+          propertiesManager: propertiesManager,
+          routerManager: _RecordingRouterManager(),
+          exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+          scheduleService: service,
+        );
+        final dayBloc = OcptScheduleDayBloc(
+          modeBloc: bloc,
+          projectsManager: projectsManager,
+          scheduleService: service,
+          fieldEditDebounce: _shortDebounce,
+        );
+        await waitForState(bloc, (state) => !state.isLoading);
+
+        // The timer fires, the write lands and the read after it fails.
+        service.loadFails = true;
+        typeSlotLabel(dayBloc, fixture.slotId, "Cave");
+        while (service.slotLabelWrites.isEmpty) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        }
+        await pumpEventQueue();
+
+        service.loadFails = false;
+        expect((await readSchedule()).slotsByDayId[fixture.dayId]!.single.label, "Cave");
+        expect(
+          dayBloc.state.pendingFieldEdits,
+          isNotEmpty,
+          reason: "what is on screen is still the older data",
+        );
+
+        expect(await bloc.flushAllPendingWrites(), isTrue);
+        expect(dayBloc.state.pendingFieldEdits, isEmpty);
+        expect(service.slotLabelWrites, ["Cave", "Cave"]);
+
+        await dayBloc.close();
+        await bloc.close();
+      }, (error, stackTrace) => uncaught.add(error));
+    });
+
     test("flushing every pending write writes the edit and has the mode read it back", () async {
       final fixture = await writePlacedShot();
       final bloc = buildBloc();

@@ -507,6 +507,53 @@ void main() {
       await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
       expect(bloc.state.accounts.firstWhere((account) => account.id == accountId).label, "Typed");
     });
+
+    test("fires on its debounce, and stays pending when the read after the write fails", () async {
+      final loader = _FlakySnapshotLoader(projectsManager: projectsManager, seed: smallSeed);
+      final bloc = OcptBudgetBloc(
+        seed: smallSeed,
+        projectsManager: projectsManager,
+        propertiesManager: propertiesManager,
+        routerManager: RecordingRouterManager(),
+        exportManager: OcptExportManager(fileSelectorManager: const FileSelectorManager()),
+        snapshotLoader: loader,
+      );
+      addTearDown(bloc.close);
+      final expensesBloc = OcptBudgetExpensesBloc(
+        modeBloc: bloc,
+        projectsManager: projectsManager,
+        fieldEditDebounce: const Duration(milliseconds: 10),
+      );
+      addTearDown(expensesBloc.close);
+      final loaded = await waitForState(bloc, (state) => !state.isLoading);
+      final accountId = loaded.accounts.first.id;
+
+      loader.fails = true;
+      expensesBloc.add(
+        OcptBudgetFieldChangedEvent(
+          targetId: accountId,
+          field: OcptBudgetField.accountLabel,
+          rawValue: "Typed",
+        ),
+      );
+      var storedLabel = loaded.accounts.first.label;
+      while (storedLabel != "Typed") {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        final stored = await projectsManager.budgetQuoteService.loadAccounts(
+          database: projectsManager.currentProject!.database,
+          seed: smallSeed,
+        );
+        storedLabel = stored.firstWhere((account) => account.id == accountId).label;
+      }
+      await pumpEventQueue();
+
+      expect(expensesBloc.state.pendingFieldEdits, isNotEmpty, reason: "the screen is older");
+
+      loader.fails = false;
+      expect(await bloc.flushAllPendingWrites(), isTrue);
+      await waitForState(expensesBloc, (state) => state.pendingFieldEdits.isEmpty);
+      expect(bloc.state.accounts.firstWhere((account) => account.id == accountId).label, "Typed");
+    });
   });
 
   group("a typed edit that cannot be written", () {
