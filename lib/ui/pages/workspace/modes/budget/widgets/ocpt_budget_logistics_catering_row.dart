@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_logistics_day.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_schedule_labels.dart';
@@ -45,6 +46,13 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
   /// Build the budget logistics catering row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
+    final cellStyle = Theme.of(context).textTheme.bodySmall;
+    final sittings = day.mealSittings;
+    // The `Meals` cell: a dash while no sitting is planned, the sittings' head counts joined
+    // otherwise.
+    final mealsText = sittings.isEmpty
+        ? ocptBudgetEmptyValue
+        : sittings.map((sitting) => "${sitting.headCount}").join(" + ");
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
@@ -93,11 +101,31 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
               ),
             ),
           ),
-          _countCell(context, day.crewCount),
-          _countCell(context, day.castCount),
-          _countCell(context, day.extraCount),
-          _mealsCell(context),
-          _wideCountCell(context, day.buffetCount),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsCountColumnWidth,
+            text: "${day.crewCount}",
+            style: cellStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsCountColumnWidth,
+            text: "${day.castCount}",
+            style: cellStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsCountColumnWidth,
+            text: "${day.extraCount}",
+            style: cellStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsWideCountColumnWidth,
+            text: mealsText,
+            style: cellStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsWideCountColumnWidth,
+            text: "${day.buffetCount}",
+            style: cellStyle,
+          ),
           SizedBox(
             width: ocptBudgetLogisticsCateringTotalColumnWidth,
             child: Text(
@@ -109,40 +137,6 @@ class OcptBudgetLogisticsCateringRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Build one of the three narrow, right-aligned head-count cells (`Crew`, `Cast`, `Extras`).
-  Widget _countCell(BuildContext context, int count) => SizedBox(
-    width: ocptBudgetLogisticsCountColumnWidth,
-    child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
-  );
-
-  /// Build the `Craft services` cell — a plain head count, at the wider column width the `Meals`
-  /// cell
-  /// beside it also needs.
-  Widget _wideCountCell(BuildContext context, int count) => SizedBox(
-    width: ocptBudgetLogisticsWideCountColumnWidth,
-    child: Text("$count", textAlign: TextAlign.right, style: Theme.of(context).textTheme.bodySmall),
-  );
-
-  /// Build the `Meals` cell — see the class doc comment for the dash-versus-joined-sittings
-  /// reading.
-  Widget _mealsCell(BuildContext context) {
-    final sittings = day.mealSittings;
-    final text = sittings.isEmpty
-        ? ocptBudgetEmptyValue
-        : sittings.map((sitting) => "${sitting.headCount}").join(" + ");
-
-    return SizedBox(
-      width: ocptBudgetLogisticsWideCountColumnWidth,
-      child: Text(
-        text,
-        textAlign: TextAlign.right,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }

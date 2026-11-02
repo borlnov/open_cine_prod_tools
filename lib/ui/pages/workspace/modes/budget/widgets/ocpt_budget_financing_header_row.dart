@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_financing_metrics.dart';
 
 /// The column header row: `Ressource` · `Dossier` · `Promis` · `Rentré` · `Reste à venir`, then a
@@ -43,9 +44,21 @@ class OcptBudgetFinancingHeaderRow extends StatelessWidget {
                 width: ocptBudgetFinancingDossierColumnWidth,
                 child: Text(tr.budgetFinancingColumnDossier.toUpperCase(), style: labelStyle),
               ),
-              _amountHeaderCell(tr.budgetFinancingColumnAmount, labelStyle),
-              _amountHeaderCell(tr.budgetFinancingColumnReceived, labelStyle),
-              _amountHeaderCell(tr.budgetFinancingColumnOutstanding, labelStyle),
+              OcptBudgetAmountCell(
+                width: ocptBudgetFinancingAmountColumnWidth,
+                text: tr.budgetFinancingColumnAmount.toUpperCase(),
+                style: labelStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetFinancingAmountColumnWidth,
+                text: tr.budgetFinancingColumnReceived.toUpperCase(),
+                style: labelStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetFinancingAmountColumnWidth,
+                text: tr.budgetFinancingColumnOutstanding.toUpperCase(),
+                style: labelStyle,
+              ),
               const SizedBox(width: ocptBudgetFinancingMenuColumnWidth),
             ],
           ),
@@ -53,16 +66,4 @@ class OcptBudgetFinancingHeaderRow extends StatelessWidget {
       ),
     );
   }
-
-  /// Build one amount column's own header cell, right-aligned like the figures underneath it.
-  Widget _amountHeaderCell(String label, TextStyle? style) => SizedBox(
-    width: ocptBudgetFinancingAmountColumnWidth,
-    child: Text(
-      label.toUpperCase(),
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: style,
-    ),
-  );
 }

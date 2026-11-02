@@ -164,7 +164,10 @@ class OcptBudgetLogisticsAllowanceColumn extends StatelessWidget {
                               Expanded(
                                 child: ListView.builder(
                                   itemCount: rows.length,
-                                  itemBuilder: (context, index) => _rowOf(rows[index]),
+                                  itemBuilder: (context, index) => _OcptLogisticsAllowanceRowEntry(
+                                    column: this,
+                                    row: rows[index],
+                                  ),
                                 ),
                               ),
                               const Divider(height: 1),
@@ -263,51 +266,68 @@ class OcptBudgetLogisticsAllowanceColumn extends StatelessWidget {
 
     return rows;
   }
+}
 
-  /// Build the widget for one flattened [row].
-  Widget _rowOf(OcptBudgetLogisticsAllowanceTreeRow row) => switch (row) {
-    OcptBudgetLogisticsAllowancePersonGroupRow() => OcptBudgetLogisticsAllowancePersonRow(
-      person: row.person,
-      role: row.role,
-      advancedCents: row.advancedCents,
-      reimbursedCents: row.reimbursedCents,
-      outstandingCents: row.outstandingCents,
-      currencyCode: currencyCode,
-      isExpanded: row.isExpanded,
-      onTwistyTap: () => onNodeExpansionToggled(row.personId),
-      // Navigation, not a write: never withheld under [isReadOnly] — mirrors the very same reading
-      // this menu entry already followed on the flat table.
-      onPersonOpenRequested: () => onPersonOpenRequested(row.personId),
-      onReimburseRequested: isReadOnly || onReimburseRequested == null
-          ? null
-          : () => onReimburseRequested?.call(row.personId),
-    ),
-    OcptBudgetLogisticsAllowanceNoPersonGroupRow() => OcptBudgetLogisticsAllowanceNoPersonRow(
-      allowance: row.allowance,
-      currencyCode: currencyCode,
-      onTap: isReadOnly || onEditRequested == null
-          ? null
-          : () => onEditRequested?.call(row.allowance.id),
-      onDeletionRequested: isReadOnly || onDeletionRequested == null
-          ? null
-          : () => onDeletionRequested?.call(row.allowance.id),
-    ),
-    OcptBudgetLogisticsAllowanceDefrayalSubRow() => OcptBudgetLogisticsAllowanceDefrayalRow(
-      allowance: row.allowance,
-      currencyCode: currencyCode,
-      onTap: isReadOnly || onEditRequested == null
-          ? null
-          : () => onEditRequested?.call(row.allowance.id),
-      onPersonOpenRequested: () => onPersonOpenRequested(row.allowance.personId!),
-      onDeletionRequested: isReadOnly || onDeletionRequested == null
-          ? null
-          : () => onDeletionRequested?.call(row.allowance.id),
-    ),
-    OcptBudgetLogisticsAllowanceReimbursementSubRow() =>
-      OcptBudgetLogisticsAllowanceReimbursementRow(
-        entry: row.entry,
-        defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-        currencyCode: currencyCode,
+/// One flattened row of the allowance table, drawn as the widget its kind calls for.
+class _OcptLogisticsAllowanceRowEntry extends StatelessWidget {
+  /// The allowance column whose callbacks the row is wired to.
+  final OcptBudgetLogisticsAllowanceColumn column;
+
+  /// The row to draw.
+  final OcptBudgetLogisticsAllowanceTreeRow row;
+
+  /// Class constructor
+  const _OcptLogisticsAllowanceRowEntry({required this.column, required this.row});
+
+  /// Build the logistics allowance row entry as the row its kind calls for.
+  @override
+  Widget build(BuildContext context) {
+    final row = this.row;
+
+    return switch (row) {
+      OcptBudgetLogisticsAllowancePersonGroupRow() => OcptBudgetLogisticsAllowancePersonRow(
+        person: row.person,
+        role: row.role,
+        advancedCents: row.advancedCents,
+        reimbursedCents: row.reimbursedCents,
+        outstandingCents: row.outstandingCents,
+        currencyCode: column.currencyCode,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () => column.onNodeExpansionToggled(row.personId),
+        // Navigation, not a write: never withheld under [column.isReadOnly] — mirrors the very same reading
+        // this menu entry already followed on the flat table.
+        onPersonOpenRequested: () => column.onPersonOpenRequested(row.personId),
+        onReimburseRequested: column.isReadOnly || column.onReimburseRequested == null
+            ? null
+            : () => column.onReimburseRequested?.call(row.personId),
       ),
-  };
+      OcptBudgetLogisticsAllowanceNoPersonGroupRow() => OcptBudgetLogisticsAllowanceNoPersonRow(
+        allowance: row.allowance,
+        currencyCode: column.currencyCode,
+        onTap: column.isReadOnly || column.onEditRequested == null
+            ? null
+            : () => column.onEditRequested?.call(row.allowance.id),
+        onDeletionRequested: column.isReadOnly || column.onDeletionRequested == null
+            ? null
+            : () => column.onDeletionRequested?.call(row.allowance.id),
+      ),
+      OcptBudgetLogisticsAllowanceDefrayalSubRow() => OcptBudgetLogisticsAllowanceDefrayalRow(
+        allowance: row.allowance,
+        currencyCode: column.currencyCode,
+        onTap: column.isReadOnly || column.onEditRequested == null
+            ? null
+            : () => column.onEditRequested?.call(row.allowance.id),
+        onPersonOpenRequested: () => column.onPersonOpenRequested(row.allowance.personId!),
+        onDeletionRequested: column.isReadOnly || column.onDeletionRequested == null
+            ? null
+            : () => column.onDeletionRequested?.call(row.allowance.id),
+      ),
+      OcptBudgetLogisticsAllowanceReimbursementSubRow() =>
+        OcptBudgetLogisticsAllowanceReimbursementRow(
+          entry: row.entry,
+          defaultVatRateBasisPoints: column.defaultVatRateBasisPoints,
+          currencyCode: column.currencyCode,
+        ),
+    };
+  }
 }

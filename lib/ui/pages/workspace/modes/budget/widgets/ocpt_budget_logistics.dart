@@ -267,35 +267,6 @@ class OcptBudgetLogistics extends StatelessWidget {
       );
     }
 
-    Widget cateringColumn({double? tableHeight}) => OcptBudgetLogisticsCateringColumn(
-      days: days,
-      totals: cateringTotals,
-      setNameByDayId: setNameByDayId,
-      mealPriceCents: mealPriceCents,
-      buffetPriceCents: buffetPriceCents,
-      currencyCode: currencyCode,
-      tableHeight: tableHeight,
-      onScheduleOpenRequested: onScheduleOpenRequested,
-      onProjectSettingsRequested: onProjectSettingsRequested,
-    );
-    Widget allowanceColumn({double? tableHeight}) => OcptBudgetLogisticsAllowanceColumn(
-      allowances: allowances,
-      entries: entries,
-      reimbursedByPersonId: reimbursedByPersonId,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      roles: roles,
-      people: people,
-      currencyCode: currencyCode,
-      isReadOnly: isReadOnly,
-      expandedNodeIds: expandedNodeIds,
-      tableHeight: tableHeight,
-      onNodeExpansionToggled: onNodeExpansionToggled,
-      onPersonOpenRequested: onPersonOpenRequested,
-      onEditRequested: onAllowanceEditRequested,
-      onDeletionRequested: onAllowanceDeletionRequested,
-      onReimburseRequested: onPersonReimburseRequested,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -316,9 +287,9 @@ class OcptBudgetLogistics extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(flex: 3, child: cateringColumn()),
+                      Expanded(flex: 3, child: _OcptLogisticsCateringPane(logistics: this)),
                       const SizedBox(width: ocptBudgetLogisticsStackGap),
-                      Expanded(flex: 2, child: allowanceColumn()),
+                      Expanded(flex: 2, child: _OcptLogisticsAllowancePane(logistics: this)),
                     ],
                   ),
                 );
@@ -332,14 +303,16 @@ class OcptBudgetLogistics extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    cateringColumn(
+                    _OcptLogisticsCateringPane(
+                      logistics: this,
                       tableHeight: ocptBudgetLogisticsStackedCardHeight(
                         days.length,
                         ocptBudgetLogisticsCateringRowHeight,
                       ),
                     ),
                     const SizedBox(height: ocptBudgetLogisticsStackGap),
-                    allowanceColumn(
+                    _OcptLogisticsAllowancePane(
+                      logistics: this,
                       tableHeight: ocptBudgetLogisticsStackedCardHeight(
                         ocptBudgetLogisticsAllowanceGroupCountOf(allowances),
                         ocptBudgetLogisticsAllowanceRowHeight,
@@ -368,4 +341,62 @@ class OcptBudgetLogistics extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The catering pane of the logistics view: one row per shooting day.
+class _OcptLogisticsCateringPane extends StatelessWidget {
+  /// The logistics view whose data and callbacks the pane is wired to.
+  final OcptBudgetLogistics logistics;
+
+  /// The height of the pane's table, or null to let it fill the room its parent gives it.
+  final double? tableHeight;
+
+  /// Class constructor
+  const _OcptLogisticsCateringPane({required this.logistics, this.tableHeight});
+
+  /// Build the logistics pane as an [OcptBudgetLogisticsCateringColumn].
+  @override
+  Widget build(BuildContext context) => OcptBudgetLogisticsCateringColumn(
+    days: logistics.days,
+    totals: logistics.cateringTotals,
+    setNameByDayId: logistics.setNameByDayId,
+    mealPriceCents: logistics.mealPriceCents,
+    buffetPriceCents: logistics.buffetPriceCents,
+    currencyCode: logistics.currencyCode,
+    tableHeight: tableHeight,
+    onScheduleOpenRequested: logistics.onScheduleOpenRequested,
+    onProjectSettingsRequested: logistics.onProjectSettingsRequested,
+  );
+}
+
+/// The allowance pane of the logistics view: one group per person.
+class _OcptLogisticsAllowancePane extends StatelessWidget {
+  /// The logistics view whose data and callbacks the pane is wired to.
+  final OcptBudgetLogistics logistics;
+
+  /// The height of the pane's table, or null to let it fill the room its parent gives it.
+  final double? tableHeight;
+
+  /// Class constructor
+  const _OcptLogisticsAllowancePane({required this.logistics, this.tableHeight});
+
+  /// Build the logistics pane as an [OcptBudgetLogisticsAllowanceColumn].
+  @override
+  Widget build(BuildContext context) => OcptBudgetLogisticsAllowanceColumn(
+    allowances: logistics.allowances,
+    entries: logistics.entries,
+    reimbursedByPersonId: logistics.reimbursedByPersonId,
+    defaultVatRateBasisPoints: logistics.defaultVatRateBasisPoints,
+    roles: logistics.roles,
+    people: logistics.people,
+    currencyCode: logistics.currencyCode,
+    isReadOnly: logistics.isReadOnly,
+    expandedNodeIds: logistics.expandedNodeIds,
+    tableHeight: tableHeight,
+    onNodeExpansionToggled: logistics.onNodeExpansionToggled,
+    onPersonOpenRequested: logistics.onPersonOpenRequested,
+    onEditRequested: logistics.onAllowanceEditRequested,
+    onDeletionRequested: logistics.onAllowanceDeletionRequested,
+    onReimburseRequested: logistics.onPersonReimburseRequested,
+  );
 }

@@ -241,7 +241,8 @@ class OcptBudgetFinancing extends StatelessWidget {
                             )
                           : ListView.builder(
                               itemCount: rows.length,
-                              itemBuilder: (context, index) => _rowOf(rows[index]),
+                              itemBuilder: (context, index) =>
+                                  _OcptBudgetFinancingRowEntry(financing: this, row: rows[index]),
                             ),
                     ),
                     if (!isEmpty)
@@ -455,79 +456,6 @@ class OcptBudgetFinancing extends StatelessWidget {
     );
   }
 
-  /// Build the widget for one flattened [row].
-  Widget _rowOf(OcptBudgetFinancingTreeRow row) => switch (row) {
-    OcptBudgetFinancingFamilyTreeRow() => OcptBudgetFinancingFamilyRow(
-      family: row.family,
-      aggregates: row.aggregates,
-      currencyCode: currencyCode,
-      isExpanded: row.isExpanded,
-      onTwistyTap: () => onNodeExpansionToggled(row.family.name),
-    ),
-    OcptBudgetFinancingResourceTreeRow() => OcptBudgetFinancingResourceRow(
-      resource: row.resource,
-      figures: row.figures,
-      currencyCode: currencyCode,
-      isSelected: _isResourceSelected(row.resource.id),
-      isExpandable: row.isExpandable,
-      isExpanded: row.isExpanded,
-      onTwistyTap: () => onNodeExpansionToggled(row.resource.id),
-      onTap: () => onResourceSelected(row.resource.id),
-      onEditRequested: isReadOnly || onResourceEditRequested == null
-          ? null
-          : () => onResourceEditRequested?.call(row.resource),
-      onReceiptRequested:
-          isReadOnly ||
-              onResourceReceiptRequested == null ||
-              !_canOfferReceipt(row.resource, row.figures)
-          ? null
-          : () => onResourceReceiptRequested?.call(row.resource),
-      onReceiptUndoRequested:
-          isReadOnly ||
-              onResourceReceiptUndoRequested == null ||
-              !_hasReceivedSomething(row.figures)
-          ? null
-          : () => onResourceReceiptUndoRequested?.call(row.resource),
-      onDeletionRequested: isReadOnly || onResourceDeletionRequested == null
-          ? null
-          : () => onResourceDeletionRequested?.call(row.resource.id),
-    ),
-    OcptBudgetFinancingRevenueTreeRow() => OcptBudgetFinancingRevenueRow(
-      revenue: row.revenue,
-      figures: row.figures,
-      currencyCode: currencyCode,
-      isSelected: _isRevenueSelected(row.revenue.id),
-      isExpandable: row.isExpandable,
-      isExpanded: row.isExpanded,
-      onTwistyTap: () => onNodeExpansionToggled(row.revenue.id),
-      onTap: () => onRevenueSelected(row.revenue.id),
-      onEditRequested: isReadOnly || onRevenueEditRequested == null
-          ? null
-          : () => onRevenueEditRequested?.call(row.revenue),
-      onReceiptRequested: isReadOnly || onRevenueReceiptRequested == null
-          ? null
-          : () => onRevenueReceiptRequested?.call(row.revenue),
-      onMoveUpRequested:
-          isReadOnly || onRevenueReorderRequested == null || _isFirstRevenue(row.revenue.id)
-          ? null
-          : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: true),
-      onMoveDownRequested:
-          isReadOnly || onRevenueReorderRequested == null || _isLastRevenue(row.revenue.id)
-          ? null
-          : () => onRevenueReorderRequested?.call(row.revenue.id, moveUp: false),
-      onDeletionRequested: isReadOnly || onRevenueDeletionRequested == null
-          ? null
-          : () => onRevenueDeletionRequested?.call(row.revenue.id),
-    ),
-    OcptBudgetFinancingReceiptTreeRow() => OcptBudgetFinancingReceiptRow(
-      entry: row.entry,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      currencyCode: currencyCode,
-      isSelected: _isReceiptSelected(row.entry.id),
-      onTap: () => onReceiptSelected(row.entry.id),
-    ),
-  };
-
   /// Tell whether [figures] show anything actually received — what `Undo the last receipt` is
   /// withheld
   /// until, there being no last receipt to undo before then.
@@ -564,4 +492,98 @@ class OcptBudgetFinancing extends StatelessWidget {
 
   /// Tell whether [revenueId] is the last taking of the whole project — `Move down` withheld there.
   bool _isLastRevenue(String revenueId) => revenues.isNotEmpty && revenues.last.id == revenueId;
+}
+
+/// One flattened row of the financing table, drawn as the widget its kind calls for.
+class _OcptBudgetFinancingRowEntry extends StatelessWidget {
+  /// The financing table whose callbacks and selection the row is wired to.
+  final OcptBudgetFinancing financing;
+
+  /// The row to draw.
+  final OcptBudgetFinancingTreeRow row;
+
+  /// Class constructor
+  const _OcptBudgetFinancingRowEntry({required this.financing, required this.row});
+
+  /// Build the budget financing row entry as the row its kind calls for.
+  @override
+  Widget build(BuildContext context) {
+    final row = this.row;
+
+    return switch (row) {
+      OcptBudgetFinancingFamilyTreeRow() => OcptBudgetFinancingFamilyRow(
+        family: row.family,
+        aggregates: row.aggregates,
+        currencyCode: financing.currencyCode,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () => financing.onNodeExpansionToggled(row.family.name),
+      ),
+      OcptBudgetFinancingResourceTreeRow() => OcptBudgetFinancingResourceRow(
+        resource: row.resource,
+        figures: row.figures,
+        currencyCode: financing.currencyCode,
+        isSelected: financing._isResourceSelected(row.resource.id),
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () => financing.onNodeExpansionToggled(row.resource.id),
+        onTap: () => financing.onResourceSelected(row.resource.id),
+        onEditRequested: financing.isReadOnly || financing.onResourceEditRequested == null
+            ? null
+            : () => financing.onResourceEditRequested?.call(row.resource),
+        onReceiptRequested:
+            financing.isReadOnly ||
+                financing.onResourceReceiptRequested == null ||
+                !financing._canOfferReceipt(row.resource, row.figures)
+            ? null
+            : () => financing.onResourceReceiptRequested?.call(row.resource),
+        onReceiptUndoRequested:
+            financing.isReadOnly ||
+                financing.onResourceReceiptUndoRequested == null ||
+                !financing._hasReceivedSomething(row.figures)
+            ? null
+            : () => financing.onResourceReceiptUndoRequested?.call(row.resource),
+        onDeletionRequested: financing.isReadOnly || financing.onResourceDeletionRequested == null
+            ? null
+            : () => financing.onResourceDeletionRequested?.call(row.resource.id),
+      ),
+      OcptBudgetFinancingRevenueTreeRow() => OcptBudgetFinancingRevenueRow(
+        revenue: row.revenue,
+        figures: row.figures,
+        currencyCode: financing.currencyCode,
+        isSelected: financing._isRevenueSelected(row.revenue.id),
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () => financing.onNodeExpansionToggled(row.revenue.id),
+        onTap: () => financing.onRevenueSelected(row.revenue.id),
+        onEditRequested: financing.isReadOnly || financing.onRevenueEditRequested == null
+            ? null
+            : () => financing.onRevenueEditRequested?.call(row.revenue),
+        onReceiptRequested: financing.isReadOnly || financing.onRevenueReceiptRequested == null
+            ? null
+            : () => financing.onRevenueReceiptRequested?.call(row.revenue),
+        onMoveUpRequested:
+            financing.isReadOnly ||
+                financing.onRevenueReorderRequested == null ||
+                financing._isFirstRevenue(row.revenue.id)
+            ? null
+            : () => financing.onRevenueReorderRequested?.call(row.revenue.id, moveUp: true),
+        onMoveDownRequested:
+            financing.isReadOnly ||
+                financing.onRevenueReorderRequested == null ||
+                financing._isLastRevenue(row.revenue.id)
+            ? null
+            : () => financing.onRevenueReorderRequested?.call(row.revenue.id, moveUp: false),
+        onDeletionRequested: financing.isReadOnly || financing.onRevenueDeletionRequested == null
+            ? null
+            : () => financing.onRevenueDeletionRequested?.call(row.revenue.id),
+      ),
+      OcptBudgetFinancingReceiptTreeRow() => OcptBudgetFinancingReceiptRow(
+        entry: row.entry,
+        defaultVatRateBasisPoints: financing.defaultVatRateBasisPoints,
+        currencyCode: financing.currencyCode,
+        isSelected: financing._isReceiptSelected(row.entry.id),
+        onTap: () => financing.onReceiptSelected(row.entry.id),
+      ),
+    };
+  }
 }

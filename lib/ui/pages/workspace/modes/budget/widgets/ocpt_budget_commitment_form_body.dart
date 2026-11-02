@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_commitment.dart';
@@ -13,6 +12,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_commitment_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_choice_segment.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_commitment_dialog.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -344,40 +344,22 @@ class _OcptCommitmentStatusPicker extends StatelessWidget {
 
   /// Build the commitment status picker as a [Wrap].
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [for (final status in OcptBudgetCommitmentStatus.values) _segment(context, status)],
-  );
-
-  /// Build one of the picker's own segments, filled in its own accent colour while active.
-  Widget _segment(BuildContext context, OcptBudgetCommitmentStatus status) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final tr = Tr.of(context);
-    final isActive = status == value;
-    final accent = ocptBudgetCommitmentStatusAccentColor(theme.colorScheme, status);
 
-    return InkWell(
-      onTap: isActive ? null : () => onChanged(status),
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isActive
-              ? accent.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
-              : Colors.transparent,
-          border: Border.all(color: isActive ? accent : theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-        ),
-        child: Text(
-          ocptBudgetCommitmentStatusLabel(tr, status),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? accent : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final status in OcptBudgetCommitmentStatus.values)
+          OcptBudgetChoiceSegment(
+            label: ocptBudgetCommitmentStatusLabel(tr, status),
+            isActive: status == value,
+            accent: ocptBudgetCommitmentStatusAccentColor(colorScheme, status),
+            onTap: status == value ? null : () => onChanged(status),
           ),
-        ),
-      ),
+      ],
     );
   }
 }

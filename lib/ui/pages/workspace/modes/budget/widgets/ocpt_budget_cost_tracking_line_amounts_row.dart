@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_line.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_tree.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -66,6 +67,7 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
   /// Build the budget cost tracking line amounts row as an [InkWell].
   @override
   Widget build(BuildContext context) {
+    final cellStyle = Theme.of(context).textTheme.labelSmall;
     final theme = Theme.of(context);
     final quoted = ocptBudgetTotalOf(
       [line],
@@ -132,25 +134,43 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
           height: ocptBudgetCostTrackingRowHeight,
           child: Row(
             children: [
-              _cell(context, ocptBudgetAmountLabel(quoted.amountCents, currencyCode)),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(quoted.amountCents, currencyCode),
+                style: cellStyle,
+              ),
               // A counterpart line is never committed nor paid — the em dash, rather than the
               // real (and always zero) `committed`/`paid` totals, is what reads it as covered
               // in kind instead of merely untouched (`docs/architecture/budget.md`).
-              _cell(
-                context,
-                isInKindCounterpart
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: isInKindCounterpart
                     ? ocptBudgetEmptyValue
                     : ocptBudgetAmountLabel(committed.amountCents, currencyCode),
+                style: cellStyle,
               ),
-              _cell(
-                context,
-                isInKindCounterpart
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: isInKindCounterpart
                     ? ocptBudgetEmptyValue
                     : ocptBudgetAmountLabel(paid.amountCents, currencyCode),
+                style: cellStyle,
               ),
-              _cell(context, ocptBudgetAmountLabel(remainingCents, currencyCode)),
-              _cell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
-              _cell(context, ocptBudgetAmountLabel(varianceCents, currencyCode)),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(remainingCents, currencyCode),
+                style: cellStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(finalCostCents, currencyCode),
+                style: cellStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(varianceCents, currencyCode),
+                style: cellStyle,
+              ),
               const SizedBox(width: ocptBudgetCostTrackingMenuColumnWidth),
             ],
           ),
@@ -158,16 +178,4 @@ class OcptBudgetCostTrackingLineAmountsRow extends StatelessWidget {
       ),
     );
   }
-
-  /// Build one amount cell, right-aligned, one step smaller than an account row's own.
-  Widget _cell(BuildContext context, String text) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(
-      text,
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelSmall,
-    ),
-  );
 }

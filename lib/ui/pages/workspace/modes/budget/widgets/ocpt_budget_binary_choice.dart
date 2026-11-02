@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_choice_segment.dart';
 
 /// A two-segment boolean choice: two small bordered, clickable labels, the active one filled and
 /// bolder — the account inspector's own way of drawing a line's tax basis, lifted here, generic
@@ -38,49 +38,39 @@ class OcptBudgetBinaryChoice extends StatelessWidget {
 
   /// Build the budget binary choice as a [Row].
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      // Each segment is [Flexible] so the pair shrinks and ellipsizes rather than overflowing when
-      // the row is narrower than the two labels want — the account inspector's own right dock can
-      // be dragged down to its 300 px floor, narrower than these two chips at their natural width.
-      // Both keep that natural width wherever there is room: under the entry dialog's
-      // [IntrinsicWidth] the row is handed `2·max(label) + gap`, so each flex share still clears
-      // the wider label.
-      Flexible(child: _segment(context, true, trueLabel)),
-      const SizedBox(width: 8),
-      Flexible(child: _segment(context, false, falseLabel)),
-    ],
-  );
-
-  /// Build one of the choice's own two segments: filled and bold while active, muted otherwise.
-  Widget _segment(BuildContext context, bool segmentValue, String label) {
-    final theme = Theme.of(context);
-    final isActive = segmentValue == value;
+  Widget build(BuildContext context) {
     final onChanged = this.onChanged;
 
-    return InkWell(
-      onTap: isActive || onChanged == null ? null : () => onChanged(segmentValue),
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
-              : Colors.transparent,
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+    return Row(
+      children: [
+        // Each segment is [Flexible] so the pair shrinks and ellipsizes rather than overflowing when
+        // the row is narrower than the two labels want — the account inspector's own right dock can
+        // be dragged down to its 300 px floor, narrower than these two chips at their natural width.
+        // Both keep that natural width wherever there is room: under the entry dialog's
+        // [IntrinsicWidth] the row is handed `2·max(label) + gap`, so each flex share still clears
+        // the wider label.
+        Flexible(
+          child: OcptBudgetChoiceSegment(
+            label: trueLabel,
+            isActive: value,
+            accent: null,
+            hasAccentBorder: false,
+            isEllipsized: true,
+            onTap: value || onChanged == null ? null : () => onChanged(true),
           ),
         ),
-      ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: OcptBudgetChoiceSegment(
+            label: falseLabel,
+            isActive: !value,
+            accent: null,
+            hasAccentBorder: false,
+            isEllipsized: true,
+            onTap: !value || onChanged == null ? null : () => onChanged(false),
+          ),
+        ),
+      ],
     );
   }
 }

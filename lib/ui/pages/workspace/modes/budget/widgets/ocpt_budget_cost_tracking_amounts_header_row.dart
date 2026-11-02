@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 
 /// The scrolling pane's own header row: the six amount column headings, then a blank cell over
@@ -30,28 +31,40 @@ class OcptBudgetCostTrackingAmountsHeaderRow extends StatelessWidget {
         height: ocptBudgetCostTrackingHeaderRowHeight,
         child: Row(
           children: [
-            _headerCell(tr.budgetCostTrackingColumnQuote, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnCommitted, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnPaid, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnRemaining, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnFinalCost, labelStyle),
-            _headerCell(tr.budgetCostTrackingColumnVariance, labelStyle),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnQuote.toUpperCase(),
+              style: labelStyle,
+            ),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnCommitted.toUpperCase(),
+              style: labelStyle,
+            ),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnPaid.toUpperCase(),
+              style: labelStyle,
+            ),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnRemaining.toUpperCase(),
+              style: labelStyle,
+            ),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnFinalCost.toUpperCase(),
+              style: labelStyle,
+            ),
+            OcptBudgetAmountCell(
+              width: ocptBudgetCostTrackingAmountColumnWidth,
+              text: tr.budgetCostTrackingColumnVariance.toUpperCase(),
+              style: labelStyle,
+            ),
             const SizedBox(width: ocptBudgetCostTrackingMenuColumnWidth),
           ],
         ),
       ),
     );
   }
-
-  /// Build one amount column's own header cell, right-aligned like the figures underneath it.
-  Widget _headerCell(String label, TextStyle? style) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(
-      label.toUpperCase(),
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: style,
-    ),
-  );
 }

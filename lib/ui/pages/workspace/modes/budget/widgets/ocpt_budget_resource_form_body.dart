@@ -4,7 +4,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat;
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
@@ -14,6 +13,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_cost_amount.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_group_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_resource_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_binary_choice.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_choice_segment.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_resource_dialog.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
@@ -440,41 +440,21 @@ class _OcptResourceGroupKindPicker extends StatelessWidget {
 
   /// Build the resource group kind picker as a [Wrap].
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [for (final kind in choices) _segment(context, kind)],
-  );
-
-  /// Build one of the picker's own segments.
-  Widget _segment(BuildContext context, OcptBudgetResourceGroupKind kind) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context) {
     final tr = Tr.of(context);
-    final isActive = kind == value;
 
-    return InkWell(
-      onTap: isActive ? null : () => onChanged(kind),
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isActive
-              ? theme.colorScheme.primary.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
-              : Colors.transparent,
-          border: Border.all(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final kind in choices)
+          OcptBudgetChoiceSegment(
+            label: ocptBudgetResourceGroupKindLabel(tr, kind),
+            isActive: kind == value,
+            accent: null,
+            onTap: kind == value ? null : () => onChanged(kind),
           ),
-          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-        ),
-        child: Text(
-          ocptBudgetResourceGroupKindLabel(tr, kind),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-          ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -506,40 +486,22 @@ class _OcptResourceStatusPicker extends StatelessWidget {
 
   /// Build the resource status picker as a [Wrap].
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [for (final status in OcptBudgetResourceStatus.values) _segment(context, status)],
-  );
-
-  /// Build one of the picker's own segments, filled in its own accent colour while active.
-  Widget _segment(BuildContext context, OcptBudgetResourceStatus status) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final tr = Tr.of(context);
-    final isActive = status == value;
-    final accent = ocptBudgetResourceStatusAccentColor(theme.colorScheme, status);
 
-    return InkWell(
-      onTap: isActive ? null : () => onChanged(status),
-      mouseCursor: ocpt_theme.ocptClickableCursor,
-      borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isActive
-              ? accent.withValues(alpha: ocpt_theme.ocptSelectedStateAlpha)
-              : Colors.transparent,
-          border: Border.all(color: isActive ? accent : theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
-        ),
-        child: Text(
-          ocptBudgetResourceStatusLabel(tr, groupKind, status),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? accent : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final status in OcptBudgetResourceStatus.values)
+          OcptBudgetChoiceSegment(
+            label: ocptBudgetResourceStatusLabel(tr, groupKind, status),
+            isActive: status == value,
+            accent: ocptBudgetResourceStatusAccentColor(colorScheme, status),
+            onTap: status == value ? null : () => onChanged(status),
           ),
-        ),
-      ),
+      ],
     );
   }
 }

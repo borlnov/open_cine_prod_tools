@@ -10,6 +10,7 @@ import 'package:open_cine_prod_tools/models/ocpt_asset_ref.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_journal_row.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cash_journal_voucher_marker.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
@@ -76,6 +77,7 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
   /// Build the budget cash journal row as an [InkWell].
   @override
   Widget build(BuildContext context) {
+    final amountStyle = Theme.of(context).textTheme.bodySmall;
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final entry = row.entry;
@@ -153,21 +155,35 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
                   ),
                 ),
               ),
-              _amountCell(
-                context,
-                debitCents,
-                color: (debitCents != null && entry.debitCents != 0)
-                    ? theme.colorScheme.error
-                    : null,
+              OcptBudgetAmountCell(
+                width: ocptBudgetCashJournalAmountColumnWidth,
+                text: debitCents == null
+                    ? ocptBudgetEmptyValue
+                    : ocptBudgetAmountLabel(debitCents, currencyCode),
+                style: amountStyle?.copyWith(
+                  color: (debitCents != null && entry.debitCents != 0)
+                      ? theme.colorScheme.error
+                      : null,
+                ),
               ),
-              _amountCell(
-                context,
-                creditCents,
-                color: (creditCents != null && entry.creditCents != 0)
-                    ? theme.colorScheme.primary
-                    : null,
+              OcptBudgetAmountCell(
+                width: ocptBudgetCashJournalAmountColumnWidth,
+                text: creditCents == null
+                    ? ocptBudgetEmptyValue
+                    : ocptBudgetAmountLabel(creditCents, currencyCode),
+                style: amountStyle?.copyWith(
+                  color: (creditCents != null && entry.creditCents != 0)
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
               ),
-              _amountCell(context, balanceCents, bold: true),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCashJournalAmountColumnWidth,
+                text: balanceCents == null
+                    ? ocptBudgetEmptyValue
+                    : ocptBudgetAmountLabel(balanceCents, currencyCode),
+                style: amountStyle?.copyWith(fontWeight: FontWeight.w600),
+              ),
               SizedBox(
                 width: ocptBudgetCashJournalMenuColumnWidth,
                 child: onEditRequested == null && onDeletionRequested == null
@@ -200,19 +216,4 @@ class OcptBudgetCashJournalRow extends StatelessWidget {
       ),
     );
   }
-
-  /// Build one amount cell, right-aligned, printing [ocptBudgetEmptyValue] while [cents] is null.
-  Widget _amountCell(BuildContext context, int? cents, {Color? color, bool bold = false}) =>
-      SizedBox(
-        width: ocptBudgetCashJournalAmountColumnWidth,
-        child: Text(
-          cents == null ? ocptBudgetEmptyValue : ocptBudgetAmountLabel(cents, currencyCode),
-          textAlign: TextAlign.right,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: color, fontWeight: bold ? FontWeight.w600 : null),
-        ),
-      );
 }

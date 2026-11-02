@@ -132,14 +132,26 @@ class OcptBudgetCostTrackingAccountCard extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 4,
                   children: [
-                    _figureOf(context, tr.budgetCostTrackingColumnCommitted, committedCents),
-                    _figureOf(context, tr.budgetCostTrackingColumnPaid, paidCents),
-                    _figureOf(
-                      context,
-                      tr.budgetCostTrackingColumnRemaining,
-                      figures.remainingCents,
+                    _OcptCostTrackingCardFigure(
+                      currencyCode: currencyCode,
+                      label: tr.budgetCostTrackingColumnCommitted,
+                      amountCents: committedCents,
                     ),
-                    _figureOf(context, tr.budgetCostTrackingColumnVariance, figures.varianceCents),
+                    _OcptCostTrackingCardFigure(
+                      currencyCode: currencyCode,
+                      label: tr.budgetCostTrackingColumnPaid,
+                      amountCents: paidCents,
+                    ),
+                    _OcptCostTrackingCardFigure(
+                      currencyCode: currencyCode,
+                      label: tr.budgetCostTrackingColumnRemaining,
+                      amountCents: figures.remainingCents,
+                    ),
+                    _OcptCostTrackingCardFigure(
+                      currencyCode: currencyCode,
+                      label: tr.budgetCostTrackingColumnVariance,
+                      amountCents: figures.varianceCents,
+                    ),
                   ],
                 ),
               ],
@@ -149,11 +161,30 @@ class OcptBudgetCostTrackingAccountCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Build one `label` above `amountCents`, formatted through [ocptBudgetAmountLabel] like every
-  /// other
-  /// figure this table prints.
-  Widget _figureOf(BuildContext context, String label, int amountCents) {
+/// One `label` above `amountCents`, formatted like every other figure the cost tracking table
+/// prints.
+class _OcptCostTrackingCardFigure extends StatelessWidget {
+  /// The project's currency, an ISO 4217 code.
+  final String currencyCode;
+
+  /// The label printed above the figure.
+  final String label;
+
+  /// The amount, in cents.
+  final int amountCents;
+
+  /// Class constructor
+  const _OcptCostTrackingCardFigure({
+    required this.currencyCode,
+    required this.label,
+    required this.amountCents,
+  });
+
+  /// Build the cost tracking card figure as a [Column].
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,

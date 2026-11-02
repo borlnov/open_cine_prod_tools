@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
@@ -32,8 +32,7 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
   final String currencyCode;
 
   /// Builds this row's own `⋮` menu, or null while it carries none — and may itself answer null
-  /// too, once every one of its own entries is withheld, see
-  /// [OcptBudgetCostTracking._commitmentMenuOf]/[OcptBudgetCostTracking._entryMenuOf].
+  /// too, once every one of its own entries is withheld.
   final Widget? Function(BuildContext context)? menuBuilder;
 
   /// Class constructor
@@ -50,6 +49,7 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
   /// Build the budget cost tracking sub amounts row as a [SizedBox].
   @override
   Widget build(BuildContext context) {
+    final cellStyle = Theme.of(context).textTheme.labelSmall;
     final theme = Theme.of(context);
     final activeCents = this.activeCents;
     final activeText = activeCents == null
@@ -60,7 +60,11 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
     final row = Row(
       children: [
         for (var index = 0; index < 6; index++)
-          _cell(context, index == activeColumnIndex ? activeText : null),
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: (index == activeColumnIndex ? activeText : null) ?? ocptBudgetEmptyValue,
+            style: cellStyle,
+          ),
         SizedBox(width: ocptBudgetCostTrackingMenuColumnWidth, child: menuBuilder?.call(context)),
       ],
     );
@@ -77,16 +81,4 @@ class OcptBudgetCostTrackingSubAmountsRow extends StatelessWidget {
       ),
     );
   }
-
-  /// Build one amount cell, right-aligned, reading [ocptBudgetEmptyValue] while [text] is null.
-  Widget _cell(BuildContext context, String? text) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(
-      text ?? ocptBudgetEmptyValue,
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelSmall,
-    ),
-  );
 }

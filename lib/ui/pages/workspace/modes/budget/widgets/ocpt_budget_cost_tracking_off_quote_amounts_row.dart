@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_covered_total.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
@@ -40,37 +41,39 @@ class OcptBudgetCostTrackingOffQuoteAmountsRow extends StatelessWidget {
       height: ocptBudgetCostTrackingRowHeight,
       child: Row(
         children: [
-          _emptyCell(theme), // Devis
-          _emptyCell(theme), // Engagé
-          _amountCell(
-            theme,
-            ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode),
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetEmptyValue,
+            style: theme.textTheme.bodySmall,
+          ), // Devis
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetEmptyValue,
+            style: theme.textTheme.bodySmall,
+          ), // Engagé
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetAmountLabel(offQuoteTotal.amountCents, currencyCode),
+            style: theme.textTheme.bodySmall,
           ), // Payé
-          _emptyCell(theme), // Reste
-          _emptyCell(theme), // Coût final
-          _emptyCell(theme), // Écart
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetEmptyValue,
+            style: theme.textTheme.bodySmall,
+          ), // Reste
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetEmptyValue,
+            style: theme.textTheme.bodySmall,
+          ), // Coût final
+          OcptBudgetAmountCell(
+            width: ocptBudgetCostTrackingAmountColumnWidth,
+            text: ocptBudgetEmptyValue,
+            style: theme.textTheme.bodySmall,
+          ), // Écart
           const SizedBox(width: ocptBudgetCostTrackingMenuColumnWidth), // no ⋮ menu at all
         ],
       ),
     );
   }
-
-  /// Build one amount cell, right-aligned, printing [text] as typed.
-  Widget _amountCell(ThemeData theme, String text) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(
-      text,
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.bodySmall,
-    ),
-  );
-
-  /// Build one amount cell reading [ocptBudgetEmptyValue] — every column this row has no reading
-  /// for.
-  Widget _emptyCell(ThemeData theme) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(ocptBudgetEmptyValue, textAlign: TextAlign.right, style: theme.textTheme.bodySmall),
-  );
 }

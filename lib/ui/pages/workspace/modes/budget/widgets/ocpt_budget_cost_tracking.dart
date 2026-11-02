@@ -418,7 +418,12 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             isSimplified: isSimplified,
                             accountWidth: accountWidth,
                           ),
-                          for (final row in rows) _identityRowOf(row, accountWidth: accountWidth),
+                          for (final row in rows)
+                            _OcptCostTrackingIdentityRow(
+                              costTracking: this,
+                              row: row,
+                              accountWidth: accountWidth,
+                            ),
                           OcptBudgetCostTrackingIdentityTotalRow(
                             isSimplified: isSimplified,
                             accountWidth: accountWidth,
@@ -434,7 +439,8 @@ class OcptBudgetCostTracking extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const OcptBudgetCostTrackingAmountsHeaderRow(),
-                              for (final row in rows) _amountsRowOf(row),
+                              for (final row in rows)
+                                _OcptCostTrackingAmountsRow(costTracking: this, row: row),
                               OcptBudgetCostTrackingAmountsTotalRow(
                                 total: total,
                                 paidTotal: paidTotal,
@@ -622,183 +628,6 @@ class OcptBudgetCostTracking extends StatelessWidget {
     }
   }
 
-  /// Build the pinned pane's own widget for [row].
-  Widget _identityRowOf(OcptBudgetCostTrackingTreeRow row, {required double accountWidth}) =>
-      switch (row) {
-        OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountIdentityRow(
-          account: row.account,
-          isSelected: _isAccountSelected(row.account.id),
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isExpandable: row.isExpandable,
-          isExpanded: row.isExpanded,
-          onTap: () => onAccountSelected(row.account.id),
-          onTwistyTap: () => onNodeExpansionToggled(row.account.id),
-        ),
-        OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
-          depth: 1,
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isSelected: _isLineSelected(row.line.id),
-          isSmall: false,
-          isExpandable: row.isExpandable,
-          isExpanded: row.isExpanded,
-          onTwistyTap: () => onNodeExpansionToggled(row.line.id),
-          onTap: () => onLineSelected(row.line.id),
-          builder: (context) {
-            final tr = Tr.of(context);
-            final label = row.line.label;
-            final isInKindCounterpart = row.line.inKindResourceId != null;
-            return OcptBudgetCostTrackingSubLabel(
-              label: label.isEmpty ? tr.budgetLineUnnamed : label,
-              isItalic: label.isEmpty,
-              badgeText: isInKindCounterpart ? tr.budgetCostTrackingInKindLineBadge : null,
-              badgeColor: isInKindCounterpart ? Theme.of(context).colorScheme.primary : null,
-            );
-          },
-        ),
-        OcptBudgetCostTrackingCommitmentTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
-          depth: row.depth,
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isSelected: _isCommitmentSelected(row.commitment.id),
-          isSmall: true,
-          isExpandable: row.isExpandable,
-          isExpanded: row.isExpanded,
-          onTwistyTap: row.isExpandable ? () => onNodeExpansionToggled(row.commitment.id) : null,
-          onTap: () => onCommitmentSelected(row.commitment.id),
-          builder: (context) {
-            final tr = Tr.of(context);
-            final isSettled = ocptBudgetCommitmentIsSettledOf(
-              row.commitment,
-              entries,
-              projectVatRateBasisPoints: defaultVatRateBasisPoints,
-            );
-            return OcptBudgetCostTrackingSubLabel(
-              label: row.commitment.label,
-              isMuted: true,
-              dotColor: isSettled
-                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                  : ocptBudgetCommitmentStatusAccentColor(
-                      Theme.of(context).colorScheme,
-                      row.commitment.status,
-                    ),
-              badgeText: isSettled
-                  ? tr.budgetCommittedStatusSettledLabel
-                  : ocptBudgetCommitmentStatusLabel(tr, row.commitment.status),
-              badgeColor: isSettled
-                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                  : ocptBudgetCommitmentStatusAccentColor(
-                      Theme.of(context).colorScheme,
-                      row.commitment.status,
-                    ),
-            );
-          },
-        ),
-        OcptBudgetCostTrackingCommitmentHintTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
-          depth: row.depth,
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isSelected: false,
-          isSmall: true,
-          isExpandable: false,
-          isExpanded: false,
-          onTwistyTap: null,
-          onTap: null,
-          builder: (context) => OcptBudgetCostTrackingSubLabel(
-            label: Tr.of(context).budgetCostTrackingNoEntryHint,
-            isMuted: true,
-            isItalic: true,
-          ),
-        ),
-        OcptBudgetCostTrackingEntryTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
-          depth: row.depth,
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isSelected: _isEntrySelected(row.entry.id),
-          isSmall: true,
-          isExpandable: false,
-          isExpanded: false,
-          onTwistyTap: null,
-          onTap: () => onEntrySelected(row.entry.id),
-          builder: (context) => OcptBudgetCostTrackingSubLabel(
-            label: row.entry.label,
-            isMuted: true,
-            dotColor: Theme.of(context).colorScheme.primary,
-            badgeText: row.entry.voucherNumber,
-            badgeColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteIdentityRow(
-          isSimplified: isSimplified,
-          accountWidth: accountWidth,
-          isExpanded: row.isExpanded,
-          onTwistyTap: () => onNodeExpansionToggled(ocptBudgetCostTrackingOffQuoteNodeId),
-        ),
-      };
-
-  /// Build the scrolling pane's own widget for [row].
-  Widget _amountsRowOf(OcptBudgetCostTrackingTreeRow row) => switch (row) {
-    OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountAmountsRow(
-      account: row.account,
-      isSelected: _isAccountSelected(row.account.id),
-      taxBasis: taxBasis,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      currencyCode: currencyCode,
-      paidCents: paidByAccountId[row.account.id]?.amountCents ?? 0,
-      committedCents: committedCentsOf(row.account.id),
-      inKindCoveredCents: inKindCoveredCentsOf(row.account.id),
-      onTap: () => onAccountSelected(row.account.id),
-      onRenameRequested: isReadOnly ? null : () => onAccountSelected(row.account.id),
-      onMoveUpRequested: isReadOnly
-          ? null
-          : () => onAccountReorderRequested?.call(row.account.id, moveUp: true),
-      onMoveDownRequested: isReadOnly
-          ? null
-          : () => onAccountReorderRequested?.call(row.account.id, moveUp: false),
-      onDeletionRequested: isReadOnly
-          ? null
-          : () => onAccountDeletionRequested?.call(row.account.id),
-      onFilterRequested: onAccountFilterRequested == null
-          ? null
-          : () => onAccountFilterRequested?.call(row.account.id),
-    ),
-    OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingLineAmountsRow(
-      line: row.line,
-      lineCommitments: row.lineCommitments,
-      entries: entries,
-      taxBasis: taxBasis,
-      defaultVatRateBasisPoints: defaultVatRateBasisPoints,
-      currencyCode: currencyCode,
-      isSelected: _isLineSelected(row.line.id),
-      onTap: () => onLineSelected(row.line.id),
-    ),
-    OcptBudgetCostTrackingCommitmentTreeRow() => _commitmentAmountsRowOf(row.commitment),
-    OcptBudgetCostTrackingCommitmentHintTreeRow() => const OcptBudgetCostTrackingSubAmountsRow(
-      isSelected: false,
-      onTap: null,
-      activeColumnIndex: null,
-      activeCents: null,
-      currencyCode: "",
-      menuBuilder: null,
-    ),
-    OcptBudgetCostTrackingEntryTreeRow() => OcptBudgetCostTrackingSubAmountsRow(
-      isSelected: _isEntrySelected(row.entry.id),
-      onTap: () => onEntrySelected(row.entry.id),
-      activeColumnIndex: 2,
-      activeCents: ocptBudgetEntryDebitCentsOf(
-        row.entry,
-        projectVatRateBasisPoints: defaultVatRateBasisPoints,
-      ),
-      currencyCode: currencyCode,
-      menuBuilder: (context) => _entryMenuOf(context, row.entry),
-    ),
-    OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteAmountsRow(
-      offQuoteTotal: offQuoteTotal,
-      currencyCode: currencyCode,
-    ),
-  };
-
   /// Tell whether account [accountId] is the currently selected one.
   bool _isAccountSelected(String accountId) {
     final selection = this.selection;
@@ -823,58 +652,330 @@ class OcptBudgetCostTracking extends StatelessWidget {
     return selection is OcptBudgetEntrySelection && selection.entryId == entryId;
   }
 
-  /// Build [commitment]'s own amounts sub-row — its own cash figure in `Engagé` while unsettled,
-  /// what has
-  /// actually been paid against it in `Payé` once it is, read off [entries] through
-  /// [ocptBudgetCommitmentIsSettledOf]/[ocptBudgetCommitmentPaidCentsOf] — see the class doc
-  /// comment. Extracted out of [_amountsRowOf]'s own switch expression since settlement now needs
-  /// [entries] read once rather than the plain field read `OcptBudgetCommitment.isSettled` used to
-  /// be.
-  Widget _commitmentAmountsRowOf(OcptBudgetCommitment commitment) {
+  /// Tell whether [commitment]'s own `⋮` menu offers at least one entry — it is withheld altogether
+  /// while every one of them is, see the class doc comment.
+  bool _hasCommitmentMenu(OcptBudgetCommitment commitment) {
     final isSettled = ocptBudgetCommitmentIsSettledOf(
       commitment,
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
+    );
+
+    return !isReadOnly &&
+            (onCommitmentEditRequested != null || onCommitmentDeletionRequested != null) ||
+        !isReadOnly && !isSettled && onCommitmentSettleRequested != null ||
+        !isReadOnly && isSettled && onCommitmentUnsettleRequested != null;
+  }
+
+  /// Tell whether an entry's own `⋮` menu offers at least one entry — it is withheld
+  /// altogether while every one of them is.
+  bool _hasEntryMenu() =>
+      !isReadOnly && (onEntryEditRequested != null || onEntryDeletionRequested != null);
+}
+
+/// One row of the pinned pane, drawn as the widget its kind calls for.
+class _OcptCostTrackingIdentityRow extends StatelessWidget {
+  /// The cost tracking table whose selection and callbacks the row is wired to.
+  final OcptBudgetCostTracking costTracking;
+
+  /// The row to draw.
+  final OcptBudgetCostTrackingTreeRow row;
+
+  /// The width of the account column.
+  final double accountWidth;
+
+  /// Class constructor
+  const _OcptCostTrackingIdentityRow({
+    required this.costTracking,
+    required this.row,
+    required this.accountWidth,
+  });
+
+  /// Build the cost tracking identity row as the pane row its kind calls for.
+  @override
+  Widget build(BuildContext context) {
+    final row = this.row;
+    final accountWidth = this.accountWidth;
+
+    return switch (row) {
+      OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountIdentityRow(
+        account: row.account,
+        isSelected: costTracking._isAccountSelected(row.account.id),
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        onTap: () => costTracking.onAccountSelected(row.account.id),
+        onTwistyTap: () => costTracking.onNodeExpansionToggled(row.account.id),
+      ),
+      OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
+        depth: 1,
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isSelected: costTracking._isLineSelected(row.line.id),
+        isSmall: false,
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () => costTracking.onNodeExpansionToggled(row.line.id),
+        onTap: () => costTracking.onLineSelected(row.line.id),
+        builder: (context) {
+          final tr = Tr.of(context);
+          final label = row.line.label;
+          final isInKindCounterpart = row.line.inKindResourceId != null;
+          return OcptBudgetCostTrackingSubLabel(
+            label: label.isEmpty ? tr.budgetLineUnnamed : label,
+            isItalic: label.isEmpty,
+            badgeText: isInKindCounterpart ? tr.budgetCostTrackingInKindLineBadge : null,
+            badgeColor: isInKindCounterpart ? Theme.of(context).colorScheme.primary : null,
+          );
+        },
+      ),
+      OcptBudgetCostTrackingCommitmentTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
+        depth: row.depth,
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isSelected: costTracking._isCommitmentSelected(row.commitment.id),
+        isSmall: true,
+        isExpandable: row.isExpandable,
+        isExpanded: row.isExpanded,
+        onTwistyTap: row.isExpandable
+            ? () => costTracking.onNodeExpansionToggled(row.commitment.id)
+            : null,
+        onTap: () => costTracking.onCommitmentSelected(row.commitment.id),
+        builder: (context) {
+          final tr = Tr.of(context);
+          final isSettled = ocptBudgetCommitmentIsSettledOf(
+            row.commitment,
+            costTracking.entries,
+            projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
+          );
+          return OcptBudgetCostTrackingSubLabel(
+            label: row.commitment.label,
+            isMuted: true,
+            dotColor: isSettled
+                ? Theme.of(context).colorScheme.onSurfaceVariant
+                : ocptBudgetCommitmentStatusAccentColor(
+                    Theme.of(context).colorScheme,
+                    row.commitment.status,
+                  ),
+            badgeText: isSettled
+                ? tr.budgetCommittedStatusSettledLabel
+                : ocptBudgetCommitmentStatusLabel(tr, row.commitment.status),
+            badgeColor: isSettled
+                ? Theme.of(context).colorScheme.onSurfaceVariant
+                : ocptBudgetCommitmentStatusAccentColor(
+                    Theme.of(context).colorScheme,
+                    row.commitment.status,
+                  ),
+          );
+        },
+      ),
+      OcptBudgetCostTrackingCommitmentHintTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
+        depth: row.depth,
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isSelected: false,
+        isSmall: true,
+        isExpandable: false,
+        isExpanded: false,
+        onTwistyTap: null,
+        onTap: null,
+        builder: (context) => OcptBudgetCostTrackingSubLabel(
+          label: Tr.of(context).budgetCostTrackingNoEntryHint,
+          isMuted: true,
+          isItalic: true,
+        ),
+      ),
+      OcptBudgetCostTrackingEntryTreeRow() => OcptBudgetCostTrackingSubIdentityRow(
+        depth: row.depth,
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isSelected: costTracking._isEntrySelected(row.entry.id),
+        isSmall: true,
+        isExpandable: false,
+        isExpanded: false,
+        onTwistyTap: null,
+        onTap: () => costTracking.onEntrySelected(row.entry.id),
+        builder: (context) => OcptBudgetCostTrackingSubLabel(
+          label: row.entry.label,
+          isMuted: true,
+          dotColor: Theme.of(context).colorScheme.primary,
+          badgeText: row.entry.voucherNumber,
+          badgeColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteIdentityRow(
+        isSimplified: costTracking.isSimplified,
+        accountWidth: accountWidth,
+        isExpanded: row.isExpanded,
+        onTwistyTap: () =>
+            costTracking.onNodeExpansionToggled(ocptBudgetCostTrackingOffQuoteNodeId),
+      ),
+    };
+  }
+}
+
+/// One row of the scrolling pane, drawn as the widget its kind calls for.
+class _OcptCostTrackingAmountsRow extends StatelessWidget {
+  /// The cost tracking table whose selection and callbacks the row is wired to.
+  final OcptBudgetCostTracking costTracking;
+
+  /// The row to draw.
+  final OcptBudgetCostTrackingTreeRow row;
+
+  /// Class constructor
+  const _OcptCostTrackingAmountsRow({required this.costTracking, required this.row});
+
+  /// Build the cost tracking amounts row as the pane row its kind calls for.
+  @override
+  Widget build(BuildContext context) {
+    final row = this.row;
+
+    return switch (row) {
+      OcptBudgetCostTrackingAccountTreeRow() => OcptBudgetCostTrackingAccountAmountsRow(
+        account: row.account,
+        isSelected: costTracking._isAccountSelected(row.account.id),
+        taxBasis: costTracking.taxBasis,
+        defaultVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
+        currencyCode: costTracking.currencyCode,
+        paidCents: costTracking.paidByAccountId[row.account.id]?.amountCents ?? 0,
+        committedCents: costTracking.committedCentsOf(row.account.id),
+        inKindCoveredCents: costTracking.inKindCoveredCentsOf(row.account.id),
+        onTap: () => costTracking.onAccountSelected(row.account.id),
+        onRenameRequested: costTracking.isReadOnly
+            ? null
+            : () => costTracking.onAccountSelected(row.account.id),
+        onMoveUpRequested: costTracking.isReadOnly
+            ? null
+            : () => costTracking.onAccountReorderRequested?.call(row.account.id, moveUp: true),
+        onMoveDownRequested: costTracking.isReadOnly
+            ? null
+            : () => costTracking.onAccountReorderRequested?.call(row.account.id, moveUp: false),
+        onDeletionRequested: costTracking.isReadOnly
+            ? null
+            : () => costTracking.onAccountDeletionRequested?.call(row.account.id),
+        onFilterRequested: costTracking.onAccountFilterRequested == null
+            ? null
+            : () => costTracking.onAccountFilterRequested?.call(row.account.id),
+      ),
+      OcptBudgetCostTrackingLineTreeRow() => OcptBudgetCostTrackingLineAmountsRow(
+        line: row.line,
+        lineCommitments: row.lineCommitments,
+        entries: costTracking.entries,
+        taxBasis: costTracking.taxBasis,
+        defaultVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
+        currencyCode: costTracking.currencyCode,
+        isSelected: costTracking._isLineSelected(row.line.id),
+        onTap: () => costTracking.onLineSelected(row.line.id),
+      ),
+      OcptBudgetCostTrackingCommitmentTreeRow() => _OcptCostTrackingCommitmentAmountsRow(
+        costTracking: costTracking,
+        commitment: row.commitment,
+      ),
+      OcptBudgetCostTrackingCommitmentHintTreeRow() => const OcptBudgetCostTrackingSubAmountsRow(
+        isSelected: false,
+        onTap: null,
+        activeColumnIndex: null,
+        activeCents: null,
+        currencyCode: "",
+        menuBuilder: null,
+      ),
+      OcptBudgetCostTrackingEntryTreeRow() => OcptBudgetCostTrackingSubAmountsRow(
+        isSelected: costTracking._isEntrySelected(row.entry.id),
+        onTap: () => costTracking.onEntrySelected(row.entry.id),
+        activeColumnIndex: 2,
+        activeCents: ocptBudgetEntryDebitCentsOf(
+          row.entry,
+          projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
+        ),
+        currencyCode: costTracking.currencyCode,
+        menuBuilder: (context) => costTracking._hasEntryMenu()
+            ? _OcptCostTrackingEntryMenu(costTracking: costTracking, entry: row.entry)
+            : null,
+      ),
+      OcptBudgetCostTrackingOffQuoteTreeRow() => OcptBudgetCostTrackingOffQuoteAmountsRow(
+        offQuoteTotal: costTracking.offQuoteTotal,
+        currencyCode: costTracking.currencyCode,
+      ),
+    };
+  }
+}
+
+/// A commitment's own amounts sub-row: its cash figure in `Engagé` while unsettled, what has been paid against it in `Payé` once it is, read off the table's entries.
+class _OcptCostTrackingCommitmentAmountsRow extends StatelessWidget {
+  /// The cost tracking table whose entries and callbacks the row reads.
+  final OcptBudgetCostTracking costTracking;
+
+  /// The commitment the row shows.
+  final OcptBudgetCommitment commitment;
+
+  /// Class constructor
+  const _OcptCostTrackingCommitmentAmountsRow({
+    required this.costTracking,
+    required this.commitment,
+  });
+
+  /// Build the cost tracking commitment amounts row as an [OcptBudgetCostTrackingSubAmountsRow].
+  @override
+  Widget build(BuildContext context) {
+    final commitment = this.commitment;
+
+    final isSettled = ocptBudgetCommitmentIsSettledOf(
+      commitment,
+      costTracking.entries,
+      projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
     );
     final activeCents = isSettled
         ? ocptBudgetCommitmentPaidCentsOf(
             commitment,
-            entries,
-            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+            costTracking.entries,
+            projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
           ).amountCents
         : ocptBudgetCommitmentCashCentsOf(
             commitment,
-            projectVatRateBasisPoints: defaultVatRateBasisPoints,
+            projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
           );
 
     return OcptBudgetCostTrackingSubAmountsRow(
-      isSelected: _isCommitmentSelected(commitment.id),
-      onTap: () => onCommitmentSelected(commitment.id),
+      isSelected: costTracking._isCommitmentSelected(commitment.id),
+      onTap: () => costTracking.onCommitmentSelected(commitment.id),
       activeColumnIndex: isSettled ? 2 : 1,
       activeCents: activeCents,
-      currencyCode: currencyCode,
-      menuBuilder: (context) => _commitmentMenuOf(context, commitment),
+      currencyCode: costTracking.currencyCode,
+      menuBuilder: (context) => costTracking._hasCommitmentMenu(commitment)
+          ? _OcptCostTrackingCommitmentMenu(costTracking: costTracking, commitment: commitment)
+          : null,
     );
   }
+}
 
-  /// Build [commitment]'s own `⋮` menu, or null while every one of its own entries is withheld —
-  /// see the
-  /// class doc comment.
-  Widget? _commitmentMenuOf(BuildContext context, OcptBudgetCommitment commitment) {
+/// A commitment's own `⋮` menu: edit, settle or unsettle, delete — each entry withheld on its own
+/// terms (see [OcptBudgetCostTracking]'s class doc comment).
+class _OcptCostTrackingCommitmentMenu extends StatelessWidget {
+  /// The cost tracking table whose callbacks and entries the menu is wired to.
+  final OcptBudgetCostTracking costTracking;
+
+  /// The commitment the menu acts on.
+  final OcptBudgetCommitment commitment;
+
+  /// Class constructor
+  const _OcptCostTrackingCommitmentMenu({required this.costTracking, required this.commitment});
+
+  /// Build the commitment menu as a [PopupMenuButton].
+  @override
+  Widget build(BuildContext context) {
     final isSettled = ocptBudgetCommitmentIsSettledOf(
       commitment,
-      entries,
-      projectVatRateBasisPoints: defaultVatRateBasisPoints,
+      costTracking.entries,
+      projectVatRateBasisPoints: costTracking.defaultVatRateBasisPoints,
     );
-    final onEdit = isReadOnly ? null : onCommitmentEditRequested;
-    final onSettle = isReadOnly || isSettled ? null : onCommitmentSettleRequested;
-    final onUnsettle = isReadOnly || !isSettled ? null : onCommitmentUnsettleRequested;
-    final onDelete = isReadOnly ? null : onCommitmentDeletionRequested;
-    if (onEdit == null && onSettle == null && onUnsettle == null && onDelete == null) {
-      return null;
-    }
-
+    final isReadOnly = costTracking.isReadOnly;
+    final onEdit = isReadOnly ? null : costTracking.onCommitmentEditRequested;
+    final onSettle = isReadOnly || isSettled ? null : costTracking.onCommitmentSettleRequested;
+    final onUnsettle = isReadOnly || !isSettled ? null : costTracking.onCommitmentUnsettleRequested;
+    final onDelete = isReadOnly ? null : costTracking.onCommitmentDeletionRequested;
     final tr = Tr.of(context);
+
     return PopupMenuButton<String>(
       tooltip: "",
       icon: const Icon(Icons.more_vert, size: 18),
@@ -897,16 +998,27 @@ class OcptBudgetCostTracking extends StatelessWidget {
       ],
     );
   }
+}
 
-  /// Build [entry]'s own `⋮` menu, or null while every one of its own entries is withheld.
-  Widget? _entryMenuOf(BuildContext context, OcptBudgetEntry entry) {
-    final onEdit = isReadOnly ? null : onEntryEditRequested;
-    final onDelete = isReadOnly ? null : onEntryDeletionRequested;
-    if (onEdit == null && onDelete == null) {
-      return null;
-    }
+/// An entry's own `⋮` menu: edit and delete, each withheld while its callback is.
+class _OcptCostTrackingEntryMenu extends StatelessWidget {
+  /// The cost tracking table whose callbacks the menu is wired to.
+  final OcptBudgetCostTracking costTracking;
 
+  /// The entry the menu acts on.
+  final OcptBudgetEntry entry;
+
+  /// Class constructor
+  const _OcptCostTrackingEntryMenu({required this.costTracking, required this.entry});
+
+  /// Build the entry menu as a [PopupMenuButton].
+  @override
+  Widget build(BuildContext context) {
+    final isReadOnly = costTracking.isReadOnly;
+    final onEdit = isReadOnly ? null : costTracking.onEntryEditRequested;
+    final onDelete = isReadOnly ? null : costTracking.onEntryDeletionRequested;
     final tr = Tr.of(context);
+
     return PopupMenuButton<String>(
       tooltip: "",
       icon: const Icon(Icons.more_vert, size: 18),

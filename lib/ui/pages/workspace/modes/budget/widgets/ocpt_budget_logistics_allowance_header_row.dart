@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/generated/l10n.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_logistics_metrics.dart';
 
 /// The defrayal table's own header row: `Person`, `Advanced`, `Reimbursed`, `Owed`.
@@ -26,24 +27,24 @@ class OcptBudgetLogisticsAllowanceHeaderRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(tr.budgetLogisticsColumnPerson.toUpperCase(), style: labelStyle)),
-          _amountHeaderCell(tr.budgetLogisticsColumnAdvanced, labelStyle),
-          _amountHeaderCell(tr.budgetLogisticsColumnReimbursed, labelStyle),
-          _amountHeaderCell(tr.budgetLogisticsColumnOwed, labelStyle),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            text: tr.budgetLogisticsColumnAdvanced.toUpperCase(),
+            style: labelStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            text: tr.budgetLogisticsColumnReimbursed.toUpperCase(),
+            style: labelStyle,
+          ),
+          OcptBudgetAmountCell(
+            width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
+            text: tr.budgetLogisticsColumnOwed.toUpperCase(),
+            style: labelStyle,
+          ),
           const SizedBox(width: ocptBudgetLogisticsAllowanceMenuColumnWidth),
         ],
       ),
     );
   }
-
-  /// Build one amount column's own header cell, right-aligned like the figures underneath it.
-  Widget _amountHeaderCell(String label, TextStyle? style) => SizedBox(
-    width: ocptBudgetLogisticsAllowanceAmountColumnWidth,
-    child: Text(
-      label.toUpperCase(),
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: style,
-    ),
-  );
 }

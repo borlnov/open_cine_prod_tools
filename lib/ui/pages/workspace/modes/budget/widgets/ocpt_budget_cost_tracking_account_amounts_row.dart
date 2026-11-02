@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_totals.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_amount_cell.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_identity_row.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_quote_cell.dart';
@@ -85,6 +86,7 @@ class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
   /// Build the budget cost tracking account amounts row as an [InkWell].
   @override
   Widget build(BuildContext context) {
+    final cellStyle = Theme.of(context).textTheme.bodySmall;
     final theme = Theme.of(context);
     final tr = Tr.of(context);
     final quoted = ocptBudgetTotalOf(
@@ -139,8 +141,16 @@ class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
-              _amountCell(context, ocptBudgetAmountLabel(committedCents, currencyCode)),
-              _amountCell(context, ocptBudgetAmountLabel(paidCents, currencyCode)),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(committedCents, currencyCode),
+                style: cellStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(paidCents, currencyCode),
+                style: cellStyle,
+              ),
               SizedBox(
                 width: ocptBudgetCostTrackingAmountColumnWidth,
                 child: OcptBudgetCostTrackingRemainingCell(
@@ -154,10 +164,14 @@ class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
-              _amountCell(context, ocptBudgetAmountLabel(finalCostCents, currencyCode)),
-              _amountCell(
-                context,
-                ocptBudgetAmountLabel(
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(finalCostCents, currencyCode),
+                style: cellStyle,
+              ),
+              OcptBudgetAmountCell(
+                width: ocptBudgetCostTrackingAmountColumnWidth,
+                text: ocptBudgetAmountLabel(
                   ocptBudgetVarianceCents(
                     quotedAmountCents: quoted.amountCents,
                     paidCents: paidCents,
@@ -166,6 +180,7 @@ class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
                   ),
                   currencyCode,
                 ),
+                style: cellStyle,
               ),
               SizedBox(
                 width: ocptBudgetCostTrackingMenuColumnWidth,
@@ -222,16 +237,4 @@ class OcptBudgetCostTrackingAccountAmountsRow extends StatelessWidget {
       ),
     );
   }
-
-  /// Build one amount cell, right-aligned.
-  Widget _amountCell(BuildContext context, String text) => SizedBox(
-    width: ocptBudgetCostTrackingAmountColumnWidth,
-    child: Text(
-      text,
-      textAlign: TextAlign.right,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.bodySmall,
-    ),
-  );
 }
