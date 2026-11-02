@@ -425,7 +425,7 @@ class OcptHostingBloc extends BlocForMixin<OcptHostingState>
         level: OcptDiagnosticsLevel.warning,
         message:
             'join QR unavailable: no project token to build the invite '
-            '(hostedProjectId=${hostedProjectId ?? "none"}) — the "Envoyer le projet" QR is blank',
+            '(hostedProjectId=${hostedProjectId ?? "none"}) — the join QR is blank',
       );
     } else {
       OcptDiagnosticsManager.log(
