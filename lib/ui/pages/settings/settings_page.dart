@@ -2,25 +2,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_intl_ui/act_intl_ui.dart';
-import 'package:act_themes_manager/act_themes_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
-import 'package:open_cine_prod_tools/types/ocpt_first_weekday.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/settings_event.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/settings_state.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_appearance_section.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_calendar_section.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_language_section.dart';
-
-/// The maximum width of the settings page's content, keeping the section cards readable on a
-/// wide desktop window.
-const _maxContentWidth = 720.0;
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_view.dart';
 
 /// Display the application settings: appearance (brightness), language, calendar, and an about
 /// section.
@@ -32,74 +17,4 @@ class OcptSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       BlocProvider(create: (context) => OcptSettingsBloc(), child: const OcptSettingsView());
-}
-
-/// The content of [OcptSettingsPage], separated from it so [OcptSettingsPage] only wires the
-/// [OcptSettingsBloc] up.
-///
-/// Unlike sibling pages' private `_XxxView`, this one is public: it lets widget tests pump it
-/// directly with a `BlocProvider.value` wrapping an [OcptSettingsBloc] built with an injected
-/// version, instead of going through [OcptSettingsPage] (whose default `OcptSettingsBloc()` would
-/// otherwise resolve the real, unmocked `PackageInfo.fromPlatform()`).
-class OcptSettingsView extends StatelessWidget {
-  /// Class constructor
-  const OcptSettingsView({super.key});
-
-  /// Build the settings view as a [Scaffold].
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      leading: BackButton(onPressed: () => globalGetIt().get<OcptRouterManager>().pop()),
-      title: Text(Tr.of(context).settingsPageTitle),
-    ),
-    body: BlocBuilder<OcptSettingsBloc, OcptSettingsState>(
-      builder: (context, state) => Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                OcptSettingsAppearanceSection(
-                  brightness: state.brightness,
-                  onBrightnessChanged: (brightness) => _onBrightnessChanged(context, brightness),
-                ),
-                const SizedBox(height: 16),
-                OcptSettingsLanguageSection(
-                  wantedLocale: state.wantedLocale,
-                  onLocaleChanged: (locale) => _onLocaleChanged(context, locale),
-                ),
-                const SizedBox(height: 16),
-                OcptSettingsCalendarSection(
-                  firstWeekday: state.firstWeekday,
-                  onFirstWeekdayChanged: (firstWeekday) =>
-                      _onFirstWeekdayChanged(context, firstWeekday),
-                ),
-                const SizedBox(height: 16),
-                OcptSettingsAboutSection(appVersion: state.appVersion),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-
-  /// Dispatch the event that updates the app-wide brightness preference.
-  void _onBrightnessChanged(BuildContext context, Brightness? brightness) {
-    context.read<OcptSettingsBloc>().add(AskToUpdateBrightnessEvent(newBrightness: brightness));
-  }
-
-  /// Dispatch the event that updates the app-wide wanted locale.
-  void _onLocaleChanged(BuildContext context, Locale? locale) {
-    context.read<OcptSettingsBloc>().add(NewLocaleWantedByUserEvent(wantedLocale: locale));
-  }
-
-  /// Dispatch the event that stores the app-wide day a week starts on.
-  void _onFirstWeekdayChanged(BuildContext context, OcptFirstWeekday firstWeekday) {
-    context.read<OcptSettingsBloc>().add(
-      OcptSettingsFirstWeekdayChangedEvent(firstWeekday: firstWeekday),
-    );
-  }
 }

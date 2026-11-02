@@ -29,7 +29,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_project_pairing
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/sharing/sharing_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/sharing/widgets/ocpt_sharing_invite_view.dart';
 import 'package:path/path.dart' as p;

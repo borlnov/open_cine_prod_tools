@@ -32,7 +32,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_sync_flow_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/repointing/repointing_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_configure_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/repointing/widgets/ocpt_repointing_qr_view.dart';
 import 'package:path/path.dart' as p;

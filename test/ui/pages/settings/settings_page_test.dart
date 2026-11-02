@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/types/ocpt_app_theme.dart';
 import 'package:open_cine_prod_tools/types/ocpt_route.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/settings_bloc.dart';
-import 'package:open_cine_prod_tools/ui/pages/settings/settings_page.dart';
+import 'package:open_cine_prod_tools/ui/pages/settings/settings_view.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_about_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_appearance_section.dart';
 import 'package:open_cine_prod_tools/ui/pages/settings/widgets/ocpt_settings_calendar_section.dart';
