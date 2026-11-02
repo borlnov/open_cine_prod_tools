@@ -194,13 +194,20 @@ class OcptChangesetService extends AbsOcptService {
     var highestSequence = cursor;
     final conflicts = <OcptScreenplayMergeConflict>[];
     for (final entry in stored) {
-      conflicts.addAll(
-        await mergeService.applyChangeset(
-          fileDatabase: database,
-          changeset: OcptChangeset.decode(entry.envelope.payload),
-        ),
+      final applied = await mergeService.applyChangeset(
+        fileDatabase: database,
+        changeset: OcptChangeset.decode(entry.envelope.payload),
       );
+      final appliedConflicts = applied.value;
+      if (applied.isError || appliedConflicts == null) {
+        // The cursor stays where it was, so the next pull reads this changeset again.
+        return ResultWithStatus(
+          status: OcptRemoteStorageStatus.unreachable,
+          extraInfo: applied.extraInfo,
+        );
+      }
 
+      conflicts.addAll(appliedConflicts);
       if (entry.sequenceNumber > highestSequence) {
         highestSequence = entry.sequenceNumber;
       }

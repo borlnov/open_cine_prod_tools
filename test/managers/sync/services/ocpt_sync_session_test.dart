@@ -15,6 +15,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_sync_session.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
@@ -167,6 +168,9 @@ class _FakeChangesetService extends OcptChangesetService {
     if (outcome is _DatabaseFailure) {
       throw outcome.error;
     }
+    if (outcome is OcptSyncMergeFailure) {
+      return ResultWithStatus(status: OcptRemoteStorageStatus.unreachable, extraInfo: outcome);
+    }
 
     return ResultWithStatus(
       status: OcptRemoteStorageStatus.unreachable,
@@ -317,6 +321,15 @@ void main() {
 
     expect(session.status, const OcptSyncStatusOffline(pendingEditCount: 3));
     expect(changesetService.countUnpushedEditsCalls, 1);
+  });
+
+  test('a changeset that cannot be merged moves the status to offline too', () async {
+    changesetService.unpushedEditCount = 1;
+    changesetService.syncOnceOutcomes.add(OcptSyncMergeFailure(error: StateError('unknown table')));
+
+    await session.start();
+
+    expect(session.status, const OcptSyncStatusOffline(pendingEditCount: 1));
   });
 
   test('the database failing under a run moves the status to offline too', () async {

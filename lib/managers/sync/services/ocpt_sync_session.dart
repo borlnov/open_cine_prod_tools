@@ -13,6 +13,7 @@ import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_servi
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_status.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_diagnostics_category.dart';
@@ -241,6 +242,11 @@ class OcptSyncSession extends AbsOcptService {
     }
 
     if (detail is OcptSyncTransportFailure) {
+      await _goOffline(detail.error, detail.stackTrace, failureLabel: failureLabel);
+      return;
+    }
+
+    if (detail is OcptSyncMergeFailure) {
       await _goOffline(detail.error, detail.stackTrace, failureLabel: failureLabel);
       return;
     }

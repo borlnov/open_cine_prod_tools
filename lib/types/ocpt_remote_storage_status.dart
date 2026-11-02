@@ -18,7 +18,8 @@ enum OcptRemoteStorageStatus with MixinResultStatus {
   rejected(isSuccess: false, canBeRetried: false),
 
   /// The transport itself failed (no network, a file that cannot be read, an answer that cannot be
-  /// decoded); the `extraInfo` is an `OcptSyncTransportFailure`.
+  /// decoded); the `extraInfo` is an `OcptSyncTransportFailure`. A pull whose changeset could not be
+  /// merged answers it too, its `extraInfo` an `OcptSyncMergeFailure`.
   unreachable(isSuccess: false, canBeRetried: false);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}

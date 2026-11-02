@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
@@ -13,6 +14,24 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_synchronised_tables.dart'
 import 'package:open_cine_prod_tools/models/sync/ocpt_changeset.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_screenplay_merge_conflict.dart';
+import 'package:open_cine_prod_tools/models/sync/ocpt_sync_merge_failure.dart';
+import 'package:open_cine_prod_tools/types/ocpt_merge_status.dart';
+
+/// Thrown inside [OcptMergeService.applyChangeset]'s transaction when the changeset names a table
+/// or a column this replica does not know, so the transaction rolls back what the changeset had
+/// already applied; caught by the same method, which answers it as a status. It never leaves the
+/// service.
+class _OcptMergeRefusal implements Exception {
+  /// Which of the two the changeset got wrong.
+  final OcptMergeStatus status;
+
+  /// Why, as the sync session quotes it when it goes offline.
+  final OcptSyncMergeFailure failure;
+
+  /// Class constructor
+  _OcptMergeRefusal({required this.status, required String message})
+    : failure = OcptSyncMergeFailure(error: StateError(message), stackTrace: StackTrace.current);
+}
 
 /// Apply an incoming [OcptChangeset] to a project's own file, per column: the **inbound** half of
 /// the changeset engine (`docs/architecture/sync.md`), and the one that actually makes two replicas
@@ -74,12 +93,17 @@ class OcptMergeService extends AbsOcptService {
   /// `OcptProjectVersionsService.restoreVersion` already defers the same way — and return every
   /// [OcptScreenplayMergeConflict] a screenplay text merge raised along the way, for the caller to
   /// record (this service only collects them; it never resolves one).
-  Future<List<OcptScreenplayMergeConflict>> applyChangeset({
+  ///
+  /// A changeset naming a table or a column this replica does not know is refused whole: the
+  /// transaction rolls back and the answer is [OcptMergeStatus.unknownTable] or
+  /// [OcptMergeStatus.unknownColumn], its `extraInfo` an [OcptSyncMergeFailure]. A failure of the
+  /// database itself still raises.
+  Future<ResultWithStatus<OcptMergeStatus, List<OcptScreenplayMergeConflict>>> applyChangeset({
     required OcptProjectDatabase fileDatabase,
     required OcptChangeset changeset,
   }) async {
     if (changeset.fieldStamps.isEmpty) {
-      return const [];
+      return const ResultWithStatus(status: OcptMergeStatus.ok, value: []);
     }
 
     final tablesByName = {
@@ -91,36 +115,60 @@ class OcptMergeService extends AbsOcptService {
       grouped.putIfAbsent((stamp.tableName, stamp.rowId), () => []).add(stamp);
     }
 
-    return fileDatabase.transaction(() async {
-      await fileDatabase.customStatement('PRAGMA defer_foreign_keys = ON');
+    ResultWithStatus<OcptMergeStatus, List<OcptScreenplayMergeConflict>> result;
+    try {
+      final conflicts = await _applyGroups(
+        fileDatabase: fileDatabase,
+        grouped: grouped,
+        tablesByName: tablesByName,
+      );
+      result = ResultWithStatus(status: OcptMergeStatus.ok, value: conflicts);
+    } on _OcptMergeRefusal catch (refusal) {
+      result = ResultWithStatus(status: refusal.status, extraInfo: refusal.failure);
+    }
 
-      final conflicts = <OcptScreenplayMergeConflict>[];
+    return result;
+  }
 
-      for (final MapEntry(key: (tableName, rowId), value: incomingStamps) in grouped.entries) {
-        final table = tablesByName[tableName];
-        if (table == null) {
-          // Every stamp inside a changeset was itself built off `ocptSynchronisedTables`
-          // (`OcptChangesetService.pushLocalEdits`), so this means the sender and this replica
-          // disagree about which tables are synchronised — a protocol-level bug worth failing
-          // loudly on rather than silently dropping the edit.
-          logger.e("An incoming changeset names table '$tableName', unknown to this replica");
-          throw StateError("Table '$tableName' is not part of the synchronised table set");
-        }
+  /// Apply every group of [grouped] to [fileDatabase] in one transaction, and give the conflicts a
+  /// screenplay text merge raised. Throws [_OcptMergeRefusal] when a group names an unknown table
+  /// or column, which rolls the transaction back.
+  Future<List<OcptScreenplayMergeConflict>> _applyGroups({
+    required OcptProjectDatabase fileDatabase,
+    required Map<(String tableName, String rowId), List<OcptFieldStamp>> grouped,
+    required Map<String, TableInfo<Table, Object?>> tablesByName,
+  }) => fileDatabase.transaction(() async {
+    await fileDatabase.customStatement('PRAGMA defer_foreign_keys = ON');
 
-        final conflict = await _applyRowGroup(
-          database: fileDatabase,
-          table: table,
-          rowId: rowId,
-          incoming: incomingStamps,
+    final conflicts = <OcptScreenplayMergeConflict>[];
+
+    for (final MapEntry(key: (tableName, rowId), value: incomingStamps) in grouped.entries) {
+      final table = tablesByName[tableName];
+      if (table == null) {
+        // Every stamp inside a changeset was itself built off `ocptSynchronisedTables`
+        // (`OcptChangesetService.pushLocalEdits`), so this means the sender and this replica
+        // disagree about which tables are synchronised — a protocol-level bug worth failing
+        // loudly on rather than silently dropping the edit.
+        logger.e("An incoming changeset names table '$tableName', unknown to this replica");
+        throw _OcptMergeRefusal(
+          status: OcptMergeStatus.unknownTable,
+          message: "Table '$tableName' is not part of the synchronised table set",
         );
-        if (conflict != null) {
-          conflicts.add(conflict);
-        }
       }
 
-      return conflicts;
-    });
-  }
+      final conflict = await _applyRowGroup(
+        database: fileDatabase,
+        table: table,
+        rowId: rowId,
+        incoming: incomingStamps,
+      );
+      if (conflict != null) {
+        conflicts.add(conflict);
+      }
+    }
+
+    return conflicts;
+  });
 
   /// Apply every incoming stamp of one `(tableName, rowId)` group: separates a `screenplays`
   /// row's `fountainText` stamp out first, when [screenplayMergeService] is configured — that
@@ -216,10 +264,12 @@ class OcptMergeService extends AbsOcptService {
         // (`OcptChangesetService.pushLocalEdits`), so this would mean the sender and this
         // replica's own schema have drifted apart — a bug worth failing loudly on rather than
         // silently dropping the edit.
-        throw StateError(
-          "An incoming changeset stamps column '${winner.columnName}' of "
-          "'${table.actualTableName}', "
-          "which no column of that table maps to",
+        throw _OcptMergeRefusal(
+          status: OcptMergeStatus.unknownColumn,
+          message:
+              "An incoming changeset stamps column '${winner.columnName}' of "
+              "'${table.actualTableName}', "
+              "which no column of that table maps to",
         );
       }
 

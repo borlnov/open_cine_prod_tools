@@ -24,6 +24,8 @@ import 'package:open_cine_prod_tools/models/sync/ocpt_field_stamp.dart';
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 
+import '../../../ocpt_result_expectations.dart';
+
 /// Two replicas of the same project, both reading and writing through one shared
 /// [OcptFolderRemoteStorage] — exactly the setup the changeset engine's convergence tests need,
 /// exercised here through [OcptChangesetService]'s outbound and inbound halves together.
@@ -527,7 +529,7 @@ void main() {
 
       await const OcptMergeService(
         logger: SilentLogger(),
-      ).applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset);
+      ).applyChangeset(fileDatabase: model.fileDatabase, changeset: changeset).okOrFail;
 
       Future<String> nameOn(OcptProjectDatabase database) async => (await (database.select(
         database.ocptLocationsTable,
