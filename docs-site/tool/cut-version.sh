@@ -22,16 +22,16 @@
 set -euo pipefail
 
 if [[ ${#} -ne 1 ]]; then
-  echo "usage: $(basename "${0}") <X.Y.Z>" >&2
-  exit 2
+    echo "usage: $(basename "${0}") <X.Y.Z>" >&2
+    exit 2
 fi
 
 VERSION="${1}"
 readonly VERSION
 
 if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "error: '${VERSION}' is not a X.Y.Z version number (no leading 'v')." >&2
-  exit 2
+    echo "error: '${VERSION}' is not a X.Y.Z version number (no leading 'v')." >&2
+    exit 2
 fi
 
 # Resolve the site directory from this script's own location, so the command works from any cwd.
@@ -48,14 +48,14 @@ readonly FR_VERSIONED
 
 # Refuse to run over a dirty site tree: the cut must be a clean, reviewable diff on its own.
 if [[ -n "$(git status --porcelain -- "${SITE_DIR}")" ]]; then
-  echo "error: the docs-site working tree is dirty; commit or stash first." >&2
-  exit 1
+    echo "error: the docs-site working tree is dirty; commit or stash first." >&2
+    exit 1
 fi
 
 # Refuse to overwrite a version that already exists.
 if [[ -d "versioned_docs/version-${VERSION}" || -d "${FR_VERSIONED}" ]]; then
-  echo "error: version ${VERSION} already has a snapshot; nothing to do." >&2
-  exit 1
+    echo "error: version ${VERSION} already has a snapshot; nothing to do." >&2
+    exit 1
 fi
 
 echo "Cutting guide version ${VERSION} ..."

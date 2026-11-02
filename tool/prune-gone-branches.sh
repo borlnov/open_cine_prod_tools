@@ -18,7 +18,8 @@ set -euo pipefail
 git fetch -p
 
 # refname | upstream-track | worktreepath  (worktreepath empty unless checked out in a worktree)
-mapfile -t GONE < <(git for-each-ref --format '%(refname:short)|%(upstream:track)|%(worktreepath)' refs/heads \
+FORMAT='%(refname:short)|%(upstream:track)|%(worktreepath)'
+mapfile -t GONE < <(git for-each-ref --format "${FORMAT}" refs/heads \
                     | awk -F'|' '$2=="[gone]"{print $1"|"$3}')
 readonly GONE
 
