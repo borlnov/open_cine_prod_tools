@@ -4,10 +4,10 @@
 
 import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:open_cine_prod_tools/models/ocpt_scene_prop_summary.dart';
+import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
-import 'package:open_cine_prod_tools/types/ocpt_shot_list_pending_edit_key.dart';
 
 /// The state of `OcptShotListFloorPlanSetsBloc`: what the floor plans' set tabs, tray and palette
 /// hold of their own.

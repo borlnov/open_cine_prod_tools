@@ -174,7 +174,7 @@ sit.
   once, for the folder-batch exports — to `OcptShareService` (`lib/managers/export/services/`, a
   thin `share_plus` wrapper reached through the manager rather than `globalGetIt()`, so a test can
   replace it exactly as `OcptSaveLocationService` already is). Every export method now returns a
-  sealed `OcptExportOutcome` (`lib/types/`) — `OcptExportSaved(path)` or `OcptExportShared()` —
+  sealed `OcptExportOutcome` (`lib/models/`) — `OcptExportSaved(path)` or `OcptExportShared()` —
   rather than a nullable path, since a null return still means "cancelled or failed" but a
   successful one no longer always names a path; the success notice degrades accordingly, from
   "saved to `<path>`" on desktop to "Shared" on mobile, each mode's `IoNotice` carrying a

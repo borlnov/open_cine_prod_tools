@@ -12,6 +12,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_entry.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_resource.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_revenue.dart';
+import 'package:open_cine_prod_tools/models/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_share.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_element.dart';
@@ -33,7 +34,6 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_repayment_line.dar
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_share_split.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_sharing_pot.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_right_dock_tab.dart';
-import 'package:open_cine_prod_tools/types/ocpt_budget_selection.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_selection_cause.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';

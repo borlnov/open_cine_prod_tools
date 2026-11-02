@@ -64,7 +64,7 @@ tables and the version codec pin on purpose.
   credits included, in one chronological table. `OcptBudgetCashJournal`, the widget that draws it,
   moved home but kept its shape — only what used to open above the table changed (see "The journal
   scrolls rather than losing a column" below).
-- **Selection grew a type.** `OcptBudgetSelection` (`lib/types/`), a sealed class with one `final`
+- **Selection grew a type.** `OcptBudgetSelection` (`lib/models/`), a sealed class with one `final`
   variant per kind of row the detail panel can show — account, quote line, commitment, entry,
   resource, revenue, receipt — replaces what used to be several independent id fields
   (`selectedAccountId`/`selectedResourceId`/…): a detail panel able to show any one object can only
