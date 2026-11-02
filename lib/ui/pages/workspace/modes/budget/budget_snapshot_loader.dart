@@ -98,10 +98,10 @@ class OcptBudgetSnapshotLoader {
   /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   ///
-  /// Answers the failure of the schedule read, in place of the whole read: it is the only read
-  /// that answers a result so far. The others still raise when the database fails, and the caller
-  /// catches what they raise. This sentence changes as the other services convert, each read then
-  /// answering its failure in the same way.
+  /// Answers the failure of the schedule read and of the defrayals read, in place of the whole
+  /// read: they are the only reads that answer a result so far. The others still raise when the
+  /// database fails, and the caller catches what they raise. This sentence changes as the other
+  /// services convert, each read then answering its failure in the same way.
   @useResult
   Future<OcptDatabaseResult<OcptBudgetRead>> load(OcptOpenProjectModel project) async {
     final database = project.database;
@@ -127,7 +127,12 @@ class OcptBudgetSnapshotLoader {
     final elements = await _elementsService.loadElements(database: database);
     final locations = await _locationsService.loadLocations(database: database);
     final mileageRates = await _budgetFinancingService.loadMileageRates(database: database);
-    final allowances = await _budgetAllowancesService.loadAllowances(database: database);
+    final allowancesRead = await _budgetAllowancesService.loadAllowances(database: database);
+    if (allowancesRead.isError) {
+      return OcptDatabaseResult(status: allowancesRead.status, extraInfo: allowancesRead.extraInfo);
+    }
+
+    final allowances = allowancesRead.value!;
     final mealPriceCents = await _projectsManager.loadCurrentProjectMealPriceCents();
     // `project_info.snackPriceCents` under its user-facing name — the column keeps the schema's
     // own name, but what it prices is the buffet, never a snack in the trade's own words.

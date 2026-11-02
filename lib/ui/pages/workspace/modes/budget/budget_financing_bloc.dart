@@ -255,7 +255,7 @@ class OcptBudgetFinancingBloc
     }
 
     final fields = event.fields;
-    await _budgetAllowancesService.createAllowance(
+    final created = await _budgetAllowancesService.createAllowance(
       database: project.database,
       personId: fields.personId,
       kind: fields.kind,
@@ -266,6 +266,10 @@ class OcptBudgetFinancingBloc
       unitAmountMilliCents: fields.unitAmountMilliCents,
       notes: fields.notes,
     );
+    if (created.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -280,7 +284,7 @@ class OcptBudgetFinancingBloc
     }
 
     final fields = event.fields;
-    await _budgetAllowancesService.updateAllowance(
+    final updated = await _budgetAllowancesService.updateAllowance(
       database: project.database,
       allowanceId: event.allowanceId,
       personId: Value(fields.personId),
@@ -292,6 +296,10 @@ class OcptBudgetFinancingBloc
       unitAmountMilliCents: Value(fields.unitAmountMilliCents),
       notes: Value(fields.notes),
     );
+    if (updated.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
@@ -306,10 +314,14 @@ class OcptBudgetFinancingBloc
       return;
     }
 
-    await _budgetAllowancesService.deleteAllowance(
+    final deleted = await _budgetAllowancesService.deleteAllowance(
       database: project.database,
       allowanceId: event.allowanceId,
     );
+    if (deleted.isError) {
+      return;
+    }
+
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 

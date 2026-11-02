@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'budget_mode_test_doubles.dart';
 
 /// Run the tests of the budget mode inspector and help.
@@ -364,17 +365,19 @@ void main() {
       // The défraiements section draws nothing at all while the logistics holds neither a shooting
       // day nor a defrayal yet: one is seeded so the section itself is on screen.
       final project = projectsManager.currentProject!;
-      await projectsManager.budgetAllowancesService.createAllowance(
-        database: project.database,
-        personId: null,
-        kind: OcptBudgetAllowanceKind.other,
-        label: "Taxi",
-        date: DateTime(2026, 3),
-        endDate: null,
-        quantityMilli: 1000,
-        unitAmountMilliCents: 2000000,
-        notes: "",
-      );
+      await projectsManager.budgetAllowancesService
+          .createAllowance(
+            database: project.database,
+            personId: null,
+            kind: OcptBudgetAllowanceKind.other,
+            label: "Taxi",
+            date: DateTime(2026, 3),
+            endDate: null,
+            quantityMilli: 1000,
+            unitAmountMilliCents: 2000000,
+            notes: "",
+          )
+          .maybeValueOrFail;
 
       await tester.pumpWidget(wrapWithLocalization(const OcptBudgetMode()));
       await tester.pumpAndSettle();

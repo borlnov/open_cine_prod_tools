@@ -50,6 +50,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [BudgetScenarioHarness.wrap] mounts, so [BudgetScenarioRouterManager.pop] closes
 /// a dialog opened through `showDialog` exactly as the real router would.
@@ -532,7 +533,7 @@ class BudgetScenarioHarness {
 
   /// Reads the live defrayals back from the database.
   Future<List<OcptBudgetAllowance>> readAllowances() =>
-      projectsManager.budgetAllowancesService.loadAllowances(database: database);
+      projectsManager.budgetAllowancesService.loadAllowances(database: database).valueOrFail;
 
   /// Creates an account called [label], returning the id.
   Future<String> seedAccount(String label) async {
@@ -636,17 +637,19 @@ class BudgetScenarioHarness {
 
   /// Creates a free-standing defrayal called [label], returning the id.
   Future<String> seedAllowance(String label, {int quantityMilli = 2000}) async {
-    final id = await projectsManager.budgetAllowancesService.createAllowance(
-      database: database,
-      personId: null,
-      kind: OcptBudgetAllowanceKind.values.first,
-      label: label,
-      date: DateTime(2026),
-      endDate: null,
-      quantityMilli: quantityMilli,
-      unitAmountMilliCents: 1000000,
-      notes: "",
-    );
+    final id = await projectsManager.budgetAllowancesService
+        .createAllowance(
+          database: database,
+          personId: null,
+          kind: OcptBudgetAllowanceKind.values.first,
+          label: label,
+          date: DateTime(2026),
+          endDate: null,
+          quantityMilli: quantityMilli,
+          unitAmountMilliCents: 1000000,
+          notes: "",
+        )
+        .maybeValueOrFail;
     return id!;
   }
 

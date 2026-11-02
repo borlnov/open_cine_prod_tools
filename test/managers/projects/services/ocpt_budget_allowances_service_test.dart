@@ -9,6 +9,7 @@ import 'package:open_cine_prod_tools/managers/ocpt_global_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_budget_allowances_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_allowance_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of [OcptBudgetAllowancesService].
 void main() {
@@ -62,22 +63,24 @@ void main() {
     int quantityMilli = 168000,
     int unitAmountMilliCents = 52900,
     String notes = "",
-  }) => service.createAllowance(
-    database: database,
-    personId: personId,
-    kind: kind,
-    label: label,
-    date: date,
-    endDate: endDate,
-    quantityMilli: quantityMilli,
-    unitAmountMilliCents: unitAmountMilliCents,
-    notes: notes,
-  );
+  }) => service
+      .createAllowance(
+        database: database,
+        personId: personId,
+        kind: kind,
+        label: label,
+        date: date,
+        endDate: endDate,
+        quantityMilli: quantityMilli,
+        unitAmountMilliCents: unitAmountMilliCents,
+        notes: notes,
+      )
+      .maybeValueOrFail;
 
   test("a project that has defrayed nobody reads empty, nothing seeded", () async {
     // Unlike the CNC accounts, and for the reason the mileage scales are not seeded either: what a
     // production pays back is entirely its own business.
-    expect(await service.loadAllowances(database: database), isEmpty);
+    expect(await service.loadAllowances(database: database).valueOrFail, isEmpty);
   });
 
   test("creating writes every field it was handed, appended at the end", () async {
@@ -92,7 +95,7 @@ void main() {
       unitAmountMilliCents: 6000000,
     );
 
-    final allowances = await service.loadAllowances(database: database);
+    final allowances = await service.loadAllowances(database: database).valueOrFail;
     expect(allowances.map((row) => row.id), [firstId, secondId]);
 
     final first = allowances.first;
@@ -115,13 +118,11 @@ void main() {
     await seedPerson("p1");
     final id = await create(personId: "p1", notes: "Péage inclus");
 
-    await service.updateAllowance(
-      database: database,
-      allowanceId: id!,
-      quantityMilli: const Value(84000),
-    );
+    await service
+        .updateAllowance(database: database, allowanceId: id!, quantityMilli: const Value(84000))
+        .okOrFail;
 
-    final allowance = (await service.loadAllowances(database: database)).single;
+    final allowance = (await service.loadAllowances(database: database).valueOrFail).single;
     expect(allowance.quantityMilli, 84000);
     expect(allowance.unitAmountMilliCents, 52900);
     expect(allowance.personId, "p1");
@@ -132,23 +133,25 @@ void main() {
     await seedPerson("p1");
     final id = await create(personId: "p1", date: DateTime.utc(2026, 3, 2));
 
-    await service.updateAllowance(
-      database: database,
-      allowanceId: id!,
-      personId: const Value(null),
-      date: const Value(null),
-    );
+    await service
+        .updateAllowance(
+          database: database,
+          allowanceId: id!,
+          personId: const Value(null),
+          date: const Value(null),
+        )
+        .okOrFail;
 
-    final allowance = (await service.loadAllowances(database: database)).single;
+    final allowance = (await service.loadAllowances(database: database).valueOrFail).single;
     expect(allowance.personId, isNull);
     expect(allowance.date, isNull);
   });
 
   test("deleting tombstones rather than removing, and the read filters it out", () async {
     final id = await create();
-    await service.deleteAllowance(database: database, allowanceId: id!);
+    await service.deleteAllowance(database: database, allowanceId: id!).okOrFail;
 
-    expect(await service.loadAllowances(database: database), isEmpty);
+    expect(await service.loadAllowances(database: database).valueOrFail, isEmpty);
     // The row itself is still there: no service of this app ever deletes a synchronised row.
     final rows = await readAll();
     expect(rows.single.id, id);
@@ -162,9 +165,11 @@ void main() {
 
     final before = {for (final row in await readAll()) row.id: row.sortKey};
 
-    await service.reorderAllowance(database: database, allowanceId: thirdId!, newPosition: 0);
+    await service
+        .reorderAllowance(database: database, allowanceId: thirdId!, newPosition: 0)
+        .okOrFail;
 
-    final after = await service.loadAllowances(database: database);
+    final after = await service.loadAllowances(database: database).valueOrFail;
     expect(after.map((row) => row.id), [thirdId, firstId, secondId]);
 
     // The two rows it moved past kept the very keys they had.
@@ -178,11 +183,13 @@ void main() {
     final firstId = await create(label: "Aller");
     final secondId = await create(label: "Retour");
     final thirdId = await create(label: "Taxi");
-    await service.deleteAllowance(database: database, allowanceId: secondId!);
+    await service.deleteAllowance(database: database, allowanceId: secondId!).okOrFail;
 
-    await service.reorderAllowance(database: database, allowanceId: thirdId!, newPosition: 0);
+    await service
+        .reorderAllowance(database: database, allowanceId: thirdId!, newPosition: 0)
+        .okOrFail;
 
-    expect((await service.loadAllowances(database: database)).map((row) => row.id), [
+    expect((await service.loadAllowances(database: database).valueOrFail).map((row) => row.id), [
       thirdId,
       firstId,
     ]);
@@ -194,26 +201,26 @@ void main() {
 
     database = OcptProjectDatabase.memory(isPreview: true);
     expect(
-      await service.createAllowance(
-        database: database,
-        personId: null,
-        kind: OcptBudgetAllowanceKind.travel,
-        label: "Aller",
-        date: null,
-        endDate: null,
-        quantityMilli: 1000,
-        unitAmountMilliCents: 1000,
-        notes: "",
-      ),
+      await service
+          .createAllowance(
+            database: database,
+            personId: null,
+            kind: OcptBudgetAllowanceKind.travel,
+            label: "Aller",
+            date: null,
+            endDate: null,
+            quantityMilli: 1000,
+            unitAmountMilliCents: 1000,
+            notes: "",
+          )
+          .maybeValueOrFail,
       isNull,
     );
-    await service.updateAllowance(
-      database: database,
-      allowanceId: id!,
-      label: const Value("Changé"),
-    );
-    await service.deleteAllowance(database: database, allowanceId: id);
-    await service.reorderAllowance(database: database, allowanceId: id, newPosition: 0);
+    await service
+        .updateAllowance(database: database, allowanceId: id!, label: const Value("Changé"))
+        .okOrFail;
+    await service.deleteAllowance(database: database, allowanceId: id).okOrFail;
+    await service.reorderAllowance(database: database, allowanceId: id, newPosition: 0).okOrFail;
 
     expect(await readAll(), isEmpty);
   });
@@ -243,11 +250,9 @@ void main() {
       final id = (await create(notes: "Péage inclus"))!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.updateAllowance(
-        database: database,
-        allowanceId: id,
-        quantityMilli: const Value(84000),
-      );
+      await service
+          .updateAllowance(database: database, allowanceId: id, quantityMilli: const Value(84000))
+          .okOrFail;
 
       final stamps = await readStamps();
       final ownKeys = stamps.keys.where((key) => key.startsWith("budget_allowances/$id/")).toSet();
@@ -258,7 +263,7 @@ void main() {
       final id = (await create())!;
       await database.delete(database.ocptRowFieldVersionsTable).go();
 
-      await service.deleteAllowance(database: database, allowanceId: id);
+      await service.deleteAllowance(database: database, allowanceId: id).okOrFail;
 
       final stamps = await readStamps();
       expect(stamps["budget_allowances/$id/isDeleted"]!.version, 1);
