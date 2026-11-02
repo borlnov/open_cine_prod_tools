@@ -35,6 +35,8 @@ import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/types/ocpt_project_restore_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 
+import '../../../ocpt_result_expectations.dart';
+
 /// Acceptance test for restore convergence: a project-version **restore** on one replica converges,
 /// through the changeset engine, against a replica that was offline throughout — with the rows the
 /// restore tombstoned staying gone on the other side, and the whole catch-up landing in one
@@ -285,11 +287,9 @@ void main() {
         relayId: relayId,
         deviceId: 'device-a',
       );
-      await deviceB.changesetService.pullAndApply(
-        database: replicaB,
-        storage: storage,
-        relayId: relayId,
-      );
+      await deviceB.changesetService
+          .pullAndApply(database: replicaB, storage: storage, relayId: relayId)
+          .okOrFail;
 
       expect(await liveLocationNames(replicaA), ['Office']);
       expect(await liveLocationNames(replicaB), ['Office']);

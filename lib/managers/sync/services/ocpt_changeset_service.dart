@@ -4,6 +4,7 @@
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_merge_service.dart';
@@ -174,7 +175,11 @@ class OcptChangesetService extends AbsOcptService {
   ///
   /// Returns every [OcptScreenplayMergeConflict] raised while applying any of those changesets, in
   /// the order they were applied — empty when nothing conflicted, which is the ordinary case — or
-  /// the status of a [storage] that could not be read, with nothing applied.
+  /// the status of a [storage] that could not be read, with nothing applied. A changeset the merge
+  /// refuses answers `unreachable` with the merge's own detail and the cursor is not advanced, so
+  /// the next pull reads the batch again; the changesets applied before it stay applied. A failure
+  /// of the database itself is not answered but raised, for the caller to settle.
+  @useResult
   Future<ResultWithStatus<OcptRemoteStorageStatus, List<OcptScreenplayMergeConflict>>>
   pullAndApply({
     required OcptProjectDatabase database,

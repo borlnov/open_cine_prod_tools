@@ -4,6 +4,7 @@
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_screenplay_merge_service.dart';
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
@@ -98,6 +99,7 @@ class OcptMergeService extends AbsOcptService {
   /// transaction rolls back and the answer is [OcptMergeStatus.unknownTable] or
   /// [OcptMergeStatus.unknownColumn], its `extraInfo` an [OcptSyncMergeFailure]. A failure of the
   /// database itself still raises.
+  @useResult
   Future<ResultWithStatus<OcptMergeStatus, List<OcptScreenplayMergeConflict>>> applyChangeset({
     required OcptProjectDatabase fileDatabase,
     required OcptChangeset changeset,

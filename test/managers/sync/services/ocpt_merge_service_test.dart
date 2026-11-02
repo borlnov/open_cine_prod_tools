@@ -357,7 +357,7 @@ void main() {
 
     expect((await storage.readSince(OcptSequenceNumber.zero)).value, hasLength(3));
 
-    await service.pullAndApply(database: offline, storage: storage, relayId: relayId);
+    await service.pullAndApply(database: offline, storage: storage, relayId: relayId).okOrFail;
 
     expect((await readLocation(offline)).name, 'Exterior — night, rain');
   });

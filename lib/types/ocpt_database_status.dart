@@ -13,8 +13,9 @@ enum OcptDatabaseStatus with MixinResultStatus {
   /// The call ran: what it answers is in the value, or there was nothing to answer.
   ok(isSuccess: true, canBeRetried: false),
 
-  /// The database refused or failed the call: nothing of it was written. The `extraInfo` is the
-  /// type of what failed, never its text, which can quote a query.
+  /// The database refused or failed the call. A call that runs several transactions in turn may
+  /// have committed the first ones before the failure, so this does not say that nothing was
+  /// written. The `extraInfo` is the type of what failed, never its text, which can quote a query.
   databaseError(isSuccess: false, canBeRetried: true);
 
   /// {@macro act_dart_result.MixinResultStatus.isSuccess}
