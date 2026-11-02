@@ -18,12 +18,12 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_gesture.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_revenue_status.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_new_attachment_answers.dart';
 
-/// Get the ranked lettrage candidates for the movement typed so far: empty while [offersLettrage]
+/// Get the ranked matching candidates for the movement typed so far: empty while [offersMatching]
 /// is
 /// false or while [amountText] and [wording] do not yet make a saveable draft (a positive amount
 /// and a non-blank wording).
-List<OcptBudgetMatchSuggestion> ocptBudgetNewLettrageSuggestionsOf({
-  required bool offersLettrage,
+List<OcptBudgetMatchSuggestion> ocptBudgetNewMatchingSuggestionsOf({
+  required bool offersMatching,
   required String amountText,
   required String wording,
   required bool isDebit,
@@ -37,7 +37,7 @@ List<OcptBudgetMatchSuggestion> ocptBudgetNewLettrageSuggestionsOf({
   required Map<String, OcptBudgetCoveredTotal> receivedByRevenueId,
   required int? projectVatRateBasisPoints,
 }) {
-  if (!offersLettrage) {
+  if (!offersMatching) {
     return const [];
   }
 

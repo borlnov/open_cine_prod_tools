@@ -12,12 +12,12 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_poste.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_budget_match_candidate_kind.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The lettrage strip: what accepting one of [suggestions] does, why each was ranked, and every
+/// The matching strip: what accepting one of [suggestions] does, why each was ranked, and every
 /// candidate reachable, `Aucun` included — never a single best guess with no way to say
 /// otherwise. It stops the same money being counted twice: without it, a user records the
 /// payment, forgets to settle the commitment it was for, and the poste reads both committed and
 /// paid for the very same transfer.
-class OcptBudgetNewLettrageStrip extends StatelessWidget {
+class OcptBudgetNewMatchingStrip extends StatelessWidget {
   /// The ranked candidates the strip offers.
   final List<OcptBudgetMatchSuggestion> suggestions;
 
@@ -37,7 +37,7 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
   final ValueChanged<int?> onSelected;
 
   /// Class constructor
-  const OcptBudgetNewLettrageStrip({
+  const OcptBudgetNewMatchingStrip({
     super.key,
     required this.suggestions,
     required this.selectedIndex,
@@ -47,7 +47,7 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
     required this.onSelected,
   });
 
-  /// Build the budget new lettrage strip as a [Container].
+  /// Build the budget new matching strip as a [Container].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
@@ -64,19 +64,19 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            tr.budgetNewLettrageTitle,
+            tr.budgetNewMatchingTitle,
             style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           for (final (index, suggestion) in suggestions.indexed)
-            _OcptBudgetNewLettrageCandidateRow(
+            _OcptBudgetNewMatchingCandidateRow(
               index: index,
               headline: _headlineOf(context, tr, suggestion),
               reasons: _reasonsOf(tr, suggestion),
               isSelected: selectedIndex == index,
               onTap: () => onSelected(index),
             ),
-          _OcptBudgetNewLettrageNoneRow(
+          _OcptBudgetNewMatchingNoneRow(
             isSelected: selectedIndex == null,
             onTap: () => onSelected(null),
           ),
@@ -88,9 +88,9 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
   /// Get the reasons [suggestion] was ranked, joined into one muted line.
   String _reasonsOf(Tr tr, OcptBudgetMatchSuggestion suggestion) {
     final reasons = [
-      if (suggestion.matchesAmount) tr.budgetNewLettrageReasonAmount,
-      if (suggestion.matchesDate) tr.budgetNewLettrageReasonDate,
-      if (suggestion.matchesWording) tr.budgetNewLettrageReasonWording,
+      if (suggestion.matchesAmount) tr.budgetNewMatchingReasonAmount,
+      if (suggestion.matchesDate) tr.budgetNewMatchingReasonDate,
+      if (suggestion.matchesWording) tr.budgetNewMatchingReasonWording,
     ];
     return reasons.join(" · ");
   }
@@ -161,8 +161,8 @@ class OcptBudgetNewLettrageStrip extends StatelessWidget {
   }
 }
 
-/// One ranked candidate of the lettrage strip, as a radio-style row.
-class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
+/// One ranked candidate of the matching strip, as a radio-style row.
+class _OcptBudgetNewMatchingCandidateRow extends StatelessWidget {
   /// The candidate's index into the strip's suggestions.
   final int index;
 
@@ -179,7 +179,7 @@ class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptBudgetNewLettrageCandidateRow({
+  const _OcptBudgetNewMatchingCandidateRow({
     required this.index,
     required this.headline,
     required this.reasons,
@@ -187,13 +187,13 @@ class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Build the budget new lettrage candidate row as an [InkWell].
+  /// Build the budget new matching candidate row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return InkWell(
-      key: Key("ocptBudgetNewLettrageCandidate$index"),
+      key: Key("ocptBudgetNewMatchingCandidate$index"),
       onTap: onTap,
       mouseCursor: ocpt_theme.ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
@@ -229,8 +229,8 @@ class _OcptBudgetNewLettrageCandidateRow extends StatelessWidget {
   }
 }
 
-/// The lettrage strip's `Aucun` row, picked while no candidate is.
-class _OcptBudgetNewLettrageNoneRow extends StatelessWidget {
+/// The matching strip's `Aucun` row, picked while no candidate is.
+class _OcptBudgetNewMatchingNoneRow extends StatelessWidget {
   /// Whether `Aucun` is the current pick.
   final bool isSelected;
 
@@ -238,16 +238,16 @@ class _OcptBudgetNewLettrageNoneRow extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Class constructor
-  const _OcptBudgetNewLettrageNoneRow({required this.isSelected, required this.onTap});
+  const _OcptBudgetNewMatchingNoneRow({required this.isSelected, required this.onTap});
 
-  /// Build the budget new lettrage none row as an [InkWell].
+  /// Build the budget new matching none row as an [InkWell].
   @override
   Widget build(BuildContext context) {
     final tr = Tr.of(context);
     final theme = Theme.of(context);
 
     return InkWell(
-      key: const Key("ocptBudgetNewLettrageNone"),
+      key: const Key("ocptBudgetNewMatchingNone"),
       onTap: onTap,
       mouseCursor: ocpt_theme.ocptClickableCursor,
       borderRadius: BorderRadius.circular(ocpt_theme.ocptRadiusSmall),
@@ -261,7 +261,7 @@ class _OcptBudgetNewLettrageNoneRow extends StatelessWidget {
               color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
-            Text(tr.budgetNewLettrageNoneAction, style: theme.textTheme.bodySmall),
+            Text(tr.budgetNewMatchingNoneAction, style: theme.textTheme.bodySmall),
           ],
         ),
       ),

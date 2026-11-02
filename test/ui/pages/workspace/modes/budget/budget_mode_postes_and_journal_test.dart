@@ -744,7 +744,7 @@ void main() {
 
       // Reconciliation is opt-in now: the candidate is on offer, but the reader picks it before it
       // settles anything — saving untouched would record a plain expense instead.
-      await tester.tap(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewMatchingCandidate0")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();

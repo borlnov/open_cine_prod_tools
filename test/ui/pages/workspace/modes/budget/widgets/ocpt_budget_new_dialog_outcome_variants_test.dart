@@ -165,7 +165,7 @@ void main() {
     String? filterLabel,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
-    bool offersLettrage = true,
+    bool offersMatching = true,
     List<OcptBudgetPoste> postes = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
@@ -185,7 +185,7 @@ void main() {
           filterLabel: filterLabel,
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
-          offersLettrage: offersLettrage,
+          offersMatching: offersMatching,
           postes: postes,
           resources: resources,
           revenues: revenues,
@@ -402,7 +402,7 @@ void main() {
 
       // No commitments, entries or resources were given, so nothing was ever offered to
       // reconcile against — the strip itself never drew.
-      expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingNone")), findsNothing);
 
       await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();

@@ -18,7 +18,7 @@ import 'package:open_cine_prod_tools/models/ocpt_budget_share_form_fields.dart';
 ///
 /// **`OcptBudgetEntryWizardResult` is one of this sealed type's own variants, not a payload wrapped
 /// inside another one.** It already carried exactly the shape the seven `cashMovement` gestures
-/// need — an entry draft plus the accepted lettrage suggestion, if any — so it joins this hierarchy
+/// need — an entry draft plus the accepted matching suggestion, if any — so it joins this hierarchy
 /// directly rather than a second class duplicating its two fields under a new name.
 ///
 /// The mode switches over this exhaustively and dispatches the event that already exists for each

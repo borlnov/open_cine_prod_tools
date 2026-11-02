@@ -46,7 +46,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   /// Every live mileage rate of the project.
   final List<OcptBudgetMileageRate> mileageRates;
 
-  /// Every live commitment, read by the lettrage strip.
+  /// Every live commitment, read by the matching strip.
   final List<OcptBudgetCommitment> commitments;
 
   /// The project's currency, an ISO 4217 code.
@@ -100,10 +100,10 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   /// Whether the movement is a debit.
   final bool isDebit;
 
-  /// The lettrage candidates the movement form offers.
-  final List<OcptBudgetMatchSuggestion> lettrageSuggestions;
+  /// The matching candidates the movement form offers.
+  final List<OcptBudgetMatchSuggestion> matchingSuggestions;
 
-  /// The lettrage candidate picked, by index, or null for `Aucun`.
+  /// The matching candidate picked, by index, or null for `Aucun`.
   final int? selectedSuggestionIndex;
 
   /// The receipt picked for the movement, or null.
@@ -121,7 +121,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
   /// Called with the direction picked.
   final ValueChanged<bool> onDirectionChanged;
 
-  /// Called with the lettrage candidate picked, or null for `Aucun`.
+  /// Called with the matching candidate picked, or null for `Aucun`.
   final ValueChanged<int?> onSuggestionSelected;
 
   /// Called when the movement's picked receipt is removed.
@@ -190,7 +190,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
     required this.date,
     required this.isTaxInclusive,
     required this.isDebit,
-    required this.lettrageSuggestions,
+    required this.matchingSuggestions,
     required this.selectedSuggestionIndex,
     required this.pickedReceiptPath,
     required this.onDraftTextChanged,
@@ -231,7 +231,7 @@ class OcptBudgetNewFormStep extends StatelessWidget {
         date: date,
         isTaxInclusive: isTaxInclusive,
         isDebit: isDebit,
-        suggestions: lettrageSuggestions,
+        suggestions: matchingSuggestions,
         selectedSuggestionIndex: selectedSuggestionIndex,
         commitments: commitments,
         postes: postes,

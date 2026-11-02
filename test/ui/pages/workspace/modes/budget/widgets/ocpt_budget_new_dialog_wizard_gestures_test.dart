@@ -104,7 +104,7 @@ void main() {
     String? filterLabel,
     OcptBudgetGesture? initialGesture,
     OcptBudgetEntryFormFields? entryPrefill,
-    bool offersLettrage = true,
+    bool offersMatching = true,
     List<OcptBudgetPoste> postes = const [],
     List<OcptBudgetResource> resources = const [],
     List<OcptBudgetRevenue> revenues = const [],
@@ -124,7 +124,7 @@ void main() {
           filterLabel: filterLabel,
           initialGesture: initialGesture,
           entryPrefill: entryPrefill,
-          offersLettrage: offersLettrage,
+          offersMatching: offersMatching,
           postes: postes,
           resources: resources,
           revenues: revenues,
@@ -518,13 +518,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Both commitments match on amount; the second is reachable too, not just the top one.
-      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsOneWidget);
-      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate1")), findsOneWidget);
-      expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingCandidate0")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingCandidate1")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingNone")), findsOneWidget);
 
       // Picking the second candidate, then saving, settles that one rather than the first —
       // proposing without letting a reader pick a different one would be silent, not honest.
-      final secondCandidate = find.byKey(const Key("ocptBudgetNewLettrageCandidate1"));
+      final secondCandidate = find.byKey(const Key("ocptBudgetNewMatchingCandidate1"));
       await tester.ensureVisible(secondCandidate);
       await tester.pumpAndSettle();
       await tester.tap(secondCandidate);
@@ -559,7 +559,7 @@ void main() {
       await tester.enterText(find.byKey(const Key("ocptBudgetNewAmountField")), "250.00");
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key("ocptBudgetNewLettrageNone")));
+      await tester.tap(find.byKey(const Key("ocptBudgetNewMatchingNone")));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
@@ -593,7 +593,7 @@ void main() {
 
       // A same-amount candidate is on offer, but reconciliation is opt-in — saving without
       // touching the strip records the movement as its own gesture says, settling no one.
-      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsOneWidget);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingCandidate0")), findsOneWidget);
       await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
       await tester.pumpAndSettle();
 
@@ -601,11 +601,11 @@ void main() {
       expect(outcome.acceptedSuggestion, isNull);
     });
 
-    testWidgets("offersLettrage false withholds the strip even where a candidate would match", (
+    testWidgets("offersMatching false withholds the strip even where a candidate would match", (
       tester,
     ) async {
       // The direct pay of a quote line opens the wizard exactly this way — pre-filled on step 3
-      // with the line's own label and amount, offersLettrage off. A commitment sharing that
+      // with the line's own label and amount, offersMatching off. A commitment sharing that
       // amount would ordinarily be offered; here the strip is withheld whole.
       final prefill = OcptBudgetEntryFormFields(
         date: DateTime(2026, 1, 5),
@@ -627,7 +627,7 @@ void main() {
         tester,
         initialGesture: OcptBudgetGesture.recordExpense,
         entryPrefill: prefill,
-        offersLettrage: false,
+        offersMatching: false,
         postes: [testPoste(id: "p1", label: "Camera")],
         commitments: [
           _commitment(id: "c1", label: "Atelier Verrier", posteId: "p1", amountCents: 25000),
@@ -635,9 +635,9 @@ void main() {
       );
 
       // Landed on the form with the matching amount typed, yet no strip and no candidate row.
-      expect(find.text(tr.budgetNewLettrageTitle), findsNothing);
-      expect(find.byKey(const Key("ocptBudgetNewLettrageCandidate0")), findsNothing);
-      expect(find.byKey(const Key("ocptBudgetNewLettrageNone")), findsNothing);
+      expect(find.text(tr.budgetNewMatchingTitle), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingCandidate0")), findsNothing);
+      expect(find.byKey(const Key("ocptBudgetNewMatchingNone")), findsNothing);
     });
   });
 

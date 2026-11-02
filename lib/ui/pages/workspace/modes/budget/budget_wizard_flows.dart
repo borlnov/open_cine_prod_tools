@@ -236,7 +236,7 @@ void ocptBudgetApplyNewOutcome(
 /// settlement instead of a plain creation and so builds its own call to
 /// `OcptBudgetNewDialog.show` rather than sharing this one.
 ///
-/// **The lettrage strip is withheld here** (`offersLettrage: false`), exactly as
+/// **The matching strip is withheld here** (`offersMatching: false`), exactly as
 /// [ocptBudgetSettleCommitment] and [ocptBudgetPayLineDirectly] withhold it: the
 /// movement already belongs to the resource, taking, person or share [prefill] names, so every
 /// candidate the strip could rank is a *different* object, and offering to reroute onto one only
@@ -253,7 +253,7 @@ Future<void> ocptBudgetOpenEntryShortcut(
     context,
     initialGesture: gesture,
     entryPrefill: prefill,
-    offersLettrage: false,
+    offersMatching: false,
     postes: state.postes,
     resources: state.resources,
     revenues: state.revenues,
@@ -447,10 +447,10 @@ Future<void> ocptBudgetSettleCommitment(
     initialGesture: OcptBudgetGesture.recordExpense,
     entryPrefill: prefill,
     // The commitment being paid is explicitly designated, and the entry settles it below whatever
-    // the reader does — so every lettrage candidate the strip could rank is a *different* object,
+    // the reader does — so every matching candidate the strip could rank is a *different* object,
     // and offering to reroute the payment onto one only invites a rapprochement they never meant.
     // The strip stays on in the generic `+` capture, where the movement is free-typed.
-    offersLettrage: false,
+    offersMatching: false,
     postes: state.postes,
     resources: state.resources,
     revenues: state.revenues,
@@ -754,7 +754,7 @@ Future<void> ocptBudgetCommitLine(
 /// Open the capture wizard to pay quote line [lineId] directly — its own `Pay` action, pre-filled
 /// from the line (its full quoted total, in the line's own tax basis and rate, as today's debit) —
 /// and, on confirm, dispatch [OcptBudgetLinePaidDirectlyEvent], which creates
-/// the commitment behind the payment so the reader only ever quoted and paid. The lettrage strip
+/// the commitment behind the payment so the reader only ever quoted and paid. The matching strip
 /// is withheld here, exactly as [ocptBudgetSettleCommitment] withholds it: the payment
 /// belongs to this very line, so rerouting it onto a different object is a rapprochement the
 /// reader never meant.
@@ -794,10 +794,10 @@ Future<void> ocptBudgetPayLineDirectly(
     context,
     initialGesture: OcptBudgetGesture.recordExpense,
     entryPrefill: prefill,
-    // The line has not been promoted, so every lettrage candidate would be a different object —
+    // The line has not been promoted, so every matching candidate would be a different object —
     // rerouting the payment onto one is exactly the confusion this direct pay avoids. The strip
     // stays on in the generic `+` capture, where the movement is free-typed.
-    offersLettrage: false,
+    offersMatching: false,
     postes: state.postes,
     resources: state.resources,
     revenues: state.revenues,

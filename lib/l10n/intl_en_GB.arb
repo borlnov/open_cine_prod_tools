@@ -15929,36 +15929,36 @@
       }
     }
   },
-  "budgetNewLettrageTitle": "This entry will settle:",
-  "@budgetNewLettrageTitle": {
+  "budgetNewMatchingTitle": "This entry will settle:",
+  "@budgetNewMatchingTitle": {
     "description": "Title of the lettrage strip, stating what accepting an offer will do rather than merely what the strip is",
     "context": "Displayed at the top of the lettrage strip, OcptBudgetNewDialog's own step 3, a cashMovement gesture while creating",
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewLettrageNoneAction": "None of these",
-  "@budgetNewLettrageNoneAction": {
+  "budgetNewMatchingNoneAction": "None of these",
+  "@budgetNewMatchingNoneAction": {
     "description": "The lettrage strip's own last candidate, settling nothing — always reachable, never withheld merely because a suggestion was ranked first",
     "context": "Displayed as the last row of the lettrage strip, OcptBudgetNewDialog's own step 3",
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewLettrageReasonAmount": "same amount",
-  "@budgetNewLettrageReasonAmount": {
+  "budgetNewMatchingReasonAmount": "same amount",
+  "@budgetNewMatchingReasonAmount": {
     "description": "One of the reasons a lettrage candidate was ranked, offered when it matches the draft's own amount exactly",
     "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewLettrageReasonDate": "same day",
-  "@budgetNewLettrageReasonDate": {
+  "budgetNewMatchingReasonDate": "same day",
+  "@budgetNewMatchingReasonDate": {
     "description": "One of the reasons a lettrage candidate was ranked, offered when it falls close to the draft's own date",
     "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
     "type": "text",
     "placeholders": {}
   },
-  "budgetNewLettrageReasonWording": "a word in common",
-  "@budgetNewLettrageReasonWording": {
+  "budgetNewMatchingReasonWording": "a word in common",
+  "@budgetNewMatchingReasonWording": {
     "description": "One of the reasons a lettrage candidate was ranked, offered when it shares a significant word with the draft's own wording",
     "context": "Displayed under a lettrage candidate's own headline, OcptBudgetNewDialog's own step 3",
     "type": "text",

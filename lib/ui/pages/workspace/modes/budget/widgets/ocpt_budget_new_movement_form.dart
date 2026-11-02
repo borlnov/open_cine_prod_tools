@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/resources/widgets/ocpt_person_sheet_date_field.dart';
 
 /// Step 3 of the seven `cashMovement` gestures: the date, amount and tax basis, the wording, the
-/// lettrage strip when a candidate exists, the VAT rate, the receipt and — for the free-form
+/// matching strip when a candidate exists, the VAT rate, the receipt and — for the free-form
 /// movement alone — the direction.
 ///
 /// Every controller belongs to the wizard's own state, which keeps them alive across steps; this
@@ -50,16 +50,16 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
   /// Whether the movement is a debit (money going out).
   final bool isDebit;
 
-  /// The ranked lettrage candidates; the strip is drawn only while there is at least one.
+  /// The ranked matching candidates; the strip is drawn only while there is at least one.
   final List<OcptBudgetMatchSuggestion> suggestions;
 
-  /// Which lettrage candidate is picked, by index into [suggestions], or null for `Aucun`.
+  /// Which matching candidate is picked, by index into [suggestions], or null for `Aucun`.
   final int? selectedSuggestionIndex;
 
-  /// Every live commitment, read by the lettrage strip.
+  /// Every live commitment, read by the matching strip.
   final List<OcptBudgetCommitment> commitments;
 
-  /// Every live poste of the project, read by the lettrage strip.
+  /// Every live poste of the project, read by the matching strip.
   final List<OcptBudgetPoste> postes;
 
   /// The project's currency, an ISO 4217 code.
@@ -74,7 +74,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
   /// The receipt picked for the movement, or null.
   final String? pickedReceiptPath;
 
-  /// Called when the wording or the amount changes, so the lettrage candidates are ranked again.
+  /// Called when the wording or the amount changes, so the matching candidates are ranked again.
   final VoidCallback onDraftTextChanged;
 
   /// Called with the date picked.
@@ -86,7 +86,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
   /// Called with the direction picked.
   final ValueChanged<bool> onDirectionChanged;
 
-  /// Called with the lettrage candidate picked, or null for `Aucun`.
+  /// Called with the matching candidate picked, or null for `Aucun`.
   final ValueChanged<int?> onSuggestionSelected;
 
   /// Called when the picked receipt is removed.
@@ -159,7 +159,7 @@ class OcptBudgetNewMovementForm extends StatelessWidget {
           ),
           if (suggestions.isNotEmpty) ...[
             const SizedBox(height: 12),
-            OcptBudgetNewLettrageStrip(
+            OcptBudgetNewMatchingStrip(
               suggestions: suggestions,
               selectedIndex: selectedSuggestionIndex,
               commitments: commitments,

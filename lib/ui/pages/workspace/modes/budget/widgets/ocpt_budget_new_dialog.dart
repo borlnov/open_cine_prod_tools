@@ -123,13 +123,13 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// prefill itself.
   final String? commitmentPrefillLineId;
 
-  /// Whether step 3 offers the lettrage strip at all. **True everywhere but the direct pay of a
+  /// Whether step 3 offers the matching strip at all. **True everywhere but the direct pay of a
   /// quote line**, which opens the wizard on an amount and a wording that necessarily belong to no
   /// existing commitment — the line has not been promoted — so every candidate the strip could rank
   /// is a *different* object, and offering to reroute the payment onto one only asks the reader to
   /// reject a rapprochement they never meant. The generic `+` capture keeps it: there, the movement
   /// is free-typed and the strip is what stops the same euro being both committed and paid.
-  final bool offersLettrage;
+  final bool offersMatching;
 
   /// Every live poste of the project.
   final List<OcptBudgetPoste> postes;
@@ -150,7 +150,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
   /// catalogue.
   final List<OcptElement> unpricedElements;
 
-  /// Every live commitment, read to rank the lettrage strip's own offers and to keep the
+  /// Every live commitment, read to rank the matching strip's own offers and to keep the
   /// `posteAndLine` attachment from offering a line that already carries one.
   final List<OcptBudgetCommitment> commitments;
 
@@ -192,7 +192,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     this.entryPrefill,
     this.commitmentPrefill,
     this.commitmentPrefillLineId,
-    this.offersLettrage = true,
+    this.offersMatching = true,
     required this.postes,
     required this.resources,
     required this.revenues,
@@ -225,7 +225,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
     OcptBudgetEntryFormFields? entryPrefill,
     OcptBudgetCommitmentFormFields? commitmentPrefill,
     String? commitmentPrefillLineId,
-    bool offersLettrage = true,
+    bool offersMatching = true,
     required List<OcptBudgetPoste> postes,
     required List<OcptBudgetResource> resources,
     required List<OcptBudgetRevenue> revenues,
@@ -252,7 +252,7 @@ class OcptBudgetNewDialog extends StatefulWidget {
       entryPrefill: entryPrefill,
       commitmentPrefill: commitmentPrefill,
       commitmentPrefillLineId: commitmentPrefillLineId,
-      offersLettrage: offersLettrage,
+      offersMatching: offersMatching,
       postes: postes,
       resources: resources,
       revenues: revenues,
@@ -321,8 +321,8 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
   /// Whether the receipt the movement came with was detached.
   bool _isReceiptDetached = false;
 
-  /// Which of the lettrage strip's own ranked candidates is currently picked, by index into
-  /// `ocptBudgetNewLettrageSuggestionsOf`'s own answer, or null for `Aucun`.
+  /// Which of the matching strip's own ranked candidates is currently picked, by index into
+  /// `ocptBudgetNewMatchingSuggestionsOf`'s own answer, or null for `Aucun`.
   ///
   /// **Null by default — reconciliation is opt-in, never automatic.** Pre-selecting the top
   /// candidate would silently reroute the movement into settling it: a repayment pre-filled against
@@ -501,7 +501,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
         date: _date,
         isTaxInclusive: _isTaxInclusive,
         isDebit: _isDebit,
-        lettrageSuggestions: _formStepSuggestions(),
+        matchingSuggestions: _formStepSuggestions(),
         selectedSuggestionIndex: _selectedSuggestionIndex,
         pickedReceiptPath: _pickedReceiptPath,
         onDraftTextChanged: () => setState(() {}),
@@ -880,7 +880,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     });
   }
 
-  /// Get the lettrage candidates the movement form offers, but only while the gesture in effect is
+  /// Get the matching candidates the movement form offers, but only while the gesture in effect is
   /// a
   /// cash movement; empty otherwise.
   List<OcptBudgetMatchSuggestion> _formStepSuggestions() {
@@ -888,12 +888,12 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     if (gesture == null || ocptBudgetGestureNatureOf(gesture) == null) {
       return const [];
     }
-    return _lettrageSuggestionsOf();
+    return _matchingSuggestionsOf();
   }
 
-  /// Get the ranked lettrage candidates for the movement typed so far.
-  List<OcptBudgetMatchSuggestion> _lettrageSuggestionsOf() => ocptBudgetNewLettrageSuggestionsOf(
-    offersLettrage: widget.offersLettrage,
+  /// Get the ranked matching candidates for the movement typed so far.
+  List<OcptBudgetMatchSuggestion> _matchingSuggestionsOf() => ocptBudgetNewMatchingSuggestionsOf(
+    offersMatching: widget.offersMatching,
     amountText: _amountController.text,
     wording: _labelController.text,
     isDebit: _isDebit,
@@ -908,7 +908,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
     projectVatRateBasisPoints: widget.defaultVatRateBasisPoints,
   );
 
-  /// Confirm the movement form, settling the accepted lettrage candidate when there is one.
+  /// Confirm the movement form, settling the accepted matching candidate when there is one.
   void _submitMovement() {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -919,7 +919,7 @@ class _OcptBudgetNewDialogState extends State<OcptBudgetNewDialog> {
       return;
     }
 
-    final suggestions = _lettrageSuggestionsOf();
+    final suggestions = _matchingSuggestionsOf();
     final selectedIndex = _selectedSuggestionIndex;
     final acceptedSuggestion = selectedIndex != null && selectedIndex < suggestions.length
         ? suggestions[selectedIndex]

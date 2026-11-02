@@ -309,14 +309,14 @@ are all here, and this file is the whole record of them.
   two the promote-then-pay path does apart: it creates the commitment from the line first
   (`createCommitment`, seeded from the line, naming it through `lineId`, at the line's full quoted
   total), then records the debit naming that fresh commitment (`createEntry`, `commitmentId` set).
-  The **engagement is real in the data** — it is what carries the outstanding and the lettrage, and
+  The **engagement is real in the data** — it is what carries the outstanding and the matching, and
   it draws its own settled sub-row under the line like any other — but **transparent to the reader**,
   who only ever quoted and paid. A **partial** payment leaves the commitment standing at its full
   amount with its own outstanding, read back off the link exactly as one made by hand.
-- The **lettrage strip is withheld** on both explicit-payment doors — this direct pay and
+- The **matching strip is withheld** on both explicit-payment doors — this direct pay and
   `ocptBudgetSettleCommitment` — because the payment belongs to a line or a commitment the
   reader has already named, so every candidate the strip could rank is a *different* object, and
-  offering to reroute onto one only invites a rapprochement they never meant (`offersLettrage:
+  offering to reroute onto one only invites a rapprochement they never meant (`offersMatching:
   false`, `OcptBudgetNewDialog`'s own field). The strip stays on in the generic `+` capture alone,
   where the movement is free-typed and it is what stops the same euro being committed and paid.
 
@@ -831,7 +831,7 @@ are all here, and this file is the whole record of them.
 - `OcptBudgetNewDialog` (`ocpt_budget_new_dialog.dart`) replaces the capture band that used to sit
   atop three views and takes **creation** over from `OcptBudgetEntryDialog`, which stays on as the
   reduced dialog that only ever **edits** an entry already on the books — its own former step 1 and
-  its lettrage gone, since only creation ever drew them. Every working surface's own header now
+  its matching gone, since only creation ever drew them. Every working surface's own header now
   carries
   **one trailing button, `+ New`** (`OcptBudgetHeader.captureLabel`), the same word in the same
   place on all five routes — `dashboard` and `tools › cashFlow` included, which carried none before.
@@ -904,7 +904,7 @@ are all here, and this file is the whole record of them.
   above steps 2 and 3 recalls what has been answered, ending in a `changer` link back to step 1, and
   **every answer already given survives going back and forward again** — switching the gesture keeps
   whatever the later steps had collected.
-- **The reconciliation strip is the *lettrage* now, on step 3, and only while creating.** The moment
+- **The reconciliation strip is the *matching* now, on step 3, and only while creating.** The moment
   the amount and wording are typed, `ocptBudgetMatchSuggestionsOf` (`lib/models/rules/ocpt_budget_match.dart`,
   pure) ranks what the draft could settle — the commitments still owed and every live defrayal on a
   debit, the resources and takings still short on a credit — in the same order it always has: **exact
@@ -924,9 +924,9 @@ are all here, and this file is the whole record of them.
 - **Accepting an offer attaches it to the draft, it does not write.** The wizard returns the plain
   draft and the accepted suggestion together (`OcptBudgetNewOutcome`) rather than turning either into
   a write itself — see "Money is added in one way, reached through several doors" below for where the
-  write happens and why. **Editing draws no lettrage at all**: there is no event that both updates an
-  existing entry and settles a commitment as one write, mirroring the band the wizard replaced, which
-  only ever created.
+  write happens and why. **Editing draws no matching at all**: there is no event that both updates
+  an existing entry and settles a commitment as one write, mirroring the band the wizard replaced,
+  which only ever created.
 
 ## Money is added in one way, reached through several doors
 
@@ -938,7 +938,7 @@ are all here, and this file is the whole record of them.
   button or pre-filled by a contextual shortcut — a resource's `Record a receipt`, a taking's
   `Receive`, a commitment's `Pay`, a share's `Record a payout`, a person's `Reimburse`, reached from
   a row's own `⋮` menu or a fiche's own primary action. When that outcome carries an accepted
-  **lettrage** offer, `_handleEntryWizardSuggestionAccepted` dispatches straight to whichever of the
+  **matching** offer, `_handleEntryWizardSuggestionAccepted` dispatches straight to whichever of the
   two events the matched candidate needs. A reader never sees three different write paths — they see
   one shape of movement, reached however is fastest for the gesture at hand.
 - **Recording a taking mints its own, from one amount and a label.** `Le film a rapporté de
@@ -951,7 +951,7 @@ are all here, and this file is the whole record of them.
   is byte for byte one born in the resources tree; the door differs, the row never does. A contextual
   **`Receive`** on an existing taking still pre-fills the wizard with its `revenueId` and mints
   nothing — that shortcut receives against the taking already there — and if the typed amount matches
-  a planned taking the **lettrage** offers it, so the one-shot never quietly duplicates a taking the
+  a planned taking the **matching** offers it, so the one-shot never quietly duplicates a taking the
   reader had already planned.
 - **A financing resource and a sharing participant still create in place on their own step 2**
   (`New resource…`, `New participant…`, opening the very dialog the plan trees open), the object

@@ -220,7 +220,7 @@ class OcptBudgetFieldEditFlushRequestedEvent extends OcptBudgetExpensesEvent {
 /// `OcptBudgetCommitmentCreationConfirmedEvent` would), then records [fields] as a debit naming it
 /// (`OcptBudgetCommitmentSettlementConfirmedEvent`'s own reading): the engagement is real in the
 /// data — it is what carries the outstanding and the
-/// lettrage — but transparent to the reader, who only ever quoted and paid. A partial payment
+/// matching — but transparent to the reader, who only ever quoted and paid. A partial payment
 /// leaves the commitment standing with its own outstanding, exactly as one against a commitment
 /// made by hand.
 class OcptBudgetLinePaidDirectlyEvent extends OcptBudgetExpensesEvent {
