@@ -2361,5 +2361,6 @@
   "diagnosticsSettingsEntry": "Journaux (diagnostic)",
   "diagnosticsLogFileLabel": "Fichier de logs",
   "diagnosticsLogFileCopyPath": "Copier le chemin",
-  "diagnosticsLogFileDisabled": "Journalisation fichier désactivée dans ce build"
+  "diagnosticsLogFileDisabled": "Journalisation fichier désactivée dans ce build",
+  "scheduleBlockDurationSuffix": "min"
 }

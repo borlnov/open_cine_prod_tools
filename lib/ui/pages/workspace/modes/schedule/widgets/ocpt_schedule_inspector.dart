@@ -935,7 +935,10 @@ class _OcptScheduleBlockDurationFieldState extends State<_OcptScheduleBlockDurat
         onSubmitted: (_) => _commit(),
         keyboardType: TextInputType.number,
         style: theme.textTheme.bodySmall,
-        decoration: const InputDecoration(isDense: true, suffixText: "min"),
+        decoration: InputDecoration(
+          isDense: true,
+          suffixText: Tr.of(context).scheduleBlockDurationSuffix,
+        ),
       ),
     );
   }

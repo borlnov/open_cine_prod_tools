@@ -17557,5 +17557,12 @@
   "diagnosticsLogFileDisabled": "File logging is off in this build",
   "@diagnosticsLogFileDisabled": {
     "description": "Shown on the diagnostics log screen's own log-file row when no log file path is available"
+  },
+  "scheduleBlockDurationSuffix": "min",
+  "@scheduleBlockDurationSuffix": {
+    "description": "Unit suffix of the schedule inspector's block duration field, which is typed in minutes",
+    "context": "Displayed at the end of the schedule inspector's editable block duration field",
+    "type": "text",
+    "placeholders": {}
   }
 }
