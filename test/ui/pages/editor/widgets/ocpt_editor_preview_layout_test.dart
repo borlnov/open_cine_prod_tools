@@ -21,9 +21,9 @@ void main() {
           final printableContentHeight = metrics.value.linesPerPage * layout.lineHeight;
           final filledHeight = layout.marginTop + printableContentHeight + layout.marginBottom;
 
-          // `linesPerPage` is `floor(printableHeightInches * linesPerInch)`, so the filled height
-          // can fall short of `pageHeight` by less than one `lineHeight` (the flooring's own
-          // rounding error) but must never exceed it: a full page of `linesPerPage` lines must
+          // `linesPerPage` is `floor(printable height in inches * linesPerInch)`, so the filled
+          // height can fall short of `pageHeight` by less than one `lineHeight` (the flooring's
+          // own rounding error) but must never exceed it: a full page of `linesPerPage` lines must
           // genuinely fit within the simulated sheet, not overflow it.
           expect(filledHeight, lessThanOrEqualTo(layout.pageHeight + 0.01));
           expect(filledHeight, greaterThan(layout.pageHeight - layout.lineHeight));

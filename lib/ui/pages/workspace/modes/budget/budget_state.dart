@@ -439,23 +439,6 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
     return null;
   }
 
-  /// Get the selected financing resource, or null while none is selected (or the selected one
-  /// disappeared from a freshly loaded [snapshot]) — mirrors [selectedPoste].
-  OcptBudgetResource? get selectedResource {
-    final selectedResourceId = this.selectedResourceId;
-    if (selectedResourceId == null) {
-      return null;
-    }
-
-    for (final resource in resources) {
-      if (resource.id == selectedResourceId) {
-        return resource;
-      }
-    }
-
-    return null;
-  }
-
   /// Class constructor
   const OcptBudgetState({
     required this.isLoading,

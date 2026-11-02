@@ -47,12 +47,6 @@ class OcptBudgetSharingPot extends Equatable {
     return shareable < 0 ? 0 : shareable;
   }
 
-  /// Tell whether there is anything at all to share yet. False while the takings have not yet
-  /// cleared
-  /// the contributions, which is the ordinary state of a film for a long time — and the state in
-  /// which every participant's own due is honestly zero rather than unknown.
-  bool get hasSomethingToShare => shareableCents > 0;
-
   /// Class constructor
   const OcptBudgetSharingPot({
     required this.received,

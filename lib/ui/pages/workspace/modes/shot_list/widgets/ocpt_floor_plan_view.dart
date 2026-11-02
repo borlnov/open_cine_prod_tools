@@ -71,7 +71,7 @@ class OcptFloorPlanView extends StatefulWidget {
   final String sequenceCode;
 
   /// The id of the currently focused shot, or null for the `Sequence` focus. Derived by the mode
-  /// from `OcptShotListState.selectedShotId` — see `OcptShotListState.isFloorPlanShotFocusActive`.
+  /// from `OcptShotListState.selectedShotId`: no shot selected means the `Sequence` focus.
   final String? focusShotId;
 
   /// The shot immediately before [focusShotId], or null while there is none.

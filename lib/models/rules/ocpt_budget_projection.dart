@@ -334,11 +334,6 @@ class OcptBudgetProjection extends Equatable {
     return null;
   }
 
-  /// Tell whether the projection ever goes under — [firstNegativeStep] answering something rather
-  /// than
-  /// null.
-  bool get goesNegative => firstNegativeStep != null;
-
   /// Class constructor
   const OcptBudgetProjection({
     required this.openingBalanceCents,

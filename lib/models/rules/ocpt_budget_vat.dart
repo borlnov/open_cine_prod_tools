@@ -110,30 +110,6 @@ int? ocptIncludingTaxAmountCentsOf(OcptMoney money, {required int? projectVatRat
   return (money.amountCents * (_ocptBasisPointsPerWhole + rate) / _ocptBasisPointsPerWhole).round();
 }
 
-/// Get the VAT [money] carries, in cents, given the project's own [projectVatRateBasisPoints] — the
-/// difference between [ocptIncludingTaxAmountCentsOf] and [ocptExcludingTaxAmountCentsOf], or null
-/// when either of those is: an amount whose excluding-tax figure cannot be known has no VAT figure
-/// either, for the same reason.
-///
-/// An explicit **0 %** rate answers zero here, a genuine, known amount of VAT — not the same fact
-/// as a null answer, which means the amount of VAT is itself unrecorded.
-int? ocptVatAmountCentsOf(OcptMoney money, {required int? projectVatRateBasisPoints}) {
-  final excludingTax = ocptExcludingTaxAmountCentsOf(
-    money,
-    projectVatRateBasisPoints: projectVatRateBasisPoints,
-  );
-  final includingTax = ocptIncludingTaxAmountCentsOf(
-    money,
-    projectVatRateBasisPoints: projectVatRateBasisPoints,
-  );
-
-  if (excludingTax == null || includingTax == null) {
-    return null;
-  }
-
-  return includingTax - excludingTax;
-}
-
 /// The decimal separator [ocptVatRatePercentTextOf] writes, and the one
 /// [ocptVatRateBasisPointsOf] reads alongside the comma.
 const String _ocptDecimalPoint = ".";

@@ -81,11 +81,6 @@ class OcptAppVersion extends Equatable {
     return OcptAppVersion(major: major, minor: minor, patch: patch, preRelease: preRelease);
   }
 
-  /// Tell whether [other] shares this version's [stableLine], regardless of either one's
-  /// pre-release
-  /// segment.
-  bool isSameStableLineAs(OcptAppVersion other) => stableLine == other.stableLine;
-
   /// Get a string representation of the object, useful for debugging and logging.
   @override
   String toString() => "OcptAppVersion($stableLine${preRelease == null ? "" : "-$preRelease"})";

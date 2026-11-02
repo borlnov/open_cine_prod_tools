@@ -32,11 +32,6 @@ void main() {
       _expectClose(metrics.linesPerInch, 6);
     });
 
-    test('printable area is 6 by 9 inches', () {
-      _expectClose(metrics.printableWidthInches, 6);
-      _expectClose(metrics.printableHeightInches, 9);
-    });
-
     test('54 lines fit on one page (9in * 6 lines/in)', () {
       expect(metrics.linesPerPage, 54);
     });
@@ -221,12 +216,6 @@ void main() {
     );
     final metrics = FountainLayoutMetrics.usLetter(margins: margins);
     final standardMetrics = FountainLayoutMetrics.usLetter();
-
-    test('printable width and height reflect the new margins', () {
-      // 8.5 - 2 - 0.5 = 6, 11 - 2 - 0.5 = 8.5
-      _expectClose(metrics.printableWidthInches, 6);
-      _expectClose(metrics.printableHeightInches, 8.5);
-    });
 
     test('linesPerPage shifts with the new printable height', () {
       expect(metrics.linesPerPage, 51);

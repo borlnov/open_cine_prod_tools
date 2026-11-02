@@ -47,12 +47,11 @@ void main() {
     });
   });
 
-  group("ocptExcludingTaxAmountCentsOf / ocptIncludingTaxAmountCentsOf / ocptVatAmountCentsOf", () {
+  group("ocptExcludingTaxAmountCentsOf / ocptIncludingTaxAmountCentsOf", () {
     test("a project with no rate leaves a tax-inclusive line's excluding-tax figure empty", () {
       const money = OcptMoney(amountCents: 1250, isTaxInclusive: true, vatRateBasisPoints: null);
 
       expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
-      expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
       // Including tax needs no rate at all: the figure was typed that way.
       expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), 1250);
     });
@@ -62,7 +61,6 @@ void main() {
 
       expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: 2000), 10000);
       expect(ocptIncludingTaxAmountCentsOf(money, projectVatRateBasisPoints: 2000), 10550);
-      expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: 2000), 550);
     });
 
     test("a line at 0 % counts its excluding-tax figure equal to its tax-inclusive one", () {
@@ -72,7 +70,6 @@ void main() {
         vatRateBasisPoints: 0,
       );
       expect(ocptExcludingTaxAmountCentsOf(taxInclusive, projectVatRateBasisPoints: 2000), 5000);
-      expect(ocptVatAmountCentsOf(taxInclusive, projectVatRateBasisPoints: 2000), 0);
 
       const taxExclusive = OcptMoney(
         amountCents: 5000,
@@ -80,14 +77,12 @@ void main() {
         vatRateBasisPoints: 0,
       );
       expect(ocptIncludingTaxAmountCentsOf(taxExclusive, projectVatRateBasisPoints: 2000), 5000);
-      expect(ocptVatAmountCentsOf(taxExclusive, projectVatRateBasisPoints: 2000), 0);
     });
 
     test("a silent line at a project with no rate counts for neither figure", () {
       const money = OcptMoney(amountCents: 5000, isTaxInclusive: true, vatRateBasisPoints: null);
 
       expect(ocptExcludingTaxAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
-      expect(ocptVatAmountCentsOf(money, projectVatRateBasisPoints: null), isNull);
     });
 
     test("a tax-exclusive amount is already its own excluding-tax figure, rate or no rate", () {

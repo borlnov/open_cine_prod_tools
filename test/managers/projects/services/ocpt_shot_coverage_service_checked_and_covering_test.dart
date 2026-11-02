@@ -228,7 +228,7 @@ Action TWO three.
     expect(shotAfterSecondRefresh.needsCheck, isFalse);
   });
 
-  test("shotIdsCoveringRange returns the other shots overlapping a scene range", () async {
+  test("removing a coverage range tombstones its row", () async {
     await screenplayService.saveScreenplayText(
       database: database,
       screenplayId: screenplayId,
@@ -258,7 +258,6 @@ Action one two three.
     final oneOffset = sceneText.indexOf("one");
     final twoOffset = sceneText.indexOf("two");
 
-    // Shot A covers "one two", shot B covers just "two": they overlap on "two".
     await coverageService.addRange(
       database: database,
       shotId: shotA,
@@ -276,31 +275,11 @@ Action one two three.
       sceneText: sceneText,
     );
 
-    final overlappingWithB = await coverageService.shotIdsCoveringRange(
-      database: database,
-      sceneId: scene.id,
-      startOffset: twoOffset,
-      endOffset: twoOffset + "two".length,
-      excludingShotId: shotB,
-    );
-
-    expect(overlappingWithB, [shotA]);
-
-    // Removing shot A's range tombstones it, and every reader — this one included — has to stop
-    // seeing it rather than rely on the row being gone.
+    // Removing shot A's range tombstones it, and every reader has to stop seeing it rather than
+    // rely on the row being gone.
     final rangeOfA = (await readRanges()).firstWhere((row) => row.shotId == shotA);
     await coverageService.removeRange(database: database, rangeId: rangeOfA.id);
 
-    expect(
-      await coverageService.shotIdsCoveringRange(
-        database: database,
-        sceneId: scene.id,
-        startOffset: twoOffset,
-        endOffset: twoOffset + "two".length,
-        excludingShotId: shotB,
-      ),
-      isEmpty,
-    );
     expect((await readRanges()).map((row) => row.shotId), [shotB]);
     // The row itself is still there, flagged.
     expect(await database.select(database.ocptShotCoveragesTable).get(), hasLength(2));

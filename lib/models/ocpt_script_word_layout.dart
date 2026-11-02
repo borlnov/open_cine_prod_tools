@@ -98,18 +98,6 @@ class OcptScriptWordLayout extends Equatable {
     return OcptScriptWordLayout(sceneId: sceneId, sceneText: sceneText, blocks: blocks);
   }
 
-  /// Get the block whose `[startOffset, endOffset)` contains [offset], or null if [offset] falls on
-  /// a
-  /// blank line or outside every block.
-  OcptScriptWordBlock? blockContaining(int offset) {
-    for (final block in blocks) {
-      if (offset >= block.startOffset && offset < block.endOffset) {
-        return block;
-      }
-    }
-    return null;
-  }
-
   /// Get the scene-relative range to store for a click on [first] followed by a click on [second],
   /// order-insensitive: closing a range by clicking backwards (the second click lands on a word
   /// before the first) yields the same range as clicking the same two words forwards.

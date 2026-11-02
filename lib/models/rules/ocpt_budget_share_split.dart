@@ -28,9 +28,6 @@ class OcptBudgetShareSplit extends Equatable {
   /// `dueCents × reinvestPermille ÷ 1000`, rounded to the nearest cent.
   final int reinvestedCents;
 
-  /// Get [dueCents] less [reinvestedCents]: what is theirs to actually take.
-  int get takeHomeCents => dueCents - reinvestedCents;
-
   /// Class constructor
   const OcptBudgetShareSplit({
     required this.share,

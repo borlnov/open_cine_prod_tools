@@ -119,15 +119,6 @@ class FountainLayoutMetrics extends Equatable {
   /// The layout box for lyrics.
   final FountainElementLayout lyrics;
 
-  /// Get the printable width of the page: `pageWidthInches - marginLeftInches - marginRightInches`.
-  /// marginRightInches`.
-  double get printableWidthInches => pageWidthInches - marginLeftInches - marginRightInches;
-
-  /// Get the printable height of the page:
-  /// `pageHeightInches - marginTopInches - marginBottomInches`.
-  /// marginTopInches - marginBottomInches`.
-  double get printableHeightInches => pageHeightInches - marginTopInches - marginBottomInches;
-
   /// Create a [FountainLayoutMetrics] with every measurement given
   /// explicitly. Prefer the [FountainLayoutMetrics.usLetter] and
   /// [FountainLayoutMetrics.a4] presets unless a non-standard page size is

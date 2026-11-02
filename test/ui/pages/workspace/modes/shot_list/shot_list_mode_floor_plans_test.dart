@@ -623,7 +623,7 @@ void main() {
       await tester.pumpAndSettle();
       final firstShotId = bloc.state.selectedShotId!;
       final firstShotCode = bloc.state.selectedShot!.code;
-      expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+      expect(bloc.state.selectedShotId, isNotNull);
 
       // The shot's own chip is already active (the very selection the table's rows share) —
       // scoped to the focus strip: the shot's own code is also shown by the left tree and the
@@ -657,7 +657,7 @@ void main() {
         bloc.add(const OcptShotListShotCreationRequestedEvent());
         await tester.pumpAndSettle();
         final shotId = bloc.state.selectedShotId!;
-        expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+        expect(bloc.state.selectedShotId, isNotNull);
 
         // Creating the shot opened the right dock on its own inspector tab, narrowing the centre
         // column enough to make the tool bar's own tap targets unreliable to hit-test against in

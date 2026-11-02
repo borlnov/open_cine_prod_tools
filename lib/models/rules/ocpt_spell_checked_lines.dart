@@ -51,18 +51,6 @@ bool ocptIsSpellCheckedLineType(FountainLineType type) {
   }
 }
 
-/// The tokenizer options a screenplay spell check applies by default: the all-caps rule (a scene
-/// heading fragment, a character cue or a shouted word) and the digit rule (a page number, a
-/// measurement, a code) of `docs/architecture/screenplay.md`, both on.
-///
-/// [SpellTokenizerOptions.fromAffixFile] is the richer form the spell-check worker isolate builds
-/// once it has parsed a language's `.aff` file, since it also honours that language's own
-/// `WORDCHARS`; this constant is the app-side default for a caller with no affix file in hand
-/// (this file has none — it stays free of `spell_kit`'s parsing internals on purpose) and simply
-/// relies on `SpellTokenizerOptions`'s own built-in word-character set, over which both rules are
-/// already on by default.
-const SpellTokenizerOptions ocptScreenplaySpellTokenizerOptions = SpellTokenizerOptions();
-
 /// Get the [FountainLineType] a parsed [block] corresponds to, or null for the three block kinds
 /// that
 /// have none of their own.

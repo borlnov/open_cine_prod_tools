@@ -594,41 +594,6 @@ void main() {
     });
   });
 
-  group("OcptBudgetState.selectedResource", () {
-    test("resolves the resource named by selectedResourceId out of the snapshot", () {
-      final resource = _buildResource(id: "resource-1");
-      final state = const OcptBudgetState.init().copyWith(
-        snapshot: OcptBudgetSnapshot.build(
-          postes: const [],
-          entries: const [],
-          commitments: const [],
-          resources: [resource],
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-        ),
-        selection: const OcptBudgetResourceSelection("resource-1"),
-      );
-
-      expect(state.selectedResource, resource);
-    });
-
-    test("is null while selectedResourceId names no live resource", () {
-      final state = const OcptBudgetState.init().copyWith(
-        snapshot: OcptBudgetSnapshot.build(
-          postes: const [],
-          entries: const [],
-          commitments: const [],
-          resources: [_buildResource(id: "resource-1")],
-          defaultVatRateBasisPoints: null,
-          currencyCode: "EUR",
-        ),
-        selection: const OcptBudgetResourceSelection("gone"),
-      );
-
-      expect(state.selectedResource, isNull);
-    });
-  });
-
   group("OcptBudgetState.copyWith clears selectedResourceId", () {
     test("only through its own clear flag", () {
       final withSelection = const OcptBudgetState.init().copyWith(

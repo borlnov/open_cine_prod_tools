@@ -132,25 +132,6 @@ void main() {
     });
   });
 
-  group("OcptScriptWordLayout.blockContaining", () {
-    test("returns the block holding the given offset", () {
-      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
-      final actionBlock = layout.blocks[1];
-
-      final found = layout.blockContaining(actionBlock.startOffset + 2);
-
-      expect(found, actionBlock);
-    });
-
-    test("returns null for an offset on a blank line", () {
-      final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);
-      // Offset right after "INT. HOUSE - DAY\n": the blank line.
-      final blankLineOffset = "INT. HOUSE - DAY\n".length;
-
-      expect(layout.blockContaining(blankLineOffset), isNull);
-    });
-  });
-
   group("OcptScriptWordLayout.rangeBetween", () {
     test("is order-insensitive: clicking backwards yields the same range as clicking forwards", () {
       final layout = OcptScriptWordLayout.of(sceneId: sceneId, sceneText: sceneText);

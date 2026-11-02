@@ -504,10 +504,10 @@ void main() {
         // No shot exists yet: the invariant only ever guarantees a current shot while the
         // sequence holds at least one.
         expect(loaded.selectedShotId, isNull);
-        expect(loaded.isFloorPlanShotFocusActive, isFalse);
+        expect(loaded.selectedShotId, isNull);
 
         final firstShotId = await createShot(bloc);
-        expect(bloc.state.isFloorPlanShotFocusActive, isTrue);
+        expect(bloc.state.selectedShotId, isNotNull);
         expect(bloc.state.selectedShotId, firstShotId);
 
         final secondShotId = await createShot(bloc);
@@ -522,7 +522,7 @@ void main() {
           (state) => state.selectedShotId == firstShotId,
         );
         expect(afterDelete.selectedSequenceId, sequenceId);
-        expect(afterDelete.isFloorPlanShotFocusActive, isTrue);
+        expect(afterDelete.selectedShotId, isNotNull);
 
         // Deleting the sequence's own last shot finally clears the selection: there is no shot
         // left to be the current one.

@@ -395,7 +395,6 @@ void main() {
         projectVatRateBasisPoints: null,
       );
 
-      expect(projection.goesNegative, isTrue);
       expect(projection.firstNegativeStep!.commitmentId, "c2");
       expect(projection.firstNegativeStep!.dueDate, isNull);
       expect(projection.firstNegativeStep!.balanceAfterCents, -4000);
@@ -411,7 +410,6 @@ void main() {
         projectVatRateBasisPoints: null,
       );
 
-      expect(projection.goesNegative, isFalse);
       expect(projection.firstNegativeStep, isNull);
     });
   });

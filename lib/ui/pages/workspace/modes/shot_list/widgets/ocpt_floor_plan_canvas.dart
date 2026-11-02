@@ -114,8 +114,7 @@ class OcptFloorPlanCanvas extends StatefulWidget {
   final String focusSceneId;
 
   /// The id of the currently focused shot — see the class doc comment. Null only defensively (no
-  /// shot placed yet); `OcptShotListState.isFloorPlanShotFocusActive`'s own reading of
-  /// `selectedShotId`.
+  /// shot placed yet); the mode's own reading of `OcptShotListState.selectedShotId`.
   final String? focusShotId;
 
   /// The shot immediately before [focusShotId] in the sequence, or null while there is none — the

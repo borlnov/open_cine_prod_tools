@@ -64,23 +64,6 @@ void main() {
     });
   });
 
-  group("OcptAppVersion.isSameStableLineAs", () {
-    test("true when the MAJOR.MINOR.PATCH core matches, pre-release or not", () {
-      final stable = OcptAppVersion.parse("0.2.0");
-      final preRelease = OcptAppVersion.parse("0.2.0-3-g87a9b8d");
-
-      expect(stable.isSameStableLineAs(preRelease), isTrue);
-      expect(preRelease.isSameStableLineAs(stable), isTrue);
-    });
-
-    test("false when the core differs", () {
-      final a = OcptAppVersion.parse("0.2.0");
-      final b = OcptAppVersion.parse("0.2.1");
-
-      expect(a.isSameStableLineAs(b), isFalse);
-    });
-  });
-
   group("value equality", () {
     test("two versions parsed from the same string are equal", () {
       expect(OcptAppVersion.parse("0.2.0-alpha.3"), OcptAppVersion.parse("0.2.0-alpha.3"));

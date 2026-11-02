@@ -47,6 +47,7 @@ State _stateOfTileShowing(WidgetTester tester, String path) {
   return (tester.element(tile) as StatefulElement).state;
 }
 
+/// Run the tests of [OcptLocationSheetPhotosCard].
 void main() {
   testWidgets("removing a photo leaves the other tiles on their own state", (tester) async {
     final first = _photo("photo-1", "/missing/first.jpg");

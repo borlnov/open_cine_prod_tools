@@ -414,35 +414,6 @@ class OcptShotCoverageService extends AbsOcptService {
     });
   }
 
-  /// Get the ids of every shot (other than [excludingShotId], when given) that has a coverage range
-  /// of
-  /// scene [sceneId] overlapping the scene-relative `[startOffset, endOffset)` range — the
-  /// inspector's "also covered by" set for a block or sub-range of one.
-  Future<List<String>> shotIdsCoveringRange({
-    required OcptProjectDatabase database,
-    required String sceneId,
-    required int startOffset,
-    required int endOffset,
-    String? excludingShotId,
-  }) async {
-    final rows = await (database.select(
-      database.ocptShotCoveragesTable,
-    )..where((table) => table.sceneId.equals(sceneId) & table.isDeleted.not())).get();
-
-    final overlappingShotIds = <String>{};
-    for (final row in rows) {
-      if (row.shotId == excludingShotId) {
-        continue;
-      }
-      final overlaps = row.startOffset < endOffset && row.endOffset > startOffset;
-      if (overlaps) {
-        overlappingShotIds.add(row.shotId);
-      }
-    }
-
-    return overlappingShotIds.toList(growable: false);
-  }
-
   /// Get the hex SHA-256 digest of [text]'s UTF-8 bytes.
   static String digestOf(String text) => sha256.convert(utf8.encode(text)).toString();
 

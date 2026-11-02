@@ -83,16 +83,15 @@ are all here, and this file is the whole record of them.
   on purpose — and that is a different fact from a rate nobody has filled in, which contributes to
   neither total. `lib/models/rules/ocpt_budget_vat.dart` is the **only** place in the repository
   allowed to convert between the two bases, and every function in it answers **null, never zero**,
-  when the rate an amount would need is unknown: `ocptExcludingTaxAmountCentsOf`, its mirror
-  `ocptIncludingTaxAmountCentsOf`, and `ocptVatAmountCentsOf`, the difference between them (itself
-  null when either side is). `ocptEffectiveVatRateOf` is the one place that resolves which rate a
-  line actually reads under, pairing the basis-points figure with whether it came from the line's
-  own override or the project's default — the cost-tracking table paints the first in the accent
-  colour and the second in grey, switching on that pairing rather than re-deriving the comparison.
-  Quantities are integers **in thousandths** (`quantityMilli`), for the same reason cents are cents:
-  1,484 km, 5 days and 1.5 day all have to be said exactly, and a total computed from it
-  (`lib/models/rules/ocpt_budget_totals.dart`) is exact rather than accumulating a rounding a
-  floating-point quantity would.
+  when the rate an amount would need is unknown: `ocptExcludingTaxAmountCentsOf` and its mirror
+  `ocptIncludingTaxAmountCentsOf`. `ocptEffectiveVatRateOf` is the one place that resolves which
+  rate a line actually reads under, pairing the basis-points figure with whether it came from the
+  line's own override or the project's default — the cost-tracking table paints the first in the
+  accent colour and the second in grey, switching on that pairing rather than re-deriving the
+  comparison. Quantities are integers **in thousandths** (`quantityMilli`), for the same reason
+  cents are cents: 1,484 km, 5 days and 1.5 day all have to be said exactly, and a total computed
+  from it (`lib/models/rules/ocpt_budget_totals.dart`) is exact rather than accumulating a rounding
+  a floating-point quantity would.
 
 ## Totals are computed row by row, then summed
 

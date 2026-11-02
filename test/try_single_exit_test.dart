@@ -146,8 +146,8 @@ class _TryFinder extends RecursiveAstVisitor<void> {
 /// so does a `try`/`finally` with no `catch`, which returns from its `try` freely. A closure inside
 /// the block has exits of its own and does not count.
 ///
-/// This parses every Dart file of `lib/`, `test/`, `tool/` and of each package's `lib/`, `test/` and
-/// `bin/`, and fails on an exit of that kind, naming its line.
+/// This parses every Dart file of `lib/`, `test/`, `tool/` and of each package's `lib/`, `test/`
+/// and `bin/`, and fails on an exit of that kind, naming its line.
 void main() {
   final roots = [
     Directory("lib"),

@@ -97,14 +97,6 @@ extension OcptShotListStateDerivedExtension on OcptShotListState {
     return null;
   }
 
-  /// Get the floor plans view's own focus — **derived, never a second field**: `true` while a shot
-  /// is
-  /// selected (the shot focus), `false`
-  /// while none is (the `Sequence` focus). Every floor plans widget that needs to know which of the
-  /// two is showing reads this rather than [selectedShotId] directly, so the one rule ("no shot
-  /// selected means the sequence focus") lives in exactly one place.
-  bool get isFloorPlanShotFocusActive => selectedShotId != null;
-
   /// Get the selected sequence's own shot immediately before [selectedShotId], or null while none
   /// is
   /// selected, it is the sequence's first shot, or the selected sequence is the orphan group (no

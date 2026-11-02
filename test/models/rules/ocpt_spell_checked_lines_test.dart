@@ -153,13 +153,6 @@ void main() {
     });
   });
 
-  group('ocptScreenplaySpellTokenizerOptions', () {
-    test('turns the all-caps and digit skip rules on', () {
-      expect(ocptScreenplaySpellTokenizerOptions.skipAllCapsTokens, isTrue);
-      expect(ocptScreenplaySpellTokenizerOptions.skipTokensWithDigits, isTrue);
-    });
-  });
-
   group('ocptSpellCheckSkipSpansIn', () {
     test('returns no span for a text with no note or boneyard comment', () {
       expect(ocptSpellCheckSkipSpansIn('She walks into the kitchen.'), isEmpty);

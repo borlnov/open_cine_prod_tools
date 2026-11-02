@@ -401,7 +401,6 @@ void main() {
 
       expect(pot.shareableCents, 50000);
       expect(pot.outstandingRepaymentCents, 350000);
-      expect(pot.hasSomethingToShare, isTrue);
     });
 
     test("delaying a repayment does not enlarge the pot", () {
@@ -416,7 +415,6 @@ void main() {
       final pot = potOf(receivedCents: 100000, reimbursableCents: 350000);
 
       expect(pot.shareableCents, 0);
-      expect(pot.hasSomethingToShare, isFalse);
     });
 
     test("repaying more than was owed finishes the repayment rather than owing the difference", () {
@@ -443,7 +441,6 @@ void main() {
         // 6,200 € of takings less 3,500 € of reimbursable contributions leaves 2,700 € to share.
         expect(splits[0].dueCents, 108000);
         expect(splits[0].reinvestedCents, 108000);
-        expect(splits[0].takeHomeCents, 0);
         expect(splits[1].dueCents, 67500);
         expect(splits[1].reinvestedCents, 0);
         expect(splits[2].dueCents, 27000);
