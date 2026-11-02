@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:fountain_kit/fountain_kit.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_audition_row.dart';
+import 'package:open_cine_prod_tools/managers/export/services/ocpt_call_sheet_cast_row.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_ordered_schedule_entry.dart';
 import 'package:open_cine_prod_tools/managers/export/services/ocpt_schedule_pdf_shared.dart';
 import 'package:open_cine_prod_tools/models/ocpt_call_sheet_labels.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_role_candidate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_schedule_plan_snapshot.dart';
@@ -16,7 +16,6 @@ import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shot_code.dart';
-import 'package:open_cine_prod_tools/types/ocpt_crew_department.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_block_kind_shooting_time.dart';
 
@@ -121,133 +120,6 @@ class OcptCallSheetDayRow {
     endMinute: endMinute,
     crewNotes: crewNote.trim().isEmpty ? [] : [crewNote.trim()],
   );
-}
-
-/// One row of the day's own cast table.
-class OcptCallSheetCastRow {
-  /// The role convoked.
-  final OcptRole role;
-
-  /// The actor cast in [role], or null while it is uncast.
-  final OcptPerson? actor;
-
-  /// The scene numbers this role's character is shot in today, sorted.
-  final List<String> sceneNumbers;
-
-  /// This role's (or its actor's) own computed convocation, or null while nobody linked it to a
-  /// slot at all — which should not happen for a role a cast row already names, but is read
-  /// defensively rather than assumed.
-  final OcptDayConvocation? convocation;
-
-  /// Class constructor
-  const OcptCallSheetCastRow({
-    required this.role,
-    required this.actor,
-    required this.sceneNumbers,
-    required this.convocation,
-  });
-}
-
-/// One printed row of the day's own audition table: an audition block's resolved hours, the part it
-/// sees, and who is being seen for it.
-///
-/// **One row per candidacy, not per block**: two actors of two different parts read together are
-/// two rows sharing one hour (ADR 0024), and a block naming nobody yet is one row carrying its hour
-/// alone.
-class OcptCallSheetAuditionRow {
-  /// Where this audition starts, resolved off the timeline like every other hour on this sheet.
-  final int startMinute;
-
-  /// Where it ends, resolved off the same timeline.
-  final int endMinute;
-
-  /// The part being seen, as `<number> · <name>` ([ocptScheduleRoleLabelOf]), or null while the
-  /// block names nobody — an ordinary state, exactly as a hold with no sequence is — or while the
-  /// candidacy names a part the project has since deleted. The caller prints
-  /// [ocptScheduleEmptyValue] for it.
-  final String? roleLabel;
-
-  /// Who is being seen, or null under the same conditions as [roleLabel]. Their phone number is
-  /// deliberately not here: it sits in the day's own candidates directory, where a directory
-  /// belongs.
-  final String? candidateName;
-
-  /// Class constructor
-  const OcptCallSheetAuditionRow({
-    required this.startMinute,
-    required this.endMinute,
-    required this.roleLabel,
-    required this.candidateName,
-  });
-}
-
-/// One crew member's own contact: who they are, what they hold that day, and which department that
-/// position belongs to (null for a free-text `OcptShootingSlotCrewMember.customLabel` the catalogue
-/// has no department for).
-class OcptCallSheetCrewContact {
-  /// The person themselves.
-  final OcptPerson person;
-
-  /// The label of the position they hold that day — the catalogue's own label, or their own free
-  /// text.
-  final String positionLabel;
-
-  /// The department [positionLabel] belongs to, or null for a free-text position.
-  final OcptCrewDepartment? department;
-
-  /// Class constructor
-  const OcptCallSheetCrewContact({
-    required this.person,
-    required this.positionLabel,
-    required this.department,
-  });
-}
-
-/// One row of the crew list or the cast-and-extras list — the two lists print the same shape, so
-/// they share this type.
-class OcptCallSheetPeopleListEntry {
-  /// The person's own display name, or [OcptCallSheetLabels.unnamedPersonLabel] for an uncast role.
-  final String name;
-
-  /// The position(s) they hold, comma-joined, or the role's own number and name.
-  final String positionOrRole;
-
-  /// Their own phone number, empty when there is none (an uncast role has nobody's phone to print).
-  final String phone;
-
-  /// Their own email address, empty for the same reason.
-  final String email;
-
-  /// Their own arrival – departure band, or [ocptScheduleEmptyValue] while they have no convocation
-  /// at all.
-  final String scheduleLabel;
-
-  /// Class constructor
-  const OcptCallSheetPeopleListEntry({
-    required this.name,
-    required this.positionOrRole,
-    required this.phone,
-    required this.email,
-    required this.scheduleLabel,
-  });
-}
-
-/// One row of a named sheet's own "to bring" table: an element
-/// [OcptSchedulePlanSnapshot.elementsToBringOnDay] joined onto that sheet's own recipient, and the
-/// scene numbers of the day's own shots that play a scene it is linked to.
-class OcptCallSheetToBringRow {
-  /// The element the recipient is due to bring.
-  final OcptElement element;
-
-  /// The scene numbers of the day's own shots that play a scene [element] is linked to, sorted —
-  /// empty when [element] is linked to a scene the day plays through no numbered shot at all, which
-  /// still prints ([ocptScheduleEmptyValue]) rather than being left out: the join already
-  /// established the element belongs on this list, and a bare scene id would explain nothing on a
-  /// printed page.
-  final List<String> sceneNumbers;
-
-  /// Class constructor
-  const OcptCallSheetToBringRow({required this.element, required this.sceneNumbers});
 }
 
 /// Turn [orderedEntries] into the printed rows of the main table: a run of consecutive
