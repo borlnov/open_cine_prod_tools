@@ -274,7 +274,14 @@ A project rule overrides these. The overrides this project has made:
 - **RD8, RD11:** `script_import_kit`, `ocpt_sync_protocol` and `ocpt_sync_relay` signal a malformed
   document with a typed exception, which the app converts to a `Result` at its boundary:
   `act_dart_result` depends on Flutter, and the relay compiles without it.
-- **RD22:** a `<feature>_test_doubles.dart` beside the test files may hold several public doubles.
+- **RD14:** `OcptPresenceService.roster` stays a getter over a hand-written controller, since it is
+  derived on every read (a heartbeat changes it without any emission) and a keeper's value would go
+  stale.
+- **RD18:** a doc block repeated fewer than five times may stay where it is, since a short sentence
+  reads better in place than behind a template name.
+- **RD22:** a `<feature>_test_doubles.dart` beside the test files may hold several public doubles. A
+  sealed family shares a file, which Dart requires, as do a manager and its builder, and an extension
+  may sit beside the enum it extends.
 - **RD25:** a Flutter `State` and a test double may initialize their fields at declaration, and so
   may a mixin, which has no constructor. A `late final` field computed from the other fields of its
   object, on first read, stays `late final`.
@@ -285,8 +292,13 @@ A project rule overrides these. The overrides this project has made:
 - **RFL5:** `ScreenUtilInit` stays at the app root, but only the theme uses its extensions, and only
   on a phone (`OcptMainAppUi`). Widgets do not use them and may state logical pixel sizes: the
   density of this desktop-first UI lives in the component themes of `lib/constants/ocpt_theme.dart`.
+- **RFL18:** `OcptRowStampService`, an accumulator built for one transaction and owned by nobody, and
+  `OcptFolderRemoteStorage`, a file adapter that logs nothing, stay off the services' common base,
+  which requires a logger.
 - **RFL23:** a production mode is `Ocpt<X>Mode` in `<x>_mode.dart`, and a widget is named after its
   role (`Card`, `Panel`, `Dialog`, `Sheet`) rather than ending in `Widget`.
+- **RFL26:** a model owned by no manager builds its `LogsHelper` where it logs instead of keeping one,
+  since the global logger it hangs from can be replaced.
 - **RFL35:** `AbstractSecretsManager` is what stores the secrets, in secure storage; the rule and
   the "look in `actlibs/` first" rule above contradict each other on this point, so the latter wins.
 - **RFL41:** a bloc may keep a non-final field, or a final collection whose content changes,
