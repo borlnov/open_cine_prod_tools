@@ -68,6 +68,9 @@ class OcptLocationSheetPhotosCard extends StatelessWidget {
             children: [
               for (final photo in photos)
                 SizedBox(
+                  // Keyed by the asset: the list changes as photos are removed, and a tile's state
+                  // (whether its file was found) must stay with its own photo, not its position.
+                  key: ValueKey(photo.id),
                   width: tileWidth,
                   height: _tileHeight,
                   child: _OcptPhotoTile(
