@@ -142,7 +142,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one
 /// [OcptBudgetCostTrackingAccountCard] per live account**, scrolling vertically, above the very
 /// same `+ Poste` creation footer. A card draws an account's own name, a proportion bar reading its
-/// own paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the
+/// own paid/committed amounts against its quote (`OcptBudgetAccountProportionBar`, the
 /// very colours `OcptBudgetDetail`'s own account-variant bar already uses for the same figures),
 /// and its own `Engagé`/`Payé`/`Reste`/`Écart` figures — read through
 /// [OcptBudgetCostTrackingAccountFigures.of], the very same calls

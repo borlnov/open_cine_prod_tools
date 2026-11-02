@@ -7,9 +7,9 @@ import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account.dart';
 import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_account_proportion_bar.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_account_figures.dart';
-import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_cost_tracking_card_proportion_bar.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
 /// One account's own card, drawn in place of its row pair at a compact width — see
@@ -122,7 +122,7 @@ class OcptBudgetCostTrackingAccountCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                OcptBudgetCostTrackingCardProportionBar(
+                OcptBudgetAccountProportionBar(
                   quotedAmountCents: figures.quotedAmountCents,
                   paidCents: paidCents,
                   committedCents: committedCents,

@@ -78,11 +78,6 @@ const double ocptBudgetCostTrackingBadgeMaxWidth = 84;
 /// drawn, in logical pixels — centred rather than run the width of the screen.
 const double ocptBudgetCostTrackingEmptyStateMaxWidth = 480;
 
-/// An account card's own proportion bar's own height, in logical pixels — matches
-/// `OcptBudgetDetail`'s own account-variant proportion bar, the mode's own established reading of
-/// the same paid/committed/overrun figures.
-const double ocptBudgetCostTrackingCardProportionBarHeight = 8;
-
 /// The gap, in logical pixels, between one account card and the next in the compact list.
 const double ocptBudgetCostTrackingCardSpacing = 12;
 
