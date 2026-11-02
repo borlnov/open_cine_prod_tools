@@ -14,16 +14,6 @@ import 'package:open_cine_prod_tools/managers/ocpt_config_manager.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// Build the [OcptFileLoggingManager] instance registered by the global manager.
-class OcptFileLoggingManagerBuilder extends AbsLifeCycleFactory<OcptFileLoggingManager> {
-  /// Class constructor
-  const OcptFileLoggingManagerBuilder() : super(OcptFileLoggingManager.new);
-
-  /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
-  @override
-  Iterable<Type> dependsOn() => [LoggerManager, OcptConfigManager];
-}
-
 /// Resolve the absolute path of the directory [OcptFileLoggingManager] writes its rotating log
 /// files under, once file logging is enabled — the per-platform application support directory's
 /// own `logs` subfolder by default; a test injects one pointing at a temporary directory instead.
@@ -37,6 +27,16 @@ Future<String> _defaultLogDirectoryPath() async {
 /// file on.
 /// Android and iOS are the mobile pair; every other target (Linux, Windows, macOS) is desktop.
 bool _defaultIsDesktopPlatform() => !(Platform.isAndroid || Platform.isIOS);
+
+/// Build the [OcptFileLoggingManager] instance registered by the global manager.
+class OcptFileLoggingManagerBuilder extends AbsLifeCycleFactory<OcptFileLoggingManager> {
+  /// Class constructor
+  const OcptFileLoggingManagerBuilder() : super(OcptFileLoggingManager.new);
+
+  /// {@macro act_life_cycle.AbsLifeCycleFactory.dependsOn}
+  @override
+  Iterable<Type> dependsOn() => [LoggerManager, OcptConfigManager];
+}
 
 /// Turn the `logs.file.*` configuration read by [OcptConfigManager] into a registered
 /// [OcptFileExternalLogger], so a crash still leaves a log file behind — the file itself has no
