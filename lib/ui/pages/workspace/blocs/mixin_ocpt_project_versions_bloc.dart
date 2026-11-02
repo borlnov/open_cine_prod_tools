@@ -109,13 +109,14 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
   /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
   /// The initial refresh runs from here rather than being left to each mode, so a mode never has to
-  /// remember to populate the panel it hosts.
+  /// remember to populate the panel it hosts. It is dispatched rather than awaited: capturing the
+  /// working copy hashes the whole project, and the mode's own first read must not wait for that.
   @protected
   @override
   @mustCallSuper
   Future<void> initAsyncBloc({required Emitter<S> emit}) async {
     await super.initAsyncBloc(emit: emit);
-    await _onVersionsRefreshRequested(const OcptProjectVersionsRefreshRequestedEvent(), emit);
+    add(const OcptProjectVersionsRefreshRequestedEvent());
   }
 
   /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
