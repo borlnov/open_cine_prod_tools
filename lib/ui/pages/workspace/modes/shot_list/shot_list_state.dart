@@ -370,6 +370,7 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
     int? selectionEpoch,
     OcptShotListSelectionCause? selectionCause,
     String? selectionTargetId,
+    bool forceSelectionTargetIdValue = false,
     List<OcptProjectVersion>? projectVersions,
     String? previewedVersionId,
     bool forcePreviewedVersionIdValue = false,
@@ -434,7 +435,8 @@ class OcptShotListState extends BlocStateForMixin<OcptShotListState>
             : this.reloadEpoch),
     selectionEpoch: selectionEpoch ?? this.selectionEpoch,
     selectionCause: selectionCause ?? this.selectionCause,
-    selectionTargetId: selectionTargetId ?? this.selectionTargetId,
+    selectionTargetId:
+        selectionTargetId ?? (forceSelectionTargetIdValue ? null : this.selectionTargetId),
     projectVersions: projectVersions ?? this.projectVersions,
     previewedVersionId:
         previewedVersionId ?? (forcePreviewedVersionIdValue ? null : this.previewedVersionId),
