@@ -28,9 +28,9 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Finds [target] inside the expenses table.
   Finder inTracking(Finder target) =>
@@ -278,16 +278,16 @@ void main() {
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsOneWidget);
-    expect(find.byType(OcptBudgetFiche), findsNothing);
+    expect(find.byType(OcptBudgetDetail), findsNothing);
 
     await harness.tap(tester, inTracking(find.text("Camera")));
-    expect(find.byType(OcptBudgetFiche), findsOneWidget);
+    expect(find.byType(OcptBudgetDetail), findsOneWidget);
     expect(
       await harness.propertiesManager.budgetLastRightDockTab.load(),
       OcptBudgetRightDockTab.help,
     );
     await harness.tap(tester, find.byTooltip(tr.budgetRightDockCloseTooltip));
-    expect(find.byType(OcptBudgetFiche), findsNothing);
+    expect(find.byType(OcptBudgetDetail), findsNothing);
   });
 
   testWidgets("the mode starts from the right dock tab and width stored by the previous visit", (
@@ -314,17 +314,17 @@ void main() {
 
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsOneWidget);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tapHeader(tester, tr.budgetHeaderRegieSegmentLabel);
     expect(find.text(tr.budgetRightDockInspectorTabLabel), findsNothing);
-    expect(find.text(tr.budgetFicheEmptyHint), findsNothing);
+    expect(find.text(tr.budgetDetailEmptyHint), findsNothing);
     expect(
       await harness.propertiesManager.budgetLastRightDockTab.load(),
       OcptBudgetRightDockTab.inspector,
     );
     await harness.tapHeader(tester, tr.budgetHeaderSharingSegmentLabel);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
   });
 
   testWidgets("a project left with no poste draws the feed card in the expenses table, which opens "
@@ -391,7 +391,7 @@ void main() {
     expect(find.byTooltip(tr.workspaceProjectSettingsTooltip), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, inTracking(find.text("Camera")));
-    expect(find.byType(OcptBudgetFiche), findsOneWidget);
+    expect(find.byType(OcptBudgetDetail), findsOneWidget);
 
     await harness.tap(tester, find.text(tr.budgetRightDockVersionsTabLabel));
     await previewFirstVersion(tester);
@@ -412,23 +412,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(tr.budgetPosteCreationAction), findsNothing);
     await harness.tap(tester, find.text(tr.budgetRightDockInspectorTabLabel));
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
 
     await harness.tap(tester, inTracking(find.text("Camera")));
     expect(harness.readOnlyFields(), findsWidgets);
     expect(harness.editableFields(), findsNothing);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, inTracking(find.text("Lens order")));
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetCommittedDeleteAction)), findsNothing);
-    expect(inFiche(find.text(tr.budgetFinancingEditAction)), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetCommittedDeleteAction)), findsNothing);
+    expect(inDetail(find.text(tr.budgetFinancingEditAction)), findsNothing);
 
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.text("Regional grant"));
-    expect(inFiche(find.text("Regional grant")), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetFinancingEditAction)), findsNothing);
-    expect(inFiche(find.textContaining(r"Receive $")), findsNothing);
+    expect(inDetail(find.text("Regional grant")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetFinancingEditAction)), findsNothing);
+    expect(inDetail(find.textContaining(r"Receive $")), findsNothing);
 
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     expect(find.text("Late fee"), findsNothing);
@@ -501,7 +501,7 @@ void main() {
     expect(statusBar(tester).posteCount, 2);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, inTracking(find.text("Sound")));
-    expect(find.byType(OcptBudgetFiche), findsOneWidget);
+    expect(find.byType(OcptBudgetDetail), findsOneWidget);
 
     await harness.tap(tester, find.text(tr.budgetRightDockVersionsTabLabel));
     await harness.tap(tester, find.text(tr.projectVersionRestoreAction));
@@ -512,7 +512,7 @@ void main() {
     expect((await harness.readPostes()).single.label, "Camera");
     expect(find.byType(OcptProjectVersionsPanel), findsOneWidget);
     await harness.tap(tester, find.text(tr.budgetRightDockInspectorTabLabel));
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
   });
 
   testWidgets("a field write that fails throws through the mode: the edit stays pending and on "
@@ -565,16 +565,16 @@ void main() {
       await harness.tap(tester, inTracking(find.text("Camera deposit")));
 
       harness.projectsManager.failures.failEntryCreation = true;
-      await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+      await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
       await harness.tap(tester, harness.inDialog(find.text(tr.budgetEntryDialogConfirmAction)));
       expect(errors, hasLength(1));
       expect(await harness.readEntries(), isEmpty);
       expect(await harness.readCommitments(), hasLength(1));
       // The screen was never reloaded: the line still offers to be committed.
-      expect(inFiche(find.text(tr.budgetLineCommitAction)), findsOneWidget);
+      expect(inDetail(find.text(tr.budgetLineCommitAction)), findsOneWidget);
 
       harness.projectsManager.failures.failEntryCreation = false;
-      await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+      await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
       await harness.tap(tester, harness.inDialog(find.text(tr.budgetEntryDialogConfirmAction)));
       expect(await harness.readEntries(), hasLength(1));
       expect(await harness.readCommitments(), hasLength(2));

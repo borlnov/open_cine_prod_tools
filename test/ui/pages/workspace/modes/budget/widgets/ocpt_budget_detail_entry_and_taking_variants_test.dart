@@ -35,7 +35,7 @@ OcptBudgetRevenue _buildRevenue({
   sortKey: "a0",
 );
 
-/// Run the tests of the budget fiche entry and taking variants.
+/// Run the tests of the budget detail panel entry and taking variants.
 void main() {
   group("the entry variant", () {
     testWidgets("Edit is primary, Delete the only secondary, and it carries no outstanding", (
@@ -46,7 +46,7 @@ void main() {
       String? deletedId;
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetEntrySelection("entry-1"),
             entries: [buildEntry(debitCents: 5000)],
             onEntryEditRequested: (entry) => edited = entry,
@@ -54,7 +54,7 @@ void main() {
           ),
         ),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
       expect(find.text(ocptBudgetAmountLabel(5000, "EUR")), findsWidgets);
       expect(find.text(tr.budgetInspectorFigureRemaining), findsNothing);
@@ -72,7 +72,7 @@ void main() {
       var written = false;
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetEntrySelection("entry-1"),
             entries: [buildEntry(debitCents: 5000)],
             isReadOnly: true,
@@ -96,7 +96,7 @@ void main() {
           var movedOffQuote = false;
           await tester.pumpWidget(
             wrap(
-              testFiche(
+              testDetail(
                 selection: const OcptBudgetEntrySelection("entry-1"),
                 // 500 against the poste's own 1,000 quote — not over, so no overrun clause.
                 entries: [buildEntry(debitCents: 500)],
@@ -105,15 +105,17 @@ void main() {
               ),
             ),
           );
-          final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+          final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-          expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsOneWidget);
+          expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsOneWidget);
 
-          await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction));
+          await tester.tap(
+            find.widgetWithText(OutlinedButton, tr.budgetDetailPromoteToQuoteAction),
+          );
           expect(promoted, isTrue);
 
           await tester.tap(
-            find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction),
+            find.widgetWithText(OutlinedButton, tr.budgetDetailEntryMoveOffQuoteAction),
           );
           expect(movedOffQuote, isTrue);
         },
@@ -123,7 +125,7 @@ void main() {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
               // 5,000 against the poste's own 1,000 quote — 4,000 over.
               entries: [buildEntry(debitCents: 5000)],
@@ -132,15 +134,15 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
         expect(
           find.text(
-            tr.budgetFicheEntryOffLineBannerOverQuoteText(ocptBudgetAmountLabel(4000, "EUR")),
+            tr.budgetDetailEntryOffLineBannerOverQuoteText(ocptBudgetAmountLabel(4000, "EUR")),
           ),
           findsOneWidget,
         );
-        expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsNothing);
       });
 
       testWidgets("withholds both actions under a previewed version, the text stays", (
@@ -150,7 +152,7 @@ void main() {
         var written = false;
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
               entries: [buildEntry(debitCents: 500)],
               isReadOnly: true,
@@ -159,15 +161,15 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsOneWidget);
+        expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsOneWidget);
         expect(
-          find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction),
+          find.widgetWithText(OutlinedButton, tr.budgetDetailPromoteToQuoteAction),
           findsNothing,
         );
         expect(
-          find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction),
+          find.widgetWithText(OutlinedButton, tr.budgetDetailEntryMoveOffQuoteAction),
           findsNothing,
         );
         expect(written, isFalse);
@@ -177,7 +179,7 @@ void main() {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
               entries: [buildEntry(debitCents: 500, commitmentId: "commitment-1")],
               commitments: [buildCommitment()],
@@ -186,16 +188,16 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsNothing);
       });
 
       testWidgets("does not show on a credit", (tester) async {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
               entries: [buildEntry(creditCents: 500)],
               onEntryPromoteToQuoteRequested: () {},
@@ -203,16 +205,16 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsNothing);
       });
 
       testWidgets("does not show on a debit naming no poste at all", (tester) async {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetEntrySelection("entry-1"),
               entries: [buildEntry(posteId: null, debitCents: 500)],
               onEntryPromoteToQuoteRequested: () {},
@@ -220,9 +222,9 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheEntryOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailEntryOffLineBannerText), findsNothing);
       });
     });
 
@@ -234,7 +236,7 @@ void main() {
         var promoted = false;
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
               // 1,000, matching the poste's own 1,000 quote — not over, so no overrun clause.
               commitments: [buildCommitment()],
@@ -242,16 +244,16 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsOneWidget);
+        expect(find.text(tr.budgetDetailCommitmentOffLineBannerText), findsOneWidget);
         // The one thing a commitment cannot do: it always names a poste, so no Move off-quote.
         expect(
-          find.widgetWithText(OutlinedButton, tr.budgetFicheEntryMoveOffQuoteAction),
+          find.widgetWithText(OutlinedButton, tr.budgetDetailEntryMoveOffQuoteAction),
           findsNothing,
         );
 
-        await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction));
+        await tester.tap(find.widgetWithText(OutlinedButton, tr.budgetDetailPromoteToQuoteAction));
         expect(promoted, isTrue);
       });
 
@@ -259,7 +261,7 @@ void main() {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
               // 5,000 committed against the poste's own 1,000 quote — 4,000 over.
               commitments: [buildCommitment(amountCents: 5000)],
@@ -267,15 +269,15 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
         expect(
           find.text(
-            tr.budgetFicheCommitmentOffLineBannerOverQuoteText(ocptBudgetAmountLabel(4000, "EUR")),
+            tr.budgetDetailCommitmentOffLineBannerOverQuoteText(ocptBudgetAmountLabel(4000, "EUR")),
           ),
           findsOneWidget,
         );
-        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailCommitmentOffLineBannerText), findsNothing);
       });
 
       testWidgets("withholds its action under a previewed version, the text stays", (tester) async {
@@ -283,7 +285,7 @@ void main() {
         var written = false;
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
               commitments: [buildCommitment()],
               isReadOnly: true,
@@ -291,11 +293,11 @@ void main() {
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsOneWidget);
+        expect(find.text(tr.budgetDetailCommitmentOffLineBannerText), findsOneWidget);
         expect(
-          find.widgetWithText(OutlinedButton, tr.budgetFichePromoteToQuoteAction),
+          find.widgetWithText(OutlinedButton, tr.budgetDetailPromoteToQuoteAction),
           findsNothing,
         );
         expect(written, isFalse);
@@ -305,16 +307,16 @@ void main() {
         useTallSurface(tester);
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetCommitmentSelection("commitment-1"),
               commitments: [buildCommitment(lineId: "line-1")],
               onCommitmentPromoteToQuoteRequested: () {},
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-        expect(find.text(tr.budgetFicheCommitmentOffLineBannerText), findsNothing);
+        expect(find.text(tr.budgetDetailCommitmentOffLineBannerText), findsNothing);
       });
     });
   });
@@ -331,7 +333,7 @@ void main() {
 
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetResourceSelection("resource-1"),
             resources: [resource],
             receivedByResourceId: {
@@ -347,7 +349,7 @@ void main() {
           ),
         ),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
       expect(find.text("Region grant"), findsWidgets);
       expect(find.text(ocptBudgetAmountLabel(200000, "EUR")), findsWidgets);
@@ -358,7 +360,7 @@ void main() {
         findsOneWidget,
       );
 
-      final receiveLabel = tr.budgetFicheReceiveAction(ocptBudgetAmountLabel(120000, "EUR"));
+      final receiveLabel = tr.budgetDetailReceiveAction(ocptBudgetAmountLabel(120000, "EUR"));
       await tester.tap(find.widgetWithText(FilledButton, receiveLabel));
       expect(received?.id, "resource-1");
 
@@ -375,14 +377,14 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           wrap(
-            testFiche(
+            testDetail(
               selection: const OcptBudgetResourceSelection("resource-1"),
               resources: [buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
               onResourceReceiptRequested: (_) {},
             ),
           ),
         );
-        final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+        final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
         // No Receive action, and no money-collection lifecycle: the Received figure is gone,
         // replaced by the valuation the contribution is worth. (Figure labels render uppercased.)
@@ -421,22 +423,22 @@ void main() {
 
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetResourceSelection("resource-1"),
             postes: const [testPoste, offsetPoste],
             resources: [buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
           ),
         ),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
-      expect(find.text(tr.budgetFicheInKindOffsetsPoste("7 Technical equipment")), findsOneWidget);
+      expect(find.text(tr.budgetDetailInKindOffsetsPoste("7 Technical equipment")), findsOneWidget);
     });
 
     testWidgets("an in-kind resource with no counterpart line yet names no poste", (tester) async {
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetResourceSelection("resource-1"),
             resources: [buildResource(groupKind: OcptBudgetResourceGroupKind.inKind)],
           ),
@@ -452,7 +454,7 @@ void main() {
     testWidgets("withholds Receive once the resource is fully received", (tester) async {
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetResourceSelection("resource-1"),
             resources: [buildResource(amountCents: 50000)],
             receivedByResourceId: {
@@ -483,7 +485,7 @@ void main() {
 
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetRevenueSelection("revenue-1"),
             revenues: [revenue],
             receivedByRevenueId: {
@@ -499,12 +501,12 @@ void main() {
           ),
         ),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
       expect(find.text("Festival prize"), findsWidgets);
       expect(find.text(ocptBudgetRevenueStatusLabel(tr, revenue.status)), findsOneWidget);
 
-      final receiveLabel = tr.budgetFicheReceiveAction(ocptBudgetAmountLabel(30000, "EUR"));
+      final receiveLabel = tr.budgetDetailReceiveAction(ocptBudgetAmountLabel(30000, "EUR"));
       await tester.tap(find.widgetWithText(FilledButton, receiveLabel));
       expect(received?.id, "revenue-1");
 
@@ -522,18 +524,18 @@ void main() {
     ) async {
       await tester.pumpWidget(
         wrap(
-          testFiche(
+          testDetail(
             selection: const OcptBudgetReceiptSelection("entry-1"),
             entries: [buildEntry(creditCents: 4000, posteId: null, resourceId: "resource-1")],
             resources: [buildResource()],
           ),
         ),
       );
-      final tr = Tr.of(tester.element(find.byType(OcptBudgetFiche)));
+      final tr = Tr.of(tester.element(find.byType(OcptBudgetDetail)));
 
       expect(tester.takeException(), isNull);
       expect(find.text("Region grant"), findsOneWidget);
-      expect(find.text(tr.budgetFicheStepPromisedLabel), findsOneWidget);
+      expect(find.text(tr.budgetDetailStepPromisedLabel), findsOneWidget);
       expect(find.text(tr.budgetFinancingColumnReceived), findsOneWidget);
       expect(find.byIcon(Icons.circle), findsNWidgets(2));
     });
@@ -542,7 +544,9 @@ void main() {
       tester,
     ) async {
       useTallSurface(tester);
-      await tester.pumpWidget(wrap(testFiche(selection: const OcptBudgetReceiptSelection("gone"))));
+      await tester.pumpWidget(
+        wrap(testDetail(selection: const OcptBudgetReceiptSelection("gone"))),
+      );
 
       expect(find.byType(OcptWorkspaceEmptyMode), findsOneWidget);
     });

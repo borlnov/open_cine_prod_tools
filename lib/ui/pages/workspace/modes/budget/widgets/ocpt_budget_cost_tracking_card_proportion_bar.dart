@@ -7,8 +7,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 
 /// A poste card's own proportion bar: the paid amount, then the committed one, over a track
 /// scaled to the quote — the very same reading and the very same [ColorScheme] colours
-/// `OcptBudgetFiche`'s own poste-variant proportion bar already draws these figures in, so this
-/// card and the fiche it opens onto never disagree about what a poste's own bar means.
+/// `OcptBudgetDetail`'s own poste-variant proportion bar already draws these figures in, so this
+/// card and the detail panel it opens onto never disagree about what a poste's own bar means.
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
@@ -45,7 +45,7 @@ class OcptBudgetCostTrackingCardProportionBar extends StatelessWidget {
     final scaleCents = overrunCents > 0 ? totalCents : quoteCents;
 
     // The within-budget share of each segment stays in the accent colour; whatever is left over,
-    // [overrunCents], eats the end of the track in red — see `OcptBudgetFiche`'s own proportion
+    // [overrunCents], eats the end of the track in red — see `OcptBudgetDetail`'s own proportion
     // bar for the very same reading.
     final withinBudgetPaidCents = paidCents < quoteCents ? paidCents : quoteCents;
     final remainingBudgetCents = quoteCents - withinBudgetPaidCents;

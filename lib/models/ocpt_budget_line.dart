@@ -27,7 +27,7 @@ class OcptBudgetLine extends Equatable {
   /// The unit price this line was typed at, and the tax basis and rate it carries.
   final OcptMoney unitPrice;
 
-  /// The breakdown element this line prices, or null — `OcptBudgetFiche`'s own `+ From
+  /// The breakdown element this line prices, or null — `OcptBudgetDetail`'s own `+ From
   /// breakdown` gesture is what sets it, and it is what tells the feed card's own breakdown row
   /// this line answers a real need rather than being typed from nothing.
   final String? elementId;

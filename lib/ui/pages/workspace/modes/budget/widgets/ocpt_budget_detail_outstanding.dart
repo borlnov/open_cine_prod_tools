@@ -5,8 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
-/// The outstanding amount, in large type — what the fiche's whole grammar builds up to.
-class OcptBudgetFicheOutstanding extends StatelessWidget {
+/// The outstanding amount, in large type — what the detail panel's whole grammar builds up to.
+class OcptBudgetDetailOutstanding extends StatelessWidget {
   /// The block's own label.
   final String label;
 
@@ -14,9 +14,9 @@ class OcptBudgetFicheOutstanding extends StatelessWidget {
   final String value;
 
   /// Class constructor
-  const OcptBudgetFicheOutstanding({super.key, required this.label, required this.value});
+  const OcptBudgetDetailOutstanding({super.key, required this.label, required this.value});
 
-  /// Build the budget fiche outstanding as a [Container].
+  /// Build the budget detail panel outstanding as a [Container].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

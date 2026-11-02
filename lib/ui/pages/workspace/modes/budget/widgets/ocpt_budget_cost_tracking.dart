@@ -142,7 +142,7 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// [OcptBudgetCostTrackingPosteCard] per live poste**, scrolling vertically, above the very same
 /// `+ Poste` creation footer. A card draws a poste's own name, a proportion bar reading its own
 /// paid/committed amounts against its quote (`OcptBudgetCostTrackingCardProportionBar`, the very
-/// colours `OcptBudgetFiche`'s own poste-variant bar already uses for the same figures), and its
+/// colours `OcptBudgetDetail`'s own poste-variant bar already uses for the same figures), and its
 /// own `Engagé`/`Payé`/`Reste`/`Écart` figures — read through
 /// [OcptBudgetCostTrackingPosteFigures.of], the very same calls
 /// [OcptBudgetCostTrackingPosteAmountsRow] makes for its own row, so a card never disagrees with
@@ -161,7 +161,7 @@ class OcptBudgetCostTracking extends StatelessWidget {
   /// Every live journal entry of the project — narrowed the same way [commitments] is.
   final List<OcptBudgetEntry> entries;
 
-  /// What is currently selected for the right dock's own fiche, or null while none is.
+  /// What is currently selected for the right dock's own detail panel, or null while none is.
   final OcptBudgetSelection? selection;
 
   /// Which nodes of the tree are currently expanded — a poste id or a quote line id, see

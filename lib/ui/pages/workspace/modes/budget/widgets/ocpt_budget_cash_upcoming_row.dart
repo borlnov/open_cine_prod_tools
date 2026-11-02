@@ -15,8 +15,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// One `À venir` row: a commitment falling due, still unsettled — [step]'s own cash figure, read
 /// against [commitment] so the row can print its own label and poste, [step] itself carrying
-/// neither. Clicking the row only selects it, opening the right dock's fiche on the commitment —
-/// never a write, so never withheld under a previewed version, exactly as
+/// neither. Clicking the row only selects it, opening the right dock's detail panel on the
+/// commitment — never a write, so never withheld under a previewed version, exactly as
 /// [OcptBudgetCashJournalRow]'s own click is never withheld.
 ///
 /// Drawn in the very same fixed column widths [OcptBudgetCashJournalRow] uses, so the two tables'

@@ -32,22 +32,22 @@ class OcptBudgetRightDockView extends StatelessWidget {
   /// to inspect.
   final OcptBudgetRightDockTab storedTab;
 
-  /// See [OcptBudgetFicheView.onLineDeletionRequested].
+  /// See [OcptBudgetDetailView.onLineDeletionRequested].
   final ValueChanged<String> onLineDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onLineUncommitRequested].
+  /// See [OcptBudgetDetailView.onLineUncommitRequested].
   final ValueChanged<String> onLineUncommitRequested;
 
-  /// See [OcptBudgetFicheView.onCommitmentDeletionRequested].
+  /// See [OcptBudgetDetailView.onCommitmentDeletionRequested].
   final ValueChanged<String> onCommitmentDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onEntryDeletionRequested].
+  /// See [OcptBudgetDetailView.onEntryDeletionRequested].
   final ValueChanged<String> onEntryDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onResourceDeletionRequested].
+  /// See [OcptBudgetDetailView.onResourceDeletionRequested].
   final ValueChanged<String> onResourceDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onRevenueDeletionRequested].
+  /// See [OcptBudgetDetailView.onRevenueDeletionRequested].
   final ValueChanged<String> onRevenueDeletionRequested;
 
   /// Class constructor
@@ -79,7 +79,7 @@ class OcptBudgetRightDockView extends StatelessWidget {
     return OcptBudgetRightDock(
       activeTab: rightDockTab,
       availableTabs: availableTabs,
-      inspectorChild: OcptBudgetFicheView(
+      inspectorChild: OcptBudgetDetailView(
         state: state,
         onLineDeletionRequested: onLineDeletionRequested,
         onLineUncommitRequested: onLineUncommitRequested,

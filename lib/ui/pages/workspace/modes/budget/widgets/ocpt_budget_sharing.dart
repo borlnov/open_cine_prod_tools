@@ -36,9 +36,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 ///
 /// **No inspector**, mirroring `OcptBudgetFinancing`'s own class doc comment for the very same
 /// reason: a participant carries no line of its own the right dock's existing `Inspector` tab,
-/// built entirely around a poste's own quote lines, could show — a taking is answered by the fiche
-/// the resources document opens on it these days. A share row's own click only ever selects it
-/// ([onShareSelected]), read and written exactly as `OcptBudgetState.selectedResourceId` already
+/// built entirely around a poste's own quote lines, could show — a taking is answered by the detail
+/// panel the resources document opens on it these days. A share row's own click only ever selects
+/// it ([onShareSelected]), read and written exactly as `OcptBudgetState.selectedResourceId` already
 /// is; a row's own fields are read and written through `OcptBudgetShareDialog` instead, reached
 /// from the row's own `⋮` menu.
 ///

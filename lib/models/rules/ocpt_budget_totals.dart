@@ -114,8 +114,9 @@ Map<String, int> ocptBudgetInKindCoveredCentsByPosteId(List<OcptBudgetPoste> pos
 ///
 /// Takes [postes] with their own lines already loaded, exactly as
 /// [ocptBudgetInKindCoveredCentsByPosteId] does — this file does no database access of its own, and
-/// both the mode's own resource fiche/dialog (reading the poste a contribution offsets) and the
-/// bloc's own reconciliation (finding the line to update, re-home or drop) share this one lookup.
+/// both the mode's own resource detail panel/dialog (reading the poste a contribution offsets) and
+/// the bloc's own reconciliation (finding the line to update, re-home or drop) share this one
+/// lookup.
 OcptBudgetLine? ocptBudgetInKindCounterpartLineOf(List<OcptBudgetPoste> postes, String resourceId) {
   for (final poste in postes) {
     for (final line in poste.lines) {

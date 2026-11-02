@@ -25,18 +25,18 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Finds [target] inside the expenses table.
   Finder inTracking(Finder target) =>
       find.descendant(of: find.byType(OcptBudgetCostTracking), matching: target);
 
-  /// Reads what the fiche of the right dock was handed as the selection, null while nothing is
-  /// selected: a deleted row must not stay selected behind an empty fiche.
+  /// Reads what the detail panel of the right dock was handed as the selection, null while nothing
+  /// is selected: a deleted row must not stay selected behind an empty detail panel.
   Object? selectionOf(WidgetTester tester) =>
-      tester.widget<OcptBudgetFiche>(find.byType(OcptBudgetFiche)).selection;
+      tester.widget<OcptBudgetDetail>(find.byType(OcptBudgetDetail)).selection;
 
   /// Reads the status bar at the bottom of the workspace.
   OcptBudgetStatusBar statusBar(WidgetTester tester) =>
@@ -69,7 +69,10 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
 
     await harness.tap(tester, inTracking(find.text("Camera")));
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsOneWidget);
+    expect(
+      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      findsOneWidget,
+    );
     expect(selectionOf(tester), isNotNull);
     await pickRowMenu(
       tester,
@@ -79,7 +82,7 @@ void main() {
     );
     expect(inTracking(find.text("Sound")), findsNothing);
 
-    // Cancelling keeps the poste, the fiche and the filter as they were.
+    // Cancelling keeps the poste, the detail panel and the filter as they were.
     await pickRowMenu(
       tester,
       "Camera",
@@ -89,7 +92,10 @@ void main() {
     expect(find.text(tr.budgetDeletePosteConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readPostes(), hasLength(2));
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsOneWidget);
+    expect(
+      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      findsOneWidget,
+    );
     expect(inTracking(find.text("Sound")), findsNothing);
 
     // Confirming deletes it with its lines; nothing selected, nothing filtered any more.
@@ -101,7 +107,7 @@ void main() {
     );
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect((await harness.readPostes()).map((poste) => poste.label), ["Sound"]);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
     expect(inTracking(find.text("Camera")), findsNothing);
     expect(inTracking(find.text("Sound")), findsOneWidget);
@@ -124,7 +130,7 @@ void main() {
     expect(inTracking(find.text("Camera")), findsNothing);
     expect(inTracking(find.text("Sound")), findsOneWidget);
     // Selecting a poste is not filtering by it.
-    expect(find.text(tr.budgetFicheEmptyHint), findsNothing);
+    expect(find.text(tr.budgetDetailEmptyHint), findsNothing);
 
     // The cash flow page reads the whole account, whatever the filter says.
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
@@ -148,18 +154,18 @@ void main() {
     await openExpensesExpanded(tester);
 
     await harness.tap(tester, find.text("Camera deposit"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineDeleteAction)));
     expect(find.text(tr.budgetDeleteLineConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect((await harness.readPoste("Camera")).lines, hasLength(2));
     expect(statusBar(tester).lineCount, 2);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect((await harness.readPoste("Camera")).lines.map((line) => line.label), ["Lens rental"]);
     expect(find.text("Camera deposit"), findsNothing);
     expect(find.text("Lens rental"), findsOneWidget);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
     expect(statusBar(tester).lineCount, 1);
     expect(statusBar(tester).quotedTotalCents, 2500);
@@ -177,37 +183,38 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
 
     await harness.tap(tester, find.text("Coffee"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetEntryDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetEntryDeleteAction)));
     expect(find.text(tr.budgetDeleteEntryConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readEntries(), hasLength(3));
-    await harness.tap(tester, inFiche(find.text(tr.budgetEntryDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetEntryDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect((await harness.readEntries()).map((entry) => entry.label), ["Taxi", "Late fee"]);
     expect(find.text("Coffee"), findsNothing);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
 
     // A commitment selected under "Upcoming" goes the same way.
     await harness.tap(tester, find.text("Lens order"));
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     expect(find.text(tr.budgetDeleteCommitmentConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readCommitments(), hasLength(1));
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect(await harness.readCommitments(), isEmpty);
     expect(find.text("Lens order"), findsNothing);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
 
-    // Deleting a row from its menu while the fiche shows another leaves the fiche on its own row.
+    // Deleting a row from its menu while the detail panel shows another leaves the detail panel on
+    // its own row.
     await harness.tap(tester, find.text("Taxi"));
     await pickRowMenu(tester, "Late fee", tr.budgetEntryDeleteAction);
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect((await harness.readEntries()).map((entry) => entry.label), ["Taxi"]);
-    expect(inFiche(find.text("Taxi")), findsOneWidget);
+    expect(inDetail(find.text("Taxi")), findsOneWidget);
   });
 
   testWidgets("deleting an in-kind contribution takes its counterpart quote line with it, and "
@@ -234,22 +241,22 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.text("Lent camera"));
-    expect(inFiche(find.text("Lent camera")), findsOneWidget);
+    expect(inDetail(find.text("Lent camera")), findsOneWidget);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     expect(find.text(tr.budgetDeleteResourceConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readResources(), hasLength(1));
     expect(statusBar(tester).lineCount, 2);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect(await harness.readResources(), isEmpty);
     expect((await harness.readPoste("Camera")).lines.map((line) => line.label), ["Camera deposit"]);
     expect(statusBar(tester).lineCount, 1);
     expect(statusBar(tester).quotedTotalCents, 10000);
     expect(find.text("Lent camera"), findsNothing);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
   });
 
@@ -263,15 +270,15 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.text("Festival prize"));
-    expect(inFiche(find.text("Festival prize")), findsOneWidget);
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    expect(inDetail(find.text("Festival prize")), findsOneWidget);
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     expect(find.text(tr.budgetDeleteRevenueConfirmTitle), findsOneWidget);
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readRevenues(), hasLength(1));
-    await harness.tap(tester, inFiche(find.text(tr.budgetCommittedDeleteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetCommittedDeleteAction)));
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect(await harness.readRevenues(), isEmpty);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
 
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
@@ -314,24 +321,24 @@ void main() {
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
-    // A write that leaves the selected line standing keeps the fiche on it.
+    // A write that leaves the selected line standing keeps the detail panel on it.
     await openExpensesExpanded(tester);
     await harness.tap(tester, find.text("Camera deposit"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineTaxExclusiveOption)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxExclusiveOption)));
     expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
 
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.textContaining("Grant instalment"));
-    expect(inFiche(find.text("Grant instalment")), findsOneWidget);
+    expect(inDetail(find.text("Grant instalment")), findsOneWidget);
 
     await pickRowMenu(tester, "Regional grant", tr.budgetFinancingUndoReceiptAction);
     await harness.confirmDialog(tester, tr.budgetDeleteConfirmAction);
     expect(await harness.readEntries(), isEmpty);
     expect(find.textContaining("Grant instalment"), findsNothing);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     expect(selectionOf(tester), isNull);
   });
 

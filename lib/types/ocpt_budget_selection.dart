@@ -4,16 +4,16 @@
 
 import 'package:equatable/equatable.dart';
 
-/// What is currently selected for the right dock's own fiche — `OcptBudgetFiche`, the one panel
-/// that shows an object's breadcrumb, stepper, figures and outstanding amount, whichever of the
-/// mode's several kinds of row it is standing on.
+/// What is currently selected for the right dock's own detail panel — `OcptBudgetDetail`, the one
+/// panel that shows an object's breadcrumb, stepper, figures and outstanding amount, whichever of
+/// the mode's several kinds of row it is standing on.
 ///
 /// **One fact, not several id fields.** The poste tree's own selection and the financing view's
-/// own highlight used to be two independent ids; a fiche able to show any object can only ever be
-/// looking at one of them at a time. `OcptBudgetState.selectedRevenueId` folds onto
+/// own highlight used to be two independent ids; a detail panel able to show any object can only
+/// ever be looking at one of them at a time. `OcptBudgetState.selectedRevenueId` folds onto
 /// [OcptBudgetRevenueSelection] — a plain getter now, read by the resources tree's own revenue row
-/// — while `.selectedShareId` stays its own field: a share opens no fiche in any document, so
-/// it has nothing to fold onto.
+/// — while `.selectedShareId` stays its own field: a share opens no detail panel in any document,
+/// so it has nothing to fold onto.
 ///
 /// Every variant carries only the id it names — mirroring the `state` holding the actual objects,
 /// exactly as `OcptBudgetState.selectedPosteId` never carried an `OcptBudgetPoste` of its own.
@@ -36,8 +36,8 @@ final class OcptBudgetPosteSelection extends OcptBudgetSelection {
   List<Object?> get props => [posteId];
 }
 
-/// A selected quote line — the row the fiche reads its own editable fields off, in the expenses
-/// tree or under the poste it belongs to.
+/// A selected quote line — the row the detail panel reads its own editable fields off, in the
+/// expenses tree or under the poste it belongs to.
 final class OcptBudgetLineSelection extends OcptBudgetSelection {
   /// The id of the selected quote line.
   final String lineId;
@@ -106,8 +106,8 @@ final class OcptBudgetRevenueSelection extends OcptBudgetSelection {
 }
 
 /// A selected receipt — a journal entry read as the sub-row it settles, nested under the resource
-/// or the commitment that names it. Answered by the fiche already; nothing dispatches it until the
-/// resources tree draws its own receipt sub-rows.
+/// or the commitment that names it. Answered by the detail panel already; nothing dispatches it
+/// until the resources tree draws its own receipt sub-rows.
 final class OcptBudgetReceiptSelection extends OcptBudgetSelection {
   /// The id of the selected receipt.
   final String receiptId;

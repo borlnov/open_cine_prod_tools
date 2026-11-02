@@ -36,7 +36,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// object's own name and amount, an optional hint (and, for a resource or a taking, a status badge
 /// beside it), a small stepper of its states, the figures that make it up, the outstanding amount
 /// in large type, one primary action and at most two secondary ones. The table says where things
-/// stand; this fiche says where they come from and what to do next.
+/// stand; this detail panel says where they come from and what to do next.
 ///
 /// **The poste's and the quote line's own editable fields move here** (the tree draws every quote
 /// line, commitment and entry as a row of its own, so this panel stops listing them): a poste keeps
@@ -52,7 +52,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// object pre-resolved, exactly as `OcptBudgetCostTracking` already resolves its own rows off
 /// `selection` and the same catalogues — the mode hands in what it has on state, this panel finds
 /// its own subject and its own ancestors (a line's own poste, a commitment's own line) in it.
-class OcptBudgetFiche extends StatelessWidget {
+class OcptBudgetDetail extends StatelessWidget {
   /// What is currently selected, or null while nothing is — the tab then shows a plain hint.
   final OcptBudgetSelection? selection;
 
@@ -208,7 +208,7 @@ class OcptBudgetFiche extends StatelessWidget {
   final ValueChanged<String>? onRevenueDeletionRequested;
 
   /// Class constructor
-  const OcptBudgetFiche({
+  const OcptBudgetDetail({
     super.key,
     required this.selection,
     required this.postes,
@@ -252,12 +252,12 @@ class OcptBudgetFiche extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
-  /// Build the budget fiche as a [SingleChildScrollView].
+  /// Build the budget detail panel as a [SingleChildScrollView].
   @override
   Widget build(BuildContext context) {
     final selection = this.selection;
     if (selection == null) {
-      return const OcptBudgetFicheEmptyState();
+      return const OcptBudgetDetailEmptyState();
     }
 
     // The part the selection names, or null while its subject has disappeared from a freshly loaded
@@ -267,45 +267,45 @@ class OcptBudgetFiche extends StatelessWidget {
       case OcptBudgetPosteSelection(:final posteId):
         final poste = posteById(posteId);
         if (poste != null) {
-          variant = OcptBudgetFichePoste(fiche: this, poste: poste);
+          variant = OcptBudgetDetailPoste(detail: this, poste: poste);
         }
       case OcptBudgetLineSelection(:final lineId):
         final poste = posteOfLine(lineId);
         final line = poste == null ? null : lineById(lineId);
         if (poste != null && line != null) {
-          variant = OcptBudgetFicheLine(fiche: this, poste: poste, line: line);
+          variant = OcptBudgetDetailLine(detail: this, poste: poste, line: line);
         }
       case OcptBudgetCommitmentSelection(:final commitmentId):
         final commitment = commitments.firstWhereOrNull(
           (commitment) => commitment.id == commitmentId,
         );
         if (commitment != null) {
-          variant = OcptBudgetFicheCommitment(fiche: this, commitment: commitment);
+          variant = OcptBudgetDetailCommitment(detail: this, commitment: commitment);
         }
       case OcptBudgetEntrySelection(:final entryId):
         final entry = entries.firstWhereOrNull((entry) => entry.id == entryId);
         if (entry != null) {
-          variant = OcptBudgetFicheEntry(fiche: this, entry: entry);
+          variant = OcptBudgetDetailEntry(detail: this, entry: entry);
         }
       case OcptBudgetResourceSelection(:final resourceId):
         final resource = resources.firstWhereOrNull((resource) => resource.id == resourceId);
         if (resource != null) {
-          variant = OcptBudgetFicheResource(fiche: this, resource: resource);
+          variant = OcptBudgetDetailResource(detail: this, resource: resource);
         }
       case OcptBudgetRevenueSelection(:final revenueId):
         final revenue = revenues.firstWhereOrNull((revenue) => revenue.id == revenueId);
         if (revenue != null) {
-          variant = OcptBudgetFicheRevenue(fiche: this, revenue: revenue);
+          variant = OcptBudgetDetailRevenue(detail: this, revenue: revenue);
         }
       // A receipt sub-row of the resources tree selects the entry it settles.
       case OcptBudgetReceiptSelection(:final receiptId):
         final entry = entries.firstWhereOrNull((entry) => entry.id == receiptId);
         if (entry != null) {
-          variant = OcptBudgetFicheReceipt(fiche: this, entry: entry);
+          variant = OcptBudgetDetailReceipt(detail: this, entry: entry);
         }
     }
     if (variant == null) {
-      return const OcptBudgetFicheEmptyState();
+      return const OcptBudgetDetailEmptyState();
     }
 
     // The one scroll view every variant shares, kept here rather than in each variant so that
@@ -338,8 +338,8 @@ class OcptBudgetFiche extends StatelessWidget {
 
   /// Get `posteId`'s own paid total, in cents, tax-inclusive — 0 while nothing is entered against
   /// it,
-  /// read off [entries] directly since the fiche resolves its own poste rather than being handed
-  /// one pre-resolved.
+  /// read off [entries] directly since the detail panel resolves its own poste rather than being
+  /// handed one pre-resolved.
   int paidCentsOf(String posteId) =>
       ocptBudgetPaidCentsByPosteId(
         entries,
@@ -357,7 +357,8 @@ class OcptBudgetFiche extends StatelessWidget {
       0;
 
   /// Get `posteId`'s own in-kind covered total, in cents — mirrors [paidCentsOf], read off [postes]
-  /// directly since the fiche resolves its own poste rather than being handed one pre-resolved.
+  /// directly since the detail panel resolves its own poste rather than being handed one
+  /// pre-resolved.
   int inKindCoveredCentsOf(String posteId) =>
       ocptBudgetInKindCoveredCentsByPosteId(postes)[posteId] ?? 0;
 }

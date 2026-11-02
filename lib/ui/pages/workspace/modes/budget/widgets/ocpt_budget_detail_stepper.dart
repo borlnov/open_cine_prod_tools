@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 /// The small stepper of an object's own states: a dot per step, filled and connected up to
 /// `reachedCount`, hollow past it, its own label under each dot — the current (last reached) one
 /// bold.
-class OcptBudgetFicheStepper extends StatelessWidget {
+class OcptBudgetDetailStepper extends StatelessWidget {
   /// The stepper's own step labels, two or three words.
   final List<String> stepLabels;
 
@@ -15,9 +15,9 @@ class OcptBudgetFicheStepper extends StatelessWidget {
   final int reachedCount;
 
   /// Class constructor
-  const OcptBudgetFicheStepper({super.key, required this.stepLabels, required this.reachedCount});
+  const OcptBudgetDetailStepper({super.key, required this.stepLabels, required this.reachedCount});
 
-  /// Build the budget fiche stepper as a [Column].
+  /// Build the budget detail panel stepper as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

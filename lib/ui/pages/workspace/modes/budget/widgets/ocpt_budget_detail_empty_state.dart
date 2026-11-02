@@ -8,14 +8,14 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_e
 
 /// The plain hint shown while nothing is selected, or the selected object has disappeared from a
 /// freshly loaded snapshot.
-class OcptBudgetFicheEmptyState extends StatelessWidget {
+class OcptBudgetDetailEmptyState extends StatelessWidget {
   /// Class constructor
-  const OcptBudgetFicheEmptyState({super.key});
+  const OcptBudgetDetailEmptyState({super.key});
 
-  /// Build the budget fiche empty as an [OcptWorkspaceEmptyMode].
+  /// Build the budget detail panel empty as an [OcptWorkspaceEmptyMode].
   @override
   Widget build(BuildContext context) => OcptWorkspaceEmptyMode(
     icon: Icons.receipt_long_outlined,
-    message: Tr.of(context).budgetFicheEmptyHint,
+    message: Tr.of(context).budgetDetailEmptyHint,
   );
 }

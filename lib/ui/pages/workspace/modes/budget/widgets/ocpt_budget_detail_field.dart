@@ -7,11 +7,11 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_field.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_inline_field.dart';
 
-/// One editable text field bound to the fiche's [OcptBudgetFiche.fieldValueOf] and
-/// [OcptBudgetFiche.onFieldChanged].
-class OcptBudgetFicheField extends StatelessWidget {
-  /// The fiche whose field value and change callback this field is bound to.
-  final OcptBudgetFiche fiche;
+/// One editable text field bound to the detail panel's [OcptBudgetDetail.fieldValueOf] and
+/// [OcptBudgetDetail.onFieldChanged].
+class OcptBudgetDetailField extends StatelessWidget {
+  /// The detail panel whose field value and change callback this field is bound to.
+  final OcptBudgetDetail detail;
 
   /// The id of the poste or line the field writes to.
   final String targetId;
@@ -35,9 +35,9 @@ class OcptBudgetFicheField extends StatelessWidget {
   final bool multiline;
 
   /// Class constructor
-  const OcptBudgetFicheField({
+  const OcptBudgetDetailField({
     super.key,
-    required this.fiche,
+    required this.detail,
     required this.targetId,
     required this.field,
     required this.label,
@@ -47,11 +47,11 @@ class OcptBudgetFicheField extends StatelessWidget {
     this.multiline = false,
   });
 
-  /// Build the budget fiche field as an [OcptBudgetInlineField].
+  /// Build the budget detail panel field as an [OcptBudgetInlineField].
   @override
   Widget build(BuildContext context) {
-    final fieldValueOf = fiche.fieldValueOf;
-    final onFieldChanged = fiche.onFieldChanged;
+    final fieldValueOf = detail.fieldValueOf;
+    final onFieldChanged = detail.onFieldChanged;
     return OcptBudgetInlineField(
       label: label,
       value: fieldValueOf(targetId, field, storedValue),

@@ -20,9 +20,9 @@ void main() {
   /// Finds [target] inside the open dialog.
   Finder inDialog(Finder target) => find.descendant(of: find.byType(Dialog), matching: target);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Shrinks the window below the compact breakpoint while a dialog stays open.
   Future<void> shrinkWindow(WidgetTester tester) async {
@@ -62,7 +62,7 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
     await harness.tap(tester, find.text("Camera deposit"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
 
     await shrinkWindow(tester);
     await harness.tap(tester, inDialog(find.text(tr.budgetEntryDialogConfirmAction)));

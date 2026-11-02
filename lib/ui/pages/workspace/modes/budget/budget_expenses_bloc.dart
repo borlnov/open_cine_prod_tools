@@ -550,7 +550,7 @@ class OcptBudgetExpensesBloc
   /// Tell whether [field] targets a quote line that is an in-kind counterpart line (its
   /// `inKindResourceId` is set) — such a line's fields follow the contribution it balances and are
   /// never a direct edit's to write (`docs/architecture/budget.md`, "A balanced in-kind
-  /// contribution"). Defensive only: `OcptBudgetFiche` already withholds a counterpart line's
+  /// contribution"). Defensive only: `OcptBudgetDetail` already withholds a counterpart line's
   /// editable fields, so this guards against a future edit path reaching one.
   bool _isInKindCounterpartLineField(OcptBudgetField field, String targetId) {
     const lineFields = {
@@ -594,8 +594,8 @@ class OcptBudgetExpensesBloc
       final value = entry.value;
 
       // A counterpart line's own fields follow the in-kind contribution it balances, never a direct
-      // edit's — the fiche withholds them, so reaching here would be a bug; skip rather than let a
-      // line drift away from the resource it must equal.
+      // edit's — the detail panel withholds them, so reaching here would be a bug; skip rather than
+      // let a line drift away from the resource it must equal.
       if (_isInKindCounterpartLineField(field, targetId)) {
         continue;
       }

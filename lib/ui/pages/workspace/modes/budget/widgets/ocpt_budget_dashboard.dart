@@ -639,10 +639,10 @@ class _OcptDashboardAlertRow extends StatelessWidget {
         child: Row(
           // **The message wraps rather than truncating**, and the badge and the amount align to its
           // first line. Every other row in this mode clips a cell to one line because the reader
-          // can widen the column or open the fiche to see the rest; an alert has neither, and its
-          // sentence *is* the whole of what it says — an ellipsis in the middle of "6 840,00 paid
-          // or committed against a 6 200,00 quote" would leave exactly the figure that raised the
-          // alert off screen, on a page built to be read at a glance.
+          // can widen the column or open the detail panel to see the rest; an alert has neither,
+          // and its sentence *is* the whole of what it says — an ellipsis in the middle of "6
+          // 840,00 paid or committed against a 6 200,00 quote" would leave exactly the figure that
+          // raised the alert off screen, on a page built to be read at a glance.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _OcptDashboardAlertBadge(text: badge, color: color),
@@ -662,8 +662,8 @@ class _OcptDashboardAlertRow extends StatelessWidget {
   }
 }
 
-/// A small coloured badge, the alert row's own kind — mirrors `_OcptBudgetFicheBadge`
-/// (`ocpt_budget_fiche.dart`), a private class of that file this one cannot import.
+/// A small coloured badge, the alert row's own kind — mirrors `_OcptBudgetDetailBadge`
+/// (`ocpt_budget_detail.dart`), a private class of that file this one cannot import.
 class _OcptDashboardAlertBadge extends StatelessWidget {
   /// The badge's own text.
   final String text;

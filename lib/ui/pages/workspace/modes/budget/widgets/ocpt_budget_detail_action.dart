@@ -4,9 +4,9 @@
 
 import 'package:flutter/material.dart';
 
-/// One primary or secondary action the fiche offers, resolved by whichever fiche variant drew
-/// the variant currently on screen.
-class OcptBudgetFicheAction {
+/// One primary or secondary action the detail panel offers, resolved by whichever detail panel
+/// variant drew the variant currently on screen.
+class OcptBudgetDetailAction {
   /// The button's own label.
   final String label;
 
@@ -14,5 +14,5 @@ class OcptBudgetFicheAction {
   final VoidCallback onTap;
 
   /// Class constructor
-  const OcptBudgetFicheAction({required this.label, required this.onTap});
+  const OcptBudgetDetailAction({required this.label, required this.onTap});
 }

@@ -105,22 +105,22 @@ class OcptBudgetHelp extends StatelessWidget {
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => _sharingChainSteps(tr),
   };
 
-  /// Get the expenses chain: a quote line, resolved as [Tr.budgetFicheStepEstimatedLabel] — the
+  /// Get the expenses chain: a quote line, resolved as [Tr.budgetDetailStepEstimatedLabel] — the
   /// very
-  /// word the fiche's own stepper already shows for it — becomes a commitment
+  /// word the detail panel's own stepper already shows for it — becomes a commitment
   /// ([Tr.budgetInspectorFigureCommitted]), settled by an entry ([Tr.budgetInspectorFigurePaid]).
   List<(String, String)> _expensesChainSteps(Tr tr) => [
-    (tr.budgetFicheStepEstimatedLabel, tr.budgetHelpChainExpensesEstimatedCaption),
+    (tr.budgetDetailStepEstimatedLabel, tr.budgetHelpChainExpensesEstimatedCaption),
     (tr.budgetInspectorFigureCommitted, tr.budgetHelpChainExpensesCommittedCaption),
     (tr.budgetInspectorFigurePaid, tr.budgetHelpChainExpensesPaidCaption),
   ];
 
   /// Get [OcptBudgetView.resources]' own chain: a resource or a taking is promised
-  /// ([Tr.budgetFicheStepPromisedLabel]), and becomes received ([Tr.budgetFinancingColumnReceived])
-  /// the moment a journal entry names it — no hand-typed step in between, unlike the expenses
-  /// chain's own commitment.
+  /// ([Tr.budgetDetailStepPromisedLabel]), and becomes received
+  /// ([Tr.budgetFinancingColumnReceived]) the moment a journal entry names it — no hand-typed step
+  /// in between, unlike the expenses chain's own commitment.
   List<(String, String)> _resourcesChainSteps(Tr tr) => [
-    (tr.budgetFicheStepPromisedLabel, tr.budgetHelpChainResourcesPromisedCaption),
+    (tr.budgetDetailStepPromisedLabel, tr.budgetHelpChainResourcesPromisedCaption),
     (tr.budgetFinancingColumnReceived, tr.budgetHelpChainResourcesReceivedCaption),
   ];
 
@@ -248,7 +248,7 @@ class OcptBudgetHelp extends StatelessWidget {
         tr.budgetCostTrackingColumnFinalCost,
         tr.budgetCostTrackingColumnPaid,
         tr.budgetCostTrackingColumnCommitted,
-        // The fiche's own field label, not the table's retired column of the same name: the
+        // The detail panel's own field label, not the table's retired column of the same name: the
         // estimate to complete is typed there and nowhere else.
         tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
         tr.budgetInspectorPosteEstimateToCompleteDeriveAction,
@@ -274,7 +274,7 @@ class OcptBudgetHelp extends StatelessWidget {
       ),
       tr.budgetHelpResourcesBody6(
         tr.budgetFinancingColumnReceived,
-        tr.budgetFicheStepPromisedLabel,
+        tr.budgetDetailStepPromisedLabel,
       ),
     ],
     (OcptBudgetView.tools, OcptBudgetToolsView.sharing) => [

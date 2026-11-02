@@ -13566,43 +13566,43 @@
       "label": {}
     }
   },
-  "budgetFicheEmptyHint": "Select a row to see its figures.",
-  "@budgetFicheEmptyHint": {
+  "budgetDetailEmptyHint": "Select a row to see its figures.",
+  "@budgetDetailEmptyHint": {
     "description": "Hint shown in the right dock's fiche while nothing is selected",
     "context": "Displayed in the budget mode's right dock",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheStepEstimatedLabel": "Estimated",
-  "@budgetFicheStepEstimatedLabel": {
+  "budgetDetailStepEstimatedLabel": "Estimated",
+  "@budgetDetailStepEstimatedLabel": {
     "description": "First step of the fiche's own expenses-side stepper (Estimated — Committed — Paid), and the matching figure label",
     "context": "Displayed in the budget mode's fiche",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheStepPromisedLabel": "Promised",
-  "@budgetFicheStepPromisedLabel": {
+  "budgetDetailStepPromisedLabel": "Promised",
+  "@budgetDetailStepPromisedLabel": {
     "description": "First step of the fiche's own resources-side stepper (Promised — Received), and the matching figure label",
     "context": "Displayed in the budget mode's fiche",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheKindCommitmentLabel": "Commitment",
-  "@budgetFicheKindCommitmentLabel": {
+  "budgetDetailKindCommitmentLabel": "Commitment",
+  "@budgetDetailKindCommitmentLabel": {
     "description": "Last breadcrumb segment of a commitment's own fiche, naming what kind of object is shown",
     "context": "Displayed in the budget mode's fiche breadcrumb",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheKindEntryLabel": "Entry",
-  "@budgetFicheKindEntryLabel": {
+  "budgetDetailKindEntryLabel": "Entry",
+  "@budgetDetailKindEntryLabel": {
     "description": "Last breadcrumb segment of a journal entry's own fiche, naming what kind of object is shown",
     "context": "Displayed in the budget mode's fiche breadcrumb",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheCommitmentHint": "{status} · {dueDate}",
-  "@budgetFicheCommitmentHint": {
+  "budgetDetailCommitmentHint": "{status} · {dueDate}",
+  "@budgetDetailCommitmentHint": {
     "description": "Hint line of a commitment's own fiche: its own status word, then its own due date (or the no-due-date label)",
     "context": "Displayed under a commitment's own title in the budget mode's fiche",
     "type": "text",
@@ -13611,8 +13611,8 @@
       "dueDate": {}
     }
   },
-  "budgetFicheEntryHint": "{date} · {voucher}",
-  "@budgetFicheEntryHint": {
+  "budgetDetailEntryHint": "{date} · {voucher}",
+  "@budgetDetailEntryHint": {
     "description": "Hint line of a journal entry's own fiche: its own date, then its own voucher number",
     "context": "Displayed under an entry's own title in the budget mode's fiche",
     "type": "text",
@@ -13621,8 +13621,8 @@
       "voucher": {}
     }
   },
-  "budgetFicheEntrySettlesLabel": "Settles: {name}",
-  "@budgetFicheEntrySettlesLabel": {
+  "budgetDetailEntrySettlesLabel": "Settles: {name}",
+  "@budgetDetailEntrySettlesLabel": {
     "description": "Extra hint line of an entry's own fiche, naming the commitment, resource or taking it settles, while it settles one",
     "context": "Displayed under an entry's own title in the budget mode's fiche",
     "type": "text",
@@ -13630,15 +13630,15 @@
       "name": {}
     }
   },
-  "budgetFicheCommitmentPaymentsSectionTitle": "Payments",
-  "@budgetFicheCommitmentPaymentsSectionTitle": {
+  "budgetDetailCommitmentPaymentsSectionTitle": "Payments",
+  "@budgetDetailCommitmentPaymentsSectionTitle": {
     "description": "Title of a promoted quote line's own payments section, listing every entry that has paid its commitment, one instalment per row",
     "context": "Displayed under a quote line's own figures in the budget mode's fiche, only while its commitment has been paid at least once",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFichePayAction": "Pay {amount}",
-  "@budgetFichePayAction": {
+  "budgetDetailPayAction": "Pay {amount}",
+  "@budgetDetailPayAction": {
     "description": "Primary action of a commitment's own fiche, or of a promoted quote line's own fiche, opening the entry dialog pre-filled with the amount",
     "context": "Displayed in the budget mode's fiche",
     "type": "text",
@@ -13646,8 +13646,8 @@
       "amount": {}
     }
   },
-  "budgetFicheReceiveAction": "Receive {amount}",
-  "@budgetFicheReceiveAction": {
+  "budgetDetailReceiveAction": "Receive {amount}",
+  "@budgetDetailReceiveAction": {
     "description": "Primary action of a resource's or a taking's own fiche, opening the entry dialog pre-filled with the amount still outstanding",
     "context": "Displayed in the budget mode's fiche",
     "type": "text",
@@ -13655,22 +13655,22 @@
       "amount": {}
     }
   },
-  "budgetFicheLineStillToCommitLabel": "Still to commit",
-  "@budgetFicheLineStillToCommitLabel": {
+  "budgetDetailLineStillToCommitLabel": "Still to commit",
+  "@budgetDetailLineStillToCommitLabel": {
     "description": "Outstanding block's own label on a quote line's own fiche while it has not been promoted into a commitment yet",
     "context": "Displayed in the budget mode's fiche",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheEntryOffLineBannerText": "This spend is not tied to this poste's quote.",
-  "@budgetFicheEntryOffLineBannerText": {
+  "budgetDetailEntryOffLineBannerText": "This spend is not tied to this poste's quote.",
+  "@budgetDetailEntryOffLineBannerText": {
     "description": "Neutral, factual explanation shown on a debit entry that names a poste but no commitment — the banner offering to add it to the quote or move it off-quote",
     "context": "Displayed above the primary action on an off-line debit entry's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheEntryOffLineBannerOverQuoteText": "This spend is not tied to this poste's quote, which is currently {varianceAmount} over.",
-  "@budgetFicheEntryOffLineBannerOverQuoteText": {
+  "budgetDetailEntryOffLineBannerOverQuoteText": "This spend is not tied to this poste's quote, which is currently {varianceAmount} over.",
+  "@budgetDetailEntryOffLineBannerOverQuoteText": {
     "description": "Same banner as budgetFicheEntryOffLineBannerText, with the poste's own overrun stated, while it is over its quote",
     "context": "Displayed above the primary action on an off-line debit entry's own fiche in the budget mode",
     "type": "text",
@@ -13680,29 +13680,29 @@
       }
     }
   },
-  "budgetFichePromoteToQuoteAction": "Add to the quote",
-  "@budgetFichePromoteToQuoteAction": {
+  "budgetDetailPromoteToQuoteAction": "Add to the quote",
+  "@budgetDetailPromoteToQuoteAction": {
     "description": "Banner action promoting an off-line record — a debit entry or a commitment — into a quote line",
     "context": "Displayed on an off-line debit entry's or an off-line commitment's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheEntryMoveOffQuoteAction": "Move off-quote",
-  "@budgetFicheEntryMoveOffQuoteAction": {
+  "budgetDetailEntryMoveOffQuoteAction": "Move off-quote",
+  "@budgetDetailEntryMoveOffQuoteAction": {
     "description": "Banner action clearing an off-line debit entry's own poste, so it reads as an honest off-quote spend",
     "context": "Displayed on an off-line debit entry's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheCommitmentOffLineBannerText": "This commitment is not tied to this poste's quote.",
-  "@budgetFicheCommitmentOffLineBannerText": {
+  "budgetDetailCommitmentOffLineBannerText": "This commitment is not tied to this poste's quote.",
+  "@budgetDetailCommitmentOffLineBannerText": {
     "description": "Neutral, factual explanation shown on a commitment that names a poste but no quote line — the banner offering to add it to the quote",
     "context": "Displayed above the primary action on an off-line commitment's own fiche in the budget mode",
     "type": "text",
     "placeholders": {}
   },
-  "budgetFicheCommitmentOffLineBannerOverQuoteText": "This commitment is not tied to this poste's quote, which is currently {varianceAmount} over.",
-  "@budgetFicheCommitmentOffLineBannerOverQuoteText": {
+  "budgetDetailCommitmentOffLineBannerOverQuoteText": "This commitment is not tied to this poste's quote, which is currently {varianceAmount} over.",
+  "@budgetDetailCommitmentOffLineBannerOverQuoteText": {
     "description": "Same banner as budgetFicheCommitmentOffLineBannerText, with the poste's own overrun stated, while it is over its quote",
     "context": "Displayed above the primary action on an off-line commitment's own fiche in the budget mode",
     "type": "text",
@@ -13712,8 +13712,8 @@
       }
     }
   },
-  "budgetFicheInKindCounterpartHint": "Covered in kind by the contribution “{contribution}”.",
-  "@budgetFicheInKindCounterpartHint": {
+  "budgetDetailInKindCounterpartHint": "Covered in kind by the contribution “{contribution}”.",
+  "@budgetDetailInKindCounterpartHint": {
     "description": "Info banner shown in place of Pay/Commit/Delete on a counterpart quote line's own fiche",
     "context": "Displayed on a quote line whose inKindResourceId names an in-kind contribution, naming that contribution's own label",
     "type": "text",
@@ -13723,13 +13723,13 @@
       }
     }
   },
-  "budgetFicheEditInKindContributionAction": "Edit the contribution",
-  "@budgetFicheEditInKindContributionAction": {
+  "budgetDetailEditInKindContributionAction": "Edit the contribution",
+  "@budgetDetailEditInKindContributionAction": {
     "description": "Primary action on a counterpart quote line's own fiche, opening the in-kind contribution it balances for editing",
     "type": "text"
   },
-  "budgetFicheInKindOffsetsPoste": "Offsets the poste “{poste}”.",
-  "@budgetFicheInKindOffsetsPoste": {
+  "budgetDetailInKindOffsetsPoste": "Offsets the poste “{poste}”.",
+  "@budgetDetailInKindOffsetsPoste": {
     "description": "Note on an in-kind resource's own fiche naming the poste its counterpart quote line offsets",
     "context": "Displayed on an in-kind resource's own fiche once its counterpart line names a poste",
     "type": "text",

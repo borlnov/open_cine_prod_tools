@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 
-/// An off-line record's own banner (`OcptBudgetFicheScaffold.banner`): a short, neutral, factual
+/// An off-line record's own banner (`OcptBudgetDetailScaffold.banner`): a short, neutral, factual
 /// [message], and one or two ways to reconcile the record with the quote it never went through.
 /// `Add to the quote` ([promoteLabel]) is always the first, and `Move off-quote`
 /// ([moveOffQuoteLabel], null for a record that has no such reconciliation) the optional second —
@@ -16,8 +16,8 @@ import 'package:flutter/material.dart';
 /// quote, by how much, but the banner itself is neither an alert nor a verdict.
 ///
 /// **Withheld, not disabled** (`AGENTS.md`): a null action is simply not drawn, rather than a
-/// button greyed out — `OcptBudgetFiche`'s own callbacks arrive null under a previewed version, and
-/// the text stands alone.
+/// button greyed out — `OcptBudgetDetail`'s own callbacks arrive null under a previewed version,
+/// and the text stands alone.
 class OcptBudgetOffLineBanner extends StatelessWidget {
   /// The banner's own explanatory text.
   final String message;

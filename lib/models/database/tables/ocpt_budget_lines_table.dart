@@ -79,7 +79,7 @@ class OcptBudgetLinesTable extends Table {
 
   /// Get the breakdown element this line prices, or null. → [OcptElementsTable]
   ///
-  /// A quote line and a breakdown element are captured independently; the budget fiche's
+  /// A quote line and a breakdown element are captured independently; the budget detail panel's
   /// `From breakdown` action is what crosses them (`elements.cost` seeding a fresh line's unit
   /// price).
   TextColumn get elementId => text().nullable().references(OcptElementsTable, #id)();

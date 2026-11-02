@@ -16,8 +16,8 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// One entry row: date, voucher number, poste, label, debit, credit, running balance, then its own
 /// `⋮` menu — `Edit`/`Delete`, mirroring `OcptBudgetCostTracking`'s own row-menu idiom. Clicking
-/// the row itself only selects it, opening the right dock's fiche on it — never a write, so never
-/// withheld under a previewed version.
+/// the row itself only selects it, opening the right dock's detail panel on it — never a write, so
+/// never withheld under a previewed version.
 ///
 /// **Only the side money actually moved on is tinted** — a debit in [ColorScheme.error], a credit
 /// in [ColorScheme.primary], each read off the entry's own raw column rather than off the row's

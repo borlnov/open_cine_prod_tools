@@ -65,18 +65,20 @@ class OcptBudgetRightDockFractionChangedEvent extends OcptBudgetWorkspaceEvent {
 /// feed card's own catering row wherever it is drawn, and by every other gesture that used to open
 /// a document, a reading or a sub-page of its own.
 ///
-/// [clearSelection] drops the fiche's own selection as the view changes — **true only for the
-/// header's own chip**, where the reader is leaving one document for another and the object they
-/// had open belonged to the one they are leaving, so the Inspector greets the new view empty rather
-/// than still showing a poste on the takings page. It is **false for every gesture that switches
-/// the view *and* selects something in one move** (`OcptBudgetDashboardView._handlePosteOpened`,
-/// `_handleLineShowCommitment` Requested), which would otherwise wipe the very selection it just
-/// made, whichever order the two events happen to run in.
+/// [clearSelection] drops the detail panel's own selection as the view changes — **true only for
+/// the header's own chip**, where the reader is leaving one document for another and the object
+/// they had open belonged to the one they are leaving, so the Inspector greets the new view empty
+/// rather than still showing a poste on the takings page. It is **false for every gesture that
+/// switches the view *and* selects something in one move**
+/// (`OcptBudgetDashboardView._handlePosteOpened`, `_handleLineShowCommitment` Requested), which
+/// would otherwise wipe the very selection it just made, whichever order the two events happen to
+/// run in.
 class OcptBudgetViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The view to select.
   final OcptBudgetView view;
 
-  /// Whether to drop the fiche's own selection as the view changes — see the class doc comment.
+  /// Whether to drop the detail panel's own selection as the view changes — see the class doc
+  /// comment.
   final bool clearSelection;
 
   /// Class constructor
@@ -95,7 +97,7 @@ class OcptBudgetToolsViewSelectedEvent extends OcptBudgetWorkspaceEvent {
   /// The tools page to select.
   final OcptBudgetToolsView toolsView;
 
-  /// Whether to drop the fiche's own selection as the tools page changes — see the class doc
+  /// Whether to drop the detail panel's own selection as the tools page changes — see the class doc
   /// comment.
   final bool clearSelection;
 

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 
 /// A small status badge — the resource/revenue `Dossier` fact, held apart from the money.
-class OcptBudgetFicheBadge extends StatelessWidget {
+class OcptBudgetDetailBadge extends StatelessWidget {
   /// The badge's own text.
   final String text;
 
@@ -14,9 +14,9 @@ class OcptBudgetFicheBadge extends StatelessWidget {
   final Color color;
 
   /// Class constructor
-  const OcptBudgetFicheBadge({super.key, required this.text, required this.color});
+  const OcptBudgetDetailBadge({super.key, required this.text, required this.color});
 
-  /// Build the budget fiche badge as a [Container].
+  /// Build the budget detail panel badge as a [Container].
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

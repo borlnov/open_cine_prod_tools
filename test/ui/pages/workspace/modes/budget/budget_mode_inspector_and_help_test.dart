@@ -442,7 +442,7 @@ void main() {
     final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
 
     // The right dock is closed until something is selected.
-    expect(find.byType(OcptBudgetFiche), findsNothing);
+    expect(find.byType(OcptBudgetDetail), findsNothing);
 
     await tester.tap(
       find.descendant(
@@ -452,8 +452,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Selected: the click opened the fiche on this very poste.
-    expect(find.byType(OcptBudgetFiche), findsOneWidget);
+    // Selected: the click opened the detail panel on this very poste.
+    expect(find.byType(OcptBudgetDetail), findsOneWidget);
 
     // Not filtered: the header draws no poste filter tag at all — the one place every view of
     // the mode agrees on whether it is narrowed.
@@ -594,7 +594,7 @@ void main() {
         await openExpenses(tester);
 
         final tr = Tr.of(tester.element(find.byType(OcptBudgetMode)));
-        expect(find.byType(OcptBudgetFiche), findsNothing);
+        expect(find.byType(OcptBudgetDetail), findsNothing);
 
         await tester.tap(find.byType(FloatingActionButton));
         await tester.pumpAndSettle();
@@ -631,10 +631,10 @@ void main() {
         await tester.tap(find.byKey(const Key("ocptBudgetNewSaveButton")));
         await tester.pumpAndSettle();
 
-        // The line lands selected, the right dock opened on its own fiche — exactly what the
+        // The line lands selected, the right dock opened on its own detail panel — exactly what the
         // header's own capture button already does for this same gesture
         // (`OcptBudgetBloc._onLineCreated`).
-        expect(find.byType(OcptBudgetFiche), findsOneWidget);
+        expect(find.byType(OcptBudgetDetail), findsOneWidget);
         expect(find.text("Camera rental"), findsWidgets);
       },
     );

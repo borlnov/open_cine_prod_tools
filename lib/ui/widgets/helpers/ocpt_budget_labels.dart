@@ -273,8 +273,8 @@ Color ocptBudgetRevenueStatusAccentColor(ColorScheme colorScheme, OcptBudgetReve
 /// reaching into `intl` rather than an ARB key.
 ///
 /// The app's one formatting of an amount somebody is only ever **reading** — the `Quote`/`Paid`/
-/// `Committed`/`Remaining`/`Variance`/`Consumed` columns, the fiche's own figures. This is not
-/// `ocptCostTextOf`, which writes the bare, ungrouped text of an editable *field* and carries
+/// `Committed`/`Remaining`/`Variance`/`Consumed` columns, the detail panel's own figures. This is
+/// not `ocptCostTextOf`, which writes the bare, ungrouped text of an editable *field* and carries
 /// neither symbol nor grouping: a value read back into a text field must be exactly what the field
 /// accepts again, which a grouped, symbol-carrying string is not.
 String ocptBudgetAmountLabel(int cents, String currencyCode) =>

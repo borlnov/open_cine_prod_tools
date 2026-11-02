@@ -50,8 +50,8 @@ class OcptBudgetCashJournalView extends StatelessWidget {
           ? null
           : (entry) => unawaited(ocptBudgetEditEntry(context, state, entry)),
       onEntryDeletionRequested: isReadOnly ? null : onEntryDeletionRequested,
-      // Never withheld under a preview: selecting only opens the right dock's own fiche, it writes
-      // nothing.
+      // Never withheld under a preview: selecting only opens the right dock's own detail panel, it
+      // writes nothing.
       onCommitmentSelected: (commitmentId) =>
           bloc.add(OcptBudgetCommitmentSelectedEvent(commitmentId: commitmentId)),
       shareableCents: state.sharingPot.shareableCents,

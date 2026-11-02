@@ -236,7 +236,7 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// `OcptBudgetLinesTable.provisionKey`. Every other caller leaves all three at [Value.absent],
   /// and the line then reads as one somebody typed, which is what it is.
   ///
-  /// [elementId] and [unitAmountCents] are what `OcptBudgetFiche`'s own `From breakdown` gesture
+  /// [elementId] and [unitAmountCents] are what `OcptBudgetDetail`'s own `From breakdown` gesture
   /// fills in — a line minted from a breakdown element, its own unit price seeded from
   /// `OcptElement.cost` — and what the ordinary `+ Add` footer leaves at [Value.absent], the plain
   /// `+ Add` line reading exactly as it always has. **A null `elements.cost` is passed on as
@@ -250,11 +250,11 @@ class OcptBudgetQuoteService extends AbsOcptService {
   /// it at [Value.absent], reading `budget_lines.unit`'s own ordinary default exactly as before
   /// this parameter existed.
   ///
-  /// [isTaxInclusive] and [vatRateBasisPoints] are what the fiche's own `Add to the quote` banner
-  /// action fills in — a line promoted from an off-line journal entry, its own tax basis mirrored
-  /// exactly rather than left to the ordinary line default — and what every other caller leaves at
-  /// [Value.absent], reading `budget_lines`' own ordinary defaults exactly as before these two
-  /// parameters existed.
+  /// [isTaxInclusive] and [vatRateBasisPoints] are what the detail panel's own `Add to the quote`
+  /// banner action fills in — a line promoted from an off-line journal entry, its own tax basis
+  /// mirrored exactly rather than left to the ordinary line default — and what every other caller
+  /// leaves at [Value.absent], reading `budget_lines`' own ordinary defaults exactly as before
+  /// these two parameters existed.
   ///
   /// [inKindResourceId] is what the budget bloc's own in-kind reconciliation fills in when this
   /// line is the counterpart minted for an in-kind contribution — see

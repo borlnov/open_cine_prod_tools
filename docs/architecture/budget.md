@@ -47,13 +47,13 @@ are all here, and this file is the whole record of them.
   moved home but kept its shape — only what used to open above the table changed (see "The journal
   scrolls rather than losing a column" below).
 - **Selection grew a type.** `OcptBudgetSelection` (`lib/types/`), a sealed class with one `final`
-  variant per kind of row the fiche can show — poste, quote line, commitment, entry, resource,
-  revenue, receipt — replaces what used to be several independent id fields
-  (`selectedPosteId`/`selectedResourceId`/…): a fiche able to show any one object can only ever be
-  looking at one of them at a time, and one field now says which. `OcptBudgetState.selectedPosteId`
-  and `.selectedResourceId` survive as plain getters folding onto `selection`, so nothing that read
-  them before had to change; `.selectedShareId` stays its own field, a share opening no fiche in any
-  document this reaches yet.
+  variant per kind of row the detail panel can show — poste, quote line, commitment, entry,
+  resource, revenue, receipt — replaces what used to be several independent id fields
+  (`selectedPosteId`/`selectedResourceId`/…): a detail panel able to show any one object can only
+  ever be looking at one of them at a time, and one field now says which.
+  `OcptBudgetState.selectedPosteId` and `.selectedResourceId` survive as plain getters folding onto
+  `selection`, so nothing that read them before had to change; `.selectedShareId` stays its own
+  field, a share opening no detail panel in any document this reaches yet.
 - **`view`, `toolsView`, `isSimplified`, `taxBasis`, `selection`, `filterPosteId` and
   `expandedNodeIds` are not persisted.** The schedule mode's own agenda mode is the precedent: only
   `budgetRightDockFraction` and `budgetLastRightDockTab` (`OcptPropertiesManager`) survive a
@@ -229,12 +229,12 @@ are all here, and this file is the whole record of them.
   gained one nullable column, `estimateToCompleteCents`. **Null means "derive it"**:
   `ocptBudgetEstimateToCompleteCents` (`lib/models/rules/ocpt_budget_totals.dart`) answers
   `max(0, quote − paid − committed)` while the column is null, and the poste's own typed figure the
-  moment it is not. **It is typed on the fiche's own poste panel and nowhere else** — the cost
-  report carries no column for it, only the `Coût final` it feeds. The field stands empty while the
-  column is null, its own placeholder printing the derived figure, so the reader sees what the app
-  would answer before deciding to overrule it — the same pairing `ocptEffectiveVatRateOf` already
-  draws for an inherited VAT rate — and a `Derive again` button beside it hands a typed figure back
-  to null.
+  moment it is not. **It is typed on the detail panel's own poste panel and nowhere else** — the
+  cost report carries no column for it, only the `Coût final` it feeds. The field stands empty while
+  the column is null, its own placeholder printing the derived figure, so the reader sees what the
+  app would answer before deciding to overrule it — the same pairing `ocptEffectiveVatRateOf`
+  already draws for an inherited VAT rate — and a `Derive again` button beside it hands a typed
+  figure back to null.
   **It is held per poste, not per quote line, on purpose**: a line-level estimate would be a second
   plan running beside the quote, more machinery than a film of this size needs, and the derived
   reading already makes the column a restatement of the quote until a poste actually goes over — a
@@ -246,9 +246,9 @@ are all here, and this file is the whole record of them.
   stays exactly as it is and keeps every one of its callers, because a variance read against what
   has actually moved is not the same fact as a variance read against what a human now expects the
   final bill to be. `ocptBudgetFinalCostVarianceCents` reads `finalCost − quote` instead, and is
-  drawn nowhere but the fiche's own poste panel, beside `Coût final`, under the very same `Écart`
-  label the cost-tracking table already uses for the other one — two readings sharing one word in
-  two different places, each honest about what it answers where it is printed.
+  drawn nowhere but the detail panel's own poste panel, beside `Coût final`, under the very same
+  `Écart` label the cost-tracking table already uses for the other one — two readings sharing one
+  word in two different places, each honest about what it answers where it is printed.
   With `Estimate to complete` and `Consumed` retired as columns of their own (their reading survives
   inside `Coût final`), `Payé`, `Engagé`, `Reste`, `Coût final` and `Écart` all print a real amount
   at poste level, `0` where nothing has moved — the honest reading the journal's own existence
@@ -290,8 +290,8 @@ are all here, and this file is the whole record of them.
   the full commitment** — the whole typed amount while nothing has been paid, what is left once
   instalments have been — and it is expressed in the commitment's own tax basis and rate (the
   outstanding cash scaled by the fraction it is of the commitment's own cash), so the payment entry
-  carries the very VAT reading the commitment does. This holds whichever fiche opens it, a quote
-  line's or a commitment shown on its own under the cash-flow page's `À venir` section. `Undo
+  carries the very VAT reading the commitment does. This holds whichever detail panel opens it, a
+  quote line's or a commitment shown on its own under the cash-flow page's `À venir` section. `Undo
   settlement` clears `commitmentId` back to null on **every** entry naming the commitment — never
   only the first, which would leave it reading unsettled while some instalments still counted as
   paid — and touches none of those entries otherwise: each is a movement that happened, and the
@@ -441,8 +441,8 @@ are all here, and this file is the whole record of them.
   open on the current view's own name and one-line description, repeating what the active chip
   already says, and carries nothing today but the controls themselves (`OcptBudgetHeader`'s own
   class doc comment). The right dock offers exactly three tabs (`OcptBudgetRightDockTab`):
-  `Inspector`, the polymorphic fiche described below; the shared `Versions` tab every mode carries;
-  and `Help`.
+  `Inspector`, the polymorphic detail panel described below; the shared `Versions` tab every mode
+  carries; and `Help`.
 
 ## The blocs
 
@@ -519,19 +519,19 @@ are all here, and this file is the whole record of them.
     above whichever route the state names), the six routes (`OcptBudgetDashboardView`,
     `OcptBudgetCostTrackingView`, `OcptBudgetFinancingView`, `OcptBudgetCashJournalView`,
     `OcptBudgetRegieView`, `OcptBudgetSharingView`), the right dock (`OcptBudgetRightDockView`, with
-    `OcptBudgetFicheView` for the `Inspector` tab and a private versions tab) and the read-only banner
-    are widgets of their own under `widgets/`. A view widget reads the mode state it is handed and
-    the view bloc that writes, and **only asks** for the confirmations the mode opens
+    `OcptBudgetDetailView` for the `Inspector` tab and a private versions tab) and the read-only
+    banner are widgets of their own under `widgets/`. A view widget reads the mode state it is
+    handed and the view bloc that writes, and **only asks** for the confirmations the mode opens
     (`OcptConfirmDialog`: deleting a poste, a line, a commitment, an entry, a resource, a taking, a
     defrayal or a share, undoing a receipt or a promotion, provisioning): the mode passes them as
     callbacks, and the view withholds a callback under a version preview. The dialogs that are not
     confirmations (editing a row, the capture wizard and its contextual shortcuts, the exports) are
     opened by the function files the views share: `budget_view_actions.dart`,
-    `budget_wizard_flows.dart` and `budget_export_requests.dart`. The fiche reads the pending edits
-    from the expenses bloc through a `BlocBuilder` inside `OcptBudgetFicheView`, so a keystroke
-    redraws the fiche and not the whole mode, and the export notice is shown by
-    `OcptBudgetViewEffects`. The fiche's one scroll view sits in `OcptBudgetFiche`, above the
-    variant widget (`OcptBudgetFichePoste`, `…Line`, `…Commitment`, `…Entry`, `…Receipt`,
+    `budget_wizard_flows.dart` and `budget_export_requests.dart`. The detail panel reads the pending
+    edits from the expenses bloc through a `BlocBuilder` inside `OcptBudgetDetailView`, so a
+    keystroke redraws the detail panel and not the whole mode, and the export notice is shown by
+    `OcptBudgetViewEffects`. The detail panel's one scroll view sits in `OcptBudgetDetail`, above
+    the variant widget (`OcptBudgetDetailPoste`, `…Line`, `…Commitment`, `…Entry`, `…Receipt`,
     `…Resource`, `…Revenue`), so moving from one selection to another keeps the scroll position.
     Each large table is cut into a file per row or cell widget plus a metrics file for its widths and
     heights; the sealed row families a table switches over (`OcptBudgetCostTrackingTreeRow`,
@@ -570,14 +570,14 @@ are all here, and this file is the whole record of them.
   badge (see "The alerts compute themselves" below).
 - **The alert row is the page's own only link out — nothing else on this page goes anywhere.** A
   poste over its quote selects that poste and switches to `expenses` in the same gesture
-  (`OcptBudgetDashboardView._handlePosteOpened`), which is where the fiche then opens: a click that
-  only selected would leave the reader on a read-only summary with nothing on it to do about what
-  they had just picked, so the gesture goes where the poste is actually worked on. Narrowing is
-  still nobody's side effect — the filter is untouched by it. The cash projection going negative
-  switches to `tools › cashFlow` (`OcptBudgetDashboardView._handleCashAlertActionRequested`), the very
-  statement that answers it. `ocptBudgetViewHasInspector` answers false for `dashboard` for the same
-  reason: a dashboard row is a link to where the thing is worked on, not a selection this page
-  itself displays.
+  (`OcptBudgetDashboardView._handlePosteOpened`), which is where the detail panel then opens: a
+  click that only selected would leave the reader on a read-only summary with nothing on it to do
+  about what they had just picked, so the gesture goes where the poste is actually worked on.
+  Narrowing is still nobody's side effect — the filter is untouched by it. The cash projection going
+  negative switches to `tools › cashFlow`
+  (`OcptBudgetDashboardView._handleCashAlertActionRequested`), the very statement that answers it.
+  `ocptBudgetViewHasInspector` answers false for `dashboard` for the same reason: a dashboard row is
+  a link to where the thing is worked on, not a selection this page itself displays.
 - **The empty state answers "this project holds nothing at all", never "it holds no poste".** A
   production records its financing before it writes a quote as often as the other way round, so the
   page gives way to `OcptWorkspaceEmptyMode` only once it holds no poste, no financing resource
@@ -606,19 +606,19 @@ are all here, and this file is the whole record of them.
   expandable node**: with no quote line to nest under, a paid one draws collapsed as a single row and
   reveals its payments a level deeper only when opened — so a settled off-line commitment reads as
   one row rather than as itself beside a same-named payment.
-  **A row's own `Rename` menu entry selects it and opens the fiche rather than editing its name in
-  place.** This app has no precedent for renaming a record inline inside a plain list — the two
-  inline-answer exceptions the confirm-dialog rule already carries (the `Versions` dock panel, the
-  project dictionary dialog) exist because a list of rows there has no other way of saying *which*
-  row is being talked about, which is not this table's problem: every row already opens its own
-  fiche on selection.
+  **A row's own `Rename` menu entry selects it and opens the detail panel rather than editing its
+  name in place.** This app has no precedent for renaming a record inline inside a plain list — the
+  two inline-answer exceptions the confirm-dialog rule already carries (the `Versions` dock panel,
+  the project dictionary dialog) exist because a list of rows there has no other way of saying
+  *which* row is being talked about, which is not this table's problem: every row already opens its
+  own detail panel on selection.
 - **At a compact width (`ocptIsCompactWidth`), the two-pane table gives way to one card per live
   poste**, scrolling vertically above the very same `+ Poste` creation footer — the tree itself
   (quote lines, commitments, entries, the off-quote reading) is reduced away entirely at this width,
-  a card opening straight onto the fiche's own `Inspector` tab where that detail already lives. A
-  card draws the poste's name, a proportion bar splitting its quote across paid / committed /
-  remaining (reusing the fiche's own poste-variant colour vocabulary for the same figures) and its
-  own `Engagé`/`Payé`/`Reste`/`Écart` figures, read through a small pure holder
+  a card opening straight onto the detail panel's own `Inspector` tab where that detail already
+  lives. A card draws the poste's name, a proportion bar splitting its quote across paid / committed
+  / remaining (reusing the detail panel's own poste-variant colour vocabulary for the same figures)
+  and its own `Engagé`/`Payé`/`Reste`/`Écart` figures, read through a small pure holder
   (`OcptBudgetCostTrackingPosteFigures.of`) making the very same `ocptBudgetTotalOf`/
   `ocptBudgetRemainingCents`/`ocptBudgetVarianceCents` calls the desktop row does, so a card can
   never disagree with the table over the same poste. Tapping a card fires the same
@@ -653,9 +653,9 @@ are all here, and this file is the whole record of them.
   resource **while no journal entry has ever named it** — no cash will ever move for a valuation, so
   "how much of it has arrived" is not a question with an answer — and the real figures the moment an
   entry does name it: the app never hides a movement that actually happened. A resource row, like a
-  taking's, is selected and opens the fiche; expansion follows the same `expandedNodeIds` idiom as
-  the expenses tree, keyed by a family's own `name` (a family mints no id of its own), a resource id
-  or a revenue id.
+  taking's, is selected and opens the detail panel; expansion follows the same `expandedNodeIds`
+  idiom as the expenses tree, keyed by a family's own `name` (a family mints no id of its own), a
+  resource id or a revenue id.
 
 ## The resources view says what covers the film, twice
 
@@ -679,15 +679,15 @@ are all here, and this file is the whole record of them.
   a document rather than a screen. The two bars answer different questions off the very same two
   figures, needs and resources, and neither is a second way of computing the other's.
 
-## The fiche is one panel for seven kinds of row
+## The detail panel is one panel for seven kinds of row
 
-- `OcptBudgetFiche` (`ocpt_budget_fiche.dart`) is the right dock's own `Inspector` tab, once and for
-  all: a single panel, polymorphic on `OcptBudgetState.selection`, switching over every
+- `OcptBudgetDetail` (`ocpt_budget_detail.dart`) is the right dock's own `Inspector` tab, once and
+  for all: a single panel, polymorphic on `OcptBudgetState.selection`, switching over every
   `OcptBudgetSelection` variant — poste, quote line, commitment, entry, resource, revenue, receipt.
   Every variant draws the same grammar, top to bottom: a breadcrumb up to the chip the row lives
   under, the object's own name and amount, a small stepper of its states, the figures that make it
   up, the outstanding amount in large type, one primary action and at most two secondary ones. The
-  table says where things stand; the fiche says where they come from and what to do next.
+  table says where things stand; the detail panel says where they come from and what to do next.
   **A breadcrumb resolves through the header's own segment labels, never a name of its own.** A
   poste's own breadcrumb is the `Expenses` chip's own segment label; a resource's and a taking's
   both open on `Resources`'s, a resource's own second segment naming its group, a taking's the
@@ -742,8 +742,8 @@ are all here, and this file is the whole record of them.
     withheld for an in-kind resource or once it is fully received.
   - A **revenue** (a taking) mirrors a resource, with no `Dossier` grouping and no in-kind reading:
     `Receive {outstanding}` (`onRevenueReceiptRequested`).
-  - A **receipt** — a journal entry read as the sub-row it settles — shares the entry's own fiche,
-    with its stepper and breadcrumb overridden to read through the resource or the revenue it
+  - A **receipt** — a journal entry read as the sub-row it settles — shares the entry's own detail
+    panel, with its stepper and breadcrumb overridden to read through the resource or the revenue it
     settles.
   **Every primary action that writes opens the capture wizard, pre-filled with the amount** — which
   is what ends the double typing the mode used to ask for: an amount typed once, into a quote line
@@ -755,7 +755,7 @@ are all here, and this file is the whole record of them.
 - `OcptBudgetRightDock` used to draw every value of `OcptBudgetRightDockTab` whatever was on
   screen, so a poste chosen in the quote went on filling the `Inspector` over the régie and the
   revenue sharing — pages that have nothing to do with a poste and never put one there.
-- The tab is now offered only where there is something for the fiche to show:
+- The tab is now offered only where there is something for the detail panel to show:
   `ocptBudgetViewHasInspector(view, toolsView)` (`lib/types/ocpt_budget_view.dart`) answers **false
   for `dashboard` and `tools › regie` alone**. `expenses` and `resources` each select something of
   their own — a poste, a line, a commitment or an entry on the first, a resource or a taking on the
@@ -763,21 +763,23 @@ are all here, and this file is the whole record of them.
   share), so the predicate reads true for every one of them. **`dashboard` answers false because a
   dashboard row is a link to where the thing is worked on, not a selection of its own** — see "The
   dashboard" above for the whole of that argument. **`tools › regie` answers false because it selects
-  nothing at all**: it is not a stage of anything, and reads no row the fiche could ever open on.
+  nothing at all**: it is not a stage of anything, and reads no row the detail panel could ever open
+  on.
 - **Withheld, not disabled**, the standing rule for an affordance without a subject. `Versions` and
   `Help` are offered everywhere, so the dock never has an empty tab bar.
 - A stored `Inspector` preference **is not overwritten** where it cannot be honoured: the dock
   draws `Help` instead and leaves `OcptBudgetState.rightDockTab` alone, so a reader who left a view
   on the inspector comes back to the inspector rather than to whatever the other view showed them.
-- **The header's own chip drops the fiche's own selection as it switches view**
+- **The header's own chip drops the detail panel's own selection as it switches view**
   (`OcptBudgetViewSelectedEvent.clearSelection`, true only there; the second segmented switch does
   the same for the tools drawer). The object a reader had open belonged to the view they are
-  leaving, so the Inspector greets the new view empty (`OcptBudgetFicheEmptyState`) rather
+  leaving, so the Inspector greets the new view empty (`OcptBudgetDetailEmptyState`) rather
   than still showing, say, a poste on the takings page. **Every gesture that switches the view *and*
   selects in one move keeps `clearSelection` false** — `_handleDashboardPosteOpened`,
   `_handleLineShowCommitmentRequested` — since clearing would otherwise wipe the very selection they
   just made, whichever order the two events happen to run in. The filter (`filterPosteId`) and the
-  expansion (`expandedNodeIds`) are the mode's, not the fiche's, and are untouched by the switch.
+  expansion (`expandedNodeIds`) are the mode's, not the detail panel's, and are untouched by the
+  switch.
 
 ## Selecting a poste and filtering by one are two different facts
 
@@ -787,15 +789,15 @@ are all here, and this file is the whole record of them.
   notice was a caption inside its own top band and the only way out an unlabelled `Remove filter`
   button sitting in a row of figures.
 - **`selectedPosteId` is now a plain getter, folding onto `OcptBudgetSelection`** — it answers a
-  poste id only while `state.selection` is an `OcptBudgetPosteSelection`, and drives the fiche and
-  the row's own highlight, and narrows no view. `OcptBudgetState.filterPosteId` is the mode's own
-  filter, written by **two controls**, each doing one half of the job — the `⋮` menu of a row in
-  the `expenses` table sets it (`OcptBudgetCostTracking.onPosteFilterRequested`), the header's own
-  tag clears it — and honoured by **`expenses` alone** (`ocptBudgetViewHonoursPosteFilter`,
-  `lib/types/ocpt_budget_view.dart`), the one view left that still draws a poste-keyed row. The left
-  dock this used to also live in (`OcptBudgetPosteDock`, `budgetLeftDockFraction` with it) is gone —
-  see "The mode's own shape" above and `OcptBudgetMode`'s own class doc comment: this mode carries no
-  left dock at all.
+  poste id only while `state.selection` is an `OcptBudgetPosteSelection`, and drives the detail
+  panel and the row's own highlight, and narrows no view. `OcptBudgetState.filterPosteId` is the
+  mode's own filter, written by **two controls**, each doing one half of the job — the `⋮` menu of a
+  row in the `expenses` table sets it (`OcptBudgetCostTracking.onPosteFilterRequested`), the
+  header's own tag clears it — and honoured by **`expenses` alone**
+  (`ocptBudgetViewHonoursPosteFilter`, `lib/types/ocpt_budget_view.dart`), the one view left that
+  still draws a poste-keyed row. The left dock this used to also live in (`OcptBudgetPosteDock`,
+  `budgetLeftDockFraction` with it) is gone — see "The mode's own shape" above and
+  `OcptBudgetMode`'s own class doc comment: this mode carries no left dock at all.
 - **The header's own tag is the filter's indicator, not its picker.** It draws **nothing at all**
   while `filterPosteId` is null — a control announcing `Every poste` all day is exactly what the
   retired breadcrumb was faulted for — and becomes a small removable tag naming the poste the moment
@@ -895,15 +897,15 @@ are all here, and this file is the whole record of them.
   a nature back from an existing entry.
 - **When step 1 is shown, and when it is skipped.** The `+ New` button opens step 1 with the
   promoted answer selected, `Continuer` one click away; the dashboard opens it with nothing picked.
-  A **contextual shortcut** — a row's `⋮`, a fiche's action — opens the wizard already knowing both
-  its gesture and its link, and so skips straight to step 3: settling a commitment, recording a
-  receipt against a named resource or taking, paying a named participant, reimbursing a named person
-  all carry `entryPrefill`; committing a quote line carries `commitmentPrefill`. **Editing** an
-  existing entry does not open the wizard at all — it opens `OcptBudgetEntryDialog`, the reduced edit
-  dialog, which reads the entry's own nature there off whichever of its link fields is set. The trail
-  above steps 2 and 3 recalls what has been answered, ending in a `changer` link back to step 1, and
-  **every answer already given survives going back and forward again** — switching the gesture keeps
-  whatever the later steps had collected.
+  A **contextual shortcut** — a row's `⋮`, a detail panel's action — opens the wizard already
+  knowing both its gesture and its link, and so skips straight to step 3: settling a commitment,
+  recording a receipt against a named resource or taking, paying a named participant, reimbursing a
+  named person all carry `entryPrefill`; committing a quote line carries `commitmentPrefill`.
+  **Editing** an existing entry does not open the wizard at all — it opens `OcptBudgetEntryDialog`,
+  the reduced edit dialog, which reads the entry's own nature there off whichever of its link fields
+  is set. The trail above steps 2 and 3 recalls what has been answered, ending in a `changer` link
+  back to step 1, and **every answer already given survives going back and forward again** —
+  switching the gesture keeps whatever the later steps had collected.
 - **The reconciliation strip is the *matching* now, on step 3, and only while creating.** The moment
   the amount and wording are typed, `ocptBudgetMatchSuggestionsOf` (`lib/models/rules/ocpt_budget_match.dart`,
   pure) ranks what the draft could settle — the commitments still owed and every live defrayal on a
@@ -937,7 +939,7 @@ are all here, and this file is the whole record of them.
   that `ocptBudgetApplyNewOutcome` turns into a write, whether it was opened from the `+ New`
   button or pre-filled by a contextual shortcut — a resource's `Record a receipt`, a taking's
   `Receive`, a commitment's `Pay`, a share's `Record a payout`, a person's `Reimburse`, reached from
-  a row's own `⋮` menu or a fiche's own primary action. When that outcome carries an accepted
+  a row's own `⋮` menu or a detail panel's own primary action. When that outcome carries an accepted
   **matching** offer, `_handleEntryWizardSuggestionAccepted` dispatches straight to whichever of the
   two events the matched candidate needs. A reader never sees three different write paths — they see
   one shape of movement, reached however is fastest for the gesture at hand.
@@ -1064,15 +1066,15 @@ are all here, and this file is the whole record of them.
   `ocptBudgetEntryCreditCentsOf` like every other movement rather than off `creditCents` raw, so a
   resource whose entries are missing the rate they would need is *covered-but-incomplete* rather
   than wrong. That link is also what makes `resourceId` earn its place: the resources tree's own row
-  menu offers **`Record a receipt`** (`tr.budgetFinancingRecordReceiptAction`), and the fiche's own
-  primary action on a resource, `Receive {outstanding}` (`onResourceReceiptRequested`), do the same
-  thing two ways — mirroring the commitment's `Pay` exactly, opening the capture wizard on its own
-  money step pre-filled as a **credit**, dated today, for whatever is still outstanding, with the
-  resource already named, so a receipt can never exist as a figure with no movement behind it.
-  **`Record a receipt` is withheld — never disabled — once a resource is fully received (received
-  `>=` amount) and on any in-kind resource at all, entered or not.** A contribution in kind is
-  valued rather than collected (see "The resources tree folds the takings in" above), so no cash
-  will ever move for it and the gesture has nothing to offer; a resource whose received total
+  menu offers **`Record a receipt`** (`tr.budgetFinancingRecordReceiptAction`), and the detail
+  panel's own primary action on a resource, `Receive {outstanding}` (`onResourceReceiptRequested`),
+  do the same thing two ways — mirroring the commitment's `Pay` exactly, opening the capture wizard
+  on its own money step pre-filled as a **credit**, dated today, for whatever is still outstanding,
+  with the resource already named, so a receipt can never exist as a figure with no movement behind
+  it. **`Record a receipt` is withheld — never disabled — once a resource is fully received
+  (received `>=` amount) and on any in-kind resource at all, entered or not.** A contribution in
+  kind is valued rather than collected (see "The resources tree folds the takings in" above), so no
+  cash will ever move for it and the gesture has nothing to offer; a resource whose received total
   already meets its own amount likewise has nothing left to receive, though a **partially** received
   one keeps offering it — several instalments landing against the one resource is the ordinary case,
   not an edge one. **`Undo the last receipt`** is the way back: a row's own `⋮` menu entry, offered
@@ -1173,9 +1175,9 @@ are all here, and this file is the whole record of them.
   balance the account would hold once it has, printing in the error colour once that balance goes
   negative. It draws only while at least one unsettled commitment exists, and carries no empty state
   of its own — a project owing nothing simply has no second card. A row is selectable, never a
-  write: it opens the right dock's fiche on the commitment, which is where it is edited or settled,
-  and it carries no `⋮` menu of its own — `Modifier`/`Supprimer`/`Payer` live in the fiche and only
-  there.
+  write: it opens the right dock's detail panel on the commitment, which is where it is edited or
+  settled, and it carries no `⋮` menu of its own — `Modifier`/`Supprimer`/`Payer` live in the detail
+  panel and only there.
 - **Both sections scroll together**, as slivers of one `CustomScrollView`, under the one fixed
   header row above them: two independent scroll areas would let a reader scroll the statement while
   `À venir` stayed put, which is not a statement any more.
@@ -1336,9 +1338,9 @@ are all here, and this file is the whole record of them.
 
 - A quote line and a commitment hold the same shape of fact — a poste, a wording, an amount, a tax
   reading — and differ in the two things that make a debt a debt: **who is owed, and when**. So the
-  quote line's own fiche offers `Commit this line…`, which opens the capture wizard straight on its
-  own commitment form (`commitmentPrefill`, the wizard's own step 3), pre-filled from the line with
-  only those two left to say.
+  quote line's own detail panel offers `Commit this line…`, which opens the capture wizard straight
+  on its own commitment form (`commitmentPrefill`, the wizard's own step 3), pre-filled from the
+  line with only those two left to say.
 - **A promotion, never a move.** The line stays in the quote: comparing the 1,200 € estimated with
   the 1,450 € actually owed is the whole use of having both, and losing the estimate at the moment
   it becomes useful would be the wrong trade. Nothing is double-counted either — a poste's `Quote`
@@ -1348,7 +1350,7 @@ are all here, and this file is the whole record of them.
   own from creation, and correcting the estimate afterwards leaves the debt alone. The column buys
   exactly two behaviours — a line already promoted says so instead of silently making a second debt
   every time the gesture is used, and the promotion can be undone from the line it came from.
-- The line's own fiche therefore draws **one of two mutually exclusive states**: `Commit this
+- The line's own detail panel therefore draws **one of two mutually exclusive states**: `Commit this
   line…`, or `Pay {amount}` as its primary once promoted and unsettled, with `Show the commitment`
   and `Uncommit` as its two secondaries; once settled, no primary action at all, with `Show the
   commitment` and `Delete` as its secondaries. Uncommitting goes through `OcptConfirmDialog` like
@@ -1573,7 +1575,7 @@ are all here, and this file is the whole record of them.
   and paid in June is one row and one entry, and the resources tree tells the two apart by printing
   the expected amount as a quiet second line whenever it differs from what came in.
   The two gestures follow from the shape: **`Receive`** on a taking, reached from the resources
-  tree's own row menu or from the fiche once it is selected, and **`Record a payout`** on a
+  tree's own row menu or from the detail panel once it is selected, and **`Record a payout`** on a
   participant, reached from the sharing document, both open the capture wizard pre-filled and
   dated today — a credit for whatever the taking still has outstanding, a debit for whatever the
   participant is still owed — exactly as a resource's own `Record a receipt` and a commitment's
@@ -1607,10 +1609,11 @@ are all here, and this file is the whole record of them.
   received, while a subsidy or a cash contribution keeps the plain `Amount` label — and the `Status`
   field's own chips are worded for it too, alongside a helper saying what progress means for that
   kind ("The word a status is called is the group's", above).
-- A resource row is **selected and opens the fiche**, whose own primary action is described in "The
-  fiche is one panel for seven kinds of row" above. `OcptBudgetState.selectedResourceId` is a plain
-  getter folding onto `selection`, reconciled against a freshly loaded snapshot exactly as
-  `selectedPosteId` is — see "Selecting a poste and filtering by one are two different facts".
+- A resource row is **selected and opens the detail panel**, whose own primary action is described
+  in "The detail panel is one panel for seven kinds of row" above.
+  `OcptBudgetState.selectedResourceId` is a plain getter folding onto `selection`, reconciled
+  against a freshly loaded snapshot exactly as `selectedPosteId` is — see "Selecting a poste and
+  filtering by one are two different facts".
 
 ## A balanced in-kind contribution
 
@@ -1660,18 +1663,18 @@ are all here, and this file is the whole record of them.
   `ocptBudgetPaidCentsByPosteId` — never see it, since no journal entry names it.
 - **Read as covered, not owed.** In the expenses tree the counterpart line carries an **`En nature`
   badge** and reads its own `Payé`/`Engagé` cells as the em dash and its `Reste` as zero; a poste
-  holding one shows a muted "(… couverts en nature)" note beside its own `Reste`. **Its fiche is
-  read-only**: it withholds `Pay`, `Commit this line…` and `Delete` — a valuation is none of those —
-  and drops the editable fields and the `Estimated · Committed · Paid` stepper for a single `Valued
-  at` reading and a calm banner naming the contribution it is covered by. Its sole action,
+  holding one shows a muted "(… couverts en nature)" note beside its own `Reste`. **Its detail panel
+  is read-only**: it withholds `Pay`, `Commit this line…` and `Delete` — a valuation is none of
+  those — and drops the editable fields and the `Estimated · Committed · Paid` stepper for a single
+  `Valued at` reading and a calm banner naming the contribution it is covered by. Its sole action,
   `Edit the contribution`, opens that contribution — the one place the figure is changed, since
   editing the line directly would drift it away from the resource it must equal, which
-  `OcptBudgetExpensesBloc`'s own field-edit guard also refuses. An in-kind resource's own fiche
-  mirrors it: it names the poste its counterpart line offsets (read through `ocptBudgetInKindCounterpartLineOf`,
-  never a field of its own) and, while no journal entry has named it, drops its own
-  `Promised · Received` stepper for the same `Valued at` reading — a valuation runs through no
-  collection lifecycle — keeping that stepper and a real received figure the moment an entry does
-  name it.
+  `OcptBudgetExpensesBloc`'s own field-edit guard also refuses. An in-kind resource's own detail
+  panel mirrors it: it names the poste its counterpart line offsets (read through
+  `ocptBudgetInKindCounterpartLineOf`, never a field of its own) and, while no journal entry has
+  named it, drops its own `Promised · Received` stepper for the same `Valued at` reading — a
+  valuation runs through no collection lifecycle — keeping that stepper and a real received figure
+  the moment an entry does name it.
 - **The documents.** The exported quote prints the counterpart line as the quoted line it is, flagged
   `(en nature)` so a reader sees it is covered without a cash outlay; the financial report reads it
   covered in kind through the very same settled bucket, so its per-poste and total variances net the

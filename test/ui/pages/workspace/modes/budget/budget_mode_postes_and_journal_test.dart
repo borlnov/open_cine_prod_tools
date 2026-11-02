@@ -205,12 +205,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Landed on the cost report — a dashboard row is a link to where the poste is worked on,
-      // not a selection that opens the fiche over the dashboard itself.
+      // not a selection that opens the detail panel over the dashboard itself.
       expect(find.byType(OcptBudgetDashboard), findsNothing);
       expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
 
-      // And the poste it names is the very one selected — the fiche opened on it.
-      expect(find.byType(OcptBudgetFiche), findsOneWidget);
+      // And the poste it names is the very one selected — the detail panel opened on it.
+      expect(find.byType(OcptBudgetDetail), findsOneWidget);
     });
   });
 
@@ -529,8 +529,8 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       // A commitment is no longer created from a dedicated view of its own: a quote line's own
-      // fiche is the one place `Commit this line…` is offered — seeding a poste with a line first
-      // reaches it.
+      // detail panel is the one place `Commit this line…` is offered — seeding a poste with a line
+      // first reaches it.
       final project = projectsManager.currentProject!;
       final posteId = await projectsManager.budgetQuoteService.createPoste(
         database: project.database,

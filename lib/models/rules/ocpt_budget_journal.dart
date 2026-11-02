@@ -11,9 +11,9 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_budget_vat.dart';
 
 /// Tell whether [entry] is a debit that names a poste but no commitment — an off-line spend against
 /// a
-/// poste's own quote, never reconciled with it. The fiche's own banner reads this to offer `Add to
-/// the quote`/`Move off-quote` on such an entry (`OcptBudgetFiche`), and the bloc's own two
-/// handlers answering those actions read it again as a defensive guard
+/// poste's own quote, never reconciled with it. The detail panel's own banner reads this to offer
+/// `Add to the quote`/`Move off-quote` on such an entry (`OcptBudgetDetail`), and the bloc's own
+/// two handlers answering those actions read it again as a defensive guard
 /// (`OcptBudgetEntryPromotedToQuoteEvent`, `OcptBudgetEntryMovedOffQuoteEvent`) — both actions
 /// naturally clear it, one by setting [OcptBudgetEntry.commitmentId], the other by nulling
 /// [OcptBudgetEntry.posteId].

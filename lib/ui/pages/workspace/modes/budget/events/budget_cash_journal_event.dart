@@ -186,8 +186,8 @@ class OcptBudgetEntryMovedOffQuoteEvent extends OcptBudgetCashJournalEvent {
   List<Object?> get props => [...super.props, entryId];
 }
 
-/// Promote off-line commitment [commitmentId] into the quote — the fiche's own banner and its
-/// `Add to the quote` action, offered on a commitment that names a poste but no quote line
+/// Promote off-line commitment [commitmentId] into the quote — the detail panel's own banner and
+/// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
 /// (`ocptBudgetCommitmentIsOffLine`). This is `OcptBudgetLinePaidDirectlyEvent` run the other way
 /// round: the bloc creates a quote line from the commitment (`OcptBudgetQuoteService.createLine`,
 /// the commitment's own label, quantity `1.0`, its amount and tax basis), then **re-points the

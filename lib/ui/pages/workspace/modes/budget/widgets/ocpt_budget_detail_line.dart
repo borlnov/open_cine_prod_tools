@@ -28,9 +28,9 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// breakdown element it prices, when it prices one), the `Estimé — Engagé — Payé` stepper, and
 /// one of the line's own two mutually exclusive states — `docs/architecture/budget.md`'s "A quote
 /// line can be promoted into a commitment, and the line stays".
-class OcptBudgetFicheLine extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailLine extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The poste the line belongs to.
   final OcptBudgetPoste poste;
@@ -39,31 +39,31 @@ class OcptBudgetFicheLine extends StatelessWidget {
   final OcptBudgetLine line;
 
   /// Class constructor
-  const OcptBudgetFicheLine({
+  const OcptBudgetDetailLine({
     super.key,
-    required this.fiche,
+    required this.detail,
     required this.poste,
     required this.line,
   });
 
-  /// Build the budget fiche line as an [OcptBudgetFicheScaffold].
+  /// Build the budget detail panel line as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final commitments = fiche.commitments;
-    final entries = fiche.entries;
-    final resources = fiche.resources;
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final currencyCode = fiche.currencyCode;
-    final isSimplified = fiche.isSimplified;
-    final isReadOnly = fiche.isReadOnly;
-    final elementNameByElementId = fiche.elementNameByElementId;
-    final onLineCommitRequested = fiche.onLineCommitRequested;
-    final onLinePayDirectlyRequested = fiche.onLinePayDirectlyRequested;
-    final onLineSettleRequested = fiche.onLineSettleRequested;
-    final onLineShowCommitmentRequested = fiche.onLineShowCommitmentRequested;
-    final onLineUncommitRequested = fiche.onLineUncommitRequested;
-    final onLineDeletionRequested = fiche.onLineDeletionRequested;
-    final onResourceEditRequested = fiche.onResourceEditRequested;
+    final commitments = detail.commitments;
+    final entries = detail.entries;
+    final resources = detail.resources;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final currencyCode = detail.currencyCode;
+    final isSimplified = detail.isSimplified;
+    final isReadOnly = detail.isReadOnly;
+    final elementNameByElementId = detail.elementNameByElementId;
+    final onLineCommitRequested = detail.onLineCommitRequested;
+    final onLinePayDirectlyRequested = detail.onLinePayDirectlyRequested;
+    final onLineSettleRequested = detail.onLineSettleRequested;
+    final onLineShowCommitmentRequested = detail.onLineShowCommitmentRequested;
+    final onLineUncommitRequested = detail.onLineUncommitRequested;
+    final onLineDeletionRequested = detail.onLineDeletionRequested;
+    final onResourceEditRequested = detail.onResourceEditRequested;
     final tr = Tr.of(context);
 
     final lineTotalCents = ocptBudgetLineTotalCents(line);
@@ -120,11 +120,11 @@ class OcptBudgetFicheLine extends StatelessWidget {
     final String outstandingLabel;
     final String? outstandingValue;
     if (!isPromoted) {
-      outstandingLabel = tr.budgetFicheLineStillToCommitLabel;
-      outstandingValue = fiche.amountLabelOf(lineTotalCents);
+      outstandingLabel = tr.budgetDetailLineStillToCommitLabel;
+      outstandingValue = detail.amountLabelOf(lineTotalCents);
     } else if (!isSettled) {
       outstandingLabel = tr.budgetCommittedOutstandingLabel;
-      outstandingValue = fiche.amountLabelOf(outstandingCents);
+      outstandingValue = detail.amountLabelOf(outstandingCents);
     } else {
       outstandingLabel = tr.budgetCommittedOutstandingLabel;
       outstandingValue = null;
@@ -136,8 +136,8 @@ class OcptBudgetFicheLine extends StatelessWidget {
     // one below: no primary, no secondary, only a calm note naming the contribution it is covered
     // in kind by.
     final isInKindCounterpart = line.inKindResourceId != null;
-    OcptBudgetFicheAction? primary;
-    final secondaries = <OcptBudgetFicheAction>[];
+    OcptBudgetDetailAction? primary;
+    final secondaries = <OcptBudgetDetailAction>[];
     Widget? banner;
     if (isInKindCounterpart) {
       // A counterpart line is edited only through the contribution it balances — its whole
@@ -149,13 +149,13 @@ class OcptBudgetFicheLine extends StatelessWidget {
       final contributionLabel = contribution == null || contribution.label.isEmpty
           ? tr.budgetPosteUnnamed
           : contribution.label;
-      banner = OcptBudgetFicheInfoBanner(
-        message: tr.budgetFicheInKindCounterpartHint(contributionLabel),
+      banner = OcptBudgetDetailInfoBanner(
+        message: tr.budgetDetailInKindCounterpartHint(contributionLabel),
       );
       primary = (isReadOnly || contribution == null || onResourceEditRequested == null)
           ? null
-          : OcptBudgetFicheAction(
-              label: tr.budgetFicheEditInKindContributionAction,
+          : OcptBudgetDetailAction(
+              label: tr.budgetDetailEditInKindContributionAction,
               onTap: () => onResourceEditRequested.call(contribution),
             );
     } else if (isReadOnly) {
@@ -165,13 +165,13 @@ class OcptBudgetFicheLine extends StatelessWidget {
       // for it transparently. Commit stays on as a secondary, for a cost acted before it is paid.
       primary = onLinePayDirectlyRequested == null
           ? null
-          : OcptBudgetFicheAction(
-              label: tr.budgetFichePayAction(fiche.amountLabelOf(lineTotalCents)),
+          : OcptBudgetDetailAction(
+              label: tr.budgetDetailPayAction(detail.amountLabelOf(lineTotalCents)),
               onTap: () => onLinePayDirectlyRequested.call(line.id),
             );
       if (onLineCommitRequested != null) {
         secondaries.add(
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetLineCommitAction,
             onTap: () => onLineCommitRequested.call(line.id),
           ),
@@ -179,7 +179,7 @@ class OcptBudgetFicheLine extends StatelessWidget {
       }
       if (onLineDeletionRequested != null) {
         secondaries.add(
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetLineDeleteAction,
             onTap: () => onLineDeletionRequested.call(line.id),
           ),
@@ -188,13 +188,13 @@ class OcptBudgetFicheLine extends StatelessWidget {
     } else if (!isSettled) {
       primary = onLineSettleRequested == null
           ? null
-          : OcptBudgetFicheAction(
-              label: tr.budgetFichePayAction(fiche.amountLabelOf(outstandingCents)),
+          : OcptBudgetDetailAction(
+              label: tr.budgetDetailPayAction(detail.amountLabelOf(outstandingCents)),
               onTap: () => onLineSettleRequested.call(line.id),
             );
       if (onLineShowCommitmentRequested != null) {
         secondaries.add(
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetLineShowCommitmentAction,
             onTap: () => onLineShowCommitmentRequested.call(line.id),
           ),
@@ -202,7 +202,7 @@ class OcptBudgetFicheLine extends StatelessWidget {
       }
       if (onLineUncommitRequested != null) {
         secondaries.add(
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetLineUncommitAction,
             onTap: () => onLineUncommitRequested.call(line.id),
           ),
@@ -215,7 +215,7 @@ class OcptBudgetFicheLine extends StatelessWidget {
       // settled one has nowhere left on that page to be shown.
       if (onLineDeletionRequested != null) {
         secondaries.add(
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetLineDeleteAction,
             onTap: () => onLineDeletionRequested.call(line.id),
           ),
@@ -223,32 +223,32 @@ class OcptBudgetFicheLine extends StatelessWidget {
       }
     }
 
-    return OcptBudgetFicheScaffold(
+    return OcptBudgetDetailScaffold(
       breadcrumb: [
         "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
         if (line.label.isEmpty) tr.budgetLineUnnamed else line.label,
       ],
       title: line.label.isEmpty ? tr.budgetLineUnnamed : line.label,
-      amountText: fiche.amountLabelOf(lineTotalCents),
+      amountText: detail.amountLabelOf(lineTotalCents),
       hint: hintLines.join("\n"),
       stepLabels: isInKindCounterpart
           ? const []
           : [
-              tr.budgetFicheStepEstimatedLabel,
+              tr.budgetDetailStepEstimatedLabel,
               tr.budgetInspectorFigureCommitted,
               tr.budgetInspectorFigurePaid,
             ],
       reachedCount: isInKindCounterpart ? 0 : (isSettled ? 3 : (isPromoted ? 2 : 1)),
       figures: isInKindCounterpart
-          ? [(tr.budgetResourceDialogValuedAtFieldLabel, fiche.amountLabelOf(lineTotalCents))]
+          ? [(tr.budgetResourceDialogValuedAtFieldLabel, detail.amountLabelOf(lineTotalCents))]
           : [
-              (tr.budgetFicheStepEstimatedLabel, fiche.amountLabelOf(lineTotalCents)),
-              (tr.budgetInspectorFigureCommitted, fiche.amountLabelOf(committedCents)),
-              (tr.budgetInspectorFigurePaid, fiche.amountLabelOf(paidCents)),
+              (tr.budgetDetailStepEstimatedLabel, detail.amountLabelOf(lineTotalCents)),
+              (tr.budgetInspectorFigureCommitted, detail.amountLabelOf(committedCents)),
+              (tr.budgetInspectorFigurePaid, detail.amountLabelOf(paidCents)),
             ],
       outstandingLabel: isInKindCounterpart ? null : outstandingLabel,
       outstandingValue: isInKindCounterpart ? null : outstandingValue,
-      details: isInKindCounterpart ? null : _OcptBudgetFicheLineFields(fiche: fiche, line: line),
+      details: isInKindCounterpart ? null : _OcptBudgetDetailLineFields(detail: detail, line: line),
       banner: banner,
       paymentsSection: payments.isEmpty
           ? null
@@ -265,26 +265,26 @@ class OcptBudgetFicheLine extends StatelessWidget {
 
 /// The quote line's own editable fields: label, quantity, unit, unit price (with the
 /// including/excluding-tax choice) and VAT (with its `Inherit` action) and notes.
-class _OcptBudgetFicheLineFields extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class _OcptBudgetDetailLineFields extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The line whose fields are drawn.
   final OcptBudgetLine line;
 
   /// Class constructor
-  const _OcptBudgetFicheLineFields({required this.fiche, required this.line});
+  const _OcptBudgetDetailLineFields({required this.detail, required this.line});
 
-  /// Build the budget fiche line fields as a [Column].
+  /// Build the budget detail panel line fields as a [Column].
   @override
   Widget build(BuildContext context) {
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final currencyCode = fiche.currencyCode;
-    final isReadOnly = fiche.isReadOnly;
-    final fieldValueOf = fiche.fieldValueOf;
-    final onFieldChanged = fiche.onFieldChanged;
-    final onLineTaxInclusiveChanged = fiche.onLineTaxInclusiveChanged;
-    final onLineVatRateInheritedRequested = fiche.onLineVatRateInheritedRequested;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final currencyCode = detail.currencyCode;
+    final isReadOnly = detail.isReadOnly;
+    final fieldValueOf = detail.fieldValueOf;
+    final onFieldChanged = detail.onFieldChanged;
+    final onLineTaxInclusiveChanged = detail.onLineTaxInclusiveChanged;
+    final onLineVatRateInheritedRequested = detail.onLineVatRateInheritedRequested;
     final tr = Tr.of(context);
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
     final effectiveRate = ocptEffectiveVatRateOf(
@@ -295,8 +295,8 @@ class _OcptBudgetFicheLineFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OcptBudgetFicheField(
-          fiche: fiche,
+        OcptBudgetDetailField(
+          detail: detail,
           targetId: line.id,
           field: OcptBudgetField.lineLabel,
           label: tr.budgetLineLabelFieldLabel,
@@ -307,8 +307,8 @@ class _OcptBudgetFicheLineFields extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: OcptBudgetFicheField(
-                fiche: fiche,
+              child: OcptBudgetDetailField(
+                detail: detail,
                 targetId: line.id,
                 field: OcptBudgetField.lineQuantity,
                 label: tr.budgetLineQuantityFieldLabel,
@@ -317,8 +317,8 @@ class _OcptBudgetFicheLineFields extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OcptBudgetFicheField(
-                fiche: fiche,
+              child: OcptBudgetDetailField(
+                detail: detail,
                 targetId: line.id,
                 field: OcptBudgetField.lineUnit,
                 label: tr.budgetLineUnitFieldLabel,
@@ -387,8 +387,8 @@ class _OcptBudgetFicheLineFields extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        OcptBudgetFicheField(
-          fiche: fiche,
+        OcptBudgetDetailField(
+          detail: detail,
           targetId: line.id,
           field: OcptBudgetField.lineNotes,
           label: tr.budgetLineNotesFieldLabel,

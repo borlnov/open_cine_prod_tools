@@ -23,7 +23,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tax_basis.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 
 /// Wraps [child] with the localization delegates so [Tr.of] lookups resolve, inside a band wide
-/// enough that every field of the fiche is drawn with no overflow.
+/// enough that every field of the detail panel is drawn with no overflow.
 Widget wrap(Widget child) => MaterialApp(
   localizationsDelegates: const [
     Tr.delegate,
@@ -35,9 +35,9 @@ Widget wrap(Widget child) => MaterialApp(
   home: Scaffold(body: SizedBox(width: 420, height: 1400, child: child)),
 );
 
-/// Grows the test surface tall enough that every one of the fiche's own actions sits inside the
-/// hit-testable area — the fiche's own body scrolls, but the surface itself still has to be at
-/// least as tall as what a test means to tap.
+/// Grows the test surface tall enough that every one of the detail panel's own actions sits inside
+/// the hit-testable area — the detail panel's own body scrolls, but the surface itself still has to
+/// be at least as tall as what a test means to tap.
 void useTallSurface(WidgetTester tester) {
   tester.view.physicalSize = const Size(420, 1400);
   tester.view.devicePixelRatio = 1.0;
@@ -141,9 +141,9 @@ OcptBudgetResource buildResource({
   sortKey: "a0",
 );
 
-/// The fiche's own no-op parameters, spread across every test below so each only overrides what it
-/// actually cares about.
-OcptBudgetFiche testFiche({
+/// The detail panel's own no-op parameters, spread across every test below so each only overrides
+/// what it actually cares about.
+OcptBudgetDetail testDetail({
   OcptBudgetSelection? selection,
   List<OcptBudgetPoste> postes = const [testPoste],
   List<OcptBudgetCommitment> commitments = const [],
@@ -173,7 +173,7 @@ OcptBudgetFiche testFiche({
   ValueChanged<OcptBudgetRevenue>? onRevenueReceiptRequested,
   ValueChanged<OcptBudgetRevenue>? onRevenueEditRequested,
   ValueChanged<String>? onRevenueDeletionRequested,
-}) => OcptBudgetFiche(
+}) => OcptBudgetDetail(
   selection: selection,
   postes: postes,
   commitments: commitments,

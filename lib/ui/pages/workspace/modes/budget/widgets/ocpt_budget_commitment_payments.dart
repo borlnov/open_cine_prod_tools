@@ -11,7 +11,7 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// A promoted quote line's own payments section: every entry that has paid its commitment, one
 /// instalment per row, date then amount — `docs/architecture/budget.md`. Read-only, like every
-/// other figure this fiche prints: there is no affordance here to withhold under a preview.
+/// other figure this detail panel prints: there is no affordance here to withhold under a preview.
 class OcptBudgetCommitmentPayments extends StatelessWidget {
   /// The commitment's own payments, oldest first.
   final List<OcptBudgetEntry> payments;
@@ -44,7 +44,7 @@ class OcptBudgetCommitmentPayments extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(tr.budgetFicheCommitmentPaymentsSectionTitle.toUpperCase(), style: labelStyle),
+        Text(tr.budgetDetailCommitmentPaymentsSectionTitle.toUpperCase(), style: labelStyle),
         const SizedBox(height: 4),
         for (final payment in payments)
           Padding(

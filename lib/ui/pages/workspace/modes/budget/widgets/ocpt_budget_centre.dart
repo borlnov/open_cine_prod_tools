@@ -114,10 +114,10 @@ class OcptBudgetCentre extends StatelessWidget {
         children: [
           OcptBudgetHeader(
             view: state.view,
-            // The header's own chips leave one document for another, so the fiche's own selection —
-            // an object that belonged to the view being left — is dropped, greeting the new view
-            // empty. Every gesture that switches the view *and* selects keeps `clearSelection`
-            // false.
+            // The header's own chips leave one document for another, so the detail panel's own
+            // selection — an object that belonged to the view being left — is dropped, greeting the
+            // new view empty. Every gesture that switches the view *and* selects keeps
+            // `clearSelection` false.
             onViewSelected: (view) =>
                 bloc.add(OcptBudgetViewSelectedEvent(view: view, clearSelection: true)),
             toolsView: state.toolsView,

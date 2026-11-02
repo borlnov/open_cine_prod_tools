@@ -30,26 +30,26 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// through [ocptBudgetInKindCounterpartLineOf] rather than a field of its own — "No new column
 /// on `budget_resources`" (`docs/architecture/budget.md`). Nothing draws while no counterpart
 /// line has been minted for it yet.
-class OcptBudgetFicheResource extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailResource extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The financing resource this variant draws.
   final OcptBudgetResource resource;
 
   /// Class constructor
-  const OcptBudgetFicheResource({super.key, required this.fiche, required this.resource});
+  const OcptBudgetDetailResource({super.key, required this.detail, required this.resource});
 
-  /// Build the budget fiche resource as an [OcptBudgetFicheScaffold].
+  /// Build the budget detail panel resource as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final postes = fiche.postes;
-    final isSimplified = fiche.isSimplified;
-    final isReadOnly = fiche.isReadOnly;
-    final receivedByResourceId = fiche.receivedByResourceId;
-    final onResourceReceiptRequested = fiche.onResourceReceiptRequested;
-    final onResourceEditRequested = fiche.onResourceEditRequested;
-    final onResourceDeletionRequested = fiche.onResourceDeletionRequested;
+    final postes = detail.postes;
+    final isSimplified = detail.isSimplified;
+    final isReadOnly = detail.isReadOnly;
+    final receivedByResourceId = detail.receivedByResourceId;
+    final onResourceReceiptRequested = detail.onResourceReceiptRequested;
+    final onResourceEditRequested = detail.onResourceEditRequested;
+    final onResourceDeletionRequested = detail.onResourceDeletionRequested;
     final tr = Tr.of(context);
 
     final received = receivedByResourceId[resource.id];
@@ -71,8 +71,8 @@ class OcptBudgetFicheResource extends StatelessWidget {
           ? null
           : postes.firstWhereOrNull((poste) => poste.id == counterpartLine.posteId);
       if (offsetPoste != null) {
-        offsetsPosteBanner = OcptBudgetFicheInfoBanner(
-          message: tr.budgetFicheInKindOffsetsPoste(
+        offsetsPosteBanner = OcptBudgetDetailInfoBanner(
+          message: tr.budgetDetailInKindOffsetsPoste(
             "${offsetPoste.code} "
             "${ocptBudgetPosteDisplayLabel(offsetPoste, isSimplified: isSimplified)}",
           ),
@@ -80,13 +80,13 @@ class OcptBudgetFicheResource extends StatelessWidget {
       }
     }
 
-    return OcptBudgetFicheScaffold(
+    return OcptBudgetDetailScaffold(
       breadcrumb: [
         tr.budgetHeaderResourcesSegmentLabel,
         ocptBudgetResourceGroupKindLabel(tr, resource.groupKind),
       ],
       title: resource.label.isEmpty ? tr.budgetPosteUnnamed : resource.label,
-      amountText: fiche.amountLabelOf(resource.amountCents),
+      amountText: detail.amountLabelOf(resource.amountCents),
       hint: resource.notes.isEmpty ? null : resource.notes,
       badge: ocptBudgetResourceStatusLabel(tr, resource.groupKind, resource.status),
       badgeColor: ocptBudgetResourceStatusAccentColor(
@@ -95,33 +95,38 @@ class OcptBudgetFicheResource extends StatelessWidget {
       ),
       stepLabels: readsAsUncollected
           ? const []
-          : [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
+          : [tr.budgetDetailStepPromisedLabel, tr.budgetFinancingColumnReceived],
       reachedCount: readsAsUncollected ? 0 : (hasEntry && receivedCents > 0 ? 2 : 1),
       figures: readsAsUncollected
-          ? [(tr.budgetResourceDialogValuedAtFieldLabel, fiche.amountLabelOf(resource.amountCents))]
+          ? [
+              (
+                tr.budgetResourceDialogValuedAtFieldLabel,
+                detail.amountLabelOf(resource.amountCents),
+              ),
+            ]
           : [
-              (tr.budgetFicheStepPromisedLabel, fiche.amountLabelOf(resource.amountCents)),
-              (tr.budgetFinancingColumnReceived, fiche.amountLabelOf(receivedCents)),
+              (tr.budgetDetailStepPromisedLabel, detail.amountLabelOf(resource.amountCents)),
+              (tr.budgetFinancingColumnReceived, detail.amountLabelOf(receivedCents)),
             ],
       outstandingLabel: readsAsUncollected ? null : tr.budgetFinancingColumnOutstanding,
-      outstandingValue: readsAsUncollected ? null : fiche.amountLabelOf(outstandingCents),
+      outstandingValue: readsAsUncollected ? null : detail.amountLabelOf(outstandingCents),
       banner: offsetsPosteBanner,
       primary: canReceive
-          ? OcptBudgetFicheAction(
-              label: tr.budgetFicheReceiveAction(
-                fiche.amountLabelOf(outstandingCents < 0 ? 0 : outstandingCents),
+          ? OcptBudgetDetailAction(
+              label: tr.budgetDetailReceiveAction(
+                detail.amountLabelOf(outstandingCents < 0 ? 0 : outstandingCents),
               ),
               onTap: () => onResourceReceiptRequested.call(resource),
             )
           : null,
       secondaries: [
         if (!isReadOnly && onResourceEditRequested != null)
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetFinancingEditAction,
             onTap: () => onResourceEditRequested.call(resource),
           ),
         if (!isReadOnly && onResourceDeletionRequested != null)
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetCommittedDeleteAction,
             onTap: () => onResourceDeletionRequested.call(resource.id),
           ),

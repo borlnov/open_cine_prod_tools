@@ -19,11 +19,11 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// The entry variant: breadcrumb through its own poste (when it names one), the date/voucher hint
 /// and its own receipt marker, the stepper with `Payé` reached, and `Edit`/`Delete`. Also drawn by
-/// [OcptBudgetFicheReceipt]: [stepLabelsOverride], [reachedCountOverride] and [breadcrumbOverride]
+/// [OcptBudgetDetailReceipt]: [stepLabelsOverride], [reachedCountOverride] and [breadcrumbOverride]
 /// the only things that differ between the two readings of the very same row.
-class OcptBudgetFicheEntry extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailEntry extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The entry this variant draws.
   final OcptBudgetEntry entry;
@@ -38,33 +38,33 @@ class OcptBudgetFicheEntry extends StatelessWidget {
   final List<String>? breadcrumbOverride;
 
   /// Class constructor
-  const OcptBudgetFicheEntry({
+  const OcptBudgetDetailEntry({
     super.key,
-    required this.fiche,
+    required this.detail,
     required this.entry,
     this.stepLabelsOverride,
     this.reachedCountOverride,
     this.breadcrumbOverride,
   });
 
-  /// Build the budget fiche entry as an [OcptBudgetFicheScaffold].
+  /// Build the budget detail panel entry as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final commitments = fiche.commitments;
-    final resources = fiche.resources;
-    final revenues = fiche.revenues;
-    final taxBasis = fiche.taxBasis;
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final isSimplified = fiche.isSimplified;
-    final isReadOnly = fiche.isReadOnly;
-    final receiptsByEntryId = fiche.receiptsByEntryId;
-    final onEntryEditRequested = fiche.onEntryEditRequested;
-    final onEntryDeletionRequested = fiche.onEntryDeletionRequested;
-    final onEntryPromoteToQuoteRequested = fiche.onEntryPromoteToQuoteRequested;
-    final onEntryMoveOffQuoteRequested = fiche.onEntryMoveOffQuoteRequested;
+    final commitments = detail.commitments;
+    final resources = detail.resources;
+    final revenues = detail.revenues;
+    final taxBasis = detail.taxBasis;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final isSimplified = detail.isSimplified;
+    final isReadOnly = detail.isReadOnly;
+    final receiptsByEntryId = detail.receiptsByEntryId;
+    final onEntryEditRequested = detail.onEntryEditRequested;
+    final onEntryDeletionRequested = detail.onEntryDeletionRequested;
+    final onEntryPromoteToQuoteRequested = detail.onEntryPromoteToQuoteRequested;
+    final onEntryMoveOffQuoteRequested = detail.onEntryMoveOffQuoteRequested;
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
-    final poste = entry.posteId == null ? null : fiche.posteById(entry.posteId!);
+    final poste = entry.posteId == null ? null : detail.posteById(entry.posteId!);
     final isDebit = entry.debitCents > 0;
     final amountCents = isDebit
         ? ocptBudgetEntryDebitCentsOf(entry, projectVatRateBasisPoints: defaultVatRateBasisPoints)
@@ -93,23 +93,23 @@ class OcptBudgetFicheEntry extends StatelessWidget {
     final title = entry.label.isEmpty ? tr.budgetPosteUnnamed : entry.label;
     final dateText = DateFormat.yMMMd(locale).format(entry.date);
     final hintLines = [
-      tr.budgetFicheEntryHint(dateText, entry.voucherNumber),
+      tr.budgetDetailEntryHint(dateText, entry.voucherNumber),
       if (receipt != null) tr.budgetCashJournalVoucherAttachedTooltip,
-      if (settlesText != null) tr.budgetFicheEntrySettlesLabel(settlesText),
+      if (settlesText != null) tr.budgetDetailEntrySettlesLabel(settlesText),
     ];
 
     Widget? offLineDebitBanner;
     if (ocptBudgetEntryIsOffLineDebit(entry)) {
-      var bannerMessage = tr.budgetFicheEntryOffLineBannerText;
+      var bannerMessage = tr.budgetDetailEntryOffLineBannerText;
       if (poste != null) {
         final posteQuoted = ocptBudgetTotalOf(
           poste.lines,
           basis: taxBasis,
           projectVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final postePaidCents = fiche.paidCentsOf(poste.id);
-        final posteCommittedCents = fiche.committedCentsOf(poste.id);
-        final posteInKindCoveredCents = fiche.inKindCoveredCentsOf(poste.id);
+        final postePaidCents = detail.paidCentsOf(poste.id);
+        final posteCommittedCents = detail.committedCentsOf(poste.id);
+        final posteInKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
@@ -123,35 +123,35 @@ class OcptBudgetFicheEntry extends StatelessWidget {
             committedCents: posteCommittedCents,
             inKindCoveredCents: posteInKindCoveredCents,
           );
-          bannerMessage = tr.budgetFicheEntryOffLineBannerOverQuoteText(
-            fiche.amountLabelOf(varianceCents),
+          bannerMessage = tr.budgetDetailEntryOffLineBannerOverQuoteText(
+            detail.amountLabelOf(varianceCents),
           );
         }
       }
       offLineDebitBanner = OcptBudgetOffLineBanner(
         message: bannerMessage,
-        promoteLabel: tr.budgetFichePromoteToQuoteAction,
-        moveOffQuoteLabel: tr.budgetFicheEntryMoveOffQuoteAction,
+        promoteLabel: tr.budgetDetailPromoteToQuoteAction,
+        moveOffQuoteLabel: tr.budgetDetailEntryMoveOffQuoteAction,
         onPromoteToQuoteRequested: isReadOnly ? null : onEntryPromoteToQuoteRequested,
         onMoveOffQuoteRequested: isReadOnly ? null : onEntryMoveOffQuoteRequested,
       );
     }
 
-    return OcptBudgetFicheScaffold(
+    return OcptBudgetDetailScaffold(
       breadcrumb:
           breadcrumbOverride ??
           [
             if (poste != null)
               "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
-            tr.budgetFicheKindEntryLabel,
+            tr.budgetDetailKindEntryLabel,
           ],
       title: title,
-      amountText: fiche.amountLabelOf(amountCents),
+      amountText: detail.amountLabelOf(amountCents),
       hint: hintLines.join("\n"),
       stepLabels:
           stepLabelsOverride ??
           [
-            tr.budgetFicheStepEstimatedLabel,
+            tr.budgetDetailStepEstimatedLabel,
             tr.budgetInspectorFigureCommitted,
             tr.budgetInspectorFigurePaid,
           ],
@@ -159,7 +159,7 @@ class OcptBudgetFicheEntry extends StatelessWidget {
       figures: [
         (
           isDebit ? tr.budgetCashJournalColumnDebit : tr.budgetCashJournalColumnCredit,
-          fiche.amountLabelOf(amountCents),
+          detail.amountLabelOf(amountCents),
         ),
         (
           tr.budgetLineTaxInclusiveOption,
@@ -170,13 +170,13 @@ class OcptBudgetFicheEntry extends StatelessWidget {
       banner: offLineDebitBanner,
       primary: isReadOnly || onEntryEditRequested == null
           ? null
-          : OcptBudgetFicheAction(
+          : OcptBudgetDetailAction(
               label: tr.budgetFinancingEditAction,
               onTap: () => onEntryEditRequested.call(entry),
             ),
       secondaries: [
         if (!isReadOnly && onEntryDeletionRequested != null)
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetEntryDeleteAction,
             onTap: () => onEntryDeletionRequested.call(entry.id),
           ),

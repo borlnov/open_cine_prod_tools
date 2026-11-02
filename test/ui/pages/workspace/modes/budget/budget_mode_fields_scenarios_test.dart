@@ -18,9 +18,9 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Finds [target] inside the expenses table.
   Finder inTracking(Finder target) =>
@@ -30,13 +30,13 @@ void main() {
   OcptBudgetStatusBar statusBar(WidgetTester tester) =>
       tester.widget<OcptBudgetStatusBar>(find.byType(OcptBudgetStatusBar));
 
-  /// Reads the text a fiche field captioned [label] holds.
+  /// Reads the text a detail panel field captioned [label] holds.
   String fieldText(WidgetTester tester, String label) =>
       tester.widget<TextField>(harness.fieldLabelled(label)).controller!.text;
 
   /// Opens the expenses table on a project holding poste "Camera" and poste "Sound", selecting
   /// "Camera", and returns the id of "Camera".
-  Future<String> openCameraFiche(WidgetTester tester) async {
+  Future<String> openCameraDetail(WidgetTester tester) async {
     final cameraId = await harness.seedPoste("Camera");
     await harness.seedPoste("Sound");
     await harness.mount(tester);
@@ -48,7 +48,7 @@ void main() {
 
   /// Opens the expenses table on a project holding poste "Camera" with the line "Camera deposit",
   /// selecting that line.
-  Future<String> openLineFiche(WidgetTester tester) async {
+  Future<String> openLineDetail(WidgetTester tester) async {
     final posteId = await harness.seedPoste("Camera");
     final lineId = await harness.seedLine(posteId, "Camera deposit");
     await harness.mount(tester);
@@ -61,7 +61,7 @@ void main() {
 
   testWidgets("a poste label typed in the fiche shows there at once, and reaches the table and "
       "the database once the debounce has run out", (tester) async {
-    await openCameraFiche(tester);
+    await openCameraDetail(tester);
     final tr = harness.trOf(tester);
 
     await harness.type(
@@ -82,7 +82,7 @@ void main() {
 
   testWidgets("a field typed a moment ago is written first by a row pick, a chip, a switch, a "
       "tab or a filter, none of which waits for the debounce", (tester) async {
-    await openCameraFiche(tester);
+    await openCameraDetail(tester);
     final tr = harness.trOf(tester);
     final labelField = harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel);
 
@@ -136,7 +136,7 @@ void main() {
   testWidgets("leaving the mode with a field still pending writes it straight away", (
     tester,
   ) async {
-    await openCameraFiche(tester);
+    await openCameraDetail(tester);
     final tr = harness.trOf(tester);
 
     await harness.type(
@@ -156,7 +156,7 @@ void main() {
       "stored, while valid figures are stored as cents, thousandths and basis points", (
     tester,
   ) async {
-    final lineId = await openLineFiche(tester);
+    final lineId = await openLineDetail(tester);
     final tr = harness.trOf(tester);
     expect(lineId, isNotEmpty);
 
@@ -188,7 +188,7 @@ void main() {
 
   testWidgets("several fields typed together are all written, and a typed figure shows in "
       "another view the moment its chip is picked", (tester) async {
-    final lineId = await openLineFiche(tester);
+    final lineId = await openLineDetail(tester);
     final tr = harness.trOf(tester);
     expect(lineId, isNotEmpty);
 
@@ -210,7 +210,7 @@ void main() {
   testWidgets("the estimate to complete is typed, then handed back to its derivation at once", (
     tester,
   ) async {
-    await openCameraFiche(tester);
+    await openCameraDetail(tester);
     final tr = harness.trOf(tester);
 
     await harness.type(
@@ -220,30 +220,30 @@ void main() {
     );
     await harness.letDebounceRun(tester);
     expect((await harness.readPoste("Camera")).estimateToCompleteCents, 50000);
-    expect(inFiche(find.text(r"$500.00")), findsWidgets);
+    expect(inDetail(find.text(r"$500.00")), findsWidgets);
 
     await harness.tap(
       tester,
-      inFiche(find.text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction)),
+      inDetail(find.text(tr.budgetInspectorPosteEstimateToCompleteDeriveAction)),
     );
     expect((await harness.readPoste("Camera")).estimateToCompleteCents, isNull);
   });
 
   testWidgets("a line's tax basis and its inherited VAT rate are written the moment they are "
       "picked", (tester) async {
-    await openLineFiche(tester);
+    await openLineDetail(tester);
     final tr = harness.trOf(tester);
 
     await harness.type(tester, harness.fieldLabelled(tr.budgetLineVatRateFieldLabel), "10");
     await harness.letDebounceRun(tester);
     expect((await harness.readPoste("Camera")).lines.single.unitPrice.vatRateBasisPoints, 1000);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineVatRateInheritAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineVatRateInheritAction)));
     expect((await harness.readPoste("Camera")).lines.single.unitPrice.vatRateBasisPoints, isNull);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineTaxExclusiveOption)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxExclusiveOption)));
     expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isFalse);
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineTaxInclusiveOption)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineTaxInclusiveOption)));
     expect((await harness.readPoste("Camera")).lines.single.unitPrice.isTaxInclusive, isTrue);
   });
 }

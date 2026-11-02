@@ -13,21 +13,21 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// The receipt variant: the entry it names, read with a `Promis — Rentré` stepper and a
 /// breadcrumb through the resource or the taking it settles — the entry that
 /// [OcptBudgetReceiptSelection] names may have gone, which is answered rather than left to throw.
-class OcptBudgetFicheReceipt extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailReceipt extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The entry the receipt names.
   final OcptBudgetEntry entry;
 
   /// Class constructor
-  const OcptBudgetFicheReceipt({super.key, required this.fiche, required this.entry});
+  const OcptBudgetDetailReceipt({super.key, required this.detail, required this.entry});
 
-  /// Build the budget fiche receipt as an [OcptBudgetFicheEntry].
+  /// Build the budget detail panel receipt as an [OcptBudgetDetailEntry].
   @override
   Widget build(BuildContext context) {
-    final resources = fiche.resources;
-    final revenues = fiche.revenues;
+    final resources = detail.resources;
+    final revenues = detail.revenues;
     final tr = Tr.of(context);
     final resource = entry.resourceId == null
         ? null
@@ -37,14 +37,14 @@ class OcptBudgetFicheReceipt extends StatelessWidget {
         : revenues.firstWhereOrNull((revenue) => revenue.id == entry.revenueId);
     final ancestorLabel = resource?.label ?? revenue?.label;
 
-    return OcptBudgetFicheEntry(
-      fiche: fiche,
+    return OcptBudgetDetailEntry(
+      detail: detail,
       entry: entry,
-      stepLabelsOverride: [tr.budgetFicheStepPromisedLabel, tr.budgetFinancingColumnReceived],
+      stepLabelsOverride: [tr.budgetDetailStepPromisedLabel, tr.budgetFinancingColumnReceived],
       reachedCountOverride: 2,
       breadcrumbOverride: [
         if (ancestorLabel != null && ancestorLabel.isNotEmpty) ancestorLabel,
-        tr.budgetFicheKindEntryLabel,
+        tr.budgetDetailKindEntryLabel,
       ],
     );
   }

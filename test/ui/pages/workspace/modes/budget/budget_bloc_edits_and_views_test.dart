@@ -439,10 +439,11 @@ void main() {
       );
       final switched = await waitForState(bloc, (state) => state.view == OcptBudgetView.resources);
 
-      // The fiche greets the new view empty — the object belonged to the view being left.
+      // The detail panel greets the new view empty — the object belonged to the view being left.
       expect(switched.selection, isNull);
       expect(switched.selectedPosteId, isNull);
-      // The filter and the expansion are the mode's, not the fiche's, so they survive the switch.
+      // The filter and the expansion are the mode's, not the detail panel's, so they survive the
+      // switch.
       expect(switched.filterPosteId, posteId);
       expect(switched.expandedNodeIds, contains(posteId));
     });

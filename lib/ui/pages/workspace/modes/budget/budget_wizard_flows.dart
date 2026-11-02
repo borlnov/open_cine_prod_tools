@@ -826,8 +826,8 @@ Future<void> ocptBudgetPayLineDirectly(
 
 /// Open the entry dialog pre-filled from the commitment quote line [lineId] was promoted into
 /// (today's date, its own label, poste, amount, tax basis and rate, as a debit), then dispatch
-/// the settlement if the user confirmed it — the quote line's own fiche reaches the very same
-/// gesture a commitment's own `Pay` action does, once it is promoted and unsettled.
+/// the settlement if the user confirmed it — the quote line's own detail panel reaches the very
+/// same gesture a commitment's own `Pay` action does, once it is promoted and unsettled.
 Future<void> ocptBudgetSettleLine(
   BuildContext context,
   OcptBudgetState state,

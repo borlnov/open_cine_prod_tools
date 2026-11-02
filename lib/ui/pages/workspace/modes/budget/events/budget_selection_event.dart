@@ -105,9 +105,9 @@ class OcptBudgetResourceSelectedEvent extends OcptBudgetSelectionEvent {
 
 /// Select revenue sharing taking [revenueId] — a row of the tools drawer's own `Partage` page,
 /// or of the resources plan's own `Takings` family — dispatched by its row's own click. Either way
-/// it opens the right dock's fiche exactly as `OcptBudgetResourceSelectedEvent` does: both routes
-/// carry an inspector (`ocptBudgetViewHasInspector`), and a taking reads the same wherever it is
-/// clicked from. A [revenueId] naming no live revenue is ignored.
+/// it opens the right dock's detail panel exactly as `OcptBudgetResourceSelectedEvent` does: both
+/// routes carry an inspector (`ocptBudgetViewHasInspector`), and a taking reads the same wherever
+/// it is clicked from. A [revenueId] naming no live revenue is ignored.
 class OcptBudgetRevenueSelectedEvent extends OcptBudgetSelectionEvent {
   /// The id of the revenue to select.
   final String revenueId;

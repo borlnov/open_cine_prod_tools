@@ -79,7 +79,7 @@ const double ocptBudgetCostTrackingBadgeMaxWidth = 84;
 const double ocptBudgetCostTrackingEmptyStateMaxWidth = 480;
 
 /// A poste card's own proportion bar's own height, in logical pixels — matches
-/// `OcptBudgetFiche`'s own poste-variant proportion bar, the mode's own established reading of the
+/// `OcptBudgetDetail`'s own poste-variant proportion bar, the mode's own established reading of the
 /// same paid/committed/overrun figures.
 const double ocptBudgetCostTrackingCardProportionBarHeight = 8;
 

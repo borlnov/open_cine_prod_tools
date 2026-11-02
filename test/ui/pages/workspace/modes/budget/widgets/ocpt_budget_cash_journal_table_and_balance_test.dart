@@ -547,8 +547,8 @@ void main() {
     // left in it — this page carries no capture affordance of its own to withhold either way.
     expect(find.byType(PopupMenuButton<String>), findsNothing);
 
-    // A row's own click never writes — it only selects, opening the right dock's fiche on it —
-    // so it is never withheld under a previewed version.
+    // A row's own click never writes — it only selects, opening the right dock's detail panel on it
+    // — so it is never withheld under a previewed version.
     await tester.tap(find.text(entries.first.label));
     await tester.pumpAndSettle();
     expect(selected, isTrue);

@@ -20,22 +20,22 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 /// complete/final cost/final-cost variance figures, the remaining amount as its
 /// own outstanding, and its editable fields — label, code, simple label, the typed estimate to
 /// complete and its `Derive again` action.
-class OcptBudgetFichePoste extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailPoste extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The poste this variant draws.
   final OcptBudgetPoste poste;
 
   /// Class constructor
-  const OcptBudgetFichePoste({super.key, required this.fiche, required this.poste});
+  const OcptBudgetDetailPoste({super.key, required this.detail, required this.poste});
 
-  /// Build the budget fiche poste as an [OcptBudgetFicheScaffold].
+  /// Build the budget detail panel poste as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final taxBasis = fiche.taxBasis;
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final isSimplified = fiche.isSimplified;
+    final taxBasis = detail.taxBasis;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final isSimplified = detail.isSimplified;
     final tr = Tr.of(context);
 
     final quoted = ocptBudgetTotalOf(
@@ -43,9 +43,9 @@ class OcptBudgetFichePoste extends StatelessWidget {
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final paidCents = fiche.paidCentsOf(poste.id);
-    final committedCents = fiche.committedCentsOf(poste.id);
-    final inKindCoveredCents = fiche.inKindCoveredCentsOf(poste.id);
+    final paidCents = detail.paidCentsOf(poste.id);
+    final committedCents = detail.committedCentsOf(poste.id);
+    final inKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
     final estimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
@@ -69,10 +69,10 @@ class OcptBudgetFichePoste extends StatelessWidget {
       inKindCoveredCents: inKindCoveredCents,
     );
 
-    return OcptBudgetFicheScaffold(
+    return OcptBudgetDetailScaffold(
       breadcrumb: [tr.budgetHeaderExpensesSegmentLabel],
       title: ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified),
-      amountText: fiche.amountLabelOf(quoted.amountCents),
+      amountText: detail.amountLabelOf(quoted.amountCents),
       // A poste is an aggregate, not a single debt working through a lifecycle of its own — the
       // three-step chain the line, commitment and entry variants below draw would light every step
       // in hard code the moment a poste exists at all. The poste variant alone draws no stepper —
@@ -85,19 +85,19 @@ class OcptBudgetFichePoste extends StatelessWidget {
         committedCents: committedCents,
       ),
       figures: [
-        (tr.budgetInspectorFigureQuote, fiche.amountLabelOf(quoted.amountCents)),
-        (tr.budgetInspectorFigureCommitted, fiche.amountLabelOf(committedCents)),
-        (tr.budgetInspectorFigurePaid, fiche.amountLabelOf(paidCents)),
+        (tr.budgetInspectorFigureQuote, detail.amountLabelOf(quoted.amountCents)),
+        (tr.budgetInspectorFigureCommitted, detail.amountLabelOf(committedCents)),
+        (tr.budgetInspectorFigurePaid, detail.amountLabelOf(paidCents)),
         (
           tr.budgetInspectorPosteEstimateToCompleteFieldLabel,
-          fiche.amountLabelOf(estimateToCompleteCents),
+          detail.amountLabelOf(estimateToCompleteCents),
         ),
-        (tr.budgetCostTrackingColumnFinalCost, fiche.amountLabelOf(finalCostCents)),
-        (tr.budgetCostTrackingColumnVariance, fiche.amountLabelOf(finalCostVarianceCents)),
+        (tr.budgetCostTrackingColumnFinalCost, detail.amountLabelOf(finalCostCents)),
+        (tr.budgetCostTrackingColumnVariance, detail.amountLabelOf(finalCostVarianceCents)),
       ],
       outstandingLabel: tr.budgetInspectorFigureRemaining,
-      outstandingValue: fiche.amountLabelOf(remainingCents),
-      details: _OcptBudgetFichePosteFields(fiche: fiche, poste: poste),
+      outstandingValue: detail.amountLabelOf(remainingCents),
+      details: _OcptBudgetDetailPosteFields(detail: detail, poste: poste),
       // The poste's own `Add`/`From breakdown` actions are gone: a fresh quote line is now typed
       // through the capture wizard's own `addQuoteLine`/`addQuoteLinesFromBreakdown` gestures,
       // reached from the header's own `+ Nouveau` button.
@@ -109,41 +109,41 @@ class OcptBudgetFichePoste extends StatelessWidget {
 
 /// The poste's own editable fields: label, code, simple label and the typed estimate to complete,
 /// with its `Derive again` action.
-class _OcptBudgetFichePosteFields extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class _OcptBudgetDetailPosteFields extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The poste whose fields are drawn.
   final OcptBudgetPoste poste;
 
   /// Class constructor
-  const _OcptBudgetFichePosteFields({required this.fiche, required this.poste});
+  const _OcptBudgetDetailPosteFields({required this.detail, required this.poste});
 
-  /// Build the budget fiche poste fields as a [Column].
+  /// Build the budget detail panel poste fields as a [Column].
   @override
   Widget build(BuildContext context) {
-    final postes = fiche.postes;
-    final taxBasis = fiche.taxBasis;
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final currencyCode = fiche.currencyCode;
-    final isReadOnly = fiche.isReadOnly;
-    final fieldValueOf = fiche.fieldValueOf;
-    final onFieldChanged = fiche.onFieldChanged;
+    final postes = detail.postes;
+    final taxBasis = detail.taxBasis;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final currencyCode = detail.currencyCode;
+    final isReadOnly = detail.isReadOnly;
+    final fieldValueOf = detail.fieldValueOf;
+    final onFieldChanged = detail.onFieldChanged;
     final onPosteEstimateToCompleteDerivedRequested =
-        fiche.onPosteEstimateToCompleteDerivedRequested;
+        detail.onPosteEstimateToCompleteDerivedRequested;
     final tr = Tr.of(context);
     final quoted = ocptBudgetTotalOf(
       poste.lines,
       basis: taxBasis,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    final paidCents = fiche.paidCentsOf(poste.id);
-    final committedCents = fiche.committedCentsOf(poste.id);
+    final paidCents = detail.paidCentsOf(poste.id);
+    final committedCents = detail.committedCentsOf(poste.id);
     final derivedEstimateToCompleteCents = ocptBudgetEstimateToCompleteCents(
       quotedAmountCents: quoted.amountCents,
       paidCents: paidCents,
       committedCents: committedCents,
-      inKindCoveredCents: fiche.inKindCoveredCentsOf(poste.id),
+      inKindCoveredCents: detail.inKindCoveredCentsOf(poste.id),
       typedEstimateToCompleteCents: null,
     );
     final currencySymbol = NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
@@ -158,16 +158,16 @@ class _OcptBudgetFichePosteFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OcptBudgetFicheField(
-          fiche: fiche,
+        OcptBudgetDetailField(
+          detail: detail,
           targetId: poste.id,
           field: OcptBudgetField.posteLabel,
           label: tr.budgetInspectorPosteLabelFieldLabel,
           storedValue: poste.label,
         ),
         const SizedBox(height: 8),
-        OcptBudgetFicheField(
-          fiche: fiche,
+        OcptBudgetDetailField(
+          detail: detail,
           targetId: poste.id,
           field: OcptBudgetField.posteCode,
           label: tr.budgetInspectorPosteCodeFieldLabel,
@@ -175,8 +175,8 @@ class _OcptBudgetFichePosteFields extends StatelessWidget {
           errorText: hasDuplicateCode ? tr.budgetInspectorPosteCodeDuplicateError : null,
         ),
         const SizedBox(height: 8),
-        OcptBudgetFicheField(
-          fiche: fiche,
+        OcptBudgetDetailField(
+          detail: detail,
           targetId: poste.id,
           field: OcptBudgetField.posteSimpleLabel,
           label: tr.budgetInspectorPosteSimpleLabelFieldLabel,

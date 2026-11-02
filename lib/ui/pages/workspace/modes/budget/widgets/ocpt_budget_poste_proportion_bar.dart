@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_metrics.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_stepper.dart';
 
-/// The poste variant's own proportion bar, drawn in [OcptBudgetFicheStepper]'s own slot: the paid
-/// amount, then the committed one, over a track that fills the full width the fiche gives it —
-/// measured through a [LayoutBuilder] rather than fixed, so it reads the same width as every other
-/// block in the panel (`docs/architecture/budget.md`).
+/// The poste variant's own proportion bar, drawn in [OcptBudgetDetailStepper]'s own slot: the paid
+/// amount, then the committed one, over a track that fills the full width the detail panel gives it
+/// — measured through a [LayoutBuilder] rather than fixed, so it reads the same width as every
+/// other block in the panel (`docs/architecture/budget.md`).
 ///
 /// **The track's own scale is the quote, until paid-plus-committed overruns it** — the moment it
 /// does, the scale becomes that overrun total instead, so the whole bar still fits its own width,
@@ -57,8 +57,8 @@ class OcptBudgetPosteProportionBar extends StatelessWidget {
         ? committedCents
         : remainingBudgetCents;
 
-    // The full width the fiche hands the bar, measured here rather than fixed, so it stretches to
-    // the panel like every other block above and below it.
+    // The full width the detail panel hands the bar, measured here rather than fixed, so it
+    // stretches to the panel like every other block above and below it.
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;

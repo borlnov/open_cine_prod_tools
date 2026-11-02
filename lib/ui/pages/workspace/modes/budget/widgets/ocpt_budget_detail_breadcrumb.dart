@@ -4,16 +4,16 @@
 
 import 'package:flutter/material.dart';
 
-/// The fiche's own breadcrumb: `segments`, chevron-separated, muted — the way back up to the
+/// The detail panel's own breadcrumb: `segments`, chevron-separated, muted — the way back up to the
 /// document this object lives in.
-class OcptBudgetFicheBreadcrumb extends StatelessWidget {
+class OcptBudgetDetailBreadcrumb extends StatelessWidget {
   /// The breadcrumb's own segments, from the outermost ancestor to the object itself.
   final List<String> segments;
 
   /// Class constructor
-  const OcptBudgetFicheBreadcrumb({super.key, required this.segments});
+  const OcptBudgetDetailBreadcrumb({super.key, required this.segments});
 
-  /// Build the budget fiche breadcrumb as a [Wrap].
+  /// Build the budget detail panel breadcrumb as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

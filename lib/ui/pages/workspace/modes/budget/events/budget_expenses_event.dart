@@ -94,9 +94,9 @@ class OcptBudgetLineCreatedFromElementEvent extends OcptBudgetExpensesEvent {
   /// `OcptBudgetQuoteService.createLine`'s own default in place.
   ///
   /// **Null while nothing overrides it, never a claim about what the line ought to cost.** The
-  /// capture wizard's own breakdown selector is this event's only caller once the poste fiche's own
-  /// `From breakdown` action is gone: it always passes the count of scenes the element appears in,
-  /// corrected in the table before creating — "the scale suggests, it never decides"
+  /// capture wizard's own breakdown selector is this event's only caller once the poste detail
+  /// panel's own `From breakdown` action is gone: it always passes the count of scenes the element
+  /// appears in, corrected in the table before creating — "the scale suggests, it never decides"
   /// (`docs/architecture/budget.md`).
   final int? quantityMilli;
 

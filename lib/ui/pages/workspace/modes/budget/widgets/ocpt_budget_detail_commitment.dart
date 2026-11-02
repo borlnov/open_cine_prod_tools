@@ -17,33 +17,33 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// The commitment variant: breadcrumb poste › line (when promoted from one) › `Commitment`, the
 /// status/due-date hint, the `Estimé — Engagé — Payé` stepper, and `Pay`/`Edit`/`Delete`.
-class OcptBudgetFicheCommitment extends StatelessWidget {
-  /// The fiche this part belongs to: the catalogues it reads and the callbacks it asks.
-  final OcptBudgetFiche fiche;
+class OcptBudgetDetailCommitment extends StatelessWidget {
+  /// The detail panel this part belongs to: the catalogues it reads and the callbacks it asks.
+  final OcptBudgetDetail detail;
 
   /// The commitment this variant draws.
   final OcptBudgetCommitment commitment;
 
   /// Class constructor
-  const OcptBudgetFicheCommitment({super.key, required this.fiche, required this.commitment});
+  const OcptBudgetDetailCommitment({super.key, required this.detail, required this.commitment});
 
-  /// Build the budget fiche commitment as an [OcptBudgetFicheScaffold].
+  /// Build the budget detail panel commitment as an [OcptBudgetDetailScaffold].
   @override
   Widget build(BuildContext context) {
-    final entries = fiche.entries;
-    final taxBasis = fiche.taxBasis;
-    final defaultVatRateBasisPoints = fiche.defaultVatRateBasisPoints;
-    final isSimplified = fiche.isSimplified;
-    final isReadOnly = fiche.isReadOnly;
-    final onCommitmentSettleRequested = fiche.onCommitmentSettleRequested;
-    final onCommitmentEditRequested = fiche.onCommitmentEditRequested;
-    final onCommitmentDeletionRequested = fiche.onCommitmentDeletionRequested;
-    final onCommitmentPromoteToQuoteRequested = fiche.onCommitmentPromoteToQuoteRequested;
+    final entries = detail.entries;
+    final taxBasis = detail.taxBasis;
+    final defaultVatRateBasisPoints = detail.defaultVatRateBasisPoints;
+    final isSimplified = detail.isSimplified;
+    final isReadOnly = detail.isReadOnly;
+    final onCommitmentSettleRequested = detail.onCommitmentSettleRequested;
+    final onCommitmentEditRequested = detail.onCommitmentEditRequested;
+    final onCommitmentDeletionRequested = detail.onCommitmentDeletionRequested;
+    final onCommitmentPromoteToQuoteRequested = detail.onCommitmentPromoteToQuoteRequested;
     final tr = Tr.of(context);
     final locale = Localizations.localeOf(context).toString();
 
-    final poste = fiche.posteById(commitment.posteId);
-    final line = commitment.lineId == null ? null : fiche.lineById(commitment.lineId!);
+    final poste = detail.posteById(commitment.posteId);
+    final line = commitment.lineId == null ? null : detail.lineById(commitment.lineId!);
     final cashCents = ocptBudgetCommitmentCashCentsOf(
       commitment,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
@@ -53,7 +53,7 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
       entries,
       projectVatRateBasisPoints: defaultVatRateBasisPoints,
     );
-    // Mirrors `OcptBudgetFicheLine`'s own reading: `Payé` only ever states a figure once this
+    // Mirrors `OcptBudgetDetailLine`'s own reading: `Payé` only ever states a figure once this
     // commitment is settled, matching what a single, exact-amount payment already read before a
     // commitment could be paid in instalments.
     final paidCents = isSettled
@@ -66,7 +66,7 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
     final quotedLineCents = line == null ? null : ocptBudgetLineTotalCents(line);
     // What this commitment still owes — the `Pay` action and the outstanding block both read this,
     // never [cashCents]' own full figure, so a commitment paid in part offers back only what is
-    // actually left, exactly as the promoted quote line's own fiche already does.
+    // actually left, exactly as the promoted quote line's own detail panel already does.
     final outstandingCents = ocptBudgetCommitmentOutstandingCentsOf(
       commitment,
       entries,
@@ -80,16 +80,16 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
 
     Widget? offLineBanner;
     if (ocptBudgetCommitmentIsOffLine(commitment)) {
-      var bannerMessage = tr.budgetFicheCommitmentOffLineBannerText;
+      var bannerMessage = tr.budgetDetailCommitmentOffLineBannerText;
       if (poste != null) {
         final posteQuoted = ocptBudgetTotalOf(
           poste.lines,
           basis: taxBasis,
           projectVatRateBasisPoints: defaultVatRateBasisPoints,
         );
-        final postePaidCents = fiche.paidCentsOf(poste.id);
-        final posteCommittedCents = fiche.committedCentsOf(poste.id);
-        final posteInKindCoveredCents = fiche.inKindCoveredCentsOf(poste.id);
+        final postePaidCents = detail.paidCentsOf(poste.id);
+        final posteCommittedCents = detail.committedCentsOf(poste.id);
+        final posteInKindCoveredCents = detail.inKindCoveredCentsOf(poste.id);
         final posteStrain = ocptBudgetPosteStrainOf(
           quotedAmountCents: posteQuoted.amountCents,
           paidCents: postePaidCents,
@@ -103,8 +103,8 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
             committedCents: posteCommittedCents,
             inKindCoveredCents: posteInKindCoveredCents,
           );
-          bannerMessage = tr.budgetFicheCommitmentOffLineBannerOverQuoteText(
-            fiche.amountLabelOf(varianceCents),
+          bannerMessage = tr.budgetDetailCommitmentOffLineBannerOverQuoteText(
+            detail.amountLabelOf(varianceCents),
           );
         }
       }
@@ -112,54 +112,54 @@ class OcptBudgetFicheCommitment extends StatelessWidget {
       // off-quote`, unlike an off-line debit entry's own banner.
       offLineBanner = OcptBudgetOffLineBanner(
         message: bannerMessage,
-        promoteLabel: tr.budgetFichePromoteToQuoteAction,
+        promoteLabel: tr.budgetDetailPromoteToQuoteAction,
         moveOffQuoteLabel: null,
         onPromoteToQuoteRequested: isReadOnly ? null : onCommitmentPromoteToQuoteRequested,
         onMoveOffQuoteRequested: null,
       );
     }
 
-    return OcptBudgetFicheScaffold(
+    return OcptBudgetDetailScaffold(
       breadcrumb: [
         if (poste != null)
           "${poste.code} ${ocptBudgetPosteDisplayLabel(poste, isSimplified: isSimplified)}",
         if (line != null) (line.label.isEmpty ? tr.budgetLineUnnamed : line.label),
-        tr.budgetFicheKindCommitmentLabel,
+        tr.budgetDetailKindCommitmentLabel,
       ],
       title: title,
-      amountText: fiche.amountLabelOf(cashCents),
-      hint: tr.budgetFicheCommitmentHint(
+      amountText: detail.amountLabelOf(cashCents),
+      hint: tr.budgetDetailCommitmentHint(
         ocptBudgetCommitmentStatusLabel(tr, commitment.status),
         dueDateText,
       ),
       stepLabels: [
-        tr.budgetFicheStepEstimatedLabel,
+        tr.budgetDetailStepEstimatedLabel,
         tr.budgetInspectorFigureCommitted,
         tr.budgetInspectorFigurePaid,
       ],
       reachedCount: isSettled ? 3 : 2,
       figures: [
-        (tr.budgetFicheStepEstimatedLabel, fiche.amountLabelOf(quotedLineCents)),
-        (tr.budgetInspectorFigureCommitted, fiche.amountLabelOf(cashCents)),
-        (tr.budgetInspectorFigurePaid, fiche.amountLabelOf(paidCents)),
+        (tr.budgetDetailStepEstimatedLabel, detail.amountLabelOf(quotedLineCents)),
+        (tr.budgetInspectorFigureCommitted, detail.amountLabelOf(cashCents)),
+        (tr.budgetInspectorFigurePaid, detail.amountLabelOf(paidCents)),
       ],
       outstandingLabel: tr.budgetCommittedOutstandingLabel,
-      outstandingValue: isSettled ? null : fiche.amountLabelOf(outstandingCents),
+      outstandingValue: isSettled ? null : detail.amountLabelOf(outstandingCents),
       banner: offLineBanner,
       primary: isReadOnly || isSettled || onCommitmentSettleRequested == null
           ? null
-          : OcptBudgetFicheAction(
-              label: tr.budgetFichePayAction(fiche.amountLabelOf(outstandingCents)),
+          : OcptBudgetDetailAction(
+              label: tr.budgetDetailPayAction(detail.amountLabelOf(outstandingCents)),
               onTap: () => onCommitmentSettleRequested.call(commitment),
             ),
       secondaries: [
         if (!isReadOnly && onCommitmentEditRequested != null)
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetFinancingEditAction,
             onTap: () => onCommitmentEditRequested.call(commitment),
           ),
         if (!isReadOnly && onCommitmentDeletionRequested != null)
-          OcptBudgetFicheAction(
+          OcptBudgetDetailAction(
             label: tr.budgetCommittedDeleteAction,
             onTap: () => onCommitmentDeletionRequested.call(commitment.id),
           ),

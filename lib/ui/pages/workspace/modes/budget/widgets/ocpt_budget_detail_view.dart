@@ -20,7 +20,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_view
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_wizard_flows.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail.dart';
 
-/// The `Inspector` tab's own content: the polymorphic fiche, wired to every handler its own
+/// The `Inspector` tab's own content: the polymorphic detail panel, wired to every handler its own
 /// selection variant might need — the edit dialogs and wizard shortcuts the views already share,
 /// and the mode's confirmations, which this widget only asks for.
 ///
@@ -30,9 +30,9 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 /// `OcptBudgetCostTracking.onCommitmentSelected` already dispatches.
 ///
 /// It listens to `OcptBudgetExpensesBloc` alone, for the typed edits that bloc still holds, so a
-/// keystroke in a field rebuilds the fiche and nothing around it.
-class OcptBudgetFicheView extends StatelessWidget {
-  /// The mode's state, which the selection and everything the fiche shows are read from.
+/// keystroke in a field rebuilds the detail panel and nothing around it.
+class OcptBudgetDetailView extends StatelessWidget {
+  /// The mode's state, which the selection and everything the detail panel shows are read from.
   final OcptBudgetState state;
 
   /// Asks the mode to confirm, then delete, the quote line with this id.
@@ -54,7 +54,7 @@ class OcptBudgetFicheView extends StatelessWidget {
   final ValueChanged<String> onRevenueDeletionRequested;
 
   /// Class constructor
-  const OcptBudgetFicheView({
+  const OcptBudgetDetailView({
     super.key,
     required this.state,
     required this.onLineDeletionRequested,
@@ -65,11 +65,11 @@ class OcptBudgetFicheView extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
-  /// Build the budget fiche view as a [BlocBuilder].
+  /// Build the budget detail panel view as a [BlocBuilder].
   @override
   Widget build(BuildContext context) =>
       BlocBuilder<OcptBudgetExpensesBloc, OcptBudgetExpensesState>(
-        builder: (context, expensesState) => _OcptBudgetFicheBody(
+        builder: (context, expensesState) => _OcptBudgetDetailBody(
           state: state,
           expensesState: expensesState,
           onLineDeletionRequested: onLineDeletionRequested,
@@ -82,34 +82,34 @@ class OcptBudgetFicheView extends StatelessWidget {
       );
 }
 
-/// The polymorphic fiche over [state] and the edits [expensesState] still holds.
-class _OcptBudgetFicheBody extends StatelessWidget {
+/// The polymorphic detail panel over [state] and the edits [expensesState] still holds.
+class _OcptBudgetDetailBody extends StatelessWidget {
   /// The mode's state.
   final OcptBudgetState state;
 
   /// The expenses bloc's state, whose typed edits the fields read first.
   final OcptBudgetExpensesState expensesState;
 
-  /// See [OcptBudgetFicheView.onLineDeletionRequested].
+  /// See [OcptBudgetDetailView.onLineDeletionRequested].
   final ValueChanged<String> onLineDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onLineUncommitRequested].
+  /// See [OcptBudgetDetailView.onLineUncommitRequested].
   final ValueChanged<String> onLineUncommitRequested;
 
-  /// See [OcptBudgetFicheView.onCommitmentDeletionRequested].
+  /// See [OcptBudgetDetailView.onCommitmentDeletionRequested].
   final ValueChanged<String> onCommitmentDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onEntryDeletionRequested].
+  /// See [OcptBudgetDetailView.onEntryDeletionRequested].
   final ValueChanged<String> onEntryDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onResourceDeletionRequested].
+  /// See [OcptBudgetDetailView.onResourceDeletionRequested].
   final ValueChanged<String> onResourceDeletionRequested;
 
-  /// See [OcptBudgetFicheView.onRevenueDeletionRequested].
+  /// See [OcptBudgetDetailView.onRevenueDeletionRequested].
   final ValueChanged<String> onRevenueDeletionRequested;
 
   /// Class constructor
-  const _OcptBudgetFicheBody({
+  const _OcptBudgetDetailBody({
     required this.state,
     required this.expensesState,
     required this.onLineDeletionRequested,
@@ -120,7 +120,7 @@ class _OcptBudgetFicheBody extends StatelessWidget {
     required this.onRevenueDeletionRequested,
   });
 
-  /// Build the budget fiche body as an [OcptBudgetFiche].
+  /// Build the budget detail panel body as an [OcptBudgetDetail].
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<OcptBudgetBloc>();
@@ -128,8 +128,8 @@ class _OcptBudgetFicheBody extends StatelessWidget {
     final expensesBloc = context.read<OcptBudgetExpensesBloc>();
     final isReadOnly = state.isPreviewingVersion;
     final elementNameByElementId = {for (final element in state.elements) element.id: element.name};
-    // The off-line-debit banner's own two actions read the very same entry a receipt's own fiche
-    // shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same
+    // The off-line-debit banner's own two actions read the very same entry a receipt's own detail
+    // panel shares with an ordinary entry's — `OcptBudgetReceiptSelection` names the same
     // `budget_entries` row as `OcptBudgetEntrySelection`, only through a different field.
     final selectedEntryId = switch (state.selection) {
       OcptBudgetEntrySelection(:final entryId) => entryId,
@@ -141,7 +141,7 @@ class _OcptBudgetFicheBody extends StatelessWidget {
       _ => null,
     };
 
-    return OcptBudgetFiche(
+    return OcptBudgetDetail(
       selection: state.selection,
       postes: state.postes,
       commitments: state.commitments,

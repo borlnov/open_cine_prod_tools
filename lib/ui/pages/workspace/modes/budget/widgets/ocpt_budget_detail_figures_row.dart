@@ -7,15 +7,15 @@ import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart'
 
 /// The figures that make the amount up: a `Wrap` of muted-label-over-value pairs, mirroring
 /// `OcptBudgetCostTracking`'s own figure reading.
-class OcptBudgetFicheFiguresRow extends StatelessWidget {
+class OcptBudgetDetailFiguresRow extends StatelessWidget {
   /// The figures to draw: a label paired with an already-formatted value, or null for
   /// [ocptBudgetEmptyValue].
   final List<(String label, String? value)> figures;
 
   /// Class constructor
-  const OcptBudgetFicheFiguresRow({super.key, required this.figures});
+  const OcptBudgetDetailFiguresRow({super.key, required this.figures});
 
-  /// Build the budget fiche figures row as a [Wrap].
+  /// Build the budget detail panel figures row as a [Wrap].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

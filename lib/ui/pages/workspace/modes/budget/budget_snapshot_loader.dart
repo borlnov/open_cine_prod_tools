@@ -129,7 +129,7 @@ class OcptBudgetSnapshotLoader {
   /// sittings from.
   ///
   /// `elements` is carried raw, beside `roles`/`people`, rather than folded into
-  /// [OcptBudgetSnapshot]: `OcptBudgetFiche`'s own `+ From breakdown` picker needs the
+  /// [OcptBudgetSnapshot]: `OcptBudgetDetail`'s own `+ From breakdown` picker needs the
   /// whole catalogue, not just the two counts `OcptBudgetState.elementLinkCounts` derives from it.
   Future<OcptBudgetRead> load(OcptOpenProjectModel project) async {
     final database = project.database;

@@ -12,11 +12,11 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocp
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/widgets/ocpt_budget_detail_stepper.dart';
 import 'package:open_cine_prod_tools/ui/widgets/helpers/ocpt_budget_labels.dart';
 
-/// The shared layout every variant of [OcptBudgetFiche] draws: breadcrumb, title and amount, an
+/// The shared layout every variant of [OcptBudgetDetail] draws: breadcrumb, title and amount, an
 /// optional hint (with an optional status badge beside it), an optional stepper, the figures row,
 /// an optional outstanding block, an optional details section (the poste's or the line's own
 /// editable fields), one primary action and up to two secondary ones.
-class OcptBudgetFicheScaffold extends StatelessWidget {
+class OcptBudgetDetailScaffold extends StatelessWidget {
   /// The breadcrumb segments, from the outermost ancestor to the object itself.
   final List<String> breadcrumb;
 
@@ -70,17 +70,17 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
   /// off-line debit entry's or an off-line commitment's own `Add to the quote`/`Move off-quote`
   /// banner (`OcptBudgetOffLineBanner`), a counterpart quote line's own calm note naming the
   /// contribution it is covered in kind by, or an in-kind resource's own calm note naming the
-  /// poste its counterpart line offsets (both `OcptBudgetFicheInfoBanner`).
+  /// poste its counterpart line offsets (both `OcptBudgetDetailInfoBanner`).
   final Widget? banner;
 
   /// The one primary action, or null while withheld or none applies.
-  final OcptBudgetFicheAction? primary;
+  final OcptBudgetDetailAction? primary;
 
   /// Up to two secondary actions.
-  final List<OcptBudgetFicheAction> secondaries;
+  final List<OcptBudgetDetailAction> secondaries;
 
   /// Class constructor
-  const OcptBudgetFicheScaffold({
+  const OcptBudgetDetailScaffold({
     super.key,
     required this.breadcrumb,
     required this.title,
@@ -101,7 +101,7 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
     required this.secondaries,
   });
 
-  /// Build the budget fiche scaffold as a [Column].
+  /// Build the budget detail panel scaffold as a [Column].
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -112,7 +112,7 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        OcptBudgetFicheBreadcrumb(segments: breadcrumb),
+        OcptBudgetDetailBreadcrumb(segments: breadcrumb),
         const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +145,7 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
                 ),
               if (badge != null) ...[
                 if (hint != null) const SizedBox(width: 8),
-                OcptBudgetFicheBadge(text: badge, color: badgeColor ?? theme.colorScheme.primary),
+                OcptBudgetDetailBadge(text: badge, color: badgeColor ?? theme.colorScheme.primary),
               ],
             ],
           ),
@@ -160,21 +160,21 @@ class OcptBudgetFicheScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   proportionBar ??
-                      OcptBudgetFicheStepper(stepLabels: stepLabels, reachedCount: reachedCount),
+                      OcptBudgetDetailStepper(stepLabels: stepLabels, reachedCount: reachedCount),
                   const SizedBox(height: 12),
-                  OcptBudgetFicheFiguresRow(figures: figures),
+                  OcptBudgetDetailFiguresRow(figures: figures),
                 ],
               ),
             ),
           ),
         ] else if (figures.isNotEmpty) ...[
           const SizedBox(height: 16),
-          OcptBudgetFicheFiguresRow(figures: figures),
+          OcptBudgetDetailFiguresRow(figures: figures),
         ],
         if (paymentsSection != null) ...[const SizedBox(height: 16), paymentsSection!],
         if (outstandingLabel != null) ...[
           const SizedBox(height: 16),
-          OcptBudgetFicheOutstanding(
+          OcptBudgetDetailOutstanding(
             label: outstandingLabel!,
             value: outstandingValue ?? ocptBudgetEmptyValue,
           ),

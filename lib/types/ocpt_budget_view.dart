@@ -19,7 +19,7 @@ import 'package:open_cine_prod_tools/types/ocpt_budget_tools_view.dart';
 enum OcptBudgetView {
   /// The whole project's standing reading: the KPI tiles, the balance band, the standing alerts.
   /// Opens on nothing of its own — a poste row here selects the poste and switches to [expenses],
-  /// which is where the fiche then opens.
+  /// which is where the detail panel then opens.
   dashboard,
 
   /// The quote itself, poste by poste: the working surface for creating, renaming and reordering
@@ -51,17 +51,17 @@ bool ocptBudgetViewHonoursPosteFilter(OcptBudgetView view) => switch (view) {
 };
 
 /// Tell whether [view] (and, while it is [OcptBudgetView.tools], [toolsView]) has anything for the
-/// right dock's `Inspector` tab — the polymorphic fiche — to show.
+/// right dock's `Inspector` tab — the polymorphic detail panel — to show.
 ///
-/// **False for [OcptBudgetView.dashboard] and `tools › regie` alone.** The fiche reads
+/// **False for [OcptBudgetView.dashboard] and `tools › regie` alone.** The detail panel reads
 /// `OcptBudgetState.selection` directly, and [OcptBudgetView.expenses], [OcptBudgetView.resources]
 /// and the tools drawer's own `cashFlow`/`sharing` pages each select something of their own: the
 /// quote a poste, a line, a commitment or an entry, the resources plan a resource or a taking, cash
 /// flow an entry, sharing a revenue or a share. The dashboard's own over-quote alert row is a *link
 /// to where the poste is worked on*, not a selection of its own: it selects the poste **and**
-/// switches to [OcptBudgetView.expenses] in the same gesture, which is where the fiche then opens.
-/// Régie selects nothing at all — it is not a stage of anything, and reads no row that the fiche
-/// could ever open on.
+/// switches to [OcptBudgetView.expenses] in the same gesture, which is where the detail panel then
+/// opens. Régie selects nothing at all — it is not a stage of anything, and reads no row that the
+/// detail panel could ever open on.
 bool ocptBudgetViewHasInspector(OcptBudgetView view, OcptBudgetToolsView toolsView) =>
     switch (view) {
       OcptBudgetView.expenses || OcptBudgetView.resources => true,

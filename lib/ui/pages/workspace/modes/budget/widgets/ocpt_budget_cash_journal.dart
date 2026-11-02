@@ -49,14 +49,14 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 ///
 /// **No capture affordance of any kind — read-only means nothing is created from a statement, not
 /// that nothing can be touched.** The `+ Entry` action mockup `2a`/`3a` used to draw here is gone
-/// for good; an entry spotted on the statement is corrected through the right dock's own fiche,
-/// which is exactly why every row **stays selectable** and its own `⋮` menu keeps
-/// `Modifier`/`Supprimer` — mockup `4b`'s own dock hint is explicit that the fiche is where an
-/// entry gets corrected, never a capture affordance of this page's own. A composite panel
+/// for good; an entry spotted on the statement is corrected through the right dock's own detail
+/// panel, which is exactly why every row **stays selectable** and its own `⋮` menu keeps
+/// `Modifier`/`Supprimer` — mockup `4b`'s own dock hint is explicit that the detail panel is where
+/// an entry gets corrected, never a capture affordance of this page's own. A composite panel
 /// (`docs/architecture/foundations.md`'s own idiom): takes [isReadOnly] rather than a null callback
 /// per affordance, and withholds — never disables — its own `⋮` menu's `Edit`/`Delete` entries. A
-/// row's own click never writes either way — it selects the entry, opening the right dock's fiche
-/// on it, mirroring `OcptBudgetCostTracking`'s own row selection.
+/// row's own click never writes either way — it selects the entry, opening the right dock's detail
+/// panel on it, mirroring `OcptBudgetCostTracking`'s own row selection.
 ///
 /// Empty state: [OcptWorkspaceEmptyMode] draws **in the table's place** whenever the page has
 /// nothing at all to read — no live entry *and* no unsettled
@@ -80,10 +80,10 @@ import 'package:open_cine_prod_tools/ui/widgets/ocpt_horizontal_scroll_view.dart
 /// statement while `À venir` stayed put, which is not a statement any more.
 ///
 /// **A due row is selectable, never a write** — it dispatches [onCommitmentSelected], opening the
-/// right dock's fiche on the commitment, which is where it is edited or settled — so, unlike the
-/// entry table's own `⋮` menu, it is never withheld under [isReadOnly]. `À venir` draws no `⋮` menu
-/// of its own at all: `Modifier`/`Supprimer`/`Payer` on a commitment live in the fiche and only
-/// there.
+/// right dock's detail panel on the commitment, which is where it is edited or settled — so, unlike
+/// the entry table's own `⋮` menu, it is never withheld under [isReadOnly]. `À venir` draws no `⋮`
+/// menu of its own at all: `Modifier`/`Supprimer`/`Payer` on a commitment live in the detail panel
+/// and only there.
 class OcptBudgetCashJournal extends StatelessWidget {
   /// Every live entry of the whole journal, in the chronological order
   /// `OcptBudgetJournalService.loadEntries` already gives them — never reordered by the caller,
@@ -104,8 +104,8 @@ class OcptBudgetCashJournal extends StatelessWidget {
   /// also says when the referenced file no longer resolves.
   final Map<String, OcptAssetRef> receiptsByEntryId;
 
-  /// What is currently selected for the right dock's own fiche — a row reads highlighted while it
-  /// is an [OcptBudgetEntrySelection] naming its own id.
+  /// What is currently selected for the right dock's own detail panel — a row reads highlighted
+  /// while it is an [OcptBudgetEntrySelection] naming its own id.
   final OcptBudgetSelection? selection;
 
   /// Whether the header's simplified/detailed switch currently reads simplified — switches a
@@ -123,7 +123,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
   final bool isReadOnly;
 
   /// Called with an entry's id when its row is clicked — never withheld under [isReadOnly], since
-  /// selecting only opens the right dock's own fiche on it, it writes nothing.
+  /// selecting only opens the right dock's own detail panel on it, it writes nothing.
   final ValueChanged<String>? onEntrySelected;
 
   /// Called with an entry when its row's own `⋮` menu asks to edit it, opening the entry dialog on
@@ -136,7 +136,7 @@ class OcptBudgetCashJournal extends StatelessWidget {
 
   /// Called with a commitment's id when an `À venir` row is clicked — never withheld under
   /// [isReadOnly], for the very reason [onEntrySelected] never is: selecting only opens the right
-  /// dock's own fiche on it, it writes nothing.
+  /// dock's own detail panel on it, it writes nothing.
   final ValueChanged<String>? onCommitmentSelected;
 
   /// What the revenue sharing has to distribute, in cents — `OcptBudgetSharingPot.shareableCents`.

@@ -87,8 +87,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   /// Which basis the header's excluding/including-tax toggle currently reads every amount in.
   final OcptBudgetTaxBasis taxBasis;
 
-  /// What is currently selected for the right dock's own fiche, once it exists — replaces the
-  /// separate `selectedPosteId`/`selectedResourceId` id fields this state used to carry: see
+  /// What is currently selected for the right dock's own detail panel, once it exists — replaces
+  /// the separate `selectedPosteId`/`selectedResourceId` id fields this state used to carry: see
   /// `OcptBudgetSelection`'s own doc comment for why one field now answers both. [selectedPosteId]
   /// and [selectedResourceId] below are the narrow getters every dock panel already reads, resolved
   /// off this one field so neither has to learn about the sealed type.
@@ -149,7 +149,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
 
   /// Every live element of the breakdown's own catalogue, as last loaded — [elementLinkCounts] is
   /// the feed card's own aggregate reading of it, and [unpricedElements] is what
-  /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
+  /// `OcptBudgetDetail`'s own `+ From breakdown` picker offers. Not part of [snapshot]: the
   /// picker needs the whole catalogue, not a figure derived from it, exactly the reason [roles] and
   /// [people] already sit beside it rather than inside it.
   final List<OcptElement> elements;
@@ -255,8 +255,8 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
   };
 
   /// Get the id of the currently selected taking, or null while [selection] does not name one — the
-  /// resources tree's own revenue row reads and dispatches this, opening the fiche on it exactly
-  /// as [selectedResourceId] does for a resource row.
+  /// resources tree's own revenue row reads and dispatches this, opening the detail panel on it
+  /// exactly as [selectedResourceId] does for a resource row.
   String? get selectedRevenueId => switch (selection) {
     OcptBudgetRevenueSelection(:final revenueId) => revenueId,
     _ => null,
@@ -374,7 +374,7 @@ class OcptBudgetState extends BlocStateForMixin<OcptBudgetState>
       ocptBudgetElementLinkCountsOf(postes: postes, elements: elements);
 
   /// Get every one of [elements] no live quote line prices yet — what
-  /// `OcptBudgetFiche`'s own `+ From breakdown` picker offers.
+  /// `OcptBudgetDetail`'s own `+ From breakdown` picker offers.
   List<OcptElement> get unpricedElements =>
       ocptBudgetUnpricedElementsOf(postes: postes, elements: elements);
 

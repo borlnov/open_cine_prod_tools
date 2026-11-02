@@ -25,9 +25,9 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Finds [target] inside the header band.
   Finder inHeader(Finder target) =>
@@ -72,7 +72,7 @@ void main() {
     expect(statusBar(tester).posteCount, 10);
     expect(statusBar(tester).lineCount, 0);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
-    expect(find.byType(OcptBudgetFiche), findsNothing);
+    expect(find.byType(OcptBudgetDetail), findsNothing);
     final seeded = await harness.readPostes();
     expect(seeded, hasLength(10));
     expect(seeded.map((poste) => poste.label), contains(tr.budgetCncPosteArtisticRights));
@@ -162,22 +162,25 @@ void main() {
 
     await harness.tap(tester, find.text("Camera").first);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsOneWidget);
+    expect(
+      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      findsOneWidget,
+    );
 
     await harness.tap(tester, find.text("Camera deposit"));
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsNothing);
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
-    expect(inFiche(find.text("Camera deposit")), findsWidgets);
+    expect(inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsNothing);
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
+    expect(inDetail(find.text("Camera deposit")), findsWidgets);
 
     await harness.tap(tester, find.text("Lens order"));
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsNothing);
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
-    expect(inFiche(find.text("Lens order")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text("Lens order")), findsOneWidget);
 
     await harness.tap(tester, find.text("Taxi"));
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsNothing);
-    expect(inFiche(find.text(tr.budgetFicheKindEntryLabel)), findsOneWidget);
-    expect(inFiche(find.text("Taxi")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailKindEntryLabel)), findsOneWidget);
+    expect(inDetail(find.text("Taxi")), findsOneWidget);
   });
 
   testWidgets("the cash flow page selects entries and upcoming commitments, and a selection made "
@@ -188,14 +191,14 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
     await harness.tap(tester, find.text(tr.budgetRightDockHelpTabLabel));
-    expect(find.byType(OcptBudgetFiche), findsNothing);
+    expect(find.byType(OcptBudgetDetail), findsNothing);
 
     await harness.tap(tester, find.text("Taxi"));
-    expect(inFiche(find.text(tr.budgetFicheKindEntryLabel)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindEntryLabel)), findsOneWidget);
 
     await harness.tap(tester, find.text("Lens order"));
-    expect(inFiche(find.text(tr.budgetFicheKindEntryLabel)), findsNothing);
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindEntryLabel)), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
   });
 
   testWidgets("the resources tree selects a contribution, a taking and a receipt, one at a time", (
@@ -219,17 +222,17 @@ void main() {
     await harness.tap(tester, find.byIcon(Icons.keyboard_arrow_right).first);
 
     await harness.tap(tester, find.text("Regional grant"));
-    expect(inFiche(find.text("Regional grant")), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetFinancingEditAction)), findsOneWidget);
+    expect(inDetail(find.text("Regional grant")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetFinancingEditAction)), findsOneWidget);
 
     await harness.tap(tester, find.text("Festival prize"));
-    expect(inFiche(find.text("Regional grant")), findsNothing);
-    expect(inFiche(find.text("Festival prize")), findsOneWidget);
+    expect(inDetail(find.text("Regional grant")), findsNothing);
+    expect(inDetail(find.text("Festival prize")), findsOneWidget);
 
     await harness.tap(tester, find.textContaining("Grant instalment"));
-    expect(inFiche(find.text("Festival prize")), findsNothing);
-    expect(inFiche(find.text("Grant instalment")), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetFicheKindEntryLabel)), findsOneWidget);
+    expect(inDetail(find.text("Festival prize")), findsNothing);
+    expect(inDetail(find.text("Grant instalment")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindEntryLabel)), findsOneWidget);
   });
 
   testWidgets("a share is highlighted in the sharing page without opening a fiche of its own", (
@@ -242,12 +245,12 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tapHeader(tester, tr.budgetHeaderSharingSegmentLabel);
     await harness.tap(tester, find.byTooltip(tr.workspaceToggleRightDockTooltip));
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
 
     await harness.tap(tester, find.text("Producer"));
-    // The dock stays on its empty hint, a share having no fiche, and the selection leaves the
-    // hint alone.
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    // The dock stays on its empty hint, a share having no detail panel, and the selection leaves
+    // the hint alone.
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     final highlighted = tester.widget<OcptBudgetSharing>(find.byType(OcptBudgetSharing));
     expect(highlighted.selectedShareId, (await harness.readShares()).first.id);
 
@@ -266,27 +269,27 @@ void main() {
     final tr = harness.trOf(tester);
     await openExpensesExpanded(tester);
     await harness.tap(tester, find.text("Camera deposit"));
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
 
     // Leaving for the resources chip drops the line: the dock stays open but empty, and the line
     // is not selected any more when coming back.
     await harness.tapHeader(tester, tr.budgetHeaderResourcesSegmentLabel);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
 
     // The tools drawer's own page switch drops it too.
     await harness.tap(tester, find.text("Camera deposit"));
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
     await harness.tap(tester, find.text("Lens order"));
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
     await harness.tapHeader(tester, tr.budgetHeaderSharingSegmentLabel);
-    expect(find.text(tr.budgetFicheEmptyHint), findsOneWidget);
+    expect(find.text(tr.budgetDetailEmptyHint), findsOneWidget);
 
     // The line's own "Show commitment" link switches view and selects in one gesture: nothing
-    // is dropped along the way, and the commitment's fiche is what the dock then shows.
+    // is dropped along the way, and the commitment's detail panel is what the dock then shows.
     final promotedLineId = await harness.seedLine(
       (await harness.readPostes()).first.id,
       "Promoted line",
@@ -300,10 +303,10 @@ void main() {
     await harness.mount(tester);
     await openExpensesExpanded(tester);
     await harness.tap(tester, find.text("Promoted line"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineShowCommitmentAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineShowCommitmentAction)));
     expect(find.byType(OcptBudgetCashJournal), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
-    expect(inFiche(find.text("Promoted order")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text("Promoted order")), findsOneWidget);
     expect(lineId, isNotEmpty);
   });
 }

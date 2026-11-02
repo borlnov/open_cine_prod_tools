@@ -33,9 +33,9 @@ int? ocptBudgetCommitmentCashCentsOf(
 /// a
 /// poste that no quote line prices. It always names a poste ([OcptBudgetCommitment.posteId] is
 /// non-nullable), so, unlike a poste-less debit (`ocptBudgetEntryIsOffLineDebit`), it can only ever
-/// be reconciled one way: promoted into a quote line, never moved off-quote. The fiche's own banner
-/// reads this to offer `Add to the quote` on such a commitment, and the bloc's own handler reads it
-/// again as a defensive guard (`OcptBudgetCommitmentPromotedToQuoteEvent`).
+/// be reconciled one way: promoted into a quote line, never moved off-quote. The detail panel's own
+/// banner reads this to offer `Add to the quote` on such a commitment, and the bloc's own handler
+/// reads it again as a defensive guard (`OcptBudgetCommitmentPromotedToQuoteEvent`).
 bool ocptBudgetCommitmentIsOffLine(OcptBudgetCommitment commitment) => commitment.lineId == null;
 
 /// Get what has been paid against each commitment, given the project's own
@@ -112,9 +112,9 @@ OcptBudgetCoveredTotal _ocptBudgetCommitmentPaidTotalOf(
 /// Get [commitment]'s own paid total, read off [entries] — [ocptBudgetPaidByCommitmentId] narrowed
 /// to
 /// this one commitment, and it does its own narrowing rather than asking every caller to group
-/// [entries] itself first: a fiche or a tree row reads one commitment at a time, and only a caller
-/// looping over every commitment of a poste or a project (`ocptBudgetCommittedCentsByPosteId`,
-/// `ocptBudgetProjectionOf`) actually needs the grouped map.
+/// [entries] itself first: a detail panel or a tree row reads one commitment at a time, and only a
+/// caller looping over every commitment of a poste or a project
+/// (`ocptBudgetCommittedCentsByPosteId`, `ocptBudgetProjectionOf`) actually needs the grouped map.
 OcptBudgetCoveredTotal ocptBudgetCommitmentPaidCentsOf(
   OcptBudgetCommitment commitment,
   List<OcptBudgetEntry> entries, {
@@ -154,8 +154,8 @@ int? _ocptBudgetOutstandingCentsOf(
 
 /// Get what [commitment] still owes, read off [entries] — [_ocptBudgetOutstandingCentsOf] over a
 /// map
-/// holding this one commitment's own paid total ([ocptBudgetCommitmentPaidCentsOf]), so a fiche or
-/// a tree row reading a single commitment answers the very same figure the poste-wide and
+/// holding this one commitment's own paid total ([ocptBudgetCommitmentPaidCentsOf]), so a detail
+/// panel or a tree row reading a single commitment answers the very same figure the poste-wide and
 /// project-wide aggregates below do, never a second calculation that could disagree with them.
 int? ocptBudgetCommitmentOutstandingCentsOf(
   OcptBudgetCommitment commitment,

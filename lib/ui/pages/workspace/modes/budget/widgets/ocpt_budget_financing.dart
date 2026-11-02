@@ -95,7 +95,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// The project's currency, an ISO 4217 code.
   final String currencyCode;
 
-  /// What is currently selected for the right dock's own fiche, or null while none is.
+  /// What is currently selected for the right dock's own detail panel, or null while none is.
   final OcptBudgetSelection? selection;
 
   /// Which nodes of the resources tree are currently expanded — an `OcptBudgetResourceFamily`'s own
@@ -110,7 +110,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// Called with a family's, a resource's or a revenue's own node id when its twisty is clicked.
   final ValueChanged<String> onNodeExpansionToggled;
 
-  /// Called with a resource's id when its row is clicked — selects it and opens the fiche.
+  /// Called with a resource's id when its row is clicked — selects it and opens the detail panel.
   final ValueChanged<String> onResourceSelected;
 
   /// Called with a resource when its row's own `⋮` menu asks to edit it, or null while
@@ -135,7 +135,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   /// [isReadOnly]. The mode answers this through `OcptConfirmDialog` before dispatching anything.
   final ValueChanged<String>? onResourceDeletionRequested;
 
-  /// Called with a revenue's id when its row is clicked — selects it and opens the fiche.
+  /// Called with a revenue's id when its row is clicked — selects it and opens the detail panel.
   final ValueChanged<String> onRevenueSelected;
 
   /// Called with a revenue when its row's own `⋮` menu asks to edit it, or null while [isReadOnly].
@@ -155,7 +155,7 @@ class OcptBudgetFinancing extends StatelessWidget {
   final ValueChanged<String>? onRevenueDeletionRequested;
 
   /// Called with a receipt's own entry id when its sub-row is clicked — selects it and opens the
-  /// fiche on it as a receipt.
+  /// detail panel on it as a receipt.
   final ValueChanged<String> onReceiptSelected;
 
   /// Called when the coverage band's own action is clicked, returning to the expenses document.

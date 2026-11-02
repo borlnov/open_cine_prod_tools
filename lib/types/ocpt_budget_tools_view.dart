@@ -19,7 +19,7 @@
 enum OcptBudgetToolsView {
   /// The cash journal, read-only: every live entry the project holds, in chronological order,
   /// with the account's own running balance. No capture affordance of any kind — an entry spotted
-  /// on the statement is corrected through the right dock's fiche, never created from here.
+  /// on the statement is corrected through the right dock's detail panel, never created from here.
   cashFlow,
 
   /// The catering-and-travel pass: what each shooting day costs in meals and at the buffet,

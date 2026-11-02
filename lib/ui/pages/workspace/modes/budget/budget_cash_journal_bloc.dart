@@ -388,8 +388,8 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Promote off-line debit entry `event.entryId` into the quote — the fiche's own banner and its
-  /// `Add to the quote` action, offered on a debit that names a poste but no commitment
+  /// Promote off-line debit entry `event.entryId` into the quote — the detail panel's own banner
+  /// and its `Add to the quote` action, offered on a debit that names a poste but no commitment
   /// ([OcptBudgetEntryPromotedToQuoteEvent]'s own doc comment has the whole mechanism). Creates a
   /// quote line from the entry first (`createLine`, quantity `1.0`, the entry's own label and tax
   /// basis), then a commitment from that line exactly as `OcptBudgetExpensesBloc` does for a line
@@ -449,8 +449,8 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Detach off-line debit entry `event.entryId` from its poste — the fiche's own banner and its
-  /// `Move off-quote` action, the other way to reconcile the very entry
+  /// Detach off-line debit entry `event.entryId` from its poste — the detail panel's own banner and
+  /// its `Move off-quote` action, the other way to reconcile the very entry
   /// [_onEntryPromotedToQuote] promotes: rather than folding the spend into the quote, this admits
   /// it was never quoted at all. Clears `posteId` back to null and nothing else, so the entry reads
   /// as an honest off-quote spend from then on ([OcptBudgetEntryMovedOffQuoteEvent]'s own doc
@@ -478,11 +478,11 @@ class OcptBudgetCashJournalBloc
     await modeBloc.reload({OcptBudgetReloadScope.snapshot});
   }
 
-  /// Promote off-line commitment `event.commitmentId` into the quote — the fiche's own banner and
-  /// its `Add to the quote` action, offered on a commitment that names a poste but no quote line
-  /// ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole mechanism).
-  /// Creates a quote line from the commitment (`createLine`, quantity `1.0`, its own label, amount
-  /// and tax basis), then **re-points the commitment itself at that fresh line**
+  /// Promote off-line commitment `event.commitmentId` into the quote — the detail panel's own
+  /// banner and its `Add to the quote` action, offered on a commitment that names a poste but no
+  /// quote line ([OcptBudgetCommitmentPromotedToQuoteEvent]'s own doc comment has the whole
+  /// mechanism). Creates a quote line from the commitment (`createLine`, quantity `1.0`, its own
+  /// label, amount and tax basis), then **re-points the commitment itself at that fresh line**
   /// (`updateCommitment`, `lineId` alone). The entry that settles the commitment is left untouched
   /// — it already names the commitment — so the chain gains only the quote line it lacked, and the
   /// poste's quote grows by the amount that made it overrun.

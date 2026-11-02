@@ -24,9 +24,9 @@ void main() {
   setUp(harness.setUp);
   tearDown(harness.tearDown);
 
-  /// Finds [target] inside the fiche of the right dock.
-  Finder inFiche(Finder target) =>
-      find.descendant(of: find.byType(OcptBudgetFiche), matching: target);
+  /// Finds [target] inside the detail panel of the right dock.
+  Finder inDetail(Finder target) =>
+      find.descendant(of: find.byType(OcptBudgetDetail), matching: target);
 
   /// Finds [target] inside the expenses table.
   Finder inTracking(Finder target) =>
@@ -80,12 +80,12 @@ void main() {
     await harness.tap(tester, inTracking(find.text("Camera deposit")));
 
     // Cancelling the wizard that the gesture opens writes nothing.
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogCancelAction)));
     expect(await harness.readEntries(), isEmpty);
     expect(await harness.readCommitments(), isEmpty);
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     final commitment = (await harness.readCommitments()).single;
     final entry = (await harness.readEntries()).single;
@@ -97,9 +97,10 @@ void main() {
     expect(entry.commitmentId, commitment.id);
     expect(entry.posteId, posteId);
 
-    // The fiche stays on the line, which now lists its payment and no longer offers to pay it.
-    expect(inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))), findsNothing);
-    expect(inFiche(find.text(r"$100.00")), findsWidgets);
+    // The detail panel stays on the line, which now lists its payment and no longer offers to pay
+    // it.
+    expect(inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))), findsNothing);
+    expect(inDetail(find.text(r"$100.00")), findsWidgets);
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     expect(find.text("Camera deposit"), findsOneWidget);
     // Nothing is left to come: the settled commitment is not listed as upcoming.
@@ -115,12 +116,12 @@ void main() {
     await openExpensesExpanded(tester);
     await harness.tap(tester, inTracking(find.text("Camera deposit")));
 
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineCommitAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineCommitAction)));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     expect((await harness.readCommitments()).single.lineId, isNotNull);
     expect(await harness.readEntries(), isEmpty);
-    expect(inFiche(find.text(tr.budgetLineCommitAction)), findsNothing);
-    expect(inFiche(find.text(tr.budgetLineShowCommitmentAction)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetLineCommitAction)), findsNothing);
+    expect(inDetail(find.text(tr.budgetLineShowCommitmentAction)), findsOneWidget);
 
     // The commitment is upcoming in the cash flow page.
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
@@ -130,20 +131,20 @@ void main() {
     // Cancelling the commitment asks first, deletes it and leaves the quote line alone; the
     // line can then be committed again.
     await harness.tap(tester, inTracking(find.text("Camera deposit")));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineUncommitAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineUncommitAction)));
     await harness.cancelDialog(tester, tr.budgetDeleteCancelAction);
     expect(await harness.readCommitments(), hasLength(1));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineUncommitAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineUncommitAction)));
     await harness.confirmDialog(tester, tr.budgetLineUncommitAction);
     expect(await harness.readCommitments(), isEmpty);
     expect((await harness.readPoste("Camera")).lines, hasLength(1));
-    await harness.tap(tester, inFiche(find.text(tr.budgetLineCommitAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetLineCommitAction)));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     expect(await harness.readCommitments(), hasLength(1));
 
     // Paying the commitment settles it: one entry naming it, nothing upcoming any more.
     await harness.tap(tester, inTracking(find.text("Camera deposit")));
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePayAction(r"$100.00"))));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPayAction(r"$100.00"))));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     final commitmentId = (await harness.readCommitments()).single.id;
     expect((await harness.readEntries()).single.commitmentId, commitmentId);
@@ -202,7 +203,7 @@ void main() {
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
 
     await harness.tap(tester, find.text("Taxi"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePromoteToQuoteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)));
     final poste = await harness.readPoste("Camera");
     expect(poste.lines.map((line) => line.label), ["Camera deposit", "Taxi"]);
     expect(poste.lines.last.unitPrice.amountCents, 1500);
@@ -213,14 +214,14 @@ void main() {
     expect(entries.firstWhere((entry) => entry.label == "Coffee").commitmentId, isNull);
     expect(statusBar(tester).lineCount, 2);
     expect(statusBar(tester).quotedTotalCents, 11500);
-    // The fiche follows the entry, which is no longer offered the promotion.
-    expect(inFiche(find.text("Taxi")), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetFichePromoteToQuoteAction)), findsNothing);
+    // The detail panel follows the entry, which is no longer offered the promotion.
+    expect(inDetail(find.text("Taxi")), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)), findsNothing);
 
     await harness.tap(tester, find.text("Coffee"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetFicheEntryMoveOffQuoteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailEntryMoveOffQuoteAction)));
     expect((await harness.readEntries()).firstWhere((e) => e.label == "Coffee").posteId, isNull);
-    expect(inFiche(find.text(tr.budgetFicheEntryMoveOffQuoteAction)), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailEntryMoveOffQuoteAction)), findsNothing);
     await harness.tapHeader(tester, tr.budgetHeaderExpensesSegmentLabel);
     expect(find.text(tr.budgetCostTrackingOffQuoteLabel), findsOneWidget);
   });
@@ -234,13 +235,13 @@ void main() {
     await openExpensesExpanded(tester);
 
     await harness.tap(tester, find.text("Lens order"));
-    await harness.tap(tester, inFiche(find.text(tr.budgetFichePromoteToQuoteAction)));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)));
     final poste = await harness.readPoste("Camera");
     expect(poste.lines.single.label, "Lens order");
     expect(poste.lines.single.unitPrice.amountCents, 3000);
     expect((await harness.readCommitments()).single.lineId, poste.lines.single.id);
     expect(statusBar(tester).quotedTotalCents, 3000);
-    expect(inFiche(find.text(tr.budgetFichePromoteToQuoteAction)), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailPromoteToQuoteAction)), findsNothing);
   });
 
   testWidgets("a new poste is appended, selected and opened in the fiche, and a line born from "
@@ -254,7 +255,10 @@ void main() {
     await harness.tap(tester, inTracking(find.text(tr.budgetPosteCreationAction)));
     expect((await harness.readPostes()).map((poste) => poste.label), ["Camera", ""]);
     expect(statusBar(tester).posteCount, 2);
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsOneWidget);
+    expect(
+      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      findsOneWidget,
+    );
     await harness.type(
       tester,
       harness.fieldLabelled(tr.budgetInspectorPosteLabelFieldLabel),
@@ -275,9 +279,9 @@ void main() {
     expect(line.unit, "day");
     expect(line.unitPrice.amountCents, 3500);
     expect(statusBar(tester).quotedTotalCents, 7000);
-    // The new line is the selection: the fiche shows a line, not the poste it replaced.
-    expect(inFiche(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
-    expect(inFiche(find.text("Boom pole")), findsWidgets);
+    // The new line is the selection: the detail panel shows a line, not the poste it replaced.
+    expect(inDetail(find.text(tr.budgetLineQuantityFieldLabel.toUpperCase())), findsOneWidget);
+    expect(inDetail(find.text("Boom pole")), findsWidgets);
   });
 
   testWidgets("a payment recorded from the cash flow page shows in the journal, in the "
@@ -337,23 +341,23 @@ void main() {
       findsWidgets,
     );
     // The new resource is the selection, but unlike a new poste or line it does not open the
-    // dock: the fiche is there once the dock is.
+    // dock: the detail panel is there once the dock is.
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     await harness.openRightDock(tester);
-    expect(inFiche(find.text("Lent camera")), findsOneWidget);
+    expect(inDetail(find.text("Lent camera")), findsOneWidget);
 
-    // A cash subsidy is received from its own fiche: a credit is written, naming it.
+    // A cash subsidy is received from its own detail panel: a credit is written, naming it.
     await openWizard(tester, gesture: "planSubsidy");
     await fillWizard(tester, ["Regional grant", "200"]);
     await saveWizard(tester);
     final grant = (await harness.readResources()).firstWhere((r) => r.label == "Regional grant");
     expect(grant.amountCents, 20000);
-    await harness.tap(tester, inFiche(find.text(tr.budgetFicheReceiveAction(r"$200.00"))));
+    await harness.tap(tester, inDetail(find.text(tr.budgetDetailReceiveAction(r"$200.00"))));
     await harness.tap(tester, inWizard(find.text(tr.budgetEntryDialogConfirmAction)));
     final entry = (await harness.readEntries()).single;
     expect(entry.creditCents, 20000);
     expect(entry.resourceId, grant.id);
-    expect(inFiche(find.text(tr.budgetFicheReceiveAction(r"$200.00"))), findsNothing);
+    expect(inDetail(find.text(tr.budgetDetailReceiveAction(r"$200.00"))), findsNothing);
   });
 
   testWidgets("a taking and a revenue-sharing participant are created from the wizard and "
@@ -367,7 +371,7 @@ void main() {
     expect((await harness.readRevenues()).single.amountCents, 9000);
     expect(find.byTooltip(tr.budgetRightDockCloseTooltip), findsNothing);
     await harness.openRightDock(tester);
-    expect(inFiche(find.text("Festival prize")), findsOneWidget);
+    expect(inDetail(find.text("Festival prize")), findsOneWidget);
 
     await harness.tapHeader(tester, tr.budgetHeaderToolsSegmentLabel);
     await harness.tapHeader(tester, tr.budgetHeaderSharingSegmentLabel);
@@ -453,7 +457,10 @@ void main() {
       find.textContaining(r"has $250.00 paid or committed against a $100.00 quote"),
     );
     expect(find.byType(OcptBudgetCostTracking), findsOneWidget);
-    expect(inFiche(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())), findsOneWidget);
+    expect(
+      inDetail(find.text(tr.budgetInspectorPosteCodeFieldLabel.toUpperCase())),
+      findsOneWidget,
+    );
   });
 
   testWidgets("a cash alert on the dashboard opens the cash flow page, where the commitment that "
@@ -467,7 +474,7 @@ void main() {
     expect(find.byType(OcptBudgetCashJournal), findsOneWidget);
     expect(find.byType(OcptBudgetDashboard), findsNothing);
     await harness.tap(tester, find.text("Lens order"));
-    expect(inFiche(find.text(tr.budgetFicheKindCommitmentLabel)), findsOneWidget);
+    expect(inDetail(find.text(tr.budgetDetailKindCommitmentLabel)), findsOneWidget);
   });
 
   testWidgets("a defrayal is created from the wizard, shows in the catering page and is deleted "

@@ -785,8 +785,8 @@ class BudgetScenarioHarness {
     find.descendant(of: find.byType(OcptBudgetHeader), matching: find.text(label)).first,
   );
 
-  /// Finds the text field of the fiche field captioned [label], which a fiche draws in capitals
-  /// above its input.
+  /// Finds the text field of the detail panel field captioned [label], which a detail panel draws
+  /// in capitals above its input.
   Finder fieldLabelled(String label) => find.descendant(
     of: find.ancestor(of: find.text(label.toUpperCase()), matching: find.byType(Column)).first,
     matching: find.byType(TextField),
@@ -825,7 +825,7 @@ class BudgetScenarioHarness {
 
   /// Finds the `⋮` menu level with the row naming [label]: a table draws a row's name and its menu
   /// as sibling subtrees, so only their height ties them together; [within] narrows where the row
-  /// is looked for when its name also appears elsewhere, in the fiche for one.
+  /// is looked for when its name also appears elsewhere, in the detail panel for one.
   Finder menuInRowOf(WidgetTester tester, String label, {Finder? within}) {
     final named = within == null
         ? find.text(label)
