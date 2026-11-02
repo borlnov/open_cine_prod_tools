@@ -88,10 +88,11 @@ abstract class AbsOcptService extends AbsWithLifeCycle {
   /// `databaseError` when the database failed it. The failure is logged once, here, by type.
   ///
   /// A `null` from [body] is an answer like any other: a write the read-only preview refuses is
-  /// a logged no-op that answers `ok` with no value. A mistake of the programmer
-  /// ([ArgumentError], [AssertionError]) is not a failure of the database and goes through; a
-  /// [RangeError], which is an [ArgumentError] too, does not: an index or an offset that falls
-  /// outside what a read returned is a failure of the call, answered as `databaseError`.
+  /// a logged no-op that answers `ok` with no value. Only an [AssertionError], a mistake of the
+  /// programmer that a release build never raises, goes through. Everything else becomes
+  /// `databaseError`, an [ArgumentError] and a [RangeError] included: a caller that used to catch
+  /// one of those around the call acts on the failed status at the same point, and letting it
+  /// through would skip the caller's own stop, and whatever followed it.
   @protected
   Future<OcptDatabaseResult<T>> guardResult<T>(String operation, Future<T?> Function() body) async {
     OcptDatabaseResult<T> result;
@@ -103,7 +104,7 @@ abstract class AbsOcptService extends AbsWithLifeCycle {
         extraInfo: abort.failure.extraInfo,
       );
     } catch (error, stackTrace) {
-      if ((error is ArgumentError && error is! RangeError) || error is AssertionError) {
+      if (error is AssertionError) {
         rethrow;
       }
 

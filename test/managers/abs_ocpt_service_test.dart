@@ -120,8 +120,7 @@ void main() {
     expect(logger.records, isEmpty);
   });
 
-  test('a mistake of the programmer goes through instead of becoming a status', () async {
-    await expectLater(service.read(() async => throw ArgumentError("bad")), throwsArgumentError);
+  test('an assertion goes through instead of becoming a status', () async {
     await expectLater(
       service.write(() async => throw AssertionError("bad")),
       throwsA(isA<AssertionError>()),
@@ -129,7 +128,15 @@ void main() {
     expect(logger.records, isEmpty);
   });
 
-  test('a range error is a failure of the call, not a mistake of the programmer', () async {
+  test('an invalid argument is a failure of the call, answered and logged once by type', () async {
+    final result = await service.read(() async => throw ArgumentError("secret title"));
+    expect(result.status, OcptDatabaseStatus.databaseError);
+    expect(result.extraInfo, ArgumentError);
+    expect(logger.recordsAtLevel(LogsLevel.error), hasLength(1));
+    expect(logger.records.single.message.toString(), isNot(contains("secret title")));
+  });
+
+  test('a range error is a failure of the call too', () async {
     final result = await service.read(() async => throw RangeError.range(5, 0, 2));
     expect(result.status, OcptDatabaseStatus.databaseError);
     expect(result.extraInfo, RangeError);
