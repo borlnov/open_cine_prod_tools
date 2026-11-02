@@ -102,12 +102,24 @@ void main() {
     test("every write is refused as a call that went well, and writes nothing", () async {
       final preview = OcptProjectDatabase.memory(isPreview: true);
       addTearDown(preview.close);
+      await preview
+          .into(preview.ocptAssetsTable)
+          .insert(
+            OcptAssetsTableCompanion.insert(
+              id: "asset-1",
+              kind: OcptAssetKind.document,
+              path: "/permits/granted.pdf",
+              addedAt: DateTime.now(),
+            ),
+          );
+      final untouched = await preview.customSelect("SELECT * FROM assets").get();
 
       for (final entry in writes.entries) {
-        expect(await entry.value(preview, "missing"), OcptDatabaseStatus.ok, reason: entry.key);
+        expect(await entry.value(preview, "asset-1"), OcptDatabaseStatus.ok, reason: entry.key);
       }
 
-      expect(await preview.customSelect("SELECT * FROM assets").get(), isEmpty);
+      final after = await preview.customSelect("SELECT * FROM assets").get();
+      expect([for (final row in after) row.data], [for (final row in untouched) row.data]);
     });
   });
 
