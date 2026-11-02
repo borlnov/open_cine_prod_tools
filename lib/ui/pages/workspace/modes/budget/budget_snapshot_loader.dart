@@ -15,48 +15,12 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_role_index_
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_schedule_service.dart';
 import 'package:open_cine_prod_tools/models/database/tables/ocpt_project_info_table.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_account_seed.dart';
-import 'package:open_cine_prod_tools/models/ocpt_budget_mileage_rate.dart';
 import 'package:open_cine_prod_tools/models/ocpt_budget_snapshot.dart';
-import 'package:open_cine_prod_tools/models/ocpt_element.dart';
 import 'package:open_cine_prod_tools/models/ocpt_location.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
-import 'package:open_cine_prod_tools/models/ocpt_person.dart';
-import 'package:open_cine_prod_tools/models/ocpt_role.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_slot.dart';
-
-/// What the budget mode reads from the project database in one go: the joined snapshot, and the
-/// raw catalogues and the set names the views read directly.
-class OcptBudgetRead {
-  /// The quote, the cash journal, the financing plan, the revenue sharing and the
-  /// catering-and-travel pass, joined.
-  final OcptBudgetSnapshot snapshot;
-
-  /// Every live role of the project.
-  final List<OcptRole> roles;
-
-  /// Every live person of the project's address book.
-  final List<OcptPerson> people;
-
-  /// Every live element of the breakdown's own catalogue.
-  final List<OcptElement> elements;
-
-  /// Every live mileage rate of the project.
-  final List<OcptBudgetMileageRate> mileageRates;
-
-  /// The set name printed under each shooting day, keyed by the day's own id.
-  final Map<String, String> logisticsSetNameByDayId;
-
-  /// Class constructor
-  const OcptBudgetRead({
-    required this.snapshot,
-    required this.roles,
-    required this.people,
-    required this.elements,
-    required this.mileageRates,
-    required this.logisticsSetNameByDayId,
-  });
-}
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/budget/budget_read.dart';
 
 /// Read the budget mode's whole data from the open project: the services it joins are resolved
 /// from the projects manager once, and [load] makes one pass over them.

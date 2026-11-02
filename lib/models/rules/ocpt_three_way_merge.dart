@@ -5,6 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
+import 'package:open_cine_prod_tools/models/rules/ocpt_three_way_merge_hunk.dart';
 
 /// A line-based three-way (diff3) merge of a screenplay's Fountain text — the one column that
 /// `docs/architecture/sync.md` reconciles by comparing the *content* of two diverging edits against
@@ -65,36 +66,6 @@ final class OcptThreeWayMergeConflict extends OcptThreeWayMergeResult {
   /// List the fields that decide equality.
   @override
   List<Object?> get props => [hunks];
-}
-
-/// One base region a merge's two diverging sides changed differently: the base lines that region
-/// held, and what each side replaced them with.
-class OcptThreeWayMergeHunk extends Equatable {
-  /// The lines the common ancestor held in this region.
-  final List<String> baseLines;
-
-  /// The lines the first diverging side holds in the corresponding region.
-  final List<String> leftLines;
-
-  /// The lines the second diverging side holds in the corresponding region.
-  final List<String> rightLines;
-
-  /// Create a merge hunk.
-  const OcptThreeWayMergeHunk({
-    required this.baseLines,
-    required this.leftLines,
-    required this.rightLines,
-  });
-
-  /// Describe this [OcptThreeWayMergeHunk] for debugging and logging.
-  @override
-  String toString() =>
-      'OcptThreeWayMergeHunk(baseLines: $baseLines, leftLines: $leftLines, rightLines: '
-      '$rightLines)';
-
-  /// List the fields that decide equality.
-  @override
-  List<Object?> get props => [baseLines, leftLines, rightLines];
 }
 
 /// Merge [left] and [right], two texts that independently diverged from their common ancestor
