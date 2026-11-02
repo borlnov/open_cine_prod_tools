@@ -37,6 +37,7 @@ import 'package:open_cine_prod_tools/models/ocpt_shot_sequence.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_labels.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_workspace_reveal_request.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_centre_view.dart';
@@ -54,6 +55,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/workspace_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// The navigator [ShotListScenarioHarness.wrap] mounts, so [ScenarioRouterManager.pop] closes a
 /// dialog opened through `showDialog` exactly as the real router would.
@@ -289,9 +291,15 @@ class _ScenarioStoryboardService extends OcptStoryboardService {
   /// Fail while the scenario asks for panel creations to fail, otherwise add the panel as the real
   /// service does.
   @override
-  Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async {
+  Future<OcptDatabaseResult<String>> addPanel({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) async {
     if (failures.failPanelCreation) {
-      throw StateError("panel creation intentionally failed for the scenario");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "panel creation intentionally failed for the scenario",
+      );
     }
 
     return super.addPanel(database: database, shotId: shotId);
@@ -485,7 +493,8 @@ class ShotListScenarioHarness {
 
   /// Reads the whole storyboard back from the database.
   Future<OcptStoryboardSnapshot> readStoryboard() => projectsManager.storyboardService
-      .loadStoryboard(database: database, screenplayId: screenplayId);
+      .loadStoryboard(database: database, screenplayId: screenplayId)
+      .valueOrFail;
 
   /// Reads the floor plans back from the database.
   Future<OcptFloorPlanSnapshot> readFloorPlans() => projectsManager.floorPlanService.loadFloorPlans(

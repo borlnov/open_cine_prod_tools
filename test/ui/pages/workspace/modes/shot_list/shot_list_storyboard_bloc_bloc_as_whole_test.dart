@@ -23,6 +23,7 @@ import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_
 import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_snapshot.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_column.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -41,6 +42,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_storyboard_bloc_test_doubles.dart';
 
 /// The fixed device id every stamping test double in this file uses.
@@ -59,16 +61,24 @@ class _FailingStoryboardService extends OcptStoryboardService {
 
   /// Fail as a refused panel creation does.
   @override
-  Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async =>
-      throw StateError("panel creation intentionally failed for the test");
+  Future<OcptDatabaseResult<String>> addPanel({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) async => const OcptDatabaseResult(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "panel creation intentionally failed for the test",
+  );
 
   /// Fail as a refused comment write does.
   @override
-  Future<void> updatePanelComment({
+  Future<OcptDatabaseOutcome> updatePanelComment({
     required OcptProjectDatabase database,
     required String panelId,
     required String comment,
-  }) async => throw StateError("comment write intentionally failed for the test");
+  }) async => const OcptDatabaseOutcome(
+    status: OcptDatabaseStatus.databaseError,
+    extraInfo: "comment write intentionally failed for the test",
+  );
 }
 
 /// A storyboard service whose reads can be held back: while [heldReads] is positive, a read takes
@@ -97,7 +107,7 @@ class _HoldingStoryboardService extends OcptStoryboardService {
 
   /// Load the storyboard as the real service does, then hold the call while reads are to be held.
   @override
-  Future<OcptStoryboardSnapshot> loadStoryboard({
+  Future<OcptDatabaseResult<OcptStoryboardSnapshot>> loadStoryboard({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
@@ -127,12 +137,15 @@ class _ReadFailingStoryboardService extends OcptStoryboardService {
 
   /// Fail while told to, otherwise load the storyboard as the real service does.
   @override
-  Future<OcptStoryboardSnapshot> loadStoryboard({
+  Future<OcptDatabaseResult<OcptStoryboardSnapshot>> loadStoryboard({
     required OcptProjectDatabase database,
     required String screenplayId,
   }) async {
     if (failsReads) {
-      throw StateError("storyboard read intentionally failed for the test");
+      return const OcptDatabaseResult(
+        status: OcptDatabaseStatus.databaseError,
+        extraInfo: "storyboard read intentionally failed for the test",
+      );
     }
     return super.loadStoryboard(database: database, screenplayId: screenplayId);
   }
@@ -594,10 +607,9 @@ void main() {
 
       // The panel goes away behind the board's back, then the mode reads the storyboard again.
       final project = projectsManager.currentProject!;
-      await projectsManager.storyboardService.deletePanel(
-        database: project.database,
-        panelId: mounted.panelId,
-      );
+      await projectsManager.storyboardService
+          .deletePanel(database: project.database, panelId: mounted.panelId)
+          .okOrFail;
       await mode.reload({OcptShotListReloadScope.storyboard});
 
       await waitUntil(
@@ -689,10 +701,9 @@ void main() {
           }
 
           final project = projectsManager.currentProject!;
-          final snapshot = await projectsManager.storyboardService.loadStoryboard(
-            database: project.database,
-            screenplayId: project.primaryScreenplayId,
-          );
+          final snapshot = await projectsManager.storyboardService
+              .loadStoryboard(database: project.database, screenplayId: project.primaryScreenplayId)
+              .valueOrFail;
           expect(
             snapshot.panelsOfShot(mounted.shotId).single.comment,
             "Kept",
@@ -700,10 +711,9 @@ void main() {
           );
 
           // The next round starts from a project without that panel.
-          await projectsManager.storyboardService.deletePanel(
-            database: project.database,
-            panelId: mounted.panelId,
-          );
+          await projectsManager.storyboardService
+              .deletePanel(database: project.database, panelId: mounted.panelId)
+              .okOrFail;
         }
       },
     );
@@ -757,11 +767,13 @@ void main() {
 
       // Meanwhile the storyboard changes and the mode reads it.
       final project = projectsManager.currentProject!;
-      await projectsManager.storyboardService.updatePanelComment(
-        database: project.database,
-        panelId: mounted.panelId,
-        comment: "Meanwhile",
-      );
+      await projectsManager.storyboardService
+          .updatePanelComment(
+            database: project.database,
+            panelId: mounted.panelId,
+            comment: "Meanwhile",
+          )
+          .okOrFail;
       final reload = mode.reload({OcptShotListReloadScope.storyboard});
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(mode.state.reloadEpoch, epoch, reason: 'the read waits for the creation before it');

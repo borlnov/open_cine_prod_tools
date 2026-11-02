@@ -19,6 +19,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_ver
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_versions_panel.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_project_working_copy_card.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_mode_scenarios_test_doubles.dart';
 
 /// Run the tests of the shot list mode lifecycle scenarios.
@@ -60,19 +61,17 @@ void main() {
       "brings the working copy back", (tester) async {
     final shotIds = await harness.seedShots(1);
     final setId = await harness.seedLinkedSet("KITCHEN");
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .maybeValueOrFail;
     final version = await harness.projectsManager.createProjectVersion(name: "v1", note: "");
     expect(version, isNotNull);
 
     // Written after the version was captured, so the preview cannot show it.
     final secondShotId = (await harness.seedShots(1)).single;
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: secondShotId,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: secondShotId)
+        .maybeValueOrFail;
     await harness.projectsManager.floorPlanService.placeSymbol(
       database: harness.database,
       setId: setId,
@@ -152,10 +151,9 @@ void main() {
   testWidgets("a comment typed just before previewing a version is written first, the preview "
       "shows the version's own, and leaving it brings the comment back", (tester) async {
     final shotIds = await harness.seedShots(1);
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .maybeValueOrFail;
     final version = await harness.projectsManager.createProjectVersion(name: "v1", note: "");
     expect(version, isNotNull);
     await harness.mount(tester);
@@ -179,10 +177,9 @@ void main() {
 
     // The working copy file holds it already, though the debounce never ran out.
     final fileDatabase = harness.projectsManager.currentProject!.fileDatabase;
-    final stored = await harness.projectsManager.storyboardService.loadStoryboard(
-      database: fileDatabase,
-      screenplayId: harness.screenplayId,
-    );
+    final stored = await harness.projectsManager.storyboardService
+        .loadStoryboard(database: fileDatabase, screenplayId: harness.screenplayId)
+        .valueOrFail;
     expect(stored.panelsByShotId[shotIds.single]!.single.comment, "Late note");
 
     // The preview shows the version, which never had it.
@@ -203,18 +200,16 @@ void main() {
   ) async {
     final shotIds = await harness.seedShots(1);
     final setId = await harness.seedLinkedSet("KITCHEN");
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .maybeValueOrFail;
     final version = await harness.projectsManager.createProjectVersion(name: "v1", note: "");
     expect(version, isNotNull);
 
     final laterShotId = (await harness.seedShots(1)).single;
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: laterShotId,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: laterShotId)
+        .maybeValueOrFail;
     await harness.projectsManager.floorPlanService.placeSymbol(
       database: harness.database,
       setId: setId,
@@ -414,17 +409,18 @@ void main() {
       "comment, mark text, set name and symbol label", (tester) async {
     final shotIds = await harness.seedShots(1);
     final setId = await harness.seedLinkedSet("KITCHEN");
-    final panelId = (await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    ))!;
-    final annotationId = (await harness.projectsManager.storyboardService.addAnnotation(
-      database: harness.database,
-      panelId: panelId,
-      kind: OcptStoryboardAnnotationKind.label,
-      x1: 0.5,
-      y1: 0.5,
-    ))!;
+    final panelId = (await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .valueOrFail);
+    final annotationId = (await harness.projectsManager.storyboardService
+        .addAnnotation(
+          database: harness.database,
+          panelId: panelId,
+          kind: OcptStoryboardAnnotationKind.label,
+          x1: 0.5,
+          y1: 0.5,
+        )
+        .valueOrFail);
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

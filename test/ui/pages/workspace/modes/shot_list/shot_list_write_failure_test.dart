@@ -31,6 +31,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import '../../../../../ocpt_result_expectations.dart';
 
 /// A router manager whose [pop] does nothing: these bloc tests don't build a real GoRouter.
 class _RecordingRouterManager extends OcptRouterManager {
@@ -145,14 +146,18 @@ void main() {
     symbolId = canvas.state.selectedFloorPlanSymbolId!;
 
     final storyboardService = projectsManager.shotListService.storyboardService;
-    panelId = (await storyboardService.addPanel(database: project.database, shotId: shotId))!;
-    annotationId = (await storyboardService.addAnnotation(
-      database: project.database,
-      panelId: panelId,
-      kind: OcptStoryboardAnnotationKind.label,
-      x1: 0.5,
-      y1: 0.5,
-    ))!;
+    panelId = (await storyboardService
+        .addPanel(database: project.database, shotId: shotId)
+        .valueOrFail);
+    annotationId = (await storyboardService
+        .addAnnotation(
+          database: project.database,
+          panelId: panelId,
+          kind: OcptStoryboardAnnotationKind.label,
+          x1: 0.5,
+          y1: 0.5,
+        )
+        .valueOrFail);
     await mode.reload({OcptShotListReloadScope.storyboard});
   });
 

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_assets_service.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_row_stamp_service.dart';
@@ -12,6 +13,7 @@ import 'package:open_cine_prod_tools/models/ocpt_storyboard_panel.dart';
 import 'package:open_cine_prod_tools/models/ocpt_storyboard_snapshot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_fractional_key.dart';
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 import 'package:uuid/uuid.dart';
 
@@ -59,10 +61,11 @@ class OcptStoryboardService extends AbsOcptService {
   /// memory against the screenplay's own live shot ids — the same shape `OcptShotListService
   /// .loadShotList` keeps its own reads to, for the same reason: a storyboard is hundreds of rows,
   /// not millions.
-  Future<OcptStoryboardSnapshot> loadStoryboard({
+  @useResult
+  Future<OcptDatabaseResult<OcptStoryboardSnapshot>> loadStoryboard({
     required OcptProjectDatabase database,
     required String screenplayId,
-  }) async {
+  }) => guardResult("loadStoryboard", () async {
     final shotIds = await _liveShotIdsOfScreenplay(database: database, screenplayId: screenplayId);
     if (shotIds.isEmpty) {
       return OcptStoryboardSnapshot(screenplayId: screenplayId, panelsByShotId: const {});
@@ -110,13 +113,17 @@ class OcptStoryboardService extends AbsOcptService {
     }
 
     return OcptStoryboardSnapshot(screenplayId: screenplayId, panelsByShotId: panelsByShotId);
-  }
+  });
 
   /// Create a new panel on shot [shotId] in [database], appended after its current last panel, and
   /// return its freshly generated id. No image yet — [replacePanelImage] is what imports one.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addPanel({required OcptProjectDatabase database, required String shotId}) async {
+  @useResult
+  Future<OcptDatabaseResult<String>> addPanel({
+    required OcptProjectDatabase database,
+    required String shotId,
+  }) => guardResult("addPanel", () async {
     if (database.refusesUserWrite("addPanel")) {
       return null;
     }
@@ -147,18 +154,19 @@ class OcptStoryboardService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Replace panel [panelId]'s image with the file at [path]: tombstones its previous image
   /// `assets` row (if it had one) and mints a fresh one, re-pointing `imageAssetId` — the panel's
   /// own [panelId] never changes, so its annotations and its stamps stay attached to it.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> replacePanelImage({
+  @useResult
+  Future<OcptDatabaseOutcome> replacePanelImage({
     required OcptProjectDatabase database,
     required String panelId,
     required String path,
-  }) async {
+  }) => guardOutcome("replacePanelImage", () async {
     if (database.refusesUserWrite("replacePanelImage")) {
       return;
     }
@@ -196,17 +204,18 @@ class OcptStoryboardService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Move panel [panelId] to [newPosition] (0-based) within its own shot's panels, by giving it a
   /// `sortKey` sitting between the two panels it lands between. Writes **exactly one row**.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> reorderPanel({
+  @useResult
+  Future<OcptDatabaseOutcome> reorderPanel({
     required OcptProjectDatabase database,
     required String panelId,
     required int newPosition,
-  }) async {
+  }) => guardOutcome("reorderPanel", () async {
     if (database.refusesUserWrite("reorderPanel")) {
       return;
     }
@@ -240,16 +249,17 @@ class OcptStoryboardService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Update panel [panelId]'s free comment.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updatePanelComment({
+  @useResult
+  Future<OcptDatabaseOutcome> updatePanelComment({
     required OcptProjectDatabase database,
     required String panelId,
     required String comment,
-  }) async {
+  }) => guardOutcome("updatePanelComment", () async {
     if (database.refusesUserWrite("updatePanelComment")) {
       return;
     }
@@ -271,7 +281,7 @@ class OcptStoryboardService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone panel [panelId], its annotations and its image `assets` row (if it had one), in one
   /// transaction.
@@ -279,7 +289,11 @@ class OcptStoryboardService extends AbsOcptService {
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deletePanel({required OcptProjectDatabase database, required String panelId}) async {
+  @useResult
+  Future<OcptDatabaseOutcome> deletePanel({
+    required OcptProjectDatabase database,
+    required String panelId,
+  }) => guardOutcome("deletePanel", () async {
     if (database.refusesUserWrite("deletePanel")) {
       return;
     }
@@ -289,14 +303,15 @@ class OcptStoryboardService extends AbsOcptService {
       await _tombstonePanel(database: database, panelId: panelId, stamps: stamps);
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Add a mark of [kind] to panel [panelId] at the normalised point/segment `(x1, y1)`-`(x2, y2)`,
   /// appended after the panel's current last mark, and return its freshly
   /// generated id.
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<String?> addAnnotation({
+  @useResult
+  Future<OcptDatabaseResult<String>> addAnnotation({
     required OcptProjectDatabase database,
     required String panelId,
     required OcptStoryboardAnnotationKind kind,
@@ -305,7 +320,7 @@ class OcptStoryboardService extends AbsOcptService {
     double x2 = 0,
     double y2 = 0,
     String text = '',
-  }) async {
+  }) => guardResult("addAnnotation", () async {
     if (database.refusesUserWrite("addAnnotation")) {
       return null;
     }
@@ -341,13 +356,14 @@ class OcptStoryboardService extends AbsOcptService {
     });
 
     return id;
-  }
+  });
 
   /// Update annotation [annotationId]'s geometry and/or text, whichever is passed as something
   /// other than [Value.absent].
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> updateAnnotation({
+  @useResult
+  Future<OcptDatabaseOutcome> updateAnnotation({
     required OcptProjectDatabase database,
     required String annotationId,
     Value<double> x1 = const Value.absent(),
@@ -355,7 +371,7 @@ class OcptStoryboardService extends AbsOcptService {
     Value<double> x2 = const Value.absent(),
     Value<double> y2 = const Value.absent(),
     Value<String> text = const Value.absent(),
-  }) async {
+  }) => guardOutcome("updateAnnotation", () async {
     if (database.refusesUserWrite("updateAnnotation")) {
       return;
     }
@@ -387,17 +403,18 @@ class OcptStoryboardService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone annotation [annotationId].
   ///
   /// {@macro open_cine_prod_tools.tombstones}
   ///
   /// {@macro open_cine_prod_tools.OcptProjectDatabase.previewGuard}
-  Future<void> deleteAnnotation({
+  @useResult
+  Future<OcptDatabaseOutcome> deleteAnnotation({
     required OcptProjectDatabase database,
     required String annotationId,
-  }) async {
+  }) => guardOutcome("deleteAnnotation", () async {
     if (database.refusesUserWrite("deleteAnnotation")) {
       return;
     }
@@ -421,7 +438,7 @@ class OcptStoryboardService extends AbsOcptService {
       );
       await stamps.flush(database);
     });
-  }
+  });
 
   /// Tombstone every panel of shot [shotId] — its annotations and its image `assets` row along
   /// with each one — for `OcptShotListService.deleteShot`'s and `.tombstoneShotsOfScreenplay`'s own

@@ -136,15 +136,6 @@ const pendingServiceMethods = <String>{
   'OcptShotListService.updateDifficulty',
   'OcptShotListService.updateShot',
   'OcptShotListService.updateTextField',
-  'OcptStoryboardService.addAnnotation',
-  'OcptStoryboardService.addPanel',
-  'OcptStoryboardService.deleteAnnotation',
-  'OcptStoryboardService.deletePanel',
-  'OcptStoryboardService.loadStoryboard',
-  'OcptStoryboardService.reorderPanel',
-  'OcptStoryboardService.replacePanelImage',
-  'OcptStoryboardService.updateAnnotation',
-  'OcptStoryboardService.updatePanelComment',
 };
 
 /// What stays as it is for good, each with the reason it is allowed to.

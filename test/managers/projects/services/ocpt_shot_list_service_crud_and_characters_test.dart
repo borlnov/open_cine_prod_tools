@@ -246,26 +246,25 @@ Action.
         sceneId: sceneId,
       ))!;
 
-      final panelId = (await storyboardService.addPanel(
-        database: database,
-        shotId: deletedShotId,
-      ))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: deletedShotId)
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
       final panelAssetId = (await (database.select(
         database.ocptStoryboardPanelsTable,
       )..where((row) => row.id.equals(panelId))).getSingle()).imageAssetId!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      );
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
       final setId = (await locationsService.createSetLinkedToScene(
         database: database,

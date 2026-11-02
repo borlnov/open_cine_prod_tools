@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_floor_plan_layer.dart';
 import 'package:open_cine_prod_tools/types/ocpt_floor_plan_set_element_shape.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
 
+import 'ocpt_result_expectations.dart';
 import 'seed_demo_project_images.dart';
 
 /// Seeds the shot list of every scene.
@@ -484,28 +485,29 @@ Future<void> seedStoryboard({
     topColor: 0x1C2436,
     bottomColor: 0x6C5CE7,
   );
-  final widePanelId = (await storyboardService.addPanel(
-    database: database,
-    shotId: openingCafeShotId,
-  ))!;
-  await storyboardService.replacePanelImage(
-    database: database,
-    panelId: widePanelId,
-    path: wideFramePath,
-  );
-  await storyboardService.updatePanelComment(
-    database: database,
-    panelId: widePanelId,
-    comment: "Establishing — Nora alone at the counter, dawn light through the window.",
-  );
-  await storyboardService.addAnnotation(
-    database: database,
-    panelId: widePanelId,
-    kind: OcptStoryboardAnnotationKind.label,
-    x1: 0.18,
-    y1: 0.3,
-    text: "NORA",
-  );
+  final widePanelId = (await storyboardService
+      .addPanel(database: database, shotId: openingCafeShotId)
+      .valueOrFail);
+  await storyboardService
+      .replacePanelImage(database: database, panelId: widePanelId, path: wideFramePath)
+      .okOrFail;
+  await storyboardService
+      .updatePanelComment(
+        database: database,
+        panelId: widePanelId,
+        comment: "Establishing — Nora alone at the counter, dawn light through the window.",
+      )
+      .okOrFail;
+  await storyboardService
+      .addAnnotation(
+        database: database,
+        panelId: widePanelId,
+        kind: OcptStoryboardAnnotationKind.label,
+        x1: 0.18,
+        y1: 0.3,
+        text: "NORA",
+      )
+      .maybeValueOrFail;
 
   final mediumFramePath = "$frameDir/cafe-medium.png";
   await writePlaceholderImage(
@@ -515,29 +517,30 @@ Future<void> seedStoryboard({
     topColor: 0x232B1C,
     bottomColor: 0x6C5CE7,
   );
-  final mediumPanelId = (await storyboardService.addPanel(
-    database: database,
-    shotId: openingCafeShotId,
-  ))!;
-  await storyboardService.replacePanelImage(
-    database: database,
-    panelId: mediumPanelId,
-    path: mediumFramePath,
-  );
-  await storyboardService.updatePanelComment(
-    database: database,
-    panelId: mediumPanelId,
-    comment: "Martin enters, shaking off the rain.",
-  );
-  await storyboardService.addAnnotation(
-    database: database,
-    panelId: mediumPanelId,
-    kind: OcptStoryboardAnnotationKind.movementArrow,
-    x1: 0.85,
-    y1: 0.55,
-    x2: 0.4,
-    y2: 0.6,
-  );
+  final mediumPanelId = (await storyboardService
+      .addPanel(database: database, shotId: openingCafeShotId)
+      .valueOrFail);
+  await storyboardService
+      .replacePanelImage(database: database, panelId: mediumPanelId, path: mediumFramePath)
+      .okOrFail;
+  await storyboardService
+      .updatePanelComment(
+        database: database,
+        panelId: mediumPanelId,
+        comment: "Martin enters, shaking off the rain.",
+      )
+      .okOrFail;
+  await storyboardService
+      .addAnnotation(
+        database: database,
+        panelId: mediumPanelId,
+        kind: OcptStoryboardAnnotationKind.movementArrow,
+        x1: 0.85,
+        y1: 0.55,
+        x2: 0.4,
+        y2: 0.6,
+      )
+      .maybeValueOrFail;
 
   final closeFramePath = "$frameDir/cafe-close.png";
   await writePlaceholderImage(
@@ -547,18 +550,17 @@ Future<void> seedStoryboard({
     topColor: 0x2C1C23,
     bottomColor: 0x6C5CE7,
   );
-  final closePanelId = (await storyboardService.addPanel(
-    database: database,
-    shotId: openingCafeShotId,
-  ))!;
-  await storyboardService.replacePanelImage(
-    database: database,
-    panelId: closePanelId,
-    path: closeFramePath,
-  );
-  await storyboardService.updatePanelComment(
-    database: database,
-    panelId: closePanelId,
-    comment: "Nora's hands around the mug.",
-  );
+  final closePanelId = (await storyboardService
+      .addPanel(database: database, shotId: openingCafeShotId)
+      .valueOrFail);
+  await storyboardService
+      .replacePanelImage(database: database, panelId: closePanelId, path: closeFramePath)
+      .okOrFail;
+  await storyboardService
+      .updatePanelComment(
+        database: database,
+        panelId: closePanelId,
+        comment: "Nora's hands around the mug.",
+      )
+      .okOrFail;
 }

@@ -598,14 +598,12 @@ Action.
         sceneId: sceneId,
       ))!;
 
-      final firstPanelId = (await storyboardService.addPanel(
-        database: database,
-        shotId: firstShotId,
-      ))!;
-      final secondPanelId = (await storyboardService.addPanel(
-        database: database,
-        shotId: secondShotId,
-      ))!;
+      final firstPanelId = (await storyboardService
+          .addPanel(database: database, shotId: firstShotId)
+          .valueOrFail);
+      final secondPanelId = (await storyboardService
+          .addPanel(database: database, shotId: secondShotId)
+          .valueOrFail);
 
       final setId = (await locationsService.createSetLinkedToScene(
         database: database,

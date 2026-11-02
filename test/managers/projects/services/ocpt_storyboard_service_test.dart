@@ -24,6 +24,7 @@ import 'package:open_cine_prod_tools/models/database/ocpt_project_database.dart'
 import 'package:open_cine_prod_tools/types/ocpt_asset_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_snapshot_reason.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// The fixed device id every stamp this file's writes carry.
 const _deviceId = "device-1";
@@ -155,31 +156,35 @@ Action.
 
   group("loadStoryboard", () {
     test("returns an empty snapshot for a screenplay with no shots", () async {
-      final snapshot = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       expect(snapshot.panelsByShotId, isEmpty);
     });
 
     test("groups live panels by shot, in sortKey order, with their annotations attached", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: firstId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      );
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: firstId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
-      final snapshot = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final snapshot = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
 
       final panels = snapshot.panelsOfShot(shotId);
       expect(panels.map((panel) => panel.id), [firstId, secondId]);
@@ -190,24 +195,22 @@ Action.
 
     test("resolves a panel's image path off its asset row, null while it has none", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      final beforeImport = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final beforeImport = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(beforeImport.panelsOfShot(shotId).single.imagePath, isNull);
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
 
-      final afterImport = await storyboardService.loadStoryboard(
-        database: database,
-        screenplayId: screenplayId,
-      );
+      final afterImport = await storyboardService
+          .loadStoryboard(database: database, screenplayId: screenplayId)
+          .valueOrFail;
       expect(afterImport.panelsOfShot(shotId).single.imagePath, "/tmp/frame.jpg");
     });
   });
@@ -215,8 +218,12 @@ Action.
   group("addPanel", () {
     test("appends a panel after the shot's current last one", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
       final panels = await (database.select(
         database.ocptStoryboardPanelsTable,
@@ -229,13 +236,13 @@ Action.
   group("replacePanelImage", () {
     test("mints a fresh asset on first import and re-points imageAssetId", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame-1.jpg",
-      );
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-1.jpg")
+          .okOrFail;
 
       final panel = (await readPanels()).single;
       expect(panel.imageAssetId, isNotNull);
@@ -251,20 +258,18 @@ Action.
       "tombstones the previous image asset and mints a new one, keeping the panel's own id",
       () async {
         final shotId = await seedShot();
-        final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+        final panelId = (await storyboardService
+            .addPanel(database: database, shotId: shotId)
+            .valueOrFail);
 
-        await storyboardService.replacePanelImage(
-          database: database,
-          panelId: panelId,
-          path: "/tmp/frame-1.jpg",
-        );
+        await storyboardService
+            .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-1.jpg")
+            .okOrFail;
         final firstAssetId = (await readPanels()).single.imageAssetId!;
 
-        await storyboardService.replacePanelImage(
-          database: database,
-          panelId: panelId,
-          path: "/tmp/frame-2.jpg",
-        );
+        await storyboardService
+            .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame-2.jpg")
+            .okOrFail;
 
         final panel = (await readPanels()).single;
         expect(panel.id, panelId);
@@ -284,13 +289,21 @@ Action.
   group("reorderPanel", () {
     test("moves a panel by writing exactly one row", () async {
       final shotId = await seedShot();
-      final firstId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final secondId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final thirdId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final firstId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final secondId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final thirdId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
       final sortKeysBefore = {for (final row in await readPanels()) row.id: row.sortKey};
 
-      await storyboardService.reorderPanel(database: database, panelId: thirdId, newPosition: 0);
+      await storyboardService
+          .reorderPanel(database: database, panelId: thirdId, newPosition: 0)
+          .okOrFail;
 
       final panels = await readPanels();
       final sortKeysAfter = {for (final row in panels) row.id: row.sortKey};
@@ -309,13 +322,13 @@ Action.
   group("updatePanelComment", () {
     test("updates only the comment", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
 
-      await storyboardService.updatePanelComment(
-        database: database,
-        panelId: panelId,
-        comment: "dolly in slowly",
-      );
+      await storyboardService
+          .updatePanelComment(database: database, panelId: panelId, comment: "dolly in slowly")
+          .okOrFail;
 
       final panel = (await readPanels()).single;
       expect(panel.comment, "dolly in slowly");
@@ -325,23 +338,25 @@ Action.
   group("deletePanel", () {
     test("tombstones the panel, its annotations and its image asset in one go", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
       final assetId = (await readPanels()).single.imageAssetId!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.2,
-        y1: 0.2,
-        text: "note",
-      );
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.2,
+            y1: 0.2,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
-      await storyboardService.deletePanel(database: database, panelId: panelId);
+      await storyboardService.deletePanel(database: database, panelId: panelId).okOrFail;
 
       expect(await readPanels(), isEmpty);
       expect(await readAnnotations(), isEmpty);
@@ -359,23 +374,29 @@ Action.
   group("annotations", () {
     test("addAnnotation appends and updateAnnotation changes geometry/text", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final annotationId = (await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.movementArrow,
-        x1: 0.1,
-        y1: 0.1,
-        x2: 0.4,
-        y2: 0.4,
-      ))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final annotationId = (await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.1,
+            y1: 0.1,
+            x2: 0.4,
+            y2: 0.4,
+          )
+          .valueOrFail);
 
-      await storyboardService.updateAnnotation(
-        database: database,
-        annotationId: annotationId,
-        x2: const Value(0.9),
-        text: const Value("dolly in"),
-      );
+      await storyboardService
+          .updateAnnotation(
+            database: database,
+            annotationId: annotationId,
+            x2: const Value(0.9),
+            text: const Value("dolly in"),
+          )
+          .okOrFail;
 
       final annotation = (await readAnnotations()).single;
       expect(annotation.x1, 0.1);
@@ -385,17 +406,23 @@ Action.
 
     test("deleteAnnotation tombstones it", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      final annotationId = (await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      ))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      final annotationId = (await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .valueOrFail);
 
-      await storyboardService.deleteAnnotation(database: database, annotationId: annotationId);
+      await storyboardService
+          .deleteAnnotation(database: database, annotationId: annotationId)
+          .okOrFail;
 
       expect(await readAnnotations(), isEmpty);
     });
@@ -404,21 +431,23 @@ Action.
   group("tombstonePanelsOfShot", () {
     test("tombstones every panel of the shot, its annotations and its image asset", () async {
       final shotId = await seedShot();
-      final panelId = (await storyboardService.addPanel(database: database, shotId: shotId))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/tmp/frame.jpg",
-      );
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: shotId)
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/tmp/frame.jpg")
+          .okOrFail;
       final assetId = (await readPanels()).single.imageAssetId!;
-      await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: 0.5,
-        y1: 0.5,
-        text: "note",
-      );
+      await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.label,
+            x1: 0.5,
+            y1: 0.5,
+            text: "note",
+          )
+          .maybeValueOrFail;
 
       await database.transaction(() async {
         final stamps = await OcptRowStampService.seed(database: database, deviceId: _deviceId);

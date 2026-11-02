@@ -6,17 +6,17 @@ import 'dart:async';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
 import 'package:act_global_manager/act_global_manager.dart';
-import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:meta/meta.dart' show useResult;
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
-import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
 import 'package:open_cine_prod_tools/managers/projects/ocpt_projects_manager.dart';
 import 'package:open_cine_prod_tools/managers/projects/services/ocpt_storyboard_service.dart';
 import 'package:open_cine_prod_tools/models/ocpt_open_project_model.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shot_list_pending_edit_key.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_pending_edits.dart';
+import 'package:open_cine_prod_tools/types/ocpt_database_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_pending_writes_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_reload_scope.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_list_right_dock_tab.dart';
@@ -53,12 +53,6 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// panel that is gone.
 class OcptShotListStoryboardBloc
     extends AbsOcptViewBloc<OcptShotListStoryboardState, OcptShotListState, OcptShotListBloc> {
-  /// The logger category linked to this BLoC.
-  static const _loggerCategory = "shot_list_storyboard_bloc";
-
-  /// The logger this BLoC writes to.
-  final LogsHelper _logger;
-
   /// The manager used to access the project currently open.
   final OcptProjectsManager _projectsManager;
 
@@ -80,8 +74,7 @@ class OcptShotListStoryboardBloc
     OcptStoryboardService? storyboardService,
     FileSelectorManager? fileSelectorManager,
     Duration fieldEditDebounce = OcptShotListBloc.defaultFieldEditDebounce,
-  }) : _logger = buildOcptLogsHelper(_loggerCategory),
-       _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
+  }) : _projectsManager = projectsManager ?? globalGetIt().get<OcptProjectsManager>(),
        _storyboardService =
            storyboardService ??
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).storyboardService,
@@ -205,24 +198,8 @@ class OcptShotListStoryboardBloc
       return OcptPendingWritesStatus.ok;
     }
 
-    try {
-      await _writeAllPendingEdits(project: project, pending: pending);
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
-      emitter(
-        state.copyWithFlushedFieldEdits(
-          pendingFieldEdits: ocptPendingEditsAfterWrite(
-            current: state.pendingFieldEdits,
-            written: pending,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending storyboard edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final written = await _writeAllPendingEdits(project: project, pending: pending);
+    if (written.isError) {
       emitter(
         state.copyToFlushFailed(
           pendingFieldEdits: ocptPendingEditsAfterWrite(
@@ -231,7 +208,19 @@ class OcptShotListStoryboardBloc
           ),
         ),
       );
+
+      return OcptPendingWritesStatus.ok;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.storyboard});
+    emitter(
+      state.copyWithFlushedFieldEdits(
+        pendingFieldEdits: ocptPendingEditsAfterWrite(
+          current: state.pendingFieldEdits,
+          written: pending,
+        ),
+      ),
+    );
 
     return OcptPendingWritesStatus.ok;
   }
@@ -253,19 +242,10 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      await flushEditsWithoutStateUntilConverted(
-        pending,
-        (edits) => _writeAllPendingEdits(project: project, pending: edits),
-      );
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to flush a pending storyboard edit of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
-    }
+    final _ = await flushEditsWithoutState(
+      pending,
+      (edits) => _writeAllPendingEdits(project: project, pending: edits),
+    );
   }
 
   /// Select panel `event.panelId` on the board, dispatched by a click on one of the selected
@@ -305,29 +285,32 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      final panelId = await _storyboardService.addPanel(
-        database: project.database,
-        shotId: event.shotId,
-      );
-      if (panelId != null) {
-        await _storyboardService.replacePanelImage(
-          database: project.database,
-          panelId: panelId,
-          path: path,
-        );
-        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-          emitter(state.copyWithSelectedPanel(panelId: panelId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to import a storyboard frame onto shot ${event.shotId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final created = await _storyboardService.addPanel(
+      database: project.database,
+      shotId: event.shotId,
+    );
+    if (created.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final panelId = created.value;
+    if (panelId == null) {
+      return;
+    }
+
+    final imported = await _storyboardService.replacePanelImage(
+      database: project.database,
+      panelId: panelId,
+      path: path,
+    );
+    if (imported.isError) {
+      emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+      emitter(state.copyWithSelectedPanel(panelId: panelId));
     }
   }
 
@@ -348,22 +331,17 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      await _storyboardService.replacePanelImage(
-        database: project.database,
-        panelId: event.panelId,
-        path: path,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to replace the image of panel ${event.panelId} of "
-        "project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final replaced = await _storyboardService.replacePanelImage(
+      database: project.database,
+      panelId: event.panelId,
+      path: path,
+    );
+    if (replaced.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.storyboard});
   }
 
   /// Show the native "open" dialog filtered to [ocptStoryboardPanelImageFileExtensions] and return
@@ -402,22 +380,17 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      await _storyboardService.reorderPanel(
-        database: project.database,
-        panelId: event.panelId,
-        newPosition: event.newPosition,
-      );
-      await modeBloc.reload({OcptShotListReloadScope.storyboard});
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to reorder panel ${event.panelId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final reordered = await _storyboardService.reorderPanel(
+      database: project.database,
+      panelId: event.panelId,
+      newPosition: event.newPosition,
+    );
+    if (reordered.isError) {
       emitter(state.copyToWriteFailed());
+      return;
     }
+
+    await modeBloc.reload({OcptShotListReloadScope.storyboard});
   }
 
   /// Record the raw text just typed into panel `event.panelId`'s comment as a pending edit, and
@@ -467,26 +440,24 @@ class OcptShotListStoryboardBloc
       OcptShotListSymbolLabelEditKey() => false,
     };
 
-    try {
-      await _storyboardService.deletePanel(database: project.database, panelId: event.panelId);
-      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        emitter(
-          state.copyWithDeletedPanelEdits(
-            // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
-            pendingFieldEdits: Map.of(state.pendingFieldEdits)
-              ..removeWhere((key, _) => isOfPanel(key)),
-            wasSelected: wasSelected,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete panel ${event.panelId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _storyboardService.deletePanel(
+      database: project.database,
+      panelId: event.panelId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+      emitter(
+        state.copyWithDeletedPanelEdits(
+          // Taken now, not before the delete: a keystroke typed meanwhile is not the panel's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)
+            ..removeWhere((key, _) => isOfPanel(key)),
+          wasSelected: wasSelected,
+        ),
+      );
     }
   }
 
@@ -515,29 +486,25 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      final annotationId = await _storyboardService.addAnnotation(
-        database: project.database,
-        panelId: event.panelId,
-        kind: event.kind,
-        x1: event.x1,
-        y1: event.y1,
-        x2: event.x2,
-        y2: event.y2,
-      );
-      if (annotationId != null) {
-        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-          emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to draw a ${event.kind} mark onto panel ${event.panelId} "
-        "of project ${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final added = await _storyboardService.addAnnotation(
+      database: project.database,
+      panelId: event.panelId,
+      kind: event.kind,
+      x1: event.x1,
+      y1: event.y1,
+      x2: event.x2,
+      y2: event.y2,
+    );
+    if (added.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final annotationId = added.value;
+    if (annotationId != null) {
+      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
+      }
     }
   }
 
@@ -553,27 +520,23 @@ class OcptShotListStoryboardBloc
       return;
     }
 
-    try {
-      final annotationId = await _storyboardService.addAnnotation(
-        database: project.database,
-        panelId: event.panelId,
-        kind: OcptStoryboardAnnotationKind.label,
-        x1: event.x1,
-        y1: event.y1,
-      );
-      if (annotationId != null) {
-        if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-          emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
-        }
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to place a label onto panel ${event.panelId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final added = await _storyboardService.addAnnotation(
+      database: project.database,
+      panelId: event.panelId,
+      kind: OcptStoryboardAnnotationKind.label,
+      x1: event.x1,
+      y1: event.y1,
+    );
+    if (added.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    final annotationId = added.value;
+    if (annotationId != null) {
+      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+        emitter(state.copyWithSelectedAnnotation(annotationId: annotationId));
+      }
     }
   }
 
@@ -615,29 +578,24 @@ class OcptShotListStoryboardBloc
     bool isOfAnnotation(OcptShotListPendingEditKey key) =>
         key is OcptShotListAnnotationTextEditKey && key.annotationId == event.annotationId;
 
-    try {
-      await _storyboardService.deleteAnnotation(
-        database: project.database,
-        annotationId: event.annotationId,
-      );
-      if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
-        emitter(
-          state.copyWithDeletedAnnotationEdits(
-            // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
-            pendingFieldEdits: Map.of(state.pendingFieldEdits)
-              ..removeWhere((key, _) => isOfAnnotation(key)),
-            wasSelected: wasSelected,
-          ),
-        );
-      }
-    } catch (error, stackTrace) {
-      _logger.e(
-        "A problem occurred when tried to delete mark ${event.annotationId} of project "
-        "${project.primaryScreenplayId}: ${error.runtimeType}",
-        null,
-        stackTrace,
-      );
+    final deleted = await _storyboardService.deleteAnnotation(
+      database: project.database,
+      annotationId: event.annotationId,
+    );
+    if (deleted.isError) {
       emitter(state.copyToWriteFailed());
+      return;
+    }
+
+    if (await modeBloc.reload({OcptShotListReloadScope.storyboard})) {
+      emitter(
+        state.copyWithDeletedAnnotationEdits(
+          // Taken now, not before the delete: a keystroke typed meanwhile is not the mark's.
+          pendingFieldEdits: Map.of(state.pendingFieldEdits)
+            ..removeWhere((key, _) => isOfAnnotation(key)),
+          wasSelected: wasSelected,
+        ),
+      );
     }
   }
 
@@ -683,24 +641,34 @@ class OcptShotListStoryboardBloc
   /// Write every entry of [pending], switching on its key's own kind: a panel comment through
   /// `OcptStoryboardService.updatePanelComment`, or a mark's own text through
   /// `OcptStoryboardService.updateAnnotation`.
-  Future<void> _writeAllPendingEdits({
+  ///
+  /// Stops at the first write that fails and answers its failure; the entries after it are not
+  /// written.
+  @useResult
+  Future<OcptDatabaseOutcome> _writeAllPendingEdits({
     required OcptOpenProjectModel project,
     required Map<OcptShotListPendingEditKey, String> pending,
   }) async {
     for (final entry in pending.entries) {
       switch (entry.key) {
         case OcptShotListPanelCommentEditKey(:final panelId):
-          await _storyboardService.updatePanelComment(
+          final commentWritten = await _storyboardService.updatePanelComment(
             database: project.database,
             panelId: panelId,
             comment: entry.value,
           );
+          if (commentWritten.isError) {
+            return commentWritten;
+          }
         case OcptShotListAnnotationTextEditKey(:final annotationId):
-          await _storyboardService.updateAnnotation(
+          final textWritten = await _storyboardService.updateAnnotation(
             database: project.database,
             annotationId: annotationId,
             text: Value(entry.value),
           );
+          if (textWritten.isError) {
+            return textWritten;
+          }
         case OcptShotListShotFieldEditKey() ||
             OcptShotListSetNameEditKey() ||
             OcptShotListSymbolLabelEditKey():
@@ -708,5 +676,7 @@ class OcptShotListStoryboardBloc
           break;
       }
     }
+
+    return const OcptDatabaseOutcome(status: OcptDatabaseStatus.ok);
   }
 }

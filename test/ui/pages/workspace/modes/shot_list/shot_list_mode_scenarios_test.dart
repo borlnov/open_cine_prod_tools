@@ -14,6 +14,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/widgets/ocpt_storyboard_shot_leader_card.dart';
 import 'package:open_cine_prod_tools/ui/widgets/ocpt_confirm_dialog.dart';
 
+import '../../../../../ocpt_result_expectations.dart';
 import 'shot_list_mode_scenarios_test_doubles.dart';
 
 /// How long a scenario lets the mode's 2 s field-edit debounce run out.
@@ -133,10 +134,9 @@ void main() {
   testWidgets("a panel comment typed on the board is written, and reads back after a trip through "
       "the table", (tester) async {
     final shotIds = await harness.seedShots(1);
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 
@@ -161,10 +161,9 @@ void main() {
       "panels and floor plan, and falls back to the first shot left", (tester) async {
     final shotIds = await harness.seedShots(2);
     final setId = await harness.seedLinkedSet("KITCHEN");
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.first,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.first)
+        .maybeValueOrFail;
     await harness.projectsManager.floorPlanService.placeSymbol(
       database: harness.database,
       setId: setId,
@@ -230,10 +229,9 @@ void main() {
       "changing sequence, and kept by re-picking the same sequence", (tester) async {
     await harness.seedShots(2);
     final shotIds = (await harness.readShotList()).shotsById.keys.toList();
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.first,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.first)
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
     final panelSelected = find.textContaining(tr.shotListBoardPanelSelectedHint(1, 1));
@@ -405,10 +403,9 @@ void main() {
   testWidgets("exporting right after typing exports what was typed, from the table and from the "
       "board", (tester) async {
     final shotIds = await harness.seedShots(1);
-    await harness.projectsManager.storyboardService.addPanel(
-      database: harness.database,
-      shotId: shotIds.single,
-    );
+    await harness.projectsManager.storyboardService
+        .addPanel(database: harness.database, shotId: shotIds.single)
+        .maybeValueOrFail;
     await harness.mount(tester);
     final tr = harness.trOf(tester);
 

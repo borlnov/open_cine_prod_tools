@@ -91,7 +91,8 @@ class OcptShotListReader {
   /// `OcptScreenplayService` already depends on), null prefix on a single-episode project.
   ///
   /// Answers the failure of the placements read, in place of the snapshot, when the schedule could
-  /// not be read.
+  /// not be read. The reads of the shot list, the field suggestions, the floor plans, the
+  /// locations, the cast and the screenplay text still raise when the database fails.
   @useResult
   Future<OcptDatabaseResult<OcptShotListSnapshot>> loadSnapshot(
     OcptOpenProjectModel project,
@@ -118,8 +119,14 @@ class OcptShotListReader {
 
   /// Read the whole storyboard of the selected episode's screenplay — every live shot's panels,
   /// keyed by shot id — what the board reads through `OcptShotListState.panelsOfShot`.
-  Future<OcptStoryboardSnapshot> loadStoryboard(OcptOpenProjectModel project) => _storyboardService
-      .loadStoryboard(database: project.database, screenplayId: _screenplayIdOf(project));
+  ///
+  /// Answers the failure of the read when the database could not be read.
+  @useResult
+  Future<OcptDatabaseResult<OcptStoryboardSnapshot>> loadStoryboard(OcptOpenProjectModel project) =>
+      _storyboardService.loadStoryboard(
+        database: project.database,
+        screenplayId: _screenplayIdOf(project),
+      );
 
   /// Read the whole floor plans of the selected episode's screenplay — every live set of every
   /// sequence, keyed by scene id — what the floor plans view reads through

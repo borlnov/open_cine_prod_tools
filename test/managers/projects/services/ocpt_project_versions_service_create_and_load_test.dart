@@ -39,6 +39,7 @@ import 'package:open_cine_prod_tools/types/ocpt_project_version_payload_status.d
 import 'package:open_cine_prod_tools/types/ocpt_role_kind.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shot_status.dart';
 import 'package:open_cine_prod_tools/types/ocpt_storyboard_annotation_kind.dart';
+import '../../../ocpt_result_expectations.dart';
 
 /// Run the tests of the project versions service create and load.
 void main() {
@@ -599,27 +600,27 @@ void main() {
       await insertScene(id: "scene-1");
       await insertShot(id: "shot-1", sceneId: "scene-1");
 
-      final panelId = (await storyboardService.addPanel(database: database, shotId: "shot-1"))!;
-      await storyboardService.replacePanelImage(
-        database: database,
-        panelId: panelId,
-        path: "/frames/shot-1.png",
-      );
-      await storyboardService.updatePanelComment(
-        database: database,
-        panelId: panelId,
-        comment: "Push in on the door",
-      );
-      final annotationId = (await storyboardService.addAnnotation(
-        database: database,
-        panelId: panelId,
-        kind: OcptStoryboardAnnotationKind.movementArrow,
-        x1: 0.1,
-        y1: 0.2,
-        x2: 0.8,
-        y2: 0.6,
-        text: "walks to the door",
-      ))!;
+      final panelId = (await storyboardService
+          .addPanel(database: database, shotId: "shot-1")
+          .valueOrFail);
+      await storyboardService
+          .replacePanelImage(database: database, panelId: panelId, path: "/frames/shot-1.png")
+          .okOrFail;
+      await storyboardService
+          .updatePanelComment(database: database, panelId: panelId, comment: "Push in on the door")
+          .okOrFail;
+      final annotationId = (await storyboardService
+          .addAnnotation(
+            database: database,
+            panelId: panelId,
+            kind: OcptStoryboardAnnotationKind.movementArrow,
+            x1: 0.1,
+            y1: 0.2,
+            x2: 0.8,
+            y2: 0.6,
+            text: "walks to the door",
+          )
+          .valueOrFail);
 
       final setId = (await locationsService.createSetLinkedToScene(
         database: database,

@@ -280,7 +280,9 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
           case OcptShotListReloadScope.suggestions:
             suggestions = await _reader.loadSuggestions(project);
           case OcptShotListReloadScope.storyboard:
-            storyboardSnapshot = await _reader.loadStoryboard(project);
+            final read = await _reader.loadStoryboard(project);
+            isRead = !read.isError;
+            storyboardSnapshot = read.value;
           case OcptShotListReloadScope.floorPlans:
             floorPlanSnapshot = await _reader.loadFloorPlans(project);
           case OcptShotListReloadScope.locations:
@@ -408,7 +410,12 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
       }
 
       final snapshot = snapshotRead.value!;
-      final storyboardSnapshot = await _reader.loadStoryboard(project);
+      final storyboardRead = await _reader.loadStoryboard(project);
+      if (storyboardRead.isError) {
+        return false;
+      }
+
+      final storyboardSnapshot = storyboardRead.value!;
       final floorPlanSnapshot = await _reader.loadFloorPlans(project);
       final locations = await _reader.loadLocations(project);
       final setScopeSymbolsBySetId = await _reader.loadSetScopeSymbolsBySetId(project);
@@ -764,7 +771,13 @@ class OcptShotListBloc extends BlocForMixin<OcptShotListState>
             : state.selectedShotId;
 
         final suggestions = await _reader.loadSuggestions(project);
-        final storyboardSnapshot = await _reader.loadStoryboard(project);
+        final storyboardRead = await _reader.loadStoryboard(project);
+        if (storyboardRead.isError) {
+          emitter(state.copyToWriteFailed());
+          return;
+        }
+
+        final storyboardSnapshot = storyboardRead.value!;
         final floorPlanSnapshot = await _reader.loadFloorPlans(project);
         emitter(
           state.copyWithDeletedShot(
