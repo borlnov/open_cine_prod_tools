@@ -45,7 +45,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/blocs/ocpt_project_versi
 /// refresh dispatched on mount, say, against a version operation the user triggers a moment
 /// later — would otherwise be free to interleave their own multi-step reads and writes against the
 /// very same database.
-mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> on BlocForMixin<S> {
+mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>>
+    on BlocForMixin<S>, MixinAsyncInitBloc<S> {
   /// The logger category linked to this mixin.
   static const _loggerCategory = "project_versions_bloc";
 
@@ -105,10 +106,19 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
   @protected
   Future<void> reloadFromProjectDatabase(Emitter<S> emitter);
 
-  /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
   ///
-  /// The initial refresh is dispatched from here rather than left to each mode's constructor, so a
-  /// mode never has to remember to populate the panel it hosts.
+  /// The initial refresh runs from here rather than being left to each mode, so a mode never has to
+  /// remember to populate the panel it hosts.
+  @protected
+  @override
+  @mustCallSuper
+  Future<void> initAsyncBloc({required Emitter<S> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+    await _onVersionsRefreshRequested(const OcptProjectVersionsRefreshRequestedEvent(), emit);
+  }
+
+  /// {@macro act_flutter_utility.BlocForMixin.registerMixinEvents}
   @override
   void registerMixinEvents() {
     super.registerMixinEvents();
@@ -128,8 +138,6 @@ mixin MixinOcptProjectVersionsBloc<S extends MixinOcptProjectVersionsState<S>> o
     on<OcptProjectVersionPreviewExitRequestedEvent>(_onVersionPreviewExitRequested);
     on<OcptProjectWorkingCopyRefreshRequestedEvent>(_onWorkingCopyRefreshRequested);
     on<OcptProjectVersionNoticeDismissedEvent>(_onVersionNoticeDismissed);
-
-    add(const OcptProjectVersionsRefreshRequestedEvent());
   }
 
   /// Run [operation] only once every operation already queued through this has settled, and

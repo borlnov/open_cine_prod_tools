@@ -96,10 +96,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// edit has to reach it first — and asks [exportManager] where to write.
 class OcptShotListBloc extends BlocForMixin<OcptShotListState>
     with
+        MixinAsyncInitBloc<OcptShotListState>,
         MixinOcptProjectVersionsBloc<OcptShotListState>,
         MixinOcptProjectPackageBloc<OcptShotListState>,
-        MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope>,
-        MixinAsyncInitBloc<OcptShotListState> {
+        MixinOcptModeBloc<OcptShotListState, OcptShotListReloadScope> {
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 

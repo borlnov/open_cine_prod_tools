@@ -79,10 +79,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// own exports (`OcptResourcesExportBloc`) do.
 class OcptResourcesBloc extends BlocForMixin<OcptResourcesState>
     with
+        MixinAsyncInitBloc<OcptResourcesState>,
         MixinOcptProjectVersionsBloc<OcptResourcesState>,
         MixinOcptProjectPackageBloc<OcptResourcesState>,
-        MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope>,
-        MixinAsyncInitBloc<OcptResourcesState> {
+        MixinOcptModeBloc<OcptResourcesState, OcptResourcesReloadScope> {
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 

@@ -367,7 +367,7 @@ void main() {
     final bloc = await buildLoadedBloc(saveLocationService);
 
     bloc.add(const OcptProjectPackageExportRequestedEvent(fileTypeLabel: "Project package"));
-    await waitForState(bloc, (_) => saveLocationService.askCount > 0);
+    await waitUntil(() => saveLocationService.askCount > 0);
 
     // Nothing else is coming: the handler returned the moment the dialog answered null, so a state
     // holding a notice would have to be emitted by something that is not running any more.

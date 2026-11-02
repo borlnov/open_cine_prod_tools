@@ -83,10 +83,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// own exports do.
 class OcptBreakdownBloc extends BlocForMixin<OcptBreakdownState>
     with
+        MixinAsyncInitBloc<OcptBreakdownState>,
         MixinOcptProjectVersionsBloc<OcptBreakdownState>,
         MixinOcptProjectPackageBloc<OcptBreakdownState>,
-        MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope>,
-        MixinAsyncInitBloc<OcptBreakdownState> {
+        MixinOcptModeBloc<OcptBreakdownState, OcptBreakdownReloadScope> {
   /// The default delay between the last field edit and its autosave write, for the inspector bloc.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 

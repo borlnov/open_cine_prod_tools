@@ -85,10 +85,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// wired here exactly as every other mode's is, beside the budget's own documents.
 class OcptBudgetBloc extends BlocForMixin<OcptBudgetState>
     with
+        MixinAsyncInitBloc<OcptBudgetState>,
         MixinOcptProjectVersionsBloc<OcptBudgetState>,
         MixinOcptProjectPackageBloc<OcptBudgetState>,
-        MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope>,
-        MixinAsyncInitBloc<OcptBudgetState> {
+        MixinOcptModeBloc<OcptBudgetState, OcptBudgetReloadScope> {
   /// The default delay between the last field edit and its autosave write, for the expenses view.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 

@@ -61,10 +61,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// own exports do.
 class OcptEditorBloc extends BlocForMixin<OcptEditorState>
     with
+        MixinAsyncInitBloc<OcptEditorState>,
         MixinOcptProjectVersionsBloc<OcptEditorState>,
         MixinOcptProjectPackageBloc<OcptEditorState>,
-        MixinOcptModeBloc<OcptEditorState, Never>,
-        MixinAsyncInitBloc<OcptEditorState> {
+        MixinOcptModeBloc<OcptEditorState, Never> {
   /// The default delay between the last edit and the re-parse of the source text.
   static const defaultParseDebounce = Duration(milliseconds: 150);
 

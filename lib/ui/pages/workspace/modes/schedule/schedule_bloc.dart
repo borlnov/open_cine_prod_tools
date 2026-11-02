@@ -89,10 +89,10 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/widgets/ocpt_workspace_d
 /// `scheduleLastRightDockTab`, mirroring `OcptBreakdownBloc` exactly.
 class OcptScheduleBloc extends BlocForMixin<OcptScheduleState>
     with
+        MixinAsyncInitBloc<OcptScheduleState>,
         MixinOcptProjectVersionsBloc<OcptScheduleState>,
         MixinOcptProjectPackageBloc<OcptScheduleState>,
-        MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope>,
-        MixinAsyncInitBloc<OcptScheduleState> {
+        MixinOcptModeBloc<OcptScheduleState, OcptScheduleReloadScope> {
   /// The default delay between the last field edit and its autosave write, for the view blocs.
   static const defaultFieldEditDebounce = Duration(seconds: 2);
 

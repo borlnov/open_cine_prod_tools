@@ -5,9 +5,11 @@
 import 'dart:async';
 
 import 'package:act_file_transfer_manager/act_file_transfer_manager.dart';
+import 'package:act_flutter_utility/act_flutter_utility.dart';
 import 'package:act_global_manager/act_global_manager.dart';
 import 'package:act_logger_manager/act_logger_manager.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_cine_prod_tools/constants/ocpt_asset_file_types.dart';
 import 'package:open_cine_prod_tools/managers/logging/ocpt_logs_helper_builder.dart';
@@ -59,7 +61,8 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/shot_list/shot_lis
 /// hidden layers and the onion skin stay as the user left them through any selection move or
 /// reload, as they always have.
 class OcptShotListFloorPlanSetsBloc
-    extends AbsOcptViewBloc<OcptShotListFloorPlanSetsState, OcptShotListState, OcptShotListBloc> {
+    extends AbsOcptViewBloc<OcptShotListFloorPlanSetsState, OcptShotListState, OcptShotListBloc>
+    with MixinAsyncInitBloc<OcptShotListFloorPlanSetsState> {
   /// The logger category linked to this BLoC.
   static const _loggerCategory = "shot_list_floor_plan_sets_bloc";
 
@@ -124,11 +127,21 @@ class OcptShotListFloorPlanSetsBloc
            (projectsManager ?? globalGetIt().get<OcptProjectsManager>()).elementsService,
        _fileSelectorManager = fileSelectorManager,
        _fieldEditDebounce = fieldEditDebounce,
-       super(const OcptShotListFloorPlanSetsState.init()) {
-    // A mode that loaded before this bloc was built moves no selection it could react to.
+       super(const OcptShotListFloorPlanSetsState.init());
+
+  /// {@macro act_flutter_utility.MixinAsyncInitBloc.initAsyncBloc}
+  ///
+  /// Reads the palette's props when the mode loaded before this bloc was built, which moves no
+  /// selection this bloc could react to.
+  @protected
+  @override
+  Future<void> initAsyncBloc({required Emitter<OcptShotListFloorPlanSetsState> emit}) async {
+    await super.initAsyncBloc(emit: emit);
+
     if (!modeBloc.state.isLoading) {
-      add(
+      await _onPropsLoadRequested(
         OcptShotListFloorPlanPropsLoadRequestedEvent(sequenceId: modeBloc.state.selectedSequenceId),
+        emit,
       );
     }
   }
