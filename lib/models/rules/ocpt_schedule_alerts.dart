@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_day.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_kind.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_location_window.dart';
@@ -23,7 +24,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// [kind] actually fills in. **It knows no names**: every subclass carries ids and figures alone —
 /// a person's id, a role's id, a minute — and it is the panel that resolves a person's display name
 /// or localises a sentence around them, exactly as `OcptDayConvocation` carries no name either.
-sealed class OcptScheduleAlert {
+sealed class OcptScheduleAlert extends Equatable {
   /// The day this alert is about, or null for [OcptScheduleRoleUncastAlert] alone — a role's own
   /// casting is not a fact about any one day.
   final String? dayId;
@@ -36,6 +37,10 @@ sealed class OcptScheduleAlert {
 
   /// Class constructor
   const OcptScheduleAlert({required this.dayId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [dayId];
 }
 
 /// **Hard, rule 1**: [personId] is linked to at least one slot of [dayId], and one of their
@@ -69,6 +74,10 @@ final class OcptSchedulePersonUnavailableAlert extends OcptScheduleAlert {
     required this.unavailabilityId,
     required this.slotIds,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, personId, unavailabilityId, slotIds];
 }
 
 /// **Hard, rule 2**: [personId] is linked to both [firstSlotId] and [secondSlotId] of [dayId], and
@@ -101,6 +110,10 @@ final class OcptSchedulePersonDoubleBookedAlert extends OcptScheduleAlert {
     required this.firstSlotId,
     required this.secondSlotId,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, personId, firstSlotId, secondSlotId];
 }
 
 /// **Hard, rule 3**: [slotId]'s own location ([locationId]) declares at least one
@@ -128,6 +141,10 @@ final class OcptScheduleLocationUncoveredAlert extends OcptScheduleAlert {
     required this.slotId,
     required this.locationId,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, slotId, locationId];
 }
 
 /// **Soft, rule 4**: [roleId] is called for by [shotId], a shot placed on
@@ -155,6 +172,10 @@ final class OcptScheduleRoleNotConvokedAlert extends OcptScheduleAlert {
     required this.roleId,
     required this.shotId,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, roleId, shotId];
 }
 
 /// **Soft, rule 5**: [roleId] has no actor (`roles.personId` is null), and it is a role the
@@ -175,6 +196,10 @@ final class OcptScheduleRoleUncastAlert extends OcptScheduleAlert {
 
   /// Class constructor
   const OcptScheduleRoleUncastAlert({required this.roleId}) : super(dayId: null);
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, roleId];
 }
 
 /// **Soft, rule 6**: a straight pass-through of one [OcptTimelineOverrun] on
@@ -201,6 +226,10 @@ final class OcptScheduleTimelineOverrunAlert extends OcptScheduleAlert {
     required this.reachedMinute,
     required this.anchorMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, blockId, reachedMinute, anchorMinute];
 }
 
 /// **Soft, rule 7**: a straight pass-through of one [OcptTimelineFixedEndMiss] on
@@ -227,6 +256,10 @@ final class OcptScheduleFixedEndMissedAlert extends OcptScheduleAlert {
     required this.fixedEndMinute,
     required this.actualEndMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, slotId, fixedEndMinute, actualEndMinute];
 }
 
 /// **Soft, rule 8**: on [OcptScheduleAlert.dayId], [personId]'s own computed presence
@@ -259,6 +292,10 @@ final class OcptSchedulePresenceExceededAlert extends OcptScheduleAlert {
     required this.presenceMinutes,
     required this.maxDailyPresenceMinutes,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, personId, presenceMinutes, maxDailyPresenceMinutes];
 }
 
 /// **Soft, rule 9**: [personId]'s own departure on [previousDayId] and their arrival on
@@ -302,6 +339,16 @@ final class OcptScheduleRestTimeAlert extends OcptScheduleAlert {
     required this.restMinutes,
     required this.minimumRestMinutes,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    ...super.props,
+    personId,
+    previousDayId,
+    restMinutes,
+    minimumRestMinutes,
+  ];
 }
 
 /// **Soft, rule 10**: [slotId]'s own location ([locationId]) declares at least one dated
@@ -330,6 +377,10 @@ final class OcptSchedulePermitNotValidAlert extends OcptScheduleAlert {
     required this.slotId,
     required this.locationId,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [...super.props, slotId, locationId];
 }
 
 /// The minute at which [OcptDayPartSlot.morning] ends and [OcptDayPartSlot.afternoon] begins:

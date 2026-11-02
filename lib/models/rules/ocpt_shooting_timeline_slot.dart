@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// One slot of a day, ready to be chained by [ocptComputeShootingDayTimelines]: its own id, its own
 /// anchor and its own blocks, in the order [ocptComputeSlotTimeline] should place them in.
-class OcptShootingTimelineSlot {
+class OcptShootingTimelineSlot extends Equatable {
   /// The slot's own id (`shooting_slots.id`).
   final String id;
 
@@ -36,4 +37,8 @@ class OcptShootingTimelineSlot {
     required this.anchorSlotId,
     required this.blocks,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, anchorEdge, anchorMinute, anchorSlotId, blocks];
 }

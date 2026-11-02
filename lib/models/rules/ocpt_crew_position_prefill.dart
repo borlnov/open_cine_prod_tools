@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/ocpt_crew_position_ref.dart';
 
 /// The answer [ocptCrewPositionPrefillOf] gives: what a fresh crew row should be pre-filled with,
 /// and what the picker beside it should offer.
-class OcptCrewPositionPrefill {
+class OcptCrewPositionPrefill extends Equatable {
   /// The position to pre-fill on the row being added, or null when nothing declared is left to
   /// offer.
   final OcptCrewPositionRef? prefill;
@@ -25,6 +26,10 @@ class OcptCrewPositionPrefill {
     required this.promotedPositions,
     required this.takenPositions,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [prefill, promotedPositions, takenPositions];
 }
 
 /// Get the join between the address book and the schedule: `person_positions` says *that* someone

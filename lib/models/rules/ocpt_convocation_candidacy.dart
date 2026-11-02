@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
 
@@ -12,7 +13,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// ([ocptComputeDayConvocations]) — while [roleCandidateId] is what says *which part* they are
 /// being seen for, which two candidacies of one person differ by and a name alone could never tell
 /// apart.
-class OcptConvocationCandidacy {
+class OcptConvocationCandidacy extends Equatable {
   /// The `role_candidates` row being seen — somebody, for a part.
   final String roleCandidateId;
 
@@ -21,4 +22,8 @@ class OcptConvocationCandidacy {
 
   /// Build a candidacy to hang off an [OcptConvocationAudition].
   const OcptConvocationCandidacy({required this.roleCandidateId, required this.personId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [roleCandidateId, personId];
 }

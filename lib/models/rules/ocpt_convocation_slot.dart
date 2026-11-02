@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
@@ -20,7 +21,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// **A candidate is the one exception, and is not named here at all**: somebody seen for a part is
 /// linked to the audition block that sees them rather than to the unit
 /// ([OcptConvocationAudition], ADR 0024).
-class OcptConvocationSlot {
+class OcptConvocationSlot extends Equatable {
   /// The slot's own id (`shooting_slots.id`), echoed back on every [OcptDayConvocation.slotIds]
   /// that includes it.
   final String id;
@@ -90,4 +91,20 @@ class OcptConvocationSlot {
     required this.guestPersonIds,
     required this.guestFreeNames,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    id,
+    startMinute,
+    endMinute,
+    shootingStartMinute,
+    shootingEndMinute,
+    filmingStartMinute,
+    filmingEndMinute,
+    personIds,
+    uncastRoleIds,
+    guestPersonIds,
+    guestFreeNames,
+  ];
 }

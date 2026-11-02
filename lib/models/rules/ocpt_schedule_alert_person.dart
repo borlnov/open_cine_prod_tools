@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_unavailability.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 
 /// One person of the address book, reduced to what rules 1 and 9 need about a human: their own
 /// [unavailabilities] and their recorded [maxDailyPresenceMinutes].
-class OcptScheduleAlertPerson {
+class OcptScheduleAlertPerson extends Equatable {
   /// The person's own id, matched against a slot's own [OcptScheduleAlertSlot.personIds].
   final String id;
 
@@ -25,4 +26,8 @@ class OcptScheduleAlertPerson {
     required this.maxDailyPresenceMinutes,
     required this.unavailabilities,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, maxDailyPresenceMinutes, unavailabilities];
 }

@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_person.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
@@ -9,7 +10,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// One person's unavailability window, reduced to what [OcptSchedulePersonUnavailableAlert] needs
 /// — the mirror of `OcptPersonUnavailability`, minus the person's own id (the caller already groups
 /// these under [OcptScheduleAlertPerson]) and the free-text reason, which this file never reads.
-class OcptScheduleAlertUnavailability {
+class OcptScheduleAlertUnavailability extends Equatable {
   /// This window's own id, echoed back on [OcptSchedulePersonUnavailableAlert.unavailabilityId].
   final String id;
 
@@ -39,4 +40,8 @@ class OcptScheduleAlertUnavailability {
     required this.startMinute,
     required this.endMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, startDate, endDate, dayPart, startMinute, endMinute];
 }

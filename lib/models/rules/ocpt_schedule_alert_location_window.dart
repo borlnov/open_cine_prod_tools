@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 
@@ -9,7 +10,7 @@ import 'package:open_cine_prod_tools/types/ocpt_day_part_slot.dart';
 /// needs — the mirror of `OcptLocationAvailability`, minus `OcptLocationAvailabilityKind` (both of
 /// its values count as covering, so the caller need not even resolve which one this is) and its
 /// free-text note.
-class OcptScheduleAlertLocationWindow {
+class OcptScheduleAlertLocationWindow extends Equatable {
   /// The first date this window covers.
   final DateTime startDate;
 
@@ -40,4 +41,8 @@ class OcptScheduleAlertLocationWindow {
     required this.startMinute,
     required this.endMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [startDate, endDate, weekdays, dayPart, startMinute, endMinute];
 }

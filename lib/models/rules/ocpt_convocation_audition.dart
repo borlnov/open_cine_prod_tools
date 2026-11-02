@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_candidacy.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_convocation.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
@@ -14,7 +15,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// applied rather than bent: a candidate is expected at twenty past ten, for twenty minutes, which
 /// is exactly what this block is — so this, and not the unit's whole day, is what their arrival,
 /// their PAT band and their departure are read off.
-class OcptConvocationAudition {
+class OcptConvocationAudition extends Equatable {
   /// The id of the slot this audition sits in — what [OcptDayConvocation.slotIds] echoes back for a
   /// candidate, so a named call sheet can narrow the timetable to the unit they are expected on
   /// exactly as it does for everybody else.
@@ -41,4 +42,8 @@ class OcptConvocationAudition {
     required this.endMinute,
     required this.candidacies,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [slotId, startMinute, endMinute, candidacies];
 }

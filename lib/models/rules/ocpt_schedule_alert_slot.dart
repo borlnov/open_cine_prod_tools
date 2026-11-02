@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 
 /// One slot of a day, already resolved by the caller (`OcptSchedulePlanSnapshot`, never this file,
 /// which knows nothing of drift or of `shooting_slots`/`shooting_slot_crew`/`shooting_slot_cast`)
 /// into exactly what the day-level rules need: its own resolved band, its location, and who is
 /// convoked on it and how.
-class OcptScheduleAlertSlot {
+class OcptScheduleAlertSlot extends Equatable {
   /// The slot's own id (`shooting_slots.id`), echoed back on every alert that names it.
   final String id;
 
@@ -43,4 +44,8 @@ class OcptScheduleAlertSlot {
     required this.personIds,
     required this.convokedRoleIds,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, startMinute, endMinute, locationId, personIds, convokedRoleIds];
 }

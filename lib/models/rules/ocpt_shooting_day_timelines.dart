@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_slot_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
@@ -13,7 +14,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 
 /// The result of chaining every slot of a day, each independently: a day is a **set of parallel
 /// chains**, not one — see [ocptComputeShootingDayTimelines]'s own doc comment.
-class OcptShootingDayTimelines {
+class OcptShootingDayTimelines extends Equatable {
   /// Each slot's own [OcptShootingSlotTimeline], keyed by [OcptShootingTimelineSlot.id].
   final Map<String, OcptShootingSlotTimeline> bySlotId;
 
@@ -55,4 +56,16 @@ class OcptShootingDayTimelines {
     required this.dayStartMinute,
     required this.dayEndMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    bySlotId,
+    entries,
+    overruns,
+    fixedEndMisses,
+    anchorCycles,
+    dayStartMinute,
+    dayEndMinute,
+  ];
 }

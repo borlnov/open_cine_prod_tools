@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_audition.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_convocation_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dart';
@@ -23,7 +24,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_convocations.dar
 /// part and being seen for another are three reasons and one call. So the candidacies the day sees
 /// of them ride along on their own convocation, in [roleCandidateIds], rather than making a second
 /// convocation of their own — which is what stopped anybody receiving two call sheets for one day.
-class OcptDayConvocation {
+class OcptDayConvocation extends Equatable {
   /// The person this convocation is for (crew or cast), or null when another of the four fields
   /// names it instead.
   final String? personId;
@@ -165,4 +166,21 @@ class OcptDayConvocation {
     required this.departureMinute,
     required this.slotIds,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    personId,
+    roleId,
+    guestPersonId,
+    guestFreeName,
+    roleCandidateIds,
+    hasSlotConvocation,
+    arrivalMinute,
+    patStartMinute,
+    patEndMinute,
+    isPatBand,
+    departureMinute,
+    slotIds,
+  ];
 }

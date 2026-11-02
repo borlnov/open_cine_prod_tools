@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
@@ -17,7 +18,7 @@ import 'package:open_cine_prod_tools/types/ocpt_shooting_slot_anchor_edge.dart';
 /// squeezed afterwards to make the plan look like it fits. A schedule that quietly moved the fixed
 /// end to wherever the blocks happened to land would say the studio was booked until a time nobody
 /// agreed to.
-class OcptTimelineFixedEndMiss {
+class OcptTimelineFixedEndMiss extends Equatable {
   /// The [OcptShootingTimelineSlot.id] whose fixed end its own blocks did not land on.
   final String slotId;
 
@@ -33,4 +34,8 @@ class OcptTimelineFixedEndMiss {
     required this.fixedEndMinute,
     required this.actualEndMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [slotId, fixedEndMinute, actualEndMinute];
 }

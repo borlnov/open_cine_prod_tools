@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 
 /// The result of chaining one slot's blocks: every block placed, every anchor that could not be
 /// honoured, and where the slot starts and ends.
-class OcptShootingSlotTimeline {
+class OcptShootingSlotTimeline extends Equatable {
   /// Every block placed, in the order it was given.
   final List<OcptShootingTimelineEntry> entries;
 
@@ -31,4 +32,8 @@ class OcptShootingSlotTimeline {
     required this.startMinute,
     required this.endMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [entries, overruns, startMinute, endMinute];
 }

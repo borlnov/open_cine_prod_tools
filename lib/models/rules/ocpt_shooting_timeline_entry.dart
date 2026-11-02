@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.dart';
 
 /// One block placed on the timeline: where it starts, where it ends, and how long it actually ran
 /// for — which is not always [OcptShootingTimelineBlock.durationMinutes], since that may have been
 /// null.
-class OcptShootingTimelineEntry {
+class OcptShootingTimelineEntry extends Equatable {
   /// The [OcptShootingTimelineBlock.id] this entry places.
   final String blockId;
 
@@ -30,4 +31,8 @@ class OcptShootingTimelineEntry {
     required this.endMinute,
     required this.durationMinutes,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [blockId, startMinute, endMinute, durationMinutes];
 }

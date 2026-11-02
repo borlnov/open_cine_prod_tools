@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.dart';
 
 /// A block whose pinned [OcptShootingTimelineBlock.anchorMinute] the chain could not honour without
@@ -12,7 +13,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_block.d
 /// starts at exactly [anchorMinute], the way every anchored block does, and this is the record that
 /// says the plan no longer fits there. A schedule that quietly absorbed the overlap would read as
 /// fine when it isn't; this is what lets the day view show the block in red instead.
-class OcptTimelineOverrun {
+class OcptTimelineOverrun extends Equatable {
   /// The [OcptShootingTimelineBlock.id] whose anchor could not be honoured.
   final String blockId;
 
@@ -28,4 +29,8 @@ class OcptTimelineOverrun {
     required this.reachedMinute,
     required this.anchorMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [blockId, reachedMinute, anchorMinute];
 }

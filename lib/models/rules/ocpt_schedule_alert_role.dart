@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
 
 /// One role of the cast, reduced to what [OcptScheduleRoleUncastAlert] needs: whether it has an
 /// actor.
-class OcptScheduleAlertRole {
+class OcptScheduleAlertRole extends Equatable {
   /// The role's own id.
   final String id;
 
@@ -15,4 +16,8 @@ class OcptScheduleAlertRole {
 
   /// Build a role to feed to [ocptComputeScheduleAlerts].
   const OcptScheduleAlertRole({required this.id, required this.personId});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, personId];
 }

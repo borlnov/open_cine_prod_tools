@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_day_timeline.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_shooting_timeline_entry.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
@@ -11,7 +12,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 /// itself knows nothing of drift or of the schedule mode's own enums, on purpose: it is the one
 /// place the chaining rule (ADR 0015, as amended) is implemented, and it must stay reachable from
 /// a plain unit test.
-class OcptShootingTimelineBlock {
+class OcptShootingTimelineBlock extends Equatable {
   /// The block's own id (`shooting_day_blocks.id`), echoed back on every
   /// [OcptShootingTimelineEntry] and [OcptTimelineOverrun] that concerns it, so a caller can join
   /// the result back onto its rows.
@@ -37,4 +38,8 @@ class OcptShootingTimelineBlock {
     this.fallbackDurationMinutes,
     this.anchorMinute,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, durationMinutes, fallbackDurationMinutes, anchorMinute];
 }

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import 'dart:math' as math;
+import 'package:equatable/equatable.dart';
 
 /// How many minutes a degree of longitude is worth in solar time: the Earth turns 360° in 1440
 /// minutes, so one degree is four.
@@ -41,7 +42,7 @@ const double _ocptAstronomicalZenithDegrees = 108;
 /// anywhere near a pole to lose just its astronomical twilight for a few weeks around its own
 /// summer solstice: Paris (48.85°N) already does. A null figure means exactly that this one does
 /// not exist on this day at this place; a caller prints nothing rather than a plausible wrong time.
-class OcptSunTimes {
+class OcptSunTimes extends Equatable {
   /// When the sun's upper edge crosses the horizon in the morning, or null above the polar circle
   /// in summer (the sun never sets the night before) or in winter (it never rises at all).
   final int? sunriseMinute;
@@ -89,6 +90,20 @@ class OcptSunTimes {
     required this.astronomicalDuskMinute,
     required this.utcOffsetUsed,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [
+    sunriseMinute,
+    sunsetMinute,
+    civilDawnMinute,
+    civilDuskMinute,
+    nauticalDawnMinute,
+    nauticalDuskMinute,
+    astronomicalDawnMinute,
+    astronomicalDuskMinute,
+    utcOffsetUsed,
+  ];
 }
 
 /// Compute [OcptSunTimes] for [date] at [latitudeDegrees]/[longitudeDegrees] — positive north and

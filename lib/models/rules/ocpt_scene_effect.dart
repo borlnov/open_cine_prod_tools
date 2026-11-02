@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_place.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_scene_time_of_day.dart';
 import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
@@ -14,7 +15,7 @@ import 'package:open_cine_prod_tools/types/ocpt_scene_effect_category.dart';
 /// very same heading by the very same function, but the two answer different questions: one prints
 /// what the heading says, the other says what the app can safely do with it (a shot placed on a
 /// day and tinted by effect, chiefly — `ocptSceneEffectCategoryOf` below).
-class OcptSceneEffect {
+class OcptSceneEffect extends Equatable {
   /// Nothing to report: the heading was null, or carried no `<place> - <time of day>` split at all.
   static const OcptSceneEffect none = OcptSceneEffect._();
 
@@ -33,6 +34,10 @@ class OcptSceneEffect {
 
   /// Private constructor behind [none], so every "nothing to report" instance is the same constant.
   const OcptSceneEffect._() : printedEffect = null, place = null, timeOfDay = null;
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [printedEffect, place, timeOfDay];
 }
 
 /// Get [heading]'s own interior/exterior half and time-of-day half, joined as the reference call

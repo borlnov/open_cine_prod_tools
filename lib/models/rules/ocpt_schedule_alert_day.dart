@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_called_role.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alert_slot.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_schedule_alerts.dart';
@@ -10,7 +11,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_fixed_end_miss.d
 import 'package:open_cine_prod_tools/models/rules/ocpt_timeline_overrun.dart';
 
 /// One day, joined by the caller into everything the ten rules read about it.
-class OcptScheduleAlertDay {
+class OcptScheduleAlertDay extends Equatable {
   /// This day's own id.
   final String id;
 
@@ -42,4 +43,8 @@ class OcptScheduleAlertDay {
     required this.fixedEndMisses,
     required this.calledRoles,
   });
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, date, slots, overruns, fixedEndMisses, calledRoles];
 }

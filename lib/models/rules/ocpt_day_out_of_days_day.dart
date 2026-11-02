@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import 'package:equatable/equatable.dart';
 import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days.dart';
 
 /// One day of the printed range, as fed to [ocptComputeDayOutOfDays]: its own id and the roles it
@@ -11,7 +12,7 @@ import 'package:open_cine_prod_tools/models/rules/ocpt_day_out_of_days.dart';
 /// uncast role is exactly as scheduled as a cast one, and recasting must not redraw this table. It
 /// is a fact about the day as a whole, joined across every one of its slots by the caller — this
 /// file knows nothing of slots, of `shooting_slot_cast` or of drift.
-class OcptDayOutOfDaysDay {
+class OcptDayOutOfDaysDay extends Equatable {
   /// The day's own id (`shooting_days.id`).
   final String id;
 
@@ -20,4 +21,8 @@ class OcptDayOutOfDaysDay {
 
   /// Class constructor
   const OcptDayOutOfDaysDay({required this.id, required this.convokedRoleIds});
+
+  /// List the fields that decide equality.
+  @override
+  List<Object?> get props => [id, convokedRoleIds];
 }
