@@ -48,9 +48,8 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
   /// Whether the enrolment secret is currently shown in the clear.
   bool _isSecretVisible = false;
 
-  /// The relay address's own validation message, or null while it hasn't been submitted invalid
-  /// yet.
-  String? _relayAddressError;
+  /// Whether the relay address was last submitted invalid, and has not been edited since.
+  bool _isRelayAddressInvalid = false;
 
   /// Build the sharing configure view as a [Center].
   @override
@@ -81,13 +80,15 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
                         decoration: InputDecoration(
                           labelText: tr.sharingRelayAddressLabel,
                           hintText: tr.sharingRelayAddressHint,
-                          errorText: _relayAddressError,
+                          errorText: _isRelayAddressInvalid
+                              ? tr.sharingRelayAddressInvalidMessage
+                              : null,
                         ),
                         keyboardType: TextInputType.url,
                         enabled: !widget.isPairing,
                         onChanged: (_) {
-                          if (_relayAddressError != null) {
-                            setState(() => _relayAddressError = null);
+                          if (_isRelayAddressInvalid) {
+                            setState(() => _isRelayAddressInvalid = false);
                           }
                         },
                       ),
@@ -152,18 +153,18 @@ class _OcptSharingConfigureViewState extends State<OcptSharingConfigureView> {
     );
   }
 
-  /// Validate the relay address, showing [_relayAddressError] and dispatching nothing when it
+  /// Validate the relay address, showing the invalid-address message and dispatching nothing when it
   /// isn't a well-formed absolute URI, otherwise calling
   /// [OcptSharingConfigureView.onPairRequested].
   void _onPairPressed() {
     final text = _relayAddressController.text.trim();
     final uri = Uri.tryParse(text);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      setState(() => _relayAddressError = Tr.of(context).sharingRelayAddressInvalidMessage);
+      setState(() => _isRelayAddressInvalid = true);
       return;
     }
 
-    setState(() => _relayAddressError = null);
+    setState(() => _isRelayAddressInvalid = false);
     widget.onPairRequested(uri, _enrolmentSecretController.text);
   }
 

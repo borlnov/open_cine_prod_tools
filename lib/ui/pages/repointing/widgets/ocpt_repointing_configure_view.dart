@@ -55,9 +55,8 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
   /// Whether the enrolment secret is currently shown in the clear.
   bool _isSecretVisible = false;
 
-  /// The relay address's own validation message, or null while it hasn't been submitted invalid
-  /// yet.
-  String? _relayAddressError;
+  /// Whether the relay address was last submitted invalid, and has not been edited since.
+  bool _isRelayAddressInvalid = false;
 
   /// Whether the camera scanner is currently shown in place of the manual form — mobile only, the
   /// first operator on a desktop always types the two fields.
@@ -114,13 +113,15 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
                           decoration: InputDecoration(
                             labelText: tr.repointingRelayAddressLabel,
                             hintText: tr.repointingRelayAddressHint,
-                            errorText: _relayAddressError,
+                            errorText: _isRelayAddressInvalid
+                                ? tr.repointingRelayAddressInvalidMessage
+                                : null,
                           ),
                           keyboardType: TextInputType.url,
                           enabled: !widget.isRepointing,
                           onChanged: (_) {
-                            if (_relayAddressError != null) {
-                              setState(() => _relayAddressError = null);
+                            if (_isRelayAddressInvalid) {
+                              setState(() => _isRelayAddressInvalid = false);
                             }
                           },
                         ),
@@ -173,18 +174,18 @@ class _OcptRepointingConfigureViewState extends State<OcptRepointingConfigureVie
     );
   }
 
-  /// Validate the relay address, showing [_relayAddressError] and dispatching nothing when it
+  /// Validate the relay address, showing the invalid-address message and dispatching nothing when it
   /// isn't a well-formed absolute URI, otherwise calling
   /// [OcptRepointingConfigureView.onRepointRequested].
   void _onSubmitPressed() {
     final text = _relayAddressController.text.trim();
     final uri = Uri.tryParse(text);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      setState(() => _relayAddressError = Tr.of(context).repointingRelayAddressInvalidMessage);
+      setState(() => _isRelayAddressInvalid = true);
       return;
     }
 
-    setState(() => _relayAddressError = null);
+    setState(() => _isRelayAddressInvalid = false);
     widget.onRepointRequested(uri, _enrolmentSecretController.text);
   }
 

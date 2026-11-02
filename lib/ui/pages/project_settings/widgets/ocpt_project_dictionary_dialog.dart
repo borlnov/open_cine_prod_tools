@@ -72,9 +72,9 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   /// The add field's own controller.
   final _addController = TextEditingController();
 
-  /// The add field's current validation error (a duplicate word), or null. Cleared on the field's
+  /// Whether the add field's current text was refused as a duplicate word. Cleared on the field's
   /// very next keystroke, exactly as a fresh attempt deserves a fresh read.
-  String? _addError;
+  bool _isAddDuplicate = false;
 
   /// The word whose row is currently asking `Remove?` in place of itself, or null while none is —
   /// a single field is enough to guarantee only one row ever asks at a time.
@@ -136,7 +136,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
               const SizedBox(height: 12),
               _OcptDictionaryAddField(
                 controller: _addController,
-                errorText: _addError,
+                errorText: _isAddDuplicate ? tr.projectDictionaryDuplicateError : null,
                 onSubmitted: _addWord,
               ),
             ],
@@ -155,8 +155,8 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   /// Clear a standing duplicate error the moment the add field is touched again — the user is
   /// mid-correction, and the stale error would otherwise outlive the very keystroke fixing it.
   void _onAddTextChanged() {
-    if (_addError != null) {
-      setState(() => _addError = null);
+    if (_isAddDuplicate) {
+      setState(() => _isAddDuplicate = false);
     }
   }
 
@@ -169,7 +169,7 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
   }
 
   /// Add the add field's current text to the working copy, in its sorted place, and clear the field
-  /// — or refuse it, silently for a blank entry, with [_addError] for a case-insensitive
+  /// — or refuse it, silently for a blank entry, with [_isAddDuplicate] for a case-insensitive
   /// duplicate.
   void _addWord() {
     final trimmed = _addController.text.trim();
@@ -179,14 +179,14 @@ class _OcptProjectDictionaryDialogState extends State<OcptProjectDictionaryDialo
 
     final lowered = trimmed.toLowerCase();
     if (_words.any((word) => word.toLowerCase() == lowered)) {
-      setState(() => _addError = Tr.of(context).projectDictionaryDuplicateError);
+      setState(() => _isAddDuplicate = true);
       return;
     }
 
     setState(() {
       _words = _sorted([..._words, trimmed]);
       _addController.clear();
-      _addError = null;
+      _isAddDuplicate = false;
     });
   }
 
