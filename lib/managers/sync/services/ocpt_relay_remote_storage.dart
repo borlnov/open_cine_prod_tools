@@ -7,9 +7,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:act_dart_result/act_dart_result.dart';
-import 'package:act_foundation/act_foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
 import 'package:open_cine_prod_tools/models/sync/ocpt_sync_transport_failure.dart';
 import 'package:open_cine_prod_tools/types/ocpt_remote_storage_status.dart';
@@ -48,7 +48,7 @@ typedef OcptWebSocketConnector = WebSocketChannel Function(Uri uri);
 /// [enrolmentSecret] is set (see that field's own doc comment). A non-2xx response is decoded as
 /// [OcptSyncError] and answered as [OcptRemoteStorageStatus.rejected], except the snapshot route's
 /// `404`, which [fetchLatestSnapshot] maps to `null` per its own contract.
-class OcptRelayRemoteStorage implements OcptRemoteStorage {
+class OcptRelayRemoteStorage extends AbsOcptService implements OcptRemoteStorage {
   /// The name of the HTTP header carrying the bearer token.
   static const _authorizationHeader = 'Authorization';
 
@@ -94,9 +94,6 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
 
   /// How long [newWorkStream] waits after a dropped socket before reconnecting.
   final Duration reconnectDelay;
-
-  /// The logger this transport writes to: a sub-logger built by `OcptSyncManager`.
-  final MixinActLogger _logger;
 
   /// The HTTP client every request goes through.
   final http.Client _httpClient;
@@ -189,7 +186,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
   /// its default is a sensible value for a real relay, and a test passes a short one so a
   /// regression in the reconnect path fails fast instead of timing out.
   OcptRelayRemoteStorage({
-    required MixinActLogger logger,
+    required super.logger,
     required this.relayBaseUri,
     required this.projectId,
     required this.token,
@@ -198,7 +195,6 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     OcptWebSocketConnector? webSocketConnector,
     this.reconnectDelay = const Duration(seconds: 2),
   }) : _socketWanted = false,
-       _logger = logger,
        _httpClient = httpClient ?? http.Client(),
        _ownsHttpClient = httpClient == null,
        // A bearer header on a WebSocket handshake is only possible because the default connector
@@ -349,7 +345,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
       opened = _webSocketConnector(_eventsUri());
     } on Object catch (error, stackTrace) {
       // The error of a failed connection names the relay's address, which is not logged.
-      _logger.w(
+      logger.w(
         'The relay events socket could not be opened, retrying: ${error.runtimeType}',
         null,
         stackTrace,
@@ -396,7 +392,7 @@ class OcptRelayRemoteStorage implements OcptRemoteStorage {
     }
     _activeSocket = null;
     _activeSocketSubscription = null;
-    _logger.d('The relay events socket went down, reconnecting');
+    logger.d('The relay events socket went down, reconnecting');
     _scheduleReconnect();
   }
 

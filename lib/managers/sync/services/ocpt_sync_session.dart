@@ -6,8 +6,8 @@ import 'dart:async';
 
 import 'package:act_dart_result/act_dart_result.dart';
 import 'package:act_dart_value_keeper/act_dart_value_keeper.dart';
-import 'package:act_foundation/act_foundation.dart';
 import 'package:ocpt_sync_protocol/ocpt_sync_protocol.dart';
+import 'package:open_cine_prod_tools/managers/abs_ocpt_service.dart';
 import 'package:open_cine_prod_tools/managers/ocpt_diagnostics_manager.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_changeset_service.dart';
 import 'package:open_cine_prod_tools/managers/sync/services/ocpt_remote_storage.dart';
@@ -61,7 +61,7 @@ const ocptDefaultSyncPushInterval = Duration(seconds: 60);
 /// Every [OcptScreenplayMergeConflict] any run has raised so far is kept, in order, in [conflicts]
 /// — the one conflict a user is ever asked to resolve, for a screenplay conflict view to read. This
 /// class only collects them; it builds no UI of its own.
-class OcptSyncSession {
+class OcptSyncSession extends AbsOcptService {
   /// The project this session keeps in sync.
   final String projectId;
 
@@ -88,9 +88,6 @@ class OcptSyncSession {
 
   /// How often this session runs [OcptChangesetService.syncOnce] on its own timer.
   final Duration pushInterval;
-
-  /// The logger this session writes to: a sub-logger built by the sync manager.
-  final MixinActLogger _logger;
 
   /// The current status, exposed through [status] and [statusStream].
   ///
@@ -134,7 +131,7 @@ class OcptSyncSession {
   /// [pushInterval] defaults to [ocptDefaultSyncPushInterval]; a test hands in a much shorter one
   /// so its own timer-driven assertions do not have to wait out the real default.
   OcptSyncSession({
-    required MixinActLogger logger,
+    required super.logger,
     required this.projectId,
     required this.database,
     required this.deviceId,
@@ -148,8 +145,7 @@ class OcptSyncSession {
        ),
        _isStatusClosed = false,
        _conflicts = [],
-       _isRunning = false,
-       _logger = logger;
+       _isRunning = false;
 
   /// Run an initial sync, then subscribe to [storage]'s [OcptRemoteStorage.newWorkStream] and start
   /// the [pushInterval] timer.
@@ -259,7 +255,7 @@ class OcptSyncSession {
     StackTrace? stackTrace, {
     required String failureLabel,
   }) async {
-    _logger.w('$failureLabel for project $projectId: ${error.runtimeType}', null, stackTrace);
+    logger.w('$failureLabel for project $projectId: ${error.runtimeType}', null, stackTrace);
     _logOfflineCause(error);
     _setStatus(OcptSyncStatusOffline(pendingEditCount: await _pendingEditCountOrNull()));
   }
@@ -276,7 +272,7 @@ class OcptSyncSession {
         deviceId: deviceId,
       );
     } catch (error, stackTrace) {
-      _logger.w(
+      logger.w(
         'Could not compute the pending edit count for project $projectId: ${error.runtimeType}',
         null,
         stackTrace,
@@ -296,7 +292,7 @@ class OcptSyncSession {
 
   /// Record the [error] that has just knocked this session offline into the device-local
   /// diagnostics buffer — the message alone, since the stack trace stays in the file log
-  /// ([_logger]) — but **only on the way into** offline, not while it stays there. The offline
+  /// ([logger]) — but **only on the way into** offline, not while it stays there. The offline
   /// status itself logs every push interval it fails on; its cause is logged once, so the
   /// diagnostics view names *why* syncing stopped (an unreachable relay, a closed database, …)
   /// without the reason scrolling past on every retry.
