@@ -47,7 +47,8 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatelessWidget {
         optionsOf: OcptDayOutOfDaysExportOptions.new,
       );
 
-  /// Show the dialog and return the [OcptDayOutOfDaysExportOptions] the user applied, or null if they cancelled it.
+  /// Show the dialog and return the [OcptDayOutOfDaysExportOptions]
+  /// the user applied, or null if they cancelled it.
   static Future<OcptDayOutOfDaysExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,

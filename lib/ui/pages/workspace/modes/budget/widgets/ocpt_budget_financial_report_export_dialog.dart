@@ -39,8 +39,8 @@ class OcptBudgetFinancialReportExportDialog extends StatelessWidget {
         optionsOf: OcptBudgetFinancialReportExportOptions.new,
       );
 
-  /// Show the dialog and return the [OcptBudgetFinancialReportExportOptions] the user applied, or null if
-  /// they cancelled it.
+  /// Show the dialog and return the [OcptBudgetFinancialReportExportOptions]
+  /// the user applied, or null if they cancelled it.
   static Future<OcptBudgetFinancialReportExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,

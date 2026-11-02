@@ -46,7 +46,8 @@ class OcptScheduleOneLineScheduleExportDialog extends StatelessWidget {
         optionsOf: OcptOneLineScheduleExportOptions.new,
       );
 
-  /// Show the dialog and return the [OcptOneLineScheduleExportOptions] the user applied, or null if they cancelled it.
+  /// Show the dialog and return the [OcptOneLineScheduleExportOptions]
+  /// the user applied, or null if they cancelled it.
   static Future<OcptOneLineScheduleExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,
