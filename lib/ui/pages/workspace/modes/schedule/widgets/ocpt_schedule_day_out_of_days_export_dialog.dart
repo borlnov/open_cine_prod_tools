@@ -2,16 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:act_global_manager/act_global_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:open_cine_prod_tools/constants/ocpt_theme.dart' as ocpt_theme;
 import 'package:open_cine_prod_tools/generated/l10n.dart';
-import 'package:open_cine_prod_tools/managers/ocpt_router_manager.dart';
 import 'package:open_cine_prod_tools/models/ocpt_day_out_of_days_export_options.dart';
 import 'package:open_cine_prod_tools/models/ocpt_page_setup.dart';
 import 'package:open_cine_prod_tools/models/ocpt_shooting_day.dart';
-import 'package:open_cine_prod_tools/types/ocpt_page_format.dart';
 import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_day_selection_list.dart';
+import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/ocpt_schedule_days_pdf_export_dialog.dart';
 
 /// A dialog letting the user pick the one-off options a *Day Out of Days* export runs with: the
 /// page format, the title page, and which days the table crosses.
@@ -24,7 +21,7 @@ import 'package:open_cine_prod_tools/ui/pages/workspace/modes/schedule/widgets/o
 ///
 /// Use [show] to display it and get back the resulting [OcptDayOutOfDaysExportOptions], or null if
 /// the user cancelled.
-class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
+class OcptScheduleDayOutOfDaysExportDialog extends StatelessWidget {
   /// The page setup the schedule's PDF exports are typeset with, used to pre-fill the format
   /// dropdown and to supply the margins carried through unchanged into the resulting options.
   final OcptPageSetup current;
@@ -39,14 +36,18 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
     super.key,
   });
 
-  /// Create the [_OcptScheduleDayOutOfDaysExportDialogState] holding the state of the schedule day
-  /// out of days export dialog.
+  /// Build the dialog as an [OcptScheduleDaysPdfExportDialog] building a
+  /// [OcptDayOutOfDaysExportOptions].
   @override
-  State<OcptScheduleDayOutOfDaysExportDialog> createState() =>
-      _OcptScheduleDayOutOfDaysExportDialogState();
+  Widget build(BuildContext context) =>
+      OcptScheduleDaysPdfExportDialog<OcptDayOutOfDaysExportOptions>(
+        title: Tr.of(context).scheduleExportDayOutOfDaysDialogTitle,
+        current: current,
+        days: days,
+        optionsOf: OcptDayOutOfDaysExportOptions.new,
+      );
 
-  /// Show the dialog and return the [OcptDayOutOfDaysExportOptions] the user applied, or null if
-  /// they cancelled it.
+  /// Show the dialog and return the [OcptDayOutOfDaysExportOptions] the user applied, or null if they cancelled it.
   static Future<OcptDayOutOfDaysExportOptions?> show(
     BuildContext context, {
     required OcptPageSetup current,
@@ -55,106 +56,4 @@ class OcptScheduleDayOutOfDaysExportDialog extends StatefulWidget {
     context: context,
     builder: (context) => OcptScheduleDayOutOfDaysExportDialog(current: current, days: days),
   );
-}
-
-/// The state of [OcptScheduleDayOutOfDaysExportDialog].
-class _OcptScheduleDayOutOfDaysExportDialogState
-    extends State<OcptScheduleDayOutOfDaysExportDialog> {
-  /// The page format currently selected in the dropdown.
-  late OcptPageFormat _selectedFormat;
-
-  /// The ids of the days currently ticked.
-  late Set<String> _selectedDayIds;
-
-  /// Whether the title page will be included in the exported document.
-  bool _includeTitlePage = true;
-
-  /// Seed the selection from the settings the dialog was opened with.
-  @override
-  void initState() {
-    super.initState();
-    _selectedFormat = widget.current.format;
-    _selectedDayIds = widget.days.map((day) => day.id).toSet();
-  }
-
-  /// Build the schedule day out of days export dialog as an [AlertDialog].
-  @override
-  Widget build(BuildContext context) {
-    final tr = Tr.of(context);
-
-    return AlertDialog(
-      title: Text(tr.scheduleExportDayOutOfDaysDialogTitle),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<OcptPageFormat>(
-              initialValue: _selectedFormat,
-              decoration: InputDecoration(labelText: tr.editorPageSetupPageSizeLabel),
-              mouseCursor: ocpt_theme.ocptClickableCursor,
-              items: [
-                for (final format in OcptPageFormat.values)
-                  DropdownMenuItem(value: format, child: Text(_formatLabel(tr, format))),
-              ],
-              onChanged: (format) {
-                if (format == null) {
-                  return;
-                }
-                setState(() => _selectedFormat = format);
-              },
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _includeTitlePage,
-              title: Text(tr.editorExportPdfTitlePageLabel),
-              onChanged: (value) => setState(() => _includeTitlePage = value ?? true),
-            ),
-            const SizedBox(height: 8),
-            OcptScheduleDaySelectionList(
-              days: widget.days,
-              selectedDayIds: _selectedDayIds,
-              onChanged: (next) => setState(() => _selectedDayIds = next),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => globalGetIt().get<OcptRouterManager>().pop(),
-          child: Text(tr.editorPageSetupCancelAction),
-        ),
-        FilledButton(onPressed: _submit, child: Text(tr.editorExportPdfExportAction)),
-      ],
-    );
-  }
-
-  /// Get the localized label of [format].
-  String _formatLabel(Tr tr, OcptPageFormat format) => switch (format) {
-    OcptPageFormat.usLetter => tr.editorPageSetupUsLetterOption,
-    OcptPageFormat.a4 => tr.editorPageSetupA4Option,
-  };
-
-  /// Pop the dialog returning the resulting [OcptDayOutOfDaysExportOptions], the selected days in
-  /// [OcptScheduleDayOutOfDaysExportDialog.days]' own order rather than selection order — that
-  /// order is what the table's own first and last convoked days are read against.
-  ///
-  /// The dialog is dismissed through the router manager (navigation only via the router
-  /// manager), whose pop delivers the new options back to the
-  /// [OcptScheduleDayOutOfDaysExportDialog.show] caller. Like the shooting plan's own dialog and
-  /// unlike the two call sheet ones, it never disables its own export button while no day is
-  /// ticked: an empty selection still produces a readable document, which
-  /// `OcptDayOutOfDaysPdfService` already handles as a one-note page.
-  void _submit() {
-    final options = OcptDayOutOfDaysExportOptions(
-      format: _selectedFormat,
-      margins: widget.current.margins,
-      dayIds: [
-        for (final day in widget.days)
-          if (_selectedDayIds.contains(day.id)) day.id,
-      ],
-      includeTitlePage: _includeTitlePage,
-    );
-    globalGetIt().get<OcptRouterManager>().pop<OcptDayOutOfDaysExportOptions>(options);
-  }
 }
